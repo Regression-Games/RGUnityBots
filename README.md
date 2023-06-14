@@ -18,7 +18,7 @@ What is included in this package ?
 
 - Regression Games In Game Overlay
   - Allows starting and stopping Regression Games Bots to test your game
-  - To add this to your project, add the Runtime/Prefabs/RGOverlayCanvas.prefab to your existing scene(s).  This object will stay active across scenes, so you should normally add this to your first main menu scene.
+  - To add this to your project, add the Runtime/Prefabs/RGOverlayCanvas.prefab to your existing scene(s).  This object will stay active across scenes, so you should normally add this to your first main menu scene.  Note that this object must be added for Regression Games integration to work.  Its visiblity can be hidden using the project settings.
 
 - Regression Games Unity Project Settings
   - Edit/Project Settings/Regression Games
@@ -28,12 +28,30 @@ What is included in this package ?
 
 
 
-How to integrate the package with your game.
+How to integrate the package with your game
 TODO: Write these with code examples
 - RGState on GameObjects
 - Actions on GameObjects
 - Defining custom replay models based on your RGState types.  If you don't, all models will be a default capsule model
-  - Update Editor/Prefabs/RGReplayObject.Object.Model.ReplayModelManager(script) to add character type name to Prefab mappings.  
+  - Update Editor/Prefabs/RGReplayObject.Object.Model.ReplayModelManager(script) to add character type name to Prefab mappings for each GameObject that is implemented with RGState. (TODO: Maybe in the future we update this to be part of the RGState itself?). 
+- Starting Regression Games Bots on match start
+
+  ``` 
+RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+if (rgSettings.GetUseSystemSettings())
+{
+    int[] botIds = rgSettings.GetBotsSelected().ToArray();
+    int errorCount = 0;
+    Task.WhenAll(botIds.Select(botId =>
+        RGServiceManager.GetInstance()
+            ?.QueueInstantBot((long)botId, (botInstance) => { }, () => errorCount++)));
+    if (errorCount > 0)
+    {
+        Debug.Log($"Error starting {errorCount} of {theBotCount} RG bots, starting without them");
+    }
+}
+  ```
+ 
 
 
 Writing a Regression Games Bot
