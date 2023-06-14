@@ -9,7 +9,7 @@ using UnityEngine.Networking;
 namespace RegressionGames
 {
     public class RGServiceManager : MonoBehaviour
-    {
+    { // not really a monobehaviour.. but we make one of these on an object
 
         public static readonly string RG_UNITY_AUTH_TOKEN = Guid.NewGuid().ToString();
 

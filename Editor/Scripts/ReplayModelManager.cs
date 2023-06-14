@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using RegressionGames.Editor;
+using UnityEditor;
 using UnityEngine;
 
 namespace RegressionGames
@@ -8,10 +10,11 @@ namespace RegressionGames
     {
         [SerializeField] private NamedModel[] models = new NamedModel[0];
 
-#if UNITY_EDITOR
+
 
         public GameObject getModelPrefabForType(string type, string charType)
         {
+#if UNITY_EDITOR
             NamedModel nm;
 
             if (charType != null)
@@ -22,11 +25,17 @@ namespace RegressionGames
 
             nm = models.FirstOrDefault(model => model.characterType == type);
             if (nm.characterType != null) return nm.GFXprefab;
+                
+            GameObject defaultPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"{RGBotReplayWindow.PREFAB_PATH}/DefaultModel.prefab");
 
-            return null;
+            // could be null
+            return defaultPrefab;
+#endif
+            
         }
 
-#endif
+
 
         [Serializable]
         public struct NamedModel

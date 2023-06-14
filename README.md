@@ -1,9 +1,52 @@
-TODO: This is the readme for how to integrate the RG Unity Package into your project.
+This is the readme for how to integrate the Regression Games Unity Bots Package into your project.
 
-Settings for connecting to Regression Games
 
-RGState on Objects
-Actions on Objects
+Installing the Package
 
-Sample of RGBot
-Sample of Button
+1. Open your project in the Unity Editor
+2. Open the Window -> Package Manager Window
+3. Add the Regression Games Uinty Bots package to your project
+  - Note: This package utilizes TextMeshPro.  If you are prompted to add TextMeshPro assets to your project by Unity, please add them.
+
+
+
+What is included in this package ?
+
+- Regression Games Bot Replay Window
+  - This window allows replaying bot runs in your Unity editor so you can visualize the objects in the scene and their actions
+  - Note: Using this window will automatically add assets to the current scene to help visualize the replay.  These assets will automatically be removed on Play, Build, scene save, etc so you should not need to worry about managing them.
+
+- Regression Games In Game Overlay
+  - Allows starting and stopping Regression Games Bots to test your game
+  - To add this to your project, add the Runtime/Prefabs/RGOverlayCanvas.prefab to your existing scene(s).  This object will stay active across scenes, so you should normally add this to your first main menu scene.
+
+- Regression Games Unity Project Settings
+  - Edit/Project Settings/Regression Games
+  - Configure your username/password for connecting to regression games
+  - Optionally enable bots that auto load as match players for your game
+  - Enable/Disable the Regression Games overlay being visible
+
+
+
+How to integrate the package with your game.
+TODO: Write these with code examples
+- RGState on GameObjects
+- Actions on GameObjects
+- Defining custom replay models based on your RGState types.  If you don't, all models will be a default capsule model
+  - Update Editor/Prefabs/RGReplayObject.Object.Model.ReplayModelManager(script) to add character type name to Prefab mappings.  
+
+
+Writing a Regression Games Bot
+- TODO: Fill in this section about interpreting state, sending actions, adding validations
+- TODO: Sequence Diagram for regression games bot lifecycle
+
+
+Sample Bots
+TODO: Provide these samples + project to use them in and/or context
+- Link to sample player bot with actions
+- Link to Sample of Button pusing bot
+
+
+Using the Regression Games Bot Replay Window
+TODO: Write this section
+- TODO: Add validations to the payload and put them into the replay

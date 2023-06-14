@@ -62,19 +62,17 @@ namespace RegressionGames.Editor
         {
             foreach (var gameStateObject in tickData.gameState)
             {
-                dynamic jsonObject = (JObject)gameStateObject.Value;
-/* TODO 
-                long playerId = jsonObject.id;
+                JObject jsonObject = (JObject)gameStateObject.Value;
+                long playerId = jsonObject["id"].Value<long>();
 
                 var tickInfo = populateTickInfoDataForPlayer(tickNumber, playerId);
 
                 tickInfo.state = jsonObject;
-                populateReplayDataForPlayer(playerId, (string?)jsonObject.type);
-                if (jsonObject.position != null)
-                    tickInfo.position = new Vector3((float)jsonObject.position.x,
-                        (float)jsonObject.position.y,
-                        (float)jsonObject.position.z);
-                        */
+                populateReplayDataForPlayer(playerId, jsonObject["type"]?.Value<string>());
+                if (jsonObject["position"] != null)
+                    tickInfo.position = new Vector3(jsonObject["position"]["x"].Value<float>(),
+                        jsonObject["position"]["y"].Value<float>(),
+                        jsonObject["position"]["z"].Value<float>());
             }
         }
 
@@ -138,7 +136,7 @@ namespace RegressionGames.Editor
     {
         public RGActionRequest[] actions = Array.Empty<RGActionRequest>();
         [CanBeNull] public Vector3? position;
-        public dynamic state;
+        public JObject state;
     }
 
     [Serializable]
@@ -152,7 +150,7 @@ namespace RegressionGames.Editor
         [CanBeNull]
         public static RGAgentDataForTick FromReplayData(RGAgentReplayData data, int tickNumber)
         {
-            var ti = tickNumber <= data.tickInfo.Count ? data.tickInfo[tickNumber - 1] : null;
+            var ti = tickNumber > 0 && tickNumber <= data.tickInfo.Count ? data.tickInfo[tickNumber - 1] : null;
             var result = new RGAgentDataForTick();
             result.data = data;
             result.tickInfo = ti;

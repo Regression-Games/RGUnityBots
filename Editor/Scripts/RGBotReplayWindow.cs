@@ -10,6 +10,7 @@ using JetBrains.Annotations;
 using RegressionGames.StateActionTypes;
 using Unity.Plastic.Newtonsoft.Json;
 using TMPro;
+using Unity.Plastic.Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
@@ -19,7 +20,8 @@ namespace RegressionGames.Editor
 {
     public class RGBotReplayWindow : EditorWindow
     {
-        private const string PREFAB_PATH = "Packages/gg.regression.unity.bots/Editor/Prefabs";
+        public const string PREFAB_PATH = "Packages/gg.regression.unity.bots/Editor/Prefabs";
+       
         //TODO: Get this from game engine
         private const int PHYSICS_TICK_RATE = 20; // 0.02 sec or 20 ms per physics tick
         private readonly Color _darkerColor = Color.white * 0.1f;
@@ -71,7 +73,7 @@ namespace RegressionGames.Editor
 
         private Object targetPrefab;
 
-        private readonly RGTickInfoActionManager tickInfoManager = new();
+        private readonly RGTickInfoActionManager tickInfoManager = new RGTickInfoActionManager();
 
         private int tickRate = 50;
 
@@ -680,23 +682,20 @@ namespace RegressionGames.Editor
             if (tickData.tickInfo != null)
             {
                 var ti = tickData.tickInfo;
-
-                string characterType = null;
+                
                 Vector3? position = null;
                 Quaternion? rotation = null;
-                /* TODO
-                if (ti.state.characterType != null)
-                    characterType = ti.state.characterType;
+                string characterType = ti.state["characterType"]?.Value<string>();
 
-                if (ti.state.position != null)
-                    position = new Vector3((float)ti.state.position.x, (float)ti.state.position.y,
-                        (float)ti.state.position.z);
+                if (ti.state["position"] != null)
+                    position = new Vector3(ti.state["position"]["x"].Value<float>(), ti.state["position"]["y"].Value<float>(),
+                        ti.state["position"]["z"].Value<float>());
 
                 
-                if (ti.state.rotation != null)
-                    rotation = new Quaternion((float)ti.state.rotation.x, (float)ti.state.rotation.y,
-                        (float)ti.state.rotation.z, (float)ti.state.rotation.w);
-*/
+                if (ti.state["rotation"] != null)
+                    rotation = new Quaternion((float)ti.state["rotation"]["x"], (float)ti.state["rotation"]["y"],
+                        (float)ti.state["rotation"]["z"], (float)ti.state["rotation"]["w"]);
+
                 var typeRootName = $"{tickData.data.type}s";
                 var typeRoot = findChildByName(rootObject.transform, typeRootName);
                 if (typeRoot == null)

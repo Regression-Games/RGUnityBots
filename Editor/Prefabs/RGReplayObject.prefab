@@ -112,7 +112,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a2551bfd07694c75a2ab63010f2fe50, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  models: []
+  models:
+  - characterType: 
+    GFXprefab: {fileID: 0}
 --- !u!1001 &496433402113475611
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -432,19 +434,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.3726227
+      value: -0.37262028
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.08717248
+      value: -0.08718233
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.89959043
+      value: 0.8995849
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.21045291
+      value: -0.21047677
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_AnchoredPosition.x
