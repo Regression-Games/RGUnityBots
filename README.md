@@ -34,9 +34,8 @@ TODO: Write these with code examples
 - RGState on GameObjects
 - Actions on GameObjects
 - Defining custom replay models based on your RGState types.  If you don't, all models will be a default capsule model
-  - Update Editor/Prefabs/RGReplayObject.Object.Model.ReplayModelManager(script) to add character type name to Prefab mappings for each GameObject that is implemented with RGState. (TODO: Maybe in the future we update this to be part of the RGState itself?). 
+  - Update Editor/Prefabs/RGReplayObject.Object.Model.ReplayModelManager(script) to add character type name to Prefab mappings for each GameObject that is implemented with RGState. (TODO: Maybe in the future we update this to be part of the RGState or RGAgent itself?). 
 - Starting Regression Games Bots on match start
-
   ``` 
 RGSettings rgSettings = RGSettings.GetOrCreateSettings();
 if (rgSettings.GetUseSystemSettings())
@@ -52,7 +51,10 @@ if (rgSettings.GetUseSystemSettings())
     }
 }
   ```
- 
+- Spawning Bot characters/avatars as part of a match in your Game
+  - Create an implementation of the interface RGBotSpawnManager
+  - Add a GameObject to all scene(s) where playes can be connected to your game for a match.  This includes lobbies, matchmaking, and actual gameplay scenes.
+  - See samples/BossRoom/RGBossRoomBotSpawnManager.cs.sample for an example of seating and spawning a player in Unity's BossRoom multiplayer demo game 
 
 
 Writing a Regression Games Bot

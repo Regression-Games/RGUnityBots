@@ -10,8 +10,6 @@ namespace RegressionGames
     {
         [SerializeField] private NamedModel[] models = new NamedModel[0];
 
-
-
         public GameObject getModelPrefabForType(string type, string charType)
         {
 #if UNITY_EDITOR
@@ -34,8 +32,6 @@ namespace RegressionGames
 #endif
             
         }
-
-
 
         [Serializable]
         public struct NamedModel
