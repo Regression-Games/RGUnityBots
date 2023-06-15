@@ -19,6 +19,7 @@ What is included in this package ?
 - Regression Games In Game Overlay
   - Allows starting and stopping Regression Games Bots to test your game
   - To add this to your project, add the Runtime/Prefabs/RGOverlayCanvas.prefab to your existing scene(s).  This object will stay active across scenes, so you should normally add this to your first main menu scene.  Note that this object must be added for Regression Games integration to work.  Its visiblity can be hidden using the project settings.
+    - Make sure your scene has an EventSystem.  Without it the overlay will not be clickable.
 
 - Regression Games Unity Project Settings
   - Edit/Project Settings/Regression Games
