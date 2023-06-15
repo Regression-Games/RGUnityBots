@@ -15,7 +15,7 @@ namespace RegressionGames
         public Image launcherIcon;
         public RGIconPulse launcherPulse;
 
-        public RGServiceManager rgServiceManager;
+        private RGServiceManager rgServiceManager;
 
         private bool? lastState = null;
 
@@ -47,6 +47,7 @@ namespace RegressionGames
                 return;
             }
 
+            rgServiceManager = GetComponent<RGServiceManager>();
             _this = this;
             DontDestroyOnLoad(_this.gameObject);
             RGBotServerListener.GetInstance()?.StartServer();
