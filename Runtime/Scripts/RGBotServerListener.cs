@@ -62,6 +62,11 @@ namespace RegressionGames
         private readonly ConcurrentDictionary<uint, ConcurrentQueue<Action>> mainThreadTaskQueue =
             new ConcurrentDictionary<uint, ConcurrentQueue<Action>>();
 
+        public bool IsClientConnected(uint clientId)
+        {
+            return clientConnectionMap.ContainsKey(clientId);
+        }
+        
         public void StartServer()
         {
             if (server == null)
@@ -517,8 +522,11 @@ namespace RegressionGames
         private void HandleAction(uint clientId, RGActionRequest actionRequest)
         {
             var agent = agentMap[clientId];
-            var actionHandler = agent.GetActionHandler(actionRequest.action);
-            actionHandler.StartAction(actionRequest.input);
+            RGAction actionHandler = agent.GetActionHandler(actionRequest.action);
+            if (actionHandler != null)
+            {
+                actionHandler.StartAction(actionRequest.input);
+            }
         }
 
 

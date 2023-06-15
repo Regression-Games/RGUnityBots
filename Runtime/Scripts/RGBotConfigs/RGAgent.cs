@@ -34,7 +34,11 @@ namespace RegressionGames.RGBotConfigs
 
         public RGAction GetActionHandler(string actionName)
         {
-            return actionMap[actionName];
+            if(actionMap.TryGetValue(actionName, out RGAction action))
+            {
+                return action;
+            }
+            return null;
         }
 
     }
