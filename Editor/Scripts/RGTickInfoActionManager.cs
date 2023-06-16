@@ -79,11 +79,10 @@ namespace RegressionGames.Editor
         public void processActions(int tickNumber, long playerId, RGActionRequest[] actions)
         {
             var tickInfo = populateTickInfoDataForPlayer(tickNumber, playerId);
-            tickInfo.actions = actions;
-            if (actions.Length > 0)
-                // show path and actions by default only for bot players with actions
-                populateReplayDataForPlayer(playerId, null, true,
-                    true, true);
+            tickInfo.actions = actions == null ? Array.Empty<RGActionRequest>() : actions;
+            // show path and actions by default only for bot players with actions
+            populateReplayDataForPlayer(playerId, null, true,
+                true, true);
         }
 
         private RGAgentReplayData populateReplayDataForPlayer(long playerId, [CanBeNull] string type = null,

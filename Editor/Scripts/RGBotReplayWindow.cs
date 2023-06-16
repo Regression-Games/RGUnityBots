@@ -297,7 +297,7 @@ namespace RegressionGames.Editor
             if (b.type == "BotPlayer") return 1;
 
             // else sort by type
-            return a.type.CompareTo(b.type);
+            return (a.type == null) ? 1 : -1;
         }
 
         private void RenderTimelineView()
@@ -682,107 +682,112 @@ namespace RegressionGames.Editor
             if (tickData.tickInfo != null)
             {
                 var ti = tickData.tickInfo;
-                
-                Vector3? position = null;
-                Quaternion? rotation = null;
-                string characterType = ti.state["characterType"]?.Value<string>();
 
-                if (ti.state["position"] != null)
-                    position = new Vector3(ti.state["position"]["x"].Value<float>(), ti.state["position"]["y"].Value<float>(),
-                        ti.state["position"]["z"].Value<float>());
-
-                
-                if (ti.state["rotation"] != null)
-                    rotation = new Quaternion((float)ti.state["rotation"]["x"], (float)ti.state["rotation"]["y"],
-                        (float)ti.state["rotation"]["z"], (float)ti.state["rotation"]["w"]);
-
-                var typeRootName = $"{tickData.data.type}s";
-                var typeRoot = findChildByName(rootObject.transform, typeRootName);
-                if (typeRoot == null)
+                if (ti.state != null)
                 {
-                    typeRoot = new GameObject(typeRootName);
-                    typeRoot.transform.parent = rootObject.transform;
-                }
+                    Vector3? position = null;
+                    Quaternion? rotation = null;
+                    JToken charType = ti?.state?.GetValue("characterType");
+                    string characterType = charType == null ? "" : charType.Value<string>();
 
-                var objectName = tickData.data.objectName;
+                    if (ti.state["position"] != null)
+                        position = new Vector3(ti.state["position"]["x"].Value<float>(),
+                            ti.state["position"]["y"].Value<float>(),
+                            ti.state["position"]["z"].Value<float>());
 
-                var obj = findChildByName(typeRoot.transform, objectName);
-                if (obj == null)
-                {
-                    // create the object
-                    if (objectPrefab == null)
-                        objectPrefab =
-                            AssetDatabase.LoadAssetAtPath<GameObject>(
-                                $"{PREFAB_PATH}/RGReplayObject.prefab");
-                    // do not do position rotation here as we do that on a child of the spawn
-                    obj = Instantiate(objectPrefab, typeRoot.transform) as GameObject;
 
-                    obj.name = objectName;
-                    // set name tag
-                    obj.transform.GetChild(0).GetChild(0).gameObject.GetComponent<TextMeshPro>().text =
-                        objectName;
+                    if (ti.state["rotation"] != null)
+                        rotation = new Quaternion((float)ti.state["rotation"]["x"], (float)ti.state["rotation"]["y"],
+                            (float)ti.state["rotation"]["z"], (float)ti.state["rotation"]["w"]);
 
-                    //SETUP THE MODEL
-                    var rmm = obj.GetComponentInChildren<ReplayModelManager>();
-                    var modelPrefab = rmm.getModelPrefabForType(tickData.data.type, characterType);
-                    if (modelPrefab != null)
+                    var typeRootName = $"{tickData.data.type}s";
+                    var typeRoot = findChildByName(rootObject.transform, typeRootName);
+                    if (typeRoot == null)
                     {
-                        var model = Instantiate(modelPrefab, Vector3.zero, Quaternion.identity,
-                            obj.transform.GetChild(0).GetChild(1));
+                        typeRoot = new GameObject(typeRootName);
+                        typeRoot.transform.parent = rootObject.transform;
                     }
+
+                    var objectName = tickData.data.objectName;
+
+                    var obj = findChildByName(typeRoot.transform, objectName);
+                    if (obj == null)
+                    {
+                        // create the object
+                        if (objectPrefab == null)
+                            objectPrefab =
+                                AssetDatabase.LoadAssetAtPath<GameObject>(
+                                    $"{PREFAB_PATH}/RGReplayObject.prefab");
+                        // do not do position rotation here as we do that on a child of the spawn
+                        obj = Instantiate(objectPrefab, typeRoot.transform) as GameObject;
+
+                        obj.name = objectName;
+                        // set name tag
+                        obj.transform.GetChild(0).GetChild(0).gameObject.GetComponent<TextMeshPro>().text =
+                            objectName;
+
+                        //SETUP THE MODEL
+                        var rmm = obj.GetComponentInChildren<ReplayModelManager>();
+                        var modelPrefab = rmm.getModelPrefabForType(tickData.data.type, characterType);
+                        if (modelPrefab != null)
+                        {
+                            var model = Instantiate(modelPrefab, Vector3.zero, Quaternion.identity,
+                                obj.transform.GetChild(0).GetChild(1));
+                        }
+                        else
+                        {
+                            // some things don't have models setup (because they are pre-populated into the scene
+                            // remove their model/arrow altogether
+                            DestroyImmediate(obj.transform.GetChild(0).GetChild(1).gameObject);
+                        }
+                    }
+
+                    if (tickData.data.showHighlight)
+                        // enable the 'my bot' showHighlight circle
+                        obj.transform.GetChild(0).GetChild(2).gameObject.SetActive(true);
                     else
+                        obj.transform.GetChild(0).GetChild(2).gameObject.SetActive(false);
+
+                    // set/update the position/rotation on the internal object for the model
+                    // we do this so that the the top level can manage breadcrumb trails/effect positions/etc
+                    if (position != null)
                     {
-                        // some things don't have models setup (because they are pre-populated into the scene
-                        // remove their model/arrow altogether
-                        DestroyImmediate(obj.transform.GetChild(0).GetChild(1).gameObject);
+                        obj.transform.GetChild(0).position = (Vector3)position;
+                        if (tickData.justSpawned)
+                        {
+                            // create 'spawn' effect
+                            if (spawnPrefab == null)
+                                spawnPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                                    $"{PREFAB_PATH}/SPAWN.prefab");
+
+                            var spawn = Instantiate(spawnPrefab, (Vector3)position + SPAWN_TEXT_OFFSET,
+                                Quaternion.identity,
+                                spawnsObject.transform) as GameObject;
+                        }
                     }
-                }
 
-                if (tickData.data.showHighlight)
-                    // enable the 'my bot' showHighlight circle
-                    obj.transform.GetChild(0).GetChild(2).gameObject.SetActive(true);
-                else
-                    obj.transform.GetChild(0).GetChild(2).gameObject.SetActive(false);
+                    if (rotation != null) obj.transform.GetChild(0).rotation = (Quaternion)rotation;
 
-                // set/update the position/rotation on the internal object for the model
-                // we do this so that the the top level can manage breadcrumb trails/effect positions/etc
-                if (position != null)
-                {
-                    obj.transform.GetChild(0).position = (Vector3)position;
-                    if (tickData.justSpawned)
+                    // setup pathing lines for bots
+                    if (tickData.data.showPath)
                     {
-                        // create 'spawn' effect
-                        if (spawnPrefab == null)
-                            spawnPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                                $"{PREFAB_PATH}/SPAWN.prefab");
-
-                        var spawn = Instantiate(spawnPrefab, (Vector3)position + SPAWN_TEXT_OFFSET,
-                            Quaternion.identity,
-                            spawnsObject.transform) as GameObject;
-                    }
-                }
-
-                if (rotation != null) obj.transform.GetChild(0).rotation = (Quaternion)rotation;
-
-                // setup pathing lines for bots
-                if (tickData.data.showPath)
-                {
-                    var points = tickInfoManager.GetPathForPlayerId(currentTick, tickData.data.id);
-                    if (points.Length > 0)
-                    {
-                        obj.transform.GetChild(1).gameObject.SetActive(true);
-                        var lr = obj.transform.GetChild(1).GetComponent<LineRenderer>();
-                        lr.positionCount = points.Length;
-                        lr.SetPositions(points);
+                        var points = tickInfoManager.GetPathForPlayerId(currentTick, tickData.data.id);
+                        if (points.Length > 0)
+                        {
+                            obj.transform.GetChild(1).gameObject.SetActive(true);
+                            var lr = obj.transform.GetChild(1).GetComponent<LineRenderer>();
+                            lr.positionCount = points.Length;
+                            lr.SetPositions(points);
+                        }
+                        else
+                        {
+                            obj.transform.GetChild(1).gameObject.SetActive(false);
+                        }
                     }
                     else
                     {
                         obj.transform.GetChild(1).gameObject.SetActive(false);
                     }
-                }
-                else
-                {
-                    obj.transform.GetChild(1).gameObject.SetActive(false);
                 }
             }
 
@@ -992,7 +997,7 @@ namespace RegressionGames.Editor
                                 var rData = JsonConvert.DeserializeObject<RGStateActionReplayData>(sr.ReadToEnd(),
                                     _jsonSettings);
                                 tickInfoManager.processTick(tickIndexNumber, rData.tickInfo);
-                                if (rData.playerId != null)
+                                if (rData.playerId != null && rData.playerId != -1)
                                     tickInfoManager.processActions(tickIndexNumber, (long)rData.playerId,
                                         rData.actions);
                                 if (rData.tickRate != null)
