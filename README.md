@@ -57,22 +57,7 @@ Regression Games Unity Bots work by connecting Regression Games services to your
 2. Add the RGBotSpawnManager implemenation behaviour script to a GameObject in all scene(s) where playes can be connected to your game for a match.  This normally includes lobbies, matchmaking, gameplay, and postmatch summary scenes.
 3. Add code hooks into your game to signal Regression Games when to start the bots.
 ```csharp 
-RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-if (rgSettings.GetUseSystemSettings())
-{
-  int[] botIds = rgSettings.GetBotsSelected().ToArray();
-  int errorCount = 0;
-  if (botIds.Length > 0)
-  {
-    Task.WhenAll(botIds.Select(botId =>
-      RGServiceManager.GetInstance()?.QueueInstantBot((long)botId, (botInstance) => { }, () => errorCount++))
-    );
-  }
-  if (errorCount > 0)
-  {
-    Debug.Log($"Error starting {errorCount} of {botIds.Length} RG bots, starting without them");
-  }
-}
+RGBotServerListener.GetInstance()?.StartGame();
 ```
 4. Add code hooks into your game to signal Regression Games when to stop the bots.
 ```csharp 
