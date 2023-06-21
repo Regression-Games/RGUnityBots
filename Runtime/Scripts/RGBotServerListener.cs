@@ -2,6 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -169,16 +170,33 @@ namespace RegressionGames
             enqueueTaskForClient(uint.MaxValue, StopGameHelper);
         }
 
+        private async void StartGameHelper()
+        {
+            // stop any old stale ones
+            StopGameHelper();
+            Debug.Log($"Starting Regression Games spawnable Bots");
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            if (rgSettings.GetUseSystemSettings())
+            {
+                int[] botIds = rgSettings.GetBotsSelected().ToArray();
+                int errorCount = 0;
+                if (botIds.Length > 0)
+                {
+                    await Task.WhenAll(botIds.Select(botId => RGServiceManager.GetInstance()?.QueueInstantBot((long)botId, (botInstance) => { }, () => errorCount++)));
+                }
+
+                if (errorCount > 0)
+                {
+                    Debug.LogWarning($"WARNING: Error starting {errorCount} of {botIds.Length} spawnable Regression Games bots, starting without them");
+                }
+            }
+
+            gameStarted = true;
+        }
+
         public void StartGame()
         {
-            // do this on the main thread so it runs after stop game
-            enqueueTaskForClient(uint.MaxValue, () =>
-            {
-                // stop any old stale ones
-                StopGameHelper();
-                Debug.Log($"Starting Regression Games Spawnable Bots");
-                gameStarted = true;
-            });
+            enqueueTaskForClient(uint.MaxValue, StartGameHelper);
         }
 
         private void Update()
