@@ -297,7 +297,12 @@ namespace RegressionGames.Editor
             if (b.type == "BotPlayer") return 1;
 
             // else sort by type
-            return (a.type == null) ? 1 : -1;
+            if (a.type == null)
+            {
+                return 1;
+            }
+
+            return a.type.CompareTo(b.type);
         }
 
         private void RenderTimelineView()
