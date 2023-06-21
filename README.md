@@ -52,10 +52,9 @@ Regression Games Unity Bots work by connecting Regression Games services to your
 
 #### Spawning Bot characters/avatars as part of a match in your Game (OPTIONAL)
 1. Create an implementation of the [RGBotSpawnManager](Runtime/Scripts/Scripts/RGBotSpawnManager.cs) interface 
-    - For example, see the implementation for Unity Boss Room [RGBossRoomBotSpawnManager](https://github.com/Regression-Games/RGBossRoom/blob/main/Assets/Scripts/Gameplay/RegressionGames/RGBossRoom/RGBossRoomBotSpawnManager.cs)
+    - For example, see the sample implementation for Unity Boss Room [RGBossRoomBotSpawnManager](https://github.com/Regression-Games/RGBossRoom/blob/main/Assets/Scripts/Gameplay/RegressionGames/RGBossRoom/RGBossRoomBotSpawnManager.cs)
     - This script will manage the integration with your game for seating players, spawning players, and tearing them back down at the end of a match.
 2. Add the RGBotSpawnManager implemenation behaviour script to a GameObject in all scene(s) where playes can be connected to your game for a match.  This normally includes lobbies, matchmaking, gameplay, and postmatch summary scenes.
-    - *See `Regression Games Unity Bots/Samples/BossRoom/RGBossRoomBotSpawnManager.cs.sample for an example of seating and spawning a player in Unity's BossRoom multiplayer demo game*
 3. Add code hooks into your game to signal Regression Games when to start the bots.
 ```csharp 
 RGSettings rgSettings = RGSettings.GetOrCreateSettings();
