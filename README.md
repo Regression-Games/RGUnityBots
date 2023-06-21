@@ -153,6 +153,7 @@ runTurn(playerId, tickInfo, matchInfo, actionQueue) {
 
 #### Validation of your bots actions for a prior tick
 As part of your bot implementation, you can add validation steps (test cases) that assert whether expected state changes occur based on the actions your bot sent for prior ticks.
+
 **TODO: Fill in this section with examples of writing /using validations**
 
 ### Using the Regression Games Bot Replay Unity tool to visualize a Bot's replay
