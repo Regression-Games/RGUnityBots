@@ -152,6 +152,10 @@ runTurn(playerId, tickInfo, matchInfo, actionQueue) {
 - Sample bot for Unity BossRoom that follows another player around and supports them... [CoopBot](https://github.com/Regression-Games/UnityTestBot/blob/main/coopbot/index.js)
 - Sample bot for Unity BossRoom that clicks menu buttons to start the game without human intervention... [MenuBot](https://github.com/Regression-Games/UnityTestBot/blob/main/menubot/index.js)
 
+#### Validation of your bots actions for a prior tick
+As part of your bot implementation, you can add validation steps (test cases) that assert whether expected state changes occur based on the actions your bot sent for prior ticks.
+**TODO: Fill in this section with examples of writing /using validations**
+
 ### Using the Regression Games Bot Replay Unity tool to visualize a Bot's replay
 The Regression Games Unity Bot Replay window is a helpful tool for visualizing what your bot(s) did in a previous test run or gameplay session.  For each 'tick' of the game, Regression Games saves both the state and the actions that the bot took.  This replay file can be opened in the Replay window to visualize the positions, targets, actions, cooldowns, etc for every tracked GameObject in your scene.  The ticks can then be "played" or stepped through to visualize the state of the game at every recorded tick interval.  You can also highlight specific GameObjects in the replay, show their pathing history, their targeting, and/or their actions per tick overlayed into the scene itself.
 - You can also define custom replay models for each of your RGState types.  Without custom models, all GameObjects will be represented as a default capsule model during the replay.
