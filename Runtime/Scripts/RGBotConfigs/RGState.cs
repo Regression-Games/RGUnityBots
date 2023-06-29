@@ -15,10 +15,6 @@ public class RGState: MonoBehaviour
     [Header("General Information")]
     public string objectType;
 
-    // TODO: Not yet implemented
-    [Tooltip("If true, will only send a single update for this Game Object state")]
-    public bool isStatic = false;
-
     [Header("3D Positioning")]
     public bool syncPosition = true;
     public bool syncRotation = true;
@@ -28,25 +24,25 @@ public class RGState: MonoBehaviour
      * For example, you may want to retrieve and set the health of a player on the returned
      * object, or their inventory information
      */
-    public virtual Dictionary<string, object> GetCustomState()
+    public virtual Dictionary<string, object> GetState()
     {
         return new Dictionary<string, object>();
     }
 
     /**
-     * Returns the entire state for this object
+     * Returns the entire internal state for this object, which consists of the default
+     * states tracked by RG, and the result of any overridden GetState implementation.
      */
-    public Dictionary<string, object> GetState()
+    public Dictionary<string, object> GetGameObjectState()
     {
         var state = new Dictionary<string, object>
         {
             ["id"] = this.transform.GetInstanceID(),
             ["type"] = objectType,
-            ["isStatic"] = isStatic
         };
         if (syncPosition) state["position"] = transform.position;
         if (syncRotation) state["rotation"] = transform.rotation;
-        foreach (var entry in GetCustomState())
+        foreach (var entry in GetState())
         {
             state.Add(entry.Key, entry.Value);
         }

@@ -271,7 +271,7 @@ namespace RegressionGames
             var totalState = new Dictionary<string, object>();
             foreach (var obj in statefulObjects)
             {
-                var state = obj.GetState();
+                var state = obj.GetGameObjectState();
                 totalState[state["id"].ToString()] = state;
             }
 
@@ -402,10 +402,10 @@ namespace RegressionGames
             }
         }
 
-        public void SendHandshakeResponseToClient(uint clientId, string characterType, [CanBeNull] string error = null)
+        public void SendHandshakeResponseToClient(uint clientId, string characterConfig, [CanBeNull] string error = null)
         {
             SendToClient(clientId, "handshake",
-                JsonUtility.ToJson(new RGServerHandshake(serverToken, characterType, error)));
+                JsonUtility.ToJson(new RGServerHandshake(serverToken, characterConfig, error)));
         }
 
         private void HandleSocketMessage(TcpClient client, string message)
@@ -477,7 +477,7 @@ namespace RegressionGames
 
                 string botName = handshakeMessage.botName;
 
-                string characterType = handshakeMessage.characterType;
+                string characterConfig = handshakeMessage.characterConfig;
 
                 // kill existing client if it exists
                 if (clientConnectionMap.ContainsKey(clientId))
@@ -500,7 +500,7 @@ namespace RegressionGames
                         RGBotSpawnManager rgBotSpawnManager = RGBotSpawnManager.GetInstance();
                         if (rgBotSpawnManager != null)
                         {
-                            rgBotSpawnManager.SeatPlayer(clientId, characterType, botName);
+                            rgBotSpawnManager.SeatPlayer(clientId, characterConfig, botName);
                         }
                     }
                     catch (Exception e)
@@ -513,7 +513,7 @@ namespace RegressionGames
                     Debug.Log($"Sending socket handshake response to client id: {clientId}");
                     //send the client a handshake response so they can start processing
                     SendToClient(clientId, "handshake",
-                        JsonUtility.ToJson(new RGServerHandshake(serverToken, characterType, null)));
+                        JsonUtility.ToJson(new RGServerHandshake(serverToken, characterConfig, null)));
                 }
             });
 
