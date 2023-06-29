@@ -8,7 +8,7 @@ namespace RegressionGames.Types
         public string unityToken;
         public string rgToken;
         public string botName;
-        public string characterType;
+        public string characterConfig;
         public bool spawnable;
         /**
             One of ...
