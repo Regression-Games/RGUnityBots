@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 using RegressionGames.RGBotConfigs;
 using RegressionGames.Types;
 using UnityEngine;
@@ -17,20 +19,11 @@ namespace RegressionGames
 
         protected static RGBotSpawnManager _this = null;
         
-        private readonly ConcurrentDictionary<uint, GameObject> botMap = new ConcurrentDictionary<uint, GameObject>();
-        private readonly ConcurrentQueue<BotInformation> playersToSpawn = new ConcurrentQueue<BotInformation>();
-
-        /**
-         * Returns the GameObject that Regression Games will spawn into the scene as a bot.
-         * This GameObject will often have an RGAction and RGState component attached to
-         * it.
-         */
-        public abstract GameObject GetBotPrefab();
-
-        /**
-         * Returns a Transform at which to spawn a bot into the scene.
-         */
-        public abstract Transform GetBotSpawn();
+        public readonly ConcurrentDictionary<uint, GameObject> botMap = new ConcurrentDictionary<uint, GameObject>();
+        private readonly ConcurrentQueue<BotInformation> botsToSpawn = new ConcurrentQueue<BotInformation>();
+        
+        // Tracks whether or not any bot has been spawned yet
+        private bool initialSpawnDone = false;
 
         protected virtual void Awake()
         {
@@ -50,55 +43,79 @@ namespace RegressionGames
             return _this;
         }
 
+        [CanBeNull]
         public GameObject GetBot(uint clientId)
         {
+            if (!botMap.ContainsKey(clientId)) return null;
             return botMap[clientId];
+        }
+
+        public bool IsBotSpawned(uint clientId)
+        {
+            return botMap.ContainsKey(clientId);
+        }
+
+        public bool BotsHaveSpawned()
+        {
+            return initialSpawnDone;
         }
 
         /**
          * Spawns any bot that needs to be spawned from our list of connected clients.
-         * It is not common that you will need to modify this function - the `SpawnBot`
-         * function is more likely to be the place where you'd like to modify your bots.
          */
-        public virtual void SpawnBots(bool lateJoin = false)
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        protected internal void SpawnBots(bool lateJoin = false)
         {
-            BotInformation clientIdBotNamePlayerClass;
-            while(playersToSpawn.TryDequeue(out clientIdBotNamePlayerClass))
+            // While we are using a threadsafe map, we still want to ensure that the initial spawn finishes before subsequent spawn requests
+            if (lateJoin && !initialSpawnDone)
+            {
+                // rg told us to spawn before the right scene.. ignore
+                return;
+            }
+            BotInformation botInformation;
+            while(botsToSpawn.TryDequeue(out botInformation))
             {
                 // make sure this client is still connected
-                if (RGBotServerListener.GetInstance().IsClientConnected(clientIdBotNamePlayerClass.clientId))
+                if (RGBotServerListener.GetInstance().IsClientConnected(botInformation.clientId))
                 {
-                    SpawnBot(lateJoin, clientIdBotNamePlayerClass.clientId, clientIdBotNamePlayerClass.botName,
-                        clientIdBotNamePlayerClass.botClass);
+                    CallSpawnBot(lateJoin, botInformation);
                 }
             }
+            initialSpawnDone = true;
+        }
+
+        /**
+         * An internal function which calls the developer-provided spawn bot, and then holds some
+         * of the information for bookkeeping. Returns null if the bot was already spawned.
+         */
+        private void CallSpawnBot(bool lateJoin, BotInformation botInformation)
+        {
+            // if (botMap.ContainsKey(botInformation.clientId))
+            // {
+            //     return null;
+            // }
+            GameObject spawnedBot = SpawnBot(lateJoin, botInformation);
+            if (spawnedBot == null) return;
+            botMap[botInformation.clientId] = spawnedBot;
+            RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
+            if (rgBotServerListener != null)
+            {
+                // Add the agent
+                rgBotServerListener.agentMap[botInformation.clientId] = botMap[botInformation.clientId].GetComponent<RGAgent>();
+
+                Debug.Log($"Sending playerId to client: {botInformation.clientId}");
+                // Send the client their player Id
+                rgBotServerListener.SendToClient(botInformation.clientId, "playerId",
+                    JsonUtility.ToJson(
+                        new RGServerPlayerId(botMap[botInformation.clientId].transform.GetInstanceID())));
+            }
+
         }
 
         /**
          * Spawns a bot into the scene.
          */
-        public virtual GameObject SpawnBot(bool lateJoin, uint clientId, string botName, string characterConfig)
-        {
-            // TODO: Make a warning if the spawned bot does not have any RGAction or RGState components
-            var newPlayer = Instantiate(GetBotPrefab(), Vector3.zero, Quaternion.identity);
-            newPlayer.transform.position = GetBotSpawn().position;
-            botMap[clientId] = newPlayer;
-        
-            RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
-            if (rgBotServerListener != null)
-            {
-                // Add the agent
-                rgBotServerListener.agentMap[clientId] = botMap[clientId].GetComponent<RGAgent>();
-
-                Debug.Log($"Sending playerId to client: {clientId}");
-                // Send the client their player Id
-                rgBotServerListener.SendToClient(clientId, "playerId",
-                    JsonUtility.ToJson(
-                        new RGServerPlayerId(botMap[clientId].transform.GetInstanceID())));
-            }
-
-            return newPlayer;
-        }
+        [CanBeNull] public abstract GameObject SpawnBot(bool lateJoin, BotInformation botInformation);
 
         /**
          * A method that gets called when a bot has received a teardown request (i.e. when the bot has signaled that
@@ -114,9 +131,10 @@ namespace RegressionGames
                 }
                 catch (Exception)
                 {
-                    Debug.Log($"Player already de-spawned");
+                    Debug.Log($"Bot already de-spawned");
                 }
             }
+            initialSpawnDone = false;
         }
 
         /**
@@ -126,44 +144,67 @@ namespace RegressionGames
          */
         public virtual void StopGame()
         {
-            // if there is somehow still player objects left, kill them
+            // if there is somehow still bot objects left, kill them
             foreach (uint key in botMap.Keys)
             {
                 RGBotServerListener.GetInstance().EndClientConnection(key);
                 TeardownBot(key);
             }
             botMap.Clear();
-            playersToSpawn.Clear();
+            botsToSpawn.Clear();
         }
 
         /**
          * Returns the Instance ID of the transform for the bot in the scene. This can be used later
          * to reference the bot in the scene.
          */
-        public int? GetPlayerId(uint clientId)
+        public int? GetBotId(uint clientId)
         {
             return botMap[clientId]?.transform.GetInstanceID();
         }
 
+        protected internal void CallSeatBot(BotInformation botToSpawn)
+        {
+            lock (string.Intern($"{botToSpawn.clientId}"))
+            {
+                // First, allow the developer to configure any frontend/backend for a player about to spawn,
+                // such as character selection.
+                SeatBot(botToSpawn);
+                RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
+                if (rgBotServerListener != null)
+                {
+                    Debug.Log($"Sending socket handshake response to client id: {botToSpawn.clientId}");
+                    //send the client a handshake response so they can start processing
+                    rgBotServerListener.SendHandshakeResponseToClient(botToSpawn.clientId, botToSpawn.characterConfig);
+                }
+                
+                
+                // If the bot already exists, let the client know about the new ID. Otherwise, queue to respawn
+                GameObject existingBot = GetBot(botToSpawn.clientId);
+                if (existingBot != null)
+                {
+                    Debug.Log($"Sending playerId to client again: {botToSpawn.clientId}");
+                    // Send the client their player Id
+                    rgBotServerListener.SendToClient(botToSpawn.clientId, "playerId",
+                        JsonUtility.ToJson(
+                            new RGServerPlayerId(existingBot.transform.GetInstanceID())));
+                }
+                else
+                {
+                    botsToSpawn.Enqueue(botToSpawn);
+                }
+            }
+        }
+
         /**
-         * A method that gets called before spawning a player, but after a client has connected. This is
+         * A method that gets called before spawning a bot, but after a client has connected. This is
          * useful for seating a bot into your game before their prefab has actually spawned - for instance,
          * when choosing a character in a character selection screen. This queues the bot to be spawned by
          * the `SpawnBots()` function.
          */
-        public virtual BotInformation SeatPlayer(uint clientId, string characterConfig, string botName)
+        public virtual void SeatBot(BotInformation botToSpawn)
         {
-            RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
-            if (rgBotServerListener != null)
-            {
-                Debug.Log($"Sending socket handshake response to client id: {clientId}");
-                //send the client a handshake response so they can start processing
-                rgBotServerListener.SendHandshakeResponseToClient(clientId, characterConfig);
-            }
-
-            BotInformation botToSpawn = new BotInformation(clientId, botName, characterConfig);
-            playersToSpawn.Enqueue(botToSpawn);
-            return botToSpawn;
+            // By default, seating does nothing
         }
     }
 }
