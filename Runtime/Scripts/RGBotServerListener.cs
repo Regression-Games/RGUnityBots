@@ -500,7 +500,7 @@ namespace RegressionGames
                         RGBotSpawnManager rgBotSpawnManager = RGBotSpawnManager.GetInstance();
                         if (rgBotSpawnManager != null)
                         {
-                            rgBotSpawnManager.SeatPlayer(clientId, characterConfig, botName);
+                            rgBotSpawnManager.CallSeatBot(new BotInformation(clientId, botName, characterConfig));
                         }
                     }
                     catch (Exception e)
