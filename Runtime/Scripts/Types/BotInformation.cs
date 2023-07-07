@@ -25,6 +25,15 @@ namespace RegressionGames.Types
         {
             return JsonUtility.FromJson<T>(characterConfig);
         }
+
+        /**
+         * Updates the Bot information - this is useful for overriding or adding new
+         * information defined and set by your Unity code.
+         */
+        public void UpdateCharacterConfig<T>(T newConfig)
+        {
+            characterConfig = JsonUtility.ToJson(newConfig);
+        }
         
     }
 }
