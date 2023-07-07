@@ -107,7 +107,7 @@ namespace RegressionGames
                 // Send the client their player Id
                 rgBotServerListener.SendToClient(botInformation.clientId, "playerId",
                     JsonUtility.ToJson(
-                        new RGServerPlayerId(botMap[botInformation.clientId].transform.GetInstanceID())));
+                        new RGServerPlayerId(spawnedBot.transform.GetInstanceID())));
             }
 
         }
@@ -134,7 +134,6 @@ namespace RegressionGames
                     Debug.Log($"Bot already de-spawned");
                 }
             }
-            initialSpawnDone = false;
         }
 
         /**
@@ -152,6 +151,7 @@ namespace RegressionGames
             }
             botMap.Clear();
             botsToSpawn.Clear();
+            initialSpawnDone = false;
         }
 
         /**
