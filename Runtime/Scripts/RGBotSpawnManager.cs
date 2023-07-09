@@ -67,14 +67,16 @@ namespace RegressionGames
         protected internal void SpawnBots(bool lateJoin = false)
         {
             // While we are using a threadsafe map, we still want to ensure that the initial spawn finishes before subsequent spawn requests
-            if (lateJoin && !initialSpawnDone)
-            {
-                // rg told us to spawn before the right scene.. ignore
-                return;
-            }
+            // if (lateJoin && !initialSpawnDone)
+            // {
+            //     Debug.Log("These bots are late joining but the initial spawn is not done - ignore this");
+            //     // rg told us to spawn before the right scene.. ignore
+            //     return;
+            // }
             BotInformation botInformation;
             while(botsToSpawn.TryDequeue(out botInformation))
             {
+                Debug.Log("[SpawnBots] Spawning all queued bots");
                 // make sure this client is still connected
                 if (RGBotServerListener.GetInstance().IsClientConnected(botInformation.clientId))
                 {
@@ -143,6 +145,7 @@ namespace RegressionGames
          */
         public virtual void StopGame()
         {
+            Debug.Log("Stopping the game");
             // if there is somehow still bot objects left, kill them
             foreach (uint key in botMap.Keys)
             {
@@ -173,7 +176,7 @@ namespace RegressionGames
                 RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                 if (rgBotServerListener != null)
                 {
-                    Debug.Log($"Sending socket handshake response to client id: {botToSpawn.clientId}");
+                    Debug.Log($"[SeatBot] Sending socket handshake response to client id: {botToSpawn.clientId}");
                     //send the client a handshake response so they can start processing
                     rgBotServerListener.SendHandshakeResponseToClient(botToSpawn.clientId, botToSpawn.characterConfig);
                 }
@@ -191,6 +194,7 @@ namespace RegressionGames
                 }
                 else
                 {
+                    Debug.Log($"Enqueuing spawning a bot: {botToSpawn.botName}");
                     botsToSpawn.Enqueue(botToSpawn);
                 }
             }
