@@ -530,6 +530,7 @@ namespace RegressionGames
 
             enqueueTaskForClient(clientId,() =>
             {
+                Debug.Log($"QUEUE TASK ${data}");
                 var actionRequest = JsonConvert.DeserializeObject<RGActionRequest>(data);
                 HandleAction(clientId, actionRequest);
             });
