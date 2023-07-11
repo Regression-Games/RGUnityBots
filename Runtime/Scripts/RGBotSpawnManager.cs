@@ -118,7 +118,7 @@ namespace RegressionGames
         /**
          * <summary>
          * Returns true if the bot owned by the given clientId has been spawned into the scene, and false
-         * otherwise.
+         * otherwise. Equivalent to checking if <code>GetBot(clientId) != null</code>
          * </summary>
          * <param name="clientId">The ID of the client that owns that bot</param>
          * <returns>True if the bot has been spawned into the scene</returns>
@@ -140,7 +140,10 @@ namespace RegressionGames
         }
 
         /**
-         * Spawns any bot that needs to be spawned from our list of connected clients.
+         * <summary>
+         * Spawns any bot that needs to be spawned from the list of connected clients.
+         * </summary>
+         * <param name="lateJoin">True if the bot is joining after an initial spawn of bots (i.e. during a reconnect)</param>
          */
         [MethodImpl(MethodImplOptions.Synchronized)]
         protected internal void SpawnBots(bool lateJoin = false)
@@ -148,7 +151,6 @@ namespace RegressionGames
             // While we are using a threadsafe map, we still want to ensure that the initial spawn finishes before subsequent spawn requests
             if (lateJoin && !_initialSpawnDone)
             {
-                Debug.Log("These bots are late joining but the initial spawn is not done - ignore this");
                 // rg told us to spawn before the right scene.. ignore
                 return;
             }
@@ -166,8 +168,12 @@ namespace RegressionGames
         }
 
         /**
+         * <summary>
          * An internal function which calls the developer-provided spawn bot, and then holds some
          * of the information for bookkeeping. Returns null if the bot was already spawned.
+         * </summary>
+         * <param name="lateJoin">True if the bot is joining after an initial spawn of bots (i.e. during a reconnect)</param>
+         * <param name="botInformation">The information used to spawn the bot</param>
          */
         private void CallSpawnBot(bool lateJoin, BotInformation botInformation)
         {
@@ -195,8 +201,11 @@ namespace RegressionGames
         }
 
         /**
+         * <summary>
          * A method that gets called when a bot has received a teardown request (i.e. when the bot has signaled that
          * it is finished, or when the scene shuts down).
+         * </summary>
+         * <param name="clientId">The ID of the client that owns the bot to teardown</param>
          */
         public virtual void TeardownBot(uint clientId)
         {
@@ -214,9 +223,11 @@ namespace RegressionGames
         }
 
         /**
-         * A method that gets called with the game or scene is terminated. This will remove
+         * <summary>
+         * A method that gets called when the game or scene is terminated. This will remove
          * all bots from the game. In most cases, you will not need to override this method,
-         * and instead should look at TeardownBot().
+         * and instead should look at <see cref="TeardownBot" />.
+         * </summary>
          */
         public virtual void StopGame()
         {
@@ -233,14 +244,29 @@ namespace RegressionGames
         }
 
         /**
+         * <summary>
          * Returns the Instance ID of the transform for the bot in the scene. This can be used later
          * to reference the bot in the scene.
+         * </summary>
+         * <param name="clientId">The ID of the client that owns the bot to find</param>
+         * <returns>The ID of the bot, or null if it cannot be found</returns>
+         * <seealso cref="GetBot"/>
          */
         public int? GetBotId(uint clientId)
         {
             return BotMap[clientId]?.transform.GetInstanceID();
         }
 
+        /**
+         * <summary>
+         * An internal function that calls the <see cref="SeatBot"/> method. Once the bot is seated, this
+         * will automatically send a handshake response to the bot client to let it know that seating has
+         * occurred successfully. In some cases, it may also send back modified character configurations,
+         * if seatPlayer modified the BotInformation provided.
+         * </summary>
+         * <param name="botToSpawn">Information about the bot to spawn</param>
+         * <seealso cref="BotInformation.UpdateCharacterConfig"/>
+         */
         protected internal void CallSeatBot(BotInformation botToSpawn)
         {
             lock (string.Intern($"{botToSpawn.clientId}"))
@@ -276,10 +302,16 @@ namespace RegressionGames
         }
 
         /**
+         * <summary>
          * A method that gets called before spawning a bot, but after a client has connected. This is
          * useful for seating a bot into your game before their prefab has actually spawned - for instance,
          * when choosing a character in a character selection screen. This queues the bot to be spawned by
-         * the `SpawnBots()` function.
+         * the <see cref="SpawnBots"/> function. You may also override configurations provided by the bot
+         * using the <see cref="BotInformation.UpdateCharacterConfig"/> method, which sends a new config
+         * back to your bot.
+         * By default, this method does nothing when not implemented.
+         * </summary>
+         * <param name="botToSpawn">Information about the bot to spawn, such as the client ID, bot name, and bot config JSON</param>
          */
         public virtual void SeatBot(BotInformation botToSpawn)
         {
