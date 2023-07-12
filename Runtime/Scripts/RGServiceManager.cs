@@ -51,7 +51,7 @@ namespace RegressionGames
             try
             {
                 RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-                string email=rgSettings.GetUsername();
+                string email=rgSettings.GetEmail();
                 string password = rgSettings.GetPassword();
 
                 if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))

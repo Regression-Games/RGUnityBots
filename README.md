@@ -17,7 +17,7 @@ Regression Games Unity Bots work by connecting Regression Games services to your
 
 - **Regression Games Unity Project Settings**
   - *Edit/Project Settings/Regression Games*
-  - Configure your username/password for connecting to Regression Games servers
+  - Configure your email/password for connecting to Regression Games servers
   - Enable/Disable the visiblity of the Regression Games In Game Overlay
   - Enable/Configure bots that load as match players for your game
 
@@ -109,12 +109,15 @@ isSpawnable() {
 
 ```javascript
 /**
- * Provides the character type string for the initial handshake.  This helps your game seat your player in the
- * appropriate seat or choose the correct player class to play as.  This is a freeform string to be interpereted by your
- * game's implementation of the RGBotSpawnManager.SeatPlayer and RGBotSpawnManager.SpawnBot interfaces.
+ * Provides the character configuration for the initial handshake. This helps your game seat your player in the
+ * appropriate seat, choose the correct player class to play as, etc... This JSON is given as a string within your
+ * game's implementation of the RGBotSpawnManager.SeatPlayer and RGBotSpawnManager.SpawnBot interfaces, which you
+ * can the deserialize to whatever type you want using JsonConvert.DeserializeObject<T>(characterConfig);
  */
-getCharacterType() {
-  return "Mage"
+getCharacterConfig() {
+  return {
+      "type": "Mage"
+  }
 }
 ```
 

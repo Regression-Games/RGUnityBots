@@ -415,7 +415,7 @@ namespace RegressionGames
             var totalState = new Dictionary<string, object>();
             foreach (var obj in statefulObjects)
             {
-                var state = obj.GetState();
+                var state = obj.GetGameObjectState();
                 totalState[state["id"].ToString()] = state;
             }
 
@@ -563,10 +563,10 @@ namespace RegressionGames
         
         }
 
-        public void SendHandshakeResponseToClient(uint clientId, string characterType, [CanBeNull] string error = null)
+        public void SendHandshakeResponseToClient(uint clientId, string characterConfig, [CanBeNull] string error = null)
         {
             SendToClient(clientId, "handshake",
-                JsonUtility.ToJson(new RGServerHandshake(unitySideToken, characterType, error)));
+                    JsonUtility.ToJson(new RGServerHandshake(unitySideToken, characterConfig, error)));
         }
 
         private void HandleSocketMessage(TcpClient client, string message)
@@ -624,13 +624,14 @@ namespace RegressionGames
                 {
                     RGClientHandshake handshakeMessage = JsonUtility.FromJson<RGClientHandshake>(data);
 
+
                     if (!RGServiceManager.RG_UNITY_AUTH_TOKEN.Equals(handshakeMessage.unityToken))
                     {
                         Debug.LogWarning(
                             $"WARNING: A client tried to connect/handshake with an invalid external auth token");
                         return;
                     }
-
+                    
                     //Handle spawning player and recording lifecycle for de-spawn
                     bool spawnable = handshakeMessage.spawnable;
 
@@ -638,11 +639,8 @@ namespace RegressionGames
                         ? "MANAGED"
                         : handshakeMessage.lifecycle;
 
-                    // must already be populated since we established the connection
-                    clientConnectionMap[clientId].lifecycle = lifecycle;
-
                     string botName = handshakeMessage.botName;
-                    string characterType = handshakeMessage.characterType;
+                    string characterConfig = handshakeMessage.characterConfig;
 
                     // save the token the client gave us for talking to them
                     clientTokenMap[clientId] = handshakeMessage.rgToken;
@@ -654,11 +652,7 @@ namespace RegressionGames
                     {
                         try
                         {
-                            RGBotSpawnManager rgBotSpawnManager = RGBotSpawnManager.GetInstance();
-                            if (rgBotSpawnManager != null)
-                            {
-                                rgBotSpawnManager.SeatPlayer(clientId, characterType, botName);
-                            }
+                            RGBotSpawnManager.GetInstance()?.CallSeatBot(new BotInformation(clientId, botName, characterConfig));
                         }
                         catch (Exception e)
                         {
@@ -670,7 +664,7 @@ namespace RegressionGames
                         Debug.Log($"Sending socket handshake response to client id: {clientId}");
                         //send the client a handshake response so they can start processing
                         SendToClient(clientId, "handshake",
-                            JsonUtility.ToJson(new RGServerHandshake(unitySideToken, characterType, null)));
+                            JsonUtility.ToJson(new RGServerHandshake(unitySideToken, characterConfig, null)));
                     }
 
                     clientConnectionMap[clientId].handshakeComplete = true;
@@ -694,6 +688,7 @@ namespace RegressionGames
 
             enqueueTaskForClient(clientId,() =>
             {
+                Debug.Log($"QUEUE TASK ${data}");
                 var actionRequest = JsonConvert.DeserializeObject<RGActionRequest>(data);
                 HandleAction(clientId, actionRequest);
             });
