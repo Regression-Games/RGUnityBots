@@ -50,7 +50,7 @@ namespace RegressionGames
 
         private bool gameStarted = false;
 
-        private string unitySideToken = null;
+        private string unitySideToken = Guid.NewGuid().ToString();
         
         private readonly ConcurrentDictionary<uint, string> clientTokenMap = new ConcurrentDictionary<uint, string>();
 
@@ -121,8 +121,7 @@ namespace RegressionGames
             clientConnectionMap.Clear();
             clientTokenMap.Clear();
             
-
-            unitySideToken = null;
+            unitySideToken = Guid.NewGuid().ToString();
         }
 
         public void EndAllClientConnections()
@@ -517,7 +516,7 @@ namespace RegressionGames
             {
                 try
                 {
-                    if (clientConnection.client != null  && clientConnection.handshakeComplete)
+                    if (clientConnection.client != null && clientConnection.handshakeComplete)
                     {
                         string token = clientTokenMap[clientId];
                         RGServerSocketMessage serverSocketMessage =
@@ -648,6 +647,8 @@ namespace RegressionGames
                     // give them the default agent until their player spawns.. thus allowing button clicks
                     agentMap[clientId] = this.gameObject.GetComponent<RGAgent>();
 
+                    // set this BEFORE sending the response of handshake to the client so it actually sends
+                    clientConnectionMap[clientId].handshakeComplete = true;
                     if (spawnable)
                     {
                         try
@@ -663,11 +664,8 @@ namespace RegressionGames
                     {
                         Debug.Log($"Sending socket handshake response to client id: {clientId}");
                         //send the client a handshake response so they can start processing
-                        SendToClient(clientId, "handshake",
-                            JsonUtility.ToJson(new RGServerHandshake(unitySideToken, characterConfig, null)));
+                        SendHandshakeResponseToClient(clientId, characterConfig, null);
                     }
-
-                    clientConnectionMap[clientId].handshakeComplete = true;
                 }
                 catch (Exception ex)
                 {
