@@ -37,8 +37,8 @@ namespace RegressionGames.Editor
                     SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
                     enableOverlay.boolValue =
                         EditorGUILayout.Toggle("Enable RG Screen Overlay ?", enableOverlay.boolValue);
-                    SerializedProperty usernameField = settings.FindProperty("username");
-                    usernameField.stringValue = EditorGUILayout.TextField("RG Username", usernameField.stringValue);
+                    SerializedProperty emailField = settings.FindProperty("email");
+                    emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
 
@@ -52,10 +52,10 @@ namespace RegressionGames.Editor
 
                     SerializedProperty botsSelected = settings.FindProperty("botsSelected");
 
-                    if (token == null && priorPassword == null && priorUser == null && passwordField.stringValue.Length > 4 && usernameField.stringValue.Length > 4)
+                    if (token == null && priorPassword == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4)
                     {
                         priorPassword = passwordField.stringValue;
-                        priorUser = usernameField.stringValue;
+                        priorUser = emailField.stringValue;
                         await rgServiceManager.Auth(priorUser,
                             priorPassword, responseToken =>
                             {
@@ -116,7 +116,7 @@ namespace RegressionGames.Editor
                     settings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
                     {
-                        if (priorUser != usernameField.stringValue || priorPassword != passwordField.stringValue)
+                        if (priorUser != emailField.stringValue || priorPassword != passwordField.stringValue)
                         {
                             token = null;
                             priorPassword = null;
@@ -134,7 +134,7 @@ namespace RegressionGames.Editor
 
                 // Populate the search keywords to enable smart search filtering and label highlighting:
                 keywords = new HashSet<string>(new[]
-                    { "Number Of Bots", "Regression Games", "Username", "Password", "RG", "Bot Selection", "Overlay" })
+                    { "Number Of Bots", "Regression Games", "Email", "Password", "RG", "Bot Selection", "Overlay" })
             };
 
             return provider;

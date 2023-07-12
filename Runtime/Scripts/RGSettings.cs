@@ -10,7 +10,7 @@ namespace RegressionGames
         [SerializeField] private bool useSystemSettings;
         [SerializeField] private bool enableOverlay;
         [SerializeField] private int numBots;
-        [SerializeField] private string username;
+        [SerializeField] private string email;
         [SerializeField] private string password;
         [SerializeField] private int[] botsSelected;
         
@@ -23,7 +23,7 @@ namespace RegressionGames
                 settings.useSystemSettings = false;
                 settings.enableOverlay = true;
                 settings.numBots = 0;
-                settings.username = "rgunitydev@rgunity.com";
+                settings.email = "rgunitydev@rgunity.com";
                 settings.password = "Password1";
                 settings.botsSelected = new int[0];
                 AssetDatabase.CreateAsset(settings, SETTINGS_PATH);
@@ -52,9 +52,9 @@ namespace RegressionGames
             return numBots;
         }
 
-        public string GetUsername()
+        public string GetEmail()
         {
-            return username;
+            return email;
         }
 
         public string GetPassword()
