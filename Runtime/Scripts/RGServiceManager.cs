@@ -20,10 +20,25 @@ namespace RegressionGames
 
         private const string RGSERVICE_HOST = "http://localhost";
         private const int RGSERVICE_PORT = 8080;
+        
+        protected static RGServiceManager _this = null;
+
+        protected virtual void Awake()
+        {
+            // only allow 1 of these to be alive
+            if( _this != null && this.gameObject != _this.gameObject)
+            {
+                Destroy(this.gameObject);
+                return;
+            }
+            // keep this thing alive across scenes
+            DontDestroyOnLoad(this.gameObject);
+            _this = this;
+        }
 
         public static RGServiceManager GetInstance()
         {
-            return FindObjectOfType<RGServiceManager>();
+            return _this;
         }
 
         public bool IsAuthed()
@@ -120,25 +135,29 @@ namespace RegressionGames
             );
         }
 
-        public async Task GetEvents(Action<RGEvent[]> onSuccess, Action onFailure)
+        public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
             await EnsureAuthed();
-            await SendWebRequest(
-                uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/events",
-                method: "GET",
-                payload: null,
-                onSuccess: async (s) =>
-                {
-                    // wrapper this as C#/Unity json can't handle top level arrays /yuck
-                    string theNewText = $"{{\"events\":{s}}}";
-                    RGEventList response = JsonUtility.FromJson<RGEventList>(theNewText);
-                    onSuccess.Invoke(response.events);
-                },
-                onFailure: async (f) =>
-                {
-                    onFailure.Invoke();
-                }
-            );
+            try
+            {
+                await SendWebRequest(
+                    uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
+                    method: "GET",
+                    payload: null,
+                    onSuccess: async (s) =>
+                    {
+                        RGBotInstanceExternalConnectionInfo connInfo =
+                            JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
+                        Debug.Log($"RG Bot Instance external connection info: {connInfo}");
+                        onSuccess.Invoke(connInfo);
+                    },
+                    onFailure: async (f) => { onFailure.Invoke(); }
+                );
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
         }
 
         public async Task QueueInstantBot(long botId, Action<RGBotInstance> onSuccess, Action onFailure)
@@ -200,6 +219,9 @@ namespace RegressionGames
             );
         }
 
+        /**
+         * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
+         */
         private async Task<bool> SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure)
         {
             Debug.Log($"Calling {uri} - {method} - payload: {payload}");
