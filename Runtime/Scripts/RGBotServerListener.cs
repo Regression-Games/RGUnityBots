@@ -165,7 +165,10 @@ namespace RegressionGames
                     {
                         RGOverlayMenu.GetInstance()?.UpdateBots();
                     },
-                    () => { }
+                    () =>
+                    {
+                        RGOverlayMenu.GetInstance()?.UpdateBots();
+                    }
                 );
         }
 
@@ -637,6 +640,8 @@ namespace RegressionGames
                     string lifecycle = string.IsNullOrEmpty(handshakeMessage.lifecycle)
                         ? "MANAGED"
                         : handshakeMessage.lifecycle;
+                    
+                    clientConnectionMap[clientId].lifecycle = lifecycle;
 
                     string botName = handshakeMessage.botName;
                     string characterConfig = handshakeMessage.characterConfig;
