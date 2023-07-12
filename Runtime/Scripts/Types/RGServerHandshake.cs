@@ -8,13 +8,13 @@ namespace RegressionGames.Types
         public string token;
         // we echo this back in all cases... it is most useful to the client when randomly assigned
         // OR in bot scripts that support many types to know which type to reconnect with
-        public string characterType;
+        public string characterConfig;
         public string error;
 
-        public RGServerHandshake( string token, string characterType, string error)
+        public RGServerHandshake( string token, string characterConfig, string error)
         {
             this.token = token;
-            this.characterType = characterType;
+            this.characterConfig = characterConfig;
             this.error = error;
         }
     }
