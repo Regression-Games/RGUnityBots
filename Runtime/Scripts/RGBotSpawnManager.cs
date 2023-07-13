@@ -157,9 +157,9 @@ namespace RegressionGames
             BotInformation botInformation;
             while(_botsToSpawn.TryDequeue(out botInformation))
             {
-                Debug.Log("[SpawnBots] Spawning all queued bots");
+                Debug.Log($"[SpawnBots] Spawning bot: {botInformation.botName} for client Id: {botInformation.clientId}");
                 // make sure this client is still connected
-                if (RGBotServerListener.GetInstance().IsClientConnected(botInformation.clientId))
+                if (true == RGBotServerListener.GetInstance()?.IsClientConnected(botInformation.clientId))
                 {
                     CallSpawnBot(lateJoin, botInformation);
                 }
@@ -295,7 +295,7 @@ namespace RegressionGames
                 }
                 else
                 {
-                    Debug.Log($"Enqueuing spawning a bot: {botToSpawn.botName}");
+                    Debug.Log($"Enqueuing a bot to spawn: {botToSpawn.botName} for client id: {botToSpawn.clientId}");
                     _botsToSpawn.Enqueue(botToSpawn);
                 }
             }

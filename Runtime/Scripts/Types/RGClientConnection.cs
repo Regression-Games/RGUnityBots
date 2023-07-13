@@ -21,11 +21,12 @@ namespace RegressionGames.Types
             this.connectionInfo = connectionInfo;
         }
 
-        public bool Connected {
+        public bool Connected 
+        {
             get
             {
                 IPEndPoint ep = ((IPEndPoint)this.client?.Client.RemoteEndPoint);
-                if (ep != null && ep.Port == connectionInfo.port && ep.Address.ToString() == connectionInfo.address)
+                if (ep != null && ep.Port == connectionInfo.port && AddressesEqual(ep.Address.ToString(), connectionInfo.address))
                 {
                     return this.client.Connected;
                 }
@@ -33,6 +34,22 @@ namespace RegressionGames.Types
                 // not connected or port/address mis-match.. need to re-connect
                 return false;
             }
+        }
+
+        private bool AddressesEqual(string address1, string address2)
+        {
+            // normalize localhost
+            if (address1 == "127.0.0.1")
+            {
+                address1 = "localhost";
+            }
+            
+            if (address2 == "127.0.0.1")
+            {
+                address2 = "localhost";
+            }
+
+            return address1.Equals(address2);
         }
     }
 }
