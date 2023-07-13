@@ -47,6 +47,11 @@ namespace RegressionGames
             DontDestroyOnLoad(this.gameObject);
             _this = this;
         }
+        
+        void OnApplicationQuit()
+        {
+            StopBotClientConnections();
+        }
 
         private bool gameStarted = false;
 
