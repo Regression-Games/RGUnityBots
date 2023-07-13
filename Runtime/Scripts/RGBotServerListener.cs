@@ -57,7 +57,7 @@ namespace RegressionGames
         /*
          * Tracking Maps
          * 
-         * 2. clientConnectionMap - Clients that have connected and/or done their handshake will be populated here.
+         * clientConnectionMap - Clients that have connected and/or done their handshake will be populated here.
          *    Clients waiting on a connection will have a null value.
          *    (key is the botInstanceId as a uint)
          *
