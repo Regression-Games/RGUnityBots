@@ -202,12 +202,12 @@ namespace RegressionGames
 
         /**
          * <summary>
-         * A method that gets called when a bot has received a teardown request (i.e. when the bot has signaled that
-         * it is finished, or when the scene shuts down).
+         * A method that gets called when a bot's avatar should be despawned without removing its client from the game.
+         * Normally used for a temporary client disconnect situation like a bot reload.
          * </summary>
-         * <param name="clientId">The ID of the client that owns the bot to teardown</param>
+         * <param name="clientId">The ID of the client that owns the bot</param>
          */
-        public virtual void TeardownBot(uint clientId)
+        public virtual void DeSpawnBot(uint clientId)
         {
             if (BotMap.TryRemove(clientId, out GameObject bot))
             {
@@ -220,6 +220,18 @@ namespace RegressionGames
                     Debug.Log($"Bot already de-spawned");
                 }
             }
+        }
+
+        /**
+         * <summary>
+         * A method that gets called when a bot has received a teardown request (i.e. when the bot has signaled that
+         * it is finished, or when the scene shuts down).
+         * </summary>
+         * <param name="clientId">The ID of the client that owns the bot</param>
+         */
+        public virtual void TeardownBot(uint clientId)
+        {
+            DeSpawnBot(clientId);
         }
 
         /**
@@ -277,7 +289,7 @@ namespace RegressionGames
                 RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                 if (rgBotServerListener != null)
                 {
-                    Debug.Log($"[SeatBot] Sending socket handshake response to client id: {botToSpawn.clientId}");
+                    Debug.Log($"[SeatBot] Sending socket handshake response characterConfig: {botToSpawn.characterConfig} - to client id: {botToSpawn.clientId}");
                     //send the client a handshake response so they can start processing
                     rgBotServerListener.SendHandshakeResponseToClient(botToSpawn.clientId, botToSpawn.characterConfig);
                 }
@@ -287,6 +299,9 @@ namespace RegressionGames
                 GameObject existingBot = GetBot(botToSpawn.clientId);
                 if (existingBot != null)
                 {
+                    // get their agent re-mapped
+                    rgBotServerListener.agentMap[botToSpawn.clientId] = existingBot.GetComponent<RGAgent>();
+                    
                     Debug.Log($"Sending playerId to client again: {botToSpawn.clientId}");
                     // Send the client their player Id
                     rgBotServerListener.SendToClient(botToSpawn.clientId, "playerId",

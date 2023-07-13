@@ -387,15 +387,27 @@ namespace RegressionGames
                     {
                         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                     });
+                    List<uint> sentTo = new List<uint>();
                     foreach (var clientId in clients)
                     {
-                        SendToClient(clientId, "tickInfo", data);
+                        if(SendToClient(clientId, "tickInfo", data)) 
+                        {
+                            sentTo.Add(clientId);
+                        }
                     }
 
-                    Debug.Log($"Sent RG state data from {state.Count} game objects to clients: {string.Join(",", clients)}");
-                    //useful, but too spammy
-                    //Debug.Log($"TickData: {data}");
-                    
+                    if (sentTo.Count > 0)
+                    {
+                        Debug.Log(
+                            $"Sent RG state data from {state.Count} game objects to clients: {string.Join(",", sentTo)}");
+                        //useful, but too spammy
+                        //Debug.Log($"TickData: {data}");
+                    }
+                    else
+                    {
+                        // Useful for debugging threading / callstack issues
+                        //Debug.Log($"Skipping RG state data update, no clients connected");
+                    }
                 }
                 else
                 {
@@ -512,7 +524,7 @@ namespace RegressionGames
             });
         }
 
-        public void SendToClient(uint clientId, string type, string data)
+        public bool SendToClient(uint clientId, string type, string data)
         {
             RGClientConnection? clientConnection = clientConnectionMap.GetValueOrDefault(clientId, null);
             if (clientConnection != null )
@@ -534,6 +546,7 @@ namespace RegressionGames
                         {
                             if (!vt.IsCompletedSuccessfully)
                             {
+                                Debug.Log($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
                                 // client got pulled out from under us or restarted/reloaded.. handle it on the next Update
                                 try
                                 {
@@ -543,13 +556,20 @@ namespace RegressionGames
                                 {
                                 }
 
+                                // we could despawn their avatar, but not remove them from the lobby
+                                // however we don't do this as we lose the avatar position/playerclass to
+                                // restore on re-connect
+                                //RGBotSpawnManager.GetInstance()?.DeSpawnBot(clientId);
+                                
                                 clientConnection.client = null;
                             }
                         });
+                        return true;
                     }
                 }
                 catch (Exception e)
                 {
+                    Debug.Log($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
                     // client got pulled out from under us or restarted/reloaded.. handle it on the next Update
                     try
                     {
@@ -558,11 +578,17 @@ namespace RegressionGames
                     catch (Exception ex)
                     {
                     }
-
+                    
+                    // we could despawn their avatar, but not remove them from the lobby
+                    // however we don't do this as we lose the avatar position/playerclass to
+                    // restore on re-connect
+                    //RGBotSpawnManager.GetInstance()?.DeSpawnBot(clientId);
+                    
                     clientConnection.client = null;
                 }
             }
-        
+
+            return false;
         }
 
         public void SendHandshakeResponseToClient(uint clientId, string characterConfig, [CanBeNull] string error = null)
