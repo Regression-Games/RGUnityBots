@@ -117,12 +117,13 @@ namespace RegressionGames
          * The server now lasts as long as RG overlay is loaded
          * To stop the 'game' and teardown spawnable players, use StopGame (which this also
          * calls internally).
+         * ONLY CALL THIS ON THE MAIN THREAD
          */
         public void StopBotClientConnections()
         {
             Debug.Log($"Stopping Regression Games Bot Client Connections");
+            StopGameHelper();
             EndAllClientConnections();
-            StopGame();
             clientConnectionMap.Clear();
             clientTokenMap.Clear();
             
@@ -153,7 +154,7 @@ namespace RegressionGames
          *
          * This will teardown the client and despawn the avatar if necessary
          */
-        public void TeardownClient(uint clientId)
+        public void TeardownClient(uint clientId, bool doUpdateBots=true)
         {
             // do this before we end the connection so the player is still in the map
             RGBotSpawnManager.GetInstance()?.TeardownBot(clientId);
@@ -168,11 +169,17 @@ namespace RegressionGames
                     clientId,
                     () =>
                     {
-                        RGOverlayMenu.GetInstance()?.UpdateBots();
+                        if (doUpdateBots)
+                        {
+                            RGOverlayMenu.GetInstance()?.UpdateBots();
+                        }
                     },
                     () =>
                     {
-                        RGOverlayMenu.GetInstance()?.UpdateBots();
+                        if (doUpdateBots)
+                        {
+                            RGOverlayMenu.GetInstance()?.UpdateBots();
+                        }
                     }
                 );
         }
@@ -193,9 +200,12 @@ namespace RegressionGames
                 {
                     // de-spawn and close that client's connection
                     SendToClient(keyvalue.Key, "teardown", "{}");
-                    TeardownClient(keyvalue.Key);
+                    TeardownClient(keyvalue.Key, false);
                 }
             }
+            
+            // update the bot list one time after tearing them down instead of on every one
+            RGOverlayMenu.GetInstance()?.UpdateBots();
             
             RGBotSpawnManager rgBotSpawnManager = RGBotSpawnManager.GetInstance();
             if (rgBotSpawnManager != null)
