@@ -75,7 +75,7 @@ namespace RegressionGames
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                RGDebug.LogException(ex);
             }
 
             return false;
@@ -156,7 +156,7 @@ namespace RegressionGames
             }
             catch (Exception ex)
             {
-                Debug.LogException(ex);
+                RGDebug.LogException(ex);
             }
         }
 

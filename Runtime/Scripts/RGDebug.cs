@@ -33,6 +33,18 @@ namespace RegressionGames
             LogToConsole(message, RGLogLevel.Error);
         }
 
+        /**
+         * Replaces Unity's Debug.LogException method
+         */
+        public static void LogException(System.Exception exception)
+        {
+            if (!CheckLogLevel(RGLogLevel.Error))
+            {
+                return;
+            }
+            RGDebug.LogException(exception);
+        }
+
         // Log the given message to the console
         private static void LogToConsole(string message, RGLogLevel logLevel)
         {

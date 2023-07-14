@@ -85,7 +85,7 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
             }
             catch (Exception e)
             {
-                Debug.LogException(new Exception("Error removing bot from lobby", e));
+                RGDebug.LogException(new Exception("Error removing bot from lobby", e));
             }
             
         }
