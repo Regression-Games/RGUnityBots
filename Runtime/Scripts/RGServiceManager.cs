@@ -62,16 +62,16 @@ namespace RegressionGames
                         onSuccess: s =>
                         {
                             rgAuthToken = s;
-                            Debug.Log($"Signed in to RG Service; token: {rgAuthToken}");
+                            RGDebug.Log($"Signed in to RG Service; token: {rgAuthToken}");
                         },
                         onFailure: f =>
                         {
-                            Debug.Log($"Failed signing in to RG Service");
+                            RGDebug.Log($"Failed signing in to RG Service");
                         }
                     );
                     return rgAuthToken != null;
                 }
-                Debug.LogWarning("RG Service email or password not configured");
+                RGDebug.LogWarning("RG Service email or password not configured");
             }
             catch (Exception ex)
             {
@@ -93,7 +93,7 @@ namespace RegressionGames
 
         public async Task Auth(string email, string password, Action<string> onSuccess, Action<string> onFailure)
         {
-            Debug.Log($"Calling RGService Auth for email: {email}, password: *********");
+            RGDebug.Log($"Calling RGService Auth for email: {email}, password: *********");
             await SendWebRequest(
                 uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/auth",
                 method: "POST",
@@ -101,13 +101,13 @@ namespace RegressionGames
                 onSuccess: async(s) =>
                 {
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
-                    Debug.Log($"RGService Auth response received with token: {response.token}");
+                    RGDebug.Log($"RGService Auth response received with token: {response.token}");
                     rgAuthToken = response.token;
                     onSuccess.Invoke(response.token);
                 },
                 onFailure: async(f) =>
                 {
-                    Debug.LogWarning(f);
+                    RGDebug.LogWarning(f);
                     onFailure.Invoke(f);
                 }
             );
@@ -125,7 +125,7 @@ namespace RegressionGames
                     // wrapper this as C#/Unity json can't handle top level arrays /yuck
                     string theNewText = $"{{\"bots\":{s}}}";
                     RGBotList response = JsonUtility.FromJson<RGBotList>(theNewText);
-                    Debug.Log($"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
+                    RGDebug.Log($"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
                     onSuccess.Invoke(response.bots);
                 },
                 onFailure: async (f) =>
@@ -148,7 +148,7 @@ namespace RegressionGames
                     {
                         RGBotInstanceExternalConnectionInfo connInfo =
                             JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
-                        Debug.Log($"RG Bot Instance external connection info: {connInfo}");
+                        RGDebug.Log($"RG Bot Instance external connection info: {connInfo}");
                         onSuccess.Invoke(connInfo);
                     },
                     onFailure: async (f) => { onFailure.Invoke(); }
@@ -170,7 +170,7 @@ namespace RegressionGames
                 onSuccess: async (s) =>
                 {
                     RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
-                    Debug.Log($"RG Bot Instance id: {botInstance.id} started");
+                    RGDebug.Log($"RG Bot Instance id: {botInstance.id} started");
                     onSuccess.Invoke(botInstance);
                 },
                 onFailure: async (f) =>
@@ -224,7 +224,7 @@ namespace RegressionGames
          */
         private async Task<bool> SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure)
         {
-            Debug.Log($"Calling {uri} - {method} - payload: {payload}");
+            RGDebug.Log($"Calling {uri} - {method} - payload: {payload}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
             SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)));
             UnityWebRequestAsyncOperation asyncOperation = request.SendWebRequest();
@@ -239,14 +239,14 @@ namespace RegressionGames
                 {
                     string resultText = request.downloadHandler?.text;
                     // pretty print
-                    Debug.Log($"Response from {uri} - {method}\r\n{resultText}");
+                    RGDebug.Log($"Response from {uri} - {method}\r\n{resultText}");
                     await onSuccess.Invoke(resultText);
                     return true;
                 }
 
                 string errorString =
                     $"Error calling {uri} - {method} - {request.error} - {request.result} - {request.downloadHandler?.text}";
-                Debug.LogWarning(errorString);
+                RGDebug.LogWarning(errorString);
                 await onFailure.Invoke(errorString);
                 return false;
             }

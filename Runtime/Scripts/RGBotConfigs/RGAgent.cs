@@ -29,7 +29,7 @@ namespace RegressionGames.RGBotConfigs
                 actionMap[action.GetActionName()] = action;
             }
 
-            Debug.Log($"Agent registered with {actionMap.Count} actions");
+            RGDebug.Log($"Agent registered with {actionMap.Count} actions");
         }
 
         public RGAction GetActionHandler(string actionName)
