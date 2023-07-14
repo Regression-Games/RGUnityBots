@@ -3,6 +3,8 @@ using UnityEngine;
 
 namespace RegressionGames
 {
+    public enum DebugLogLevel {Off, Info, Warning, Error, All}
+    
     public class RGSettings: ScriptableObject
     {
         public const string SETTINGS_PATH = "Assets/RGSettings.asset";
@@ -13,6 +15,7 @@ namespace RegressionGames
         [SerializeField] private string email;
         [SerializeField] private string password;
         [SerializeField] private int[] botsSelected;
+        [SerializeField] private DebugLogLevel logLevel;
         
         public static RGSettings GetOrCreateSettings()
         {
@@ -67,6 +70,10 @@ namespace RegressionGames
             return botsSelected;
         }
 
+        public DebugLogLevel GetLogLevel()
+        {
+            return logLevel;
+        }
     }
     
 }
