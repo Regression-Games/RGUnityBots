@@ -65,7 +65,7 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
                 }
                 catch (Exception)
                 {
-                    Debug.Log($"Player already de-spawned");
+                    RGDebug.Log($"Player already de-spawned");
                 }
 
             }
@@ -105,7 +105,7 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
 
         public override void SpawnBot(bool lateJoin, uint clientId, string botName, string characterType)
         {
-            Debug.Log($"Trying to spawn RG Bot for clientId: {clientId}");
+            RGDebug.Log($"Trying to spawn RG Bot for clientId: {clientId}");
             // make sure they don't already have a bot
             if (!clientPlayerMap.ContainsKey(clientId))
             {
@@ -151,12 +151,12 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
                 // Rogue,
                 if (Enum.TryParse(characterType, out CharacterTypeEnum charType))
                 {
-                    Debug.Log($"Setting bot character type: {characterType}");   
+                    RGDebug.Log($"Setting bot character type: {characterType}");   
                     networkAvatarGuidState.SetAvatarMatchingCharacterType(charType);
                 }
                 else
                 {
-                    Debug.Log($"Setting bot character type: RANDOM");
+                    RGDebug.Log($"Setting bot character type: RANDOM");
                     networkAvatarGuidState.SetRandomAvatar();
                 }
 
@@ -187,7 +187,7 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
                 // Add the agent
                 rgBotServerListener.agentMap[clientId] = clientPlayerMap[clientId].GetComponent<RGAgent>();
 
-                Debug.Log($"Sending playerId to client: {clientId}");
+                RGDebug.Log($"Sending playerId to client: {clientId}");
                 // Send the client their player Id
                 rgBotServerListener.SendToClient(clientId, "playerId",
                     JsonUtility.ToJson(
@@ -310,7 +310,7 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
                             RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                             if (rgBotServerListener != null)
                             {
-                                Debug.Log($"Sending socket handshake response to client id: {clientId}");
+                                RGDebug.Log($"Sending socket handshake response to client id: {clientId}");
                                 //send the client a handshake response so they can start processing
                                 rgBotServerListener.SendHandshakeResponseToClient(clientId, characterType);
                             }
@@ -322,7 +322,7 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
                             RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                             if (rgBotServerListener != null)
                             {
-                                Debug.Log($"Sending ERROR socket handshake response to client id: {clientId}");
+                                RGDebug.Log($"Sending ERROR socket handshake response to client id: {clientId}");
                                 //send the client an ERROR handshake response so they can start processing
                                 rgBotServerListener.SendHandshakeResponseToClient(clientId, null,
                                     "No seats available for bot connection.");
@@ -335,7 +335,7 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
                         RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                         if (rgBotServerListener != null)
                         {
-                            Debug.Log($"Sending socket handshake response to client id: {clientId}");
+                            RGDebug.Log($"Sending socket handshake response to client id: {clientId}");
                             //send the client an ERROR handshake response so they can start processing
                             rgBotServerListener.SendHandshakeResponseToClient(clientId, characterType);
                         }
@@ -348,12 +348,12 @@ namespace Unity.BossRoom.Gameplay.RegressionGames
                     RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                     if (rgBotServerListener != null)
                     {
-                        Debug.Log($"Sending socket handshake response to client id: {clientId}");
+                        RGDebug.Log($"Sending socket handshake response to client id: {clientId}");
                         //send the client a handshake response so they can start processing
                         rgBotServerListener.SendHandshakeResponseToClient(clientId, characterType);
                         if (clientPlayerMap.TryGetValue(clientId, out NetworkObject netObj))
                         {
-                            Debug.Log($"Sending playerId to client: {clientId}");
+                            RGDebug.Log($"Sending playerId to client: {clientId}");
                             // Send the client their player Id
                             rgBotServerListener.SendToClient(clientId, "playerId",
                                 JsonUtility.ToJson(

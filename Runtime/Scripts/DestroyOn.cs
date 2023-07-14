@@ -30,7 +30,7 @@ namespace RegressionGames
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError(e);
+                    RGDebug.LogError(e);
                 }
         }
 #endif

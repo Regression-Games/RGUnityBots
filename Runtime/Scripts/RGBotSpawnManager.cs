@@ -157,7 +157,7 @@ namespace RegressionGames
             BotInformation botInformation;
             while(_botsToSpawn.TryDequeue(out botInformation))
             {
-                Debug.Log($"[SpawnBots] Spawning bot: {botInformation.botName} for client Id: {botInformation.clientId}");
+                RGDebug.Log($"[SpawnBots] Spawning bot: {botInformation.botName} for client Id: {botInformation.clientId}");
                 // make sure this client is still connected
                 if (true == RGBotServerListener.GetInstance()?.IsClientConnected(botInformation.clientId))
                 {
@@ -191,7 +191,7 @@ namespace RegressionGames
                 // Add the agent
                 rgBotServerListener.agentMap[botInformation.clientId] = BotMap[botInformation.clientId].GetComponent<RGAgent>();
 
-                Debug.Log($"Sending playerId to client: {botInformation.clientId}");
+                RGDebug.Log($"Sending playerId to client: {botInformation.clientId}");
                 // Send the client their player Id
                 rgBotServerListener.SendToClient(botInformation.clientId, "playerId",
                     JsonUtility.ToJson(
@@ -217,7 +217,7 @@ namespace RegressionGames
                 }
                 catch (Exception)
                 {
-                    Debug.Log($"Bot already de-spawned");
+                    RGDebug.Log($"Bot already de-spawned");
                 }
             }
         }
@@ -243,7 +243,7 @@ namespace RegressionGames
          */
         public virtual void StopGame()
         {
-            Debug.Log("Stopping the game");
+            RGDebug.Log("Stopping the game");
             // if there is somehow still bot objects left, kill them
             foreach (uint key in BotMap.Keys)
             {
@@ -289,7 +289,7 @@ namespace RegressionGames
                 RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                 if (rgBotServerListener != null)
                 {
-                    Debug.Log($"[SeatBot] Sending socket handshake response characterConfig: {botToSpawn.characterConfig} - to client id: {botToSpawn.clientId}");
+                    RGDebug.Log($"[SeatBot] Sending socket handshake response characterConfig: {botToSpawn.characterConfig} - to client id: {botToSpawn.clientId}");
                     //send the client a handshake response so they can start processing
                     rgBotServerListener.SendHandshakeResponseToClient(botToSpawn.clientId, botToSpawn.characterConfig);
                 }
@@ -302,7 +302,7 @@ namespace RegressionGames
                     // get their agent re-mapped
                     rgBotServerListener.agentMap[botToSpawn.clientId] = existingBot.GetComponent<RGAgent>();
                     
-                    Debug.Log($"Sending playerId to client again: {botToSpawn.clientId}");
+                    RGDebug.Log($"Sending playerId to client again: {botToSpawn.clientId}");
                     // Send the client their player Id
                     rgBotServerListener.SendToClient(botToSpawn.clientId, "playerId",
                         JsonUtility.ToJson(
@@ -310,7 +310,7 @@ namespace RegressionGames
                 }
                 else
                 {
-                    Debug.Log($"Enqueuing a bot to spawn: {botToSpawn.botName} for client id: {botToSpawn.clientId}");
+                    RGDebug.Log($"Enqueuing a bot to spawn: {botToSpawn.botName} for client id: {botToSpawn.clientId}");
                     _botsToSpawn.Enqueue(botToSpawn);
                 }
             }
