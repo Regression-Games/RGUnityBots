@@ -42,6 +42,9 @@ namespace RegressionGames.Editor
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
 
+                    SerializedProperty logLevel = settings.FindProperty("logLevel");
+                    logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
+                    
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
                         EditorGUILayout.Toggle("Use Global Settings ?", useSystemSettings.boolValue);
