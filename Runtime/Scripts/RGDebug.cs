@@ -6,17 +6,44 @@ namespace RegressionGames
 {
     public static class RGDebug
     {
-        public enum RGLogLevel {Info, Warning, Error}
+        public enum RGLogLevel {Debug, Info, Warning, Error}
 
+        /**
+         * Replaces Unity's Debug.Log method. Adds the ability to add a custom log level, which is
+         * controlled through Regression Project Settings
+         */
         public static void Log(string message, RGLogLevel logLevel = RGLogLevel.Info)
+        {
+            LogToConsole(message, logLevel);
+        }
+
+        /**
+         * Replaces Unity's Debug.LogWarning method
+         */
+        public static void LogWarning(string message)
+        {
+            LogToConsole(message, RGLogLevel.Warning);
+        }
+
+        /**
+         * Replaces Unity's Debug.LogError method
+         */
+        public static void LogError(string message)
+        {
+            LogToConsole(message, RGLogLevel.Error);
+        }
+
+        // Log the given message to the console
+        private static void LogToConsole(string message, RGLogLevel logLevel)
         {
             if (!CheckLogLevel(logLevel))
             {
                 return;
             }
-
+            
             switch (logLevel)
             {
+                case RGLogLevel.Debug:
                 case RGLogLevel.Info:
                     Debug.Log(message);
                     break;
@@ -26,27 +53,51 @@ namespace RegressionGames
                 case RGLogLevel.Error:
                     Debug.LogError(message);
                     break;
+                default:
+                    Debug.Log(message);
+                    break;
             }
         }
-
+        
+        
+        
         // Determine if the log message is within the log levels in the settings
         private static bool CheckLogLevel(RGLogLevel logLevel)
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             DebugLogLevel rgLogLevel = rgSettings.GetLogLevel();
 
-            if (rgLogLevel == DebugLogLevel.All)
+            if (rgLogLevel == DebugLogLevel.Off)
             {
-                return true;
+                return false;
             }
 
-            return rgLogLevel switch
+            switch (rgLogLevel)
             {
-                DebugLogLevel.Info when logLevel == RGLogLevel.Info => true,
-                DebugLogLevel.Warning when logLevel == RGLogLevel.Warning => true,
-                DebugLogLevel.Error when logLevel == RGLogLevel.Error => true,
-                _ => false
-            };
+                case DebugLogLevel.Debug:
+                    return true;
+                case DebugLogLevel.Info:
+                    if (logLevel >= RGLogLevel.Info && logLevel <= RGLogLevel.Error)
+                    {
+                        return true;
+                    }
+                    break;
+                case DebugLogLevel.Warning:
+                    if (logLevel >= RGLogLevel.Warning && logLevel <= RGLogLevel.Error)
+                    {
+                        return true;
+                    }
+                    break;
+                case DebugLogLevel.Error:
+                    if (logLevel == RGLogLevel.Error)
+                    {
+                        return true;
+                    }
+                    break;
+            }
+
+            return false;
         }
+
     }
 }
