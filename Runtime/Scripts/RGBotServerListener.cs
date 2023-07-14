@@ -11,7 +11,6 @@ using Unity.Plastic.Newtonsoft.Json;
 using RegressionGames.RGBotConfigs;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TcpClient = System.Net.Sockets.TcpClient;
@@ -47,7 +46,7 @@ namespace RegressionGames
             DontDestroyOnLoad(this.gameObject);
             _this = this;
         }
-        
+
         void OnApplicationQuit()
         {
             StopBotClientConnections();
