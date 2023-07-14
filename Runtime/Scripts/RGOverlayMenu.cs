@@ -50,7 +50,6 @@ namespace RegressionGames
             rgServiceManager = GetComponent<RGServiceManager>();
             _this = this;
             DontDestroyOnLoad(_this.gameObject);
-            RGBotServerListener.GetInstance()?.StartServer();
             
             UpdateBots();
 
@@ -153,11 +152,12 @@ namespace RegressionGames
                     {
                         _ = rgServiceManager.QueueInstantBot(
                             botId,
-                            match =>
+                            botInstance =>
                             {
                                 UpdateBots();
                                 // close the overlay so it doesn't hide components the bot needs to click
                                 OnOverlayClosed();
+                                RGBotServerListener.GetInstance()?.AddClientConnectionForBotInstance(botInstance.id);
                             },
                             () => { Debug.LogWarning("WARNING: Failed to start new instant bot"); });
                     }
