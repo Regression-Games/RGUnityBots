@@ -6,20 +6,29 @@ namespace RegressionGames
 {
     public static class RGDebug
     {
-        public enum RGLogLevel {Verbose, Info, Warning, Error}
+        public enum RGLogLevel {Verbose, Debug, Info, Warning, Error}
 
         /**
-         * Most fine-grained logging, only visible if Log Level is set to 'Verbose' in
-         * the Regression Project Settings
+         * Logging of 'Verbose' logs. Only visible if Log Level is set to 'Verbose'
+         * in the Regression Project Settings
          */
         public static void LogVerbose(string message)
         {
             LogToConsole(message, RGLogLevel.Verbose);
         }
+
+        /**
+         * Logging of 'Debug' logs. Only visible if Log Level is set to 'Debug' or
+         * lower in the Regression Project Settings
+         */
+        public static void LogDebug(string message)
+        {
+            LogToConsole(message, RGLogLevel.Debug);
+        }
         
         /**
-         * Replaces Unity's Debug.Log method. Adds the ability to add a custom log level, which is
-         * controlled through Regression Project Settings
+         * Logging of 'Info' logs. Only visible if Log Level is set to 'Info' or
+         * lower in the Regression Project Settings
          */
         public static void Log(string message)
         {
@@ -27,7 +36,8 @@ namespace RegressionGames
         }
 
         /**
-         * Replaces Unity's Debug.LogWarning method
+         * Logging of 'Warning' logs. Only visible if Log Level is set to 'Warning' or
+         * lower in the Regression Project Settings
          */
         public static void LogWarning(string message)
         {
@@ -35,7 +45,8 @@ namespace RegressionGames
         }
 
         /**
-         * Replaces Unity's Debug.LogError method
+         * Logging of 'Error' logs. Only visible if Log Level is set to 'Error' or
+         * lower in the Regression Project Settings
          */
         public static void LogError(string message)
         {
@@ -43,7 +54,8 @@ namespace RegressionGames
         }
 
         /**
-         * Replaces Unity's Debug.LogException method
+         * Logging of 'Exception' logs. Only visible if Log Level is set to 'Error' or
+         * lower in the Regression Project Settings
          */
         public static void LogException(System.Exception exception)
         {
@@ -51,7 +63,7 @@ namespace RegressionGames
             {
                 return;
             }
-            RGDebug.LogException(exception);
+            Debug.LogException(exception);
         }
 
         // Log the given message to the console
@@ -65,6 +77,7 @@ namespace RegressionGames
             switch (logLevel)
             {
                 case RGLogLevel.Verbose:
+                case RGLogLevel.Debug:
                 case RGLogLevel.Info:
                     Debug.Log(message);
                     break;
@@ -97,6 +110,12 @@ namespace RegressionGames
             {
                 case DebugLogLevel.Verbose:
                     return true;
+                case DebugLogLevel.Debug:
+                    if (logLevel >= RGLogLevel.Debug && logLevel <= RGLogLevel.Error)
+                    {
+                        return true;
+                    }
+                    break;
                 case DebugLogLevel.Info:
                     if (logLevel >= RGLogLevel.Info && logLevel <= RGLogLevel.Error)
                     {
