@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace RegressionGames
 {
-    public enum DebugLogLevel {Off, Debug, Info, Warning, Error}
+    public enum DebugLogLevel {Off, Verbose, Info, Warning, Error}
     
     public class RGSettings: ScriptableObject
     {
