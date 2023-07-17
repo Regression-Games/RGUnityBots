@@ -14,19 +14,13 @@ namespace RegressionGames
         public static readonly string RG_UNITY_AUTH_TOKEN = Guid.NewGuid().ToString();
 
         private string rgAuthToken;
-        
-        private const string GAME_ENGINE_HOST = "localhost";
-        private const int  GAME_ENGINE_PORT = 19999;
 
-        private const string RGSERVICE_HOST = "http://localhost";
-        private const int RGSERVICE_PORT = 8080;
-        
         protected static RGServiceManager _this = null;
 
         protected virtual void Awake()
         {
             // only allow 1 of these to be alive
-            if( _this != null && this.gameObject != _this.gameObject)
+            if (_this != null && this.gameObject != _this.gameObject)
             {
                 Destroy(this.gameObject);
                 return;
@@ -51,14 +45,14 @@ namespace RegressionGames
             try
             {
                 RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-                string email=rgSettings.GetEmail();
+                string email = rgSettings.GetEmail();
                 string password = rgSettings.GetPassword();
 
                 if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
                 {
                     await Auth(
                         email: email,
-                        password: password, 
+                        password: password,
                         onSuccess: s =>
                         {
                             rgAuthToken = s;
@@ -91,33 +85,54 @@ namespace RegressionGames
             return true;
         }
 
+
+        private String GetRgServiceBaseUri()
+        {
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            string host = rgSettings.GetRgHostAddress();
+            int port = rgSettings.GetRgPort();
+
+            if (host.Equals("localhost"))
+            {
+                return $"{host}:{port}";
+            }
+            else
+            {
+                return $"{host}/rgservice";
+            }
+        }
+
         public async Task Auth(string email, string password, Action<string> onSuccess, Action<string> onFailure)
         {
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            string host = rgSettings.GetRgHostAddress();
             RGDebug.Log($"Calling RGService Auth for email: {email}, password: *********");
             await SendWebRequest(
-                uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/auth",
+                uri: $"{GetRgServiceBaseUri()}/auth",
                 method: "POST",
                 payload: JsonUtility.ToJson(new RGAuthRequest(email, password)),
-                onSuccess: async(s) =>
+                onSuccess: async (s) =>
                 {
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
                     RGDebug.Log($"RGService Auth response received with token: {response.token}");
                     rgAuthToken = response.token;
                     onSuccess.Invoke(response.token);
                 },
-                onFailure: async(f) =>
+                onFailure: async (f) =>
                 {
                     RGDebug.LogWarning(f);
                     onFailure.Invoke(f);
                 }
             );
         }
-        
+
         public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
         {
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            string host = rgSettings.GetRgHostAddress();
             await EnsureAuthed();
             await SendWebRequest(
-                uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/bot",
+                uri: $"{GetRgServiceBaseUri()}/bot",
                 method: "GET",
                 payload: null,
                 onSuccess: async (s) =>
@@ -137,11 +152,12 @@ namespace RegressionGames
 
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             await EnsureAuthed();
             try
             {
                 await SendWebRequest(
-                    uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
+                    uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
                     method: "GET",
                     payload: null,
                     onSuccess: async (s) =>
@@ -162,11 +178,13 @@ namespace RegressionGames
 
         public async Task QueueInstantBot(long botId, Action<RGBotInstance> onSuccess, Action onFailure)
         {
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            string host = rgSettings.GetRgHostAddress();
             await EnsureAuthed();
             await SendWebRequest(
-                uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/matchmaking/instant-bot/queue",
+                uri: $"{GetRgServiceBaseUri()}/matchmaking/instant-bot/queue",
                 method: "POST",
-                payload: JsonUtility.ToJson(new RGQueueInstantBotRequest(GAME_ENGINE_HOST, GAME_ENGINE_PORT, botId, RG_UNITY_AUTH_TOKEN)),
+                payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("localhost", 19999, botId, RG_UNITY_AUTH_TOKEN)), // TODO remove host and port from payload or make optional
                 onSuccess: async (s) =>
                 {
                     RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
@@ -179,12 +197,13 @@ namespace RegressionGames
                 }
             );
         }
-        
+
         public async Task GetRunningInstancesForBot(long botId, Action<RGBotInstance[]> onSuccess, Action onFailure)
         {
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             await EnsureAuthed();
             await SendWebRequest(
-                uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/matchmaking/running-bot/{botId}",
+                uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botId}",
                 method: "GET",
                 payload: null,
                 onSuccess: async (s) =>
@@ -200,12 +219,14 @@ namespace RegressionGames
                 }
             );
         }
-        
+
         public async Task StopBotInstance(long botInstanceId, Action onSuccess, Action onFailure)
         {
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            string host = rgSettings.GetRgHostAddress();
             await EnsureAuthed();
             await SendWebRequest(
-                uri: $"{RGSERVICE_HOST}:{RGSERVICE_PORT}/matchmaking/running-bot/{botInstanceId}/stop",
+                uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/stop",
                 method: "POST",
                 payload: null,
                 onSuccess: async (s) =>
@@ -260,7 +281,7 @@ namespace RegressionGames
                 asyncOperation.webRequest?.Dispose();
             }
         }
-        
+
 
         private void SetupWebRequest(UnityWebRequest webRequest, byte[] payload)
         {
@@ -273,6 +294,11 @@ namespace RegressionGames
             if (rgAuthToken != null)
             {
                 webRequest.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+            }
+
+            if (webRequest.uri.ToString().StartsWith("https"))
+            {
+                webRequest.certificateHandler = new RGCertOnlyPublicKey();
             }
         }
 

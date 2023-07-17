@@ -1,0 +1,21 @@
+﻿using UnityEngine;
+
+using System.Security.Cryptography.X509Certificates;
+using UnityEngine.Networking;
+
+// tls/ssl seems to not be working correctly on some versions, so use this instead for now.
+class RGCertOnlyPublicKey : CertificateHandler
+{
+    // Encoded RSAPublicKey
+    private static string PUB_KEY = "3082010A0282010100D7D444D86D6D4727D920A0CDED9EE30826B6E3E2CBB6E7EDD752DB2DD034D808895B187F8C20A45B3749BFEA4DC83985B456CF3457A117415068EADC6BC309FC1A10617AFE2780955F501560C04778FFA0F115EAB8FBB09C08CBBFB6ED3B5DEDC5D32F4C6B574F09A3A534B1DD15864E8B90FED02AEB578A93EC005AD1A8E493AE6D1C442B8A514E89A89FB26717114C19FE865109DDA14D93E7877B3216072348FC7D213B4E1CCA8407F4A5F6D57DEEBB714F0D8AF5B5F0C6333531F3D40458732810EEE849E6EF5A3BA5DB4F19659085B905667F026BB516B60D6D1E54B5C786A023CC9BDD6DE41A7C88138BFF66D464912C276BD9E49A814462AF6462E5E90203010001";
+
+    protected override bool ValidateCertificate(byte[] certificateData)
+    {
+        X509Certificate2 certificate = new X509Certificate2(certificateData);
+
+        string pk = certificate.GetPublicKeyString();
+        Debug.Log("Public key" + pk);
+        Debug.Log(certificate.ToString());
+        return pk.Equals(PUB_KEY);
+    }
+}

@@ -16,7 +16,9 @@ namespace RegressionGames
         [SerializeField] private string password;
         [SerializeField] private int[] botsSelected;
         [SerializeField] private DebugLogLevel logLevel;
-        
+        [SerializeField] private string rgHostAddress;
+        [SerializeField] private int rgPort;
+
         public static RGSettings GetOrCreateSettings()
         {
             RGSettings settings = AssetDatabase.LoadAssetAtPath<RGSettings>(SETTINGS_PATH);
@@ -29,6 +31,9 @@ namespace RegressionGames
                 settings.email = "rgunitydev@rgunity.com";
                 settings.password = "Password1";
                 settings.botsSelected = new int[0];
+                settings.rgHostAddress = "https://dev.regression.gg";
+                settings.rgPort = 443;
+
                 AssetDatabase.CreateAsset(settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
             }
@@ -73,6 +78,16 @@ namespace RegressionGames
         public DebugLogLevel GetLogLevel()
         {
             return logLevel;
+        }
+
+        public string GetRgHostAddress()
+        {
+            return rgHostAddress;
+        }
+
+        public int GetRgPort()
+        {
+            return rgPort;
         }
     }
     
