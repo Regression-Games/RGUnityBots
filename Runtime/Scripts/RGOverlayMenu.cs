@@ -126,7 +126,7 @@ namespace RegressionGames
 
         public void OnOverlayClick()
         {
-            Debug.Log("Showing RG Overlay Menu");
+            RGDebug.Log("Showing RG Overlay Menu");
             selectionPanel.SetActive(true);
             // before or after.. hard call. .we want the dialogue open
             // but we want the data correct too.. maybe block the overlay with a progress
@@ -136,7 +136,7 @@ namespace RegressionGames
 
         public void OnOverlayClosed()
         {
-            Debug.Log("Closing RG Overlay Menu");
+            RGDebug.Log("Closing RG Overlay Menu");
             selectionPanel.SetActive(false);
         }
 
@@ -159,7 +159,7 @@ namespace RegressionGames
                                 OnOverlayClosed();
                                 RGBotServerListener.GetInstance()?.AddClientConnectionForBotInstance(botInstance.id);
                             },
-                            () => { Debug.LogWarning("WARNING: Failed to start new instant bot"); });
+                            () => { RGDebug.LogWarning("WARNING: Failed to start new instant bot"); });
                     }
                 }
             }
