@@ -12,10 +12,8 @@ class RGCertOnlyPublicKey : CertificateHandler
     protected override bool ValidateCertificate(byte[] certificateData)
     {
         X509Certificate2 certificate = new X509Certificate2(certificateData);
-
         string pk = certificate.GetPublicKeyString();
-        Debug.Log("Public key" + pk);
-        Debug.Log(certificate.ToString());
+        Debug.Log("Validating Cert: "+ certificate.ToString());
         return pk.Equals(PUB_KEY);
     }
 }
