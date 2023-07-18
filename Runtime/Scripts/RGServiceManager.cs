@@ -98,7 +98,7 @@ namespace RegressionGames
             }
             else
             {
-                return $"{host}/rgservice";
+                return $"{host}:{port}/rgservice";
             }
         }
 

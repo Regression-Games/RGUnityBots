@@ -31,8 +31,8 @@ namespace RegressionGames
                 settings.email = "rgunitydev@rgunity.com";
                 settings.password = "Password1";
                 settings.botsSelected = new int[0];
-                settings.rgHostAddress = "https://dev.regression.gg";
-                settings.rgPort = 443;
+                settings.rgHostAddress = "http://localhost";
+                settings.rgPort = 8080;
 
                 AssetDatabase.CreateAsset(settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
