@@ -637,7 +637,7 @@ namespace RegressionGames.Editor
                     }
                     else
                     {
-                        Debug.LogWarning(
+                        RGDebug.LogWarning(
                             $"WARNING: No tickData available for tick: {currentTick}, rendering prior tick data.");
                     }
 
@@ -905,14 +905,14 @@ namespace RegressionGames.Editor
                 // LOAD THE FILE
                 if (ParseFile(fileName))
                 {
-                    Debug.Log("RG Bot Replay Zip Parsed... Populating Scene Assets");
+                    RGDebug.Log("RG Bot Replay Zip Parsed... Populating Scene Assets");
                     fileLoaded = true;
                     CreateTimelineHeaders();
                     UpdateForCurrentTick();
                 }
                 else
                 {
-                    Debug.LogError("ERROR: Failed to parse RG Replay Zip File");
+                    RGDebug.LogError("ERROR: Failed to parse RG Replay Zip File");
                 }
             }
         }
@@ -926,14 +926,14 @@ namespace RegressionGames.Editor
                 // LOAD THE FILE
                 if (ParseFile(path))
                 {
-                    Debug.Log("RG Bot Replay Zip Parsed... Populating Scene Assets");
+                    RGDebug.Log("RG Bot Replay Zip Parsed... Populating Scene Assets");
                     fileLoaded = true;
                     CreateTimelineHeaders();
                     UpdateForCurrentTick();
                 }
                 else
                 {
-                    Debug.LogError("ERROR: Failed to parse RG Replay Zip File");
+                    RGDebug.LogError("ERROR: Failed to parse RG Replay Zip File");
                 }
             }
         }
@@ -976,7 +976,7 @@ namespace RegressionGames.Editor
                     {
                         var tickNumber = getTickNumberFromFileName(entry.Name);
                         if (lastProcessedTick >= 0 && tickNumber != lastProcessedTick + tickRate)
-                            Debug.LogWarning(
+                            RGDebug.LogWarning(
                                 $"WARNING: Tick info missing for tick(s) {lastProcessedTick + 1} -> {tickNumber - 1}.  This normally means your RG bot was processing too slowly and skipped ticks.");
                         else
                             using (var sr = new StreamReader(entry.Open()))

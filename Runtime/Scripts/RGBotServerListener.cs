@@ -104,7 +104,7 @@ namespace RegressionGames
 
         public void AddClientConnectionForBotInstance(long botInstanceId)
         {
-            Debug.Log($"Adding Client Connection Entry from botInstanceId: {botInstanceId}");
+            RGDebug.Log($"Adding Client Connection Entry from botInstanceId: {botInstanceId}");
             // set or update the connection info for this botInstanceId
             clientConnectionMap.AddOrUpdate((uint)botInstanceId, new RGClientConnection((uint)botInstanceId), (k,v) =>
             {
@@ -120,7 +120,7 @@ namespace RegressionGames
          */
         public void StopBotClientConnections()
         {
-            Debug.Log($"Stopping Regression Games Bot Client Connections");
+            RGDebug.Log($"Stopping Regression Games Bot Client Connections");
             StopGameHelper();
             EndAllClientConnections();
             clientConnectionMap.Clear();
@@ -189,7 +189,7 @@ namespace RegressionGames
          */
         private void StopGameHelper()
         {
-            Debug.Log($"Stopping Regression Games Spawnable Bots");
+            RGDebug.Log($"Stopping Regression Games Spawnable Bots");
             gameStarted = false;
             
             foreach (var keyvalue in clientConnectionMap)
@@ -223,7 +223,7 @@ namespace RegressionGames
         {
             // stop any old stale ones
             StopGameHelper();
-            Debug.Log($"Starting Regression Games spawnable Bots");
+            RGDebug.Log($"Starting Regression Games spawnable Bots");
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetUseSystemSettings())
             {
@@ -244,7 +244,7 @@ namespace RegressionGames
 
                 if (errorCount > 0)
                 {
-                    Debug.LogWarning($"WARNING: Error starting {errorCount} of {botIds.Length} spawnable Regression Games bots, starting without them");
+                    RGDebug.LogWarning($"WARNING: Error starting {errorCount} of {botIds.Length} spawnable Regression Games bots, starting without them");
                 }
             }
 
@@ -264,7 +264,7 @@ namespace RegressionGames
                 // MUST do this on the main thread
                 // update to the latest connection info from RGService
                 RGBotInstanceExternalConnectionInfo? connectionInfo = null;
-                Debug.Log($"Getting external connection information for botInstanceId: {clientConnection.clientId}");
+                RGDebug.Log($"Getting external connection information for botInstanceId: {clientConnection.clientId}");
                 await RGServiceManager.GetInstance()?.GetExternalConnectionInformationForBotInstance(
                     (long)clientConnection.clientId,
                     (connInfo) =>
@@ -306,7 +306,7 @@ namespace RegressionGames
                                     }
                                     catch (Exception ex)
                                     {
-                                        Debug.LogWarning(
+                                        RGDebug.LogWarning(
                                             $"WARNING: Failed to connect bot TCP socket to {address}:{port} - {ex.Message}");
                                         // mark this connection as needing to try again on a future update
                                         try
@@ -353,7 +353,7 @@ namespace RegressionGames
                 {
                     if (keyvalue.Value.client == null)
                     {
-                        Debug.Log($"Update needs to connect client for botInstanceId: {keyvalue.Key}");
+                        RGDebug.Log($"Update needs to connect client for botInstanceId: {keyvalue.Key}");
                         _ = SetupClientConnection(keyvalue.Value);
                     }
                 }
@@ -377,7 +377,7 @@ namespace RegressionGames
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"Exception during main thread action processing: {ex.ToString()}");
+                        RGDebug.LogError($"Exception during main thread action processing: {ex.ToString()}");
                     }
                 }
             }
@@ -412,7 +412,7 @@ namespace RegressionGames
 
                     if (sentTo.Count > 0)
                     {
-                        Debug.Log(
+                        RGDebug.Log(
                             $"Sent RG state data from {state.Count} game objects to clients: {string.Join(",", sentTo)}");
                         //useful, but too spammy
                         //Debug.Log($"TickData: {data}");
@@ -560,7 +560,7 @@ namespace RegressionGames
                         {
                             if (!vt.IsCompletedSuccessfully)
                             {
-                                Debug.Log($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
+                                RGDebug.Log($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
                                 // client got pulled out from under us or restarted/reloaded.. handle it on the next Update
                                 try
                                 {
@@ -583,7 +583,7 @@ namespace RegressionGames
                 }
                 catch (Exception e)
                 {
-                    Debug.Log($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
+                    RGDebug.Log($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
                     // client got pulled out from under us or restarted/reloaded.. handle it on the next Update
                     try
                     {
@@ -613,7 +613,7 @@ namespace RegressionGames
 
         private void HandleSocketMessage(TcpClient client, string message)
         {
-            Debug.Log($"Processing socket message from client, message: {message}");
+            RGDebug.Log($"Processing socket message from client, message: {message}");
             RGClientSocketMessage clientSocketMessage = JsonUtility.FromJson <RGClientSocketMessage> (message);
 
             string type = clientSocketMessage.type;
@@ -669,7 +669,7 @@ namespace RegressionGames
 
                     if (!RGServiceManager.RG_UNITY_AUTH_TOKEN.Equals(handshakeMessage.unityToken))
                     {
-                        Debug.LogWarning(
+                        RGDebug.LogWarning(
                             $"WARNING: A client tried to connect/handshake with an invalid external auth token");
                         return;
                     }
@@ -702,19 +702,19 @@ namespace RegressionGames
                         }
                         catch (Exception e)
                         {
-                            Debug.LogError($"ERROR seating player - {e.ToString()}");
+                            RGDebug.LogError($"ERROR seating player - {e.ToString()}");
                         }
                     }
                     else
                     {
-                        Debug.Log($"Sending socket handshake response to client id: {clientId}");
+                        RGDebug.Log($"Sending socket handshake response to client id: {clientId}");
                         //send the client a handshake response so they can start processing
                         SendHandshakeResponseToClient(clientId, characterConfig, null);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"WARNING: Failed to process handshake from clientId: {clientId} - {ex.ToString()}");
+                    RGDebug.LogWarning($"WARNING: Failed to process handshake from clientId: {clientId} - {ex.ToString()}");
                 }
             });
 
@@ -725,13 +725,13 @@ namespace RegressionGames
             // validate token
             if (!token.Equals(unitySideToken))
             {
-                Debug.LogWarning($"WARNING: Client call made with invalid token");
+                RGDebug.LogWarning($"WARNING: Client call made with invalid token");
                 return;
             }
 
             enqueueTaskForClient(clientId,() =>
             {
-                Debug.Log($"QUEUE TASK ${data}");
+                RGDebug.Log($"QUEUE TASK ${data}");
                 var actionRequest = JsonConvert.DeserializeObject<RGActionRequest>(data);
                 HandleAction(clientId, actionRequest);
             });
