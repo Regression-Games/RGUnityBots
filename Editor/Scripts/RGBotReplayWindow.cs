@@ -486,7 +486,7 @@ namespace RegressionGames.Editor
                         {
                             var actions = dataTickInfo.actions;
                        
-                            // // Fit each action equally into the space with text hover help
+                            // Fit each action equally into the space with text hover help
                             for (var j = 0; j < actions.Length; j++)
                             {
                                 // draw a colored rect
