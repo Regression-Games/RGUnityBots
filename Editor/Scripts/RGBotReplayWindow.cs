@@ -368,6 +368,12 @@ namespace RegressionGames.Editor
                 };
                 actionLabelGUIStyle.normal.textColor = Color.white;
 
+                var validationLabelGUIStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleLeft,
+                };
+                validationLabelGUIStyle.normal.textColor = Color.white;
+
                 var nameFieldGUIStyle = new GUIStyle(GUI.skin.label)
                 {
                     padding = new RectOffset(10, 10, 2, 2)
@@ -405,23 +411,8 @@ namespace RegressionGames.Editor
                     // Enable field
                     if (_multiColumnHeader.IsColumnVisible(columnIndex))
                     {
-                        var visibleColumnIndex =
-                            _multiColumnHeader.GetVisibleColumnIndex(columnIndex);
-                        var columnRect =
-                            _multiColumnHeader.GetColumnRect(visibleColumnIndex);
-                        columnRect.y = rowRect.y;
-
-                        var insetRect = new Rect(_multiColumnHeader.GetCellRect(
-                            visibleColumnIndex,
-                            columnRect));
-                        insetRect.x += toggleRectPadding.x;
-                        insetRect.width -= toggleRectPadding.x * 2;
-
-                        insetRect.y += toggleRectPadding.y;
-                        insetRect.height -= toggleRectPadding.y * 2;
-
                         data.enabled = EditorGUI.Toggle(
-                            insetRect,
+                            CreateInsetRect(columnIndex, rowRect.y, toggleRectPadding),
                             data.enabled
                         );
                     }
@@ -430,23 +421,8 @@ namespace RegressionGames.Editor
                     ++columnIndex;
                     if (_multiColumnHeader.IsColumnVisible(columnIndex))
                     {
-                        var visibleColumnIndex =
-                            _multiColumnHeader.GetVisibleColumnIndex(columnIndex);
-                        var columnRect =
-                            _multiColumnHeader.GetColumnRect(visibleColumnIndex);
-                        columnRect.y = rowRect.y;
-
-                        var insetRect = new Rect(_multiColumnHeader.GetCellRect(
-                            visibleColumnIndex,
-                            columnRect));
-                        insetRect.x += toggleRectPadding.x;
-                        insetRect.width -= toggleRectPadding.x * 2;
-
-                        insetRect.y += toggleRectPadding.y;
-                        insetRect.height -= toggleRectPadding.y * 2;
-
                         data.showPath = EditorGUI.Toggle(
-                            insetRect,
+                            CreateInsetRect(columnIndex, rowRect.y, toggleRectPadding),
                             data.showPath
                         );
                     }
@@ -455,23 +431,8 @@ namespace RegressionGames.Editor
                     ++columnIndex;
                     if (_multiColumnHeader.IsColumnVisible(columnIndex))
                     {
-                        var visibleColumnIndex =
-                            _multiColumnHeader.GetVisibleColumnIndex(columnIndex);
-                        var columnRect =
-                            _multiColumnHeader.GetColumnRect(visibleColumnIndex);
-                        columnRect.y = rowRect.y;
-
-                        var insetRect = new Rect(_multiColumnHeader.GetCellRect(
-                            visibleColumnIndex,
-                            columnRect));
-                        insetRect.x += toggleRectPadding.x;
-                        insetRect.width -= toggleRectPadding.x * 2;
-
-                        insetRect.y += toggleRectPadding.y;
-                        insetRect.height -= toggleRectPadding.y * 2;
-
                         data.showHighlight = EditorGUI.Toggle(
-                            insetRect,
+                            CreateInsetRect(columnIndex, rowRect.y, toggleRectPadding),
                             data.showHighlight
                         );
                     }
@@ -480,23 +441,8 @@ namespace RegressionGames.Editor
                     ++columnIndex;
                     if (_multiColumnHeader.IsColumnVisible(columnIndex))
                     {
-                        var visibleColumnIndex =
-                            _multiColumnHeader.GetVisibleColumnIndex(columnIndex);
-                        var columnRect =
-                            _multiColumnHeader.GetColumnRect(visibleColumnIndex);
-                        columnRect.y = rowRect.y;
-
-                        var insetRect = new Rect(_multiColumnHeader.GetCellRect(
-                            visibleColumnIndex,
-                            columnRect));
-                        insetRect.x += toggleRectPadding.x;
-                        insetRect.width -= toggleRectPadding.x * 2;
-
-                        insetRect.y += toggleRectPadding.y;
-                        insetRect.height -= toggleRectPadding.y * 2;
-
                         data.showActions = EditorGUI.Toggle(
-                            insetRect,
+                            CreateInsetRect(columnIndex, rowRect.y, toggleRectPadding),
                             data.showActions
                         );
                     }
@@ -524,21 +470,10 @@ namespace RegressionGames.Editor
 
                     // Is Spawned field
                     ++columnIndex;
-
                     if (_multiColumnHeader.IsColumnVisible(columnIndex))
                     {
-                        var visibleColumnIndex =
-                            _multiColumnHeader.GetVisibleColumnIndex(columnIndex);
-                        var columnRect =
-                            _multiColumnHeader.GetColumnRect(visibleColumnIndex);
-                        columnRect.y = rowRect.y;
-
-                        var insetRect = new Rect(_multiColumnHeader.GetCellRect(
-                            visibleColumnIndex,
-                            columnRect));
-
                         EditorGUI.LabelField(
-                            insetRect,
+                            CreateInsetRect(columnIndex, rowRect.y, null),
                             isSpawned ? "❤︎" : "",
                             labelGUIStyle
                         );
@@ -546,49 +481,96 @@ namespace RegressionGames.Editor
 
                     // Actions column
                     ++columnIndex;
-
                     if (_multiColumnHeader.IsColumnVisible(columnIndex))
                         if (isSpawned)
                         {
-                            var visibleColumnIndex =
-                                _multiColumnHeader.GetVisibleColumnIndex(columnIndex);
-                            var columnRect =
-                                _multiColumnHeader.GetColumnRect(visibleColumnIndex);
-                            columnRect.y = rowRect.y;
-
-                            var insetRect = new Rect(_multiColumnHeader.GetCellRect(
-                                visibleColumnIndex,
-                                columnRect));
                             var actions = dataTickInfo.actions;
-                            
-                            var actionWidth = insetRect.width / Math.Max(1, actions.Length);
-                            
-                            const float MIN_ACTION_WIDTH = 5f;
-
-                            const float MAX_ACTION_WIDTH = 150f;
-
-                            actionWidth = Math.Min(Math.Max(actionWidth, MIN_ACTION_WIDTH), MAX_ACTION_WIDTH);
-
-                            // Fit each action equally into the space with text hover help
+                       
+                            // // Fit each action equally into the space with text hover help
                             for (var j = 0; j < actions.Length; j++)
                             {
-                                var actionRect = new Rect(insetRect);
-                                // leave a 1 pixel gap .. this keeps many actions from flowing together
-                                actionRect.width = actionWidth - 1;
-                                actionRect.x = insetRect.x + actionWidth * j;
                                 // draw a colored rect
-                                // then put a label in it
+                                var actionRect = CreateInfoRect(columnIndex, rowRect.y, actions.Length, j);
                                 EditorGUI.DrawRect(actionRect, Color.gray * Color.yellow);
+                                
+                                // then put a label in it
                                 var label = new GUIContent($"{actions[j].action}", $"{textForAction(j + 1, actions[j])}");
-                                //EditorGUI.LabelField(actionRect, label, actionLabelGUIStyle);
                                 EditorGUI.DropShadowLabel(actionRect, label, actionLabelGUIStyle);
                             }
                         }
+                    
+                        // Validations column
+                        ++columnIndex;
+                        if (_multiColumnHeader.IsColumnVisible(columnIndex))
+                            if (isSpawned)
+                            {
+                                var validationResults = dataTickInfo.validationResults;
+                                
+                                // Fit each validation equally into the space with text hover help
+                                for (var j = 0; j < validationResults.Length; j++)
+                                {
+                                    var currentValidation = validationResults[j];
+
+                                    // draw a colored rect
+                                    var validationRect = CreateInfoRect(columnIndex, rowRect.y, validationResults.Length, j);
+                                    var color = currentValidation.passed ? Color.green : Color.red;
+                                    EditorGUI.DrawRect(validationRect, Color.gray * color);
+                                    
+                                    // then put a label in it
+                                    var tooltip = (currentValidation.passed ? "[PASSED] " : "[FAILED] ") + currentValidation.message;
+                                    var label = new GUIContent(currentValidation.message, tooltip);
+                                    EditorGUI.DropShadowLabel(validationRect, label, validationLabelGUIStyle);
+                                }
+                            }
 
                     ++a;
                 }
             }
             GUI.EndScrollView(true);
+        }
+
+        /**
+         * Create a Rect for timeline components like checkboxes 
+         */
+        private Rect CreateInsetRect(int columnIndex, float height, Vector2? padding)
+        {
+            var visibleColumnIndex = _multiColumnHeader.GetVisibleColumnIndex(columnIndex);
+            var columnRect = _multiColumnHeader.GetColumnRect(visibleColumnIndex);
+            columnRect.y = height;
+
+            var insetRect = new Rect(_multiColumnHeader.GetCellRect(
+                visibleColumnIndex,
+                columnRect));
+
+            if (padding.HasValue)
+            {
+                insetRect.x += padding.Value.x;
+                insetRect.width -= padding.Value.x * 2;
+
+                insetRect.y += padding.Value.y;
+                insetRect.height -= padding.Value.y * 2;
+            }
+            
+            return insetRect;
+        }
+
+        /**
+         * Create a Rect that is wide enough to contain text information.
+         * For Actions and validationResults
+         */
+        private Rect CreateInfoRect(int columnIndex, float height, int componentsPerRow, int xOffset)
+        {
+            var insetRect = CreateInsetRect(columnIndex, height, null);
+            
+            const float minWidth = 5f;
+            const float maxWidth = 150f;
+            var width = insetRect.width / Math.Max(1, componentsPerRow);
+            width = Math.Min(Math.Max(width, minWidth), maxWidth);
+            
+            // leave a 1 pixel gap .. this keeps many actions from flowing together
+            insetRect.width = width - 1;
+            insetRect.x += width * xOffset;
+            return insetRect;
         }
 
         [MenuItem("Regression Games/Bot Replay Window")]
@@ -1003,8 +985,8 @@ namespace RegressionGames.Editor
                                     _jsonSettings);
                                 tickInfoManager.processTick(tickIndexNumber, rData.tickInfo);
                                 if (rData.playerId != null && rData.playerId != -1)
-                                    tickInfoManager.processActions(tickIndexNumber, (long)rData.playerId,
-                                        rData.actions);
+                                    tickInfoManager.processReplayData(tickIndexNumber, (long)rData.playerId, rData);
+                                    
                                 if (rData.tickRate != null)
                                     // get the right tickRate
                                     tickRate = (int)rData.tickRate;
