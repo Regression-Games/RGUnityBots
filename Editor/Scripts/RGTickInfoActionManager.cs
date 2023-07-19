@@ -76,10 +76,11 @@ namespace RegressionGames.Editor
             }
         }
 
-        public void processActions(int tickNumber, long playerId, RGActionRequest[] actions)
+        public void processReplayData(int tickNumber, long playerId, RGStateActionReplayData data)
         {
             var tickInfo = populateTickInfoDataForPlayer(tickNumber, playerId);
-            tickInfo.actions = actions == null ? Array.Empty<RGActionRequest>() : actions;
+            tickInfo.actions = data.actions == null ? Array.Empty<RGActionRequest>() : data.actions;
+            tickInfo.validationResults = data.validationResults == null ? Array.Empty<RGValidationResult>() : data.validationResults;
             // show path and actions by default only for bot players with actions
             populateReplayDataForPlayer(playerId, null, true,
                 true, true);
@@ -94,7 +95,6 @@ namespace RegressionGames.Editor
             if (type != null) playerInfo[playerId].type = type;
             if (showPath != null) playerInfo[playerId].showPath = showPath.Value;
             if (showActions != null) playerInfo[playerId].showActions = showActions.Value;
-
             if (highlight != null) playerInfo[playerId].showHighlight = highlight.Value;
 
             return playerInfo[playerId];
@@ -134,6 +134,7 @@ namespace RegressionGames.Editor
     public class RGAgentTickInfo
     {
         public RGActionRequest[] actions = Array.Empty<RGActionRequest>();
+        public RGValidationResult[] validationResults = Array.Empty<RGValidationResult>();
         [CanBeNull] public Vector3? position;
         public JObject state;
     }

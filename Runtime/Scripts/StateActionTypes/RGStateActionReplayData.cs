@@ -6,6 +6,8 @@ namespace RegressionGames.StateActionTypes
     {
         [CanBeNull] public RGActionRequest[] actions;
 
+        [CanBeNull] public RGValidationResult[] validationResults;
+
         [CanBeNull] public string error;
 
         [CanBeNull] public long? playerId;
