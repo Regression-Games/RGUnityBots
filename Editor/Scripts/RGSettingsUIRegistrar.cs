@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames;
 using RegressionGames.Types;
 using UnityEditor;
 using UnityEngine;
@@ -42,14 +41,14 @@ namespace RegressionGames.Editor
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
 
-                    SerializedProperty logLevel = settings.FindProperty("logLevel");
-                    logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
-                    
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
                         EditorGUILayout.Toggle("Use Global Settings ?", useSystemSettings.boolValue);
                     EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
                     EditorGUI.BeginChangeCheck();
+                    
+                    SerializedProperty logLevel = settings.FindProperty("logLevel");
+                    logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
                     SerializedProperty numBotsProp = settings.FindProperty("numBots");
                     numBotsProp.intValue = EditorGUILayout.IntSlider("Number Of Bots", numBotsProp.intValue, 0, 7, new GUILayoutOption[] { });
 
@@ -126,6 +125,7 @@ namespace RegressionGames.Editor
                             priorUser = null;
                         }
                         AssetDatabase.SaveAssets();
+                        RGSettings.OptionsUpdated();
                         RGSettingsDynamicEnabler[] objects = GameObject.FindObjectsOfType<RGSettingsDynamicEnabler>(true);
                         foreach (RGSettingsDynamicEnabler rgSettingsDynamicEnabler in objects)
                         {
