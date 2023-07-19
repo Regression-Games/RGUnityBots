@@ -92,7 +92,8 @@ namespace RegressionGames
             string host = rgSettings.GetRgHostAddress();
             int port = rgSettings.GetRgPort();
 
-            if (String.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) || host.StartsWith("127."))
+            Uri hostUri = new(host);
+            if (hostUri.IsLoopback)
             {
                 return $"{host}:{port}";
             }
@@ -296,7 +297,7 @@ namespace RegressionGames
                 webRequest.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
             }
 
-            if (webRequest.uri.ToString().StartsWith("https"))
+            if (webRequest.uri.Scheme.Equals(Uri.UriSchemeHttps))
             {
                 webRequest.certificateHandler = new RGCertOnlyPublicKey();
             }
