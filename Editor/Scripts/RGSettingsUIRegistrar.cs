@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.Types;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace RegressionGames.Editor
 {
+#if UNITY_EDITOR
     /**
      * This class is coded strangely.  The editor ui handles a lot of things asynchronously/automatically and thus the refreshing and state is managed externally.
      * Making that interleave cleanly with asynchronous API calls was quite the party trick :)
@@ -143,4 +146,5 @@ namespace RegressionGames.Editor
             return provider;
         }
     }
+#endif
 }
