@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames;
 using RegressionGames.Types;
 using UnityEditor;
 using UnityEngine;
@@ -41,17 +40,20 @@ namespace RegressionGames.Editor
                     emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
-                    SerializedProperty logLevel = settings.FindProperty("logLevel");
-                    logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
+                  
                     SerializedProperty hostField = settings.FindProperty("host");
                     hostField.stringValue = EditorGUILayout.TextField("RG HostName", hostField.stringValue);
                     SerializedProperty hostPort = settings.FindProperty("port");
                     hostPort.intValue = EditorGUILayout.IntField("RG port", hostPort.intValue);
+                    
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
                         EditorGUILayout.Toggle("Use Global Settings ?", useSystemSettings.boolValue);
                     EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
                     EditorGUI.BeginChangeCheck();
+                    
+                    SerializedProperty logLevel = settings.FindProperty("logLevel");
+                    logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
                     SerializedProperty numBotsProp = settings.FindProperty("numBots");
                     numBotsProp.intValue = EditorGUILayout.IntSlider("Number Of Bots", numBotsProp.intValue, 0, 7, new GUILayoutOption[] { });
                     SerializedProperty botsSelected = settings.FindProperty("botsSelected");
@@ -128,6 +130,7 @@ namespace RegressionGames.Editor
                             priorUser = null;
                         }
                         AssetDatabase.SaveAssets();
+                        RGSettings.OptionsUpdated();
                         RGSettingsDynamicEnabler[] objects = GameObject.FindObjectsOfType<RGSettingsDynamicEnabler>(true);
                         foreach (RGSettingsDynamicEnabler rgSettingsDynamicEnabler in objects)
                         {
