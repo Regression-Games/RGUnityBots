@@ -17,6 +17,8 @@ namespace RegressionGames
         [SerializeField] private string password;
         [SerializeField] private int[] botsSelected;
         [SerializeField] private DebugLogLevel logLevel;
+        [SerializeField] private string rgHostAddress;
+        [SerializeField] private int rgPort;
 
         /*
          * This is setup to be safely callable on the non-main thread.
@@ -51,6 +53,8 @@ namespace RegressionGames
                 _settings.email = "rgunitydev@rgunity.com";
                 _settings.password = "Password1";
                 _settings.botsSelected = new int[0];
+                _settings.rgHostAddress = "http://localhost";
+                _settings.rgPort = 8080;
 #if UNITY_EDITOR
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
@@ -119,6 +123,16 @@ namespace RegressionGames
         public DebugLogLevel GetLogLevel()
         {
             return logLevel;
+        }
+
+        public string GetRgHostAddress()
+        {
+            return rgHostAddress;
+        }
+
+        public int GetRgPort()
+        {
+            return rgPort;
         }
     }
     
