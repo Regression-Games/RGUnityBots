@@ -185,7 +185,7 @@ namespace RegressionGames
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/matchmaking/instant-bot/queue",
                 method: "POST",
-                payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("localhost", 19999, botId, RG_UNITY_AUTH_TOKEN)), // TODO remove host and port from payload or make optional
+                payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("unused", 0, botId, RG_UNITY_AUTH_TOKEN)), // TODO Remove host and port from payload if they're optional
                 onSuccess: async (s) =>
                 {
                     RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
