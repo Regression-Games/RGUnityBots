@@ -61,6 +61,17 @@ namespace RegressionGames
 #endif
             }
             
+            // backwards compat for migrating RG devs
+            if (string.IsNullOrEmpty(_settings.rgHostAddress))
+            {
+                _settings.rgHostAddress = "http://localhost";
+                _settings.rgPort = 8080;
+#if UNITY_EDITOR
+                AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
+                AssetDatabase.SaveAssets();
+#endif
+            }
+
             return _settings;
         }
 

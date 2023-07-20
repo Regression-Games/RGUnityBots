@@ -44,10 +44,10 @@ namespace RegressionGames.Editor
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
                   
-                    SerializedProperty hostField = settings.FindProperty("host");
-                    hostField.stringValue = EditorGUILayout.TextField("RG HostName", hostField.stringValue);
-                    SerializedProperty hostPort = settings.FindProperty("port");
-                    hostPort.intValue = EditorGUILayout.IntField("RG port", hostPort.intValue);
+                    SerializedProperty hostField = settings.FindProperty("rgHostAddress");
+                    hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
+                    SerializedProperty hostPort = settings.FindProperty("rgPort");
+                    hostPort.intValue = EditorGUILayout.IntField("RG Port", hostPort.intValue);
                     
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
