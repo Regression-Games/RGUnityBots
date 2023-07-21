@@ -33,7 +33,9 @@ namespace RegressionGames
             {
                 try
                 {
+#if UNITY_EDITOR
                     _settings = AssetDatabase.LoadAssetAtPath<RGSettings>(SETTINGS_PATH);
+#endif
                     dirty = false;
                 }
                 catch (Exception ex)
@@ -53,11 +55,23 @@ namespace RegressionGames
                 _settings.botsSelected = new int[0];
                 _settings.rgHostAddress = "http://localhost";
                 _settings.rgPort = 8080;
-
+#if UNITY_EDITOR
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
+#endif
             }
             
+            // backwards compat for migrating RG devs
+            if (string.IsNullOrEmpty(_settings.rgHostAddress))
+            {
+                _settings.rgHostAddress = "http://localhost";
+                _settings.rgPort = 8080;
+#if UNITY_EDITOR
+                AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
+                AssetDatabase.SaveAssets();
+#endif
+            }
+
             return _settings;
         }
 
@@ -69,7 +83,9 @@ namespace RegressionGames
             {
                 // try to update and mark clean, but if failed
                 // will keep trying to update until clean
+#if UNITY_EDITOR
                 _settings = AssetDatabase.LoadAssetAtPath<RGSettings>(SETTINGS_PATH);
+#endif
                 dirty = false;
             }
             catch (Exception ex)
@@ -78,10 +94,12 @@ namespace RegressionGames
             }
         }
 
+#if UNITY_EDITOR
         public static SerializedObject GetSerializedSettings()
         {
             return new SerializedObject(GetOrCreateSettings());
         }
+#endif
 
         public bool GetUseSystemSettings()
         {

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using RegressionGames.StateActionTypes;
-using Unity.Plastic.Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace RegressionGames.Editor
 {
+#if UNITY_EDITOR
     public class RGTickInfoActionManager
     {
         private readonly Dictionary<long, RGAgentReplayData> playerInfo = new();
@@ -161,4 +162,5 @@ namespace RegressionGames.Editor
             return result;
         }
     }
+#endif
 }

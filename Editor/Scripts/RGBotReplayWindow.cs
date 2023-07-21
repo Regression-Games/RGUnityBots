@@ -3,21 +3,23 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Runtime.Serialization.Formatters;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using RegressionGames.StateActionTypes;
-using Unity.Plastic.Newtonsoft.Json;
+using Newtonsoft.Json;
 using TMPro;
-using Unity.Plastic.Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
+#endif
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.Editor
 {
+#if UNITY_EDITOR
     public class RGBotReplayWindow : EditorWindow
     {
         public const string PREFAB_PATH = "Packages/gg.regression.unity.bots/Editor/Prefabs";
@@ -1059,4 +1061,5 @@ namespace RegressionGames.Editor
             if (currentTick == priorTick) playing = false;
         }
     }
+    #endif
 }

@@ -1,15 +1,16 @@
 using System;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Callbacks;
+#endif
 using UnityEngine;
 
-//TODO: Can we catch  editor start / exit
 namespace RegressionGames
 {
+#if UNITY_EDITOR
     [ExecuteInEditMode]
     public class DestroyOn : MonoBehaviour
     {
-#if UNITY_EDITOR
         public DestroyOn()
         {
             EditorApplication.playModeStateChanged += HandlePlayStateChange;
@@ -33,7 +34,6 @@ namespace RegressionGames
                     RGDebug.LogException(e);
                 }
         }
-#endif
     }
 
     public class RGAssetModificationProcessor : AssetModificationProcessor
@@ -58,4 +58,7 @@ namespace RegressionGames
             if (BuildPipeline.isBuildingPlayer) DestroyOn.DestroyEverything();
         }
     }
+
+#endif
+
 }
