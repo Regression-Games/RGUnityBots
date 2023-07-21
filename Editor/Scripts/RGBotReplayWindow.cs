@@ -907,7 +907,7 @@ namespace RegressionGames.Editor
                 // LOAD THE FILE
                 if (ParseFile(fileName))
                 {
-                    RGDebug.Log("RG Bot Replay Zip Parsed... Populating Scene Assets");
+                    RGDebug.LogInfo("Bot Replay Zip Parsed... Populating Scene Assets");
                     fileLoaded = true;
                     CreateTimelineHeaders();
                     UpdateForCurrentTick();
@@ -928,7 +928,7 @@ namespace RegressionGames.Editor
                 // LOAD THE FILE
                 if (ParseFile(path))
                 {
-                    RGDebug.Log("RG Bot Replay Zip Parsed... Populating Scene Assets");
+                    RGDebug.LogInfo("Bot Replay Zip Parsed... Populating Scene Assets");
                     fileLoaded = true;
                     CreateTimelineHeaders();
                     UpdateForCurrentTick();

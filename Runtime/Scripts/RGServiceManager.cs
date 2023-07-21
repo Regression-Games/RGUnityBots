@@ -56,11 +56,12 @@ namespace RegressionGames
                         onSuccess: s =>
                         {
                             rgAuthToken = s;
-                            RGDebug.Log($"Signed in to RG Service; token: {rgAuthToken}");
+                            RGDebug.LogInfo($"Signed in to RG Service");
+                            RGDebug.LogVerbose($"RG token: {rgAuthToken}");
                         },
                         onFailure: f =>
                         {
-                            RGDebug.Log($"Failed signing in to RG Service");
+                            RGDebug.LogWarning($"Failed signing in to RG Service - ${f}");
                         }
                     );
                     return rgAuthToken != null;
@@ -107,7 +108,7 @@ namespace RegressionGames
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetRgHostAddress();
-            RGDebug.Log($"Calling RGService Auth for email: {email}, password: *********");
+            RGDebug.LogVerbose($"Calling RGService Auth for email: {email}, password: *********");
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/auth",
                 method: "POST",
@@ -115,7 +116,7 @@ namespace RegressionGames
                 onSuccess: async (s) =>
                 {
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
-                    RGDebug.Log($"RGService Auth response received with token: {response.token}");
+                    RGDebug.LogVerbose($"RGService Auth response received with token: {response.token}");
                     rgAuthToken = response.token;
                     onSuccess.Invoke(response.token);
                 },
@@ -141,7 +142,7 @@ namespace RegressionGames
                     // wrapper this as C#/Unity json can't handle top level arrays /yuck
                     string theNewText = $"{{\"bots\":{s}}}";
                     RGBotList response = JsonUtility.FromJson<RGBotList>(theNewText);
-                    RGDebug.Log($"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
+                    RGDebug.LogDebug($"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
                     onSuccess.Invoke(response.bots);
                 },
                 onFailure: async (f) =>
@@ -165,7 +166,7 @@ namespace RegressionGames
                     {
                         RGBotInstanceExternalConnectionInfo connInfo =
                             JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
-                        RGDebug.Log($"RG Bot Instance external connection info: {connInfo}");
+                        RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
                         onSuccess.Invoke(connInfo);
                     },
                     onFailure: async (f) => { onFailure.Invoke(); }
@@ -189,7 +190,7 @@ namespace RegressionGames
                 onSuccess: async (s) =>
                 {
                     RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
-                    RGDebug.Log($"RG Bot Instance id: {botInstance.id} started");
+                    RGDebug.LogInfo($"Bot Instance id: {botInstance.id} started");
                     onSuccess.Invoke(botInstance);
                 },
                 onFailure: async (f) =>
@@ -246,7 +247,7 @@ namespace RegressionGames
          */
         private async Task<bool> SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure)
         {
-            RGDebug.Log($"Calling {uri} - {method} - payload: {payload}");
+            RGDebug.LogVerbose($"Calling {uri} - {method} - payload: {payload}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
             SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)));
             UnityWebRequestAsyncOperation asyncOperation = request.SendWebRequest();
@@ -261,14 +262,15 @@ namespace RegressionGames
                 {
                     string resultText = request.downloadHandler?.text;
                     // pretty print
-                    RGDebug.Log($"Response from {uri} - {method}\r\n{resultText}");
+                    RGDebug.LogVerbose($"Response from {uri} - {method}\r\n{resultText}");
                     await onSuccess.Invoke(resultText);
                     return true;
                 }
 
+                // since we call this frequently waiting for bots to come online, we log this at a more debug level
                 string errorString =
                     $"Error calling {uri} - {method} - {request.error} - {request.result} - {request.downloadHandler?.text}";
-                RGDebug.LogWarning(errorString);
+                RGDebug.LogDebug(errorString);
                 await onFailure.Invoke(errorString);
                 return false;
             }

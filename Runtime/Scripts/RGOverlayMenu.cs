@@ -129,7 +129,7 @@ namespace RegressionGames
 
         public void OnOverlayClick()
         {
-            RGDebug.Log("Showing RG Overlay Menu");
+            RGDebug.LogVerbose("Showing RG Overlay Menu");
             selectionPanel.SetActive(true);
             // before or after.. hard call. .we want the dialogue open
             // but we want the data correct too.. maybe block the overlay with a progress
@@ -139,7 +139,7 @@ namespace RegressionGames
 
         public void OnOverlayClosed()
         {
-            RGDebug.Log("Closing RG Overlay Menu");
+            RGDebug.LogVerbose("Closing RG Overlay Menu");
             selectionPanel.SetActive(false);
         }
 
