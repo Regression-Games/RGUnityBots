@@ -297,38 +297,49 @@ namespace RegressionGames
                                 RGDebug.LogInfo($"Connecting to bot at {address}:{port} for ClientId: {clientConnection.clientId}");
                                 IAsyncResult beginConnect = client.BeginConnect(address, port, ar =>
                                 {
-                                    clientConnection.connecting = false;
-                                    // nodejs side should start handshakes/etc
-                                    // we just need to save our connection reference
-                                    try
+                                    if (clientConnection.connecting)
                                     {
-                                        client.EndConnect(ar);
-                                        HandleClientConnection(client);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        // this is debug because of how we have to retry frequently when connecting bots
-                                        RGDebug.LogDebug(
-                                            $"WARNING: Failed to connect bot TCP socket to {address}:{port} - {ex.Message}");
-                                        // mark this connection as needing to try again on a future update
-                                        try
+                                        lock (clientConnection)
                                         {
-                                            client.EndConnect(ar);
+                                            if (clientConnection.connecting)
+                                            {
+                                                clientConnection.connecting = false;
+                                                // nodejs side should start handshakes/etc
+                                                // we just need to save our connection reference
+                                                try
+                                                {
+                                                    client.EndConnect(ar);
+                                                    HandleClientConnection(client);
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    // this is debug because of how we have to retry frequently when connecting bots
+                                                    RGDebug.LogDebug(
+                                                        $"WARNING: Failed to connect bot TCP socket to {address}:{port} - {ex.Message}");
+                                                    // mark this connection as needing to try again on a future update
+                                                    try
+                                                    {
+                                                        client.EndConnect(ar);
+                                                    }
+                                                    catch (Exception e1)
+                                                    {
+                                                        // may not have gotten far enough to do this
+                                                    }
+
+                                                    try
+                                                    {
+                                                        client.Close();
+                                                    }
+                                                    catch (Exception e1)
+                                                    {
+                                                        // may not have gotten far enough to do this
+                                                    }
+
+                                                    // failed to connect, clear out the client on the connection for this botInstance so it can re-connect
+                                                    clientConnection.client = null;
+                                                }
+                                            }
                                         }
-                                        catch (Exception e1)
-                                        {
-                                            // may not have gotten far enough to do this
-                                        }
-                                        try
-                                        {
-                                            client.Close();
-                                        }
-                                        catch (Exception e1)
-                                        {
-                                            // may not have gotten far enough to do this
-                                        }
-                                        // failed to connect, clear out the client on the connection for this botInstance so it can re-connect
-                                        clientConnection.client = null;
                                     }
 
                                 }, null);
@@ -340,26 +351,35 @@ namespace RegressionGames
                                     // see if we need to cancel the connect
                                     if (clientConnection.connecting)
                                     {
-                                        RGDebug.LogInfo($"Connection TIMED OUT to bot at {address}:{port} for ClientId: {clientConnection.clientId}");
-                                        clientConnection.connecting = false;
-                                        try
+                                        lock (clientConnection)
                                         {
-                                            client.EndConnect(beginConnect);
+                                            if (clientConnection.connecting)
+                                            {
+                                                RGDebug.LogInfo(
+                                                    $"Connection TIMED OUT to bot at {address}:{port} for ClientId: {clientConnection.clientId}");
+                                                clientConnection.connecting = false;
+                                                try
+                                                {
+                                                    client.EndConnect(beginConnect);
+                                                }
+                                                catch (Exception e1)
+                                                {
+                                                    // may not have gotten far enough to do this
+                                                }
+
+                                                try
+                                                {
+                                                    client.Close();
+                                                }
+                                                catch (Exception e1)
+                                                {
+                                                    // may not have gotten far enough to do this
+                                                }
+
+                                                // failed to connect, clear out the client on the connection for this botInstance so it can re-connect
+                                                clientConnection.client = null;
+                                            }
                                         }
-                                        catch (Exception e1)
-                                        {
-                                            // may not have gotten far enough to do this
-                                        }
-                                        try
-                                        {
-                                            client.Close();
-                                        }
-                                        catch (Exception e1)
-                                        {
-                                            // may not have gotten far enough to do this
-                                        }
-                                        // failed to connect, clear out the client on the connection for this botInstance so it can re-connect
-                                        clientConnection.client = null;
                                     }
                                 };
                                 t.AutoReset = false;
