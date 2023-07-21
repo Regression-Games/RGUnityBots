@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace RegressionGames
@@ -28,9 +26,19 @@ namespace RegressionGames
         
         /**
          * Logging of 'Info' logs. Only visible if Log Level is set to 'Info' or
-         * lower in the Regression Project Settings
+         * lower in the Regression Project Settings.
+         * This is an alias for LogInfo
          */
         public static void Log(string message)
+        {
+            LogToConsole(message, RGLogLevel.Info);
+        }
+        
+        /**
+         * Logging of 'Info' logs. Only visible if Log Level is set to 'Info' or
+         * lower in the Regression Project Settings
+         */
+        public static void LogInfo(string message)
         {
             LogToConsole(message, RGLogLevel.Info);
         }
@@ -66,6 +74,11 @@ namespace RegressionGames
             Debug.LogException(exception);
         }
 
+        private static string buildPrefix(RGLogLevel logLevel)
+        {
+            return $"[RG] {logLevel.ToString().ToUpperInvariant()} - ";
+        }
+
         // Log the given message to the console
         private static void LogToConsole(string message, RGLogLevel logLevel)
         {
@@ -79,21 +92,19 @@ namespace RegressionGames
                 case RGLogLevel.Verbose:
                 case RGLogLevel.Debug:
                 case RGLogLevel.Info:
-                    Debug.Log(message);
+                    Debug.Log(buildPrefix(logLevel) + message);
                     break;
                 case RGLogLevel.Warning:
-                    Debug.LogWarning(message);
+                    Debug.LogWarning(buildPrefix(logLevel) + message);
                     break;
                 case RGLogLevel.Error:
-                    Debug.LogError(message);
+                    Debug.LogError(buildPrefix(logLevel) + message);
                     break;
                 default:
-                    Debug.Log(message);
+                    Debug.Log(buildPrefix(logLevel) + message);
                     break;
             }
         }
-        
-        
         
         // Determine if the log message is within the log levels in the settings
         private static bool CheckLogLevel(RGLogLevel logLevel)

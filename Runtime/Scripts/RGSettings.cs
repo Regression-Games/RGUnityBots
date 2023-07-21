@@ -54,6 +54,7 @@ namespace RegressionGames
                 _settings.password = "Password1";
                 _settings.botsSelected = new int[0];
                 _settings.rgHostAddress = "http://localhost";
+                _settings.logLevel = DebugLogLevel.Info;
                 _settings.rgPort = 8080;
 #if UNITY_EDITOR
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
@@ -67,7 +68,6 @@ namespace RegressionGames
                 _settings.rgHostAddress = "http://localhost";
                 _settings.rgPort = 8080;
 #if UNITY_EDITOR
-                AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
 #endif
             }
