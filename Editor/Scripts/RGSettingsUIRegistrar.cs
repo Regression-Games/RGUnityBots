@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.Types;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace RegressionGames.Editor
 {
+#if UNITY_EDITOR
     /**
      * This class is coded strangely.  The editor ui handles a lot of things asynchronously/automatically and thus the refreshing and state is managed externally.
      * Making that interleave cleanly with asynchronous API calls was quite the party trick :)
@@ -41,10 +44,10 @@ namespace RegressionGames.Editor
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
                   
-                    SerializedProperty hostField = settings.FindProperty("host");
-                    hostField.stringValue = EditorGUILayout.TextField("RG HostName", hostField.stringValue);
-                    SerializedProperty hostPort = settings.FindProperty("port");
-                    hostPort.intValue = EditorGUILayout.IntField("RG port", hostPort.intValue);
+                    SerializedProperty hostField = settings.FindProperty("rgHostAddress");
+                    hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
+                    SerializedProperty hostPort = settings.FindProperty("rgPort");
+                    hostPort.intValue = EditorGUILayout.IntField("RG Port", hostPort.intValue);
                     
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
@@ -148,4 +151,5 @@ namespace RegressionGames.Editor
             return provider;
         }
     }
+#endif
 }

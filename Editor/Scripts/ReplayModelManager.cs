@@ -1,18 +1,21 @@
 using System;
 using System.Linq;
 using RegressionGames.Editor;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace RegressionGames
 {
+#if UNITY_EDITOR
     public class ReplayModelManager : MonoBehaviour
     {
         [SerializeField] private NamedModel[] models = new NamedModel[0];
 
         public GameObject getModelPrefabForType(string type, string charType)
         {
-#if UNITY_EDITOR
+
             NamedModel nm;
 
             if (charType != null)
@@ -29,7 +32,6 @@ namespace RegressionGames
 
             // could be null
             return defaultPrefab;
-#endif
             
         }
 
@@ -40,4 +42,5 @@ namespace RegressionGames
             public GameObject GFXprefab;
         }
     }
+#endif
 }

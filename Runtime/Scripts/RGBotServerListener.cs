@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Unity.Plastic.Newtonsoft.Json;
+using Newtonsoft.Json;
 using RegressionGames.RGBotConfigs;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;

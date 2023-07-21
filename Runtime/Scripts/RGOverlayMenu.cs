@@ -62,7 +62,10 @@ namespace RegressionGames
 
         public void LateUpdate()
         {
-            bool state = RGSettings.GetOrCreateSettings().GetEnableOverlay();
+            bool state = false;
+#if UNITY_EDITOR
+            state = RGSettings.GetOrCreateSettings().GetEnableOverlay();
+#endif
             if (lastState != state)
             {
                 if (state)
