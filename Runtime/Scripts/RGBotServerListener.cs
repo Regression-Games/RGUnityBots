@@ -294,43 +294,96 @@ namespace RegressionGames
                                 int port = clientConnection.connectionInfo.port;
 
                                 clientConnection.client = client;
-                                client.BeginConnect(address, port, ar =>
+                                RGDebug.LogInfo($"Connecting to bot at {address}:{port} for ClientId: {clientConnection.clientId}");
+                                IAsyncResult beginConnect = client.BeginConnect(address, port, ar =>
                                 {
-                                    clientConnection.connecting = false;
-                                    // nodejs side should start handshakes/etc
-                                    // we just need to save our connection reference
-                                    try
+                                    if (clientConnection.connecting)
                                     {
-                                        client.EndConnect(ar);
-                                        HandleClientConnection(client);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        // this is debug because of how we have to retry frequently when connecting bots
-                                        RGDebug.LogDebug(
-                                            $"WARNING: Failed to connect bot TCP socket to {address}:{port} - {ex.Message}");
-                                        // mark this connection as needing to try again on a future update
-                                        try
+                                        lock (clientConnection)
                                         {
-                                            client.EndConnect(ar);
+                                            if (clientConnection.connecting)
+                                            {
+                                                clientConnection.connecting = false;
+                                                // nodejs side should start handshakes/etc
+                                                // we just need to save our connection reference
+                                                try
+                                                {
+                                                    client.EndConnect(ar);
+                                                    HandleClientConnection(client);
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    // this is debug because of how we have to retry frequently when connecting bots
+                                                    RGDebug.LogDebug(
+                                                        $"WARNING: Failed to connect bot TCP socket to {address}:{port} - {ex.Message}");
+                                                    // mark this connection as needing to try again on a future update
+                                                    try
+                                                    {
+                                                        client.EndConnect(ar);
+                                                    }
+                                                    catch (Exception e1)
+                                                    {
+                                                        // may not have gotten far enough to do this
+                                                    }
+
+                                                    try
+                                                    {
+                                                        client.Close();
+                                                    }
+                                                    catch (Exception e1)
+                                                    {
+                                                        // may not have gotten far enough to do this
+                                                    }
+
+                                                    // failed to connect, clear out the client on the connection for this botInstance so it can re-connect
+                                                    clientConnection.client = null;
+                                                }
+                                            }
                                         }
-                                        catch (Exception e1)
-                                        {
-                                            // may not have gotten far enough to do this
-                                        }
-                                        try
-                                        {
-                                            client.Close();
-                                        }
-                                        catch (Exception e1)
-                                        {
-                                            // may not have gotten far enough to do this
-                                        }
-                                        // failed to connect, clear out the client on the connection for this botInstance so it can re-connect
-                                        clientConnection.client = null;
                                     }
 
                                 }, null);
+
+                                // start a timer for 5 seconds from now that will cancel the connection attempt if it didn't connect yet
+                                System.Timers.Timer t = new System.Timers.Timer(5000);
+                                t.Elapsed += (s, e) =>
+                                {
+                                    // see if we need to cancel the connect
+                                    if (clientConnection.connecting)
+                                    {
+                                        lock (clientConnection)
+                                        {
+                                            if (clientConnection.connecting)
+                                            {
+                                                RGDebug.LogInfo(
+                                                    $"Connection TIMED OUT to bot at {address}:{port} for ClientId: {clientConnection.clientId}");
+                                                clientConnection.connecting = false;
+                                                try
+                                                {
+                                                    client.EndConnect(beginConnect);
+                                                }
+                                                catch (Exception e1)
+                                                {
+                                                    // may not have gotten far enough to do this
+                                                }
+
+                                                try
+                                                {
+                                                    client.Close();
+                                                }
+                                                catch (Exception e1)
+                                                {
+                                                    // may not have gotten far enough to do this
+                                                }
+
+                                                // failed to connect, clear out the client on the connection for this botInstance so it can re-connect
+                                                clientConnection.client = null;
+                                            }
+                                        }
+                                    }
+                                };
+                                t.AutoReset = false;
+                                t.Start();
                             }
                             else
                             {
@@ -467,7 +520,7 @@ namespace RegressionGames
         {
             return Task.Run(() =>
             {
-
+                RGDebug.LogDebug($"TcpClient socket connected - {client.Connected}");
                 int socketMessageLength = 0;
                 int socketHeaderBytesReceived = 0;
                 byte[] socketHeaderBytes = new byte[4];
@@ -481,7 +534,7 @@ namespace RegressionGames
                     byte[] byteBuffer = new byte[1024];
                     NetworkStream socketStream = client.GetStream();
                     int i = socketStream.Read(byteBuffer, 0, byteBuffer.Length);
-                    // Debug.Log($"Read {i} bytes from client socket");
+                    //RGDebug.LogVerbose($"Read {i} bytes from client socket");
                     if (i > 0)
                     {
                         int bufferIndex = 0;
@@ -493,24 +546,31 @@ namespace RegressionGames
                                     if (socketHeaderBytesReceived < 4)
                                     {
                                         // copy the data into the header bytes
-                                        int headerBytesToCopy = Math.Min(4 - socketHeaderBytesReceived, i - bufferIndex);
-                                        Array.Copy(byteBuffer, bufferIndex, socketHeaderBytes, socketHeaderBytesReceived, headerBytesToCopy);
+                                        int headerBytesToCopy = Math.Min(4 - socketHeaderBytesReceived,
+                                            i - bufferIndex);
+                                        Array.Copy(byteBuffer, bufferIndex, socketHeaderBytes,
+                                            socketHeaderBytesReceived, headerBytesToCopy);
                                         bufferIndex += headerBytesToCopy;
                                         socketHeaderBytesReceived += headerBytesToCopy;
                                     }
+
                                     if (socketHeaderBytesReceived == 4)
                                     {
                                         socketState = "data";
                                         socketHeaderBytesReceived = 0;
-                                        socketMessageLength = BinaryPrimitives.ReadInt32BigEndian(socketHeaderBytes);
+                                        socketMessageLength =
+                                            BinaryPrimitives.ReadInt32BigEndian(socketHeaderBytes);
                                         socketMessageBytesReceived = 0;
                                         socketMessageBytes = new byte[socketMessageLength];
                                     }
+
                                     break;
                                 case "data":
                                     // copy the data into the message array
-                                    int dataBytesToCopy = Math.Min(socketMessageLength - socketMessageBytesReceived, i - bufferIndex);
-                                    Array.Copy(byteBuffer, bufferIndex, socketMessageBytes, socketMessageBytesReceived, dataBytesToCopy);
+                                    int dataBytesToCopy = Math.Min(socketMessageLength - socketMessageBytesReceived,
+                                        i - bufferIndex);
+                                    Array.Copy(byteBuffer, bufferIndex, socketMessageBytes,
+                                        socketMessageBytesReceived, dataBytesToCopy);
 
                                     bufferIndex += dataBytesToCopy;
                                     socketMessageBytesReceived += dataBytesToCopy;
@@ -526,6 +586,7 @@ namespace RegressionGames
                                         socketMessageLength = 0;
                                         socketMessageBytesReceived = 0;
                                     }
+
                                     break;
                             }
                         }
@@ -534,7 +595,7 @@ namespace RegressionGames
 
                 if (!client.Connected)
                 {
-                    // TODO: Handle de-pawning their avatar and/or removing them from the lobby?
+                    // TODO: Handle de-spawning their avatar and/or removing them from the lobby?
                 }
             });
         }
@@ -561,7 +622,7 @@ namespace RegressionGames
                         {
                             if (!vt.IsCompletedSuccessfully)
                             {
-                                RGDebug.LogInfo($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
+                                RGDebug.LogDebug($"Client Id: {clientId} socket error or closed, need to re-establish connection for bot");
                                 // client got pulled out from under us or restarted/reloaded.. handle it on the next Update
                                 try
                                 {
