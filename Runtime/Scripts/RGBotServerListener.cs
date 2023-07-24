@@ -260,7 +260,6 @@ namespace RegressionGames
         {
             if (clientConnection.client == null && !clientConnection.connecting)
             {
-                clientConnection.connecting = true;
                 // MUST do this on the main thread
                 // update to the latest connection info from RGService
                 RGBotInstanceExternalConnectionInfo? connectionInfo = null;
@@ -294,6 +293,7 @@ namespace RegressionGames
                                 int port = clientConnection.connectionInfo.port;
 
                                 clientConnection.client = client;
+                                clientConnection.connecting = true;
                                 RGDebug.LogInfo($"Connecting to bot at {address}:{port} for ClientId: {clientConnection.clientId}");
                                 IAsyncResult beginConnect = client.BeginConnect(address, port, ar =>
                                 {
