@@ -25,8 +25,11 @@ Regression Games Unity Bots work by connecting Regression Games services to your
 
 1. Open your game project in the Unity Editor
 2. Open the Window -> Package Manager Menu
-3. Add the Regression Games Unity Bots package to your project
+3. Add the Regression Games Unity Bots package to your project (from disk or tarball)
     - *Note: This package utilizes TextMeshPro.  If you are prompted to add TextMeshPro assets to your project by Unity, please add them.*
+4. Add the Newtonsoft Json Package to your project (from git URL: 'com.unity.nuget.newtonsoft-json@3.1.0')
+    - *Note: This project uses Newtonsoft Json (https://docs.unity3d.com/Packages/com.unity.nuget.newtonsoft-json@3.1/manual/index.html) for serializing/deserializing bot json payloads.*
+5. Restart Unity and your IDE.  Without this step, your IDE may not properly resolve the new packages even after Unity recompiles the scripts.
 
 ### Integrating Regression Games Unity Bots into your game
 
