@@ -22,8 +22,12 @@ namespace RegressionGames.Editor
         private static string token = null;
         private static string priorUser = null;
         private static string priorPassword = null;
+        private static string priorHost = null;
 
         private static RGBot[] bots = null;
+
+        // we use this to only call to redo signin when you haven't typed/updated for 3 seconds
+        private static double timeOfLastEdit = 0f;
 
         [SettingsProvider]
         public static SettingsProvider CreateRGSettingsProvider()
@@ -36,38 +40,43 @@ namespace RegressionGames.Editor
                 guiHandler = async (searchContext) =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
-                    SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
-                    enableOverlay.boolValue =
-                        EditorGUILayout.Toggle("Enable RG Screen Overlay ?", enableOverlay.boolValue);
+                    EditorGUI.BeginChangeCheck();
+                    
+                    SerializedProperty hostField = settings.FindProperty("rgHostAddress");
+                    hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
+                    
                     SerializedProperty emailField = settings.FindProperty("email");
                     emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
                   
-                    SerializedProperty hostField = settings.FindProperty("rgHostAddress");
-                    hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
-                    SerializedProperty hostPort = settings.FindProperty("rgPort");
-                    hostPort.intValue = EditorGUILayout.IntField("RG Port", hostPort.intValue);
+                    
+
+                    SerializedProperty logLevel = settings.FindProperty("logLevel");
+                    logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
+
+                    SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
+                    enableOverlay.boolValue =
+                        EditorGUILayout.Toggle("Enable Screen Overlay ?", enableOverlay.boolValue);
                     
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
-                        EditorGUILayout.Toggle("Use Global Settings ?", useSystemSettings.boolValue);
-                    EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
-                    EditorGUI.BeginChangeCheck();
+                        EditorGUILayout.Toggle("Use Global Bot Settings ?", useSystemSettings.boolValue);
                     
-                    SerializedProperty logLevel = settings.FindProperty("logLevel");
-                    logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
+                    EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
                     SerializedProperty numBotsProp = settings.FindProperty("numBots");
                     numBotsProp.intValue = EditorGUILayout.IntSlider("Number Of Bots", numBotsProp.intValue, 0, 7, new GUILayoutOption[] { });
                     SerializedProperty botsSelected = settings.FindProperty("botsSelected");
-                    if (token == null && priorPassword == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4)
+                    if ((EditorApplication.timeSinceStartup-timeOfLastEdit) > 3f && token == null && priorPassword == null && priorHost == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4 && hostField.stringValue.Length > 4)
                     {
                         priorPassword = passwordField.stringValue;
                         priorUser = emailField.stringValue;
+                        priorHost = hostField.stringValue;
                         await rgServiceManager.Auth(priorUser,
                             priorPassword, responseToken =>
                             {
                                 token = responseToken;
+                                bots = null;
                             }, f =>
                             {
                                 token = null;
@@ -126,8 +135,10 @@ namespace RegressionGames.Editor
                     settings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
                     {
-                        if (priorUser != emailField.stringValue || priorPassword != passwordField.stringValue)
+                        timeOfLastEdit = EditorApplication.timeSinceStartup;
+                        if (priorHost != hostField.stringValue || priorUser != emailField.stringValue || priorPassword != passwordField.stringValue)
                         {
+                            priorHost = null;
                             token = null;
                             priorPassword = null;
                             priorUser = null;

@@ -56,12 +56,10 @@ namespace RegressionGames
                         onSuccess: s =>
                         {
                             rgAuthToken = s;
-                            RGDebug.LogInfo($"Signed in to RG Service");
-                            RGDebug.LogVerbose($"RG token: {rgAuthToken}");
                         },
                         onFailure: f =>
                         {
-                            RGDebug.LogWarning($"Failed signing in to RG Service - ${f}");
+                            
                         }
                     );
                     return rgAuthToken != null;
@@ -91,16 +89,20 @@ namespace RegressionGames
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetRgHostAddress();
-            int port = rgSettings.GetRgPort();
 
+            if (host.EndsWith('/'))
+            {
+                host = host.Substring(0, host.Length - 1);
+            }
+            
             Uri hostUri = new(host);
             if (hostUri.IsLoopback)
             {
-                return $"{host}:{port}";
+                return $"{host}";
             }
             else
             {
-                return $"{host}:{port}/rgservice";
+                return $"{host}/rgservice";
             }
         }
 
@@ -108,7 +110,7 @@ namespace RegressionGames
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetRgHostAddress();
-            RGDebug.LogVerbose($"Calling RGService Auth for email: {email}, password: *********");
+            RGDebug.LogInfo($"Signing in to RGService at {GetRgServiceBaseUri()}");
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/auth",
                 method: "POST",
@@ -116,13 +118,14 @@ namespace RegressionGames
                 onSuccess: async (s) =>
                 {
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
+                    RGDebug.LogInfo($"Signed in to RG Service");
                     RGDebug.LogVerbose($"RGService Auth response received with token: {response.token}");
                     rgAuthToken = response.token;
                     onSuccess.Invoke(response.token);
                 },
                 onFailure: async (f) =>
                 {
-                    RGDebug.LogWarning(f);
+                    RGDebug.LogWarning($"Failed signing in to RG Service - ${f}");
                     onFailure.Invoke(f);
                 }
             );
