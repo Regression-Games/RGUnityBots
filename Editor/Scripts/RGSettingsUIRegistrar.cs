@@ -41,23 +41,27 @@ namespace RegressionGames.Editor
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
                     EditorGUI.BeginChangeCheck();
-                    SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
-                    enableOverlay.boolValue =
-                        EditorGUILayout.Toggle("Enable RG Screen Overlay ?", enableOverlay.boolValue);
+                    
+                    SerializedProperty hostField = settings.FindProperty("rgHostAddress");
+                    hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
+                    
                     SerializedProperty emailField = settings.FindProperty("email");
                     emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
                   
-                    SerializedProperty hostField = settings.FindProperty("rgHostAddress");
-                    hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
+                    
 
                     SerializedProperty logLevel = settings.FindProperty("logLevel");
                     logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
 
+                    SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
+                    enableOverlay.boolValue =
+                        EditorGUILayout.Toggle("Enable Screen Overlay ?", enableOverlay.boolValue);
+                    
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
-                        EditorGUILayout.Toggle("Use Global Settings ?", useSystemSettings.boolValue);
+                        EditorGUILayout.Toggle("Use Global Bot Settings ?", useSystemSettings.boolValue);
                     
                     EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
                     SerializedProperty numBotsProp = settings.FindProperty("numBots");
