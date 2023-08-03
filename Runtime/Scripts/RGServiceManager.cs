@@ -304,7 +304,7 @@ namespace RegressionGames
 
             if (webRequest.uri.Scheme.Equals(Uri.UriSchemeHttps))
             {
-                webRequest.certificateHandler = new RGCertOnlyPublicKey();
+                webRequest.certificateHandler = RGCertOnlyPublicKey.GetInstance();
             }
         }
 
