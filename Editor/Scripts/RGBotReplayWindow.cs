@@ -176,7 +176,7 @@ namespace RegressionGames.Editor
                 width = 30.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("□", "Whether to render this player."),
+                headerContent = new GUIContent("□", "Whether to render this entity."),
                 headerTextAlignment = TextAlignment.Center
             });
             _columns.Add(new MultiColumnHeaderState.Column
@@ -186,7 +186,7 @@ namespace RegressionGames.Editor
                 width = 30.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("→", "Show path history for this player?"),
+                headerContent = new GUIContent("→", "Show path history for this entity?"),
                 headerTextAlignment = TextAlignment.Center
             });
             _columns.Add(new MultiColumnHeaderState.Column
@@ -196,7 +196,7 @@ namespace RegressionGames.Editor
                 width = 30.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("○", "Show highlight circle for this player?"),
+                headerContent = new GUIContent("○", "Show highlight circle for this entity?"),
                 headerTextAlignment = TextAlignment.Center
             });
             _columns.Add(new MultiColumnHeaderState.Column
@@ -206,7 +206,7 @@ namespace RegressionGames.Editor
                 width = 30.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("≡", "Show actions for this player?"),
+                headerContent = new GUIContent("≡", "Show actions for this entity?"),
                 headerTextAlignment = TextAlignment.Center
             });
             _columns.Add(new MultiColumnHeaderState.Column
@@ -216,7 +216,7 @@ namespace RegressionGames.Editor
                 width = 150.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("PlayerId", "Type and Id of the player."),
+                headerContent = new GUIContent("PlayerId", "Type and Id of the entity."),
                 headerTextAlignment = TextAlignment.Center
             });
             _columns.Add(new MultiColumnHeaderState.Column
@@ -226,7 +226,7 @@ namespace RegressionGames.Editor
                 width = 30.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("❤︎", "Is this player spawned/active in the current tick?"),
+                headerContent = new GUIContent("❤︎", "Is this entity a human/bot player?"),
                 headerTextAlignment = TextAlignment.Center
             });
 
@@ -237,7 +237,7 @@ namespace RegressionGames.Editor
                 minWidth = 150.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("Actions", "Actions player took in the current tick."),
+                headerContent = new GUIContent("Actions", "Actions entity took in the current tick."),
                 headerTextAlignment = TextAlignment.Center
             });
             
@@ -248,7 +248,7 @@ namespace RegressionGames.Editor
                 minWidth = 150.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("Validations", "Bot validations for player in the current tick."),
+                headerContent = new GUIContent("Validations", "Bot validations for entity in the current tick."),
                 headerTextAlignment = TextAlignment.Center
             });
 
@@ -294,9 +294,9 @@ namespace RegressionGames.Editor
                 return (int)(Math.Abs(a.id) - Math.Abs(b.id));
             }
 
-            // sort BotPlayer to front
-            if (a.type == "BotPlayer") return -1;
-            if (b.type == "BotPlayer") return 1;
+            // sort Players to front
+            if (a.isPlayer && !b.isPlayer) return -1;
+            if (b.isPlayer && !a.isPlayer) return 1;
 
             // else sort by type
             if (a.type == null)
@@ -470,13 +470,13 @@ namespace RegressionGames.Editor
 
                     EditorGUI.EndDisabledGroup();
 
-                    // Is Spawned field
+                    // Is Player field
                     ++columnIndex;
                     if (_multiColumnHeader.IsColumnVisible(columnIndex))
                     {
                         EditorGUI.LabelField(
                             CreateInsetRect(columnIndex, rowRect.y, null),
-                            isSpawned ? "❤︎" : "",
+                            data.isPlayer ? "❤︎" : "",
                             labelGUIStyle
                         );
                     }

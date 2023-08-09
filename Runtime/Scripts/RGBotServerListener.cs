@@ -25,7 +25,7 @@ namespace RegressionGames
 
         private static RGBotServerListener _this = null;
         
-        public readonly ConcurrentDictionary<uint, RGAgent> agentMap = new ConcurrentDictionary<uint, RGAgent>();
+        public readonly ConcurrentDictionary<uint?, RGAgent> agentMap = new ();
 
         private long tick = 0;
 
@@ -56,7 +56,7 @@ namespace RegressionGames
 
         private string unitySideToken = Guid.NewGuid().ToString();
         
-        private readonly ConcurrentDictionary<uint, string> clientTokenMap = new ConcurrentDictionary<uint, string>();
+        private readonly ConcurrentDictionary<uint?, string> clientTokenMap = new ();
 
         /*
          * Tracking Maps
@@ -495,12 +495,24 @@ namespace RegressionGames
         {
             var statefulObjects = FindObjectsOfType<RGState>();
             var totalState = new Dictionary<string, object>();
-            foreach (var obj in statefulObjects)
+            foreach (var rgState in statefulObjects)
             {
-                var state = obj.GetGameObjectState();
+                var state = rgState.GetGameObjectState();
+                // if this object is a 'player' ... put the clientId that owns it into the state
+                if (rgState.isPlayer)
+                {
+                    var rgAgent = rgState.GetComponentInParent<RGAgent>();
+                    if (rgAgent != null)
+                    {
+                        var clientId = agentMap.FirstOrDefault(x => x.Value == rgAgent).Key;
+                        if (clientId != null)
+                        {
+                            state["clientId"] = clientId;
+                        }
+                    }
+                }
                 totalState[state["id"].ToString()] = state;
             }
-
             return totalState;
         }
 
