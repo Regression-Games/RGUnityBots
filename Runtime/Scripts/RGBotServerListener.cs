@@ -510,6 +510,18 @@ namespace RegressionGames
                             state["clientId"] = clientId;
                         }
                     }
+
+                    if (!state.ContainsKey("clientId"))
+                    {
+                        // for things like menu bots that end up spawning a human player
+                        // use the agent from the overlay
+                        rgAgent = this.gameObject.GetComponent<RGAgent>();
+                        var clientId = agentMap.FirstOrDefault(x => x.Value == rgAgent).Key;
+                        if (clientId != null)
+                        {
+                            state["clientId"] = clientId;
+                        }
+                    }
                 }
                 totalState[state["id"].ToString()] = state;
             }
@@ -763,7 +775,7 @@ namespace RegressionGames
                     // save the token the client gave us for talking to them
                     clientTokenMap[clientId] = handshakeMessage.rgToken;
 
-                    // give them the default agent until their player spawns.. thus allowing button clicks
+                    // give them the default agent... thus allowing button clicks
                     agentMap[clientId] = this.gameObject.GetComponent<RGAgent>();
 
                     // set this BEFORE sending the response of handshake to the client so it actually sends
