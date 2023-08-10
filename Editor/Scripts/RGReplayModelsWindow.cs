@@ -20,7 +20,7 @@ using Object = UnityEngine.Object;
 namespace RegressionGames.Editor
 {
 #if UNITY_EDITOR
-    public class RGBotReplayWindow : EditorWindow
+    public class RGReplayModelsWindow : EditorWindow
     {
         public const string PREFAB_PATH = "Packages/gg.regression.unity.bots/Editor/Prefabs";
        
@@ -94,7 +94,7 @@ namespace RegressionGames.Editor
             GUILayout.FlexibleSpace();
                         
             // Button for registering custom replay models
-            if (GUILayout.Button("Configure Custom Replay Models", EditorStyles.miniButtonRight, new GUILayoutOption[] {GUILayout.ExpandWidth(false)})) RGReplayModelsWindow.ShowWindow();
+            GUILayout.Button("Configure Replay Models", EditorStyles.miniButtonRight, new GUILayoutOption[] {GUILayout.ExpandWidth(false)});
             EditorGUILayout.EndHorizontal();
 
             EditorGUI.BeginChangeCheck();
@@ -580,10 +580,10 @@ namespace RegressionGames.Editor
             return insetRect;
         }
 
-        [MenuItem("Regression Games/Bot Replay/Replay Playback")]
+        [MenuItem("Regression Games/Bot Replay/Configure Custom Replay Models")]
         public static void ShowWindow()
         {
-            GetWindow(typeof(RGBotReplayWindow), false, "RG Replay Playback");
+            GetWindow(typeof(RGReplayModelsWindow), false, "RG Custom Replay Models");
         }
 
         private void UpdateForCurrentTick()
