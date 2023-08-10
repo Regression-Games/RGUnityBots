@@ -219,7 +219,7 @@ namespace RegressionGames
             enqueueTaskForClient(uint.MaxValue, StopGameHelper);
         }
 
-        private async void StartGameHelper()
+        private void StartGameHelper()
         {
             // stop any old stale ones
             StopGameHelper();
@@ -231,20 +231,16 @@ namespace RegressionGames
                 int errorCount = 0;
                 if (botIds.Length > 0)
                 {
-                    await Task.WhenAll(
-                        botIds.Select(botId => RGServiceManager.GetInstance()?.QueueInstantBot(
-                            (long)botId,
-                            async (botInstance) =>
-                            {
-                                AddClientConnectionForBotInstance(botInstance.id);
-                            }, () => errorCount++)
-                        )
-                    );
-                }
-
-                if (errorCount > 0)
-                {
-                    RGDebug.LogWarning($"WARNING: Error starting {errorCount} of {botIds.Length} spawnable Regression Games bots, starting without them");
+                    // don't await here to avoid this method being defined async, which
+                    // would cause big issues as the main thread Update runner wouldn't await it and
+                    // gameStarted wouldn't reliably get set before they called SpawnBots
+                    Task.WhenAll(botIds.Select(botId => RGServiceManager.GetInstance()?.QueueInstantBot(
+                                (long)botId,
+                                async (botInstance) => { AddClientConnectionForBotInstance(botInstance.id); },
+                                () => { RGDebug.LogWarning($"WARNING: Error starting botId: {botId}, starting without them"); }
+                                )
+                            )
+                        );
                 }
             }
 
