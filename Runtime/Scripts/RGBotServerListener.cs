@@ -25,7 +25,7 @@ namespace RegressionGames
 
         private static RGBotServerListener _this = null;
         
-        public readonly ConcurrentDictionary<uint?, RGAgent> agentMap = new ();
+        public readonly ConcurrentDictionary<uint?, HashSet<RGAgent>> agentMap = new ();
 
         private long tick = 0;
 
@@ -504,7 +504,7 @@ namespace RegressionGames
                     var rgAgent = rgState.GetComponentInParent<RGAgent>();
                     if (rgAgent != null)
                     {
-                        var clientId = agentMap.FirstOrDefault(x => x.Value == rgAgent).Key;
+                        var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(rgAgent)).Key;
                         if (clientId != null)
                         {
                             state["clientId"] = clientId;
@@ -515,11 +515,19 @@ namespace RegressionGames
                     {
                         // for things like menu bots that end up spawning a human player
                         // use the agent from the overlay
-                        rgAgent = this.gameObject.GetComponent<RGAgent>();
-                        var clientId = agentMap.FirstOrDefault(x => x.Value == rgAgent).Key;
+                        var overlayAgent = this.gameObject.GetComponent<RGAgent>();
+                        var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
                         if (clientId != null)
                         {
                             state["clientId"] = clientId;
+                            // add the agent from the player's object to the agentMap now that 
+                            // we have detected that they are here 
+                            // this happens for menu bots that spawn human players to control
+                            // doing this allows actions from the bot code to process to the human player agent
+                            if (rgAgent != null)
+                            {
+                                agentMap[clientId].Add(rgAgent);
+                            }
                         }
                     }
                 }
@@ -776,7 +784,7 @@ namespace RegressionGames
                     clientTokenMap[clientId] = handshakeMessage.rgToken;
 
                     // give them the default agent... thus allowing button clicks
-                    agentMap[clientId] = this.gameObject.GetComponent<RGAgent>();
+                    agentMap[clientId] = new HashSet<RGAgent>{this.gameObject.GetComponent<RGAgent>()};
 
                     // set this BEFORE sending the response of handshake to the client so it actually sends
                     clientConnectionMap[clientId].handshakeComplete = true;
@@ -788,7 +796,7 @@ namespace RegressionGames
                         }
                         catch (Exception e)
                         {
-                            RGDebug.LogError($"ERROR seating player - {e.ToString()}");
+                            RGDebug.LogError($"ERROR seating player - {e}");
                         }
                     }
                     else
@@ -800,7 +808,7 @@ namespace RegressionGames
                 }
                 catch (Exception ex)
                 {
-                    RGDebug.LogWarning($"WARNING: Failed to process handshake from clientId: {clientId} - {ex.ToString()}");
+                    RGDebug.LogWarning($"WARNING: Failed to process handshake from clientId: {clientId} - {ex}");
                 }
             });
 
@@ -817,7 +825,7 @@ namespace RegressionGames
 
             enqueueTaskForClient(clientId,() =>
             {
-                RGDebug.LogDebug($"QUEUE TASK ${data}");
+                RGDebug.LogDebug($"QUEUE TASK for clientId: {clientId}, data: {data}");
                 var actionRequest = JsonConvert.DeserializeObject<RGActionRequest>(data);
                 HandleAction(clientId, actionRequest);
             });
@@ -827,11 +835,18 @@ namespace RegressionGames
         // call me on the main thread only
         private void HandleAction(uint clientId, RGActionRequest actionRequest)
         {
-            var agent = agentMap[clientId];
-            RGAction actionHandler = agent.GetActionHandler(actionRequest.action);
-            if (actionHandler != null)
+            var agents = agentMap[clientId];
+            /* TODO: Right now this broadcasts the action to all agents.  We may
+             * want to assign actions to specific agents based on their entity Id
+             * if we ever support more than 1 entity + button clicks
+             */
+            foreach (var agent in agents)
             {
-                actionHandler.StartAction(actionRequest.input);
+                RGAction actionHandler = agent.GetActionHandler(actionRequest.action);
+                if (actionHandler != null)
+                {
+                    actionHandler.StartAction(actionRequest.input);
+                }
             }
         }
 
