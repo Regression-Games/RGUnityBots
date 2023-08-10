@@ -231,8 +231,9 @@ namespace RegressionGames
                 int errorCount = 0;
                 if (botIds.Length > 0)
                 {
-                    // we use .Wait instead of await here to avoid this method being defined async, which
-                    // would cause big issues as the main thread Update runner wouldn't await it
+                    // don't await here to avoid this method being defined async, which
+                    // would cause big issues as the main thread Update runner wouldn't await it and
+                    // gameStarted wouldn't reliably get set before they called SpawnBots
                     Task.WhenAll(botIds.Select(botId => RGServiceManager.GetInstance()?.QueueInstantBot(
                                 (long)botId,
                                 async (botInstance) => { AddClientConnectionForBotInstance(botInstance.id); },
