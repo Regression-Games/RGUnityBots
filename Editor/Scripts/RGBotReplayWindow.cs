@@ -101,7 +101,7 @@ namespace RegressionGames.Editor
             
             if (!ReplayModelManager.GetInstance().HasEntries())
             {
-                EditorGUILayout.HelpBox("Custom Replay Models have not been configured for this project.\nLoad your first replay zip to auto populate the types, then configure the associations for the best replay experience.\n(You can also configure the types manually before loading your first zip.)", MessageType.Warning, true);
+                EditorGUILayout.HelpBox("Custom Replay Models have not been configured for this project.\nLoad your first replay zip to auto populate the entity types, then configure their model associations using the `Configure Custom Replay Models` button.\n(You can also manually add, edit, or remove associations manually at any time.)", MessageType.Warning, true);
             }
             
             // Button for registering custom replay models
@@ -595,10 +595,10 @@ namespace RegressionGames.Editor
             return insetRect;
         }
 
-        [MenuItem("Regression Games/Bot Replay/Replay Playback")]
+        [MenuItem("Regression Games/Bot Replay")]
         public static void ShowWindow()
         {
-            GetWindow(typeof(RGBotReplayWindow), false, "RG Replay Playback");
+            GetWindow(typeof(RGBotReplayWindow), false, "RG Bot Replay");
         }
 
         private void UpdateForCurrentTick()

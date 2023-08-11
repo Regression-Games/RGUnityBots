@@ -48,7 +48,7 @@ namespace RegressionGames
                 if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) != null) {
                     AssetDatabase.CreateAsset(_this, ASSET_PATH );
                 }
-                AssetDatabase.SaveAssets ();
+                AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
             }
 
