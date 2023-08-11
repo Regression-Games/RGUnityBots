@@ -74,13 +74,14 @@ namespace RegressionGames.Editor
                 {
                     isPlayer = jsonObject["isPlayer"].Value<bool>();
                 }
-                
+
                 bool isStatic = false;
                 if (jsonObject.ContainsKey("isStatic"))
                 {
                     isStatic = jsonObject["isStatic"].Value<bool>();
                 }
                 populateReplayDataForEntity(entityId, isPlayer, isStatic, jsonObject["type"]?.Value<string>());
+                
                 if (jsonObject.ContainsKey("position") && jsonObject["position"] != null)
                 {
                     tickInfo.position = new Vector3(jsonObject["position"]["x"].Value<float>(),
