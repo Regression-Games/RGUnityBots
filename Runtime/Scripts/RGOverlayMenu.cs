@@ -185,36 +185,40 @@ namespace RegressionGames
                     ConcurrentBag<RGBotInstance> instances = new ConcurrentBag<RGBotInstance>();
                     foreach (RGBot bot in bots)
                     {
-                        dropOptions.Add(new TMP_Dropdown.OptionData($"{bot.id} - {bot.name}"));
-                        _ = rgServiceManager.GetRunningInstancesForBot(
-                            bot.id,
-                            botInstances =>
-                            {
-                                foreach (RGBotInstance bi in botInstances)
+                        if (bot.programmingLanguage.Equals("UNITY"))
+                        {
+                            dropOptions.Add(new TMP_Dropdown.OptionData($"{bot.id} - {bot.name}"));
+                            _ = rgServiceManager.GetRunningInstancesForBot(
+                                bot.id,
+                                botInstances =>
                                 {
-                                    instances.Add(bi);
-                                }
+                                    foreach (RGBotInstance bi in botInstances)
+                                    {
+                                        instances.Add(bi);
+                                    }
 
-                                if (Interlocked.Increment(ref count) >= bots.Length)
+                                    if (Interlocked.Increment(ref count) >= bots.Length)
+                                    {
+                                        // we hit the last async result.. do the update processing
+                                        processBotUpdateList(instances);
+                                    }
+                                },
+                                () =>
                                 {
-                                    // we hit the last async result.. do the update processing
-                                    processBotUpdateList(instances);
+                                    if (Interlocked.Increment(ref count) >= bots.Length)
+                                    {
+                                        // we hit the last async result.. do the update processing
+                                        processBotUpdateList(instances);
+                                    }
                                 }
-                                
-                            } ,
-                            () =>
-                            {
-                                if (Interlocked.Increment(ref count) >= bots.Length)
-                                {
-                                    // we hit the last async result.. do the update processing
-                                    processBotUpdateList(instances);
-                                }
-                            }
-                            
-                        );
-
+                            );
+                        } 
+                        else if (Interlocked.Increment(ref count) >= bots.Length)
+                        {
+                            // we hit the last async result.. do the update processing
+                            processBotUpdateList(instances);
+                        }
                     }
-
                     nextBotDropdown.options = dropOptions;
                 },
                 () => { });

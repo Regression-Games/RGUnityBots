@@ -69,11 +69,18 @@ namespace RegressionGames.Editor
                 var tickInfo = populateTickInfoDataForPlayer(tickNumber, playerId);
 
                 tickInfo.state = jsonObject;
-                populateReplayDataForPlayer(playerId, jsonObject["type"]?.Value<string>());
-                if (jsonObject["position"] != null)
+                bool isPlayer = false;
+                if (jsonObject.ContainsKey("isPlayer"))
+                {
+                    isPlayer = jsonObject["isPlayer"].Value<bool>();
+                }
+                populateReplayDataForPlayer(playerId, isPlayer,jsonObject["type"]?.Value<string>());
+                if (jsonObject.ContainsKey("position") && jsonObject["position"] != null)
+                {
                     tickInfo.position = new Vector3(jsonObject["position"]["x"].Value<float>(),
                         jsonObject["position"]["y"].Value<float>(),
                         jsonObject["position"]["z"].Value<float>());
+                }
             }
         }
 
@@ -83,16 +90,17 @@ namespace RegressionGames.Editor
             tickInfo.actions = data.actions == null ? Array.Empty<RGActionRequest>() : data.actions;
             tickInfo.validationResults = data.validationResults == null ? Array.Empty<RGValidationResult>() : data.validationResults;
             // show path and actions by default only for bot players with actions
-            populateReplayDataForPlayer(playerId, null, true,
+            populateReplayDataForPlayer(playerId, true,null, true,
                 true, true);
         }
 
-        private RGAgentReplayData populateReplayDataForPlayer(long playerId, [CanBeNull] string type = null,
+        private RGAgentReplayData populateReplayDataForPlayer(long playerId, bool isPlayer = false, [CanBeNull] string type = null,
             bool? showPath = null,
             bool? showActions = null, bool? highlight = null)
         {
             playerInfo.TryAdd(playerId, new RGAgentReplayData());
             playerInfo[playerId].id = playerId;
+            playerInfo[playerId].isPlayer = isPlayer;
             if (type != null) playerInfo[playerId].type = type;
             if (showPath != null) playerInfo[playerId].showPath = showPath.Value;
             if (showActions != null) playerInfo[playerId].showActions = showActions.Value;
@@ -124,6 +132,7 @@ namespace RegressionGames.Editor
         public List<RGAgentTickInfo?> tickInfo;
         public long id;
         public string type;
+        public bool isPlayer = false;
         public bool enabled = true;
         public bool showPath;
         public bool showActions;
