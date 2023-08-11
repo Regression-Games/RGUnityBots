@@ -599,7 +599,8 @@ namespace RegressionGames.Editor
             GetWindow(typeof(RGBotReplayWindow), false, "RG Bot Replay");
         }
         
-        [MenuItem("Regression Games/Configure Custom Replay Models")]
+        // Did not add to the top menu yet, but might in the future
+        //[MenuItem("Regression Games/Configure Custom Replay Models")]
         public static void ShowReplayModelsInspector()
         {
             ReplayModelManager.GetInstance().OpenAssetInspector();
