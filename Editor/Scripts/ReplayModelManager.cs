@@ -31,28 +31,35 @@ namespace RegressionGames
 
         public static ReplayModelManager GetInstance()
         {
+            if (!AssetDatabase.IsValidFolder("Assets/RegressionGames"))
+            {
+                AssetDatabase.CreateFolder("Assets", "RegressionGames");
+            }
+
+            if (!AssetDatabase.IsValidFolder("Assets/RegressionGames/Editor"))
+            {
+                AssetDatabase.CreateFolder("Assets/RegressionGames", "Editor");
+            }
+
             if (_this == null)
             {
                 _this = ScriptableObject.CreateInstance<ReplayModelManager>();
-
-                if (!AssetDatabase.IsValidFolder("Assets/RegressionGames"))
-                {
-                    AssetDatabase.CreateFolder("Assets", "RegressionGames");
-                }
-
-                if (!AssetDatabase.IsValidFolder("Assets/RegressionGames/Editor"))
-                {
-                    AssetDatabase.CreateFolder("Assets/RegressionGames", "Editor");
-                }
-
-                if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) != null) {
-                    AssetDatabase.CreateAsset(_this, ASSET_PATH );
-                }
-                AssetDatabase.SaveAssets();
-                AssetDatabase.Refresh();
             }
 
+            if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) == null) {
+                AssetDatabase.CreateAsset(_this, ASSET_PATH );
+                AssetDatabase.SaveAssets();
+            }
+            
             return _this;
+        }
+
+        public void OpenAssetInspector()
+        {
+            if (_this != null)
+            {
+                AssetDatabase.OpenAsset(_this);
+            }
         }
         
         public bool HasEntries()

@@ -10,7 +10,6 @@ using RegressionGames.StateActionTypes;
 using Newtonsoft.Json;
 using TMPro;
 using Newtonsoft.Json.Linq;
-using RegressionGames.Editor.Scripts;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -108,8 +107,7 @@ namespace RegressionGames.Editor
             if (GUILayout.Button("Configure Custom Replay Models", new GUILayoutOption[] {GUILayout.ExpandWidth(false)}))
             {
                 // create or load the prefabs list
-                ReplayModelManager rmm = ReplayModelManager.GetInstance();
-                PopUpAssetInspector.Create(rmm);
+                ShowReplayModelsInspector();
             };
 
             EditorGUI.BeginChangeCheck();
@@ -599,6 +597,12 @@ namespace RegressionGames.Editor
         public static void ShowWindow()
         {
             GetWindow(typeof(RGBotReplayWindow), false, "RG Bot Replay");
+        }
+        
+        [MenuItem("Regression Games/Configure Custom Replay Models")]
+        public static void ShowReplayModelsInspector()
+        {
+            ReplayModelManager.GetInstance().OpenAssetInspector();
         }
 
         private void UpdateForCurrentTick()
