@@ -10,6 +10,7 @@ using RegressionGames.StateActionTypes;
 using Newtonsoft.Json;
 using TMPro;
 using Newtonsoft.Json.Linq;
+using RegressionGames.Editor.Scripts;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -93,9 +94,23 @@ namespace RegressionGames.Editor
             
             GUILayout.FlexibleSpace();
                         
-            // Button for registering custom replay models
-            if (GUILayout.Button("Configure Custom Replay Models", EditorStyles.miniButtonRight, new GUILayoutOption[] {GUILayout.ExpandWidth(false)})) RGReplayModelsWindow.ShowWindow();
+
             EditorGUILayout.EndHorizontal();
+            
+            GUILayout.Space(5);
+            
+            if (!ReplayModelManager.GetInstance().HasEntries())
+            {
+                EditorGUILayout.HelpBox("Custom Replay Models have not been configured for this project.\nLoad your first replay zip to auto populate the types, then configure the associations for the best replay experience.\n(You can also configure the types manually before loading your first zip.)", MessageType.Warning, true);
+            }
+            
+            // Button for registering custom replay models
+            if (GUILayout.Button("Configure Custom Replay Models", new GUILayoutOption[] {GUILayout.ExpandWidth(false)}))
+            {
+                // create or load the prefabs list
+                ReplayModelManager rmm = ReplayModelManager.GetInstance();
+                PopUpAssetInspector.Create(rmm);
+            };
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.BeginDisabledGroup(!fileLoaded);
@@ -346,7 +361,7 @@ namespace RegressionGames.Editor
             contentRect.height = boundingRect.height - columnHeaderRect.height;
             contentRect.y = columnHeaderRect.y + columnHeaderRect.height;
 
-            var rData = tickInfoManager.GetAllPlayers();
+            var rData = tickInfoManager.GetAllEntities();
 
             // INNER SCROLLABLE RECT
             var scrollableContentRect = new Rect(0, 0, rowWidth, rowHeight * rData.Count);
@@ -630,10 +645,10 @@ namespace RegressionGames.Editor
 
                 var namesInState = new HashSet<string>();
 
-                var playerIds = tickInfoManager.GetAllPlayerIds();
+                var playerIds = tickInfoManager.GetAllEntityIds();
                 foreach (var playerId in playerIds)
                 {
-                    var tickData = tickInfoManager.GetPlayerInfoForTick(currentTick, playerId);
+                    var tickData = tickInfoManager.GetEntityInfoForTick(currentTick, playerId);
                     if (tickData != null && tickData.data.enabled)
                     {
                         var objectName = $"{tickData.data.type}_{tickData.data.id}";
@@ -721,7 +736,7 @@ namespace RegressionGames.Editor
                             objectName;
 
                         //SETUP THE MODEL
-                        var rmm = obj.GetComponentInChildren<ReplayModelManager>();
+                        var rmm = ReplayModelManager.GetInstance();
                         var modelPrefab = rmm.getModelPrefabForType(tickData.data.type, characterType);
                         if (modelPrefab != null)
                         {
@@ -765,7 +780,7 @@ namespace RegressionGames.Editor
                     // setup pathing lines for bots
                     if (tickData.data.showPath)
                     {
-                        var points = tickInfoManager.GetPathForPlayerId(currentTick, tickData.data.id);
+                        var points = tickInfoManager.GetPathForEntityId(currentTick, tickData.data.id);
                         if (points.Length > 0)
                         {
                             obj.transform.GetChild(1).gameObject.SetActive(true);
@@ -788,7 +803,7 @@ namespace RegressionGames.Editor
             // handle showing despawn indicator
             if (tickData.justDespawned)
             {
-                var priorPosition = tickInfoManager.GetPlayerInfoForTick(currentTick - 1, tickData.data.id)?.tickInfo
+                var priorPosition = tickInfoManager.GetEntityInfoForTick(currentTick - 1, tickData.data.id)?.tickInfo
                     ?.position;
                 var pos = (priorPosition ?? Vector3.zero) + DESPAWN_TEXT_OFFSET;
                 // create 'de-spawn' effect
@@ -847,7 +862,7 @@ namespace RegressionGames.Editor
                         // get the position for the targetId
                         if (targetId != null)
                         {
-                            var ti = tickInfoManager.GetPlayerInfoForTick(currentTick, targetId.Value)
+                            var ti = tickInfoManager.GetEntityInfoForTick(currentTick, targetId.Value)
                                 ?.tickInfo;
                             if (ti?.position != null) position = ti.position;
                         }
@@ -1001,6 +1016,11 @@ namespace RegressionGames.Editor
                                 ++tickIndexNumber;
                             }
                     }
+                    
+                    // save any assets we created, like replay model associations
+                    // we do this once here instead of internally when adding the asset for
+                    // performance reasons.. this is expensive
+                    AssetDatabase.SaveAssets();
 
                     return true;
                 }

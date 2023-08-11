@@ -11,35 +11,35 @@ namespace RegressionGames.Editor
 #if UNITY_EDITOR
     public class RGTickInfoActionManager
     {
-        private readonly Dictionary<long, RGAgentReplayData> playerInfo = new();
+        private readonly Dictionary<long, RGAgentReplayData> entityInfo = new();
 
         public void Reset()
         {
-            playerInfo.Clear();
+            entityInfo.Clear();
         }
 
-        public List<long> GetAllPlayerIds()
+        public List<long> GetAllEntityIds()
         {
-            return playerInfo.Keys.ToList();
+            return entityInfo.Keys.ToList();
         }
 
-        public List<RGAgentReplayData> GetAllPlayers()
+        public List<RGAgentReplayData> GetAllEntities()
         {
-            var result = playerInfo.Values.ToList();
+            var result = entityInfo.Values.ToList();
             return result;
         }
 
         [CanBeNull]
-        public RGAgentDataForTick GetPlayerInfoForTick(int tickNumber, long playerId)
+        public RGAgentDataForTick GetEntityInfoForTick(int tickNumber, long entityId)
         {
-            if (tickNumber > 0 && playerInfo.TryGetValue(playerId, out var replayData))
+            if (tickNumber > 0 && entityInfo.TryGetValue(entityId, out var replayData))
                 return RGAgentDataForTick.FromReplayData(replayData, tickNumber);
             return null;
         }
 
-        public Vector3[] GetPathForPlayerId(int tickNumber, long playerId)
+        public Vector3[] GetPathForEntityId(int tickNumber, long entityId)
         {
-            if (playerInfo.TryGetValue(playerId, out var replayData))
+            if (entityInfo.TryGetValue(entityId, out var replayData))
                 if (replayData.tickInfo[tickNumber - 1] != null)
                 {
                     var linePoints = new Stack<Vector3>();
@@ -64,9 +64,9 @@ namespace RegressionGames.Editor
             foreach (var gameStateObject in tickData.gameState)
             {
                 JObject jsonObject = (JObject)gameStateObject.Value;
-                long playerId = jsonObject["id"].Value<long>();
+                long entityId = jsonObject["id"].Value<long>();
 
-                var tickInfo = populateTickInfoDataForPlayer(tickNumber, playerId);
+                var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
 
                 tickInfo.state = jsonObject;
                 bool isPlayer = false;
@@ -74,7 +74,13 @@ namespace RegressionGames.Editor
                 {
                     isPlayer = jsonObject["isPlayer"].Value<bool>();
                 }
-                populateReplayDataForPlayer(playerId, isPlayer,jsonObject["type"]?.Value<string>());
+                
+                bool isStatic = false;
+                if (jsonObject.ContainsKey("isStatic"))
+                {
+                    isStatic = jsonObject["isStatic"].Value<bool>();
+                }
+                populateReplayDataForEntity(entityId, isPlayer, isStatic, jsonObject["type"]?.Value<string>());
                 if (jsonObject.ContainsKey("position") && jsonObject["position"] != null)
                 {
                     tickInfo.position = new Vector3(jsonObject["position"]["x"].Value<float>(),
@@ -84,45 +90,54 @@ namespace RegressionGames.Editor
             }
         }
 
-        public void processReplayData(int tickNumber, long playerId, RGStateActionReplayData data)
+        public void processReplayData(int tickNumber, long entityId, RGStateActionReplayData data)
         {
-            var tickInfo = populateTickInfoDataForPlayer(tickNumber, playerId);
+            var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
             tickInfo.actions = data.actions == null ? Array.Empty<RGActionRequest>() : data.actions;
             tickInfo.validationResults = data.validationResults == null ? Array.Empty<RGValidationResult>() : data.validationResults;
             // show path and actions by default only for bot players with actions
-            populateReplayDataForPlayer(playerId, true,null, true,
+            populateReplayDataForEntity(entityId, true,false, null, true,
                 true, true);
         }
 
-        private RGAgentReplayData populateReplayDataForPlayer(long playerId, bool isPlayer = false, [CanBeNull] string type = null,
+        private RGAgentReplayData populateReplayDataForEntity(long entityId, bool isPlayer = false, bool isStatic = false, [CanBeNull] string type = null,
             bool? showPath = null,
             bool? showActions = null, bool? highlight = null)
         {
-            playerInfo.TryAdd(playerId, new RGAgentReplayData());
-            playerInfo[playerId].id = playerId;
-            playerInfo[playerId].isPlayer = isPlayer;
-            if (type != null) playerInfo[playerId].type = type;
-            if (showPath != null) playerInfo[playerId].showPath = showPath.Value;
-            if (showActions != null) playerInfo[playerId].showActions = showActions.Value;
-            if (highlight != null) playerInfo[playerId].showHighlight = highlight.Value;
+            entityInfo.TryAdd(entityId, new RGAgentReplayData());
+            entityInfo[entityId].id = entityId;
+            entityInfo[entityId].isPlayer = isPlayer;
+            entityInfo[entityId].isStatic = isStatic;
+            if (type != null)
+            {
+                entityInfo[entityId].type = type;
+                if (!isStatic)
+                {
+                    // makes sure this type is registered if this is non static entity
+                    ReplayModelManager.GetInstance().AddObjectType(type);
+                }
+            }
+            if (showPath != null) entityInfo[entityId].showPath = showPath.Value;
+            if (showActions != null) entityInfo[entityId].showActions = showActions.Value;
+            if (highlight != null) entityInfo[entityId].showHighlight = highlight.Value;
 
-            return playerInfo[playerId];
+            return entityInfo[entityId];
         }
 
-        private RGAgentTickInfo populateTickInfoDataForPlayer(int tickNumber, long playerId)
+        private RGAgentTickInfo populateTickInfoDataForEntity(int tickNumber, long entityId)
         {
             // make sure this player is in the dictionary
-            populateReplayDataForPlayer(playerId);
+            populateReplayDataForEntity(entityId);
 
-            if (playerInfo[playerId].tickInfo == null) playerInfo[playerId].tickInfo = new List<RGAgentTickInfo>();
+            if (entityInfo[entityId].tickInfo == null) entityInfo[entityId].tickInfo = new List<RGAgentTickInfo>();
 
             // make sure the list is big enough
-            while (playerInfo[playerId].tickInfo.Count < tickNumber) playerInfo[playerId].tickInfo.Add(null);
+            while (entityInfo[entityId].tickInfo.Count < tickNumber) entityInfo[entityId].tickInfo.Add(null);
 
-            if (playerInfo[playerId].tickInfo[tickNumber - 1] == null)
-                playerInfo[playerId].tickInfo[tickNumber - 1] = new RGAgentTickInfo();
+            if (entityInfo[entityId].tickInfo[tickNumber - 1] == null)
+                entityInfo[entityId].tickInfo[tickNumber - 1] = new RGAgentTickInfo();
 
-            return playerInfo[playerId].tickInfo[tickNumber - 1];
+            return entityInfo[entityId].tickInfo[tickNumber - 1];
         }
     }
 
@@ -133,6 +148,7 @@ namespace RegressionGames.Editor
         public long id;
         public string type;
         public bool isPlayer = false;
+        public bool isStatic = false;
         public bool enabled = true;
         public bool showPath;
         public bool showActions;

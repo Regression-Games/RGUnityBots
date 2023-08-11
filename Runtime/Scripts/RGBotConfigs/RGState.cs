@@ -17,7 +17,11 @@ public class RGState: MonoBehaviour
     public bool isPlayer;
     [Tooltip("A type name for associating like objects in the state")]
     public string objectType;
-
+    
+    // this is used in our toolkit to understand which things would need dynamic models
+    [Tooltip("Is this a static object in the scene, or one spawned during runtime ?")]
+    public bool isStatic = false;
+    
     [Header("3D Positioning")]
     public bool syncPosition = true;
     public bool syncRotation = true;
@@ -43,6 +47,7 @@ public class RGState: MonoBehaviour
             ["id"] = this.transform.GetInstanceID(),
             ["type"] = objectType,
             ["isPlayer"] = isPlayer,
+            ["isStatic"] = isStatic,
         };
         
         if (syncPosition) state["position"] = transform.position;
