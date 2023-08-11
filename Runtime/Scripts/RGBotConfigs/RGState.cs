@@ -13,6 +13,9 @@ public class RGState: MonoBehaviour
 {
 
     [Header("General Information")]
+    [Tooltip("Does this object represent a human/bot player ?")]
+    public bool isPlayer;
+    [Tooltip("A type name for associating like objects in the state")]
     public string objectType;
 
     [Header("3D Positioning")]
@@ -20,7 +23,7 @@ public class RGState: MonoBehaviour
     public bool syncRotation = true;
 
     /**
-     * A function that is overrided to provide the custom state of this specific GameObject.
+     * A function that is overriden to provide the custom state of this specific GameObject.
      * For example, you may want to retrieve and set the health of a player on the returned
      * object, or their inventory information
      */
@@ -39,7 +42,9 @@ public class RGState: MonoBehaviour
         {
             ["id"] = this.transform.GetInstanceID(),
             ["type"] = objectType,
+            ["isPlayer"] = isPlayer,
         };
+        
         if (syncPosition) state["position"] = transform.position;
         if (syncRotation) state["rotation"] = transform.rotation;
         foreach (var entry in GetState())
