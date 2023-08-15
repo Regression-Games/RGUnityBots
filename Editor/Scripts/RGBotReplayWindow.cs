@@ -100,7 +100,7 @@ namespace RegressionGames.Editor
             
             if (!ReplayModelManager.GetInstance().HasEntries())
             {
-                EditorGUILayout.HelpBox("Custom Replay Models have not been configured for this project.\nLoad your first replay zip to auto populate the entity types, then configure their model associations using the `Configure Custom Replay Models` button.\n(You can also manually add, edit, or remove associations manually at any time.)", MessageType.Warning, true);
+                EditorGUILayout.HelpBox("Custom Replay Models have not been configured for this project.\nLoad your first replay zip to auto populate the entity types, then configure their model associations using the `Configure Custom Replay Models` button.\n(You can also manually add, edit, or remove associations at any time.)", MessageType.Warning, true);
             }
             
             // Button for registering custom replay models
