@@ -20,6 +20,10 @@ namespace RegressionGames.RGBotConfigs
         [Tooltip("A type name for associating like objects in the state")]
         public string objectType;
 
+        // this is used in our toolkit to understand which things would need dynamic models
+        [Tooltip("Is this object spawned during runtime, or a fixed object in the scene?")]
+        public bool isRuntimeObject = false;
+
         [Header("3D Positioning")] public bool syncPosition = true;
         public bool syncRotation = true;
 
@@ -44,6 +48,7 @@ namespace RegressionGames.RGBotConfigs
                 ["id"] = this.transform.GetInstanceID(),
                 ["type"] = objectType,
                 ["isPlayer"] = isPlayer,
+                ["isRuntimeObject"] = isRuntimeObject,
             };
 
             if (syncPosition) state["position"] = transform.position;
@@ -57,4 +62,3 @@ namespace RegressionGames.RGBotConfigs
         }
     }
 }
-
