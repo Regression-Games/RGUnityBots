@@ -75,12 +75,12 @@ namespace RegressionGames.Editor
                     isPlayer = jsonObject["isPlayer"].Value<bool>();
                 }
 
-                bool isStatic = false;
-                if (jsonObject.ContainsKey("isStatic"))
+                bool isRuntimeObject = false;
+                if (jsonObject.ContainsKey("isRuntimeObject"))
                 {
-                    isStatic = jsonObject["isStatic"].Value<bool>();
+                    isRuntimeObject = jsonObject["isRuntimeObject"].Value<bool>();
                 }
-                populateReplayDataForEntity(entityId, isPlayer, isStatic, jsonObject["type"]?.Value<string>());
+                populateReplayDataForEntity(entityId, isPlayer, isRuntimeObject, jsonObject["type"]?.Value<string>());
                 
                 if (jsonObject.ContainsKey("position") && jsonObject["position"] != null)
                 {
@@ -101,18 +101,18 @@ namespace RegressionGames.Editor
                 true, true);
         }
 
-        private RGAgentReplayData populateReplayDataForEntity(long entityId, bool isPlayer = false, bool isStatic = false, [CanBeNull] string type = null,
+        private RGAgentReplayData populateReplayDataForEntity(long entityId, bool isPlayer = false, bool isRuntimeObject = false, [CanBeNull] string type = null,
             bool? showPath = null,
             bool? showActions = null, bool? highlight = null)
         {
             entityInfo.TryAdd(entityId, new RGAgentReplayData());
             entityInfo[entityId].id = entityId;
             entityInfo[entityId].isPlayer = isPlayer;
-            entityInfo[entityId].isStatic = isStatic;
+            entityInfo[entityId].isRuntimeObject = isRuntimeObject;
             if (type != null)
             {
                 entityInfo[entityId].type = type;
-                if (!isStatic)
+                if (isRuntimeObject)
                 {
                     // makes sure this type is registered if this is non static entity
                     ReplayModelManager.GetInstance().AddObjectType(type);
@@ -149,7 +149,7 @@ namespace RegressionGames.Editor
         public long id;
         public string type;
         public bool isPlayer = false;
-        public bool isStatic = false;
+        public bool isRuntimeObject = false;
         public bool enabled = true;
         public bool showPath;
         public bool showActions;
