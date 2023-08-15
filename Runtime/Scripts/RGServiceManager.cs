@@ -150,6 +150,7 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
+                    RGDebug.LogWarning($"Failed retrieving bots for current user: {f}");
                     onFailure.Invoke();
                 }
             );
@@ -172,7 +173,11 @@ namespace RegressionGames
                         RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
                         onSuccess.Invoke(connInfo);
                     },
-                    onFailure: async (f) => { onFailure.Invoke(); }
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed retrieving external connection information: {f}");
+                        onFailure.Invoke();
+                    }
                 );
             }
             catch (Exception ex)
@@ -198,6 +203,7 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
+                    RGDebug.LogWarning($"Failed to queue instance bot: {f}");
                     onFailure.Invoke();
                 }
             );
@@ -220,6 +226,7 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
+                    RGDebug.LogWarning($"Failed to get running instance for bot: {f}");
                     onFailure.Invoke();
                 }
             );
@@ -240,6 +247,7 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
+                    RGDebug.LogWarning($"Failed to stop bot instance: {f}");
                     onFailure.Invoke();
                 }
             );
