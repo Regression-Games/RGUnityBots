@@ -6,7 +6,7 @@ using UnityEditor;
 #endif
 using UnityEngine;
 
-namespace RegressionGames
+namespace RegressionGames.Editor
 {
 #if UNITY_EDITOR
     public class ReplayModelManager : MonoBehaviour

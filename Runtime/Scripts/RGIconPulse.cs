@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace RegressionGames.Types
+namespace RegressionGames
 {
     public class RGIconPulse : MonoBehaviour
     {
