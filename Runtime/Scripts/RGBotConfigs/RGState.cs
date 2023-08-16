@@ -24,7 +24,8 @@ namespace RegressionGames.RGBotConfigs
         [Tooltip("Is this object spawned during runtime, or a fixed object in the scene?")]
         public bool isRuntimeObject = false;
 
-        [Header("3D Positioning")] public bool syncPosition = true;
+        [Header("3D Positioning")] 
+        public bool syncPosition = true;
         public bool syncRotation = true;
 
         /**
