@@ -173,17 +173,6 @@ namespace RegressionGames
             RGBotServerListener.GetInstance()?.TeardownClient((uint) id);
         }
 
-        /// <summary>
-        /// Tear down all currently active bots
-        /// </summary>
-        public void StopAllBots()
-        {
-            foreach (RGBotInstance activeBot in activeBots)
-            {
-                RGBotServerListener.GetInstance()?.TeardownClient((uint) activeBot.id);
-            }
-        }
-        
         public void UpdateBots()
         {
             // update the latest bot list
