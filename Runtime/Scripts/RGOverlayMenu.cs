@@ -200,7 +200,7 @@ namespace RegressionGames
                                     if (Interlocked.Increment(ref count) >= bots.Length)
                                     {
                                         // we hit the last async result.. do the update processing
-                                        processBotUpdateList(instances);
+                                        ProcessBotUpdateList(instances);
                                     }
                                 },
                                 () =>
@@ -208,7 +208,7 @@ namespace RegressionGames
                                     if (Interlocked.Increment(ref count) >= bots.Length)
                                     {
                                         // we hit the last async result.. do the update processing
-                                        processBotUpdateList(instances);
+                                        ProcessBotUpdateList(instances);
                                     }
                                 }
                             );
@@ -216,7 +216,7 @@ namespace RegressionGames
                         else if (Interlocked.Increment(ref count) >= bots.Length)
                         {
                             // we hit the last async result.. do the update processing
-                            processBotUpdateList(instances);
+                            ProcessBotUpdateList(instances);
                         }
                     }
                     nextBotDropdown.options = dropOptions;
@@ -224,7 +224,7 @@ namespace RegressionGames
                 () => { });
         }
 
-        private void processBotUpdateList(ConcurrentBag<RGBotInstance> instances)
+        private void ProcessBotUpdateList(ConcurrentBag<RGBotInstance> instances)
         {
             List<RGBotInstance> botInstances = instances.Distinct().ToList();
             // sort by id ascending, since the ids are DB ids, this should keep them in creation order
