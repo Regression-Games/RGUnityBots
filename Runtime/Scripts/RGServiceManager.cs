@@ -203,7 +203,6 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
-                    RGDebug.LogWarning($"Failed to queue instance bot: {f}");
                     onFailure.Invoke();
                 }
             );
@@ -226,7 +225,6 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
-                    RGDebug.LogWarning($"Failed to get running instance for bot: {f}");
                     onFailure.Invoke();
                 }
             );

@@ -29,6 +29,8 @@ namespace RegressionGames
         
         private static List<RGBotInstance> activeBots = new List<RGBotInstance>();
 
+        private List<long> invalidBotIds = new List<long>();
+
         private int lastCount = -1;
 
         private static RGOverlayMenu _this = null;
@@ -205,6 +207,7 @@ namespace RegressionGames
                                 },
                                 () =>
                                 {
+                                    invalidBotIds.Add(bot.id);
                                     if (Interlocked.Increment(ref count) >= bots.Length)
                                     {
                                         // we hit the last async result.. do the update processing
@@ -226,6 +229,13 @@ namespace RegressionGames
 
         private void ProcessBotUpdateList(ConcurrentBag<RGBotInstance> instances)
         {
+            // Log if we have any invalid bot ids
+            if (invalidBotIds.Count > 0)
+            {
+                string botIds = string.Join(", ", invalidBotIds);
+                RGDebug.LogWarning($"Failed to get running bot instances for bots: [{botIds}]");
+            }
+            invalidBotIds.Clear();
             List<RGBotInstance> botInstances = instances.Distinct().ToList();
             // sort by id ascending, since the ids are DB ids, this should keep them in creation order
             botInstances.Sort((a, b) => (int)(b.id - a.id));
