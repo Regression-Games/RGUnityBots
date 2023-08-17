@@ -244,7 +244,7 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
-                    RGDebug.LogWarning($"Failed to stop bot instance: {f}");
+                    RGDebug.LogWarning($"Failed to stop bot instance {botInstanceId}: {f}");
                     onFailure.Invoke();
                 }
             );
