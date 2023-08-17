@@ -175,7 +175,6 @@ namespace RegressionGames
                     },
                     onFailure: async (f) =>
                     {
-                        RGDebug.LogWarning($"Failed retrieving external connection information: {f}");
                         onFailure.Invoke();
                     }
                 );
