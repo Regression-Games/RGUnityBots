@@ -28,6 +28,8 @@ namespace RegressionGames
         public TMP_Dropdown nextBotDropdown;
         
         private static List<RGBotInstance> activeBots = new List<RGBotInstance>();
+        
+        private ConcurrentBag<long> invalidBotIds = new ConcurrentBag<long>();
 
         private int lastCount = -1;
 
@@ -211,15 +213,16 @@ namespace RegressionGames
                                     if (Interlocked.Increment(ref count) >= bots.Length)
                                     {
                                         // we hit the last async result.. do the update processing
-                                        processBotUpdateList(instances);
+                                        ProcessBotUpdateList(instances);
                                     }
                                 },
                                 () =>
                                 {
+                                    invalidBotIds.Add(bot.id);
                                     if (Interlocked.Increment(ref count) >= bots.Length)
                                     {
                                         // we hit the last async result.. do the update processing
-                                        processBotUpdateList(instances);
+                                        ProcessBotUpdateList(instances);
                                     }
                                 }
                             );
@@ -227,7 +230,7 @@ namespace RegressionGames
                         else if (Interlocked.Increment(ref count) >= bots.Length)
                         {
                             // we hit the last async result.. do the update processing
-                            processBotUpdateList(instances);
+                            ProcessBotUpdateList(instances);
                         }
                     }
                     nextBotDropdown.options = dropOptions;
@@ -235,8 +238,15 @@ namespace RegressionGames
                 () => { });
         }
 
-        private void processBotUpdateList(ConcurrentBag<RGBotInstance> instances)
+        private void ProcessBotUpdateList(ConcurrentBag<RGBotInstance> instances)
         {
+            // Log if we have any invalid bot ids
+            if (invalidBotIds.Count > 0)
+            {
+                string botIds = string.Join(", ", invalidBotIds);
+                RGDebug.LogWarning($"Failed to get running bot instances for bots: [{botIds}]");
+            }
+            invalidBotIds.Clear();
             List<RGBotInstance> botInstances = instances.Distinct().ToList();
             // sort by id ascending, since the ids are DB ids, this should keep them in creation order
             botInstances.Sort((a, b) => (int)(b.id - a.id));
