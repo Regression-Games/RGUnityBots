@@ -28,8 +28,8 @@ namespace RegressionGames
         public TMP_Dropdown nextBotDropdown;
         
         private static List<RGBotInstance> activeBots = new List<RGBotInstance>();
-
-        private List<long> invalidBotIds = new List<long>();
+        
+        private ConcurrentBag<long> invalidBotIds = new ConcurrentBag<long>();
 
         private int lastCount = -1;
 
