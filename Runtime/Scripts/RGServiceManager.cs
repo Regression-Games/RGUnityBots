@@ -46,7 +46,7 @@ namespace RegressionGames
             {
                 
                 // If an API key was given, just return and set that
-                var apiKey = Environment.GetEnvironmentVariable(RGEnvVars.RG_API_KEY);
+                var apiKey = RGEnvConfigs.ReadAPIKey();
                 if (apiKey != null && apiKey.Trim() != "")
                 {
                     RGDebug.Log("Using API Key from env var rather than username/password for auth");
@@ -102,7 +102,7 @@ namespace RegressionGames
             string host = rgSettings.GetRgHostAddress();
             
             // If env var is set, use that instead
-            string hostOverride = Environment.GetEnvironmentVariable(RGEnvVars.RG_HOST);
+            string hostOverride = RGEnvConfigs.ReadHost();
             if (hostOverride != null && hostOverride.Trim() != "")
             {
                 RGDebug.Log("Using host from environment variable rather than RGSettings");
