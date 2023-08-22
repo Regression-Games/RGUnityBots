@@ -13,6 +13,9 @@ namespace RegressionGames
 
         public static readonly string RG_UNITY_AUTH_TOKEN = Guid.NewGuid().ToString();
 
+        private static readonly string API_KEY_ENV_VAR = "RG_API_KEY";
+        private static readonly string HOST_ENV_VAR = "RG_HOST";
+
         private string rgAuthToken;
 
         protected static RGServiceManager _this = null;
@@ -44,6 +47,17 @@ namespace RegressionGames
         {
             try
             {
+                
+                // If an API key was given, just return and set that
+                var apiKey = Environment.GetEnvironmentVariable(API_KEY_ENV_VAR);
+                if (apiKey != null && apiKey.Trim() != "")
+                {
+                    RGDebug.Log("Using API Key from env var rather than username/password for auth");
+                    rgAuthToken = apiKey.Trim();
+                    return true;
+                }
+                
+                RGDebug.Log("Using username/password rather than env var for auth");
                 RGSettings rgSettings = RGSettings.GetOrCreateSettings();
                 string email = rgSettings.GetEmail();
                 string password = rgSettings.GetPassword();
@@ -89,6 +103,18 @@ namespace RegressionGames
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetRgHostAddress();
+            
+            // If env var is set, use that instead
+            string hostOverride = Environment.GetEnvironmentVariable(HOST_ENV_VAR);
+            if (hostOverride != null && hostOverride.Trim() != "")
+            {
+                RGDebug.Log("Using host from environment variable rather than RGSettings");
+                host = hostOverride.Trim();
+            }
+            else
+            {
+                RGDebug.Log("Using host from RGSettings rather than env var");
+            }
 
             if (host.EndsWith('/'))
             {
@@ -108,8 +134,6 @@ namespace RegressionGames
 
         public async Task Auth(string email, string password, Action<string> onSuccess, Action<string> onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetRgHostAddress();
             RGDebug.LogInfo($"Signing in to RGService at {GetRgServiceBaseUri()}");
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/auth",
