@@ -1,15 +1,13 @@
 using System;
-using System.Linq;
 using JetBrains.Annotations;
-using UnityEngine;
 
 namespace RegressionGames
 {
     
     /**
-     * Environment variable constants and utilities for configuring Regression Games
+     * Environment variable and command line argument utilities for configuring Regression Games
      */
-    public class RGEnvVars
+    public class RGEnvConfigs
     {
         public static readonly string RG_API_KEY = "RG_API_KEY";
         public static readonly string RG_HOST = "RG_HOST";
