@@ -113,6 +113,14 @@ namespace RegressionGames
         }
 
         /**
+         * Returns true if there are bots connected and running within this game.
+         */
+        public bool HasBotsRunning()
+        {
+            return !clientConnectionMap.IsEmpty;
+        }
+
+        /**
          * The server now lasts as long as RG overlay is loaded
          * To stop the 'game' and teardown spawnable players, use StopGame (which this also
          * calls internally).

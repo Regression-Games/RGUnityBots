@@ -44,6 +44,17 @@ namespace RegressionGames
         {
             try
             {
+                
+                // If an API key was given, just return and set that
+                var apiKey = Environment.GetEnvironmentVariable(RGEnvVars.RG_API_KEY);
+                if (apiKey != null && apiKey.Trim() != "")
+                {
+                    RGDebug.Log("Using API Key from env var rather than username/password for auth");
+                    rgAuthToken = apiKey.Trim();
+                    return true;
+                }
+                
+                RGDebug.Log("Using username/password rather than env var for auth");
                 RGSettings rgSettings = RGSettings.GetOrCreateSettings();
                 string email = rgSettings.GetEmail();
                 string password = rgSettings.GetPassword();
@@ -89,6 +100,18 @@ namespace RegressionGames
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetRgHostAddress();
+            
+            // If env var is set, use that instead
+            string hostOverride = Environment.GetEnvironmentVariable(RGEnvVars.RG_HOST);
+            if (hostOverride != null && hostOverride.Trim() != "")
+            {
+                RGDebug.Log("Using host from environment variable rather than RGSettings");
+                host = hostOverride.Trim();
+            }
+            else
+            {
+                RGDebug.Log("Using host from RGSettings rather than env var");
+            }
 
             if (host.EndsWith('/'))
             {
@@ -108,8 +131,6 @@ namespace RegressionGames
 
         public async Task Auth(string email, string password, Action<string> onSuccess, Action<string> onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetRgHostAddress();
             RGDebug.LogInfo($"Signing in to RGService at {GetRgServiceBaseUri()}");
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/auth",
