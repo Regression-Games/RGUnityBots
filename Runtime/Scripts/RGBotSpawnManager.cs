@@ -237,7 +237,7 @@ namespace RegressionGames
          */
         public virtual void StopGame()
         {
-            RGDebug.LogInfo("Stopping the bots spawned for the curernt game");
+            RGDebug.LogInfo("Stopping the bots spawned for the current game");
             // if there is somehow still bot objects left, kill them
             foreach (uint key in BotMap.Keys)
             {
