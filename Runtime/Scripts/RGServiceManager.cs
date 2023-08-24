@@ -49,12 +49,12 @@ namespace RegressionGames
                 var apiKey = RGEnvConfigs.ReadAPIKey();
                 if (apiKey != null && apiKey.Trim() != "")
                 {
-                    RGDebug.Log("Using API Key from env var rather than username/password for auth");
+                    RGDebug.LogDebug("Using API Key from env var rather than username/password for auth");
                     rgAuthToken = apiKey.Trim();
                     return true;
                 }
                 
-                RGDebug.Log("Using username/password rather than env var for auth");
+                RGDebug.LogDebug("Using username/password rather than env var for auth");
                 RGSettings rgSettings = RGSettings.GetOrCreateSettings();
                 string email = rgSettings.GetEmail();
                 string password = rgSettings.GetPassword();
@@ -105,12 +105,7 @@ namespace RegressionGames
             string hostOverride = RGEnvConfigs.ReadHost();
             if (hostOverride != null && hostOverride.Trim() != "")
             {
-                RGDebug.Log("Using host from environment variable rather than RGSettings");
                 host = hostOverride.Trim();
-            }
-            else
-            {
-                RGDebug.Log("Using host from RGSettings rather than env var");
             }
 
             if (host.EndsWith('/'))
