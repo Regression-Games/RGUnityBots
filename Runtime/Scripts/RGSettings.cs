@@ -46,13 +46,13 @@ namespace RegressionGames
             if (_settings == null)
             {
                 _settings = CreateInstance<RGSettings>();
-                _settings.useSystemSettings = false;
+                _settings.useSystemSettings = true;
                 _settings.enableOverlay = true;
                 _settings.numBots = 0;
-                _settings.email = "rgunitydev@rgunity.com";
-                _settings.password = "Password1";
+                _settings.email = "";
+                _settings.password = "";
                 _settings.botsSelected = new int[0];
-                _settings.rgHostAddress = "http://localhost:8080";
+                _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
 #if UNITY_EDITOR
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
@@ -60,10 +60,10 @@ namespace RegressionGames
 #endif
             }
             
-            // backwards compat for migrating RG devs
+            // backwards compat for migrating RG devs before we had a single host address field
             if (string.IsNullOrEmpty(_settings.rgHostAddress))
             {
-                _settings.rgHostAddress = "http://localhost:8080";
+                _settings.rgHostAddress = "https://play.regression.gg";
 #if UNITY_EDITOR
                 AssetDatabase.SaveAssets();
 #endif
