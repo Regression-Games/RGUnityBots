@@ -266,13 +266,12 @@ namespace RegressionGames
             {
                 // MUST do this on the main thread
                 // update to the latest connection info from RGService
-                RGBotInstanceExternalConnectionInfo? connectionInfo = null;
                 RGDebug.LogDebug($"Getting external connection information for botInstanceId: {clientConnection.clientId}");
                 await RGServiceManager.GetInstance()?.GetExternalConnectionInformationForBotInstance(
                     (long)clientConnection.clientId,
                     (connInfo) =>
                     {
-                        connectionInfo = connInfo;
+                        clientConnection.connectionInfo = connInfo;
                     },
                     () =>
                     {
@@ -284,9 +283,8 @@ namespace RegressionGames
                     // make sure we only setup 1 connection at a time on this connection object
                     lock (clientConnection)
                     {
-                        if (clientConnection.client == null && connectionInfo != null)
+                        if (clientConnection.client == null && clientConnection.connectionInfo != null)
                         {
-                            clientConnection.connectionInfo = connectionInfo;
                             clientConnection.handshakeComplete = false;
                             // make sure we were able to get the current connection info
                             if (clientConnection.connectionInfo != null)
