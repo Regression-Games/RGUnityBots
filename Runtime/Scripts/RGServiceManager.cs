@@ -263,8 +263,10 @@ namespace RegressionGames
             RGDebug.LogVerbose($"<{messageId}> API call - {uri} - {method}{(!string.IsNullOrEmpty(payload)?$"\r\n{payload}":"")}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
             SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)), isAuth);
-            await new UnityWebRequestAwaiter(request.SendWebRequest());
-            
+            var task = request.SendWebRequest();
+            RGDebug.LogVerbose($"<{messageId}> API call sent ...");
+            await new UnityWebRequestAwaiter(task);
+            RGDebug.LogVerbose($"<{messageId}> API call complete ...");
             try
             {
                 if (request.result == UnityWebRequest.Result.Success)
