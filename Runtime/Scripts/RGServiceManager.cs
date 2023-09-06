@@ -133,7 +133,6 @@ namespace RegressionGames
                 payload: JsonUtility.ToJson(new RGAuthRequest(email, password)),
                 onSuccess: async (s) =>
                 {
-                    await Task.Yield();
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
                     RGDebug.LogInfo($"Signed in to RG Service");
                     RGDebug.LogVerbose($"RGService Auth response received with token: {response.token}");
@@ -142,7 +141,6 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
-                    await Task.Yield();
                     RGDebug.LogWarning($"Failed signing in to RG Service - {f}");
                     onFailure.Invoke(f);
                 }
@@ -160,7 +158,6 @@ namespace RegressionGames
                 payload: null,
                 onSuccess: async (s) =>
                 {
-                    await Task.Yield();
                     // wrapper this as C#/Unity json can't handle top level arrays /yuck
                     string theNewText = $"{{\"bots\":{s}}}";
                     RGBotList response = JsonUtility.FromJson<RGBotList>(theNewText);
@@ -169,7 +166,6 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
-                    await Task.Yield();
                     RGDebug.LogWarning($"Failed retrieving bots for current user: {f}");
                     onFailure.Invoke();
                 }
@@ -188,7 +184,6 @@ namespace RegressionGames
                     payload: null,
                     onSuccess: async (s) =>
                     {
-                        await Task.Yield();
                         RGBotInstanceExternalConnectionInfo connInfo =
                             JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
                         RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
@@ -196,7 +191,6 @@ namespace RegressionGames
                     },
                     onFailure: async (f) =>
                     {
-                        await Task.Yield();
                         onFailure.Invoke();
                     }
                 );
@@ -218,14 +212,12 @@ namespace RegressionGames
                 payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("unused", 0, botId, RG_UNITY_AUTH_TOKEN)), // TODO Remove host and port from payload if they're optional
                 onSuccess: async (s) =>
                 {
-                    await Task.Yield();
                     RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
                     RGDebug.LogInfo($"Bot Instance id: {botInstance.id} started");
                     onSuccess.Invoke(botInstance);
                 },
                 onFailure: async (f) =>
                 {
-                    await Task.Yield();
                     onFailure.Invoke();
                 }
             );
@@ -241,7 +233,6 @@ namespace RegressionGames
                 payload: null,
                 onSuccess: async (s) =>
                 {
-                    await Task.Yield();
                     // wrapper this as C#/Unity json can't handle top level arrays /yuck
                     string theNewText = $"{{\"botInstances\":{s}}}";
                     RGBotInstanceList botInstanceList = JsonUtility.FromJson<RGBotInstanceList>(theNewText);
@@ -249,7 +240,6 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
-                    await Task.Yield();
                     onFailure.Invoke();
                 }
             );
@@ -266,12 +256,10 @@ namespace RegressionGames
                 payload: null,
                 onSuccess: async (s) =>
                 {
-                    await Task.Yield();
                     onSuccess.Invoke();
                 },
                 onFailure: async (f) =>
                 {
-                    await Task.Yield();
                     RGDebug.LogWarning($"Failed to stop bot instance {botInstanceId}: {f}");
                     onFailure.Invoke();
                 }
