@@ -266,7 +266,7 @@ namespace RegressionGames
          */
         private void SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
         {
-            RGDebug.LogVerbose($"Calling {uri} - {method} - payload: {payload}");
+            RGDebug.LogVerbose($"API call - {uri} - {method}{(!string.IsNullOrEmpty(payload)?$"\r\n{payload}":"")}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
             SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)), isAuth);
             UnityWebRequestAsyncOperation asyncOperation = request.SendWebRequest();
@@ -278,14 +278,14 @@ namespace RegressionGames
                     {
                         string resultText = request.downloadHandler?.text;
                         // pretty print
-                        RGDebug.LogVerbose($"Response from {uri} - {method}\r\n{resultText}");
+                        RGDebug.LogVerbose($"API response - {uri} - {method}\r\n{resultText}");
                         await onSuccess.Invoke(resultText);
                     }
                     else
                     {
                         // since we call this method frequently waiting for bots to come online, we log this at a more debug level
                         string errorString =
-                            $"Error calling {uri} - {method} - {request.error} - {request.result} - {request.downloadHandler?.text}";
+                            $"API error - {uri} - {method} - {request.error} - {request.result} - {request.downloadHandler?.text}";
                         RGDebug.LogDebug(errorString);
                         await onFailure.Invoke(errorString);
                     }
@@ -294,7 +294,7 @@ namespace RegressionGames
                 {
                     // since we call this method frequently waiting for bots to come online, we log this at a more debug level
                     string errorString =
-                        $"Exception calling {uri} - {method} - {ex}";
+                        $"API Exception - {uri} - {method} - {ex}";
                     RGDebug.LogDebug(errorString);
                     await onFailure.Invoke(errorString);
                 }
