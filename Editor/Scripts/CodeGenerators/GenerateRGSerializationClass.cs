@@ -95,7 +95,7 @@ namespace RegressionGames
             return classDeclaration;
         }
         
-        // Replace with your actual JSON parsing logic
+        // Convert jsonData to RGActionsInfo
         private static List<RGActionInfo> ParseJson(string jsonData)
         {
             var parsedData = JsonUtility.FromJson<RGActionsInfo>(jsonData);

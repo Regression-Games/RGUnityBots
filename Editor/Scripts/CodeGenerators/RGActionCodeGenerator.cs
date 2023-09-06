@@ -85,6 +85,7 @@ namespace RegressionGames
             Debug.Log(jsonResult);
             GenerateRGSerializationClass.Generate(jsonResult);
             GenerateRGActionClasses.Generate(jsonResult);
+            GenerateRGActionMapClass.Generate(jsonResult);
         }
 
         private static string RemoveGlobalPrefix(string typeName)
