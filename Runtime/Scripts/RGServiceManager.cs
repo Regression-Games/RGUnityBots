@@ -143,7 +143,8 @@ namespace RegressionGames
                 {
                     RGDebug.LogWarning($"Failed signing in to RG Service - ${f}");
                     onFailure.Invoke(f);
-                }
+                },
+                isAuth: true
             );
         }
 
@@ -269,11 +270,11 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
-        private async Task<bool> SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure)
+        private async Task<bool> SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
         {
             RGDebug.LogVerbose($"Calling {uri} - {method} - payload: {payload}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
-            SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)));
+            SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)), isAuth);
             UnityWebRequestAsyncOperation asyncOperation = request.SendWebRequest();
             try
             {
@@ -310,7 +311,7 @@ namespace RegressionGames
         }
 
 
-        private void SetupWebRequest(UnityWebRequest webRequest, byte[] payload)
+        private void SetupWebRequest(UnityWebRequest webRequest, byte[] payload, bool isAuth=false)
         {
             UploadHandler uh = new UploadHandlerRaw(payload);
             uh.contentType = "application/json";
@@ -318,7 +319,7 @@ namespace RegressionGames
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/json");
             webRequest.SetRequestHeader("Accept", "application/json");
-            if (rgAuthToken != null)
+            if (rgAuthToken != null && !isAuth)
             {
                 webRequest.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
             }
