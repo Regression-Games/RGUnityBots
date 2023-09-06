@@ -40,7 +40,7 @@ namespace RegressionGames
             return rgAuthToken != null;
         }
 
-        public async Task<bool> TryAuth()
+        public bool TryAuth()
         {
             try
             {
@@ -61,7 +61,7 @@ namespace RegressionGames
 
                 if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
                 {
-                    await Auth(
+                    Auth(
                         email: email,
                         password: password,
                         onSuccess: s =>
@@ -85,11 +85,11 @@ namespace RegressionGames
             return false;
         }
 
-        private async Task<bool> EnsureAuthed()
+        private bool EnsureAuthed()
         {
             if (!IsAuthed())
             {
-                return await TryAuth();
+                return TryAuth();
             }
 
             return true;
@@ -124,10 +124,10 @@ namespace RegressionGames
             }
         }
 
-        public async Task Auth(string email, string password, Action<string> onSuccess, Action<string> onFailure)
+        public void Auth(string email, string password, Action<string> onSuccess, Action<string> onFailure)
         {
             RGDebug.LogInfo($"Signing in to RGService at {GetRgServiceBaseUri()}");
-            await SendWebRequest(
+            SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/auth",
                 method: "POST",
                 payload: JsonUtility.ToJson(new RGAuthRequest(email, password)),
@@ -151,8 +151,8 @@ namespace RegressionGames
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetRgHostAddress();
-            await EnsureAuthed();
-            await SendWebRequest(
+            EnsureAuthed();
+            SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/bot",
                 method: "GET",
                 payload: null,
@@ -175,10 +175,10 @@ namespace RegressionGames
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            await EnsureAuthed();
+            EnsureAuthed();
             try
             {
-                await SendWebRequest(
+                SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
                     method: "GET",
                     payload: null,
@@ -203,10 +203,8 @@ namespace RegressionGames
 
         public async Task QueueInstantBot(long botId, Action<RGBotInstance> onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetRgHostAddress();
-            await EnsureAuthed();
-            await SendWebRequest(
+            EnsureAuthed();
+            SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/matchmaking/instant-bot/queue",
                 method: "POST",
                 payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("unused", 0, botId, RG_UNITY_AUTH_TOKEN)), // TODO Remove host and port from payload if they're optional
@@ -225,9 +223,8 @@ namespace RegressionGames
 
         public async Task GetRunningInstancesForBot(long botId, Action<RGBotInstance[]> onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            await EnsureAuthed();
-            await SendWebRequest(
+            EnsureAuthed();
+            SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botId}",
                 method: "GET",
                 payload: null,
@@ -247,10 +244,8 @@ namespace RegressionGames
 
         public async Task StopBotInstance(long botInstanceId, Action onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetRgHostAddress();
-            await EnsureAuthed();
-            await SendWebRequest(
+            EnsureAuthed();
+            SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/stop",
                 method: "POST",
                 payload: null,
@@ -269,9 +264,8 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
-        private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
+        private void SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
         {
-            await Task.Yield();
             RGDebug.LogVerbose($"Calling {uri} - {method} - payload: {payload}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
             SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)), isAuth);
