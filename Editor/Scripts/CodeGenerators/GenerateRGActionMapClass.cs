@@ -39,8 +39,7 @@ namespace RegressionGames
             string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
             string fileContents = headerComment + formattedCode;
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-            File.WriteAllText(filePath, fileContents);
-            // Assuming RGDebug.Log is a valid function in your setup.
+            File.WriteAllText(filePath, fileContents);            
             RGDebug.Log($"Successfully Generated {filePath}");
             AssetDatabase.Refresh();
         }
