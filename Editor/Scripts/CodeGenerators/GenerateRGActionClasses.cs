@@ -198,7 +198,7 @@ namespace RegressionGames
 
                 methodInvocationArguments.Add(paramName);
 
-                parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"string {paramName}Input = input[\"{paramName}\"] as string;"));
+                parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"string {paramName}Input = input[\"{paramName}\"].ToString();"));
                 parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"{paramType} {paramName} = default;"));
 
                 string tryParseStatement;
