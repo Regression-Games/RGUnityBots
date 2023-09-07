@@ -47,7 +47,7 @@ namespace RegressionGames
             return rgAuthToken != null;
         }
 
-        public async Task TryAuth()
+        public async Task<bool> TryAuth()
         {
             try
             {
@@ -57,43 +57,40 @@ namespace RegressionGames
                 {
                     RGDebug.LogDebug("Using API Key from env var rather than username/password for auth");
                     rgAuthToken = apiKey.Trim();
-                    return;
                 }
-                
-                RGDebug.LogDebug("Using username/password rather than env var for auth");
-                RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-                string email = rgSettings.GetEmail();
-                string password = rgSettings.GetPassword();
-
-                if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+                else
                 {
-                    await Auth(
-                        email: email,
-                        password: password,
-                        onSuccess: s =>
-                        {
-                            rgAuthToken = s;
-                        },
-                        onFailure: f =>
-                        {
-                            
-                        }
-                    );
+                    RGDebug.LogDebug("Using username/password rather than env var for auth");
+                    RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+                    string email = rgSettings.GetEmail();
+                    string password = rgSettings.GetPassword();
+
+                    if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+                    {
+                        await Auth(
+                            email: email,
+                            password: password,
+                            onSuccess: s => { rgAuthToken = s; },
+                            onFailure: f => { }
+                        );
+                    }
+
+                    RGDebug.LogWarning("RG Service email or password not configured");
                 }
-                RGDebug.LogWarning("RG Service email or password not configured");
             }
             catch (Exception ex)
             {
                 RGDebug.LogException(ex);
             }
+
+            return IsAuthed();
         }
 
         private async Task<bool> EnsureAuthed()
         {
             if (!IsAuthed())
             {
-                await TryAuth();
-                return IsAuthed();
+                return await TryAuth();
             }
             return true;
         }
