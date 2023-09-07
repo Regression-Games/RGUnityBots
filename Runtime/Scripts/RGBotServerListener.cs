@@ -266,13 +266,12 @@ namespace RegressionGames
             {
                 // MUST do this on the main thread
                 // update to the latest connection info from RGService
-                RGBotInstanceExternalConnectionInfo? connectionInfo = null;
                 RGDebug.LogDebug($"Getting external connection information for botInstanceId: {clientConnection.clientId}");
                 await RGServiceManager.GetInstance()?.GetExternalConnectionInformationForBotInstance(
                     (long)clientConnection.clientId,
                     (connInfo) =>
                     {
-                        connectionInfo = connInfo;
+                        clientConnection.connectionInfo = connInfo;
                     },
                     () =>
                     {
@@ -284,9 +283,8 @@ namespace RegressionGames
                     // make sure we only setup 1 connection at a time on this connection object
                     lock (clientConnection)
                     {
-                        if (clientConnection.client == null && connectionInfo != null)
+                        if (clientConnection.client == null && clientConnection.connectionInfo != null)
                         {
-                            clientConnection.connectionInfo = connectionInfo;
                             clientConnection.handshakeComplete = false;
                             // make sure we were able to get the current connection info
                             if (clientConnection.connectionInfo != null)
@@ -519,6 +517,9 @@ namespace RegressionGames
                     {
                         // for things like menu bots that end up spawning a human player
                         // use the agent from the overlay
+                        // Note: We have to be very careful here or we'll set this up wrong
+                        // we only want to give the overlay agent to the human player.
+                        // Before the clientIds are all connected, this can mess-up
                         var overlayAgent = this.gameObject.GetComponent<RGAgent>();
                         var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
                         if (clientId != null)
@@ -787,8 +788,15 @@ namespace RegressionGames
                     // save the token the client gave us for talking to them
                     clientTokenMap[clientId] = handshakeMessage.rgToken;
 
-                    // give them the default agent... thus allowing button clicks
-                    agentMap[clientId] = new HashSet<RGAgent>{this.gameObject.GetComponent<RGAgent>()};
+                    if (!spawnable && "PERSISTENT".Equals(lifecycle))
+                    {
+                        // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
+                        agentMap[clientId] = new HashSet<RGAgent> { this.gameObject.GetComponent<RGAgent>() };
+                    }
+                    else
+                    {
+                        agentMap[clientId] = new HashSet<RGAgent>( );
+                    }
 
                     // set this BEFORE sending the response of handshake to the client so it actually sends
                     clientConnectionMap[clientId].handshakeComplete = true;

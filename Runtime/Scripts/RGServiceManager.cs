@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using RegressionGames.Types;
@@ -13,9 +15,14 @@ namespace RegressionGames
 
         public static readonly string RG_UNITY_AUTH_TOKEN = Guid.NewGuid().ToString();
 
+        // 30 seconds
+        public static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 30;
+
         private string rgAuthToken;
 
         protected static RGServiceManager _this = null;
+
+        private long correlationId = 0L;
 
         protected virtual void Awake()
         {
@@ -44,45 +51,39 @@ namespace RegressionGames
         {
             try
             {
-                
                 // If an API key was given, just return and set that
                 var apiKey = RGEnvConfigs.ReadAPIKey();
                 if (apiKey != null && apiKey.Trim() != "")
                 {
-                    RGDebug.Log("Using API Key from env var rather than username/password for auth");
+                    RGDebug.LogDebug("Using API Key from env var rather than username/password for auth");
                     rgAuthToken = apiKey.Trim();
-                    return true;
                 }
-                
-                RGDebug.Log("Using username/password rather than env var for auth");
-                RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-                string email = rgSettings.GetEmail();
-                string password = rgSettings.GetPassword();
-
-                if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+                else
                 {
-                    await Auth(
-                        email: email,
-                        password: password,
-                        onSuccess: s =>
-                        {
-                            rgAuthToken = s;
-                        },
-                        onFailure: f =>
-                        {
-                            
-                        }
-                    );
-                    return rgAuthToken != null;
+                    RGDebug.LogDebug("Using username/password rather than env var for auth");
+                    RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+                    string email = rgSettings.GetEmail();
+                    string password = rgSettings.GetPassword();
+
+                    if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+                    {
+                        await Auth(
+                            email: email,
+                            password: password,
+                            onSuccess: s => { rgAuthToken = s; },
+                            onFailure: f => { }
+                        );
+                    }
+
+                    RGDebug.LogWarning("RG Service email or password not configured");
                 }
-                RGDebug.LogWarning("RG Service email or password not configured");
             }
             catch (Exception ex)
             {
                 RGDebug.LogException(ex);
             }
 
-            return false;
+            return IsAuthed();
         }
 
         private async Task<bool> EnsureAuthed()
@@ -91,7 +92,6 @@ namespace RegressionGames
             {
                 return await TryAuth();
             }
-
             return true;
         }
 
@@ -105,12 +105,7 @@ namespace RegressionGames
             string hostOverride = RGEnvConfigs.ReadHost();
             if (hostOverride != null && hostOverride.Trim() != "")
             {
-                RGDebug.Log("Using host from environment variable rather than RGSettings");
                 host = hostOverride.Trim();
-            }
-            else
-            {
-                RGDebug.Log("Using host from RGSettings rather than env var");
             }
 
             if (host.EndsWith('/'))
@@ -146,16 +141,15 @@ namespace RegressionGames
                 },
                 onFailure: async (f) =>
                 {
-                    RGDebug.LogWarning($"Failed signing in to RG Service - ${f}");
+                    RGDebug.LogWarning($"Failed signing in to RG Service - {f}");
                     onFailure.Invoke(f);
-                }
+                },
+                isAuth: true
             );
         }
 
         public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetRgHostAddress();
             await EnsureAuthed();
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/bot",
@@ -179,37 +173,27 @@ namespace RegressionGames
 
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             await EnsureAuthed();
-            try
-            {
-                await SendWebRequest(
-                    uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
-                    method: "GET",
-                    payload: null,
-                    onSuccess: async (s) =>
-                    {
-                        RGBotInstanceExternalConnectionInfo connInfo =
-                            JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
-                        RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
-                        onSuccess.Invoke(connInfo);
-                    },
-                    onFailure: async (f) =>
-                    {
-                        onFailure.Invoke();
-                    }
-                );
-            }
-            catch (Exception ex)
-            {
-                RGDebug.LogException(ex);
-            }
+            await SendWebRequest(
+                uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
+                method: "GET",
+                payload: null,
+                onSuccess: async (s) =>
+                {
+                    RGBotInstanceExternalConnectionInfo connInfo =
+                        JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
+                    RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
+                    onSuccess.Invoke(connInfo);
+                },
+                onFailure: async (f) =>
+                {
+                    onFailure.Invoke();
+                }
+            );
         }
 
         public async Task QueueInstantBot(long botId, Action<RGBotInstance> onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetRgHostAddress();
             await EnsureAuthed();
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/matchmaking/instant-bot/queue",
@@ -230,7 +214,6 @@ namespace RegressionGames
 
         public async Task GetRunningInstancesForBot(long botId, Action<RGBotInstance[]> onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             await EnsureAuthed();
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botId}",
@@ -252,8 +235,6 @@ namespace RegressionGames
 
         public async Task StopBotInstance(long botInstanceId, Action onSuccess, Action onFailure)
         {
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetRgHostAddress();
             await EnsureAuthed();
             await SendWebRequest(
                 uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/stop",
@@ -274,56 +255,62 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
-        private async Task<bool> SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure)
+        private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
         {
-            RGDebug.LogVerbose($"Calling {uri} - {method} - payload: {payload}");
+            var messageId = ++correlationId;
+            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload)?$"\r\n{payload}":"")}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
-            SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)));
-            UnityWebRequestAsyncOperation asyncOperation = request.SendWebRequest();
+
             try
             {
-                while (!asyncOperation.isDone)
-                {
-                    await Task.Yield();
-                }
-
+            	SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)), isAuth);
+                var task = request.SendWebRequest();
+                RGDebug.LogVerbose($"<{messageId}> API request sent ...");
+                await new UnityWebRequestAwaiter(task);
+                RGDebug.LogVerbose($"<{messageId}> API request complete ...");
+                
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     string resultText = request.downloadHandler?.text;
                     // pretty print
-                    RGDebug.LogVerbose($"Response from {uri} - {method}\r\n{resultText}");
+                    RGDebug.LogVerbose($"<{messageId}> API response - {method}  {uri}\r\n{resultText}");
                     await onSuccess.Invoke(resultText);
-                    return true;
                 }
-
-                // since we call this frequently waiting for bots to come online, we log this at a more debug level
-                string errorString =
-                    $"Error calling {uri} - {method} - {request.error} - {request.result} - {request.downloadHandler?.text}";
-                RGDebug.LogDebug(errorString);
-                await onFailure.Invoke(errorString);
-                return false;
+                else
+                {
+                    // since we call this method frequently waiting for bots to come online, we log this at a more debug level
+                    string errorString =
+                        $"<{messageId}> API error - {method}  {uri}\r\n{request.error} - {request.result} - {request.downloadHandler?.text}";
+                    RGDebug.LogDebug(errorString);
+                    await onFailure.Invoke(errorString);
+                }
             }
             catch (Exception ex)
             {
-                await onFailure.Invoke(ex.ToString());
-                return false;
+                // since we call this method frequently waiting for bots to come online, we log this at a more debug level
+                string errorString =
+                    $"<{messageId}> API Exception - {method}  {uri} - {ex}";
+                RGDebug.LogDebug(errorString);
+                await onFailure.Invoke(errorString);
             }
             finally
             {
-                asyncOperation.webRequest?.Dispose();
+                request?.Dispose();
             }
+
         }
 
 
-        private void SetupWebRequest(UnityWebRequest webRequest, byte[] payload)
+        private void SetupWebRequest(UnityWebRequest webRequest, byte[] payload, bool isAuth=false)
         {
+            webRequest.timeout = WEB_REQUEST_TIMEOUT_SECONDS;
             UploadHandler uh = new UploadHandlerRaw(payload);
             uh.contentType = "application/json";
             webRequest.uploadHandler = uh;
             webRequest.downloadHandler = new DownloadHandlerBuffer();
             webRequest.SetRequestHeader("Content-Type", "application/json");
             webRequest.SetRequestHeader("Accept", "application/json");
-            if (rgAuthToken != null)
+            if (rgAuthToken != null && !isAuth)
             {
                 webRequest.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
             }
@@ -333,7 +320,24 @@ namespace RegressionGames
                 webRequest.certificateHandler = RGCertOnlyPublicKey.GetInstance();
             }
         }
+    }
 
+    public readonly struct UnityWebRequestAwaiter : INotifyCompletion
+    {
+        private readonly UnityWebRequestAsyncOperation _asyncOperation;
+        
+        
+        public UnityWebRequestAwaiter( UnityWebRequestAsyncOperation asyncOperation ) => _asyncOperation = asyncOperation;
 
+        public UnityWebRequestAwaiter GetAwaiter()
+        {
+            return this;
+        }
+        
+        public UnityWebRequest GetResult() => _asyncOperation.webRequest;
+        
+        public void OnCompleted( Action continuation ) => _asyncOperation.completed += _ => continuation();
+        
+        public bool IsCompleted => _asyncOperation.isDone;
     }
 }
