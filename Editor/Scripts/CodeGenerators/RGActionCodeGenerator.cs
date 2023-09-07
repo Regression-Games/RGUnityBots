@@ -12,7 +12,7 @@ namespace RegressionGames
 {
     public class RGActionCodeGenerator
     {
-        [MenuItem("Regression Games/Compile")]
+        [MenuItem("Regression Games/Generate Action Classes")]
         private static void SearchForBotActionMethods()
         {
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
