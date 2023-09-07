@@ -48,7 +48,7 @@ namespace RegressionGames
         {
             var methodsList = new List<MethodDeclarationSyntax>();
 
-            var startMethod = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Start")
+            var startMethod = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Awake")
                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword))
                 .WithBody(SyntaxFactory.Block(botActions
                     .GroupBy(b => b.Object)
