@@ -7,6 +7,14 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 4432850564473213099}
     m_Modifications:
+    - target: {fileID: 926230519822939299, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
+    - target: {fileID: 926230519822939299, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 8592267718606122159, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
     - target: {fileID: 7184946068488660573, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_Name
       value: NameTag
@@ -65,15 +73,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.000007521361
+      value: 0.0000075250864
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.000000029802322
+      value: -0.000000014901161
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.000000007450581
+      value: 0.0000000037252903
       objectReference: {fileID: 0}
     - target: {fileID: 7788261422809300738, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -95,6 +103,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8163830684390807471, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 8592267718606122159, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9717539a27c9a47a3bba1081f5988572, type: 3}
 --- !u!1001 &5344095842875419398
@@ -113,6 +125,10 @@ PrefabInstance:
       value: DE-SPAWN
       objectReference: {fileID: 0}
     - target: {fileID: 6236519968617803313, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
+    - target: {fileID: 6236519968617803313, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
       propertyPath: m_fontColor.b
       value: 0
       objectReference: {fileID: 0}
@@ -124,6 +140,10 @@ PrefabInstance:
       propertyPath: m_fontColor.r
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6236519968617803313, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 8592267718606122159, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
     - target: {fileID: 6236519968617803313, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
       propertyPath: m_fontColor32.rgba
       value: 4278203135
@@ -178,19 +198,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8624020281354877869, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.3726226
+      value: 0.96065104
       objectReference: {fileID: 0}
     - target: {fileID: 8624020281354877869, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.087172285
+      value: 0.2077664
       objectReference: {fileID: 0}
     - target: {fileID: 8624020281354877869, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.89959055
+      value: 0.18017837
       objectReference: {fileID: 0}
     - target: {fileID: 8624020281354877869, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.21045253
+      value: -0.03896838
       objectReference: {fileID: 0}
     - target: {fileID: 8624020281354877869, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
       propertyPath: m_AnchoredPosition.x
@@ -212,6 +232,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8663104197442862890, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 8592267718606122159, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8d7fe473cd24743ecb737e2708351949, type: 3}
 --- !u!224 &4432850564473213099 stripped
