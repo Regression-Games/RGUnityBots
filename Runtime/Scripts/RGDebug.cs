@@ -1,4 +1,6 @@
 using UnityEngine;
+using System;
+using System.Threading;
 
 namespace RegressionGames
 {
@@ -76,7 +78,7 @@ namespace RegressionGames
 
         private static string buildPrefix(RGLogLevel logLevel)
         {
-            return $"[RG] {logLevel.ToString().ToUpperInvariant()} - ";
+            return $"{{RG}} {DateTime.Now:yyyy-MM-ddTHH:mm:ss:ffff}  {logLevel.ToString().ToUpperInvariant()} [{Thread.CurrentThread.ManagedThreadId}] --- ";
         }
 
         // Log the given message to the console
