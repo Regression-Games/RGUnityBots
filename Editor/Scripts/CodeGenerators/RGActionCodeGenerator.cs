@@ -84,6 +84,17 @@ namespace RegressionGames
             
             // TODO(REG-1251): send json result to server for typedef generation
             
+            // remove previous RGActions
+            string dataPath = Application.dataPath;
+            string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGActions").Replace("\\", "/");
+
+            if (Directory.Exists(directoryToDelete))
+            {
+                Directory.Delete(directoryToDelete, true);
+                File.Delete(directoryToDelete + ".meta");
+                AssetDatabase.Refresh();
+            }
+            
             GenerateRGSerializationClass.Generate(jsonResult);
             GenerateRGActionClasses.Generate(jsonResult);
             GenerateRGActionMapClass.Generate(jsonResult);
