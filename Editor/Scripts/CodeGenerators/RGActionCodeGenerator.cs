@@ -82,7 +82,7 @@ namespace RegressionGames
             string jsonResult =
                 JsonConvert.SerializeObject(new RGActionsInfo { BotActions = botActionList }, Formatting.Indented);
             
-            // TODO: send json result to server for typedef generation
+            // TODO(REG-1251): send json result to server for typedef generation
             
             GenerateRGSerializationClass.Generate(jsonResult);
             GenerateRGActionClasses.Generate(jsonResult);

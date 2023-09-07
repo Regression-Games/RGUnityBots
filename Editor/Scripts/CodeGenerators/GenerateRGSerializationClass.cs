@@ -61,7 +61,12 @@ namespace RegressionGames
                     {
                         processedTypes.Add(parameter.Type);
 
-                        // Generate method
+                        /*
+                         * Generates a method called Deserialize_{Type} for every non-primitive type
+                         * Ex: Vector3
+                         * public static Vector3 Deserialize_Vector3(string paramJson)
+                         *    return JsonUtility.FromJson<Vector3>(paramJson);
+                         */
                         MethodDeclarationSyntax method = SyntaxFactory
                             .MethodDeclaration(SyntaxFactory.ParseTypeName(parameter.Type),
                                 $"Deserialize_{parameter.Type.Replace(".", "_")}")

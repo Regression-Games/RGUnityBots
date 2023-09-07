@@ -191,6 +191,12 @@ namespace RegressionGames
             var parameterParsingStatements = new List<StatementSyntax>();
             var methodInvocationArguments = new List<string>();
 
+            /*
+             * Parameters have the format: {string Name; string Type}
+             * 1. Extract parameter from Dictionary<string, object> passed to 'StartAction'
+             * 2. Try to parse parameter into its given type
+             * 3. Invoke the original method with correctly typed parameters
+             */
             foreach (var parameter in action.Parameters)
             {
                 string paramName = parameter.Name;
