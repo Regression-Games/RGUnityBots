@@ -146,7 +146,8 @@ namespace RegressionGames
                 {
                     RGDebug.LogWarning($"Failed signing in to RG Service - {f}");
                     onFailure.Invoke(f);
-                }
+                },
+                isAuth: true
             );
         }
 
