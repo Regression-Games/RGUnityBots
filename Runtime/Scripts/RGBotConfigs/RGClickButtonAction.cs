@@ -17,14 +17,14 @@ namespace RegressionGames.RGBotConfigs
             while (buttonsToClick.TryDequeue(out Button button))
             {
 
-                // this would work, but only fires the action
+                // this works, but only fires the action
                 // doesn't actually 'click' the button
-                // button.onClick.Invoke();
+                button.onClick.Invoke();
 
                 // this sends the event as though you actually clicked the button
                 // so you get button click effects and everything
-                ExecuteEvents.Execute(button.gameObject, new BaseEventData(EventSystem.current),
-                    ExecuteEvents.submitHandler);
+                // ExecuteEvents.Execute(button.gameObject, new BaseEventData(EventSystem.current),
+                //     ExecuteEvents.submitHandler);
 
                 // clicking at specific points is also possible, but involves
                 // importing dll's and moving the cursor.. let's avoid this for now
