@@ -260,29 +260,29 @@ namespace RegressionGames
         private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
         {
             var messageId = ++correlationId;
-            RGDebug.LogVerbose($"<{messageId}> API call - {uri} - {method}{(!string.IsNullOrEmpty(payload)?$"\r\n{payload}":"")}");
+            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload)?$"\r\n{payload}":"")}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
 
             try
             {
             	SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)), isAuth);
                 var task = request.SendWebRequest();
-                RGDebug.LogVerbose($"<{messageId}> API call sent ...");
+                RGDebug.LogVerbose($"<{messageId}> API request sent ...");
                 await new UnityWebRequestAwaiter(task);
-                RGDebug.LogVerbose($"<{messageId}> API call complete ...");
+                RGDebug.LogVerbose($"<{messageId}> API request complete ...");
                 
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     string resultText = request.downloadHandler?.text;
                     // pretty print
-                    RGDebug.LogVerbose($"<{messageId}> API response - {uri} - {method}\r\n{resultText}");
+                    RGDebug.LogVerbose($"<{messageId}> API response - {method}  {uri}\r\n{resultText}");
                     await onSuccess.Invoke(resultText);
                 }
                 else
                 {
                     // since we call this method frequently waiting for bots to come online, we log this at a more debug level
                     string errorString =
-                        $"<{messageId}> API error - {uri} - {method} - {request.error} - {request.result} - {request.downloadHandler?.text}";
+                        $"<{messageId}> API error - {method}  {uri}\r\n{request.error} - {request.result} - {request.downloadHandler?.text}";
                     RGDebug.LogDebug(errorString);
                     await onFailure.Invoke(errorString);
                 }
@@ -291,7 +291,7 @@ namespace RegressionGames
             {
                 // since we call this method frequently waiting for bots to come online, we log this at a more debug level
                 string errorString =
-                    $"<{messageId}> API Exception - {uri} - {method} - {ex}";
+                    $"<{messageId}> API Exception - {method}  {uri} - {ex}";
                 RGDebug.LogDebug(errorString);
                 await onFailure.Invoke(errorString);
             }
