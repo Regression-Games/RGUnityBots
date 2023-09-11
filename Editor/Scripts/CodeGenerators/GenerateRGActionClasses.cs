@@ -191,16 +191,63 @@ namespace RegressionGames
             var parameterParsingStatements = new List<StatementSyntax>();
             var methodInvocationArguments = new List<string>();
 
-            /*
-             * Parameters have the format: {string Name; string Type}
-             * 1. Extract parameter from Dictionary<string, object> passed to 'StartAction'
-             * 2. Try to parse parameter into its given type
-             * 3. Invoke the original method with correctly typed parameters
-             */
             foreach (var parameter in action.Parameters)
             {
                 string paramName = parameter.Name;
                 string paramType = parameter.Type;
+
+                // Adding validation check for key existence
+                parameterParsingStatements.Add(SyntaxFactory.IfStatement(
+                    SyntaxFactory.PrefixUnaryExpression(
+                        SyntaxKind.LogicalNotExpression,
+                        SyntaxFactory.InvocationExpression(
+                            SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                SyntaxFactory.IdentifierName("input"),
+                                SyntaxFactory.IdentifierName("ContainsKey")
+                            )
+                        )
+                        .WithArgumentList(
+                            SyntaxFactory.ArgumentList(
+                                SyntaxFactory.SingletonSeparatedList(
+                                    SyntaxFactory.Argument(
+                                        SyntaxFactory.LiteralExpression(
+                                            SyntaxKind.StringLiteralExpression, 
+                                            SyntaxFactory.Literal(paramName)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    SyntaxFactory.Block(
+                        new StatementSyntax[]
+                        {
+                            SyntaxFactory.ExpressionStatement(
+                                SyntaxFactory.InvocationExpression(
+                                    SyntaxFactory.MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        SyntaxFactory.IdentifierName("RGDebug"),
+                                        SyntaxFactory.IdentifierName("LogError")
+                                    )
+                                )
+                                .WithArgumentList(
+                                    SyntaxFactory.ArgumentList(
+                                        SyntaxFactory.SingletonSeparatedList(
+                                            SyntaxFactory.Argument(
+                                                SyntaxFactory.LiteralExpression(
+                                                    SyntaxKind.StringLiteralExpression, 
+                                                    SyntaxFactory.Literal($"No parameter '{paramName}' found")
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            ),
+                            SyntaxFactory.ReturnStatement()
+                        }
+                    )
+                ));
 
                 methodInvocationArguments.Add(paramName);
 
