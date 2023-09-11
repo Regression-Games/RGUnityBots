@@ -82,7 +82,9 @@ namespace RegressionGames
          * 3. On FixedUpdate, when we send tickInfo, if any of the sends fail, we recycle their bot connection assuming
          *    that the bot code was reloaded/restarted.
          */
-        [ItemCanBeNull] private readonly ConcurrentDictionary<uint, RGClientConnection> clientConnectionMap = new ConcurrentDictionary<uint, RGClientConnection>();
+        [ItemCanBeNull] private readonly ConcurrentDictionary<uint, RGClientConnection> clientConnectionMap = new ();
+        
+        [ItemCanBeNull] private readonly ConcurrentDictionary<uint?, ConcurrentQueue<RGValidationResult>> clientValidationMap = new ();
  
         // keep these in a map by clientId so that we can do 1 action per client per update call
         private readonly ConcurrentDictionary<uint, ConcurrentQueue<Action>> mainThreadTaskQueue =
@@ -110,6 +112,9 @@ namespace RegressionGames
             {
                 return v;
             });
+            clientValidationMap.AddOrUpdate((uint)botInstanceId, new ConcurrentQueue<RGValidationResult>(), (k, v) => {
+                 return v;
+                });
         }
 
         /**
@@ -118,6 +123,15 @@ namespace RegressionGames
         public bool HasBotsRunning()
         {
             return !clientConnectionMap.IsEmpty;
+        }
+
+        public ConcurrentQueue<RGValidationResult> GetFailedValidationsForClient(uint clientId)
+        {
+            if (clientValidationMap.TryGetValue(clientId, out var validations))
+            {
+                return validations;
+            }
+            return new ConcurrentQueue<RGValidationResult>();
         }
 
         /**
@@ -132,6 +146,7 @@ namespace RegressionGames
             StopGameHelper();
             EndAllClientConnections();
             clientConnectionMap.Clear();
+            clientValidationMap.Clear();
             clientTokenMap.Clear();
             
             unitySideToken = Guid.NewGuid().ToString();
@@ -152,6 +167,8 @@ namespace RegressionGames
             {
                 clientConnection.client?.Close();
             }
+            // Don't do this here, we only remove the validation on StopGame so the results are available to test cases
+            //clientValidationMap.TryRemove(clientId, out _);
             clientTokenMap.TryRemove(clientId, out _);
             agentMap.TryRemove(clientId, out _);
         }
@@ -444,6 +461,7 @@ namespace RegressionGames
          */
         private void FixedUpdate()
         {
+            
             tick++;
             if (tick % tickRate == 0)
             {
@@ -725,6 +743,9 @@ namespace RegressionGames
                 case "handshake":
                     HandleClientHandshake(client, clientId, data);
                     break;
+                case "validationResult":
+                    HandleClientValidationResult(client, clientId, token, data);
+                    break;
                 case "request":
                     HandleClientRequest(client, clientId, token, data);
                     break;
@@ -824,6 +845,27 @@ namespace RegressionGames
                 }
             });
 
+        }
+        
+        private void HandleClientValidationResult(TcpClient client, uint clientId, string token, string data)
+        {
+            // validate token
+            if (!token.Equals(unitySideToken))
+            {
+                RGDebug.LogWarning($"WARNING: Client call made with invalid token");
+                return;
+            }
+
+            enqueueTaskForClient(clientId,() =>
+            {
+                var validationResult = JsonConvert.DeserializeObject<RGValidationResult>(data);
+                if (!validationResult.passed)
+                {
+                    RGDebug.LogDebug($"Save Failed Validation Result for clientId: {clientId}, data: {data}");
+                    clientValidationMap[(uint)clientId]?.Enqueue(validationResult);
+                }
+            });
+            
         }
 
         private void HandleClientRequest(TcpClient client, uint clientId, string token, string data)
