@@ -227,10 +227,12 @@ namespace RegressionGames
                 ));
 
                 var catchBlock = SyntaxFactory.CatchClause()
-                                              .WithDeclaration(SyntaxFactory.CatchDeclaration(SyntaxFactory.ParseTypeName("Exception")))
-                                              .WithBlock(SyntaxFactory.Block(SyntaxFactory.SingletonList<StatementSyntax>(
-                                                  SyntaxFactory.ParseStatement($"RGDebug.LogError(\"Failed to parse '{paramName}'\");")
-                                              )));
+                    .WithDeclaration(SyntaxFactory.CatchDeclaration(SyntaxFactory.ParseTypeName("Exception"), SyntaxFactory.Identifier("ex")))
+                    .WithBlock(SyntaxFactory.Block(new StatementSyntax[]
+                    {
+                        SyntaxFactory.ParseStatement($"RGDebug.LogError(\"Failed to parse '{paramName}'\");"),
+                        SyntaxFactory.ParseStatement("RGDebug.LogError(ex.Message);")
+                    }));
 
                 var tryCatchStatement = SyntaxFactory.TryStatement()
                                                      .WithBlock(tryBlock)
