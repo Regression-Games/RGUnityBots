@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,6 +14,7 @@ namespace RegressionGames.RGBotConfigs
 {
     public class RGState : MonoBehaviour
     {
+        private Dictionary<string, Delegate> methodMap = new Dictionary<string, Delegate>();
 
         [Header("General Information")] [Tooltip("Does this object represent a human/bot player ?")]
         public bool isPlayer;
@@ -28,6 +30,34 @@ namespace RegressionGames.RGBotConfigs
         public bool syncPosition = true;
         public bool syncRotation = true;
 
+        protected void AddMethod(string methodName, Delegate methodDelegate)
+        {
+            methodMap[methodName] = methodDelegate;
+        }
+
+        // protected T InvokeMethod<T>(string methodName)
+        // {
+        //     if (methodMap.ContainsKey(methodName))
+        //     {
+        //         return ((Func<T>)methodMap[methodName]).Invoke();
+        //     }
+        //     else
+        //     {
+        //         throw new Exception($"Method {methodName} not found");
+        //     }
+        // }
+        
+        protected object InvokeMethod(string methodName, Type returnType)
+        {
+            if (methodMap.TryGetValue(methodName, out var del))
+            {
+                return Convert.ChangeType(del.DynamicInvoke(), returnType);
+            }
+
+            RGDebug.LogError($"Method '{methodName}' not found");
+            return null;
+        }
+        
         /**
      * A function that is overriden to provide the custom state of this specific GameObject.
      * For example, you may want to retrieve and set the health of a player on the returned
