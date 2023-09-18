@@ -74,8 +74,10 @@ namespace RegressionGames
                             onFailure: f => { }
                         );
                     }
-
-                    RGDebug.LogWarning("RG Service email or password not configured");
+                    else
+                    {
+                        RGDebug.LogWarning("RG Service email or password not configured");
+                    }
                 }
             }
             catch (Exception ex)
@@ -135,7 +137,6 @@ namespace RegressionGames
                 {
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
                     RGDebug.LogInfo($"Signed in to RG Service");
-                    RGDebug.LogVerbose($"RGService Auth response received with token: {response.token}");
                     rgAuthToken = response.token;
                     onSuccess.Invoke(response.token);
                 },
@@ -258,7 +259,9 @@ namespace RegressionGames
         private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
         {
             var messageId = ++correlationId;
-            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload)?$"\r\n{payload}":"")}");
+            // don't log the details of auth requests :)
+            string payloadToLog = isAuth ? "{***:***, ...}" : payload;
+            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload)?$"\r\n{payloadToLog}":"")}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
 
             try
@@ -269,18 +272,20 @@ namespace RegressionGames
                 await new UnityWebRequestAwaiter(task);
                 RGDebug.LogVerbose($"<{messageId}> API request complete ...");
                 
+                string? resultText = request.downloadHandler?.text;
+                string? resultToLog = isAuth ? "{***:***, ...}" : resultText;
+                
                 if (request.result == UnityWebRequest.Result.Success)
                 {
-                    string resultText = request.downloadHandler?.text;
                     // pretty print
-                    RGDebug.LogVerbose($"<{messageId}> API response - {method}  {uri}\r\n{resultText}");
+                    RGDebug.LogVerbose($"<{messageId}> API response - {method}  {uri}\r\n{resultToLog}");
                     await onSuccess.Invoke(resultText);
                 }
                 else
                 {
                     // since we call this method frequently waiting for bots to come online, we log this at a more debug level
                     string errorString =
-                        $"<{messageId}> API error - {method}  {uri}\r\n{request.error} - {request.result} - {request.downloadHandler?.text}";
+                        $"<{messageId}> API error - {method}  {uri}\r\n{request.error} - {request.result} - {resultToLog}";
                     RGDebug.LogDebug(errorString);
                     await onFailure.Invoke(errorString);
                 }
