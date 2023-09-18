@@ -272,8 +272,8 @@ namespace RegressionGames
                 await new UnityWebRequestAwaiter(task);
                 RGDebug.LogVerbose($"<{messageId}> API request complete ...");
                 
-                string? resultText = request.downloadHandler?.text;
-                string? resultToLog = isAuth ? "{***:***, ...}" : resultText;
+                string resultText = request.downloadHandler?.text;
+                string resultToLog = isAuth ? "{***:***, ...}" : resultText;
                 
                 if (request.result == UnityWebRequest.Result.Success)
                 {
