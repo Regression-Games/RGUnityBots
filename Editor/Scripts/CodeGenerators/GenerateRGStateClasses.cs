@@ -62,7 +62,7 @@ namespace RegressionGames
                 string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
                 // Save to 'Assets/RGScripts/RGSerialization.cs'
-                string subfolderName = "RGScripts";
+                string subfolderName = Path.Combine("RGScripts", "RGStates");               
                 string fileName = $"{className}.cs";
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                 string fileContents = headerComment + formattedCode;
