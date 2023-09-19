@@ -30,23 +30,19 @@ namespace RegressionGames.RGBotConfigs
         public bool syncPosition = true;
         public bool syncRotation = true;
 
+        /*
+         * Add a method to our methodMap, with the given methodName id and delegate
+         * reference. Used to link state getter functions to their runtime delegates
+         */
         protected void AddMethod(string methodName, Delegate methodDelegate)
         {
             methodMap[methodName] = methodDelegate;
         }
 
-        // protected T InvokeMethod<T>(string methodName)
-        // {
-        //     if (methodMap.ContainsKey(methodName))
-        //     {
-        //         return ((Func<T>)methodMap[methodName]).Invoke();
-        //     }
-        //     else
-        //     {
-        //         throw new Exception($"Method {methodName} not found");
-        //     }
-        // }
-        
+        /*
+         * Invokes a method with the given 'methodName' id with no parameters. Converts the
+         * return value to the given type and returns the value
+         */
         protected object InvokeMethod(string methodName, Type returnType)
         {
             if (methodMap.TryGetValue(methodName, out var del))
