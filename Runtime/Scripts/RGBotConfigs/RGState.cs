@@ -14,8 +14,6 @@ namespace RegressionGames.RGBotConfigs
 {
     public class RGState : MonoBehaviour
     {
-        private Dictionary<string, Delegate> methodMap = new Dictionary<string, Delegate>();
-
         [Header("General Information")] [Tooltip("Does this object represent a human/bot player ?")]
         public bool isPlayer;
 
@@ -29,30 +27,6 @@ namespace RegressionGames.RGBotConfigs
         [Header("3D Positioning")] 
         public bool syncPosition = true;
         public bool syncRotation = true;
-
-        /*
-         * Add a method to our methodMap, with the given methodName id and delegate
-         * reference. Used to link state getter functions to their runtime delegates
-         */
-        protected void AddMethod(string methodName, Delegate methodDelegate)
-        {
-            methodMap[methodName] = methodDelegate;
-        }
-
-        /*
-         * Invokes a method with the given 'methodName' id with no parameters. Converts the
-         * return value to the given type and returns the value
-         */
-        protected object InvokeMethod(string methodName, Type returnType)
-        {
-            if (methodMap.TryGetValue(methodName, out var del))
-            {
-                return Convert.ChangeType(del.DynamicInvoke(), returnType);
-            }
-
-            RGDebug.LogError($"Method '{methodName}' not found");
-            return null;
-        }
         
         /**
      * A function that is overriden to provide the custom state of this specific GameObject.
