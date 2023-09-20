@@ -58,6 +58,63 @@ namespace RegressionGames
         
         private readonly ConcurrentDictionary<uint?, string> clientTokenMap = new ();
 
+        private readonly ConcurrentDictionary<uint, RGUnityBotState> botStates = new();
+
+        private readonly ConcurrentDictionary<uint, List<Action<RGUnityBotState>>> botStateListeners = new();
+
+        public void AddUnityBotStateListener(uint id, Action<RGUnityBotState> func)
+        {
+            botStateListeners.AddOrUpdate(id, new List<Action<RGUnityBotState>> {func}, (key, oldValue) =>
+            {
+                oldValue.Add(func);
+                return oldValue;
+            });
+        }
+
+        public RGUnityBotState GetUnityBotState(uint id)
+        {
+            if (botStates.TryGetValue(id, out RGUnityBotState state))
+            {
+                return state;
+            }
+            return RGUnityBotState.UNKNOWN;
+        }
+        
+        public void SetUnityBotState(uint id, RGUnityBotState state)
+        {
+            botStates.AddOrUpdate(id, (newValue) =>
+            {
+                SendStateUpdatesToListeners(id, state);
+                return state;
+            }, (key, oldValue) =>
+            {
+                if (!oldValue.Equals(state))
+                {
+                    SendStateUpdatesToListeners(id, state);
+                    RGDebug.LogInfo($"State of Bot id: {id} == {state}");        
+                }
+                return state;
+            });
+        }
+
+        private void SendStateUpdatesToListeners(uint id, RGUnityBotState newState)
+        {
+            if (botStateListeners.TryGetValue(id, out List<Action<RGUnityBotState>> funcs))
+            {
+                foreach (var action in funcs)
+                {
+                    try
+                    {
+                        action.Invoke(newState);
+                    }
+                    catch (Exception ex)
+                    {
+                        RGDebug.LogWarning($"Exception calling action listener for state update on bot id: {id} - {ex}");
+                    }
+                }
+            }
+        }
+
         /*
          * Tracking Maps
          * 
@@ -148,6 +205,8 @@ namespace RegressionGames
             clientConnectionMap.Clear();
             clientValidationMap.Clear();
             clientTokenMap.Clear();
+            botStateListeners.Clear();
+            botStates.Clear();
             
             unitySideToken = Guid.NewGuid().ToString();
         }
@@ -171,6 +230,8 @@ namespace RegressionGames
             //clientValidationMap.TryRemove(clientId, out _);
             clientTokenMap.TryRemove(clientId, out _);
             agentMap.TryRemove(clientId, out _);
+            botStateListeners.TryRemove(clientId, out _);
+            botStates.TryRemove(clientId, out _);
         }
 
         /**
@@ -281,6 +342,7 @@ namespace RegressionGames
         {
             if (clientConnection.client == null && !clientConnection.connecting)
             {
+                SetUnityBotState(clientConnection.clientId, RGUnityBotState.CONNECTING);
                 // MUST do this on the main thread
                 // update to the latest connection info from RGService
                 RGDebug.LogDebug($"Getting external connection information for botInstanceId: {clientConnection.clientId}");
@@ -664,6 +726,7 @@ namespace RegressionGames
                 {
                     if (clientConnection.client != null && clientConnection.handshakeComplete)
                     {
+                        SetUnityBotState(clientId, RGUnityBotState.RUNNING);
                         string token = clientTokenMap[clientId];
                         RGServerSocketMessage serverSocketMessage =
                             new RGServerSocketMessage(token, type, data);
@@ -769,6 +832,7 @@ namespace RegressionGames
             // Handle when the client tells us to teardown because the instant bot instance was stopped
             // This would happen when a particular bot's code determined it was finished and sent
             // us a teardown notification
+            SetUnityBotState(clientId, RGUnityBotState.TEARING_DOWN);
             enqueueTaskForClient(clientId, () =>
             {
                 TeardownClient(clientId);
@@ -821,6 +885,7 @@ namespace RegressionGames
 
                     // set this BEFORE sending the response of handshake to the client so it actually sends
                     clientConnectionMap[clientId].handshakeComplete = true;
+                    SetUnityBotState(clientId, RGUnityBotState.CONNECTED);
                     if (spawnable)
                     {
                         try

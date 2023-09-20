@@ -7,7 +7,7 @@ namespace RegressionGames
 {
     public class ActiveRGBotUIElement : MonoBehaviour
     {
-        private long id;
+        private uint id;
 
         public TMP_Text text;
         public TMP_Text statusText;
@@ -21,13 +21,20 @@ namespace RegressionGames
                 RGOverlayMenu rgOverlayMenu = FindObjectOfType<RGOverlayMenu>();
                 rgOverlayMenu.StopBotInstance(id);
             });
+
+            RGBotServerListener.GetInstance().AddUnityBotStateListener(id, UpdateState);
         }
         
         public void PopulateBotEntry(RGBotInstance entry)
         {
-            id = entry.id;
+            id = (uint) entry.id;
             text.text = $"{entry.bot.id} - {entry.bot.name}  #{entry.id}";
-            statusText.text = $"TODO ...";
+            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(id)}";
+        }
+
+        private void UpdateState(RGUnityBotState state)
+        {
+            statusText.text = $"{state}";
         }
     }
 }
