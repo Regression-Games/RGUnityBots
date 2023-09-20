@@ -49,8 +49,9 @@ namespace RegressionGames
                     .AddMembers(fieldDeclaration, startMethod, getStateMethod);
 
                 // Create namespace
-                var namespaceDeclaration = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs"))
-                                                       .AddMembers(classDeclaration);
+                var namespaceDeclaration = SyntaxFactory
+                    .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs"))
+                    .AddMembers(classDeclaration);
 
                 // Add the namespace declaration to the compilation unit
                 compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
@@ -61,8 +62,8 @@ namespace RegressionGames
                 // Write the code to a .cs file
                 string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
-                // Save to 'Assets/RGScripts/RGSerialization.cs'
-                string subfolderName = Path.Combine("RGScripts", "RGStates");               
+                // Save to 'Assets/RGScripts/RGStates/{name}.cs'
+                string subfolderName = Path.Combine("RGScripts", "RGStates");
                 string fileName = $"{className}.cs";
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                 string fileContents = headerComment + formattedCode;
@@ -73,10 +74,10 @@ namespace RegressionGames
             }
         }
 
-
         private static MethodDeclarationSyntax GenerateStartMethod(string componentType, List<RGStateInfo> stateInfos)
         {
-            var startMethod = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Start")
+            var startMethod = SyntaxFactory
+                .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Start")
                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
                 .WithBody(SyntaxFactory.Block());
 
@@ -136,66 +137,9 @@ namespace RegressionGames
                 )
             );
 
-            // Link runtime getters for methods
-            foreach (var stateInfo in stateInfos.Where(si => si.FieldType == "method"))
-            {
-                var addMethodInvocation = SyntaxFactory.ExpressionStatement(
-                    SyntaxFactory.InvocationExpression(
-                        SyntaxFactory.MemberAccessExpression(
-                            SyntaxKind.SimpleMemberAccessExpression,
-                            SyntaxFactory.ThisExpression(),
-                            SyntaxFactory.IdentifierName("AddMethod")
-                        )
-                    )
-                    .WithArgumentList(
-                        SyntaxFactory.ArgumentList(
-                            SyntaxFactory.SeparatedList(
-                                new[]
-                                {
-                                    SyntaxFactory.Argument(
-                                        SyntaxFactory.LiteralExpression(
-                                            SyntaxKind.StringLiteralExpression, 
-                                            SyntaxFactory.Literal(stateInfo.StateName)
-                                        )
-                                    ),
-                                    SyntaxFactory.Argument(
-                                        SyntaxFactory.ObjectCreationExpression(
-                                            SyntaxFactory.GenericName(
-                                                SyntaxFactory.Identifier("Func"))
-                                            .WithTypeArgumentList(
-                                                SyntaxFactory.TypeArgumentList(
-                                                    SyntaxFactory.SingletonSeparatedList<TypeSyntax>(
-                                                        SyntaxFactory.ParseTypeName(stateInfo.Type)
-                                                    )
-                                                )
-                                            )
-                                        )
-                                        .WithArgumentList(
-                                            SyntaxFactory.ArgumentList(
-                                                SyntaxFactory.SingletonSeparatedList(
-                                                    SyntaxFactory.Argument(
-                                                        SyntaxFactory.MemberAccessExpression(
-                                                            SyntaxKind.SimpleMemberAccessExpression,
-                                                            SyntaxFactory.IdentifierName("myComponent"),
-                                                            SyntaxFactory.IdentifierName(stateInfo.FieldName)
-                                                        )
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                }
-                            )
-                        )
-                    )
-                );
-
-                startMethod = startMethod.AddBodyStatements(addMethodInvocation);
-            }
-
             return startMethod;
         }
-        
+
         private static MethodDeclarationSyntax GenerateGetStateMethod(string componentType, List<RGStateInfo> memberInfos)
         {
             var statements = new List<StatementSyntax>
@@ -213,24 +157,14 @@ namespace RegressionGames
             // Add statements to add each state variable to the dictionary
             statements.AddRange(memberInfos.Select(mi =>
             {
-                ExpressionSyntax valueExpression = mi.FieldType == "method"
-                    ? (ExpressionSyntax)SyntaxFactory.InvocationExpression(
-                            SyntaxFactory.MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                SyntaxFactory.ThisExpression(),
-                                SyntaxFactory.IdentifierName("InvokeMethod"))
+                ExpressionSyntax valueExpression = mi.FieldType == "method" 
+                    ? SyntaxFactory.InvocationExpression(
+                        SyntaxFactory.MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            SyntaxFactory.IdentifierName("myComponent"),
+                            SyntaxFactory.IdentifierName(mi.FieldName)
                         )
-                        .WithArgumentList(
-                            SyntaxFactory.ArgumentList(
-                                SyntaxFactory.SeparatedList(
-                                    new[]
-                                    {
-                                        SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(mi.StateName))),
-                                        SyntaxFactory.Argument(SyntaxFactory.TypeOfExpression(SyntaxFactory.ParseTypeName(mi.Type)))
-                                    }
-                                )
-                            )
-                        )
+                    )
                     : SyntaxFactory.MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         SyntaxFactory.IdentifierName("myComponent"),
@@ -271,6 +205,6 @@ namespace RegressionGames
 
             return getStateMethod;
         }
-        
+
     }
 }

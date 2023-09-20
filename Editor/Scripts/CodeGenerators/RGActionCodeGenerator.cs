@@ -188,7 +188,7 @@ namespace RegressionGames
             
             // TODO (REG-1267): send json result to server for typedef generation
             
-            // remove previous RGActions
+            // remove previous RGStates
             string dataPath = Application.dataPath;
             string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGStates").Replace("\\", "/");
             
