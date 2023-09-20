@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using RegressionGames.Types;
 using UnityEngine;
@@ -17,6 +18,8 @@ namespace RegressionGames
 
         // 30 seconds
         public static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 30;
+
+        private static Mutex authLock = new Mutex(false,"AuthLock");
 
         private string rgAuthToken;
 
@@ -90,9 +93,24 @@ namespace RegressionGames
 
         private async Task<bool> EnsureAuthed()
         {
+            // double lock checking paradigm to avoid locking when possible
+            // we lock this so that multiple APIs called close in time at startup
+            // don't all first off an auth request in parallel
             if (!IsAuthed())
             {
-                return await TryAuth();
+                authLock.WaitOne();
+                try
+                {
+                    if (!IsAuthed())
+                    {
+                        return await TryAuth();
+                    }
+                }
+                finally
+                {
+                    authLock.ReleaseMutex();
+                }
+
             }
             return true;
         }
