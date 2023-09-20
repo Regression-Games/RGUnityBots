@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,7 +14,6 @@ namespace RegressionGames.RGBotConfigs
 {
     public class RGState : MonoBehaviour
     {
-
         [Header("General Information")] [Tooltip("Does this object represent a human/bot player ?")]
         public bool isPlayer;
 
@@ -27,7 +27,7 @@ namespace RegressionGames.RGBotConfigs
         [Header("3D Positioning")] 
         public bool syncPosition = true;
         public bool syncRotation = true;
-
+        
         /**
      * A function that is overriden to provide the custom state of this specific GameObject.
      * For example, you may want to retrieve and set the health of a player on the returned
