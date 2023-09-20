@@ -139,6 +139,40 @@ namespace RegressionGames
 
                     foreach (var member in membersWithRGState)
                     {
+                        bool hasError = false;
+                        
+                        if (member is FieldDeclarationSyntax fieldDeclaration)
+                        {
+                            if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RGDebug.LogError($"Error: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public.");
+                                hasError = true;
+                            }
+                        }
+                        else if (member is MethodDeclarationSyntax methodDeclaration)
+                        {
+                            if (!methodDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                                hasError = true;
+                            }
+                            else if (methodDeclaration.ParameterList.Parameters.Count > 0)
+                            {
+                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
+                                hasError = true;
+                            }
+                            else if (methodDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
+                            {
+                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
+                                hasError = true;
+                            }
+                        }
+
+                        if (hasError)
+                        {
+                            continue;
+                        }
+                        
                         string fieldType = member is MethodDeclarationSyntax ? "method" : "variable";
                         string fieldName = member is MethodDeclarationSyntax
                             ? ((MethodDeclarationSyntax) member).Identifier.ValueText
