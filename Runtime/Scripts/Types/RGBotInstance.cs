@@ -9,7 +9,7 @@ namespace RegressionGames.Types
         public long id;
         public RGBot bot;
         public long? lobby;
-        
+
         public override string ToString()
         {
             return $"{id} - {lobby} - {bot}";
