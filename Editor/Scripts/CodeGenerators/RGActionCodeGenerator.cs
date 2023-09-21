@@ -3,6 +3,7 @@ using UnityEngine;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO.Compression;
 using Newtonsoft.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -15,11 +16,21 @@ namespace RegressionGames
         [MenuItem("Regression Games/Generate Scripts")]
         private static void GenerateRGScripts()
         {
-            SearchForBotActionMethods();
-            SearchForBotStates();
+            // find and extract RGAction data
+            string actionJson = SearchForBotActionMethods();
+            
+            // find and extract RGState data
+            string stateJson = SearchForBotStates();
+            
+            // write extracted data to json files
+            WriteToJson("RGActions", actionJson);
+            WriteToJson("RGStates", stateJson);
+
+            // create 'RegressionGames.zip' in project folder
+            ZipJson();
         }
         
-        private static void SearchForBotActionMethods()
+        private static string SearchForBotActionMethods()
         {
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => !path.Contains("Library") && !path.Contains("Temp"))
@@ -88,8 +99,6 @@ namespace RegressionGames
             string jsonResult =
                 JsonConvert.SerializeObject(new RGActionsInfo { BotActions = botActionList }, Formatting.Indented);
             
-            // TODO (REG-1267): send json result to server for typedef generation
-            
             // remove previous RGActions
             string dataPath = Application.dataPath;
             string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGActions").Replace("\\", "/");
@@ -104,9 +113,11 @@ namespace RegressionGames
             GenerateRGSerializationClass.Generate(jsonResult);
             GenerateRGActionClasses.Generate(jsonResult);
             GenerateRGActionMapClass.Generate(jsonResult);
+
+            return jsonResult;
         }
 
-        private static void SearchForBotStates()
+        private static string SearchForBotStates()
         {
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => !path.Contains("Library") && !path.Contains("Temp"))
@@ -220,8 +231,6 @@ namespace RegressionGames
 
             string jsonResult = JsonConvert.SerializeObject(new { RGStateInfo = rgStateInfoList }, Formatting.Indented);
             
-            // TODO (REG-1267): send json result to server for typedef generation
-            
             // remove previous RGStates
             string dataPath = Application.dataPath;
             string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGStates").Replace("\\", "/");
@@ -234,8 +243,38 @@ namespace RegressionGames
             }
             
             GenerateRGStateClasses.Generate(jsonResult);
+            return jsonResult;
         }
 
+        private static void WriteToJson(string fileName, string json)
+        {
+            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames");
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            string filePath = Path.Combine(folderPath, $"{fileName}.json");
+            File.WriteAllText(filePath, json);
+        }
+
+        private static void ZipJson()
+        {
+            string parentPath = Directory.GetParent(Application.dataPath).FullName;
+            string folderPath = Path.Combine(parentPath, "RegressionGames");
+
+            if (Directory.Exists(folderPath))
+            {
+                string zipPath = Path.Combine(parentPath, "RegressionGames.zip");
+                ZipFile.CreateFromDirectory(folderPath, zipPath);
+                Directory.Delete(folderPath, true);
+            }
+            else
+            {
+                Debug.LogWarning("The 'RegressionGames' folder does not exist.");
+            }
+        }
         
         private static string RemoveGlobalPrefix(string typeName)
         {
