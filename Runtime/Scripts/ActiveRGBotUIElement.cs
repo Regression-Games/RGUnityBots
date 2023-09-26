@@ -11,6 +11,11 @@ namespace RegressionGames
 
         public TMP_Text text;
         public TMP_Text statusText;
+
+        public void Awake()
+        {
+            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(id)}";
+        }
         
         public void Start()
         {
@@ -21,8 +26,8 @@ namespace RegressionGames
                 RGOverlayMenu rgOverlayMenu = FindObjectOfType<RGOverlayMenu>();
                 rgOverlayMenu.StopBotInstance(id);
             });
-
             RGBotServerListener.GetInstance().AddUnityBotStateListener(id, UpdateState);
+            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(id)}";
         }
         
         public void PopulateBotEntry(RGBotInstance entry)
