@@ -7,7 +7,7 @@ namespace RegressionGames.Types
     {
         public long id;
         public string name;
-        public string programmingLanguage;
+        public string platform;
 
         public override string ToString()
         {
