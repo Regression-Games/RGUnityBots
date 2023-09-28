@@ -159,14 +159,7 @@ namespace RegressionGames.Types
                                                     // may not have gotten far enough to do this
                                                 }
 
-                                                try
-                                                {
-                                                    client.Close();
-                                                }
-                                                catch (Exception e1)
-                                                {
-                                                    // may not have gotten far enough to do this
-                                                }
+                                                Close();
                                             }
                                             finally
                                             {
@@ -199,16 +192,8 @@ namespace RegressionGames.Types
                                             {
                                                 // may not have gotten far enough to do this
                                             }
-                                            
 
-                                            try
-                                            {
-                                                client.Close();
-                                            }
-                                            catch (Exception e1)
-                                            {
-                                                // may not have gotten far enough to do this
-                                            }
+                                            Close();
                                             _connecting = false;
                                         }
                                     }
@@ -228,8 +213,15 @@ namespace RegressionGames.Types
 
         public override void Close()
         {
-            this._client?.Close();
-            this._client = null;
+            try
+            {
+                _client?.Close();
+            }
+            catch (Exception e1)
+            {
+                // may not have gotten far enough to do this
+            }
+            _client = null;
         }
         
         private Task HandleClientConnection(TcpClient client)
@@ -311,7 +303,7 @@ namespace RegressionGames.Types
 
                 if (!client.Connected)
                 {
-                    // TODO: Handle de-spawning their avatar and/or removing them from the lobby?
+                    // TODO: Handle re-connecting ???
                 }
             });
         }
