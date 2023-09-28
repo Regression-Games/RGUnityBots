@@ -438,10 +438,10 @@ namespace RegressionGames
          *
          * TODO: Organize in hierarchy of parent-child rather than a flat map
          */
-        private Dictionary<string, object> GetGameState()
+        private Dictionary<string, RGStateEntity> GetGameState()
         {
             var statefulObjects = FindObjectsOfType<RGState>();
-            var totalState = new Dictionary<string, object>();
+            var totalState = new Dictionary<string, RGStateEntity>();
             foreach (var rgState in statefulObjects)
             {
                 var state = rgState.GetGameObjectState();

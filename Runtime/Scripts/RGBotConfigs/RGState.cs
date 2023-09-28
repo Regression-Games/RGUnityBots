@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using RegressionGames.StateActionTypes;
 using UnityEngine;
 
 /*
@@ -29,22 +30,22 @@ namespace RegressionGames.RGBotConfigs
         public bool syncRotation = true;
         
         /**
-     * A function that is overriden to provide the custom state of this specific GameObject.
-     * For example, you may want to retrieve and set the health of a player on the returned
-     * object, or their inventory information
-     */
+         * A function that is overriden to provide the custom state of this specific GameObject.
+         * For example, you may want to retrieve and set the health of a player on the returned
+         * object, or their inventory information
+         */
         public virtual Dictionary<string, object> GetState()
         {
             return new Dictionary<string, object>();
         }
 
         /**
-     * Returns the entire internal state for this object, which consists of the default
-     * states tracked by RG, and the result of any overridden GetState implementation.
-     */
-        public Dictionary<string, object> GetGameObjectState()
+         * Returns the entire internal state for this object, which consists of the default
+         * states tracked by RG, and the result of any overridden GetState implementation.
+         */
+        public RGStateEntity GetGameObjectState()
         {
-            var state = new Dictionary<string, object>
+            var state = new RGStateEntity()
             {
                 ["id"] = this.transform.GetInstanceID(),
                 ["type"] = objectType,

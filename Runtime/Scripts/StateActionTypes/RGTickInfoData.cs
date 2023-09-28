@@ -4,18 +4,20 @@ using Newtonsoft.Json;
 
 namespace RegressionGames.StateActionTypes
 {
+    // ReSharper disable once InconsistentNaming
     [Serializable]
     public class RGTickInfoData
     {
         public long tick;
         public string sceneName;
-        public Dictionary<string, object> gameState;
+        // ReSharper disable once InconsistentNaming
+        public Dictionary<string, RGStateEntity> gameState;
 
         [NonSerialized]
         // cache this so no matter how many clients we send to, we only convert to string one time
         private string _serializedForm = null;
 
-        public RGTickInfoData(long t, string sceneName, Dictionary<string, object> gameState)
+        public RGTickInfoData(long t, string sceneName, Dictionary<string, RGStateEntity> gameState)
         {
             tick = t;
             this.sceneName = sceneName;

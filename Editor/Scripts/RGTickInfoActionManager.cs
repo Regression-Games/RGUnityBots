@@ -63,7 +63,7 @@ namespace RegressionGames.Editor
         {
             foreach (var gameStateObject in tickData.gameState)
             {
-                JObject jsonObject = (JObject)gameStateObject.Value;
+                JObject jsonObject = (JObject)(object)gameStateObject.Value;
                 long entityId = jsonObject["id"].Value<long>();
 
                 var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);

@@ -18,7 +18,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
         private readonly ConcurrentQueue<RGTickInfoData> _tickInfoQueue = new();
 
-        private readonly RG _rgObject = new RG();
+        private readonly RG _rgObject;
 
         private readonly Action _teardownHook;
 
@@ -26,6 +26,8 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             this._botInstance = botInstance;
             this._teardownHook = teardownHook;
+
+            this._rgObject = new RG((uint) botInstance.id);
         }
 
         public void StartBot()
@@ -107,8 +109,7 @@ namespace RegressionGames.RGBotLocalRuntime
                         {
                             var target = entities[new System.Random().Next(entities.Count)];
 
-                            var targetPosition =
-                                target["position"] as Vector3? ?? default;
+                            var targetPosition = target.position ?? Vector3.zero;
                             //TODO: If Actions were strongly typed we wouldn't need to build this weird map...
                             var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                             {
