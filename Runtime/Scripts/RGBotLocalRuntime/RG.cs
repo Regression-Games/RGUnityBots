@@ -30,7 +30,28 @@ namespace RegressionGames.RGBotLocalRuntime
             return null;
         }
 
-        public List<Dictionary<string, object>> FindPlayers(string clientId = null)
+        public List<Dictionary<string, object>> FindEntities(string objectType = null)
+        {
+            var gameState = _tickInfo.gameState;
+            if (gameState.Count == 0)
+            {
+                return new List<Dictionary<string, object>>();
+            }
+            
+            // filter down to objectType Matches
+            var result = gameState.Values.Where(value =>
+            {
+                if (objectType != null && value is Dictionary<string, object> entity && entity.TryGetValue("type", out var objType))
+                {
+                    return objectType.Equals(objType);
+                }
+                return true;
+            });
+
+            return result.Select(value => value as Dictionary<string, object>).ToList();
+        }
+
+        public List<Dictionary<string, object>> FindPlayers(uint? clientId = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
@@ -41,31 +62,25 @@ namespace RegressionGames.RGBotLocalRuntime
             // filter down to isPlayer
             var result = gameState.Values.Where(value =>
             {
-                var entity = (value as Dictionary<string, object>);
-                if (entity != null && entity.TryGetValue("isPlayer", out var isPlayer) == true)
+                if (value is Dictionary<string, object> entity && entity.TryGetValue("isPlayer", out var isPlayer))
                 {
-                    if (Boolean.TryParse(isPlayer.ToString(), out var result))
-                    {
-                        return result;
-                    }
+                    return (bool)isPlayer;
                 }
-
                 return false;
             });
             
             // filter down to clientId Matches
-            /*if (clientId != null)
+            if (clientId != null)
             {
                 result = result.Where(value =>
                 {
-                    if ((value as Dictionary<string, object>)?.TryGetValue("clientId", out var cliId) == true)
+                    if (value is Dictionary<string, object> entity && entity.TryGetValue("clientId", out var cliId))
                     {
-                        return clientId.Equals(cliId?.ToString());
+                        return clientId == (uint)cliId;
                     }
-
                     return false;
                 });
-            }*/
+            }
 
             return result.Select(value => value as Dictionary<string, object>).ToList();
         }

@@ -41,7 +41,7 @@ namespace RegressionGames.RGBotLocalRuntime
             var bot = new Types.RGBot();
             bot.id = botId;
             bot.programmingLanguage = "C#"; //TODO: (abby) aka Unity , aka Local
-            bot.name = $"{botName ?? "RGUnityBot"}-{botId}";
+            bot.name = $"{botName ?? "RGUnityBot"}-{botInstance.id}";
             
             botInstance.bot = bot;
 

@@ -539,7 +539,7 @@ namespace RegressionGames
                     
                     clientConnectionMap[clientId].Lifecycle = lifecycle;
 
-                    string botName = handshakeMessage.botName;
+                    string botName = $"{handshakeMessage.botName}-{clientId}";
                     string characterConfig = handshakeMessage.characterConfig;
 
                     // save the token the client gave us for talking to them

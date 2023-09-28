@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
+using UnityEngine;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
@@ -80,8 +81,8 @@ namespace RegressionGames.RGBotLocalRuntime
             handshakeMessage.rgToken = Guid.NewGuid().ToString();
             handshakeMessage.spawnable = true;
             handshakeMessage.characterConfig = "{\"characterType\": \"Mage\"}";
-            handshakeMessage.lifecycle = "PERSISTENT";
-            handshakeMessage.botName = "TempTestLocalBot";
+            handshakeMessage.lifecycle = "MANAGED";
+            handshakeMessage.botName = "TempLocalBot";
             // configure bot from user code
             // TODO: userBotCode.ConfigureBot(_rgObject);
                 
@@ -101,23 +102,21 @@ namespace RegressionGames.RGBotLocalRuntime
                     //TODO: REMOVE ME - Temporary test code
                     try
                     {
-                        // RGState has to be typed better.. omg this is horrible compared to JS coding...
-                        var players = _rgObject.FindPlayers();
-                        if (players.Count > 0)
+                        var entities = _rgObject.FindEntities();
+                        if (entities.Count > 0)
                         {
-                            var target = players[UnityEngine.Random.Range(0, players.Count)];
-
+                            var target = entities[new System.Random().Next(entities.Count)];
 
                             var targetPosition =
-                                (target["id"] as Dictionary<string, object>)["position"] as Dictionary<string, object>;
+                                target["position"] as Vector3? ?? default;
+                            //TODO: If Actions were strongly typed we wouldn't need to build this weird map...
                             var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                             {
-                                { "skillId", UnityEngine.Random.Range(0, 1) },
+                                { "skillId", new System.Random().Next(2) },
                                 { "targetId", target["id"] },
-                                { "xPosition", targetPosition["x"] },
-                                { "yPosition", targetPosition["y"] },
-                                { "zPosition", targetPosition["z"] },
-
+                                { "xPosition", targetPosition.x },
+                                { "yPosition", targetPosition.y },
+                                { "zPosition", targetPosition.z },
                             });
                             _rgObject.PerformAction(action);
                         }
@@ -128,8 +127,7 @@ namespace RegressionGames.RGBotLocalRuntime
                     }
                     catch (Exception ex)
                     {
-                        RGDebug.LogError("Error getting target position");
-                        RGDebug.LogException(ex);
+                        RGDebug.LogError($"Error getting target position: {ex}");
                     }
 
                     // Flush Actions / Validations
