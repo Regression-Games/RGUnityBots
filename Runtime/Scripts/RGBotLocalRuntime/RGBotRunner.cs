@@ -22,11 +22,13 @@ namespace RegressionGames.RGBotLocalRuntime
 
         private readonly Action _teardownHook;
 
-        public RGBotRunner(RGBotInstance botInstance, Action teardownHook)
+        private readonly RGUserBot _userBotCode;
+
+        public RGBotRunner(RGBotInstance botInstance, RGUserBot userBotCode, Action teardownHook)
         {
             this._botInstance = botInstance;
             this._teardownHook = teardownHook;
-
+            this._userBotCode = userBotCode;
             this._rgObject = new RG((uint) botInstance.id);
         }
 
@@ -77,16 +79,17 @@ namespace RegressionGames.RGBotLocalRuntime
         
         private void RunBotLoop()
         {
+            // configure bot from user code
+            _userBotCode.ConfigureBot(_rgObject);
+            
             // before we get into the loop, handle handshakes and such
             RGClientHandshake handshakeMessage = new RGClientHandshake();
             handshakeMessage.unityToken = RGServiceManager.RG_UNITY_AUTH_TOKEN;
             handshakeMessage.rgToken = Guid.NewGuid().ToString();
-            handshakeMessage.spawnable = true;
-            handshakeMessage.characterConfig = "{\"characterType\": \"Mage\"}";
-            handshakeMessage.lifecycle = "MANAGED";
-            handshakeMessage.botName = "TempLocalBot";
-            // configure bot from user code
-            // TODO: userBotCode.ConfigureBot(_rgObject);
+            handshakeMessage.spawnable = _userBotCode.spawnable;
+            handshakeMessage.characterConfig = _rgObject.CharacterConfig;
+            handshakeMessage.lifecycle = _userBotCode.lifecycle.ToString();
+            handshakeMessage.botName = _botInstance.bot.name;
                 
             // do the 'handshake'  In remote bots they send a message to cause this, but we'll call it directly just after starting
             RGBotServerListener.GetInstance().HandleClientHandshakeMessage((uint)_botInstance.id, handshakeMessage);
@@ -98,39 +101,8 @@ namespace RegressionGames.RGBotLocalRuntime
                     _rgObject.SetTickInfo(tickInfo);
 
                     // Run User Code
-                    // TODO: userBotCode.ProcessTick(_rgObject);
-
-
-                    //TODO: REMOVE ME - Temporary test code
-                    try
-                    {
-                        var entities = _rgObject.FindEntities();
-                        if (entities.Count > 0)
-                        {
-                            var target = entities[new System.Random().Next(entities.Count)];
-
-                            var targetPosition = target.position ?? Vector3.zero;
-                            //TODO: If Actions were strongly typed we wouldn't need to build this weird map...
-                            var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
-                            {
-                                { "skillId", new System.Random().Next(2) },
-                                { "targetId", target["id"] },
-                                { "xPosition", targetPosition.x },
-                                { "yPosition", targetPosition.y },
-                                { "zPosition", targetPosition.z },
-                            });
-                            _rgObject.PerformAction(action);
-                        }
-                        else
-                        {
-                            RGDebug.LogWarning("No players found...");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        RGDebug.LogError($"Error getting target position: {ex}");
-                    }
-
+                    _userBotCode.ProcessTick(_rgObject);
+                    
                     // Flush Actions / Validations
                     List<RGActionRequest> actions = _rgObject.FlushActions();
                     foreach (RGActionRequest rgActionRequest in actions)

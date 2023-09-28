@@ -174,7 +174,8 @@ namespace RegressionGames
         public void TempTestAddLocalBot()
         {
             // start the local bot
-           RGBotRuntimeManager.GetInstance()?.StartBot(999888777, "TempTestLocalBot");
+            // TODO: Test Code: This number is meaningless until we lookup bots locally by id
+            RGBotRuntimeManager.GetInstance()?.StartBot(-123456789L);
         }
 
         public void StopBotInstance(long id)

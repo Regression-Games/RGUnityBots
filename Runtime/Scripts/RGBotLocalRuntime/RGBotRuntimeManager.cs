@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using RegressionGames.RGBotLocalRuntime.SampleBot;
 using RegressionGames.Types;
 using UnityEngine;
 
@@ -29,7 +30,7 @@ namespace RegressionGames.RGBotLocalRuntime
         
         private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
         
-        public long StartBot(long botId, string botName)
+        public long StartBot(long botId)
         {
             RGBotInstance botInstance = new RGBotInstance();
             
@@ -38,10 +39,13 @@ namespace RegressionGames.RGBotLocalRuntime
             
             RGBotServerListener.GetInstance().SetUnityBotState((uint) botInstance.id, RGUnityBotState.STARTING);
             
+            //TODO: Load this in some 'CORRECT" way based on the incoming botId argument... still TBD on that
+            var userBotCode = ScriptableObject.CreateInstance<RGSampleBot>();
+            
             var bot = new Types.RGBot();
             bot.id = botId;
-            bot.programmingLanguage = "C#"; //TODO: (abby) aka Unity , aka Local
-            bot.name = $"{botName ?? "RGUnityBot"}-{botInstance.id}";
+            bot.programmingLanguage = "C#"; //TODO: (TBD based abby's work in progress as of 9/28/23) aka Unity , aka Local
+            bot.name = $"{userBotCode.botName ?? "RGUnityBot"}";
             
             botInstance.bot = bot;
 
@@ -49,7 +53,7 @@ namespace RegressionGames.RGBotLocalRuntime
             
             RGClientConnection connection = RGBotServerListener.GetInstance().AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
             
-            var botRunner = new RGBotRunner(botInstance, () =>
+            var botRunner = new RGBotRunner(botInstance, userBotCode, () =>
             {
                 _botRunners.TryRemove(botInstance.id, out _);
             });

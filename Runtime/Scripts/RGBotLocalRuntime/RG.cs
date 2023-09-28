@@ -16,7 +16,8 @@ namespace RegressionGames.RGBotLocalRuntime
         
         private readonly ConcurrentQueue<RGValidationResult> _validationResults = new();
 
-        public string CharacterConfig { get; private set; } = null;
+        // TODO: This needs to be strongly typed, not a json string
+        public string CharacterConfig = null;
 
         public readonly uint ClientId;
 
@@ -46,7 +47,7 @@ namespace RegressionGames.RGBotLocalRuntime
         /**
          * <summary>Used to find the closest Entity to the given position.</summary>
          * <param name="objectType">{string | null} Search for entities of a specific type</param>
-         * * <param name="position">{Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot position in index 0.</param>
+         * <param name="position">{Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot position in index 0.</param>
          * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
