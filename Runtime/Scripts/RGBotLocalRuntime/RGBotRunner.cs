@@ -38,6 +38,7 @@ namespace RegressionGames.RGBotLocalRuntime
             {
                 RGBotServerListener.GetInstance().SetUnityBotState((uint) _botInstance.id, RGUnityBotState.STARTING);
                 _thread = new Thread(this.RunBotLoop);
+                _thread.Name = $"RGBotRunner-{_botInstance.id}";
                 _running = true;
                 _thread.Start();
             }

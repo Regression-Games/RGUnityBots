@@ -29,7 +29,9 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
 
         public override void ConfigureBot(RG rgObject)
         {
-            rgObject.CharacterConfig = "{\"characterType\": \"Mage\"}";
+            var classIndex = new System.Random().Next(4);
+            var classes = new string[] {"Mage", "Rogue", "Tank", "Archer"};
+            rgObject.CharacterConfig = $"{{\"characterType\": \"{classes[classIndex]}\"}}";
         }
 
         public override void ProcessTick(RG rgObject)

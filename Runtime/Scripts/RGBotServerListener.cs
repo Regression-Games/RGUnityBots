@@ -206,6 +206,7 @@ namespace RegressionGames
             clientValidationMap.Clear();
             botStateListeners.Clear();
             botStates.Clear();
+            mainThreadTaskQueue.Clear();
             
             UnitySideToken = Guid.NewGuid().ToString();
         }
@@ -230,6 +231,7 @@ namespace RegressionGames
             agentMap.TryRemove(clientId, out _);
             botStateListeners.TryRemove(clientId, out _);
             botStates.TryRemove(clientId, out _);
+            mainThreadTaskQueue.TryRemove(clientId, out _);
         }
 
         /**
