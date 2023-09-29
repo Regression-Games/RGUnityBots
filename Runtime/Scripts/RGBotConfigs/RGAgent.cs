@@ -13,6 +13,10 @@ namespace RegressionGames.RGBotConfigs
 
         private Dictionary<string, RGAction> actionMap;
 
+        // The client Id that owns this agent
+        // Used as a performance optimization for mapping the ClientId into the state payloads
+        public uint? ClientId = null;
+
         public RGAgent()
         {
             actionMap = new Dictionary<string, RGAction>();

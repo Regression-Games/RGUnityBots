@@ -180,7 +180,7 @@ namespace RegressionGames
 
         public void StopBotInstance(long id)
         {
-            RGBotServerListener.GetInstance()?.TeardownClient((uint) id);
+            RGBotServerListener.GetInstance()?.HandleClientTeardown((uint) id);
         }
 
         /// <summary>
@@ -188,10 +188,7 @@ namespace RegressionGames
         /// </summary>
         public void StopAllBots()
         {
-            foreach (RGBotInstance activeBot in activeBots)
-            {
-                RGBotServerListener.GetInstance()?.TeardownClient((uint) activeBot.id);
-            }
+            RGBotServerListener.GetInstance()?.TeardownAllClients();
         }
         
         public void UpdateBots()

@@ -55,7 +55,8 @@ namespace RegressionGames.RGBotConfigs
 
             if (syncPosition) state["position"] = transform.position;
             if (syncRotation) state["rotation"] = transform.rotation;
-            foreach (var entry in GetState())
+            var dict = GetState();
+            foreach (var entry in dict)
             {
                 state.Add(entry.Key, entry.Value);
             }

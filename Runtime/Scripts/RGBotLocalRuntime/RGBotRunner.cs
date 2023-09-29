@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
-using UnityEngine;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
@@ -16,7 +14,9 @@ namespace RegressionGames.RGBotLocalRuntime
 
         private bool _running;
 
-        private readonly ConcurrentQueue<RGTickInfoData> _tickInfoQueue = new();
+        // This 'could' be a concurrentQueue, but this is called sequentially for each
+        // from the main thread today and thus doesn't need the overhead
+        private readonly Queue<RGTickInfoData> _tickInfoQueue = new();
 
         private readonly RG _rgObject;
 
@@ -50,9 +50,6 @@ namespace RegressionGames.RGBotLocalRuntime
             {
                 _tickInfoQueue.Clear();
                 _running = false; // this should end the thread loop on next pass
-                Monitor.Enter(_tickInfoQueue);
-                Monitor.PulseAll(_tickInfoQueue);
-                Monitor.Exit(_tickInfoQueue);
                 _teardownHook.Invoke();
             }
         }
@@ -70,11 +67,8 @@ namespace RegressionGames.RGBotLocalRuntime
             if (_running)
             {
                 // TODO: clone the tickInfo to avoid different bots mangling it
-                // TODO: Requires that values in the dictionary implement ICloneable
+                //   which would require that values in the dictionary implement ICloneable
                 _tickInfoQueue.Enqueue(tickInfo);
-                Monitor.Enter(_tickInfoQueue);
-                Monitor.PulseAll(_tickInfoQueue);
-                Monitor.Exit(_tickInfoQueue);
             }
         }
         
@@ -97,32 +91,47 @@ namespace RegressionGames.RGBotLocalRuntime
             
             while (_running)
             {
-                if (_tickInfoQueue.TryDequeue(out var tickInfo))
+                RGTickInfoData tickInfo = null;
+                var tickInfoCount = 0;
+                while (_tickInfoQueue.TryDequeue(out var nextTickInfo))
+                {
+                    tickInfo = nextTickInfo;
+                    ++tickInfoCount;
+                }
+
+                if (tickInfoCount > 1)
+                {
+                    RGDebug.LogWarning($"WARNING: Bot instanceId: {_botInstance.id}, botName: {_botInstance.bot.name}, botId: {_botInstance.bot.id} is processing slower than the tick rate.  {tickInfoCount-1} tick info updates have been discarded... processing latest tick info");
+                }
+
+                if (tickInfo != null)
                 {
                     _rgObject.SetTickInfo(tickInfo);
 
                     // Run User Code
                     _userBotCode.ProcessTick(_rgObject);
-                    
+
                     // Flush Actions / Validations
                     List<RGActionRequest> actions = _rgObject.FlushActions();
                     foreach (RGActionRequest rgActionRequest in actions)
                     {
-                        RGBotServerListener.GetInstance().HandleClientActionRequest((uint)_botInstance.id, rgActionRequest);
+                        RGBotServerListener.GetInstance()
+                            .HandleClientActionRequest((uint)_botInstance.id, rgActionRequest);
                     }
-                    
+
                     List<RGValidationResult> validations = _rgObject.FlushValidations();
                     foreach (RGValidationResult rgValidationResult in validations)
                     {
-                        RGBotServerListener.GetInstance().HandleClientValidationResult((uint)_botInstance.id, rgValidationResult);
+                        RGBotServerListener.GetInstance()
+                            .HandleClientValidationResult((uint)_botInstance.id, rgValidationResult);
                     }
                 }
                 else
                 {
-                    Monitor.Enter(_tickInfoQueue);
-                    Monitor.Wait(_tickInfoQueue, 10);
-                    Monitor.Exit(_tickInfoQueue);
-                    
+                    // wait up to 10ms for next message
+                    // we tried using event wait handles here to signal, but it was more
+                    // efficient to just sleep and loop (10ms == 100 updates PER SECOND... which is twice as fast as the default physics tick in Unity)
+                    Thread.Sleep(10);
                 }
             }
             RGBotServerListener.GetInstance().SetUnityBotState((uint) _botInstance.id, RGUnityBotState.STOPPED);

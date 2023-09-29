@@ -75,19 +75,19 @@ namespace RegressionGames
         
         public void SetUnityBotState(uint id, RGUnityBotState state)
         {
-            botStates.AddOrUpdate(id, (newValue) =>
-            {
-                SendStateUpdatesToListeners(id, state);
-                return state;
-            }, (key, oldValue) =>
+            if (botStates.TryGetValue(id, out var oldValue))
             {
                 if (!oldValue.Equals(state))
                 {
+                    botStates[id] = state;
                     SendStateUpdatesToListeners(id, state);
-                    RGDebug.LogInfo($"State of Bot id: {id} == {state}");        
                 }
-                return state;
-            });
+            }
+            else
+            {
+                botStates[id] = state;
+                SendStateUpdatesToListeners(id, state);
+            }
         }
 
         private void SendStateUpdatesToListeners(uint id, RGUnityBotState newState)
@@ -222,16 +222,35 @@ namespace RegressionGames
 
         public void EndClientConnection(uint clientId)
         {
-            if (clientConnectionMap.TryRemove(clientId, out RGClientConnection clientConnection))
+            if (clientConnectionMap.TryRemove(clientId, out var clientConnection))
             {
+                clientConnection.SendTeardown();
+                
                 clientConnection.Close();
+                
+                // we originally didn't call RGService StopBotInstance here
+                // But.. leaving the bot running was annoying in the editor to have to stop it
+                // every time.  In the future, we need to solve how to easily get to the bot replay
+                // data for stopped bots.
+                // --- Don't call this for local bots ...
+                if (clientConnection.Type == RGClientConnectionType.REMOTE)
+                {
+                    _ = RGServiceManager.GetInstance()?.StopBotInstance(
+                        clientId,
+                        () => { },
+                        () => { }
+                    );
+                }
             }
+            
             // Don't do this here, we only remove the validation on StopGame so the results are available to test cases
             //clientValidationMap.TryRemove(clientId, out _);
+            
             agentMap.TryRemove(clientId, out _);
             botStateListeners.TryRemove(clientId, out _);
             botStates.TryRemove(clientId, out _);
             mainThreadTaskQueue.TryRemove(clientId, out _);
+
         }
 
         /**
@@ -239,35 +258,32 @@ namespace RegressionGames
          *
          * This will teardown the client and de-spawn the avatar if necessary
          */
-        public void TeardownClient(uint clientId, bool doUpdateBots=true)
+        private void TeardownClient(uint clientId, bool doUpdateBots=true)
         {
             // do this before we end the connection so the player is still in the map
             RGBotSpawnManager.GetInstance()?.TeardownBot(clientId);
 
             EndClientConnection(clientId);
+
+            if (doUpdateBots)
+            {
+                RGOverlayMenu.GetInstance()?.UpdateBots();
+            }
+        }
+
+        /**
+         * Only call me on the main thread
+         *
+         * WARNING: This will teardown ALL local and remote clients and de-spawn their avatars if necessary
+         */
+        public void TeardownAllClients()
+        {
+            foreach (var (key, rgClientConnection) in clientConnectionMap)
+            {
+                HandleClientTeardown(key, false);
+            }
             
-            // we originally didn't call RGService StopBotInstance here
-            // But.. leaving the bot running was annoying in the editor to have to stop it
-            // every time.  In the future, we need to solve how to easily get to the bot replay
-            // data for stopped bots.
-            // TODO: Don't call this for local bots ...
-            _ = RGServiceManager.GetInstance()?.StopBotInstance(
-                    clientId,
-                    () =>
-                    {
-                        if (doUpdateBots)
-                        {
-                            RGOverlayMenu.GetInstance()?.UpdateBots();
-                        }
-                    },
-                    () =>
-                    {
-                        if (doUpdateBots)
-                        {
-                            RGOverlayMenu.GetInstance()?.UpdateBots();
-                        }
-                    }
-                );
+            RGOverlayMenu.GetInstance()?.UpdateBots();
         }
 
         
@@ -284,8 +300,6 @@ namespace RegressionGames
                 string lifecycle = keyvalue.Value.Lifecycle;
                 if ("MANAGED" == lifecycle)
                 {
-                    // de-spawn and close that client's connection
-                    keyvalue.Value.SendTeardown();
                     TeardownClient(keyvalue.Key, false);
                 }
             }
@@ -394,20 +408,22 @@ namespace RegressionGames
          */
         private void FixedUpdate()
         {
-            
             tick++;
             if (tick % tickRate == 0)
             {
-                ICollection<uint> clients = clientConnectionMap.Keys;
-                if (clients.Count > 0)
+                if (clientConnectionMap.Count > 0)
                 {
                     var state = GetGameState();
                     var sceneName = SceneManager.GetActiveScene().name;
                     var tickInfoData = new RGTickInfoData(tick, sceneName, state);
-                    List<uint> sentTo = new List<uint>();
-                    foreach (var clientId in clients)
+                    var sentTo = new List<uint>();
+                    
+                    // we tried to send these out in parallel on thread pool,
+                    // but scheduling the tasks on the thread took longer than
+                    // doing it sequentially... by a Lot, even with 200+ bots
+                    foreach (var (clientId, client) in clientConnectionMap)
                     {
-                        if(clientConnectionMap[clientId].SendTickInfo(tickInfoData)) 
+                        if (client.SendTickInfo(tickInfoData))
                         {
                             sentTo.Add(clientId);
                         }
@@ -415,10 +431,17 @@ namespace RegressionGames
 
                     if (sentTo.Count > 0)
                     {
-                        RGDebug.LogDebug(
-                            $"Sent RG state data from {state.Count} game objects to clients: {string.Join(",", sentTo)}");
-                        //useful, but too spammy
-                        RGDebug.LogVerbose($"TickData: {tickInfoData}");
+                        if (RGDebug.IsDebugEnabled)
+                        {
+                            RGDebug.LogDebug(
+                                $"Sent RG state data from {state.Count} game objects to clients: {string.Join(",", sentTo)}");
+                        }
+
+                        if (RGDebug.IsVerboseEnabled)
+                        {
+                            //useful, but too spammy.. avoid building this string unless logging enabled
+                            RGDebug.LogVerbose($"TickData: {tickInfoData}");
+                        }
                     }
                     else
                     {
@@ -442,8 +465,13 @@ namespace RegressionGames
          */
         private Dictionary<string, RGStateEntity> GetGameState()
         {
+            var overlayAgent = this.gameObject.GetComponent<RGAgent>();
+
             var statefulObjects = FindObjectsOfType<RGState>();
             var totalState = new Dictionary<string, RGStateEntity>();
+            
+            // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
+            // thus, this code cannot really be run in parallel, causing a major object count scaling issue....
             foreach (var rgState in statefulObjects)
             {
                 var state = rgState.GetGameObjectState();
@@ -453,7 +481,7 @@ namespace RegressionGames
                     var rgAgent = rgState.GetComponentInParent<RGAgent>();
                     if (rgAgent != null)
                     {
-                        var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(rgAgent)).Key;
+                        var clientId = rgAgent.ClientId;
                         if (clientId != null)
                         {
                             state["clientId"] = clientId;
@@ -467,7 +495,6 @@ namespace RegressionGames
                         // Note: We have to be very careful here or we'll set this up wrong
                         // we only want to give the overlay agent to the human player.
                         // Before the clientIds are all connected, this can mess-up
-                        var overlayAgent = this.gameObject.GetComponent<RGAgent>();
                         var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
                         if (clientId != null)
                         {
@@ -478,6 +505,8 @@ namespace RegressionGames
                             // doing this allows actions from the bot code to process to the human player agent
                             if (rgAgent != null)
                             {
+                                // set this to avoid expensive lookups next time
+                                rgAgent.ClientId = clientId;
                                 agentMap[clientId].Add(rgAgent);
                             }
                         }
@@ -506,7 +535,7 @@ namespace RegressionGames
             mainThreadTaskQueue[clientId].Enqueue(task);
         }
         
-        public void HandleClientTeardown(uint clientId)
+        public void HandleClientTeardown(uint clientId, bool doUpdateBots = true)
         {
             // Handle when the client tells us to teardown because the instant bot instance was stopped
             // This would happen when a particular bot's code determined it was finished and sent
@@ -514,7 +543,7 @@ namespace RegressionGames
             SetUnityBotState(clientId, RGUnityBotState.TEARING_DOWN);
             enqueueTaskForClient(clientId, () =>
             {
-                TeardownClient(clientId);
+                TeardownClient(clientId, doUpdateBots);
             });
         }
 
@@ -547,7 +576,7 @@ namespace RegressionGames
                     string clientIdStringSuffix = $"-{clientId}";
                     if (!botName.EndsWith(clientIdStringSuffix))
                     {
-                        botName = botName + clientIdStringSuffix;
+                        botName += clientIdStringSuffix;
                     }
                     string characterConfig = handshakeMessage.characterConfig;
 
@@ -557,7 +586,8 @@ namespace RegressionGames
                     if (!spawnable && "PERSISTENT".Equals(lifecycle))
                     {
                         // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
-                        agentMap[clientId] = new HashSet<RGAgent> { this.gameObject.GetComponent<RGAgent>() };
+                        RGAgent theAgent = this.gameObject.GetComponent<RGAgent>();
+                        agentMap[clientId] = new HashSet<RGAgent> { theAgent };
                     }
                     else
                     {
@@ -583,6 +613,9 @@ namespace RegressionGames
                         //send the client a handshake response so they can start processing
                         clientConnectionMap[clientId].SendHandshakeResponse( new RGServerHandshake(UnitySideToken, characterConfig, null));
                     }
+                    
+                    // we used to do this in the connection on each send, but that was too many updates.. now we do it after sending handshake response
+                    SetUnityBotState(clientId, RGUnityBotState.RUNNING);
                 }
                 catch (Exception ex)
                 {

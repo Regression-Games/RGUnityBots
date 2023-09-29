@@ -38,8 +38,7 @@ namespace RegressionGames.Types
         public override bool SendTickInfo(RGTickInfoData tickInfo)
         {
             if (Connected())
-            {   
-                RGBotServerListener.GetInstance()?.SetUnityBotState(ClientId, RGUnityBotState.RUNNING);
+            {
                 _runner.QueueTickInfo(tickInfo);
                 return true;
             }

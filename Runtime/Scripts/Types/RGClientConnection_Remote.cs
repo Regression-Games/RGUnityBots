@@ -29,7 +29,6 @@ namespace RegressionGames.Types
         {
             if (SendSocketMessage("tickInfo", tickInfo.ToString()))
             {
-                RGBotServerListener.GetInstance()?.SetUnityBotState(ClientId, RGUnityBotState.RUNNING);
                 return true;
             }
 
@@ -50,9 +49,11 @@ namespace RegressionGames.Types
         {
             if (Connected() && _client != null)
             {
-                RGServerSocketMessage serverSocketMessage =
-                    new RGServerSocketMessage(Token, type, data);
-                byte[] dataBuffer = Encoding.UTF8.GetBytes(JsonUtility.ToJson(serverSocketMessage));
+                byte[] dataBuffer = Encoding.UTF8.GetBytes(
+                    JsonUtility.ToJson(
+                        new RGServerSocketMessage(Token, type, data)
+                        )
+                    );
                 byte[] finalBuffer = new byte[4 + dataBuffer.Length];
                 // put the length header into the buffer first
                 BinaryPrimitives.WriteInt32BigEndian(finalBuffer, dataBuffer.Length);
@@ -68,6 +69,7 @@ namespace RegressionGames.Types
                         {
                             Close();
                         }
+                        // ReSharper disable once EmptyGeneralCatchClause
                         catch (Exception ex)
                         {
                         }
