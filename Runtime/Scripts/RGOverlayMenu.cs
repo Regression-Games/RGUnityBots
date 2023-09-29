@@ -174,7 +174,7 @@ namespace RegressionGames
         public void TempTestAddLocalBot()
         {
             // start the local bot
-            // TODO: Test Code: This number is meaningless until we lookup bots locally by id
+            // TODO (REG-1291): Test Code: This number is meaningless until we lookup bots locally by id
             RGBotRuntimeManager.GetInstance()?.StartBot(-123456789L);
         }
 

@@ -34,17 +34,17 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             RGBotInstance botInstance = new RGBotInstance();
             
-            // TODO: Define unique botInstance Id ; for now, take the first bytes of a UUID... which isn't as unique as it sounds
+            // TODO (REG-1298): Define unique botInstance Id ; for now, take the first bytes of a UUID... which isn't as unique as it sounds
             botInstance.id = (uint) BitConverter.ToInt64(System.Guid.NewGuid().ToByteArray(), 0);
             
             RGBotServerListener.GetInstance().SetUnityBotState((uint) botInstance.id, RGUnityBotState.STARTING);
             
-            //TODO: Load this in some 'CORRECT" way based on the incoming botId argument... still TBD on that
+            //TODO (REG-1298): Load this in some 'CORRECT" way based on the incoming botId argument... still TBD on that
             var userBotCode = ScriptableObject.CreateInstance<RGSampleBot>();
             
             var bot = new Types.RGBot();
             bot.id = botId;
-            bot.programmingLanguage = "C#"; //TODO: (TBD based abby's work in progress as of 9/28/23) aka Unity , aka Local
+            bot.programmingLanguage = "C#"; //TODO (After REG-988): (TBD based abby's work in progress as of 9/28/23) aka Unity , aka Local
             bot.name = $"{userBotCode.botName ?? "RGUnityBot"}";
             
             botInstance.bot = bot;

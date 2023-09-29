@@ -328,7 +328,7 @@ namespace RegressionGames
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetUseSystemSettings())
             {
-                //TODO: Local Bots... This needs to support Local Bots, not just remote
+                //TODO (REG-1291): Local Bots... This needs to support Local Bots, not just remote
                 int[] botIds = rgSettings.GetBotsSelected().ToArray();
                 int errorCount = 0;
                 if (botIds.Length > 0)
@@ -460,8 +460,6 @@ namespace RegressionGames
         /**
          * Gets the entire game state by searching for all RGState game objects and gather their
          * states.
-         *
-         * TODO: Organize in hierarchy of parent-child rather than a flat map
          */
         private Dictionary<string, RGStateEntity> GetGameState()
         {

@@ -16,7 +16,7 @@ namespace RegressionGames.RGBotLocalRuntime
         
         private readonly ConcurrentQueue<RGValidationResult> _validationResults = new();
 
-        // TODO: This needs to be strongly typed, not a json string
+        // This needs to be strongly typed someday when we fully bake the SDK, not a json string
         public string CharacterConfig = null;
 
         public readonly uint ClientId;

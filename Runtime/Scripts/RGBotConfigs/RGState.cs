@@ -8,7 +8,7 @@ using UnityEngine;
  * Regression Games. Includes a few default pieces of information that can
  * be enabled from the editor when attached to an object.
  *
- * TODO: Can we use a generic type instead of a dictionary? That way users can
+ * TODO (REG-1300): Can we use a generic type instead of a dictionary? That way users can
  *       debug and use the states within their own code?
  */
 namespace RegressionGames.RGBotConfigs

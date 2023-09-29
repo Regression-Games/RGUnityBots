@@ -66,7 +66,7 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             if (_running)
             {
-                // TODO: clone the tickInfo to avoid different bots mangling it
+                // TODO (REG-1301): clone the tickInfo to avoid different bots mangling it
                 //   which would require that values in the dictionary implement ICloneable
                 _tickInfoQueue.Enqueue(tickInfo);
             }

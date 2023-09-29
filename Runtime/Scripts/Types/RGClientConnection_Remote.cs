@@ -305,7 +305,7 @@ namespace RegressionGames.Types
 
                 if (!client.Connected)
                 {
-                    // TODO: Handle re-connecting ???
+                    // TODO (REG-1273): Handle re-connecting ???
                 }
             });
         }
