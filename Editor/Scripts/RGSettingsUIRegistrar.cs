@@ -97,7 +97,7 @@ namespace RegressionGames.Editor
 
                     if (bots != null)
                     {
-                        List<RGBot> unityBots = bots.ToList().FindAll(bot => bot.programmingLanguage == "UNITY");
+                        List<RGBot> unityBots = bots.ToList().FindAll(bot => bot.platform.Equals("UNITY"));
                         if (unityBots.Count > 0)
                         {
                             List<string> botNames = unityBots.ConvertAll(bot => "" + bot.id + " - " + bot.name);
