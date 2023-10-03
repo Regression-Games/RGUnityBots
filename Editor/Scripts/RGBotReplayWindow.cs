@@ -401,7 +401,7 @@ namespace RegressionGames.Editor
 
                 // sort rData based on active for current tick
 
-                var tickInfos = new Dictionary<long, RGAgentTickInfo?>();
+                var tickInfos = new Dictionary<long, RGAgentTickInfo>();
 
                 for (var i = 0; i < rData.Count; i++)
                     tickInfos[rData[i].id] = RGAgentDataForTick.FromReplayData(rData[i], currentTick)?.tickInfo;
@@ -840,25 +840,25 @@ namespace RegressionGames.Editor
 
                     Vector3? position = null;
                     long? targetId = null;
-                    if (action.input.ContainsKey("targetId") && action.input["targetId"] != null)
-                        targetId = long.Parse(action.input["targetId"].ToString());
+                    if (action.Input.ContainsKey("targetId") && action.Input["targetId"] != null)
+                        targetId = long.Parse(action.Input["targetId"].ToString());
 
 
                     switch (actionType)
                     {
                         case "PerformSkill":
-                            var skillId = long.Parse(action.input["skillId"].ToString());
-                            if (action.input.ContainsKey("xPosition") && action.input["xPosition"] != null)
+                            var skillId = long.Parse(action.Input["skillId"].ToString());
+                            if (action.Input.ContainsKey("xPosition") && action.Input["xPosition"] != null)
                             {
-                                var xPosition = float.Parse(action.input["xPosition"].ToString());
-                                var yPosition = float.Parse(action.input["yPosition"].ToString());
-                                var zPosition = float.Parse(action.input["zPosition"].ToString());
+                                var xPosition = float.Parse(action.Input["xPosition"].ToString());
+                                var yPosition = float.Parse(action.Input["yPosition"].ToString());
+                                var zPosition = float.Parse(action.Input["zPosition"].ToString());
                                 position = new Vector3(xPosition, yPosition, zPosition);
                             }
 
                             break;
                         case "FollowObject":
-                            var range = float.Parse(action.input["range"].ToString());
+                            var range = float.Parse(action.Input["range"].ToString());
                             break;
                     }
 
@@ -897,27 +897,27 @@ namespace RegressionGames.Editor
 
             Vector3? position = null;
             long? targetId = null;
-            if (action.input.ContainsKey("targetId") && action.input["targetId"] != null)
-                targetId = long.Parse(action.input["targetId"].ToString());
+            if (action.Input.ContainsKey("targetId") && action.Input["targetId"] != null)
+                targetId = long.Parse(action.Input["targetId"].ToString());
             actionText += $"\r\nTargetId: {(targetId != null ? targetId : "n/a")}";
 
             switch (actionType)
             {
                 case "PerformSkill":
-                    var skillId = long.Parse(action.input["skillId"].ToString());
+                    var skillId = long.Parse(action.Input["skillId"].ToString());
                     actionText += $"\r\n{actionType}: {skillId}";
-                    if (action.input.ContainsKey("xPosition") && action.input["xPosition"] != null)
+                    if (action.Input.ContainsKey("xPosition") && action.Input["xPosition"] != null)
                     {
-                        var xPosition = float.Parse(action.input["xPosition"].ToString());
-                        var yPosition = float.Parse(action.input["yPosition"].ToString());
-                        var zPosition = float.Parse(action.input["zPosition"].ToString());
+                        var xPosition = float.Parse(action.Input["xPosition"].ToString());
+                        var yPosition = float.Parse(action.Input["yPosition"].ToString());
+                        var zPosition = float.Parse(action.Input["zPosition"].ToString());
                         position = new Vector3(xPosition, yPosition, zPosition);
                         actionText += $"\r\nPosition: {xPosition}, {yPosition}, {zPosition}";
                     }
 
                     break;
                 case "FollowObject":
-                    var range = float.Parse(action.input["range"].ToString());
+                    var range = float.Parse(action.Input["range"].ToString());
                     actionText += $"\r\nRange: {range}";
                     break;
             }

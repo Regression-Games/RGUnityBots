@@ -167,7 +167,7 @@ namespace RegressionGames
             );
         }
 
-        public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
+        public async Task GetBotsForCurrentUser(Action<Types.RGBot[]> onSuccess, Action onFailure)
         {
             await EnsureAuthed();
             await SendWebRequest(

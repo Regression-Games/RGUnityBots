@@ -75,6 +75,12 @@ namespace RegressionGames
             }
             Debug.LogException(exception);
         }
+        
+        public static bool IsVerboseEnabled => CheckLogLevel(RGLogLevel.Verbose);
+        public static bool IsDebugEnabled => CheckLogLevel(RGLogLevel.Debug);
+        public static bool IsInfoEnabled => CheckLogLevel(RGLogLevel.Info);
+        public static bool IsWarningEnabled => CheckLogLevel(RGLogLevel.Warning);
+        public static bool IsErrorEnabled => CheckLogLevel(RGLogLevel.Error);
 
         private static string buildPrefix(RGLogLevel logLevel)
         {

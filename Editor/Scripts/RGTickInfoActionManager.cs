@@ -63,7 +63,7 @@ namespace RegressionGames.Editor
         {
             foreach (var gameStateObject in tickData.gameState)
             {
-                JObject jsonObject = (JObject)gameStateObject.Value;
+                JObject jsonObject = (JObject)(object)gameStateObject.Value;
                 long entityId = jsonObject["id"].Value<long>();
 
                 var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
@@ -145,7 +145,7 @@ namespace RegressionGames.Editor
     [Serializable]
     public class RGAgentReplayData
     {
-        public List<RGAgentTickInfo?> tickInfo;
+        public List<RGAgentTickInfo> tickInfo;
         public long id;
         public string type;
         public bool isPlayer = false;
@@ -170,7 +170,7 @@ namespace RegressionGames.Editor
     public class RGAgentDataForTick
     {
         public RGAgentReplayData data { get; private set; }
-        [CanBeNull] public RGAgentTickInfo? tickInfo { get; private set; }
+        [CanBeNull] public RGAgentTickInfo tickInfo { get; private set; }
         public bool justSpawned { get; private set; }
         public bool justDespawned { get; private set; }
 
