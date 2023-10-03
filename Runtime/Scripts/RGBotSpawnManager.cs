@@ -159,7 +159,7 @@ namespace RegressionGames
             {
                 RGDebug.LogInfo($"Spawning bot: {botInformation.botName} for client Id: {botInformation.clientId}");
                 // make sure this client is still connected
-                if (true == RGBotServerListener.GetInstance()?.IsClientConnected(botInformation.clientId))
+                if (true == RGBotServerListener.GetInstance()?.GetClientConnection(botInformation.clientId)?.Connected())
                 {
                     CallSpawnBot(lateJoin, botInformation);
                 }
@@ -189,7 +189,9 @@ namespace RegressionGames
             if (rgBotServerListener != null)
             {
                 // Add the agent
-                rgBotServerListener.agentMap[botInformation.clientId].Add(BotMap[botInformation.clientId].GetComponent<RGAgent>());
+                var rgAgent = BotMap[botInformation.clientId].GetComponent<RGAgent>();
+                rgAgent.ClientId = botInformation.clientId;
+                rgBotServerListener.agentMap[botInformation.clientId].Add(rgAgent);
             }
 
         }
@@ -285,7 +287,7 @@ namespace RegressionGames
                 {
                     RGDebug.LogDebug($"[SeatBot] Sending socket handshake response characterConfig: {botToSpawn.characterConfig} - to client id: {botToSpawn.clientId}");
                     //send the client a handshake response so they can start processing
-                    rgBotServerListener.SendHandshakeResponseToClient(botToSpawn.clientId, botToSpawn.characterConfig);
+                    rgBotServerListener.GetClientConnection(botToSpawn.clientId).SendHandshakeResponse( new RGServerHandshake( rgBotServerListener.UnitySideToken, botToSpawn.characterConfig, null));
                 }
                 
                 
@@ -294,7 +296,9 @@ namespace RegressionGames
                 if (existingBot != null)
                 {
                     // get their agent re-mapped
-                    rgBotServerListener.agentMap[botToSpawn.clientId].Add(existingBot.GetComponent<RGAgent>());
+                    var rgAgent = existingBot.GetComponent<RGAgent>();
+                    rgAgent.ClientId = botToSpawn.clientId;
+                    rgBotServerListener.agentMap[botToSpawn.clientId].Add(rgAgent);
                 }
                 else
                 {

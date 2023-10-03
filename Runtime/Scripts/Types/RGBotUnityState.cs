@@ -13,6 +13,7 @@ namespace RegressionGames.Types
         public static RGUnityBotState CONNECTED    { get { return new RGUnityBotState("CONNECTED"); } }
         public static RGUnityBotState RUNNING    { get { return new RGUnityBotState("RUNNING"); } }
         public static RGUnityBotState TEARING_DOWN    { get { return new RGUnityBotState("TEARING_DOWN"); } }
+        public static RGUnityBotState STOPPED    { get { return new RGUnityBotState("STOPPED"); } }
         public static RGUnityBotState UNKNOWN { get { return new RGUnityBotState("UNKNOWN"); } }
 
         public override string ToString()
