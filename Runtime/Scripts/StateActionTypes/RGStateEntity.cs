@@ -4,10 +4,13 @@ using UnityEngine;
 namespace RegressionGames.StateActionTypes
 {
     // ReSharper disable InconsistentNaming
+    /**
+     * Easily expose the most commonly used fields of entities
+     * in the game state.  Allows bot code to avoid Dictionary lookup syntax
+     * for these commonly used fields.
+     */
     public class RGStateEntity : Dictionary<string, object>
     {
-        // Easily expose the most commonly used fields
-        // -------------------------------------------
         public int id => (int)this["id"];
         public string type => (string)this["type"];
         public bool isPlayer => (bool)this["isPlayer"];
