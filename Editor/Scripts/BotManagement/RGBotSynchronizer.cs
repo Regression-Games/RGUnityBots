@@ -27,7 +27,7 @@ namespace Editor.Scripts.BotManagement
         }
         
         //[MenuItem("Regression Games/Synchronize Bots with RG")]
-        //TODO (): Implement me
+        //TODO (REG-1306): Implement me
         private static void SynchronizeBots()
         {
             // force script compilation
