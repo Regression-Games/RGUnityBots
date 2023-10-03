@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using RegressionGames.RGBotLocalRuntime.SampleBot;
 using RegressionGames.Types;
+using UnityEditor;
 using UnityEngine;
 
 namespace RegressionGames.RGBotLocalRuntime
@@ -10,6 +14,13 @@ namespace RegressionGames.RGBotLocalRuntime
     {
         private static RGBotRuntimeManager _this = null;
         
+        // This must match RGBotSynchronizer.cs
+        public static readonly string BOTS_PATH = "Assets/RegressionGames/Runtime/Bots";
+
+        private readonly Dictionary<long, BotAssetRecord> _botAssets = new();
+        
+        private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
+
         public static RGBotRuntimeManager GetInstance()
         {
             return _this;
@@ -26,43 +37,89 @@ namespace RegressionGames.RGBotLocalRuntime
             // keep this thing alive across scenes
             DontDestroyOnLoad(this.gameObject);
             _this = this;
+            
+            // Load up the listing of available local bots
+            string[] botGuids = AssetDatabase.FindAssets("BotRecord", new string[] {BOTS_PATH});
+            foreach (var botGuid in botGuids)
+            {
+                var botAssetPath = AssetDatabase.GUIDToAssetPath(botGuid);
+                var botDirectory = botAssetPath.Substring(0, botAssetPath.LastIndexOf(Path.DirectorySeparatorChar));
+
+                try
+                {
+                    var botAsset = AssetDatabase.LoadAssetAtPath<RGBot>(botAssetPath);
+
+                    var botAssetRecord = new BotAssetRecord(botDirectory,botAsset);
+                    _botAssets[botAsset.id] = botAssetRecord;
+                }
+                catch (Exception ex)
+                {
+                    RGDebug.LogWarning($"Bot at path `{botDirectory}` could not be loaded: {ex}");
+                }
+            }
+
         }
-        
-        private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
-        
+
+        public List<RGBot> GetAvailableBots()
+        {
+            return _botAssets.Values.Select(v => v.BotRecord).ToList();
+        }
+
         public long StartBot(long botId)
         {
-            RGBotInstance botInstance = new RGBotInstance();
-            
-            // TODO (REG-1298): Define unique botInstance Id ; for now, take the first bytes of a UUID... which isn't as unique as it sounds
-            botInstance.id = (uint) BitConverter.ToInt64(System.Guid.NewGuid().ToByteArray(), 0);
-            
-            RGBotServerListener.GetInstance().SetUnityBotState((uint) botInstance.id, RGUnityBotState.STARTING);
-            
-            //TODO (REG-1298): Load this in some 'CORRECT" way based on the incoming botId argument... still TBD on that
-            var userBotCode = ScriptableObject.CreateInstance<RGSampleBot>();
-            
-            var bot = new Types.RGBot();
-            bot.id = botId;
-            bot.programmingLanguage = "C#"; //TODO (After REG-988): (TBD based abby's work in progress as of 9/28/23) aka Unity , aka Local
-            bot.name = $"{userBotCode.botName ?? "RGUnityBot"}";
-            
-            botInstance.bot = bot;
-
-            botInstance.lobby = null;
-            
-            RGClientConnection connection = RGBotServerListener.GetInstance().AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
-            
-            var botRunner = new RGBotRunner(botInstance, userBotCode, () =>
+            var botInstance = new RGBotInstance
             {
-                _botRunners.TryRemove(botInstance.id, out _);
-            });
-            (connection as RGClientConnection_Local)?.SetBotRunner(botRunner);
-            
-            _botRunners.TryAdd(botInstance.id, botRunner);
-            botRunner.StartBot();
+                // TODO (REG-1298): Define unique botInstance Id ; for now, take the first bytes of a UUID... which isn't as unique as it sounds
+                id = (uint) BitConverter.ToInt64(System.Guid.NewGuid().ToByteArray(), 0),
+                bot = null, // filled in below
+                lobby = null
+            };
 
-            return botInstance.id;
+            RGBotServerListener.GetInstance().SetUnityBotState((uint) botInstance.id, RGUnityBotState.STARTING);
+
+            if (_botAssets.TryGetValue(botId, out var botAssetRecord))
+            {
+                var botFolderNamespace =
+                    botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                
+                RGUserBot userBotCode = (RGUserBot) ScriptableObject.CreateInstance($"{botFolderNamespace}.BotEntryPoint");
+                userBotCode.Init(botId, botAssetRecord.BotRecord.name);
+                
+                botInstance.bot = botAssetRecord.BotRecord;
+
+                RGClientConnection connection = RGBotServerListener.GetInstance()
+                    .AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
+
+                var botRunner = new RGBotRunner(botInstance, userBotCode,
+                    () => { _botRunners.TryRemove(botInstance.id, out _); });
+                (connection as RGClientConnection_Local)?.SetBotRunner(botRunner);
+
+                _botRunners.TryAdd(botInstance.id, botRunner);
+                botRunner.StartBot();
+
+                return botInstance.id;
+            }
+            else
+            {
+                RGDebug.LogWarning($"Unable to start Bot Id: {botId}.  Local definition for bot not found");
+            }
+
+            return 0;
+        }
+
+        private class BotAssetRecord
+        {
+            public string Path;
+            public RGBot BotRecord;
+
+            public BotAssetRecord(string path, RGBot botRecord = null)
+            {
+                this.Path = path;
+                if (botRecord != null)
+                {
+                    this.BotRecord = botRecord;
+                }
+            }
         }
 
     }

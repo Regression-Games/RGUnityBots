@@ -17,7 +17,7 @@ namespace RegressionGames.Editor
     public class RGSettingsUIRegistrar
     {
 
-        private static RGServiceManager rgServiceManager = new RGServiceManager(); // editor, not game/scene so don't look for one, make one
+        private static RGServiceManager rgServiceManager = new (); // editor, not game/scene so don't look for one, make one
 
         private static string token = null;
         private static string priorUser = null;

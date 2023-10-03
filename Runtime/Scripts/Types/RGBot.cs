@@ -1,13 +1,15 @@
 using System;
+using UnityEngine;
 
 namespace RegressionGames.Types
 {
     [Serializable]
-    public class RGBot
+    public class RGBot : ScriptableObject
     {
         public long id;
-        public string name;
+        public new string name;
         public string programmingLanguage;
+        public string codeSourceType;
 
         public override string ToString()
         {

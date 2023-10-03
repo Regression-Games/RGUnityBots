@@ -5,6 +5,7 @@ using System.Threading;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -173,9 +174,18 @@ namespace RegressionGames
 
         public void TempTestAddLocalBot()
         {
-            // start the local bot
-            // TODO (REG-1291): Test Code: This number is meaningless until we lookup bots locally by id
-            RGBotRuntimeManager.GetInstance()?.StartBot(-123456789L);
+            // TODO (REG-1291): Temporary code to get bot 0.. this whole method will go away in
+            RGBot bot = AssetDatabase.LoadAssetAtPath<RGBot>("Assets/RegressionGames/Runtime/Bots/NewRGBot_0/BotRecord.asset");
+
+            if (bot != null)
+            {
+                // start the local bot 0
+                RGBotRuntimeManager.GetInstance()?.StartBot(bot.id);
+            }
+            else
+            {
+                RGDebug.LogError("Test Unity Local Bot does not exist.  Please create bot 0 with the menu before using this button.");
+            }
         }
 
         public void StopBotInstance(long id)

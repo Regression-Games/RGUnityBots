@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using RegressionGames;
+using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 
-namespace RegressionGames.RGBotLocalRuntime.SampleBot
+namespace <TEMPLATE_NAMESPACE>
 {
-    public class RGSampleBot : RGUserBot
+    public class BotEntryPoint : RGUserBot
     {
 
         protected override bool GetIsSpawnable()
@@ -36,7 +38,6 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                     var target = entities[new System.Random().Next(entities.Count)];
 
                     var targetPosition = target.position ?? Vector3.zero;
-                    //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
                     var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
                         { "skillId", new System.Random().Next(2) },
@@ -49,7 +50,7 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 }
                 else
                 {
-                    RGDebug.LogWarning("No players found...");
+                    RGDebug.LogWarning("No entities found...");
                 }
             }
             catch (Exception ex)

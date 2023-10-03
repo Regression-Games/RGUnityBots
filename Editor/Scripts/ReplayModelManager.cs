@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using JetBrains.Annotations;
-using RegressionGames.Editor;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
