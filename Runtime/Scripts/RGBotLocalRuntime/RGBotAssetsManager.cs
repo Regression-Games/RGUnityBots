@@ -33,7 +33,12 @@ namespace RegressionGames.RGBotLocalRuntime
 
         public RGBotAssetRecord GetBotAssetRecord(long botId)
         {
-            return _botAssets[botId];
+            if (_botAssets.TryGetValue(botId, out var value))
+            {
+                return value;
+            }
+
+            return null;
         }
 
         public List<RGBot> GetAvailableBots()

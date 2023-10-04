@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using RegressionGames.RGBotConfigs;
+using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
@@ -350,13 +351,34 @@ namespace RegressionGames
                     // don't await here to avoid this method being defined async, which
                     // would cause big issues as the main thread Update runner wouldn't await it and
                     // gameStarted wouldn't reliably get set before they called SpawnBots
-                    Task.WhenAll(botIds.Select(botId => RGServiceManager.GetInstance()?.QueueInstantBot(
-                                (long)botId,
-                                async (botInstance) => { AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.REMOTE); },
-                                () => { RGDebug.LogWarning($"WARNING: Error starting botId: {botId}, starting without them"); }
-                                )
-                            )
-                        );
+                    Task.WhenAll(botIds.Select(botId =>
+                        {
+                            var localBotRecord = RGBotAssetsManager.GetInstance()?.GetBotAssetRecord(botId);
+                            if (localBotRecord != null)
+                            {
+                                //handle local bot
+                                RGBotRuntimeManager.GetInstance()?.StartBot(botId);
+                            }
+                            else
+                            {
+                                // handle remote bot
+                                return RGServiceManager.GetInstance()?.QueueInstantBot(
+                                    (long)botId,
+                                    async (botInstance) =>
+                                    {
+                                        AddClientConnectionForBotInstance(botInstance.id,
+                                            RGClientConnectionType.REMOTE);
+                                    },
+                                    () =>
+                                    {
+                                        RGDebug.LogWarning(
+                                            $"WARNING: Error starting botId: {botId}, starting without them");
+                                    }
+
+                                );
+                            }
+                            return null;
+                        }).Where(v => v!= null));
                 }
             }
 
