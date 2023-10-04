@@ -203,7 +203,7 @@ namespace RegressionGames
                     ConcurrentBag<RGBotInstance> instances = new ConcurrentBag<RGBotInstance>();
                     foreach (RGBot bot in bots)
                     {
-                        if (bot.programmingLanguage.Equals("UNITY"))
+                        if (bot.gameEngine.Equals("UNITY"))
                         {
                             dropOptions.Add(new TMP_Dropdown.OptionData($"{bot.id} - {bot.name}"));
                             _ = rgServiceManager.GetRunningInstancesForBot(
