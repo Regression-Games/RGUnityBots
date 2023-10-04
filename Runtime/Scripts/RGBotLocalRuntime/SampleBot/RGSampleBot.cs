@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
+using Random = System.Random;
 
 namespace RegressionGames.RGBotLocalRuntime.SampleBot
 {
@@ -20,7 +21,7 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
 
         public override void ConfigureBot(RG rgObject)
         {
-            var classIndex = new System.Random().Next(4);
+            var classIndex = new Random().Next(4);
             var classes = new string[] {"Mage", "Rogue", "Tank", "Archer"};
             rgObject.CharacterConfig = $"{{\"characterType\": \"{classes[classIndex]}\"}}";
         }
@@ -33,13 +34,13 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 var entities = rgObject.FindEntities();
                 if (entities.Count > 0)
                 {
-                    var target = entities[new System.Random().Next(entities.Count)];
+                    var target = entities[new Random().Next(entities.Count)];
 
                     var targetPosition = target.position ?? Vector3.zero;
                     //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
                     var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
-                        { "skillId", new System.Random().Next(2) },
+                        { "skillId", new Random().Next(2) },
                         { "targetId", target["id"] },
                         { "xPosition", targetPosition.x },
                         { "yPosition", targetPosition.y },

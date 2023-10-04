@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
@@ -174,7 +175,7 @@ namespace RegressionGames.Types
                             }, null);
 
                             // start a timer for 5 seconds from now that will cancel the connection attempt if it didn't connect yet
-                            System.Timers.Timer t = new System.Timers.Timer(5000);
+                            Timer t = new Timer(5000);
                             t.Elapsed += (s, e) =>
                             {
                                 // see if we need to cancel the connect

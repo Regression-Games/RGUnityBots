@@ -1,10 +1,10 @@
 using System;
-using System.Collections;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -179,7 +179,7 @@ namespace RegressionGames
             );
         }
 
-        public async Task GetBotsForCurrentUser(Action<Types.RGBot[]> onSuccess, Action onFailure)
+        public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
             {
@@ -260,7 +260,7 @@ namespace RegressionGames
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         string theNewText = $"{{\"botInstances\":{s}}}";
                         // Using a different JSON library here to try to handle date time fields better
-                        RGBotInstanceList botInstanceList = Newtonsoft.Json.JsonConvert.DeserializeObject<RGBotInstanceList>(theNewText);
+                        RGBotInstanceList botInstanceList = JsonConvert.DeserializeObject<RGBotInstanceList>(theNewText);
                         onSuccess.Invoke(botInstanceList.botInstances);
                     },
                     onFailure: async (f) => { onFailure.Invoke(); }

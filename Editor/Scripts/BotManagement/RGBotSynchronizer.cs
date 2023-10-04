@@ -1,15 +1,14 @@
-using System;
 using System.IO;
 using System.Text;
 using RegressionGames;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
+using UnityEditor.Compilation;
+using UnityEngine;
+using File = UnityEngine.Windows.File;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using UnityEngine;
-using File = UnityEngine.Windows.File;
-using Random = System.Random;
 
 namespace Editor.Scripts.BotManagement
 {
@@ -109,7 +108,7 @@ namespace Editor.Scripts.BotManagement
             File.WriteAllBytes(entryPointPath, Encoding.UTF8.GetBytes(utfString, 0, utfString.Length));
             RGDebug.Log($"Regression Games Unity bot successfully created at path {folderName}");
 
-            UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
+            CompilationPipeline.RequestScriptCompilation();
             AssetDatabase.Refresh();
         }
     }
