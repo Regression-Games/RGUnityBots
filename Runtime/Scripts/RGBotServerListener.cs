@@ -44,7 +44,7 @@ namespace RegressionGames
 
         void OnApplicationQuit()
         {
-            StopBotClientConnections();
+            StopBotClientConnections(false);
         }
 
         private bool gameStarted = false;
@@ -197,10 +197,10 @@ namespace RegressionGames
          * calls internally).
          * ONLY CALL THIS ON THE MAIN THREAD
          */
-        public void StopBotClientConnections()
+        public void StopBotClientConnections(bool updateBotsList = true)
         {
             RGDebug.LogInfo($"Stopping Bot Client Connections");
-            StopGameHelper();
+            StopGameHelper(updateBotsList);
             EndAllClientConnections();
             clientConnectionMap.Clear();
             clientValidationMap.Clear();
@@ -278,19 +278,29 @@ namespace RegressionGames
          */
         public void TeardownAllClients()
         {
-            foreach (var (key, rgClientConnection) in clientConnectionMap)
+            foreach (var (clientId, rgClientConnection) in clientConnectionMap)
             {
-                HandleClientTeardown(key, false);
+                SetUnityBotState(clientId, RGUnityBotState.TEARING_DOWN);
             }
+
+            enqueueTaskForClient(0, () =>
+            {
+                // do these all together on a single main thread update
+                foreach (var (clientId, rgClientConnection) in clientConnectionMap)
+                {
+                    TeardownClient(clientId, false);
+                }
+                // do this once after all the teardowns
+                RGOverlayMenu.GetInstance()?.UpdateBots();
+            });
             
-            RGOverlayMenu.GetInstance()?.UpdateBots();
         }
 
         
         /**
          * Only call me on main thread
          */
-        private void StopGameHelper()
+        private void StopGameHelper(bool updateBotsList = true)
         {
             RGDebug.LogInfo($"Stopping Spawnable Bots");
             gameStarted = false;
@@ -305,8 +315,11 @@ namespace RegressionGames
             }
             
             // update the bot list one time after tearing them down instead of on every one
-            RGOverlayMenu.GetInstance()?.UpdateBots();
-            
+            if (updateBotsList)
+            {
+                RGOverlayMenu.GetInstance()?.UpdateBots();
+            }
+
             RGBotSpawnManager rgBotSpawnManager = RGBotSpawnManager.GetInstance();
             if (rgBotSpawnManager != null)
             {
@@ -317,7 +330,10 @@ namespace RegressionGames
         public void StopGame()
         {
             // shutdown clients and de-spawn players that should be de-spawned
-            enqueueTaskForClient(uint.MaxValue, StopGameHelper);
+            enqueueTaskForClient(uint.MaxValue, () =>
+            {
+                StopGameHelper();
+            });
         }
 
         private void StartGameHelper()
@@ -387,9 +403,9 @@ namespace RegressionGames
             }
 
             // for each client, run up to 1 action per update
-            foreach (uint key in mainThreadTaskQueue.Keys)
+            foreach (var (clientId, queue) in mainThreadTaskQueue)
             {
-                if (mainThreadTaskQueue[key].TryDequeue(out Action action) )
+                if (queue.TryDequeue(out Action action))
                 {
                     try
                     {
@@ -622,8 +638,6 @@ namespace RegressionGames
             });
 
         }
-        
-
 
         public void HandleClientValidationResult(uint clientId, RGValidationResult validationResult)
         {
@@ -663,9 +677,7 @@ namespace RegressionGames
                 }
             }
         }
-
-
+        
     }
-
 
 }

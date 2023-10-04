@@ -6,16 +6,16 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using RegressionGames.StateActionTypes;
 using Newtonsoft.Json;
-using TMPro;
 using Newtonsoft.Json.Linq;
+using RegressionGames.StateActionTypes;
+using TMPro;
+using UnityEngine;
+using Object = UnityEngine.Object;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 #endif
-using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.Editor
 {

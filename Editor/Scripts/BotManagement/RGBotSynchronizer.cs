@@ -2,10 +2,12 @@ using System;
 using System.IO;
 using System.Text;
 using RegressionGames;
+using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
 using UnityEditor;
 using UnityEngine;
 using File = UnityEngine.Windows.File;
+using Random = System.Random;
 
 namespace Editor.Scripts.BotManagement
 {
@@ -64,7 +66,7 @@ namespace Editor.Scripts.BotManagement
         {
             // give it a random negative number so we know that we 
             // need to get it a real number on sync
-            botId = new System.Random().Next(Int32.MinValue, 0);
+            botId = new Random().Next(Int32.MinValue, 0);
             CreateParentFolders();
             
             int index = 0;
@@ -91,13 +93,17 @@ namespace Editor.Scripts.BotManagement
             if ( AssetDatabase.GetMainAssetTypeAtPath( botRecordAssetPath ) == null)
             {
                 RGDebug.Log($"Writing {botRecordAssetPath}");
-                RGBot botRecord = ScriptableObject.CreateInstance<RGBot>();
-                botRecord.id = botId;
-                botRecord.name = botName;
-                //TODO (after REG-988): Refactor this to correctly indicate this is a Unity Bot 
-                botRecord.programmingLanguage = "UNITY";
-                botRecord.codeSourceType = "ZIPFILE";
-                AssetDatabase.CreateAsset(botRecord, botRecordAssetPath );
+                RGBot botRecord = new RGBot()
+                {
+                    id = botId,
+                    name = botName,
+                    //TODO (after REG-988): Refactor this to correctly indicate this is a Unity Bot 
+                    programmingLanguage = "UNITY",
+                    codeSourceType = "ZIPFILE",
+                };
+                RGBotAsset botRecordAsset = ScriptableObject.CreateInstance<RGBotAsset>();
+                botRecordAsset.Bot = botRecord;
+                AssetDatabase.CreateAsset(botRecordAsset, botRecordAssetPath );
                 AssetDatabase.SaveAssets();
             }
             

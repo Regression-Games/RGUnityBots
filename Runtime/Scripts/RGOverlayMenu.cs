@@ -5,7 +5,6 @@ using System.Threading;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -29,9 +28,7 @@ namespace RegressionGames
 
         public TMP_Dropdown nextBotDropdown;
         
-        private static List<RGBotInstance> activeBots = new List<RGBotInstance>();
-        
-        private ConcurrentBag<long> invalidBotIds = new ConcurrentBag<long>();
+        private static List<RGBotInstance> _activeBots = new ();
 
         private int lastCount = -1;
 
@@ -84,7 +81,7 @@ namespace RegressionGames
                 lastState = state;
             }
 
-            if (botListingRoot.transform.childCount != activeBots.Count)
+            if (botListingRoot.transform.childCount != _activeBots.Count)
             {
                 // update all bot listings
                 while (botListingRoot.transform.childCount > 0)
@@ -92,9 +89,9 @@ namespace RegressionGames
                     DestroyImmediate(botListingRoot.transform.GetChild(0).gameObject);
                 }
 
-                for (int i =0; i< activeBots.Count; i++)
+                for (int i =0; i< _activeBots.Count; i++)
                 {
-                    RGBotInstance botEntry = activeBots[i];
+                    RGBotInstance botEntry = _activeBots[i];
                     
                     RectTransform rt = botEntryPrefab.GetComponent<RectTransform>();
                     Vector3 position = new Vector3(0f, rt.rect.height * -i, 0f);
@@ -111,9 +108,9 @@ namespace RegressionGames
                 }
             }
 
-            if (activeBots.Count != lastCount)
+            if (_activeBots.Count != lastCount)
             {
-                if (activeBots.Count > 0)
+                if (_activeBots.Count > 0)
                 {
                     //set the overlay blinky thing to green
                     launcherIcon.color = new Color(Color.green.r, Color.green.g, Color.green.b, launcherIcon.color.a);
@@ -127,7 +124,7 @@ namespace RegressionGames
                 }
             }
 
-            lastCount = activeBots.Count;
+            lastCount = _activeBots.Count;
 
         }
 
@@ -155,36 +152,35 @@ namespace RegressionGames
                 if (value >= 0)
                 {
                     long botId;
-                    if (long.TryParse(nextBotDropdown.options[value].text.Split('-')[0].Trim(), out botId))
+                    if (long.TryParse(nextBotDropdown.options[value].text.Split(':')[1].Trim(), out botId))
                     {
-                        _ = rgServiceManager.QueueInstantBot(
-                            botId,
-                            botInstance =>
-                            {
-                                UpdateBots();
-                                // close the overlay so it doesn't hide components the bot needs to click
-                                OnOverlayClosed();
-                                RGBotServerListener.GetInstance()?.AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.REMOTE);
-                            },
-                            () => { RGDebug.LogWarning("WARNING: Failed to start new instant bot"); });
+                        // local vs remote
+                        var localRemote = nextBotDropdown.options[value].text.Split('-')[0].Trim();
+                        var isLocal = "Local" == localRemote;
+                        if (!isLocal)
+                        {
+                            _ = rgServiceManager.QueueInstantBot(
+                                botId,
+                                botInstance =>
+                                {
+                                    UpdateBots();
+                                    // close the overlay so it doesn't hide components the bot needs to click
+                                    OnOverlayClosed();
+                                    RGBotServerListener.GetInstance()
+                                        ?.AddClientConnectionForBotInstance(botInstance.id,
+                                            RGClientConnectionType.REMOTE);
+                                },
+                                () => { RGDebug.LogWarning("WARNING: Failed to start new Remote bot"); });
+                        }
+                        else
+                        {
+                            RGBotRuntimeManager.GetInstance()?.StartBot(botId);
+                            UpdateBots();
+                            // close the overlay so it doesn't hide components the bot needs to click
+                            OnOverlayClosed();
+                        }
                     }
                 }
-            }
-        }
-
-        public void TempTestAddLocalBot()
-        {
-            // TODO (REG-1291): Temporary code to get bot 0.. this whole method will go away in
-            RGBot bot = AssetDatabase.LoadAssetAtPath<RGBot>("Assets/RegressionGames/Runtime/Bots/NewRGBot_0/BotRecord.asset");
-
-            if (bot != null)
-            {
-                // start the local bot 0
-                RGBotRuntimeManager.GetInstance()?.StartBot(bot.id);
-            }
-            else
-            {
-                RGDebug.LogError("Test Unity Local Bot does not exist.  Please create bot 0 with the menu before using this button.");
             }
         }
 
@@ -203,69 +199,97 @@ namespace RegressionGames
         
         public void UpdateBots()
         {
-            // update the latest bot list
+            ConcurrentBag<RGBot> botBag = new ConcurrentBag<RGBot>();
+            ConcurrentBag<RGBotInstance> instances = new ConcurrentBag<RGBotInstance>();
+
+            // update the latest bot list from Local Bots
+            var localBotInstances = RGBotRuntimeManager.GetInstance()?.GetActiveBotInstances();
+            foreach (var localBotInstance in localBotInstances)
+            {
+                instances.Add(localBotInstance);
+            }
+            
+            var localBotDefinitions = RGBotRuntimeManager.GetInstance()?.GetAvailableBots();
+            foreach (var localBotDefinition in localBotDefinitions)
+            {
+                botBag.Add(localBotDefinition);    
+            }
+            
+            // update the latest bot list from RGService
             _ = rgServiceManager.GetBotsForCurrentUser(
                 bots =>
                 {
-                    int count = 0;
-                    List<TMP_Dropdown.OptionData> dropOptions = new List<TMP_Dropdown.OptionData>();
-                    
-                    ConcurrentBag<RGBotInstance> instances = new ConcurrentBag<RGBotInstance>();
+                    var count = bots.Length;
                     foreach (RGBot bot in bots)
                     {
-                        if (bot.programmingLanguage.Equals("UNITY"))
+                        //TODO (post REG-988): Handle REG-988 Changes
+                        // want Unity bots that are NOT  `CSHARP`
+                        if (bot != null && bot.programmingLanguage.Equals("UNITY"))
                         {
-                            dropOptions.Add(new TMP_Dropdown.OptionData($"{bot.id} - {bot.name}"));
+                            botBag.Add(bot);
                             _ = rgServiceManager.GetRunningInstancesForBot(
                                 bot.id,
                                 botInstances =>
                                 {
                                     foreach (RGBotInstance bi in botInstances)
                                     {
+                                        // may want to further narrow this down to only the bots we started at some point
                                         instances.Add(bi);
                                     }
 
-                                    if (Interlocked.Increment(ref count) >= bots.Length)
+                                    if (Interlocked.Decrement(ref count) <= 0)
                                     {
-                                        // we hit the last async result.. do the update processing
                                         ProcessBotUpdateList(instances);
+                                        ProcessDropdownOptions(botBag);
                                     }
                                 },
                                 () =>
                                 {
-                                    invalidBotIds.Add(bot.id);
-                                    if (Interlocked.Increment(ref count) >= bots.Length)
+                                    RGDebug.LogWarning($"Failed to get running bot instances for bot id: [{bot.id}]");
+                                    if (Interlocked.Decrement(ref count) <= 0)
                                     {
-                                        // we hit the last async result.. do the update processing
                                         ProcessBotUpdateList(instances);
+                                        ProcessDropdownOptions(botBag);
                                     }
                                 }
                             );
-                        } 
-                        else if (Interlocked.Increment(ref count) >= bots.Length)
+                        }
+                        else
                         {
-                            // we hit the last async result.. do the update processing
-                            ProcessBotUpdateList(instances);
+                            if (Interlocked.Decrement(ref count) <= 0)
+                            {
+                                ProcessBotUpdateList(instances);
+                                ProcessDropdownOptions(botBag);
+                            }
                         }
                     }
-                    nextBotDropdown.options = dropOptions;
                 },
                 () => { });
+            
+        }
+
+        private void ProcessDropdownOptions(ConcurrentBag<RGBot> botBag)
+        {
+            List<RGBot> bots = botBag.Distinct().ToList();
+            bots.Sort((a,b) => (int)(a.id-b.id));
+            
+            List<TMP_Dropdown.OptionData> dropOptions = new ();
+            foreach (var bot in bots)
+            {
+                var localRemote = bot.id < 0 ? "Local" : "Remote";
+                dropOptions.Add(new TMP_Dropdown.OptionData($"{localRemote} - {bot.name} : {bot.id}"));
+            }
+            
+            
+            nextBotDropdown.options = dropOptions; 
         }
 
         private void ProcessBotUpdateList(ConcurrentBag<RGBotInstance> instances)
         {
-            // Log if we have any invalid bot ids
-            if (invalidBotIds.Count > 0)
-            {
-                string botIds = string.Join(", ", invalidBotIds);
-                RGDebug.LogWarning($"Failed to get running bot instances for bots: [{botIds}]");
-            }
-            invalidBotIds.Clear();
             List<RGBotInstance> botInstances = instances.Distinct().ToList();
-            // sort by id ascending, since the ids are DB ids, this should keep them in creation order
-            botInstances.Sort((a, b) => (int)(b.id - a.id));
-            activeBots = botInstances;
+            // sort by createdDate ascending
+            botInstances.Sort((a, b) => (int)(b.createdDate.Ticks - a.createdDate.Ticks));
+            _activeBots = botInstances;
         }
     }
 }

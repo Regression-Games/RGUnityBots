@@ -7,14 +7,18 @@ namespace RegressionGames
 {
     public class ActiveRGBotUIElement : MonoBehaviour
     {
-        private uint id;
+        private RGBotInstance _entry;
 
         public TMP_Text text;
         public TMP_Text statusText;
 
         public void Awake()
         {
-            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(id)}";
+            if (_entry != null)
+            {
+                var state = RGBotServerListener.GetInstance()?.GetUnityBotState((uint)_entry.id);
+                statusText.text = $"{state}";
+            }
         }
         
         public void Start()
@@ -23,18 +27,19 @@ namespace RegressionGames
             
             b.onClick.AddListener(() =>
             {
-                RGOverlayMenu rgOverlayMenu = FindObjectOfType<RGOverlayMenu>();
-                rgOverlayMenu.StopBotInstance(id);
+                FindObjectOfType<RGOverlayMenu>()?.StopBotInstance((uint)_entry.id);
             });
-            RGBotServerListener.GetInstance().AddUnityBotStateListener(id, UpdateState);
-            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(id)}";
+            RGBotServerListener.GetInstance().AddUnityBotStateListener((uint)_entry.id, UpdateState);
+            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState((uint)_entry.id)}";
         }
         
         public void PopulateBotEntry(RGBotInstance entry)
         {
-            id = (uint) entry.id;
-            text.text = $"{entry.bot.id} - {entry.bot.name}  #{entry.id}";
-            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(id)}";
+            _entry = entry;
+            //TODO: (post reg-988) : Correct this check
+            var locationString = entry.bot.id < 0 ? "Local" : "Remote";
+            text.text = $"{locationString} - {entry.bot.name} : {entry.bot.id}  #{entry.id}";
+            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState((uint)entry.id)}";
         }
 
         private void UpdateState(RGUnityBotState state)

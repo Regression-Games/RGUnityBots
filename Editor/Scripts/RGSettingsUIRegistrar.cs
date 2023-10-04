@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.Types;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using UnityEngine;
 
 namespace RegressionGames.Editor
 {
@@ -97,7 +97,7 @@ namespace RegressionGames.Editor
 
                     if (bots != null)
                     {
-                        List<RGBot> unityBots = bots.ToList().FindAll(bot => bot.programmingLanguage == "UNITY");
+                        List<RGBot> unityBots = bots.ToList().FindAll(bot => bot != null && bot.programmingLanguage == "UNITY");
                         if (unityBots.Count > 0)
                         {
                             List<string> botNames = unityBots.ConvertAll(bot => "" + bot.id + " - " + bot.name);

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
-using RegressionGames.StateActionTypes;
 using Newtonsoft.Json.Linq;
+using RegressionGames.StateActionTypes;
 using UnityEngine;
 
 namespace RegressionGames.Editor

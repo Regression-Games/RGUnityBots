@@ -4,10 +4,10 @@ using UnityEngine;
 namespace RegressionGames.Types
 {
     [Serializable]
-    public class RGBot : ScriptableObject
+    public class RGBot
     {
         public long id;
-        public new string name;
+        public string name;
         public string programmingLanguage;
         public string codeSourceType;
 

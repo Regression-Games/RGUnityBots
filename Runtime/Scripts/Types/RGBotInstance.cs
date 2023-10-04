@@ -6,10 +6,13 @@ namespace RegressionGames.Types
     [Serializable]
     public class RGBotInstance
     {
+        // ReSharper disable InconsistentNaming
         public long id;
         public RGBot bot;
         public long? lobby;
-
+        public DateTime createdDate;
+        // ReSharper enable InconsistentNaming
+        
         public override string ToString()
         {
             return $"{id} - {lobby} - {bot}";
@@ -31,4 +34,3 @@ namespace RegressionGames.Types
     }
     
 }
-

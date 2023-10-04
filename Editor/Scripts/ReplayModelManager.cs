@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
 using JetBrains.Annotations;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using UnityEngine;
 
 namespace RegressionGames.Editor
 {
@@ -42,7 +42,7 @@ namespace RegressionGames.Editor
 
             if (_this == null)
             {
-                _this = ScriptableObject.CreateInstance<ReplayModelManager>();
+                _this = CreateInstance<ReplayModelManager>();
             }
 
             if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) == null) {
