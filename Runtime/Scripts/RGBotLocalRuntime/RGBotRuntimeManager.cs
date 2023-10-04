@@ -84,7 +84,8 @@ namespace RegressionGames.RGBotLocalRuntime
                 // without a live connection to RG, we can't get a DB unique instance Id.. make this a negative random long for now
                 id = LongRandom(long.MinValue, 0, new System.Random()),
                 bot = null, // filled in below
-                lobby = null
+                lobby = null,
+                createdDate = DateTime.Now
             };
 
             RGBotServerListener.GetInstance().SetUnityBotState(botInstance.id, RGUnityBotState.STARTING);
