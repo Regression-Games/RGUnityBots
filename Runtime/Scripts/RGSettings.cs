@@ -18,6 +18,8 @@ namespace RegressionGames
         [SerializeField] private int[] botsSelected;
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
+        [SerializeField] private uint nextBotId;
+        [SerializeField] private uint nextBotInstanceId;
 
         /*
          * This is setup to be safely callable on the non-main thread.
@@ -54,6 +56,8 @@ namespace RegressionGames
                 _settings.botsSelected = new int[0];
                 _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
+                _settings.nextBotId = 0;
+                _settings.nextBotInstanceId = 0;
 #if UNITY_EDITOR
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
@@ -98,6 +102,46 @@ namespace RegressionGames
         }
 #endif
 
+        private long GetSystemId()
+        {
+            // a machine unique system id shifted into the left side of the long as a human would see it
+            return SystemInfo.deviceUniqueIdentifier.GetHashCode() * 1_000_000_000L;
+        }
+
+        public long GetNextBotId()
+        {
+            var systemId = GetSystemId();
+            var nextId = nextBotId++;
+            AssetDatabase.SaveAssets();
+            // this is so that 'to a human' these ids look sequential
+            if (systemId < 0)
+            {
+                systemId -= nextId;
+            }
+            else
+            {
+                systemId += nextId;
+            }
+            return systemId;
+        }
+        
+        public long GetNextBotInstanceId()
+        {
+            var systemId = GetSystemId();
+            var nextId = nextBotInstanceId++;
+            AssetDatabase.SaveAssets();
+            // this is so that 'to a human' these ids look sequential
+            if (systemId < 0)
+            {
+                systemId -= nextId;
+            }
+            else
+            {
+                systemId += nextId;
+            }
+            return systemId;
+        }
+        
         public bool GetUseSystemSettings()
         {
             return useSystemSettings;

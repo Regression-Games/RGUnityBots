@@ -38,7 +38,7 @@ namespace RegressionGames
             _entry = entry;
             //TODO: (post reg-988) : Correct this check
             var locationString = entry.bot.id < 0 ? "Local" : "Remote";
-            text.text = $"{locationString} - {entry.bot.name} : {entry.bot.id}  #{entry.id}";
+            text.text = $"{locationString} - {entry.bot.name} : {entry.bot.id}\n            #{entry.id}";
             statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(entry.id)}";
         }
 

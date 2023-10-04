@@ -24,8 +24,10 @@ namespace Editor.Scripts.BotManagement
         [MenuItem("Regression Games/Create New Bot")]
         private static void CreateNewBot()
         {
+            var botId = RGSettings.GetOrCreateSettings().GetNextBotId();
+            
             // create a new bot folder
-            var folderName = _this.CreateBotFolder("NewRGBot", out var botId);
+            var folderName = _this.CreateBotFolder("NewRGBot", botId);
 
             // create the assets
             _this.CreateNewBotAssets(folderName, "NewRGBot", botId);
@@ -65,24 +67,11 @@ namespace Editor.Scripts.BotManagement
             }
         }
 
-        private string CreateBotFolder(string botName, out long botId)
+        private string CreateBotFolder(string botName, long botId)
         {
-            // give it a random negative number so we know that we 
-            // need to get it a real number on sync
-            botId = new Random().Next(Int32.MinValue, 0);
             CreateParentFolders();
-            
-            int index = 0;
-            
-            var folderString = $"{BOTS_PATH}/{botName}_{index}";
-            // if already exists.. make folder name 'unique'
-            while (AssetDatabase.IsValidFolder(folderString))
-            {
-                folderString = folderString.Split("_")[0] + $"_{++index}";
-            }
-            
-            AssetDatabase.CreateFolder(BOTS_PATH, $"{botName}_{index}");
-
+            var folderString = $"{BOTS_PATH}/{botName}_{botId}".Replace('-','n');
+            AssetDatabase.CreateFolder(BOTS_PATH, $"{botName}_{botId}".Replace('-','n'));
             return folderString;
         }
 
