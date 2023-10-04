@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -152,8 +151,7 @@ namespace RegressionGames
                 int value = nextBotDropdown.value;
                 if (value >= 0)
                 {
-                    long botId;
-                    if (long.TryParse(nextBotDropdown.options[value].text.Split(':')[1].Trim(), out botId))
+                    if (long.TryParse(nextBotDropdown.options[value].text.Split(':')[1].Trim(), out var botId))
                     {
                         // local vs remote
                         var localRemote = nextBotDropdown.options[value].text.Split('-')[0].Trim();
@@ -212,7 +210,7 @@ namespace RegressionGames
                 instances.Add(localBotInstance);
             }
             
-            var localBotDefinitions = RGBotRuntimeManager.GetInstance()?.GetAvailableBots();
+            var localBotDefinitions = RGBotAssetsManager.GetInstance()?.GetAvailableBots();
             foreach (var localBotDefinition in localBotDefinitions)
             {
                 botBag.Add(localBotDefinition);    
@@ -227,9 +225,7 @@ namespace RegressionGames
                     {
                         foreach (RGBot bot in bots)
                         {
-                            //TODO (post REG-988): Handle REG-988 Changes
-                            // want Unity bots that are NOT  `CSHARP`
-                            if (bot != null && bot.programmingLanguage.Equals("UNITY"))
+                            if (bot is { IsUnityBot: true, IsLocal: false })
                             {
                                 botBag.Add(bot);
                                 _ = rgServiceManager.GetRunningInstancesForBot(
@@ -286,11 +282,7 @@ namespace RegressionGames
 
         private void ProcessDropdownOptions(ConcurrentBag<RGBot> botBag)
         {
-            List<string> botStrings = botBag.Distinct().Select(bot =>
-            {
-                var localRemote = bot.id < 0 ? "Local" : "Remote";
-                return $"{localRemote} - {bot.name} : {bot.id}";
-            }).ToList();
+            List<string> botStrings = botBag.Distinct().Select(bot => bot.UIString).ToList();
             // sort alpha
             botStrings.Sort();
             

@@ -4,19 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using RegressionGames.Types;
-using UnityEditor;
 using UnityEngine;
+using Random = System.Random;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
     public class RGBotRuntimeManager: MonoBehaviour
     {
         private static RGBotRuntimeManager _this = null;
-        
-        // This must match RGBotSynchronizer.cs
-        public static readonly string BOTS_PATH = "Assets/RegressionGames/Runtime/Bots";
-
-        private readonly Dictionary<long, BotAssetRecord> _botAssets = new();
         
         private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
 
@@ -36,26 +31,8 @@ namespace RegressionGames.RGBotLocalRuntime
             // keep this thing alive across scenes
             DontDestroyOnLoad(this.gameObject);
             _this = this;
-            
-            // Load up the listing of available local bots
-            string[] botGuids = AssetDatabase.FindAssets("BotRecord", new string[] {BOTS_PATH});
-            foreach (var botGuid in botGuids)
-            {
-                var botAssetPath = AssetDatabase.GUIDToAssetPath(botGuid);
-                var botDirectory = botAssetPath.Substring(0, botAssetPath.LastIndexOf(Path.DirectorySeparatorChar));
 
-                try
-                {
-                    var botAsset = AssetDatabase.LoadAssetAtPath<RGBotAsset>(botAssetPath);
-
-                    var botAssetRecord = new BotAssetRecord(botDirectory, botAsset.Bot);
-                    _botAssets[botAsset.Bot.id] = botAssetRecord;
-                }
-                catch (Exception ex)
-                {
-                    RGDebug.LogWarning($"Bot at path `{botDirectory}` could not be loaded: {ex}");
-                }
-            }
+            RGBotAssetsManager.GetInstance().RefreshAvailableBots();
 
         }
 
@@ -64,17 +41,12 @@ namespace RegressionGames.RGBotLocalRuntime
             return _botRunners.Values.Select(v => v.BotInstance).ToList();
         }
 
-        public List<RGBot> GetAvailableBots()
-        {
-            return _botAssets.Values.Select(v => v.BotRecord).ToList();
-        }
-        
-        private long LongRandom(long min, long max, System.Random rand) {
+        private long LongRandom(long min, long max, Random rand) {
             byte[] buf = new byte[8];
             rand.NextBytes(buf);
             long longRand = BitConverter.ToInt64(buf, 0);
 
-            return (System.Math.Abs(longRand % (max - min)) + min);
+            return (Math.Abs(longRand % (max - min)) + min);
         }
 
         public long StartBot(long botId)
@@ -90,7 +62,8 @@ namespace RegressionGames.RGBotLocalRuntime
 
             RGBotServerListener.GetInstance().SetUnityBotState(botInstance.id, RGUnityBotState.STARTING);
 
-            if (_botAssets.TryGetValue(botId, out var botAssetRecord))
+            var botAssetRecord = RGBotAssetsManager.GetInstance().GetBotAssetRecord(botId);
+            if (botAssetRecord != null)
             {
                 var botFolderNamespace =
                     botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf(Path.DirectorySeparatorChar) + 1);
@@ -119,21 +92,6 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return 0;
         }
-
-        private class BotAssetRecord
-        {
-            public string Path;
-            public RGBot BotRecord;
-
-            public BotAssetRecord(string path, RGBot botRecord = null)
-            {
-                this.Path = path;
-                if (botRecord != null)
-                {
-                    this.BotRecord = botRecord;
-                }
-            }
-        }
-
+        
     }
 }

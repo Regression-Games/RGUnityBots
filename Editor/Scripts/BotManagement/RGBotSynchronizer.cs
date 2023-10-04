@@ -89,9 +89,9 @@ namespace Editor.Scripts.BotManagement
                 {
                     id = botId,
                     name = botName,
-                    //TODO (after REG-988): Refactor this to correctly indicate this is a Unity Bot 
-                    programmingLanguage = "UNITY",
-                    codeSourceType = "ZIPFILE",
+                    programmingLanguage = "CSHARP",
+                    gameEngine = "UNITY",
+                    codeSourceType = "ZIPFILE"
                 };
                 RGBotAsset botRecordAsset = ScriptableObject.CreateInstance<RGBotAsset>();
                 botRecordAsset.Bot = botRecord;

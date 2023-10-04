@@ -344,9 +344,7 @@ namespace RegressionGames
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetUseSystemSettings())
             {
-                //TODO (REG-1291): Local Bots... This needs to support Local Bots, not just remote
-                int[] botIds = rgSettings.GetBotsSelected().ToArray();
-                int errorCount = 0;
+                long[] botIds = rgSettings.GetBotsSelected().ToArray();
                 if (botIds.Length > 0)
                 {
                     // don't await here to avoid this method being defined async, which

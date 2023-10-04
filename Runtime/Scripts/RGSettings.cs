@@ -15,7 +15,7 @@ namespace RegressionGames
         [SerializeField] private int numBots;
         [SerializeField] private string email;
         [SerializeField] private string password;
-        [SerializeField] private int[] botsSelected;
+        [SerializeField] private long[] botsSelected;
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
         [SerializeField] private uint nextBotId;
@@ -53,7 +53,7 @@ namespace RegressionGames
                 _settings.numBots = 0;
                 _settings.email = "";
                 _settings.password = "";
-                _settings.botsSelected = new int[0];
+                _settings.botsSelected = Array.Empty<long>();
                 _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
                 _settings.nextBotId = 0;
@@ -167,7 +167,7 @@ namespace RegressionGames
             return password;
         }
 
-        public int[] GetBotsSelected()
+        public long[] GetBotsSelected()
         {
             return botsSelected;
         }
