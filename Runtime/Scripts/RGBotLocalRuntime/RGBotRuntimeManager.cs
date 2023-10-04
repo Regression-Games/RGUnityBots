@@ -69,13 +69,21 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             return _botAssets.Values.Select(v => v.BotRecord).ToList();
         }
+        
+        private long LongRandom(long min, long max, System.Random rand) {
+            byte[] buf = new byte[8];
+            rand.NextBytes(buf);
+            long longRand = BitConverter.ToInt64(buf, 0);
+
+            return (System.Math.Abs(longRand % (max - min)) + min);
+        }
 
         public long StartBot(long botId)
         {
             var botInstance = new RGBotInstance
             {
-                // TODO (REG-1298): Define unique botInstance Id ; for now, take the first bytes of a UUID... which isn't as unique as it sounds
-                id = (uint) BitConverter.ToInt64(System.Guid.NewGuid().ToByteArray(), 0),
+                // without a live connection to RG, we can't get a DB unique instance Id.. make this a negative random long for now
+                id = LongRandom(long.MinValue, 0, new System.Random()),
                 bot = null, // filled in below
                 lobby = null
             };
