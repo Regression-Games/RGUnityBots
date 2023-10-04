@@ -4,7 +4,9 @@ using System.Text;
 using RegressionGames;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using File = UnityEngine.Windows.File;
 using Random = System.Random;
@@ -13,6 +15,7 @@ namespace Editor.Scripts.BotManagement
 {
     public class RGBotSynchronizer
     {
+#if UNITY_EDITOR
         private static readonly RGBotSynchronizer _this = new ();
 
         // This must match RGBotRuntimeManagement.cs
@@ -116,6 +119,10 @@ namespace Editor.Scripts.BotManagement
             
             File.WriteAllBytes(entryPointPath, Encoding.UTF8.GetBytes(utfString, 0, utfString.Length));
             RGDebug.Log($"Regression Games Unity bot successfully created at path {folderName}");
+
+            UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
+            AssetDatabase.Refresh();
         }
     }
+#endif
 }
