@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using RegressionGames.RGBotLocalRuntime.SampleBot;
 using RegressionGames.Types;
 using UnityEditor;
 using UnityEngine;
