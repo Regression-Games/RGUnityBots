@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -163,7 +164,8 @@ namespace RegressionGames
                                 botId,
                                 botInstance =>
                                 {
-                                    UpdateBots();
+                                    // don't update the bots as we'll update on re-open of overlay anyway
+                                    //UpdateBots();
                                     // close the overlay so it doesn't hide components the bot needs to click
                                     OnOverlayClosed();
                                     RGBotServerListener.GetInstance()
@@ -175,7 +177,8 @@ namespace RegressionGames
                         else
                         {
                             RGBotRuntimeManager.GetInstance()?.StartBot(botId);
-                            UpdateBots();
+                            // don't update the bots as we'll update on re-open of overlay anyway
+                            //UpdateBots();
                             // close the overlay so it doesn't hide components the bot needs to click
                             OnOverlayClosed();
                         }
@@ -220,75 +223,90 @@ namespace RegressionGames
                 bots =>
                 {
                     var count = bots.Length;
-                    foreach (RGBot bot in bots)
+                    if (bots.Length > 0)
                     {
-                        //TODO (post REG-988): Handle REG-988 Changes
-                        // want Unity bots that are NOT  `CSHARP`
-                        if (bot != null && bot.programmingLanguage.Equals("UNITY"))
+                        foreach (RGBot bot in bots)
                         {
-                            botBag.Add(bot);
-                            _ = rgServiceManager.GetRunningInstancesForBot(
-                                bot.id,
-                                botInstances =>
-                                {
-                                    foreach (RGBotInstance bi in botInstances)
-                                    {
-                                        // may want to further narrow this down to only the bots we started at some point
-                                        instances.Add(bi);
-                                    }
-
-                                    if (Interlocked.Decrement(ref count) <= 0)
-                                    {
-                                        ProcessBotUpdateList(instances);
-                                        ProcessDropdownOptions(botBag);
-                                    }
-                                },
-                                () =>
-                                {
-                                    RGDebug.LogWarning($"Failed to get running bot instances for bot id: [{bot.id}]");
-                                    if (Interlocked.Decrement(ref count) <= 0)
-                                    {
-                                        ProcessBotUpdateList(instances);
-                                        ProcessDropdownOptions(botBag);
-                                    }
-                                }
-                            );
-                        }
-                        else
-                        {
-                            if (Interlocked.Decrement(ref count) <= 0)
+                            //TODO (post REG-988): Handle REG-988 Changes
+                            // want Unity bots that are NOT  `CSHARP`
+                            if (bot != null && bot.programmingLanguage.Equals("UNITY"))
                             {
-                                ProcessBotUpdateList(instances);
-                                ProcessDropdownOptions(botBag);
+                                botBag.Add(bot);
+                                _ = rgServiceManager.GetRunningInstancesForBot(
+                                    bot.id,
+                                    botInstances =>
+                                    {
+                                        foreach (RGBotInstance bi in botInstances)
+                                        {
+                                            // may want to further narrow this down to only the bots we started at some point
+                                            instances.Add(bi);
+                                        }
+
+                                        if (Interlocked.Decrement(ref count) <= 0)
+                                        {
+                                            ProcessBotUpdateList(instances);
+                                            ProcessDropdownOptions(botBag);
+                                        }
+                                    },
+                                    () =>
+                                    {
+                                        RGDebug.LogWarning(
+                                            $"Failed to get running bot instances for bot id: [{bot.id}]");
+                                        if (Interlocked.Decrement(ref count) <= 0)
+                                        {
+                                            ProcessBotUpdateList(instances);
+                                            ProcessDropdownOptions(botBag);
+                                        }
+                                    }
+                                );
+                            }
+                            else
+                            {
+                                if (Interlocked.Decrement(ref count) <= 0)
+                                {
+                                    ProcessBotUpdateList(instances);
+                                    ProcessDropdownOptions(botBag);
+                                }
                             }
                         }
                     }
+                    else
+                    {
+                        ProcessBotUpdateList(instances);
+                        ProcessDropdownOptions(botBag); 
+                    }
                 },
-                () => { });
+                () =>
+                {
+                    ProcessBotUpdateList(instances);
+                    ProcessDropdownOptions(botBag);
+                });
             
         }
 
         private void ProcessDropdownOptions(ConcurrentBag<RGBot> botBag)
         {
-            List<RGBot> bots = botBag.Distinct().ToList();
-            bots.Sort((a,b) => (int)(a.id-b.id));
-            
-            List<TMP_Dropdown.OptionData> dropOptions = new ();
-            foreach (var bot in bots)
+            List<string> botStrings = botBag.Distinct().Select(bot =>
             {
                 var localRemote = bot.id < 0 ? "Local" : "Remote";
-                dropOptions.Add(new TMP_Dropdown.OptionData($"{localRemote} - {bot.name} : {bot.id}"));
+                return $"{localRemote} - {bot.name} : {bot.id}";
+            }).ToList();
+            // sort alpha
+            botStrings.Sort();
+            
+            List<TMP_Dropdown.OptionData> dropOptions = new ();
+            foreach (var optionString in botStrings)
+            {
+                dropOptions.Add(new TMP_Dropdown.OptionData(optionString));
             }
-            
-            
             nextBotDropdown.options = dropOptions; 
         }
 
         private void ProcessBotUpdateList(ConcurrentBag<RGBotInstance> instances)
         {
             List<RGBotInstance> botInstances = instances.Distinct().ToList();
-            // sort by createdDate ascending
-            botInstances.Sort((a, b) => (int)(b.createdDate.Ticks - a.createdDate.Ticks));
+            // sort by createdDate with the oldest at the end
+            botInstances.Sort((a, b) => (int)(b.createdDate.ToUnixTimeMilliseconds() - a.createdDate.ToUnixTimeMilliseconds()));
             _activeBots = botInstances;
         }
     }

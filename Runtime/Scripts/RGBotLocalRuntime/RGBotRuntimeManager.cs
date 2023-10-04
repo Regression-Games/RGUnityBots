@@ -85,7 +85,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 id = RGSettings.GetOrCreateSettings().GetNextBotInstanceId(),
                 bot = null, // filled in below
                 lobby = null,
-                createdDate = DateTime.Now
+                createdDate = DateTimeOffset.Now
             };
 
             RGBotServerListener.GetInstance().SetUnityBotState(botInstance.id, RGUnityBotState.STARTING);

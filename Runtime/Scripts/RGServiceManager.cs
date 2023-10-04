@@ -259,7 +259,8 @@ namespace RegressionGames
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         string theNewText = $"{{\"botInstances\":{s}}}";
-                        RGBotInstanceList botInstanceList = JsonUtility.FromJson<RGBotInstanceList>(theNewText);
+                        // Using a different JSON library here to try to handle date time fields better
+                        RGBotInstanceList botInstanceList = Newtonsoft.Json.JsonConvert.DeserializeObject<RGBotInstanceList>(theNewText);
                         onSuccess.Invoke(botInstanceList.botInstances);
                     },
                     onFailure: async (f) => { onFailure.Invoke(); }
