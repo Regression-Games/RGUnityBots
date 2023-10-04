@@ -238,7 +238,7 @@ namespace RegressionGames
                     {
                         RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
                         RGBotServerListener.GetInstance()
-                            .SetUnityBotState((uint)botInstance.id, RGUnityBotState.STARTING);
+                            .SetUnityBotState(botInstance.id, RGUnityBotState.STARTING);
                         RGDebug.LogInfo($"Bot Instance id: {botInstance.id} started");
                         onSuccess.Invoke(botInstance);
                     },

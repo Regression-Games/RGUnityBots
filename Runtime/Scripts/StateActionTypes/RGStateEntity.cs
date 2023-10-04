@@ -18,6 +18,6 @@ namespace RegressionGames.StateActionTypes
         // TODO (REG-1303): These should be non-nullable and we should remove the option NOT to sync position and rotation
         public Vector3? position => (Vector3?)this["position"];
         public Quaternion? rotation => (Quaternion?)this["rotation"];
-        public uint? clientId => (uint?)this["clientId"];
+        public long? clientId => (long?)this["clientId"];
     }
 }

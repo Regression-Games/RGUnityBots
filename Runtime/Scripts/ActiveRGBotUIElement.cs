@@ -16,7 +16,7 @@ namespace RegressionGames
         {
             if (_entry != null)
             {
-                var state = RGBotServerListener.GetInstance()?.GetUnityBotState((uint)_entry.id);
+                var state = RGBotServerListener.GetInstance()?.GetUnityBotState(_entry.id);
                 statusText.text = $"{state}";
             }
         }
@@ -27,10 +27,10 @@ namespace RegressionGames
             
             b.onClick.AddListener(() =>
             {
-                FindObjectOfType<RGOverlayMenu>()?.StopBotInstance((uint)_entry.id);
+                FindObjectOfType<RGOverlayMenu>()?.StopBotInstance(_entry.id);
             });
-            RGBotServerListener.GetInstance().AddUnityBotStateListener((uint)_entry.id, UpdateState);
-            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState((uint)_entry.id)}";
+            RGBotServerListener.GetInstance().AddUnityBotStateListener(_entry.id, UpdateState);
+            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(_entry.id)}";
         }
         
         public void PopulateBotEntry(RGBotInstance entry)
@@ -39,7 +39,7 @@ namespace RegressionGames
             //TODO: (post reg-988) : Correct this check
             var locationString = entry.bot.id < 0 ? "Local" : "Remote";
             text.text = $"{locationString} - {entry.bot.name} : {entry.bot.id}  #{entry.id}";
-            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState((uint)entry.id)}";
+            statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(entry.id)}";
         }
 
         private void UpdateState(RGUnityBotState state)

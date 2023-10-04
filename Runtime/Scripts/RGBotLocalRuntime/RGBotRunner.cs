@@ -29,14 +29,14 @@ namespace RegressionGames.RGBotLocalRuntime
             this.BotInstance = botInstance;
             this._teardownHook = teardownHook;
             this._userBotCode = userBotCode;
-            this._rgObject = new RG((uint) botInstance.id);
+            this._rgObject = new RG(botInstance.id);
         }
 
         public void StartBot()
         {
             if (_thread == null)
             {
-                RGBotServerListener.GetInstance().SetUnityBotState((uint) BotInstance.id, RGUnityBotState.STARTING);
+                RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STARTING);
                 _thread = new Thread(this.RunBotLoop);
                 _thread.Name = $"RGBotRunner-{BotInstance.id}";
                 _running = true;
@@ -87,7 +87,7 @@ namespace RegressionGames.RGBotLocalRuntime
             handshakeMessage.botName = BotInstance.bot.name;
                 
             // do the 'handshake'  In remote bots they send a message to cause this, but we'll call it directly just after starting
-            RGBotServerListener.GetInstance().HandleClientHandshakeMessage((uint)BotInstance.id, handshakeMessage);
+            RGBotServerListener.GetInstance().HandleClientHandshakeMessage(BotInstance.id, handshakeMessage);
             
             while (_running)
             {
@@ -116,14 +116,14 @@ namespace RegressionGames.RGBotLocalRuntime
                     foreach (RGActionRequest rgActionRequest in actions)
                     {
                         RGBotServerListener.GetInstance()
-                            .HandleClientActionRequest((uint)BotInstance.id, rgActionRequest);
+                            .HandleClientActionRequest(BotInstance.id, rgActionRequest);
                     }
 
                     List<RGValidationResult> validations = _rgObject.FlushValidations();
                     foreach (RGValidationResult rgValidationResult in validations)
                     {
                         RGBotServerListener.GetInstance()
-                            .HandleClientValidationResult((uint)BotInstance.id, rgValidationResult);
+                            .HandleClientValidationResult(BotInstance.id, rgValidationResult);
                     }
                 }
                 else
@@ -134,7 +134,7 @@ namespace RegressionGames.RGBotLocalRuntime
                     Thread.Sleep(10);
                 }
             }
-            RGBotServerListener.GetInstance().SetUnityBotState((uint) BotInstance.id, RGUnityBotState.STOPPED);
+            RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STOPPED);
         }
 
     }

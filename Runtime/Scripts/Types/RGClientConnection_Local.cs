@@ -9,7 +9,7 @@ namespace RegressionGames.Types
 
         private RGBotRunner _runner = null;
         
-        public RGClientConnection_Local(uint clientId, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
+        public RGClientConnection_Local(long clientId, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
         {
         }
 

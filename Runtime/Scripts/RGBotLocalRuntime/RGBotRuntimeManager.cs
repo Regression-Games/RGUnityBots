@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using RegressionGames.RGBotLocalRuntime.SampleBot;
 using RegressionGames.Types;
 using UnityEditor;
 using UnityEngine;
@@ -88,7 +87,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 lobby = null
             };
 
-            RGBotServerListener.GetInstance().SetUnityBotState((uint) botInstance.id, RGUnityBotState.STARTING);
+            RGBotServerListener.GetInstance().SetUnityBotState(botInstance.id, RGUnityBotState.STARTING);
 
             if (_botAssets.TryGetValue(botId, out var botAssetRecord))
             {

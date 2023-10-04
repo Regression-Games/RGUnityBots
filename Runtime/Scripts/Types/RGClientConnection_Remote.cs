@@ -18,7 +18,7 @@ namespace RegressionGames.Types
 
         private bool _connecting = false;
 
-        public RGClientConnection_Remote(uint clientId, string lifecycle = "MANAGED",
+        public RGClientConnection_Remote(long clientId, string lifecycle = "MANAGED",
             [CanBeNull] RGBotInstanceExternalConnectionInfo connectionInfo = null, [CanBeNull] TcpClient client = null) : base(clientId, RGClientConnectionType.REMOTE, lifecycle)
         {
             this._client = client;
@@ -317,7 +317,7 @@ namespace RegressionGames.Types
 
             string type = clientSocketMessage.type;
             string token = clientSocketMessage.token;
-            uint clientId = clientSocketMessage.clientId;
+            long clientId = clientSocketMessage.clientId;
             string data = clientSocketMessage.data;
 
             switch (type)
@@ -338,14 +338,14 @@ namespace RegressionGames.Types
 
         }
         
-        private void HandleClientHandshakeMessage(uint clientId, string data)
+        private void HandleClientHandshakeMessage(long clientId, string data)
         {
             RGClientHandshake handshakeMessage = JsonUtility.FromJson<RGClientHandshake>(data);
             //token check is handled in this method call
             RGBotServerListener.GetInstance()?.HandleClientHandshakeMessage(clientId, handshakeMessage);
         }
         
-        private void HandleClientValidationResultMessage(uint clientId, string token, string data)
+        private void HandleClientValidationResultMessage(long clientId, string token, string data)
         {
             if (CheckAccessToken(clientId, token) == true)
             {
@@ -354,7 +354,7 @@ namespace RegressionGames.Types
             }
         }
         
-        private void HandleClientRequestMessage(uint clientId, string token, string data)
+        private void HandleClientRequestMessage(long clientId, string token, string data)
         {
             if (CheckAccessToken(clientId, token) == true)
             {
@@ -363,7 +363,7 @@ namespace RegressionGames.Types
             }
         }
         
-        private static bool CheckAccessToken(uint clientId, string clientToken)
+        private static bool CheckAccessToken(long clientId, string clientToken)
         {
             if (clientToken.Equals(RGBotServerListener.GetInstance()?.UnitySideToken))
             {
