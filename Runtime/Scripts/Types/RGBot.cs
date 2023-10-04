@@ -12,7 +12,7 @@ namespace RegressionGames.Types
         public string programmingLanguage;
         public string codeSourceType;
         
-        //TODO (post REG-988): Cleanup from side of || statements
+        //TODO (post REG-988): Cleanup and/or remove left side of || statements
         public bool IsUnityBot => programmingLanguage == "UNITY" || gameEngine == "UNITY";
         public bool IsLocal => id < 0 || programmingLanguage == "CSHARP";
 
