@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
 using TMPro;
 using UnityEngine;
@@ -162,7 +163,7 @@ namespace RegressionGames
                                 UpdateBots();
                                 // close the overlay so it doesn't hide components the bot needs to click
                                 OnOverlayClosed();
-                                RGBotServerListener.GetInstance()?.AddClientConnectionForBotInstance(botInstance.id);
+                                RGBotServerListener.GetInstance()?.AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.REMOTE);
                             },
                             () => { RGDebug.LogWarning("WARNING: Failed to start new instant bot"); });
                     }
@@ -170,9 +171,16 @@ namespace RegressionGames
             }
         }
 
+        public void TempTestAddLocalBot()
+        {
+            // start the local bot
+            // TODO (REG-1291): Test Code: This number is meaningless until we lookup bots locally by id
+            RGBotRuntimeManager.GetInstance()?.StartBot(-123456789L);
+        }
+
         public void StopBotInstance(long id)
         {
-            RGBotServerListener.GetInstance()?.TeardownClient((uint) id);
+            RGBotServerListener.GetInstance()?.HandleClientTeardown((uint) id);
         }
 
         /// <summary>
@@ -180,10 +188,7 @@ namespace RegressionGames
         /// </summary>
         public void StopAllBots()
         {
-            foreach (RGBotInstance activeBot in activeBots)
-            {
-                RGBotServerListener.GetInstance()?.TeardownClient((uint) activeBot.id);
-            }
+            RGBotServerListener.GetInstance()?.TeardownAllClients();
         }
         
         public void UpdateBots()
