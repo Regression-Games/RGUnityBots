@@ -10,6 +10,8 @@ namespace RegressionGames.RGBotLocalRuntime
 {
     public class RG
     {
+        public bool Completed { get; private set; } = false;
+        
         private RGTickInfoData _tickInfo; 
         
         private readonly ConcurrentQueue<RGActionRequest> _actionQueue = new();
@@ -24,6 +26,23 @@ namespace RegressionGames.RGBotLocalRuntime
         public RG(long clientId)
         {
             this.ClientId = clientId;
+        }
+
+        /**
+         * <summary>Retrieve the current game scene name.</summary>
+         * <returns>{string} The current game scene name.</returns>
+         */
+        public string GetSceneName()
+        {
+            return _tickInfo.sceneName;
+        }
+
+        /**
+         * <summary>Mark this bot complete and ready for teardown.</summary>
+         */
+        public void Complete()
+        {
+            Completed = true;
         }
 
         /**
@@ -128,6 +147,24 @@ namespace RegressionGames.RGBotLocalRuntime
         }
 
         /**
+         * 
+         */
+        public bool EntityHasAttribute(RGStateEntity entity, string attributeName, object expectedValue = null)
+        {
+            if (entity.TryGetValue(attributeName, out var attributeValue))
+            {
+                if (expectedValue != null)
+                {
+                    return attributeValue.Equals(expectedValue);
+                }
+                
+                return true;
+            }
+
+            return false;
+        }
+        
+        /**
          * <summary>Queue an action to perform.  Multiple actions can be queued per tick</summary>
          * <param name="rgAction">{RGActionRequest} action request to queue</param>
          */
@@ -181,7 +218,6 @@ namespace RegressionGames.RGBotLocalRuntime
     
     internal static class MathFunctions 
     {
-
         /**
          * <returns>{double} The square distance between two positions</returns>
          */
