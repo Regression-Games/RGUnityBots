@@ -184,7 +184,7 @@ namespace RegressionGames
                 }
             }
         }
-
+        
         public void StopBotInstance(long id)
         {
             RGBotServerListener.GetInstance()?.HandleClientTeardown(id);

@@ -90,10 +90,17 @@ namespace RegressionGames.Types
         public override bool Connected()
         {
             if (_client != null && _connectionInfo != null) {
-                if (_client?.Client?.RemoteEndPoint is IPEndPoint ep && ep.Port == _connectionInfo.port &&
-                    AddressesEqual(ep.Address.ToString(), _connectionInfo.address))
+                try
                 {
-                    return _client.Connected;
+                    if (_client?.Client?.RemoteEndPoint is IPEndPoint ep && ep.Port == _connectionInfo.port &&
+                        AddressesEqual(ep.Address.ToString(), _connectionInfo.address))
+                    {
+                        return _client.Connected;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // on teardown, the RemoteEndPoint can become invalid before the socket closes fully
                 }
             }
 

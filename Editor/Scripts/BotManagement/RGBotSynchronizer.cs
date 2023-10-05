@@ -3,7 +3,10 @@ using System.Text;
 using RegressionGames;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
+#if UNITY_EDITOR
+using UnityEditor;
 using UnityEditor.Compilation;
+#endif
 using UnityEngine;
 using File = UnityEngine.Windows.File;
 #if UNITY_EDITOR
@@ -88,8 +91,8 @@ namespace Editor.Scripts.BotManagement
                 {
                     id = botId,
                     name = botName,
-                    programmingLanguage = "CSHARP",
                     gameEngine = "UNITY",
+                    programmingLanguage = "CSHARP",
                     codeSourceType = "ZIPFILE"
                 };
                 RGBotAsset botRecordAsset = ScriptableObject.CreateInstance<RGBotAsset>();
