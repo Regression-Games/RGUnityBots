@@ -243,6 +243,11 @@ namespace RegressionGames
                     );
                 }
             }
+            else
+            {
+                // we didn't have this bot... its not ours to know about
+                SetUnityBotState(clientId, RGUnityBotState.UNKNOWN);
+            }
             
             // Don't do this here, we only remove the validation on StopGame so the results are available to test cases
             //clientValidationMap.TryRemove(clientId, out _);

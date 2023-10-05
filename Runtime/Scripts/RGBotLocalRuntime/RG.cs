@@ -10,6 +10,8 @@ namespace RegressionGames.RGBotLocalRuntime
 {
     public class RG
     {
+        public bool Completed { get; private set; } = false;
+        
         private RGTickInfoData _tickInfo; 
         
         private readonly ConcurrentQueue<RGActionRequest> _actionQueue = new();
@@ -24,6 +26,23 @@ namespace RegressionGames.RGBotLocalRuntime
         public RG(long clientId)
         {
             this.ClientId = clientId;
+        }
+
+        /**
+         * <summary>Retrieve the current game scene name.</summary>
+         * <returns>{string} The current game scene name.</returns>
+         */
+        public string GetSceneName()
+        {
+            return _tickInfo.sceneName;
+        }
+
+        /**
+         * <summary>Mark this bot complete and ready for teardown.</summary>
+         */
+        public void Complete()
+        {
+            Completed = true;
         }
 
         /**
@@ -74,6 +93,21 @@ namespace RegressionGames.RGBotLocalRuntime
             });
 
             return result.Count>0 ? result[0] : null;
+        }
+        
+        /**
+         * <summary>Used to find a button Entity with the specific type name.</summary>
+         * <param name="buttonName">{string | null} Search for button entities with a specific type name.</param>
+         * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
+         */
+        public RGStateEntity GetInteractableButton(string buttonName)
+        {
+            RGStateEntity button = FindEntities(buttonName).FirstOrDefault();
+            if (button != null && EntityHasAttribute(button, "interactable", true))
+            {
+                return button;
+            }
+            return null;
         }
 
         /**
@@ -128,6 +162,28 @@ namespace RegressionGames.RGBotLocalRuntime
         }
 
         /**
+         * <summary>Used to find if an entity has the specific attribute and expectedValue.</summary>
+         * <param name="entity">{RGStateEntity} Search for attributes of the specified entity</param>
+         * * <param name="attribute">{string} The name of the attribute to evaluate.</param>
+         * * <param name="expectedValue">{object | null} Expected value of the attribute. `null` means that the attribute's value is not evaluated</param>
+         * <returns>{bool} True if the provided entity has the specified attribute and matches the expectedValue if provided.</returns>
+         */
+        public bool EntityHasAttribute(RGStateEntity entity, string attribute, object expectedValue = null)
+        {
+            if (entity.TryGetValue(attribute, out var attributeValue))
+            {
+                if (expectedValue != null)
+                {
+                    return attributeValue.Equals(expectedValue);
+                }
+                
+                return true;
+            }
+
+            return false;
+        }
+        
+        /**
          * <summary>Queue an action to perform.  Multiple actions can be queued per tick</summary>
          * <param name="rgAction">{RGActionRequest} action request to queue</param>
          */
@@ -181,7 +237,6 @@ namespace RegressionGames.RGBotLocalRuntime
     
     internal static class MathFunctions 
     {
-
         /**
          * <returns>{double} The square distance between two positions</returns>
          */
