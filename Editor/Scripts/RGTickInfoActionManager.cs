@@ -75,27 +75,21 @@ namespace RegressionGames.Editor
                 populateReplayDataForEntity(entityId, isPlayer, isRuntimeObject, entity.type);
                 
                 // handle strong typing on position / rotation accessors
-                if (entity.ContainsKey("position") && entity["position"] != null)
+                if (entity.ContainsKey("position") && entity["position"] is JObject)
                 {
-                    if (entity["position"] is JObject)
-                    {
                         var jObj = (JObject)entity["position"];
                         entity["position"] = new Vector3(jObj["x"].Value<float>(),
                             jObj["y"].Value<float>(),
                             jObj["z"].Value<float>());
-                    }
                 }
                 
-                if (entity.ContainsKey("rotation") && entity["rotation"] != null)
+                if (entity.ContainsKey("rotation") && entity["rotation"] is JObject)
                 {
-                    if (entity["rotation"] is JObject)
-                    {
                         var jObj = (JObject)entity["rotation"];
                         entity["rotation"] = new Quaternion(jObj["x"].Value<float>(),
                             jObj["y"].Value<float>(),
                             jObj["z"].Value<float>(),
                             jObj["w"].Value<float>());
-                    }
                 }
             }
         }
