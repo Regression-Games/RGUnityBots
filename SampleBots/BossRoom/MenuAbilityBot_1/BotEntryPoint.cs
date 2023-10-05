@@ -55,7 +55,7 @@ namespace MenuAbilityBot_1
                     }
                     else
                     {
-                        var hostButton = GetInteractableButton(rgObject, "RGHostButton");
+                        var hostButton = rgObject.GetInteractableButton("RGHostButton");
                         if (hostButton != null && _stateFlags["StartWithRGButton"] && !_stateFlags["RGHostButton"])
                         {
                             rgObject.PerformAction(new RGActionRequest("ClickButton", new Dictionary<string, object>
@@ -65,7 +65,7 @@ namespace MenuAbilityBot_1
                             _stateFlags["RGHostButton"] = true;
                         }
 
-                        var startButton = GetInteractableButton(rgObject, "StartWithRGButton");
+                        var startButton = rgObject.GetInteractableButton("StartWithRGButton");
                         if (startButton != null && _stateFlags["SelectProfileButton"] &&
                             !_stateFlags["StartWithRGButton"])
                         {
@@ -76,7 +76,7 @@ namespace MenuAbilityBot_1
                             _stateFlags["StartWithRGButton"] = true;
                         }
 
-                        var selectProfileButton = GetInteractableButton(rgObject, "SelectProfileButton");
+                        var selectProfileButton = rgObject.GetInteractableButton("SelectProfileButton");
                         if (selectProfileButton != null && _stateFlags["ProfileMenuButton"] &&
                             !_stateFlags["SelectProfileButton"])
                         {
@@ -87,7 +87,7 @@ namespace MenuAbilityBot_1
                             _stateFlags["SelectProfileButton"] = true;
                         }
 
-                        var profileMenuButton = GetInteractableButton(rgObject, "ProfileMenuButton");
+                        var profileMenuButton = rgObject.GetInteractableButton("ProfileMenuButton");
                         if (profileMenuButton != null && !_stateFlags["ProfileMenuButton"])
                         {
                             rgObject.PerformAction(new RGActionRequest("ClickButton", new Dictionary<string, object>
@@ -106,7 +106,7 @@ namespace MenuAbilityBot_1
                     }
                     else
                     {
-                        var readyButton = GetInteractableButton(rgObject, "ReadyButton");
+                        var readyButton = rgObject.GetInteractableButton("ReadyButton");
                         if (readyButton != null && _stateFlags["Seat7Button"] && !_stateFlags["ReadyButton"])
                         {
                             rgObject.PerformAction(new RGActionRequest("ClickButton", new Dictionary<string, object>
@@ -116,7 +116,7 @@ namespace MenuAbilityBot_1
                             _stateFlags["ReadyButton"] = true;
                         }
 
-                        var seat7Button = GetInteractableButton(rgObject, "Seat7Button");
+                        var seat7Button = rgObject.GetInteractableButton("Seat7Button");
                         if (seat7Button != null && !_stateFlags["Seat7Button"])
                         {
                             rgObject.PerformAction(new RGActionRequest("ClickButton", new Dictionary<string, object>
@@ -131,7 +131,7 @@ namespace MenuAbilityBot_1
                 case "BossRoom":
                     _playedGame = true;
 
-                    var GameHUDStartButton = GetInteractableButton(rgObject, "GameHUDStartButton");
+                    var GameHUDStartButton = rgObject.GetInteractableButton("GameHUDStartButton");
                     if (GameHUDStartButton != null && _stateFlags["CheatsCancelButton"] &&
                         !_stateFlags["GameHUDStartButton"])
                     {
@@ -142,7 +142,7 @@ namespace MenuAbilityBot_1
                         _stateFlags["GameHUDStartButton"] = true;
                     }
 
-                    var CheatsCancelButton = GetInteractableButton(rgObject, "CheatsCancelButton");
+                    var CheatsCancelButton = rgObject.GetInteractableButton("CheatsCancelButton");
                     if (CheatsCancelButton != null && !_stateFlags["CheatsCancelButton"])
                     {
                         rgObject.PerformAction(new RGActionRequest("ClickButton", new Dictionary<string, object>
@@ -189,15 +189,6 @@ namespace MenuAbilityBot_1
                     break;
             }
         }
-
-        private RGStateEntity GetInteractableButton(RG rgObject, string buttonName)
-        {
-            RGStateEntity button = rgObject.FindEntities(buttonName).FirstOrDefault();
-            if (button != null && rgObject.EntityHasAttribute(button, "interactable", true))
-            {
-                return button;
-            }
-            return null;
-        }
+        
     }
 }
