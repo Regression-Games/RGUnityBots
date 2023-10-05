@@ -94,6 +94,21 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return result.Count>0 ? result[0] : null;
         }
+        
+        /**
+         * <summary>Used to find a button Entity with the specific type name.</summary>
+         * <param name="buttonName">{string | null} Search for button entities with a specific type name.</param>
+         * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
+         */
+        public RGStateEntity GetInteractableButton(string buttonName)
+        {
+            RGStateEntity button = FindEntities(buttonName).FirstOrDefault();
+            if (button != null && EntityHasAttribute(button, "interactable", true))
+            {
+                return button;
+            }
+            return null;
+        }
 
         /**
          * <summary>Used to find a list of entities from the game state.</summary>
