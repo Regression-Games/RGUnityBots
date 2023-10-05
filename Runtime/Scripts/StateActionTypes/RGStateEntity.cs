@@ -11,13 +11,13 @@ namespace RegressionGames.StateActionTypes
      */
     public class RGStateEntity : Dictionary<string, object>
     {
-        public int id => (int)this["id"];
-        public string type => (string)this["type"];
-        public bool isPlayer => (bool)this["isPlayer"];
-        public bool isRuntimeObject => (bool)this["isRuntimeObject"];
+        public long id => (long)this.GetValueOrDefault("id", 0L);
+        public string type => (string)this.GetValueOrDefault("type", null);
+        public bool isPlayer => (bool)this.GetValueOrDefault("isPlayer", false);
+        public bool isRuntimeObject => (bool)this.GetValueOrDefault("isRuntimeObject", false);
         // TODO (REG-1303): These should be non-nullable and we should remove the option NOT to sync position and rotation
-        public Vector3? position => (Vector3?)this["position"];
-        public Quaternion? rotation => (Quaternion?)this["rotation"];
-        public uint? clientId => (uint?)this["clientId"];
+        public Vector3? position => (Vector3?)this.GetValueOrDefault("position", null);
+        public Quaternion? rotation => (Quaternion?)this.GetValueOrDefault("rotation", null);
+        public long? clientId => (long?)this.GetValueOrDefault("clientId", null);
     }
 }

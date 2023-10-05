@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using System;
 
 namespace RegressionGames
 {
-    [System.Serializable]
+    [Serializable]
     public class RGStateInfo
     {
         public string FieldType;

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using RegressionGames.RGBotConfigs;
+using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
@@ -18,7 +19,7 @@ namespace RegressionGames
         [Tooltip("Send a state update every X ticks")]
         public int tickRate = 50;
 
-        public readonly ConcurrentDictionary<uint?, HashSet<RGAgent>> agentMap = new ();
+        public readonly ConcurrentDictionary<long?, HashSet<RGAgent>> agentMap = new ();
 
         private long tick = 0;
 
@@ -44,18 +45,18 @@ namespace RegressionGames
 
         void OnApplicationQuit()
         {
-            StopBotClientConnections();
+            StopBotClientConnections(false);
         }
 
         private bool gameStarted = false;
 
         public string UnitySideToken { get; private set; }= Guid.NewGuid().ToString();
 
-        private readonly ConcurrentDictionary<uint, RGUnityBotState> botStates = new();
+        private readonly ConcurrentDictionary<long, RGUnityBotState> botStates = new();
 
-        private readonly ConcurrentDictionary<uint, List<Action<RGUnityBotState>>> botStateListeners = new();
+        private readonly ConcurrentDictionary<long, List<Action<RGUnityBotState>>> botStateListeners = new();
 
-        public void AddUnityBotStateListener(uint id, Action<RGUnityBotState> func)
+        public void AddUnityBotStateListener(long id, Action<RGUnityBotState> func)
         {
             botStateListeners.AddOrUpdate(id, new List<Action<RGUnityBotState>> {func}, (key, oldValue) =>
             {
@@ -64,7 +65,7 @@ namespace RegressionGames
             });
         }
 
-        public RGUnityBotState GetUnityBotState(uint id)
+        public RGUnityBotState GetUnityBotState(long id)
         {
             if (botStates.TryGetValue(id, out RGUnityBotState state))
             {
@@ -73,7 +74,7 @@ namespace RegressionGames
             return RGUnityBotState.UNKNOWN;
         }
         
-        public void SetUnityBotState(uint id, RGUnityBotState state)
+        public void SetUnityBotState(long id, RGUnityBotState state)
         {
             if (botStates.TryGetValue(id, out var oldValue))
             {
@@ -90,7 +91,7 @@ namespace RegressionGames
             }
         }
 
-        private void SendStateUpdatesToListeners(uint id, RGUnityBotState newState)
+        private void SendStateUpdatesToListeners(long id, RGUnityBotState newState)
         {
             if (botStateListeners.TryGetValue(id, out List<Action<RGUnityBotState>> funcs))
             {
@@ -113,7 +114,7 @@ namespace RegressionGames
          * 
          * clientConnectionMap - Clients that have connected and/or done their handshake will be populated here.
          *    Clients waiting on a connection will have a null value.
-         *    (key is the botInstanceId as a uint)
+         *    (key is the botInstanceId as a long)
          *
          *
          * Connection process
@@ -132,14 +133,14 @@ namespace RegressionGames
          * 3. On FixedUpdate, when we send tickInfo, if any of the sends fail, we recycle their bot connection assuming
          *    that the bot code was reloaded/restarted.
          */
-        [ItemCanBeNull] private readonly ConcurrentDictionary<uint, RGClientConnection> clientConnectionMap = new ();
+        [ItemCanBeNull] private readonly ConcurrentDictionary<long, RGClientConnection> clientConnectionMap = new ();
         
-        [ItemCanBeNull] private readonly ConcurrentDictionary<uint?, ConcurrentQueue<RGValidationResult>> clientValidationMap = new ();
+        [ItemCanBeNull] private readonly ConcurrentDictionary<long?, ConcurrentQueue<RGValidationResult>> clientValidationMap = new ();
  
         // keep these in a map by clientId so that we can do 1 action per client per update call
-        private readonly ConcurrentDictionary<uint, ConcurrentQueue<Action>> mainThreadTaskQueue = new ();
+        private readonly ConcurrentDictionary<long, ConcurrentQueue<Action>> mainThreadTaskQueue = new ();
 
-        public RGClientConnection GetClientConnection(uint clientId)
+        public RGClientConnection GetClientConnection(long clientId)
         {
             if (clientConnectionMap.TryGetValue(clientId, out RGClientConnection result))
             {
@@ -155,18 +156,18 @@ namespace RegressionGames
             RGClientConnection connection;
             if (type == RGClientConnectionType.REMOTE)
             {
-                connection = new RGClientConnection_Remote(clientId: (uint)botInstanceId);
+                connection = new RGClientConnection_Remote(clientId: botInstanceId);
             }
             else
             {
-                connection = new RGClientConnection_Local(clientId: (uint)botInstanceId);
+                connection = new RGClientConnection_Local(clientId: botInstanceId);
             }
             
-            clientConnectionMap.AddOrUpdate((uint)botInstanceId, connection, (k,v) =>
+            clientConnectionMap.AddOrUpdate(botInstanceId, connection, (k,v) =>
             {
                 return v;
             });
-            clientValidationMap.AddOrUpdate((uint)botInstanceId, new ConcurrentQueue<RGValidationResult>(), (k, v) => 
+            clientValidationMap.AddOrUpdate(botInstanceId, new ConcurrentQueue<RGValidationResult>(), (k, v) => 
             {
                 return v;
             });
@@ -182,7 +183,7 @@ namespace RegressionGames
             return !clientConnectionMap.IsEmpty;
         }
 
-        public ConcurrentQueue<RGValidationResult> GetFailedValidationsForClient(uint clientId)
+        public ConcurrentQueue<RGValidationResult> GetFailedValidationsForClient(long clientId)
         {
             if (clientValidationMap.TryGetValue(clientId, out var validations))
             {
@@ -197,10 +198,10 @@ namespace RegressionGames
          * calls internally).
          * ONLY CALL THIS ON THE MAIN THREAD
          */
-        public void StopBotClientConnections()
+        public void StopBotClientConnections(bool updateBotsList = true)
         {
             RGDebug.LogInfo($"Stopping Bot Client Connections");
-            StopGameHelper();
+            StopGameHelper(updateBotsList);
             EndAllClientConnections();
             clientConnectionMap.Clear();
             clientValidationMap.Clear();
@@ -213,14 +214,14 @@ namespace RegressionGames
 
         public void EndAllClientConnections()
         {
-            List<uint> clientIds = clientConnectionMap.Keys.ToList();
+            List<long> clientIds = clientConnectionMap.Keys.ToList();
             foreach (var clientId in clientIds)
             {
                 EndClientConnection(clientId);
             }
         }
 
-        public void EndClientConnection(uint clientId)
+        public void EndClientConnection(long clientId)
         {
             if (clientConnectionMap.TryRemove(clientId, out var clientConnection))
             {
@@ -258,7 +259,7 @@ namespace RegressionGames
          *
          * This will teardown the client and de-spawn the avatar if necessary
          */
-        private void TeardownClient(uint clientId, bool doUpdateBots=true)
+        private void TeardownClient(long clientId, bool doUpdateBots=true)
         {
             // do this before we end the connection so the player is still in the map
             RGBotSpawnManager.GetInstance()?.TeardownBot(clientId);
@@ -278,19 +279,29 @@ namespace RegressionGames
          */
         public void TeardownAllClients()
         {
-            foreach (var (key, rgClientConnection) in clientConnectionMap)
+            foreach (var (clientId, rgClientConnection) in clientConnectionMap)
             {
-                HandleClientTeardown(key, false);
+                SetUnityBotState(clientId, RGUnityBotState.TEARING_DOWN);
             }
+
+            enqueueTaskForClient(0, () =>
+            {
+                // do these all together on a single main thread update
+                foreach (var (clientId, rgClientConnection) in clientConnectionMap)
+                {
+                    TeardownClient(clientId, false);
+                }
+                // do this once after all the teardowns
+                RGOverlayMenu.GetInstance()?.UpdateBots();
+            });
             
-            RGOverlayMenu.GetInstance()?.UpdateBots();
         }
 
         
         /**
          * Only call me on main thread
          */
-        private void StopGameHelper()
+        private void StopGameHelper(bool updateBotsList = true)
         {
             RGDebug.LogInfo($"Stopping Spawnable Bots");
             gameStarted = false;
@@ -305,8 +316,11 @@ namespace RegressionGames
             }
             
             // update the bot list one time after tearing them down instead of on every one
-            RGOverlayMenu.GetInstance()?.UpdateBots();
-            
+            if (updateBotsList)
+            {
+                RGOverlayMenu.GetInstance()?.UpdateBots();
+            }
+
             RGBotSpawnManager rgBotSpawnManager = RGBotSpawnManager.GetInstance();
             if (rgBotSpawnManager != null)
             {
@@ -317,7 +331,10 @@ namespace RegressionGames
         public void StopGame()
         {
             // shutdown clients and de-spawn players that should be de-spawned
-            enqueueTaskForClient(uint.MaxValue, StopGameHelper);
+            enqueueTaskForClient(long.MaxValue, () =>
+            {
+                StopGameHelper();
+            });
         }
 
         private void StartGameHelper()
@@ -328,21 +345,40 @@ namespace RegressionGames
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetUseSystemSettings())
             {
-                //TODO (REG-1291): Local Bots... This needs to support Local Bots, not just remote
-                int[] botIds = rgSettings.GetBotsSelected().ToArray();
-                int errorCount = 0;
+                long[] botIds = rgSettings.GetBotsSelected().ToArray();
                 if (botIds.Length > 0)
                 {
                     // don't await here to avoid this method being defined async, which
                     // would cause big issues as the main thread Update runner wouldn't await it and
                     // gameStarted wouldn't reliably get set before they called SpawnBots
-                    Task.WhenAll(botIds.Select(botId => RGServiceManager.GetInstance()?.QueueInstantBot(
-                                (long)botId,
-                                async (botInstance) => { AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.REMOTE); },
-                                () => { RGDebug.LogWarning($"WARNING: Error starting botId: {botId}, starting without them"); }
-                                )
-                            )
-                        );
+                    Task.WhenAll(botIds.Select(botId =>
+                        {
+                            var localBotRecord = RGBotAssetsManager.GetInstance()?.GetBotAssetRecord(botId);
+                            if (localBotRecord != null)
+                            {
+                                //handle local bot
+                                RGBotRuntimeManager.GetInstance()?.StartBot(botId);
+                            }
+                            else
+                            {
+                                // handle remote bot
+                                return RGServiceManager.GetInstance()?.QueueInstantBot(
+                                    (long)botId,
+                                    async (botInstance) =>
+                                    {
+                                        AddClientConnectionForBotInstance(botInstance.id,
+                                            RGClientConnectionType.REMOTE);
+                                    },
+                                    () =>
+                                    {
+                                        RGDebug.LogWarning(
+                                            $"WARNING: Error starting botId: {botId}, starting without them");
+                                    }
+
+                                );
+                            }
+                            return null;
+                        }).Where(v => v!= null));
                 }
             }
 
@@ -351,7 +387,7 @@ namespace RegressionGames
 
         public void StartGame()
         {
-            enqueueTaskForClient(uint.MaxValue, StartGameHelper);
+            enqueueTaskForClient(long.MaxValue, StartGameHelper);
         }
         
         private async Task SetupClientConnection(RGClientConnection clientConnection)
@@ -387,9 +423,9 @@ namespace RegressionGames
             }
 
             // for each client, run up to 1 action per update
-            foreach (uint key in mainThreadTaskQueue.Keys)
+            foreach (var (clientId, queue) in mainThreadTaskQueue)
             {
-                if (mainThreadTaskQueue[key].TryDequeue(out Action action) )
+                if (queue.TryDequeue(out Action action))
                 {
                     try
                     {
@@ -416,7 +452,7 @@ namespace RegressionGames
                     var state = GetGameState();
                     var sceneName = SceneManager.GetActiveScene().name;
                     var tickInfoData = new RGTickInfoData(tick, sceneName, state);
-                    var sentTo = new List<uint>();
+                    var sentTo = new List<long>();
                     
                     // we tried to send these out in parallel on thread pool,
                     // but scheduling the tasks on the thread took longer than
@@ -517,7 +553,7 @@ namespace RegressionGames
 
         public void SpawnBots(bool lateJoin = false)
         {
-            enqueueTaskForClient(uint.MaxValue, () =>
+            enqueueTaskForClient(long.MaxValue, () =>
             {
                 RGBotSpawnManager bsm = RGBotSpawnManager.GetInstance();
                 if (bsm != null && gameStarted)
@@ -527,13 +563,13 @@ namespace RegressionGames
             });
         }
 
-        private void enqueueTaskForClient(uint clientId, Action task)
+        private void enqueueTaskForClient(long clientId, Action task)
         {
             mainThreadTaskQueue.TryAdd(clientId, new ConcurrentQueue<Action>());
             mainThreadTaskQueue[clientId].Enqueue(task);
         }
         
-        public void HandleClientTeardown(uint clientId, bool doUpdateBots = true)
+        public void HandleClientTeardown(long clientId, bool doUpdateBots = true)
         {
             // Handle when the client tells us to teardown because the instant bot instance was stopped
             // This would happen when a particular bot's code determined it was finished and sent
@@ -545,7 +581,7 @@ namespace RegressionGames
             });
         }
 
-        public void HandleClientHandshakeMessage(uint clientId, RGClientHandshake handshakeMessage)
+        public void HandleClientHandshakeMessage(long clientId, RGClientHandshake handshakeMessage)
         {
             // can only call Unity APIs on main thread, so queue this up
             enqueueTaskForClient(clientId,() =>
@@ -622,22 +658,20 @@ namespace RegressionGames
             });
 
         }
-        
 
-
-        public void HandleClientValidationResult(uint clientId, RGValidationResult validationResult)
+        public void HandleClientValidationResult(long clientId, RGValidationResult validationResult)
         {
             enqueueTaskForClient(clientId,() =>
             {
                 if (!validationResult.passed)
                 {
                     RGDebug.LogDebug($"Save Failed Validation Result for clientId: {clientId}, data: {validationResult}");
-                    clientValidationMap[(uint)clientId]?.Enqueue(validationResult);
+                    clientValidationMap[clientId]?.Enqueue(validationResult);
                 }
             });
         }
 
-        public void HandleClientActionRequest(uint clientId, RGActionRequest actionRequest)
+        public void HandleClientActionRequest(long clientId, RGActionRequest actionRequest)
         {
             enqueueTaskForClient(clientId,() =>
             {
@@ -647,7 +681,7 @@ namespace RegressionGames
         }
         
         // call me on the main thread only
-        private void HandleAction(uint clientId, RGActionRequest actionRequest)
+        private void HandleAction(long clientId, RGActionRequest actionRequest)
         {
             var agents = agentMap[clientId];
             /* TODO: Right now this broadcasts the action to all agents.  We may
@@ -663,9 +697,7 @@ namespace RegressionGames
                 }
             }
         }
-
-
+        
     }
-
 
 }

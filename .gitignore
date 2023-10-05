@@ -82,3 +82,5 @@ crashlytics-build.properties
 .idea/**/shelf
 
 mono_crash*.json
+
+**/.DS_Store

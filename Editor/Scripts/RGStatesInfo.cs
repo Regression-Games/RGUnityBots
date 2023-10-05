@@ -1,16 +1,15 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace RegressionGames
 {
-    [System.Serializable]
+    [Serializable]
     public class RGStateInfoWrapper
     {
         public List<RGStatesInfo> RGStateInfo { get; set; }
     }
     
-    [System.Serializable]
+    [Serializable]
     public class RGStatesInfo
     {
         public string Object;

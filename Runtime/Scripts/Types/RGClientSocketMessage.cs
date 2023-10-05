@@ -7,7 +7,7 @@ namespace RegressionGames.Types
     {
         public string token;
         public string type;
-        public uint clientId;
+        public long clientId;
         public string data;
     }
 }
