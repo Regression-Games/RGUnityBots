@@ -8,6 +8,7 @@ namespace RegressionGames.Types
     {
         public long id;
         public new string name;
+        public string gameEngine;
         public string programmingLanguage;
         public string codeSourceType;
 
