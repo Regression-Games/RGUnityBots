@@ -162,11 +162,15 @@ namespace RegressionGames.RGBotLocalRuntime
         }
 
         /**
-         * 
+         * <summary>Used to find if an entity has the specific attribute and expectedValue.</summary>
+         * <param name="entity">{RGStateEntity} Search for attributes of the specified entity</param>
+         * * <param name="attribute">{string} The name of the attribute to evaluate.</param>
+         * * <param name="expectedValue">{object | null} Expected value of the attribute. `null` means that the attribute's value is not evaluated</param>
+         * <returns>{bool} True if the provided entity has the specified attribute and matches the expectedValue if provided.</returns>
          */
-        public bool EntityHasAttribute(RGStateEntity entity, string attributeName, object expectedValue = null)
+        public bool EntityHasAttribute(RGStateEntity entity, string attribute, object expectedValue = null)
         {
-            if (entity.TryGetValue(attributeName, out var attributeValue))
+            if (entity.TryGetValue(attribute, out var attributeValue))
             {
                 if (expectedValue != null)
                 {
