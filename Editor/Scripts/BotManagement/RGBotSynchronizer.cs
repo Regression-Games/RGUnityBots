@@ -2,8 +2,12 @@ using System;
 using System.IO;
 using System.Text;
 using RegressionGames;
+using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
+#if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.Compilation;
+#endif
 using UnityEngine;
 using File = UnityEngine.Windows.File;
 
@@ -11,6 +15,7 @@ namespace Editor.Scripts.BotManagement
 {
     public class RGBotSynchronizer
     {
+#if UNITY_EDITOR
         private static readonly RGBotSynchronizer _this = new ();
 
         // This must match RGBotRuntimeManagement.cs
@@ -91,13 +96,17 @@ namespace Editor.Scripts.BotManagement
             if ( AssetDatabase.GetMainAssetTypeAtPath( botRecordAssetPath ) == null)
             {
                 RGDebug.Log($"Writing {botRecordAssetPath}");
-                RGBot botRecord = ScriptableObject.CreateInstance<RGBot>();
-                botRecord.id = botId;
-                botRecord.name = botName;
-                //TODO (after REG-988): Refactor this to correctly indicate this is a Unity Bot 
-                botRecord.programmingLanguage = "UNITY";
-                botRecord.codeSourceType = "ZIPFILE";
-                AssetDatabase.CreateAsset(botRecord, botRecordAssetPath );
+                RGBot botRecord = new RGBot()
+                {
+                    id = botId,
+                    name = botName,
+                    gameEngine = "UNITY",
+                    programmingLanguage = "CSHARP",
+                    codeSourceType = "ZIPFILE"
+                };
+                RGBotAsset botRecordAsset = ScriptableObject.CreateInstance<RGBotAsset>();
+                botRecordAsset.Bot = botRecord;
+                AssetDatabase.CreateAsset(botRecordAsset, botRecordAssetPath );
                 AssetDatabase.SaveAssets();
             }
             
@@ -110,6 +119,10 @@ namespace Editor.Scripts.BotManagement
             
             File.WriteAllBytes(entryPointPath, Encoding.UTF8.GetBytes(utfString, 0, utfString.Length));
             RGDebug.Log($"Regression Games Unity bot successfully created at path {folderName}");
+            
+            CompilationPipeline.RequestScriptCompilation();
+            AssetDatabase.Refresh();
         }
     }
+#endif
 }

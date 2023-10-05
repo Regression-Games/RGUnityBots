@@ -46,10 +46,10 @@ namespace RegressionGames.RGBotLocalRuntime
 
                 try
                 {
-                    var botAsset = AssetDatabase.LoadAssetAtPath<RGBot>(botAssetPath);
+                    var botAsset = AssetDatabase.LoadAssetAtPath<RGBotAsset>(botAssetPath);
 
-                    var botAssetRecord = new BotAssetRecord(botDirectory,botAsset);
-                    _botAssets[botAsset.id] = botAssetRecord;
+                    var botAssetRecord = new BotAssetRecord(botDirectory,botAsset.Bot);
+                    _botAssets[botAsset.Bot.id] = botAssetRecord;
                 }
                 catch (Exception ex)
                 {

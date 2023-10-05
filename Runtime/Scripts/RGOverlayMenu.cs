@@ -175,12 +175,12 @@ namespace RegressionGames
         public void TempTestAddLocalBot()
         {
             // TODO (REG-1291): Temporary code to get bot 0.. this whole method will go away in
-            RGBot bot = AssetDatabase.LoadAssetAtPath<RGBot>("Assets/RegressionGames/Runtime/Bots/NewRGBot_0/BotRecord.asset");
+            RGBotAsset botAsset = AssetDatabase.LoadAssetAtPath<RGBotAsset>("Assets/RegressionGames/Runtime/Bots/NewRGBot_0/BotRecord.asset");
 
-            if (bot != null)
+            if (botAsset != null)
             {
                 // start the local bot 0
-                RGBotRuntimeManager.GetInstance()?.StartBot(bot.id);
+                RGBotRuntimeManager.GetInstance()?.StartBot(botAsset.Bot.id);
             }
             else
             {
