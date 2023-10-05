@@ -4,6 +4,7 @@ using System.Linq;
 using RegressionGames.Types;
 using UnityEngine;
 #if UNITY_EDITOR
+using RegressionGames.RGBotLocalRuntime;
 using UnityEditor;
 #endif
 
