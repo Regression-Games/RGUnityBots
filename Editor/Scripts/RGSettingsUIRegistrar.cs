@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.Types;
+using UnityEngine;
 #if UNITY_EDITOR
+using RegressionGames.RGBotLocalRuntime;
 using UnityEditor;
 #endif
-using UnityEngine;
 
 namespace RegressionGames.Editor
 {
@@ -17,7 +18,7 @@ namespace RegressionGames.Editor
     public class RGSettingsUIRegistrar
     {
 
-        private static RGServiceManager rgServiceManager = new RGServiceManager(); // editor, not game/scene so don't look for one, make one
+        private static RGServiceManager rgServiceManager = new (); // editor, not game/scene so don't look for one, make one
 
         private static string token = null;
         private static string priorUser = null;
@@ -49,9 +50,7 @@ namespace RegressionGames.Editor
                     emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
                     SerializedProperty passwordField = settings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
-                  
                     
-
                     SerializedProperty logLevel = settings.FindProperty("logLevel");
                     logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
 
@@ -86,43 +85,74 @@ namespace RegressionGames.Editor
 
                     if (token != null && (bots == null || bots.Length == 0))
                     {
+                        List<RGBot> listOfBots = new();
+                        // get remote bots
                         await rgServiceManager.GetBotsForCurrentUser(botList =>
                         {
-                            bots = botList;
+                            foreach (var rgBot in botList)
+                            {
+                                if (rgBot is { IsUnityBot: true })
+                                {
+                                    listOfBots.Add(rgBot);
+                                }
+                            }
                         }, () =>
                         {
-                            bots = null;
+                            
                         });
+                        // get Local bots
+                        RGBotAssetsManager.GetInstance()?.RefreshAvailableBots();
+                        var localBots = RGBotAssetsManager.GetInstance()?.GetAvailableBots();
+                        if (localBots != null)
+                        {
+                            foreach (var localBot in localBots)
+                            {
+                                listOfBots.Add(localBot);
+                            }
+                        }
+                        listOfBots.Sort((a,b) => String.Compare(a.UIString, b.UIString, StringComparison.Ordinal));
+                        bots = listOfBots.ToArray();
                     }
 
-                    if (bots != null)
+                    if (bots != null && bots.Length > 0)
                     {
-                        List<RGBot> unityBots = bots.ToList().FindAll(bot => "UNITY".Equals(bot.gameEngine));
-                        if (unityBots.Count > 0)
+                        List<string> botUIStrings = bots.ToList().ConvertAll(v => v.UIString);
+                        int index = 0;
+                        Dictionary<long, int> botIndexMap = new();
+                        List<int> botIndexes = bots.ToList().ConvertAll(bot =>
                         {
-                            List<string> botNames = unityBots.ConvertAll(bot => "" + bot.id + " - " + bot.name);
-                            List<int> botIds = unityBots.ConvertAll(bot => int.Parse(bot.id.ToString()));
-                            for (int i = 1; i <= numBotsProp.intValue; i++)
+                            botIndexMap[bot.id] = index;
+                            return index++;
+                        });
+                        
+                        for (int i = 1; i <= numBotsProp.intValue; i++)
+                        {
+                            try
                             {
-                                try
+                                if (botsSelected.arraySize < i)
                                 {
-                                    if (botsSelected.arraySize < i)
-                                    {
-                                        botsSelected.InsertArrayElementAtIndex(i - 1);
-                                    }
+                                    botsSelected.InsertArrayElementAtIndex(i - 1);
+                                }
 
-                                    SerializedProperty botSelected = botsSelected.GetArrayElementAtIndex(i - 1);
-                                    botSelected.intValue = EditorGUILayout.IntPopup($"Bot # {i}",
-                                        botSelected.intValue,
-                                        botNames.ToArray(), botIds.ToArray(),
-                                        new GUILayoutOption[] { });
-                                }
-                                catch (Exception ex)
+                                SerializedProperty botSelected = botsSelected.GetArrayElementAtIndex(i - 1);
+
+                                var priorIndex = 0;
+                                botIndexMap.TryGetValue(botSelected.longValue, out priorIndex);
+                                    var indexSelected = EditorGUILayout.IntPopup($"Bot # {i}",
+                                        priorIndex,
+                                    botUIStrings.ToArray(), botIndexes.ToArray(),
+                                    new GUILayoutOption[] { });
+                                if (indexSelected > bots.Length)
                                 {
-                                    // Solve why on first rendering after get this blows up but still renders fine
-                                    // the answer is that OnGUI calls this multiple times per frame :(
-                                    //Debug.LogException(ex);
+                                    indexSelected = 0;
                                 }
+                                botSelected.longValue = bots[indexSelected].id;
+                            }
+                            catch (Exception ex)
+                            {
+                                // Solve why on first rendering after get this blows up but still renders fine
+                                // the answer is that OnGUI calls this multiple times per frame :(
+                                //Debug.LogException(ex);
                             }
                         }
                     }

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Concurrent;
-using RegressionGames.RGBotLocalRuntime.SampleBot;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using RegressionGames.Types;
 using UnityEngine;
+using Random = System.Random;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
@@ -10,6 +13,8 @@ namespace RegressionGames.RGBotLocalRuntime
     {
         private static RGBotRuntimeManager _this = null;
         
+        private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
+
         public static RGBotRuntimeManager GetInstance()
         {
             return _this;
@@ -26,44 +31,67 @@ namespace RegressionGames.RGBotLocalRuntime
             // keep this thing alive across scenes
             DontDestroyOnLoad(this.gameObject);
             _this = this;
+
+            RGBotAssetsManager.GetInstance().RefreshAvailableBots();
+
         }
-        
-        private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
-        
+
+        public List<RGBotInstance> GetActiveBotInstances()
+        {
+            return _botRunners.Values.Select(v => v.BotInstance).ToList();
+        }
+
+        private long LongRandom(long min, long max, Random rand) {
+            byte[] buf = new byte[8];
+            rand.NextBytes(buf);
+            long longRand = BitConverter.ToInt64(buf, 0);
+
+            return (Math.Abs(longRand % (max - min)) + min);
+        }
+
         public long StartBot(long botId)
         {
-            RGBotInstance botInstance = new RGBotInstance();
-            
-            // TODO (REG-1298): Define unique botInstance Id ; for now, take the first bytes of a UUID... which isn't as unique as it sounds
-            botInstance.id = (uint) BitConverter.ToInt64(System.Guid.NewGuid().ToByteArray(), 0);
-            
-            RGBotServerListener.GetInstance().SetUnityBotState((uint) botInstance.id, RGUnityBotState.STARTING);
-            
-            //TODO (REG-1298): Load this in some 'CORRECT" way based on the incoming botId argument... still TBD on that
-            var userBotCode = ScriptableObject.CreateInstance<RGSampleBot>();
-            
-            var bot = new Types.RGBot();
-            bot.id = botId;
-            bot.programmingLanguage = "C#"; //TODO (After REG-988): (TBD based abby's work in progress as of 9/28/23) aka Unity , aka Local
-            bot.name = $"{userBotCode.botName ?? "RGUnityBot"}";
-            
-            botInstance.bot = bot;
-
-            botInstance.lobby = null;
-            
-            RGClientConnection connection = RGBotServerListener.GetInstance().AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
-            
-            var botRunner = new RGBotRunner(botInstance, userBotCode, () =>
+            var botInstance = new RGBotInstance
             {
-                _botRunners.TryRemove(botInstance.id, out _);
-            });
-            (connection as RGClientConnection_Local)?.SetBotRunner(botRunner);
-            
-            _botRunners.TryAdd(botInstance.id, botRunner);
-            botRunner.StartBot();
+                // without a live connection to RG, we can't get a DB unique instance Id.. make this a negative random long for now
+                id = RGSettings.GetOrCreateSettings().GetNextBotInstanceId(),
+                bot = null, // filled in below
+                lobby = null,
+                createdDate = DateTimeOffset.Now
+            };
 
-            return botInstance.id;
+            RGBotServerListener.GetInstance().SetUnityBotState(botInstance.id, RGUnityBotState.STARTING);
+
+            var botAssetRecord = RGBotAssetsManager.GetInstance().GetBotAssetRecord(botId);
+            if (botAssetRecord != null)
+            {
+                var botFolderNamespace =
+                    botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                
+                RGUserBot userBotCode = (RGUserBot) ScriptableObject.CreateInstance($"{botFolderNamespace}.BotEntryPoint");
+                userBotCode.Init(botId, botAssetRecord.BotRecord.name);
+                
+                botInstance.bot = botAssetRecord.BotRecord;
+
+                RGClientConnection connection = RGBotServerListener.GetInstance()
+                    .AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
+
+                var botRunner = new RGBotRunner(botInstance, userBotCode,
+                    () => { _botRunners.TryRemove(botInstance.id, out _); });
+                (connection as RGClientConnection_Local)?.SetBotRunner(botRunner);
+
+                _botRunners.TryAdd(botInstance.id, botRunner);
+                botRunner.StartBot();
+
+                return botInstance.id;
+            }
+            else
+            {
+                RGDebug.LogWarning($"Unable to start Bot Id: {botId}.  Local definition for bot not found");
+            }
+
+            return 0;
         }
-
+        
     }
 }

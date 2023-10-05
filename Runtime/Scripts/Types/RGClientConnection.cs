@@ -4,14 +4,14 @@ namespace RegressionGames.Types
 {
     public abstract class RGClientConnection
     {
-        public readonly uint ClientId;
+        public readonly long ClientId;
         public string Lifecycle;
 
         public string Token;
 
         public readonly RGClientConnectionType Type;
 
-        public RGClientConnection(uint clientId, RGClientConnectionType type, string lifecycle = "MANAGED")
+        public RGClientConnection(long clientId, RGClientConnectionType type, string lifecycle = "MANAGED")
         {
             this.ClientId = clientId;
             this.Lifecycle = lifecycle;

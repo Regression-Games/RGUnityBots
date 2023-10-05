@@ -29,12 +29,12 @@ namespace RegressionGames
          * A mapping from client IDs (i.e. the IDs used to identify bots connected from the Regression Games
          * backend) to the GameObjects in the scene for that bot.
          */
-        public readonly ConcurrentDictionary<uint, GameObject> BotMap = new ConcurrentDictionary<uint, GameObject>();
+        public readonly ConcurrentDictionary<long, GameObject> BotMap = new ();
         
         /**
          * A set of information about bots to spawn, which are eventually popped off the queue.
          */
-        private readonly ConcurrentQueue<BotInformation> _botsToSpawn = new ConcurrentQueue<BotInformation>();
+        private readonly ConcurrentQueue<BotInformation> _botsToSpawn = new ();
         
         /**
          * Tracks whether an initial set of bots have been spawned.
@@ -109,7 +109,7 @@ namespace RegressionGames
          * <returns>The GameObject which encapsulates the bot, or null if the bot is not found</returns>
          */
         [CanBeNull]
-        public GameObject GetBot(uint clientId)
+        public GameObject GetBot(long clientId)
         {
             if (!BotMap.ContainsKey(clientId)) return null;
             return BotMap[clientId];
@@ -123,7 +123,7 @@ namespace RegressionGames
          * <param name="clientId">The ID of the client that owns that bot</param>
          * <returns>True if the bot has been spawned into the scene</returns>
          */
-        public bool IsBotSpawned(uint clientId)
+        public bool IsBotSpawned(long clientId)
         {
             return BotMap.ContainsKey(clientId);
         }
@@ -203,7 +203,7 @@ namespace RegressionGames
          * </summary>
          * <param name="clientId">The ID of the client that owns the bot</param>
          */
-        public virtual void DeSpawnBot(uint clientId)
+        public virtual void DeSpawnBot(long clientId)
         {
             if (BotMap.TryRemove(clientId, out GameObject bot))
             {
@@ -225,7 +225,7 @@ namespace RegressionGames
          * </summary>
          * <param name="clientId">The ID of the client that owns the bot</param>
          */
-        public virtual void TeardownBot(uint clientId)
+        public virtual void TeardownBot(long clientId)
         {
             DeSpawnBot(clientId);
         }
@@ -241,7 +241,7 @@ namespace RegressionGames
         {
             RGDebug.LogInfo("Stopping the bots spawned for the current game");
             // if there is somehow still bot objects left, kill them
-            foreach (uint key in BotMap.Keys)
+            foreach (var key in BotMap.Keys)
             {
                 RGBotServerListener.GetInstance().EndClientConnection(key);
                 TeardownBot(key);
@@ -260,7 +260,7 @@ namespace RegressionGames
          * <returns>The ID of the bot, or null if it cannot be found</returns>
          * <seealso cref="GetBot"/>
          */
-        public int? GetBotId(uint clientId)
+        public int? GetBotId(long clientId)
         {
             return BotMap[clientId]?.transform.GetInstanceID();
         }

@@ -15,7 +15,7 @@ namespace RegressionGames.RGBotConfigs
 
         // The client Id that owns this agent
         // Used as a performance optimization for mapping the ClientId into the state payloads
-        public uint? ClientId = null;
+        public long? ClientId = null;
 
         public RGAgent()
         {

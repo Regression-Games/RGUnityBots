@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
@@ -18,7 +19,7 @@ namespace RegressionGames.Types
 
         private bool _connecting = false;
 
-        public RGClientConnection_Remote(uint clientId, string lifecycle = "MANAGED",
+        public RGClientConnection_Remote(long clientId, string lifecycle = "MANAGED",
             [CanBeNull] RGBotInstanceExternalConnectionInfo connectionInfo = null, [CanBeNull] TcpClient client = null) : base(clientId, RGClientConnectionType.REMOTE, lifecycle)
         {
             this._client = client;
@@ -89,10 +90,17 @@ namespace RegressionGames.Types
         public override bool Connected()
         {
             if (_client != null && _connectionInfo != null) {
-                if (_client?.Client?.RemoteEndPoint is IPEndPoint ep && ep.Port == _connectionInfo.port &&
-                    AddressesEqual(ep.Address.ToString(), _connectionInfo.address))
+                try
                 {
-                    return _client.Connected;
+                    if (_client?.Client?.RemoteEndPoint is IPEndPoint ep && ep.Port == _connectionInfo.port &&
+                        AddressesEqual(ep.Address.ToString(), _connectionInfo.address))
+                    {
+                        return _client.Connected;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // on teardown, the RemoteEndPoint can become invalid before the socket closes fully
                 }
             }
 
@@ -174,7 +182,7 @@ namespace RegressionGames.Types
                             }, null);
 
                             // start a timer for 5 seconds from now that will cancel the connection attempt if it didn't connect yet
-                            System.Timers.Timer t = new System.Timers.Timer(5000);
+                            Timer t = new Timer(5000);
                             t.Elapsed += (s, e) =>
                             {
                                 // see if we need to cancel the connect
@@ -317,7 +325,7 @@ namespace RegressionGames.Types
 
             string type = clientSocketMessage.type;
             string token = clientSocketMessage.token;
-            uint clientId = clientSocketMessage.clientId;
+            long clientId = clientSocketMessage.clientId;
             string data = clientSocketMessage.data;
 
             switch (type)
@@ -338,14 +346,14 @@ namespace RegressionGames.Types
 
         }
         
-        private void HandleClientHandshakeMessage(uint clientId, string data)
+        private void HandleClientHandshakeMessage(long clientId, string data)
         {
             RGClientHandshake handshakeMessage = JsonUtility.FromJson<RGClientHandshake>(data);
             //token check is handled in this method call
             RGBotServerListener.GetInstance()?.HandleClientHandshakeMessage(clientId, handshakeMessage);
         }
         
-        private void HandleClientValidationResultMessage(uint clientId, string token, string data)
+        private void HandleClientValidationResultMessage(long clientId, string token, string data)
         {
             if (CheckAccessToken(clientId, token) == true)
             {
@@ -354,7 +362,7 @@ namespace RegressionGames.Types
             }
         }
         
-        private void HandleClientRequestMessage(uint clientId, string token, string data)
+        private void HandleClientRequestMessage(long clientId, string token, string data)
         {
             if (CheckAccessToken(clientId, token) == true)
             {
@@ -363,7 +371,7 @@ namespace RegressionGames.Types
             }
         }
         
-        private static bool CheckAccessToken(uint clientId, string clientToken)
+        private static bool CheckAccessToken(long clientId, string clientToken)
         {
             if (clientToken.Equals(RGBotServerListener.GetInstance()?.UnitySideToken))
             {

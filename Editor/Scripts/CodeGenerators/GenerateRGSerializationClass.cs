@@ -1,10 +1,10 @@
-using UnityEngine;
-using UnityEditor;
+using System.Collections.Generic;
+using System.IO;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.IO;
-using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
 
 namespace RegressionGames
 {

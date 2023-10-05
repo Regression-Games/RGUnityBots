@@ -8,7 +8,7 @@ namespace RegressionGames.RGBotLocalRuntime
 {
  public class RGBotRunner
     {
-        private readonly RGBotInstance _botInstance;
+        public readonly RGBotInstance BotInstance;
 
         private Thread _thread;
 
@@ -26,19 +26,19 @@ namespace RegressionGames.RGBotLocalRuntime
 
         public RGBotRunner(RGBotInstance botInstance, RGUserBot userBotCode, Action teardownHook)
         {
-            this._botInstance = botInstance;
+            this.BotInstance = botInstance;
             this._teardownHook = teardownHook;
             this._userBotCode = userBotCode;
-            this._rgObject = new RG((uint) botInstance.id);
+            this._rgObject = new RG(botInstance.id);
         }
 
         public void StartBot()
         {
             if (_thread == null)
             {
-                RGBotServerListener.GetInstance().SetUnityBotState((uint) _botInstance.id, RGUnityBotState.STARTING);
+                RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STARTING);
                 _thread = new Thread(this.RunBotLoop);
-                _thread.Name = $"RGBotRunner-{_botInstance.id}";
+                _thread.Name = $"RGBotRunner-{BotInstance.id}";
                 _running = true;
                 _thread.Start();
             }
@@ -84,10 +84,10 @@ namespace RegressionGames.RGBotLocalRuntime
             handshakeMessage.spawnable = _userBotCode.spawnable;
             handshakeMessage.characterConfig = _rgObject.CharacterConfig;
             handshakeMessage.lifecycle = _userBotCode.lifecycle.ToString();
-            handshakeMessage.botName = _botInstance.bot.name;
+            handshakeMessage.botName = BotInstance.bot.name;
                 
             // do the 'handshake'  In remote bots they send a message to cause this, but we'll call it directly just after starting
-            RGBotServerListener.GetInstance().HandleClientHandshakeMessage((uint)_botInstance.id, handshakeMessage);
+            RGBotServerListener.GetInstance().HandleClientHandshakeMessage(BotInstance.id, handshakeMessage);
             
             while (_running)
             {
@@ -101,7 +101,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
                 if (tickInfoCount > 1)
                 {
-                    RGDebug.LogWarning($"WARNING: Bot instanceId: {_botInstance.id}, botName: {_botInstance.bot.name}, botId: {_botInstance.bot.id} is processing slower than the tick rate.  {tickInfoCount-1} tick info updates have been discarded... processing latest tick info");
+                    RGDebug.LogWarning($"WARNING: Bot instanceId: {BotInstance.id}, botName: {BotInstance.bot.name}, botId: {BotInstance.bot.id} is processing slower than the tick rate.  {tickInfoCount-1} tick info updates have been discarded... processing latest tick info");
                 }
 
                 if (tickInfo != null)
@@ -116,14 +116,14 @@ namespace RegressionGames.RGBotLocalRuntime
                     foreach (RGActionRequest rgActionRequest in actions)
                     {
                         RGBotServerListener.GetInstance()
-                            .HandleClientActionRequest((uint)_botInstance.id, rgActionRequest);
+                            .HandleClientActionRequest(BotInstance.id, rgActionRequest);
                     }
 
                     List<RGValidationResult> validations = _rgObject.FlushValidations();
                     foreach (RGValidationResult rgValidationResult in validations)
                     {
                         RGBotServerListener.GetInstance()
-                            .HandleClientValidationResult((uint)_botInstance.id, rgValidationResult);
+                            .HandleClientValidationResult(BotInstance.id, rgValidationResult);
                     }
                 }
                 else
@@ -134,7 +134,7 @@ namespace RegressionGames.RGBotLocalRuntime
                     Thread.Sleep(10);
                 }
             }
-            RGBotServerListener.GetInstance().SetUnityBotState((uint) _botInstance.id, RGUnityBotState.STOPPED);
+            RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STOPPED);
         }
 
     }

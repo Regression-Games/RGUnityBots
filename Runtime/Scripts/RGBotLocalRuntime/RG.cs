@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
 using RegressionGames.StateActionTypes;
-using Vector3 = UnityEngine.Vector3;
+using UnityEngine;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
@@ -19,9 +19,9 @@ namespace RegressionGames.RGBotLocalRuntime
         // This needs to be strongly typed someday when we fully bake the SDK, not a json string
         public string CharacterConfig = null;
 
-        public readonly uint ClientId;
+        public readonly long ClientId;
 
-        public RG(uint clientId)
+        public RG(long clientId)
         {
             this.ClientId = clientId;
         }
@@ -104,10 +104,10 @@ namespace RegressionGames.RGBotLocalRuntime
 
         /**
          * <summary>Used to find a list of players from the game state.</summary>
-         * <param name="clientId">{uint | null} Search for players owned by a specific clientId</param>
+         * <param name="clientId">{long | null} Search for players owned by a specific clientId</param>
          * <returns>{List&lt;RGStateEntity&gt;} All players owned by the given clientId, or all players in the state if client is null.</returns>
          */
-        public List<RGStateEntity> FindPlayers(uint? clientId = null)
+        public List<RGStateEntity> FindPlayers(long? clientId = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
