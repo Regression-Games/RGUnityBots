@@ -701,19 +701,18 @@ namespace RegressionGames.Editor
                 {
                     Vector3? position = null;
                     Quaternion? rotation = null;
-                    JToken charType = ti?.state?.GetValue("characterType");
-                    string characterType = charType == null ? "" : charType.Value<string>();
+                    string characterType = (string)ti?.state?.GetValueOrDefault("characterType", "");
 
-                    if (ti.state["position"] != null)
-                        position = new Vector3(ti.state["position"]["x"].Value<float>(),
-                            ti.state["position"]["y"].Value<float>(),
-                            ti.state["position"]["z"].Value<float>());
-
-
-                    if (ti.state["rotation"] != null)
-                        rotation = new Quaternion((float)ti.state["rotation"]["x"], (float)ti.state["rotation"]["y"],
-                            (float)ti.state["rotation"]["z"], (float)ti.state["rotation"]["w"]);
-
+                    if (ti?.state?.position != null)
+                    {
+                        position = ti.state.position;
+                    }
+                    
+                    if (ti?.state?.rotation != null)
+                    {
+                        rotation = ti.state.rotation;
+                    }
+                    
                     var typeRootName = $"{tickData.data.type}s";
                     var typeRoot = findChildByName(rootObject.transform, typeRootName);
                     if (typeRoot == null)
@@ -809,7 +808,7 @@ namespace RegressionGames.Editor
             if (tickData.justDespawned)
             {
                 var priorPosition = tickInfoManager.GetEntityInfoForTick(currentTick - 1, tickData.data.id)?.tickInfo
-                    ?.position;
+                    ?.state.position;
                 var pos = (priorPosition ?? Vector3.zero) + DESPAWN_TEXT_OFFSET;
                 // create 'de-spawn' effect
                 if (despawnPrefab == null)
@@ -869,13 +868,13 @@ namespace RegressionGames.Editor
                         {
                             var ti = tickInfoManager.GetEntityInfoForTick(currentTick, targetId.Value)
                                 ?.tickInfo;
-                            if (ti?.position != null) position = ti.position;
+                            if (ti?.state.position != null) position = ti.state.position;
                         }
 
                         // if still null
-                        if (position == null && tickData.tickInfo?.position != null)
+                        if (position == null && tickData.tickInfo?.state.position != null)
                             // targeting the bot's self
-                            position = tickData.tickInfo?.position.Value;
+                            position = tickData.tickInfo?.state.position.Value;
                     }
 
                     if (position == null) position = Vector3.zero;

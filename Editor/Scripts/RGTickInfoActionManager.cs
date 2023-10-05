@@ -48,9 +48,9 @@ namespace RegressionGames.Editor
                     for (var i = tickNumber - 1; i >= 0; i--)
                     {
                         var ti = replayData.tickInfo[i];
-                        if (ti == null || ti.position == null) break;
+                        if (ti == null || ti.state.position == null) break;
 
-                        linePoints.Push(ti.position.Value);
+                        linePoints.Push(ti.state.position.Value);
                     }
 
                     if (linePoints.Count > 0) return linePoints.ToArray();
@@ -63,30 +63,39 @@ namespace RegressionGames.Editor
         {
             foreach (var gameStateObject in tickData.gameState)
             {
-                JObject jsonObject = (JObject)(object)gameStateObject.Value;
-                long entityId = jsonObject["id"].Value<long>();
+                RGStateEntity entity = gameStateObject.Value;
+                long entityId = entity.id;
 
                 var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
 
-                tickInfo.state = jsonObject;
-                bool isPlayer = false;
-                if (jsonObject.ContainsKey("isPlayer"))
-                {
-                    isPlayer = jsonObject["isPlayer"].Value<bool>();
-                }
+                tickInfo.state = entity;
+                bool isPlayer = entity.isPlayer;
 
-                bool isRuntimeObject = false;
-                if (jsonObject.ContainsKey("isRuntimeObject"))
-                {
-                    isRuntimeObject = jsonObject["isRuntimeObject"].Value<bool>();
-                }
-                populateReplayDataForEntity(entityId, isPlayer, isRuntimeObject, jsonObject["type"]?.Value<string>());
+                bool isRuntimeObject = entity.isRuntimeObject;
+                populateReplayDataForEntity(entityId, isPlayer, isRuntimeObject, entity.type);
                 
-                if (jsonObject.ContainsKey("position") && jsonObject["position"] != null)
+                // handle strong typing on position / rotation accessors
+                if (entity.ContainsKey("position") && entity["position"] != null)
                 {
-                    tickInfo.position = new Vector3(jsonObject["position"]["x"].Value<float>(),
-                        jsonObject["position"]["y"].Value<float>(),
-                        jsonObject["position"]["z"].Value<float>());
+                    if (entity["position"] is JObject)
+                    {
+                        var jObj = (JObject)entity["position"];
+                        entity["position"] = new Vector3(jObj["x"].Value<float>(),
+                            jObj["y"].Value<float>(),
+                            jObj["z"].Value<float>());
+                    }
+                }
+                
+                if (entity.ContainsKey("rotation") && entity["rotation"] != null)
+                {
+                    if (entity["rotation"] is JObject)
+                    {
+                        var jObj = (JObject)entity["rotation"];
+                        entity["rotation"] = new Quaternion(jObj["x"].Value<float>(),
+                            jObj["y"].Value<float>(),
+                            jObj["z"].Value<float>(),
+                            jObj["w"].Value<float>());
+                    }
                 }
             }
         }
@@ -162,8 +171,7 @@ namespace RegressionGames.Editor
     {
         public RGActionRequest[] actions = Array.Empty<RGActionRequest>();
         public RGValidationResult[] validationResults = Array.Empty<RGValidationResult>();
-        [CanBeNull] public Vector3? position;
-        public JObject state;
+        public RGStateEntity state;
     }
 
     [Serializable]
