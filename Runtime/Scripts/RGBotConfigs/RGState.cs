@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 
@@ -24,10 +26,6 @@ namespace RegressionGames.RGBotConfigs
         [Tooltip("Is this object spawned during runtime, or a fixed object in the scene?")]
         public bool isRuntimeObject = false;
 
-        [Header("3D Positioning")] 
-        public bool syncPosition = true;
-        public bool syncRotation = true;
-        
         /**
          * A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
@@ -44,20 +42,54 @@ namespace RegressionGames.RGBotConfigs
          */
         public RGStateEntity GetGameObjectState()
         {
+            var theTransform = this.transform;
+            
             var state = new RGStateEntity()
             {
-                ["id"] = this.transform.GetInstanceID(),
+                ["id"] = theTransform.GetInstanceID(),
                 ["type"] = objectType,
                 ["isPlayer"] = isPlayer,
                 ["isRuntimeObject"] = isRuntimeObject,
             };
 
-            if (syncPosition) state["position"] = transform.position;
-            if (syncRotation) state["rotation"] = transform.rotation;
+            state["position"] = theTransform.position;
+            state["rotation"] = theTransform.rotation;
             var dict = GetState();
             foreach (var entry in dict)
             {
                 state.Add(entry.Key, entry.Value);
+            }
+            
+            
+            // find all RGStateProvider behaviors and get their values
+            var stateProviders = this.gameObject.GetComponents<RGStateProvider>();
+            foreach (var rgStateProvider in stateProviders)
+            {
+                var type = rgStateProvider.GetType();
+                var dictionary = new Dictionary<string, object>();
+                state[type.Name] = dictionary;
+                foreach (PropertyInfo prop in type.GetProperties())
+                {
+                    try
+                    {
+                        if (prop.CanRead &&
+                            prop.PropertyType.IsPublic || prop.PropertyType.IsSerializable)
+                        {
+                            if (prop.PropertyType.IsPrimitive ||
+                                prop.PropertyType == typeof(Vector3) ||
+                                prop.PropertyType == typeof(Vector2) || 
+                                prop.PropertyType == typeof(Vector4) ||
+                                prop.PropertyType == typeof(Quaternion))
+                            {
+                                dictionary[prop.Name] = prop.GetValue(rgStateProvider);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // some properties' values aren't accessible
+                    }
+                }
             }
 
             return state;

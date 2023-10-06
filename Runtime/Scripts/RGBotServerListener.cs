@@ -514,6 +514,7 @@ namespace RegressionGames
             foreach (var rgState in statefulObjects)
             {
                 var state = rgState.GetGameObjectState();
+                
                 // if this object is a 'player' ... put the clientId that owns it into the state
                 if (rgState.isPlayer)
                 {
