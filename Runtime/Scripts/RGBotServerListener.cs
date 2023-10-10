@@ -518,10 +518,10 @@ namespace RegressionGames
                 // if this object is a 'player' ... put the clientId that owns it into the state
                 if (isPlayer)
                 {
-                    var rgAgent = rgState.GetComponentInParent<RGEntity>();
-                    if (rgAgent != null)
+                    var rgEntity = rgState.GetComponentInParent<RGEntity>();
+                    if (rgEntity != null)
                     {
-                        var clientId = rgAgent.ClientId;
+                        var clientId = rgEntity.ClientId;
                         if (clientId != null)
                         {
                             state["clientId"] = clientId;
@@ -543,11 +543,11 @@ namespace RegressionGames
                             // we have detected that they are here 
                             // this happens for menu bots that spawn human players to control
                             // doing this allows actions from the bot code to process to the human player agent
-                            if (rgAgent != null)
+                            if (rgEntity != null)
                             {
                                 // set this to avoid expensive lookups next time
-                                rgAgent.ClientId = clientId;
-                                agentMap[clientId].Add(rgAgent);
+                                rgEntity.ClientId = clientId;
+                                agentMap[clientId].Add(rgEntity);
                             }
                         }
                     }

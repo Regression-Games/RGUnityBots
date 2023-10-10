@@ -189,9 +189,9 @@ namespace RegressionGames
             if (rgBotServerListener != null)
             {
                 // Add the agent
-                var rgAgent = BotMap[botInformation.clientId].GetComponent<RGEntity>();
-                rgAgent.ClientId = botInformation.clientId;
-                rgBotServerListener.agentMap[botInformation.clientId].Add(rgAgent);
+                var rgEntity = BotMap[botInformation.clientId].GetComponent<RGEntity>();
+                rgEntity.ClientId = botInformation.clientId;
+                rgBotServerListener.agentMap[botInformation.clientId].Add(rgEntity);
             }
         }
 
@@ -295,9 +295,9 @@ namespace RegressionGames
                 if (existingBot != null)
                 {
                     // get their agent re-mapped
-                    var rgAgent = existingBot.GetComponent<RGEntity>();
-                    rgAgent.ClientId = botToSpawn.clientId;
-                    rgBotServerListener.agentMap[botToSpawn.clientId].Add(rgAgent);
+                    var rgEntity = existingBot.GetComponent<RGEntity>();
+                    rgEntity.ClientId = botToSpawn.clientId;
+                    rgBotServerListener.agentMap[botToSpawn.clientId].Add(rgEntity);
                 }
                 else
                 {

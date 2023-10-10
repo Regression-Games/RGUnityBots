@@ -290,8 +290,8 @@ namespace RegressionGames.Editor
             return $"{totalMs / 1000 / 60:00}:{totalMs / 1000 % 60:00}.{totalMs % 1000:000}";
         }
 
-        private int compareListElements([CanBeNull] RGAgentTickInfo aTi, [CanBeNull] RGAgentTickInfo bTi,
-            RGAgentReplayData a, RGAgentReplayData b)
+        private int compareListElements([CanBeNull] RGEntityTickInfo aTi, [CanBeNull] RGEntityTickInfo bTi,
+            RGEntityReplayData a, RGEntityReplayData b)
         {
             if (aTi != null && bTi == null) return -1;
             if (bTi != null && aTi == null) return 1;
@@ -401,10 +401,10 @@ namespace RegressionGames.Editor
 
                 // sort rData based on active for current tick
 
-                var tickInfos = new Dictionary<long, RGAgentTickInfo>();
+                var tickInfos = new Dictionary<long, RGEntityTickInfo>();
 
                 for (var i = 0; i < rData.Count; i++)
-                    tickInfos[rData[i].id] = RGAgentDataForTick.FromReplayData(rData[i], currentTick)?.tickInfo;
+                    tickInfos[rData[i].id] = RGEntityDataForTick.FromReplayData(rData[i], currentTick)?.tickInfo;
 
                 rData.Sort((a, b) => compareListElements(tickInfos[a.id], tickInfos[b.id], a, b));
 
@@ -688,7 +688,7 @@ namespace RegressionGames.Editor
             }
         }
 
-        private void UpdatePlayerForGameState(RGAgentDataForTick tickData)
+        private void UpdatePlayerForGameState(RGEntityDataForTick tickData)
         {
             // populate the 'state' into our scene 
 
@@ -822,7 +822,7 @@ namespace RegressionGames.Editor
             }
         }
 
-        private void UpdatePlayerForActions(RGAgentDataForTick tickData)
+        private void UpdatePlayerForActions(RGEntityDataForTick tickData)
         {
             if (tickData.data.showActions && tickData.tickInfo != null && tickData.tickInfo.actions.Length > 0)
             {
