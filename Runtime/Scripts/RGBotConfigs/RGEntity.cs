@@ -23,7 +23,7 @@ namespace RegressionGames.RGBotConfigs
         // maps action names to RGAction components
         private Dictionary<string, RGAction> actionMap = new Dictionary<string, RGAction>();
             
-        // The client Id that owns this agent
+        // The client Id that owns this entity
         // Used as a performance optimization for mapping the ClientId into the state payloads
         public long? ClientId = null;
         
@@ -38,7 +38,10 @@ namespace RegressionGames.RGBotConfigs
                 actionMap[action.GetActionName()] = action;
             }
 
-            RGDebug.LogDebug($"Agent registered with {actionMap.Count} actions");
+            if (actionMap.Count > 0)
+            {
+                RGDebug.LogDebug($"Entity registered with {actionMap.Count} actions");
+            }
         }
 
         public RGAction GetActionHandler(string actionName)
