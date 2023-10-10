@@ -1,14 +1,16 @@
 using System;
-using JetBrains.Annotations;
 
 namespace RegressionGames.Types
 {
     [Serializable]
     public class RGBotInstance
     {
+        // ReSharper disable InconsistentNaming
         public long id;
         public RGBot bot;
         public long? lobby;
+        public DateTimeOffset createdDate;
+        // ReSharper enable InconsistentNaming
 
         public override string ToString()
         {
@@ -31,4 +33,3 @@ namespace RegressionGames.Types
     }
     
 }
-

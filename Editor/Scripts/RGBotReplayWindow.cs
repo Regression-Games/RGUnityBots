@@ -6,16 +6,16 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using RegressionGames.StateActionTypes;
 using Newtonsoft.Json;
-using TMPro;
 using Newtonsoft.Json.Linq;
+using RegressionGames.StateActionTypes;
+using TMPro;
+using UnityEngine;
+using Object = UnityEngine.Object;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 #endif
-using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.Editor
 {
@@ -401,7 +401,7 @@ namespace RegressionGames.Editor
 
                 // sort rData based on active for current tick
 
-                var tickInfos = new Dictionary<long, RGAgentTickInfo?>();
+                var tickInfos = new Dictionary<long, RGAgentTickInfo>();
 
                 for (var i = 0; i < rData.Count; i++)
                     tickInfos[rData[i].id] = RGAgentDataForTick.FromReplayData(rData[i], currentTick)?.tickInfo;
@@ -701,19 +701,18 @@ namespace RegressionGames.Editor
                 {
                     Vector3? position = null;
                     Quaternion? rotation = null;
-                    JToken charType = ti?.state?.GetValue("characterType");
-                    string characterType = charType == null ? "" : charType.Value<string>();
+                    string characterType = (string)ti?.state?.GetValueOrDefault("characterType", "");
 
-                    if (ti.state["position"] != null)
-                        position = new Vector3(ti.state["position"]["x"].Value<float>(),
-                            ti.state["position"]["y"].Value<float>(),
-                            ti.state["position"]["z"].Value<float>());
-
-
-                    if (ti.state["rotation"] != null)
-                        rotation = new Quaternion((float)ti.state["rotation"]["x"], (float)ti.state["rotation"]["y"],
-                            (float)ti.state["rotation"]["z"], (float)ti.state["rotation"]["w"]);
-
+                    if (ti?.state?.position != null)
+                    {
+                        position = ti.state.position;
+                    }
+                    
+                    if (ti?.state?.rotation != null)
+                    {
+                        rotation = ti.state.rotation;
+                    }
+                    
                     var typeRootName = $"{tickData.data.type}s";
                     var typeRoot = findChildByName(rootObject.transform, typeRootName);
                     if (typeRoot == null)
@@ -809,7 +808,7 @@ namespace RegressionGames.Editor
             if (tickData.justDespawned)
             {
                 var priorPosition = tickInfoManager.GetEntityInfoForTick(currentTick - 1, tickData.data.id)?.tickInfo
-                    ?.position;
+                    ?.state.position;
                 var pos = (priorPosition ?? Vector3.zero) + DESPAWN_TEXT_OFFSET;
                 // create 'de-spawn' effect
                 if (despawnPrefab == null)
@@ -840,25 +839,25 @@ namespace RegressionGames.Editor
 
                     Vector3? position = null;
                     long? targetId = null;
-                    if (action.input.ContainsKey("targetId") && action.input["targetId"] != null)
-                        targetId = long.Parse(action.input["targetId"].ToString());
+                    if (action.Input.ContainsKey("targetId") && action.Input["targetId"] != null)
+                        targetId = long.Parse(action.Input["targetId"].ToString());
 
 
                     switch (actionType)
                     {
                         case "PerformSkill":
-                            var skillId = long.Parse(action.input["skillId"].ToString());
-                            if (action.input.ContainsKey("xPosition") && action.input["xPosition"] != null)
+                            var skillId = long.Parse(action.Input["skillId"].ToString());
+                            if (action.Input.ContainsKey("xPosition") && action.Input["xPosition"] != null)
                             {
-                                var xPosition = float.Parse(action.input["xPosition"].ToString());
-                                var yPosition = float.Parse(action.input["yPosition"].ToString());
-                                var zPosition = float.Parse(action.input["zPosition"].ToString());
+                                var xPosition = float.Parse(action.Input["xPosition"].ToString());
+                                var yPosition = float.Parse(action.Input["yPosition"].ToString());
+                                var zPosition = float.Parse(action.Input["zPosition"].ToString());
                                 position = new Vector3(xPosition, yPosition, zPosition);
                             }
 
                             break;
                         case "FollowObject":
-                            var range = float.Parse(action.input["range"].ToString());
+                            var range = float.Parse(action.Input["range"].ToString());
                             break;
                     }
 
@@ -869,13 +868,13 @@ namespace RegressionGames.Editor
                         {
                             var ti = tickInfoManager.GetEntityInfoForTick(currentTick, targetId.Value)
                                 ?.tickInfo;
-                            if (ti?.position != null) position = ti.position;
+                            if (ti?.state.position != null) position = ti.state.position;
                         }
 
                         // if still null
-                        if (position == null && tickData.tickInfo?.position != null)
+                        if (position == null && tickData.tickInfo?.state.position != null)
                             // targeting the bot's self
-                            position = tickData.tickInfo?.position.Value;
+                            position = tickData.tickInfo?.state.position.Value;
                     }
 
                     if (position == null) position = Vector3.zero;
@@ -897,27 +896,27 @@ namespace RegressionGames.Editor
 
             Vector3? position = null;
             long? targetId = null;
-            if (action.input.ContainsKey("targetId") && action.input["targetId"] != null)
-                targetId = long.Parse(action.input["targetId"].ToString());
+            if (action.Input.ContainsKey("targetId") && action.Input["targetId"] != null)
+                targetId = long.Parse(action.Input["targetId"].ToString());
             actionText += $"\r\nTargetId: {(targetId != null ? targetId : "n/a")}";
 
             switch (actionType)
             {
                 case "PerformSkill":
-                    var skillId = long.Parse(action.input["skillId"].ToString());
+                    var skillId = long.Parse(action.Input["skillId"].ToString());
                     actionText += $"\r\n{actionType}: {skillId}";
-                    if (action.input.ContainsKey("xPosition") && action.input["xPosition"] != null)
+                    if (action.Input.ContainsKey("xPosition") && action.Input["xPosition"] != null)
                     {
-                        var xPosition = float.Parse(action.input["xPosition"].ToString());
-                        var yPosition = float.Parse(action.input["yPosition"].ToString());
-                        var zPosition = float.Parse(action.input["zPosition"].ToString());
+                        var xPosition = float.Parse(action.Input["xPosition"].ToString());
+                        var yPosition = float.Parse(action.Input["yPosition"].ToString());
+                        var zPosition = float.Parse(action.Input["zPosition"].ToString());
                         position = new Vector3(xPosition, yPosition, zPosition);
                         actionText += $"\r\nPosition: {xPosition}, {yPosition}, {zPosition}";
                     }
 
                     break;
                 case "FollowObject":
-                    var range = float.Parse(action.input["range"].ToString());
+                    var range = float.Parse(action.Input["range"].ToString());
                     actionText += $"\r\nRange: {range}";
                     break;
             }

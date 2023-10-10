@@ -1,9 +1,7 @@
-﻿using UnityEngine;
-
+﻿using System.IO;
 using System.Security.Cryptography.X509Certificates;
-using UnityEngine.Networking;
-using System.IO;
 using JetBrains.Annotations;
+using UnityEngine.Networking;
 
 namespace RegressionGames
 {

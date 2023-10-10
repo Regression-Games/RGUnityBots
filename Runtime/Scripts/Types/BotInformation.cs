@@ -6,11 +6,11 @@ namespace RegressionGames.Types
     [Serializable]
     public class BotInformation
     {
-        public uint clientId;
+        public long clientId;
         public string botName;
         public string characterConfig;
 
-        public BotInformation(uint clientId, string botName, string characterConfig)
+        public BotInformation(long clientId, string botName, string characterConfig)
         {
             this.clientId = clientId;
             this.botName = botName;

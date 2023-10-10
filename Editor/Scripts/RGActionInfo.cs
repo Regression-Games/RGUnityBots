@@ -1,10 +1,9 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace RegressionGames
 {
-    [System.Serializable]
+    [Serializable]
     public class RGActionInfo
     {
         // the name of the component class that contains the [RGAction] attribute tags

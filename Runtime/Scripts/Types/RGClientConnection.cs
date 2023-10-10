@@ -1,55 +1,45 @@
-using System.Net;
-using System.Net.Sockets;
-using JetBrains.Annotations;
+using RegressionGames.StateActionTypes;
 
 namespace RegressionGames.Types
 {
-    public class RGClientConnection
+    public abstract class RGClientConnection
     {
-        public readonly uint clientId;
-        [CanBeNull] public TcpClient client;
-        public bool handshakeComplete = false;
-        public string lifecycle;
-        public bool connecting = false;
-        [CanBeNull] public RGBotInstanceExternalConnectionInfo connectionInfo;
+        public readonly long ClientId;
+        public string Lifecycle;
 
-        public RGClientConnection(uint clientId, string lifecycle = "MANAGED", [CanBeNull] RGBotInstanceExternalConnectionInfo connectionInfo = null, [CanBeNull] TcpClient client = null)
+        public string Token;
+
+        public readonly RGClientConnectionType Type;
+
+        public RGClientConnection(long clientId, RGClientConnectionType type, string lifecycle = "MANAGED")
         {
-            this.clientId = clientId;
-            this.lifecycle = lifecycle;
-            this.client = client;
-            this.connectionInfo = connectionInfo;
+            this.ClientId = clientId;
+            this.Lifecycle = lifecycle;
+            this.Type = type;
         }
 
-        public bool Connected 
+        public virtual async void Connect()
         {
-            get
-            {
-                IPEndPoint ep = ((IPEndPoint)this.client?.Client.RemoteEndPoint);
-                if (ep != null && ep.Port == connectionInfo.port && AddressesEqual(ep.Address.ToString(), connectionInfo.address))
-                {
-                    return this.client.Connected;
-                }
-
-                // not connected or port/address mis-match.. need to re-connect
-                return false;
-            }
-        }
-
-        private bool AddressesEqual(string address1, string address2)
-        {
-            // normalize localhost
-            if (address1 == "127.0.0.1")
-            {
-                address1 = "localhost";
-            }
             
-            if (address2 == "127.0.0.1")
-            {
-                address2 = "localhost";
-            }
-
-            return address1.Equals(address2);
         }
+
+        public abstract bool SendTeardown();
+        
+        public abstract bool SendTickInfo(RGTickInfoData tickInfo);
+
+        public abstract bool SendHandshakeResponse(RGServerHandshake handshake);
+
+        public abstract bool Connected();
+
+        public virtual void Close()
+        {
+        }
+        
+    }
+
+    public enum RGClientConnectionType
+    {
+        LOCAL,
+        REMOTE
     }
 }

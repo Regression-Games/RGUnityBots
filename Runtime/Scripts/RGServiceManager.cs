@@ -1,10 +1,10 @@
 using System;
-using System.Collections;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -16,8 +16,8 @@ namespace RegressionGames
 
         public static readonly string RG_UNITY_AUTH_TOKEN = Guid.NewGuid().ToString();
 
-        // 30 seconds
-        public static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 30;
+        // 10 seconds
+        public static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 10;
 
         private static Mutex authLock = new Mutex(false,"AuthLock");
 
@@ -98,19 +98,31 @@ namespace RegressionGames
             // don't all first off an auth request in parallel
             if (!IsAuthed())
             {
-                authLock.WaitOne();
+                while (!authLock.WaitOne(1_000));
+                
                 try
                 {
                     if (!IsAuthed())
                     {
-                        return await TryAuth();
+                        var result = await TryAuth();
+                        if (!result)
+                        {
+                            RGDebug.LogWarning(
+                                $"Failed to authenticate with the Regression Games server at {GetRgServiceBaseUri()}");
+                        }
+
+                        return result;
+                    }
+                    else
+                    {
+                        return true;
                     }
                 }
                 finally
                 {
                     authLock.ReleaseMutex();
                 }
-
+                
             }
             return true;
         }
@@ -169,107 +181,109 @@ namespace RegressionGames
 
         public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
         {
-            await EnsureAuthed();
-            await SendWebRequest(
-                uri: $"{GetRgServiceBaseUri()}/bot",
-                method: "GET",
-                payload: null,
-                onSuccess: async (s) =>
-                {
-                    // wrapper this as C#/Unity json can't handle top level arrays /yuck
-                    string theNewText = $"{{\"bots\":{s}}}";
-                    RGBotList response = JsonUtility.FromJson<RGBotList>(theNewText);
-                    RGDebug.LogDebug($"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
-                    onSuccess.Invoke(response.bots);
-                },
-                onFailure: async (f) =>
-                {
-                    RGDebug.LogWarning($"Failed retrieving bots for current user: {f}");
-                    onFailure.Invoke();
-                }
-            );
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot",
+                    method: "GET",
+                    payload: null,
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        string theNewText = $"{{\"bots\":{s}}}";
+                        RGBotList response = JsonUtility.FromJson<RGBotList>(theNewText);
+                        RGDebug.LogDebug(
+                            $"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
+                        onSuccess.Invoke(response.bots);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed retrieving bots for current user: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
         }
 
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
-            await EnsureAuthed();
-            await SendWebRequest(
-                uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
-                method: "GET",
-                payload: null,
-                onSuccess: async (s) =>
-                {
-                    RGBotInstanceExternalConnectionInfo connInfo =
-                        JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
-                    RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
-                    onSuccess.Invoke(connInfo);
-                },
-                onFailure: async (f) =>
-                {
-                    onFailure.Invoke();
-                }
-            );
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
+                    method: "GET",
+                    payload: null,
+                    onSuccess: async (s) =>
+                    {
+                        RGBotInstanceExternalConnectionInfo connInfo =
+                            JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
+                        RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
+                        onSuccess.Invoke(connInfo);
+                    },
+                    onFailure: async (f) => { onFailure.Invoke(); }
+                );
+            }
         }
 
         public async Task QueueInstantBot(long botId, Action<RGBotInstance> onSuccess, Action onFailure)
         {
-            await EnsureAuthed();
-            await SendWebRequest(
-                uri: $"{GetRgServiceBaseUri()}/matchmaking/instant-bot/queue",
-                method: "POST",
-                payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("unused", 0, botId, RG_UNITY_AUTH_TOKEN)), // TODO Remove host and port from payload if they're optional
-                onSuccess: async (s) =>
-                {
-                    RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
-                    RGBotServerListener.GetInstance().SetUnityBotState((uint) botInstance.id, RGUnityBotState.STARTING);
-                    RGDebug.LogInfo($"Bot Instance id: {botInstance.id} started");
-                    onSuccess.Invoke(botInstance);
-                },
-                onFailure: async (f) =>
-                {
-                    onFailure.Invoke();
-                }
-            );
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/matchmaking/instant-bot/queue",
+                    method: "POST",
+                    payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("unused", 0, botId,
+                        RG_UNITY_AUTH_TOKEN)), // TODO Remove host and port from payload if they're optional
+                    onSuccess: async (s) =>
+                    {
+                        RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
+                        RGBotServerListener.GetInstance()
+                            .SetUnityBotState(botInstance.id, RGUnityBotState.STARTING);
+                        RGDebug.LogInfo($"Bot Instance id: {botInstance.id} started");
+                        onSuccess.Invoke(botInstance);
+                    },
+                    onFailure: async (f) => { onFailure.Invoke(); }
+                );
+            }
         }
 
         public async Task GetRunningInstancesForBot(long botId, Action<RGBotInstance[]> onSuccess, Action onFailure)
         {
-            await EnsureAuthed();
-            await SendWebRequest(
-                uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botId}",
-                method: "GET",
-                payload: null,
-                onSuccess: async (s) =>
-                {
-                    // wrapper this as C#/Unity json can't handle top level arrays /yuck
-                    string theNewText = $"{{\"botInstances\":{s}}}";
-                    RGBotInstanceList botInstanceList = JsonUtility.FromJson<RGBotInstanceList>(theNewText);
-                    onSuccess.Invoke(botInstanceList.botInstances);
-                },
-                onFailure: async (f) =>
-                {
-                    onFailure.Invoke();
-                }
-            );
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botId}",
+                    method: "GET",
+                    payload: null,
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        string theNewText = $"{{\"botInstances\":{s}}}";
+                        // Using a different JSON library here to try to handle date time fields better
+                        RGBotInstanceList botInstanceList = JsonConvert.DeserializeObject<RGBotInstanceList>(theNewText);
+                        onSuccess.Invoke(botInstanceList.botInstances);
+                    },
+                    onFailure: async (f) => { onFailure.Invoke(); }
+                );
+            }
         }
 
         public async Task StopBotInstance(long botInstanceId, Action onSuccess, Action onFailure)
         {
-            await EnsureAuthed();
-            await SendWebRequest(
-                uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/stop",
-                method: "POST",
-                payload: null,
-                onSuccess: async (s) =>
-                {
-                    onSuccess.Invoke();
-                },
-                onFailure: async (f) =>
-                {
-                    RGDebug.LogWarning($"Failed to stop bot instance {botInstanceId}: {f}");
-                    onFailure.Invoke();
-                }
-            );
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/stop",
+                    method: "POST",
+                    payload: null,
+                    onSuccess: async (s) => { onSuccess.Invoke(); },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to stop bot instance {botInstanceId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
         }
 
         /**
