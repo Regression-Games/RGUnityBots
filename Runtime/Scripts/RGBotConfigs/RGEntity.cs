@@ -28,8 +28,8 @@ namespace RegressionGames.RGBotConfigs
         public long? ClientId = null;
         
         /**
-     * Updates the registry with a game object that has RGAction scripts attached to it
-     */
+         * Updates the registry with a game object that has RGAction scripts attached to it
+         */
         void Start()
         {
             var actions = GetComponents<RGAction>();
