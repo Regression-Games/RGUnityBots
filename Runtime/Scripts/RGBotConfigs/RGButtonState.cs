@@ -9,9 +9,9 @@ namespace RegressionGames.RGBotConfigs
 
         public RGButtonState()
         {
-            if (string.IsNullOrEmpty(this.objectType))
+            if (string.IsNullOrEmpty(rgEntity.objectType))
             {
-                this.objectType = "Button";
+                rgEntity.objectType = "Button";
             }
         }
 

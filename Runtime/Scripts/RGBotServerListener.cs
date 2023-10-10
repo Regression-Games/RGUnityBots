@@ -25,7 +25,7 @@ namespace RegressionGames
 
         private static RGBotServerListener _this = null;
         
-        public readonly ConcurrentDictionary<uint?, HashSet<RGAgent>> agentMap = new ();
+        public readonly ConcurrentDictionary<uint?, HashSet<RGEntity>> agentMap = new ();
 
         private long tick = 0;
 
@@ -580,10 +580,11 @@ namespace RegressionGames
             foreach (var rgState in statefulObjects)
             {
                 var state = rgState.GetGameObjectState();
+                bool isPlayer = (bool)state["isPlayer"];
                 // if this object is a 'player' ... put the clientId that owns it into the state
-                if (rgState.isPlayer)
+                if (isPlayer)
                 {
-                    var rgAgent = rgState.GetComponentInParent<RGAgent>();
+                    var rgAgent = rgState.GetComponentInParent<RGEntity>();
                     if (rgAgent != null)
                     {
                         var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(rgAgent)).Key;
@@ -600,7 +601,7 @@ namespace RegressionGames
                         // Note: We have to be very careful here or we'll set this up wrong
                         // we only want to give the overlay agent to the human player.
                         // Before the clientIds are all connected, this can mess-up
-                        var overlayAgent = this.gameObject.GetComponent<RGAgent>();
+                        var overlayAgent = this.gameObject.GetComponent<RGEntity>();
                         var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
                         if (clientId != null)
                         {
@@ -876,11 +877,11 @@ namespace RegressionGames
                     if (!spawnable && "PERSISTENT".Equals(lifecycle))
                     {
                         // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
-                        agentMap[clientId] = new HashSet<RGAgent> { this.gameObject.GetComponent<RGAgent>() };
+                        agentMap[clientId] = new HashSet<RGEntity> { this.gameObject.GetComponent<RGEntity>() };
                     }
                     else
                     {
-                        agentMap[clientId] = new HashSet<RGAgent>( );
+                        agentMap[clientId] = new HashSet<RGEntity>( );
                     }
 
                     // set this BEFORE sending the response of handshake to the client so it actually sends
