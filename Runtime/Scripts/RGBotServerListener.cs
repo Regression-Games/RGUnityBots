@@ -627,7 +627,7 @@ namespace RegressionGames
                     {
                         // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
                         RGEntity theAgent = this.gameObject.GetComponent<RGEntity>();
-                        agentMap[clientId] = new HashSet<RGAgent> { theAgent };
+                        agentMap[clientId] = new HashSet<RGEntity> { theAgent };
                     }
                     else
                     {

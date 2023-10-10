@@ -9,7 +9,7 @@ namespace RegressionGames.RGBotConfigs
      * This class keeps track of the actions that an agent can take within the game.
      * If an action is requested that doesn't exist at startup, an error is thrown.
      */
-    [Obsolete("`RGAgent` is obsolete and will be removed in a future version. Please use an 'RGEntity' component instead.", false)]
+    [Obsolete("`RGAgent` is obsolete and will be removed in future versions. Please use an 'RGEntity' component instead.", false)]
     public class RGAgent : MonoBehaviour
     {
 
