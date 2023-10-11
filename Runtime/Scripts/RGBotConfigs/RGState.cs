@@ -13,7 +13,7 @@ using UnityEngine;
 namespace RegressionGames.RGBotConfigs
 {
     [RequireComponent(typeof(RGEntity))]
-    public class RGState : MonoBehaviour
+    public class RGState : MonoBehaviour, IRGState
     {
         
         // we require each state to have an 'RGEntity' component

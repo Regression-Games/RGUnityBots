@@ -506,7 +506,7 @@ namespace RegressionGames
         {
             var overlayAgent = this.gameObject.GetComponent<RGEntity>();
 
-            var statefulObjects = FindObjectsOfType<RGState>();
+            var statefulObjects = FindObjectsOfType<MonoBehaviour>(true).OfType<IRGState>();
             var totalState = new Dictionary<string, RGStateEntity>();
             
             // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
@@ -518,36 +518,40 @@ namespace RegressionGames
                 // if this object is a 'player' ... put the clientId that owns it into the state
                 if (isPlayer)
                 {
-                    var rgEntity = rgState.GetComponentInParent<RGEntity>();
-                    if (rgEntity != null)
+                    var statefulObject = rgState as RGState;
+                    if (statefulObject)
                     {
-                        var clientId = rgEntity.ClientId;
-                        if (clientId != null)
+                        var rgEntity = statefulObject.GetComponentInParent<RGEntity>();
+                        if (rgEntity != null)
                         {
-                            state["clientId"] = clientId;
-                        }
-                    }
-
-                    if (!state.ContainsKey("clientId"))
-                    {
-                        // for things like menu bots that end up spawning a human player
-                        // use the agent from the overlay
-                        // Note: We have to be very careful here or we'll set this up wrong
-                        // we only want to give the overlay agent to the human player.
-                        // Before the clientIds are all connected, this can mess-up
-                        var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
-                        if (clientId != null)
-                        {
-                            state["clientId"] = clientId;
-                            // add the agent from the player's object to the agentMap now that 
-                            // we have detected that they are here 
-                            // this happens for menu bots that spawn human players to control
-                            // doing this allows actions from the bot code to process to the human player agent
-                            if (rgEntity != null)
+                            var clientId = rgEntity.ClientId;
+                            if (clientId != null)
                             {
-                                // set this to avoid expensive lookups next time
-                                rgEntity.ClientId = clientId;
-                                agentMap[clientId].Add(rgEntity);
+                                state["clientId"] = clientId;
+                            }
+                        }
+
+                        if (!state.ContainsKey("clientId"))
+                        {
+                            // for things like menu bots that end up spawning a human player
+                            // use the agent from the overlay
+                            // Note: We have to be very careful here or we'll set this up wrong
+                            // we only want to give the overlay agent to the human player.
+                            // Before the clientIds are all connected, this can mess-up
+                            var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
+                            if (clientId != null)
+                            {
+                                state["clientId"] = clientId;
+                                // add the agent from the player's object to the agentMap now that 
+                                // we have detected that they are here 
+                                // this happens for menu bots that spawn human players to control
+                                // doing this allows actions from the bot code to process to the human player agent
+                                if (rgEntity != null)
+                                {
+                                    // set this to avoid expensive lookups next time
+                                    rgEntity.ClientId = clientId;
+                                    agentMap[clientId].Add(rgEntity);
+                                }
                             }
                         }
                     }
