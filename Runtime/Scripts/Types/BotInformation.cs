@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace RegressionGames.Types
@@ -6,11 +7,14 @@ namespace RegressionGames.Types
     [Serializable]
     public class BotInformation
     {
+        // ReSharper disable InconsistentNaming
         public long clientId;
         public string botName;
-        public string characterConfig;
 
-        public BotInformation(long clientId, string botName, string characterConfig)
+        public Dictionary<string, object> characterConfig;
+        // ReSharper enable InconsistentNaming
+
+        public BotInformation(long clientId, string botName, Dictionary<string, object> characterConfig)
         {
             this.clientId = clientId;
             this.botName = botName;
@@ -19,12 +23,12 @@ namespace RegressionGames.Types
 
         /**
          * <summary>
-         * Parses the JSON from characterConfig into the serialized data type
-         * passed into the generic of this function.
+         *     Parses the JSON from characterConfig into the serialized data type
+         *     passed into the generic of this function.
          * </summary>
          * <returns>An object of type T deserialized from the JSON string</returns>
          * <example>
-         * <code>
+         *     <code>
          * [Serializable]
          * public class BotCharacterConfig
          * {
@@ -37,19 +41,19 @@ namespace RegressionGames.Types
          */
         public T ParseCharacterConfig<T>()
         {
-            return JsonConvert.DeserializeObject<T>(characterConfig);
+            return JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(characterConfig));
         }
 
         /**
          * <summary>
-         * Updates the bots character config - this is useful for overriding or adding new
-         * information defined and set by your Unity code. For example, when seating a bot, you may
-         * discover that the requested character type is no longer available, and you need to let
-         * the bot know. The generic type you pass in must be [Serializable].
+         *     Updates the bots character config - this is useful for overriding or adding new
+         *     information defined and set by your Unity code. For example, when seating a bot, you may
+         *     discover that the requested character type is no longer available, and you need to let
+         *     the bot know. The generic type you pass in must be [Serializable].
          * </summary>
          * <param name="newConfig">The new config to save and send to the bot</param>
          * <example>
-         * <code>
+         *     <code>
          * [Serializable]
          * public class BotCharacterConfig
          * {
@@ -63,8 +67,8 @@ namespace RegressionGames.Types
          */
         public void UpdateCharacterConfig<T>(T newConfig)
         {
-            characterConfig = JsonConvert.SerializeObject(newConfig);
+            characterConfig =
+                JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(newConfig));
         }
-        
     }
 }

@@ -18,24 +18,19 @@ namespace RegressionGames.RGBotLocalRuntime
         
         private readonly ConcurrentQueue<RGValidationResult> _validationResults = new();
 
-        // This needs to be strongly typed someday when we fully bake the SDK, not a json string
-        public string CharacterConfig = null;
+        public Dictionary<string, object> CharacterConfig = new();
 
         public readonly long ClientId;
 
         public RG(long clientId)
         {
-            this.ClientId = clientId;
+            ClientId = clientId;
         }
 
         /**
-         * <summary>Retrieve the current game scene name.</summary>
-         * <returns>{string} The current game scene name.</returns>
+         * <summary>{string} The current game scene name.</summary>
          */
-        public string GetSceneName()
-        {
-            return _tickInfo.sceneName;
-        }
+        public string SceneName => _tickInfo.sceneName;
 
         /**
          * <summary>Mark this bot complete and ready for teardown.</summary>
@@ -60,41 +55,49 @@ namespace RegressionGames.RGBotLocalRuntime
          */
         public List<RGStateEntity> GetMyPlayers()
         {
-            return this.FindPlayers(ClientId);
+            return FindPlayers(ClientId);
         }
 
         /**
          * <summary>Used to find the closest Entity to the given position.</summary>
          * <param name="objectType">{string | null} Search for entities of a specific type</param>
-         * <param name="position">{Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot position in index 0.</param>
+         * <param name="position">
+         *     {Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot
+         *     position in index 0.
+         * </param>
+         * <param name="filterFunction">{Func&lt;RGStateEntity, bool&gt; | null} Function to filter entities.</param>
          * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
-        public RGStateEntity FindNearestEntity(string objectType = null, Vector3? position = null)
+        public RGStateEntity FindNearestEntity(string objectType = null, Vector3? position = null,
+            Func<RGStateEntity, bool> filterFunction = null)
         {
-            var result = this.FindEntities(objectType);
+            var result = FindEntities(objectType);
 
-            var pos = position ?? this.GetMyPlayers()[0].position ?? Vector3.zero;
-            
-            result.Sort((e1, e2) =>
+            if (filterFunction != null)
+                // filter entities
+                result = result.Where(filterFunction).ToList();
+
+            if (result.Count > 1)
             {
-                var val = MathFunctions.DistanceSq(pos, e1.position ?? Vector3.zero) -
-                             MathFunctions.DistanceSq(pos, e1.position ?? Vector3.zero);
-                if (val < 0)
-                {
-                    return -1;
-                }
-                else if (val > 0)
-                {
-                    return 1;
-                }
+                // sort by distance
+                var pos = position ?? GetMyPlayers()[0].position ?? Vector3.zero;
 
-                return 0;
-            });
+                result.Sort((e1, e2) =>
+                {
+                    var val = MathFunctions.DistanceSq(pos, e1.position ?? Vector3.zero) -
+                              MathFunctions.DistanceSq(pos, e1.position ?? Vector3.zero);
+                    if (val < 0)
+                        return -1;
+                    if (val > 0) return 1;
 
-            return result.Count>0 ? result[0] : null;
+                    return 0;
+                });
+            }
+
+            return result.Count > 0 ? result[0] : null;
         }
-        
+
         /**
          * <summary>Used to find a button Entity with the specific type name.</summary>
          * <param name="buttonName">{string | null} Search for button entities with a specific type name.</param>
@@ -202,7 +205,7 @@ namespace RegressionGames.RGBotLocalRuntime
         }
         
         
-        internal void SetCharacterConfig(string characterConfig)
+        internal void SetCharacterConfig(Dictionary<string, object> characterConfig)
         {
             this.CharacterConfig = characterConfig;
         }
