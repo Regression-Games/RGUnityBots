@@ -15,6 +15,7 @@ namespace RegressionGames.RGBotConfigs
      * TODO: Maybe we can connect this to RGState, so actions can report their state?
      *
      */
+    [RequireComponent(typeof(RGEntity))]
      public abstract class RGAction : MonoBehaviour
      {
          /*
