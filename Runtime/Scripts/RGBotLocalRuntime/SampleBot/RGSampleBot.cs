@@ -8,7 +8,6 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
 {
     public class RGSampleBot : RGUserBot
     {
-
         protected override bool GetIsSpawnable()
         {
             return true;
@@ -22,8 +21,11 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
         public override void ConfigureBot(RG rgObject)
         {
             var classIndex = new Random().Next(4);
-            var classes = new string[] {"Mage", "Rogue", "Tank", "Archer"};
-            rgObject.CharacterConfig = $"{{\"characterType\": \"{classes[classIndex]}\"}}";
+            var classes = new[] { "Mage", "Rogue", "Tank", "Archer" };
+            rgObject.CharacterConfig = new Dictionary<string, object>
+            {
+                { "characterType", $"{classes[classIndex]}" }
+            };
         }
 
         public override void ProcessTick(RG rgObject)
@@ -38,13 +40,13 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
 
                     var targetPosition = target.position ?? Vector3.zero;
                     //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
-                    var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
+                    var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>
                     {
                         { "skillId", new Random().Next(2) },
                         { "targetId", target["id"] },
                         { "xPosition", targetPosition.x },
                         { "yPosition", targetPosition.y },
-                        { "zPosition", targetPosition.z },
+                        { "zPosition", targetPosition.z }
                     });
                     rgObject.PerformAction(action);
                 }
