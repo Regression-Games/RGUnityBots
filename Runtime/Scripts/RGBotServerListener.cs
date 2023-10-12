@@ -519,7 +519,7 @@ namespace RegressionGames
                 if (isPlayer)
                 {
                     var statefulObject = rgState as RGState;
-                    if (statefulObject)
+                    if (statefulObject != null)
                     {
                         var rgEntity = statefulObject.GetComponentInParent<RGEntity>();
                         if (rgEntity != null)
