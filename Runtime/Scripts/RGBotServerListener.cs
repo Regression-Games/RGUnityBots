@@ -19,7 +19,7 @@ namespace RegressionGames
         [Tooltip("Send a state update every X ticks")]
         public int tickRate = 50;
 
-        public readonly ConcurrentDictionary<long?, HashSet<RGAgent>> agentMap = new ();
+        public readonly ConcurrentDictionary<long?, HashSet<RGEntity>> agentMap = new ();
 
         private long tick = 0;
 
@@ -504,9 +504,9 @@ namespace RegressionGames
          */
         private Dictionary<string, RGStateEntity> GetGameState()
         {
-            var overlayAgent = this.gameObject.GetComponent<RGAgent>();
+            var overlayAgent = this.gameObject.GetComponent<RGEntity>();
 
-            var statefulObjects = FindObjectsOfType<RGState>();
+            var statefulObjects = FindObjectsOfType<MonoBehaviour>(true).OfType<IRGState>();
             var totalState = new Dictionary<string, RGStateEntity>();
             
             // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
@@ -514,39 +514,44 @@ namespace RegressionGames
             foreach (var rgState in statefulObjects)
             {
                 var state = rgState.GetGameObjectState();
+                bool isPlayer = (bool)state["isPlayer"];
                 // if this object is a 'player' ... put the clientId that owns it into the state
-                if (rgState.isPlayer)
+                if (isPlayer)
                 {
-                    var rgAgent = rgState.GetComponentInParent<RGAgent>();
-                    if (rgAgent != null)
+                    var statefulObject = rgState as RGState;
+                    if (statefulObject != null)
                     {
-                        var clientId = rgAgent.ClientId;
-                        if (clientId != null)
+                        var rgEntity = statefulObject.GetComponentInParent<RGEntity>();
+                        if (rgEntity != null)
                         {
-                            state["clientId"] = clientId;
-                        }
-                    }
-
-                    if (!state.ContainsKey("clientId"))
-                    {
-                        // for things like menu bots that end up spawning a human player
-                        // use the agent from the overlay
-                        // Note: We have to be very careful here or we'll set this up wrong
-                        // we only want to give the overlay agent to the human player.
-                        // Before the clientIds are all connected, this can mess-up
-                        var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
-                        if (clientId != null)
-                        {
-                            state["clientId"] = clientId;
-                            // add the agent from the player's object to the agentMap now that 
-                            // we have detected that they are here 
-                            // this happens for menu bots that spawn human players to control
-                            // doing this allows actions from the bot code to process to the human player agent
-                            if (rgAgent != null)
+                            var clientId = rgEntity.ClientId;
+                            if (clientId != null)
                             {
-                                // set this to avoid expensive lookups next time
-                                rgAgent.ClientId = clientId;
-                                agentMap[clientId].Add(rgAgent);
+                                state["clientId"] = clientId;
+                            }
+                        }
+
+                        if (!state.ContainsKey("clientId"))
+                        {
+                            // for things like menu bots that end up spawning a human player
+                            // use the agent from the overlay
+                            // Note: We have to be very careful here or we'll set this up wrong
+                            // we only want to give the overlay agent to the human player.
+                            // Before the clientIds are all connected, this can mess-up
+                            var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
+                            if (clientId != null)
+                            {
+                                state["clientId"] = clientId;
+                                // add the agent from the player's object to the agentMap now that 
+                                // we have detected that they are here 
+                                // this happens for menu bots that spawn human players to control
+                                // doing this allows actions from the bot code to process to the human player agent
+                                if (rgEntity != null)
+                                {
+                                    // set this to avoid expensive lookups next time
+                                    rgEntity.ClientId = clientId;
+                                    agentMap[clientId].Add(rgEntity);
+                                }
                             }
                         }
                     }
@@ -625,12 +630,12 @@ namespace RegressionGames
                     if (!spawnable && "PERSISTENT".Equals(lifecycle))
                     {
                         // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
-                        RGAgent theAgent = this.gameObject.GetComponent<RGAgent>();
-                        agentMap[clientId] = new HashSet<RGAgent> { theAgent };
+                        RGEntity theAgent = this.gameObject.GetComponent<RGEntity>();
+                        agentMap[clientId] = new HashSet<RGEntity> { theAgent };
                     }
                     else
                     {
-                        agentMap[clientId] = new HashSet<RGAgent>( );
+                        agentMap[clientId] = new HashSet<RGEntity>( );
                     }
 
                     // set this BEFORE sending the response of handshake to the client so it actually sends

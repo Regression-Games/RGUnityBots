@@ -12,21 +12,15 @@ using UnityEngine;
  */
 namespace RegressionGames.RGBotConfigs
 {
-    public class RGState : MonoBehaviour
+    [RequireComponent(typeof(RGEntity))]
+    public class RGState : MonoBehaviour, IRGState
     {
-        [Header("General Information")] [Tooltip("Does this object represent a human/bot player ?")]
-        public bool isPlayer;
-
-        [Tooltip("A type name for associating like objects in the state")]
-        public string objectType;
-
-        // this is used in our toolkit to understand which things would need dynamic models
-        [Tooltip("Is this object spawned during runtime, or a fixed object in the scene?")]
-        public bool isRuntimeObject = false;
-
-        [Header("3D Positioning")] 
-        public bool syncPosition = true;
-        public bool syncRotation = true;
+        
+        // we require each state to have an 'RGEntity' component
+        protected RGEntity rgEntity
+        {
+            get { return GetComponent<RGEntity>(); }
+        }
         
         /**
          * A function that is overriden to provide the custom state of this specific GameObject.
@@ -46,14 +40,14 @@ namespace RegressionGames.RGBotConfigs
         {
             var state = new RGStateEntity()
             {
-                ["id"] = this.transform.GetInstanceID(),
-                ["type"] = objectType,
-                ["isPlayer"] = isPlayer,
-                ["isRuntimeObject"] = isRuntimeObject,
+                ["id"] = rgEntity.transform.GetInstanceID(),
+                ["type"] = rgEntity.objectType,
+                ["isPlayer"] = rgEntity.isPlayer,
+                ["isRuntimeObject"] = rgEntity.isRuntimeObject,
             };
 
-            if (syncPosition) state["position"] = transform.position;
-            if (syncRotation) state["rotation"] = transform.rotation;
+            if (rgEntity.syncPosition) state["position"] = rgEntity.transform.position;
+            if (rgEntity.syncRotation) state["rotation"] = rgEntity.transform.rotation;
             var dict = GetState();
             foreach (var entry in dict)
             {
