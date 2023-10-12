@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 
@@ -15,15 +16,16 @@ namespace RegressionGames.Types
     public class RGClientConnection_Remote : RGClientConnection
     {
         [CanBeNull] private TcpClient _client;
+
+        private bool _connecting;
         [CanBeNull] private RGBotInstanceExternalConnectionInfo _connectionInfo;
 
-        private bool _connecting = false;
-
         public RGClientConnection_Remote(long clientId, string lifecycle = "MANAGED",
-            [CanBeNull] RGBotInstanceExternalConnectionInfo connectionInfo = null, [CanBeNull] TcpClient client = null) : base(clientId, RGClientConnectionType.REMOTE, lifecycle)
+            [CanBeNull] RGBotInstanceExternalConnectionInfo connectionInfo = null, [CanBeNull] TcpClient client = null)
+            : base(clientId, RGClientConnectionType.REMOTE, lifecycle)
         {
-            this._client = client;
-            this._connectionInfo = connectionInfo;
+            _client = client;
+            _connectionInfo = connectionInfo;
         }
 
         public override bool SendTickInfo(RGTickInfoData tickInfo)
@@ -38,33 +40,34 @@ namespace RegressionGames.Types
 
         public override bool SendTeardown()
         {
-            return SendSocketMessage( "teardown", JsonUtility.ToJson("{}"));
+            return SendSocketMessage("teardown", JsonUtility.ToJson("{}"));
         }
 
         public override bool SendHandshakeResponse(RGServerHandshake handshake)
         {
-            return SendSocketMessage( "handshake", JsonUtility.ToJson(handshake));
+            return SendSocketMessage("handshake", JsonUtility.ToJson(handshake));
         }
 
         private bool SendSocketMessage(string type, string data)
         {
             if (Connected() && _client != null)
             {
-                byte[] dataBuffer = Encoding.UTF8.GetBytes(
+                var dataBuffer = Encoding.UTF8.GetBytes(
                     JsonUtility.ToJson(
                         new RGServerSocketMessage(Token, type, data)
-                        )
-                    );
-                byte[] finalBuffer = new byte[4 + dataBuffer.Length];
+                    )
+                );
+                var finalBuffer = new byte[4 + dataBuffer.Length];
                 // put the length header into the buffer first
                 BinaryPrimitives.WriteInt32BigEndian(finalBuffer, dataBuffer.Length);
                 Array.Copy(dataBuffer, 0, finalBuffer, 4, dataBuffer.Length);
-                ValueTask vt = _client.GetStream().WriteAsync(finalBuffer);
+                var vt = _client.GetStream().WriteAsync(finalBuffer);
                 vt.ConfigureAwait(false).GetAwaiter().OnCompleted(() =>
                 {
                     if (!vt.IsCompletedSuccessfully)
                     {
-                        RGDebug.LogDebug($"Client Id: {ClientId} socket error or closed, need to re-establish connection for bot");
+                        RGDebug.LogDebug(
+                            $"Client Id: {ClientId} socket error or closed, need to re-establish connection for bot");
                         // client got pulled out from under us or restarted/reloaded.. handle it on the next Update
                         try
                         {
@@ -89,7 +92,8 @@ namespace RegressionGames.Types
 
         public override bool Connected()
         {
-            if (_client != null && _connectionInfo != null) {
+            if (_client != null && _connectionInfo != null)
+            {
                 try
                 {
                     if (_client?.Client?.RemoteEndPoint is IPEndPoint ep && ep.Port == _connectionInfo.port &&
@@ -117,8 +121,8 @@ namespace RegressionGames.Types
                 RGDebug.LogDebug(
                     $"Getting external connection information for botInstanceId: {ClientId}");
                 await RGServiceManager.GetInstance()?.GetExternalConnectionInformationForBotInstance(
-                    (long)ClientId,
-                    (connInfo) => { _connectionInfo = connInfo; },
+                    ClientId,
+                    connInfo => { _connectionInfo = connInfo; },
                     () => { _connecting = false; }
                 )!;
                 var _this = this;
@@ -130,24 +134,24 @@ namespace RegressionGames.Types
                         if (_client == null && _connectionInfo != null)
                         {
                             // make sure we were able to get the current connection info
-                            TcpClient client = new TcpClient();
+                            var client = new TcpClient();
                             // create a new TcpClient, then start a connect attempt asynchronously
-                            string address = _connectionInfo.address;
-                            int port = _connectionInfo.port;
+                            var address = _connectionInfo.address;
+                            var port = _connectionInfo.port;
 
                             _client = client;
                             RGDebug.LogInfo(
                                 $"Connecting to bot at {address}:{port} for ClientId: {ClientId}");
-                            IAsyncResult beginConnect = client.BeginConnect(address, port, ar =>
+                            var beginConnect = client.BeginConnect(address, port, ar =>
                             {
                                 if (_connecting)
                                 {
                                     lock (_this)
                                     {
                                         if (_connecting)
-                                        {
                                             // nodejs side should start handshakes/etc
                                             // we just need to save our connection reference
+                                        {
                                             try
                                             {
                                                 client.EndConnect(ar);
@@ -178,11 +182,10 @@ namespace RegressionGames.Types
                                         }
                                     }
                                 }
-
                             }, null);
 
                             // start a timer for 5 seconds from now that will cancel the connection attempt if it didn't connect yet
-                            Timer t = new Timer(5000);
+                            var t = new Timer(5000);
                             t.Elapsed += (s, e) =>
                             {
                                 // see if we need to cancel the connect
@@ -231,31 +234,32 @@ namespace RegressionGames.Types
             {
                 // may not have gotten far enough to do this
             }
+
             _client = null;
         }
-        
+
         private Task HandleClientConnection(TcpClient client)
         {
             return Task.Run(() =>
             {
                 RGDebug.LogDebug($"TcpClient socket connected - {client.Connected}");
-                int socketMessageLength = 0;
-                int socketHeaderBytesReceived = 0;
-                byte[] socketHeaderBytes = new byte[4];
-                string socketState = "header";
-                byte[] socketMessageBytes = new byte[0];
-                int socketMessageBytesReceived = 0;
+                var socketMessageLength = 0;
+                var socketHeaderBytesReceived = 0;
+                var socketHeaderBytes = new byte[4];
+                var socketState = "header";
+                var socketMessageBytes = new byte[0];
+                var socketMessageBytesReceived = 0;
 
                 // loop reading data
                 while (client.Connected)
                 {
-                    byte[] byteBuffer = new byte[1024];
-                    NetworkStream socketStream = client.GetStream();
-                    int i = socketStream.Read(byteBuffer, 0, byteBuffer.Length);
+                    var byteBuffer = new byte[1024];
+                    var socketStream = client.GetStream();
+                    var i = socketStream.Read(byteBuffer, 0, byteBuffer.Length);
                     //RGDebug.LogVerbose($"Read {i} bytes from client socket");
                     if (i > 0)
                     {
-                        int bufferIndex = 0;
+                        var bufferIndex = 0;
                         while (bufferIndex < i)
                         {
                             switch (socketState)
@@ -264,7 +268,7 @@ namespace RegressionGames.Types
                                     if (socketHeaderBytesReceived < 4)
                                     {
                                         // copy the data into the header bytes
-                                        int headerBytesToCopy = Math.Min(4 - socketHeaderBytesReceived,
+                                        var headerBytesToCopy = Math.Min(4 - socketHeaderBytesReceived,
                                             i - bufferIndex);
                                         Array.Copy(byteBuffer, bufferIndex, socketHeaderBytes,
                                             socketHeaderBytesReceived, headerBytesToCopy);
@@ -285,7 +289,7 @@ namespace RegressionGames.Types
                                     break;
                                 case "data":
                                     // copy the data into the message array
-                                    int dataBytesToCopy = Math.Min(socketMessageLength - socketMessageBytesReceived,
+                                    var dataBytesToCopy = Math.Min(socketMessageLength - socketMessageBytesReceived,
                                         i - bufferIndex);
                                     Array.Copy(byteBuffer, bufferIndex, socketMessageBytes,
                                         socketMessageBytesReceived, dataBytesToCopy);
@@ -297,7 +301,7 @@ namespace RegressionGames.Types
                                     {
                                         socketState = "header";
 
-                                        string sockMessage = Encoding.UTF8.GetString(socketMessageBytes);
+                                        var sockMessage = Encoding.UTF8.GetString(socketMessageBytes);
                                         // handle the message
                                         HandleSocketMessage(sockMessage);
                                         socketHeaderBytesReceived = 0;
@@ -317,69 +321,72 @@ namespace RegressionGames.Types
                 }
             });
         }
-        
+
         private void HandleSocketMessage(string message)
         {
             RGDebug.LogDebug($"Processing socket message from client, message: {message}");
-            RGClientSocketMessage clientSocketMessage = JsonUtility.FromJson <RGClientSocketMessage> (message);
+            var clientSocketMessage = JsonConvert.DeserializeObject<RGClientSocketMessage>(message);
 
-            string type = clientSocketMessage.type;
-            string token = clientSocketMessage.token;
-            long clientId = clientSocketMessage.clientId;
-            string data = clientSocketMessage.data;
+            var type = clientSocketMessage.type;
+            var token = clientSocketMessage.token;
+            var clientId = clientSocketMessage.clientId;
+            var data = clientSocketMessage.data;
+            // helps JObject understand/parse the string better and fixes quotes on {}s for nested objects
+            data = data?.Replace("\\\"", "\"").Replace("\"{", "{").Replace("}\"","}");
+
+            var jObject = data == null ? null : JObject.Parse(data);
 
             switch (type)
             {
                 case "handshake":
-                    HandleClientHandshakeMessage(clientId, data);
+                    HandleClientHandshakeMessage(clientId, jObject);
                     break;
                 case "validationResult":
-                    HandleClientValidationResultMessage(clientId, token, data);
+                    HandleClientValidationResultMessage(clientId, token, jObject);
                     break;
                 case "request":
-                    HandleClientRequestMessage(clientId, token, data);
+                    HandleClientRequestMessage(clientId, token, jObject);
                     break;
                 case "teardown":
                     RGBotServerListener.GetInstance()?.HandleClientTeardown(clientId);
                     break;
             }
-
         }
-        
-        private void HandleClientHandshakeMessage(long clientId, string data)
+
+        private void HandleClientHandshakeMessage(long clientId, JObject data)
         {
-            RGClientHandshake handshakeMessage = JsonUtility.FromJson<RGClientHandshake>(data);
+            var handshakeMessage = data.ToObject<RGClientHandshake>();
             //token check is handled in this method call
             RGBotServerListener.GetInstance()?.HandleClientHandshakeMessage(clientId, handshakeMessage);
         }
-        
-        private void HandleClientValidationResultMessage(long clientId, string token, string data)
+
+        private void HandleClientValidationResultMessage(long clientId, string token, JObject data)
         {
-            if (CheckAccessToken(clientId, token) == true)
+            if (CheckAccessToken(clientId, token))
             {
-                var validationResult = JsonConvert.DeserializeObject<RGValidationResult>(data);
+                var validationResult = data.ToObject<RGValidationResult>();
                 RGBotServerListener.GetInstance()?.HandleClientValidationResult(clientId, validationResult);
             }
         }
-        
-        private void HandleClientRequestMessage(long clientId, string token, string data)
+
+        private void HandleClientRequestMessage(long clientId, string token, JObject data)
         {
-            if (CheckAccessToken(clientId, token) == true)
+            if (CheckAccessToken(clientId, token))
             {
-                var actionRequest = JsonConvert.DeserializeObject<RGActionRequest>(data);
+                var actionRequest = data.ToObject<RGActionRequest>();
                 RGBotServerListener.GetInstance()?.HandleClientActionRequest(clientId, actionRequest);
             }
         }
-        
+
         private static bool CheckAccessToken(long clientId, string clientToken)
         {
             if (clientToken.Equals(RGBotServerListener.GetInstance()?.UnitySideToken))
             {
                 return true;
             }
+
             RGDebug.LogWarning($"WARNING: Client id {clientId} made call with invalid token");
             return false;
-
         }
 
         private static bool AddressesEqual(string address1, string address2)
@@ -389,7 +396,7 @@ namespace RegressionGames.Types
             {
                 address1 = "localhost";
             }
-            
+
             if (address2 == "127.0.0.1")
             {
                 address2 = "localhost";
@@ -398,5 +405,4 @@ namespace RegressionGames.Types
             return address1.Equals(address2);
         }
     }
-    
 }

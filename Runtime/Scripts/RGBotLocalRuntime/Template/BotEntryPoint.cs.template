@@ -24,7 +24,10 @@ namespace <TEMPLATE_NAMESPACE>
         {
             var classIndex = new System.Random().Next(4);
             var classes = new string[] {"Mage", "Rogue", "Tank", "Archer"};
-            rgObject.CharacterConfig = $"{{\"characterType\": \"{classes[classIndex]}\"}}";
+            rgObject.CharacterConfig = new Dictionary<string, object>
+            {
+                { "characterType", $"{classes[classIndex]}" }
+            };
         }
 
         public override void ProcessTick(RG rgObject)

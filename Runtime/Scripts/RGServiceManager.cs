@@ -203,6 +203,10 @@ namespace RegressionGames
                     }
                 );
             }
+            else
+            {
+                onFailure();
+            }
         }
 
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
@@ -222,6 +226,10 @@ namespace RegressionGames
                     },
                     onFailure: async (f) => { onFailure.Invoke(); }
                 );
+            }
+            else
+            {
+                onFailure();
             }
         }
 
@@ -244,6 +252,10 @@ namespace RegressionGames
                     },
                     onFailure: async (f) => { onFailure.Invoke(); }
                 );
+            }    
+            else
+            {
+                onFailure();
             }
         }
 
@@ -266,6 +278,10 @@ namespace RegressionGames
                     onFailure: async (f) => { onFailure.Invoke(); }
                 );
             }
+            else
+            {
+                onFailure();
+            }
         }
 
         public async Task StopBotInstance(long botInstanceId, Action onSuccess, Action onFailure)
@@ -283,6 +299,10 @@ namespace RegressionGames
                         onFailure.Invoke();
                     }
                 );
+            }
+            else
+            {
+                onFailure();
             }
         }
 

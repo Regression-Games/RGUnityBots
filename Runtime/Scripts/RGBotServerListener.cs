@@ -618,7 +618,7 @@ namespace RegressionGames
                     {
                         botName += clientIdStringSuffix;
                     }
-                    string characterConfig = handshakeMessage.characterConfig;
+                    Dictionary<string, object> characterConfig = handshakeMessage.characterConfig;
 
                     // save the token the client gave us for talking to them
                     clientConnectionMap[clientId].Token = handshakeMessage.rgToken;

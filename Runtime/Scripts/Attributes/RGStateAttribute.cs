@@ -2,7 +2,7 @@ using System;
 
 namespace RegressionGames
 {
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Delegate, Inherited = false, AllowMultiple = false)]
     public class RGStateAttribute : Attribute
     {
         public string StateName { get; }
