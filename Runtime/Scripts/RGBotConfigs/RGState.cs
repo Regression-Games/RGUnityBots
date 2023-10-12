@@ -1,16 +1,16 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Reflection;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 /*
  * A component that can be inherited to relay game state information to
  * Regression Games. Includes a few default pieces of information that can
  * be enabled from the editor when attached to an object.
- *
- * TODO (REG-1300): Can we use a generic type instead of a dictionary? That way users can
- *       debug and use the states within their own code?
  */
 namespace RegressionGames.RGBotConfigs
 {
@@ -31,7 +31,7 @@ namespace RegressionGames.RGBotConfigs
          * For example, you may want to retrieve and set the health of a player on the returned
          * object, or their inventory information
          */
-        public virtual Dictionary<string, object> GetState()
+        protected virtual Dictionary<string, object> GetState()
         {
             return new Dictionary<string, object>();
         }
@@ -59,40 +59,47 @@ namespace RegressionGames.RGBotConfigs
             {
                 state.Add(entry.Key, entry.Value);
             }
-            
-            
-            // find all RGStateProvider behaviors and get their values
-            var stateProviders = this.gameObject.GetComponents<RGStateProvider>();
-            foreach (var rgStateProvider in stateProviders)
+
+            var obsoleteAttributeType = typeof(ObsoleteAttribute);
+            // find all Components and get their values
+            var components = this.gameObject.GetComponents<Component>();
+            foreach (var component in components)
             {
-                var type = rgStateProvider.GetType();
-                var dictionary = new Dictionary<string, object>();
-                state[type.Name] = dictionary;
-                foreach (PropertyInfo prop in type.GetProperties())
+                // skip 'expensive' components
+                if (component is Collider or Collider2D or MonoBehaviour and not RGState and not RGAgent)
                 {
-                    try
+                    var type = component.GetType();
+                    var dictionary = new Dictionary<string, object>();
+                    foreach (PropertyInfo prop in type.GetProperties())
                     {
-                        if (prop.CanRead &&
-                            prop.PropertyType.IsPublic || prop.PropertyType.IsSerializable)
+                        try
                         {
-                            if (prop.PropertyType.IsPrimitive ||
-                                prop.PropertyType == typeof(Vector3) ||
-                                prop.PropertyType == typeof(Vector2) || 
-                                prop.PropertyType == typeof(Vector4) ||
-                                prop.PropertyType == typeof(Quaternion))
+                            if (prop.CanRead &&
+                                (prop.PropertyType.IsPublic || prop.PropertyType.IsSerializable) &&
+                                !prop.IsDefined(obsoleteAttributeType, false)) ;
                             {
-                                dictionary[prop.Name] = prop.GetValue(rgStateProvider);
+                                if (prop.PropertyType.IsPrimitive ||
+                                    prop.PropertyType == typeof(Vector3) ||
+                                    prop.PropertyType == typeof(Vector2) ||
+                                    prop.PropertyType == typeof(Vector4) ||
+                                    prop.PropertyType == typeof(Quaternion))
+                                {
+                                    dictionary[prop.Name] = prop.GetValue(component);
+                                }
                             }
                         }
+                        catch (Exception ex)
+                        {
+                            // some properties' values aren't accessible
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        // some properties' values aren't accessible
-                    }
+
+                    state[type.Name] = dictionary;
                 }
             }
 
             return state;
         }
     }
+
 }

@@ -15,7 +15,7 @@ namespace RegressionGames.RGBotConfigs
             }
         }
 
-        public override Dictionary<string, object> GetState()
+        protected override Dictionary<string, object> GetState()
         {
             var state = new Dictionary<string, object>();
             CanvasGroup cg = this.gameObject.GetComponentInParent<CanvasGroup>();
