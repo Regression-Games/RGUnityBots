@@ -12,6 +12,7 @@ using UnityEngine;
  */
 namespace RegressionGames.RGBotConfigs
 {
+    [DisallowMultipleComponent]    
     [RequireComponent(typeof(RGEntity))]
     public class RGState : MonoBehaviour, IRGState
     {
