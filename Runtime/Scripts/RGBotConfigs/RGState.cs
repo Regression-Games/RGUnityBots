@@ -28,7 +28,7 @@ namespace RegressionGames.RGBotConfigs
          * For example, you may want to retrieve and set the health of a player on the returned
          * object, or their inventory information
          */
-        public virtual Dictionary<string, object> GetState()
+        protected virtual Dictionary<string, object> GetState()
         {
             return new Dictionary<string, object>();
         }
