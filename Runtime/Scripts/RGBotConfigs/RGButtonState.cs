@@ -15,6 +15,7 @@ namespace RegressionGames.RGBotConfigs
             var state = new RGStateEntity()
             {
                 ["id"] = transform.GetInstanceID(),
+                ["type"] = objectType,
             };
             
             CanvasGroup cg = this.gameObject.GetComponentInParent<CanvasGroup>();

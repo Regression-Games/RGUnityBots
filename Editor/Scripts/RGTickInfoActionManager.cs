@@ -64,7 +64,7 @@ namespace RegressionGames.Editor
             foreach (var gameStateObject in tickData.gameState)
             {
                 RGStateEntity entity = gameStateObject.Value;
-                long entityId = entity.id;
+                var entityId = entity.id;
 
                 var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
 
