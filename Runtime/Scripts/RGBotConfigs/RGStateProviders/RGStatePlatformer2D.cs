@@ -42,7 +42,7 @@ namespace RegressionGames.RGBotConfigs
         [Tooltip("Only include objects with a Z coordinate (depth) less than or equal to this value.")]
         public float maxZDepth = Mathf.Infinity;
 
-        private Dictionary<string, List<RGStateEntity2DRaycastInfo>> _previousRays = new();
+        private List<List<RGStateEntity2DRaycastInfo>> _previousRays = new();
 
         private void Start()
         {
@@ -51,69 +51,56 @@ namespace RegressionGames.RGBotConfigs
 
         protected override Dictionary<string, object> GetState()
         {
-            Dictionary<string, List<RGStateEntity2DRaycastInfo>> rays = new();
+            RGStateEntityPlatformer2D platformer2D = new()
+            {
+                spriteWidth = spriteWidth
+            };
 
-            List<RGStateEntity2DRaycastInfo> raycastHits = new();
-            rays["leftdown"] = raycastHits;
-            raycastHits = new();
-            rays["leftup"] = raycastHits;
-            raycastHits = new();
-            rays["rightdown"] = raycastHits;
-            raycastHits = new();
-            rays["rightup"] = raycastHits;
-            raycastHits = new();
-            rays["centerdown"] = raycastHits;
-            raycastHits = new();
-            rays["centerup"] = raycastHits;
+            List<RGStateEntity2DRaycastInfo> centerList = new();
+            for (var i = 1; i <= rayStepCount; i++)
+            {
+                evaluateRay(i, Vector2.left, Vector2.down, platformer2D.leftdown);
+                evaluateRay(i, Vector2.left, Vector2.up, platformer2D.leftup);
+                evaluateRay(i, Vector2.right, Vector2.down, platformer2D.rightdown);
+                evaluateRay(i, Vector2.right,Vector2.up, platformer2D.rightup);
+            }
             
-            rays["upleft"] = raycastHits;
-            raycastHits = new();
-            rays["upright"] = raycastHits;
-            raycastHits = new();
-            rays["downleft"] = raycastHits;
-            raycastHits = new();
-            rays["downright"] = raycastHits;
-            raycastHits = new();
-            rays["centerleft"] = raycastHits;
-            raycastHits = new();
-            rays["centerright"] = raycastHits;
+            platformer2D.down = evaluateRay(0, Vector2.right,Vector2.down, centerList);
+            platformer2D.up = evaluateRay(0, Vector2.right,Vector2.up, centerList);
             
             for (var i = 1; i <= rayStepCount; i++)
             {
-                evaluateRay(i, Vector2.left, Vector2.down, rays["leftdown"]);
-                evaluateRay(i, Vector2.left, Vector2.up, rays["leftup"]);
-                evaluateRay(i, Vector2.right, Vector2.down, rays["rightdown"]);
-                evaluateRay(i, Vector2.right,Vector2.up, rays["rightup"]);
+                evaluateRay(i, Vector2.up, Vector2.left, platformer2D.upleft);
+                evaluateRay(i, Vector2.up, Vector2.right, platformer2D.upright);
+                evaluateRay(i, Vector2.down, Vector2.left, platformer2D.downleft);
+                evaluateRay(i, Vector2.down,Vector2.right, platformer2D.downright);
             }
             
-            evaluateRay(0, Vector2.right,Vector2.down, rays["centerdown"]);
-            evaluateRay(0, Vector2.right,Vector2.up, rays["centerup"]);
-            
-            for (var i = 1; i <= rayStepCount; i++)
-            {
-                evaluateRay(i, Vector2.up, Vector2.left, rays["upleft"]);
-                evaluateRay(i, Vector2.up, Vector2.right, rays["upright"]);
-                evaluateRay(i, Vector2.down, Vector2.left, rays["downleft"]);
-                evaluateRay(i, Vector2.down,Vector2.right, rays["downright"]);
-            }
-            
-            evaluateRay(0, Vector2.up,Vector2.left, rays["centerleft"]);
-            evaluateRay(0, Vector2.up,Vector2.right, rays["centerright"]);
+            platformer2D.left = evaluateRay(0, Vector2.up,Vector2.left, centerList);
+            platformer2D.right = evaluateRay(0, Vector2.up,Vector2.right, centerList);
 
-            _previousRays = rays;
+            _previousRays = new List<List<RGStateEntity2DRaycastInfo>>
+            {
+                platformer2D.leftdown,
+                platformer2D.leftup,
+                platformer2D.rightdown,
+                platformer2D.rightup,
+                
+                platformer2D.upleft,
+                platformer2D.upright,
+                platformer2D.downleft,
+                platformer2D.downright,
+
+                centerList
+            };
 
             return new Dictionary<string, object>
             {
-                { "platformer2D", 
-                    new Dictionary<string,object>
-                    {
-                        {"raycasts", rays}
-                    }
-                }
+                { "platformer2D", platformer2D}
             };
         }
 
-        private void evaluateRay(int index, Vector2 offsetDirection, Vector2 direction, List<RGStateEntity2DRaycastInfo> raycastHits)
+        private RGStateEntity2DRaycastInfo evaluateRay(int index, Vector2 offsetDirection, Vector2 direction, List<RGStateEntity2DRaycastInfo> raycastHits)
         {
             var startPosition = transform.position + (Vector3)offset + (Vector3)(offsetDirection * (index * spriteWidth));
             RaycastHit2D raycastHit = Physics2D.Raycast(
@@ -123,14 +110,30 @@ namespace RegressionGames.RGBotConfigs
                 layerMask,
                 minZDepth,
                 maxZDepth);
-            
-            raycastHits.Add(new RGStateEntity2DRaycastInfo()
+
+            string objectType = null;
+            int? objectId = null;
+            if (raycastHit.collider != null)
+            {
+                var entity = raycastHit.collider.gameObject.GetComponent<RGEntity>();
+                if (entity != null)
+                {
+                    objectType = entity.objectType;
+                    objectId = entity.transform.GetInstanceID();
+                }
+            }
+
+            var result = new RGStateEntity2DRaycastInfo()
             {
                 from = startPosition,
                 direction = direction,
                 hitCollider = raycastHit.collider,
-                hitPoint = raycastHit.collider != null ? raycastHit.point : null
-            });
+                hitPoint = raycastHit.collider != null ? raycastHit.point : null,
+                hitObjectId = objectId,
+                hitObjectType = objectType
+            };
+            raycastHits.Add(result);
+            return result;
         }
         
         private void Update()
@@ -141,7 +144,7 @@ namespace RegressionGames.RGBotConfigs
                 {
                     foreach (var raycasts in _previousRays)
                     {
-                        foreach (var ray in raycasts.Value)
+                        foreach (var ray in raycasts)
                         {
                             Vector3 end = ray.hitPoint ?? (ray.from + ray.direction * rayDistance);
                             // NOTE: Requires Gizmos to be enabled in the editor
