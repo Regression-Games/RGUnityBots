@@ -43,20 +43,16 @@ namespace AbilityBot_0
                         skillId = 1;
                     }
 
-                    // ensure target is not UI component
-                    if (target.ContainsKey("position"))
+                    var targetPosition = (Vector3)target["position"];
+                    var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
-                        var targetPosition = (Vector3)target["position"];
-                        var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
-                        {
-                            { "skillId",  skillId},
-                            { "targetId", target["id"] },
-                            { "xPosition", targetPosition.x },
-                            { "yPosition", targetPosition.y },
-                            { "zPosition", targetPosition.z },
-                        });
-                        rgObject.PerformAction(action);   
-                    }
+                        { "skillId",  skillId},
+                        { "targetId", target["id"] },
+                        { "xPosition", targetPosition.x },
+                        { "yPosition", targetPosition.y },
+                        { "zPosition", targetPosition.z },
+                    });
+                    rgObject.PerformAction(action);
                 }
                 else
                 {

@@ -61,12 +61,15 @@ namespace RegressionGames.RGBotLocalRuntime
         /**
          * <summary>Used to find the closest Entity to the given position.</summary>
          * <param name="objectType">{string | null} Search for entities of a specific type</param>
-         * <param name="position">{Vector3} Position to search from</param>
+         * <param name="position">
+         *     {Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot
+         *     position in index 0.
+         * </param>
          * <param name="filterFunction">{Func&lt;RGStateEntity, bool&gt; | null} Function to filter entities.</param>
          * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
-        public RGStateEntity FindNearestEntity(Vector3 position, string objectType = null,
+        public RGStateEntity FindNearestEntity(string objectType = null, Vector3? position = null,
             Func<RGStateEntity, bool> filterFunction = null)
         {
             var result = FindEntities(objectType);
@@ -77,11 +80,13 @@ namespace RegressionGames.RGBotLocalRuntime
 
             if (result.Count > 1)
             {
+                var pos = position ?? GetMyPlayers()[0].position;
+                
                 // sort by distance
                 result.Sort((e1, e2) =>
                 {
-                    var val = MathFunctions.DistanceSq(position, e1.position) -
-                              MathFunctions.DistanceSq(position, e1.position);
+                    var val = MathFunctions.DistanceSq(pos, e1.position) -
+                              MathFunctions.DistanceSq(pos, e1.position);
                     if (val < 0)
                         return -1;
                     if (val > 0) return 1;

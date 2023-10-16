@@ -48,7 +48,7 @@ namespace RegressionGames.Editor
                     for (var i = tickNumber - 1; i >= 0; i--)
                     {
                         var ti = replayData.tickInfo[i];
-                        if (ti == null || ti.state.position == null) break;
+                        if (ti == null) break;
 
                         linePoints.Push(ti.state.position);
                     }

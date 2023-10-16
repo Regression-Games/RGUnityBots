@@ -38,21 +38,17 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 {
                     var target = entities[new Random().Next(entities.Count)];
 
-                    // ensure target is not UI component
-                    if (target.ContainsKey("position"))
+                    var targetPosition = (Vector3)target["position"];
+                    //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
+                    var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
-                        var targetPosition = (Vector3)target["position"];
-                        //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
-                        var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
-                        {
-                            { "skillId",  skillId},
-                            { "targetId", target["id"] },
-                            { "xPosition", targetPosition.x },
-                            { "yPosition", targetPosition.y },
-                            { "zPosition", targetPosition.z },
-                        });
-                        rgObject.PerformAction(action);   
-                    }
+                        { "skillId", new Random().Next(2) },
+                        { "targetId", target["id"] },
+                        { "xPosition", targetPosition.x },
+                        { "yPosition", targetPosition.y },
+                        { "zPosition", targetPosition.z }
+                    });
+                    rgObject.PerformAction(action);
                 }
                 else
                 {
