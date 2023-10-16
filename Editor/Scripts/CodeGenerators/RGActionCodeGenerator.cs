@@ -16,6 +16,7 @@ namespace RegressionGames
         [MenuItem("Regression Games/Generate Scripts")]
         private static void GenerateRGScripts()
         {
+            //TODO: Someone/Anyone... remove this delete RGScripts directory code after November 1st, 2023... This is temporary to help devs migrate easily
             // remove old 'RGScripts' folder that is no longer used
             string dataPath = Application.dataPath;
             string directoryToDelete = Path.Combine(dataPath, "RGScripts").Replace("\\", "/");
