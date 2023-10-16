@@ -21,9 +21,8 @@ namespace RegressionGames.StateActionTypes
 
         public bool isRuntimeObject => (bool)this.GetValueOrDefault("isRuntimeObject", false);
 
-        // TODO (REG-1303): These should be non-nullable and we should remove the option NOT to sync position and rotation
-        public Vector3? position => (Vector3?)this.GetValueOrDefault("position", null);
-        public Quaternion? rotation => (Quaternion?)this.GetValueOrDefault("rotation", null);
+        public Vector3 position => (Vector3)this.GetValueOrDefault("position");
+        public Quaternion rotation => (Quaternion)this.GetValueOrDefault("rotation");
 
         public long? clientId => (long?)this.GetValueOrDefault("clientId", null);
 
