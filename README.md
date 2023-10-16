@@ -15,7 +15,7 @@
 Regression Games Unity Bots is an SDK that makes it easy to integrate powerful and useful bots into your game. 
 Build bots to QA test your game, act as NPCs, compete against players in multiplayer, and determine 
 optimal game balance. Our integration patterns, ready-to-go bots, and samples make it easy to get
-started. Positron bots have been used to:
+started. Regression Games Unity Bots bots have been used to:
 
 - Control enemy NPCs within a dungeon crawler
 - Explore and exploit environments to find errors and issues within a platformer
