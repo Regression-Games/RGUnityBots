@@ -9,8 +9,6 @@ using File = UnityEngine.Windows.File;
 using UnityEditor;
 using UnityEditor.Compilation;
 #endif
-#if UNITY_EDITOR
-#endif
 
 namespace Editor.Scripts.BotManagement
 {
