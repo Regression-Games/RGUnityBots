@@ -3,14 +3,13 @@ using System.Text;
 using RegressionGames;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
-#if UNITY_EDITOR
-using UnityEditor;
-using UnityEditor.Compilation;
-#endif
 using UnityEngine;
 using File = UnityEngine.Windows.File;
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.Compilation;
+#endif
+#if UNITY_EDITOR
 #endif
 
 namespace Editor.Scripts.BotManagement
