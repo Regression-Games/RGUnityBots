@@ -50,7 +50,7 @@ namespace RegressionGames.Editor
                         var ti = replayData.tickInfo[i];
                         if (ti == null || ti.state.position == null) break;
 
-                        linePoints.Push(ti.state.position.Value);
+                        linePoints.Push(ti.state.position);
                     }
 
                     if (linePoints.Count > 0) return linePoints.ToArray();

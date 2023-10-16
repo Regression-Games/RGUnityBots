@@ -873,7 +873,7 @@ namespace RegressionGames.Editor
                         // if still null
                         if (position == null && tickData.tickInfo?.state.position != null)
                             // targeting the bot's self
-                            position = tickData.tickInfo?.state.position.Value;
+                            position = tickData.tickInfo?.state.position;
                     }
 
                     if (position == null) position = Vector3.zero;
