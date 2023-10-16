@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 using UnityEngine.UI;

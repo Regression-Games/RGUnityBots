@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using RegressionGames.StateActionTypes;
-using UnityEngine;
 
 namespace RegressionGames.RGBotConfigs
 {

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 
@@ -6,9 +8,6 @@ using UnityEngine;
  * A component that can be inherited to relay game state information to
  * Regression Games. Includes a few default pieces of information that can
  * be enabled from the editor when attached to an object.
- *
- * TODO (REG-1300): Can we use a generic type instead of a dictionary? That way users can
- *       debug and use the states within their own code?
  */
 namespace RegressionGames.RGBotConfigs
 {
@@ -21,7 +20,7 @@ namespace RegressionGames.RGBotConfigs
         {
             get { return GetComponent<RGEntity>(); }
         }
-        
+
         /**
          * A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
@@ -38,16 +37,19 @@ namespace RegressionGames.RGBotConfigs
          */
         public RGStateEntity GetGameObjectState()
         {
+            var theTransform = rgEntity.transform;
+            
             var state = new RGStateEntity()
             {
-                ["id"] = rgEntity.transform.GetInstanceID(),
+                ["id"] = theTransform.GetInstanceID(),
                 ["type"] = rgEntity.objectType,
                 ["isPlayer"] = rgEntity.isPlayer,
                 ["isRuntimeObject"] = rgEntity.isRuntimeObject,
             };
 
-            if (rgEntity.syncPosition) state["position"] = rgEntity.transform.position;
-            if (rgEntity.syncRotation) state["rotation"] = rgEntity.transform.rotation;
+            if (rgEntity.syncPosition) state["position"] = theTransform.position;
+            if (rgEntity.syncRotation) state["rotation"] = theTransform.rotation;
+
             var dict = GetState();
             foreach (var entry in dict)
             {
@@ -57,4 +59,5 @@ namespace RegressionGames.RGBotConfigs
             return state;
         }
     }
+
 }
