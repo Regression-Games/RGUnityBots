@@ -56,44 +56,6 @@ namespace RegressionGames.RGBotConfigs
                 state.Add(entry.Key, entry.Value);
             }
 
-            var obsoleteAttributeType = typeof(ObsoleteAttribute);
-            // find all Components and get their values
-            var components = this.gameObject.GetComponents<Component>();
-            foreach (var component in components)
-            {
-                // skip 'expensive' components, only get colliders and MonoBehaviours
-                if (component is Collider or Collider2D or MonoBehaviour and not RGState and not RGAgent and not RGEntity)
-                {
-                    var type = component.GetType();
-                    var dictionary = new Dictionary<string, object>();
-                    foreach (PropertyInfo prop in type.GetProperties())
-                    {
-                        try
-                        {
-                            if (prop.CanRead &&
-                                (prop.PropertyType.IsPublic || prop.PropertyType.IsSerializable) &&
-                                !prop.IsDefined(obsoleteAttributeType, false)) ;
-                            {
-                                if (prop.PropertyType.IsPrimitive ||
-                                    prop.PropertyType == typeof(Vector3) ||
-                                    prop.PropertyType == typeof(Vector2) ||
-                                    prop.PropertyType == typeof(Vector4) ||
-                                    prop.PropertyType == typeof(Quaternion))
-                                {
-                                    dictionary[prop.Name] = prop.GetValue(component);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // some properties' values aren't accessible
-                        }
-                    }
-
-                    state[type.Name] = dictionary;
-                }
-            }
-
             return state;
         }
     }
