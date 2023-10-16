@@ -45,7 +45,7 @@ namespace RegressionGames.RGBotConfigs
                 ["type"] = rgEntity.objectType,
                 ["isPlayer"] = rgEntity.isPlayer,
                 ["isRuntimeObject"] = rgEntity.isRuntimeObject,
-				["state"] = theTransform.position;
+				["position"] = theTransform.position;
 				["rotation"] = theTransform.rotation;
             };
 
