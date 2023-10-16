@@ -160,16 +160,20 @@ namespace MenuAbilityBot_1
                             {
                                 var target = entities[new Random().Next(entities.Count)];
 
-                                var targetPosition = target.position ?? Vector3.zero;
-                                var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>
+                                // ensure target is not UI component
+                                if (target.ContainsKey("position"))
                                 {
-                                    { "skillId", new Random().Next(2) },
-                                    { "targetId", target["id"] },
-                                    { "xPosition", targetPosition.x },
-                                    { "yPosition", targetPosition.y },
-                                    { "zPosition", targetPosition.z }
-                                });
-                                rgObject.PerformAction(action);
+                                    var targetPosition = (Vector3)target["position"];
+                                    var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
+                                    {
+                                        { "skillId",  skillId},
+                                        { "targetId", target["id"] },
+                                        { "xPosition", targetPosition.x },
+                                        { "yPosition", targetPosition.y },
+                                        { "zPosition", targetPosition.z },
+                                    });
+                                    rgObject.PerformAction(action);   
+                                }
                             }
                             else
                             {
