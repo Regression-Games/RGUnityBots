@@ -33,10 +33,9 @@ namespace RegressionGames
             string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
             string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
-            // Save to 'Assets/RGScripts/RGActionMap.cs'
-            string subfolderName = "RGScripts";
+            // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActionMap.cs'
             string fileName = "RGActionMap.cs";
-            string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
+            string filePath = Path.Combine(Application.dataPath, "RegressionGames", "Runtime", "GeneratedScripts", fileName);
             string fileContents = headerComment + formattedCode;
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             File.WriteAllText(filePath, fileContents);            

@@ -16,6 +16,17 @@ namespace RegressionGames
         [MenuItem("Regression Games/Generate Scripts")]
         private static void GenerateRGScripts()
         {
+            // remove old 'RGScripts' folder that is no longer used
+            string dataPath = Application.dataPath;
+            string directoryToDelete = Path.Combine(dataPath, "RGScripts").Replace("\\", "/");
+
+            if (Directory.Exists(directoryToDelete))
+            {
+                Directory.Delete(directoryToDelete, true);
+                File.Delete(directoryToDelete + ".meta");
+                AssetDatabase.Refresh();
+            }
+
             // find and extract RGAction data
             string actionJson = SearchForBotActionMethods();
             
@@ -101,7 +112,7 @@ namespace RegressionGames
             
             // remove previous RGActions
             string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGActions").Replace("\\", "/");
+            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGActions").Replace("\\", "/");
 
             if (Directory.Exists(directoryToDelete))
             {
@@ -233,7 +244,7 @@ namespace RegressionGames
             
             // remove previous RGStates
             string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGStates").Replace("\\", "/");
+            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGStates").Replace("\\", "/");
             
             if (Directory.Exists(directoryToDelete))
             {
@@ -248,7 +259,7 @@ namespace RegressionGames
 
         private static void WriteToJson(string fileName, string json)
         {
-            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames");
+            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");
 
             if (!Directory.Exists(folderPath))
             {
@@ -262,17 +273,24 @@ namespace RegressionGames
         private static void ZipJson()
         {
             string parentPath = Directory.GetParent(Application.dataPath).FullName;
-            string folderPath = Path.Combine(parentPath, "RegressionGames");
+            string folderPath = Path.Combine(parentPath, "RegressionGamesZipTemp");
 
             if (Directory.Exists(folderPath))
             {
                 string zipPath = Path.Combine(parentPath, "RegressionGames.zip");
+                // delete existing zip if exists
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
                 ZipFile.CreateFromDirectory(folderPath, zipPath);
+                RGDebug.LogInfo($"Successfully Generated {zipPath}");
                 Directory.Delete(folderPath, true);
+                RGDebug.LogDebug($"Successfully removed temporary zip directory {folderPath}");
             }
             else
             {
-                Debug.LogWarning("The 'RegressionGames' folder does not exist.");
+                Debug.LogWarning("The 'RegressionGamesZipTemp' folder does not exist.");
             }
         }
         
