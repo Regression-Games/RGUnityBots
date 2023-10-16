@@ -1,11 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Reflection;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
 /*
  * A component that can be inherited to relay game state information to
@@ -14,17 +11,15 @@ using UnityEngine.Tilemaps;
  */
 namespace RegressionGames.RGBotConfigs
 {
-    public class RGState : MonoBehaviour
+    [RequireComponent(typeof(RGEntity))]
+    public class RGState : MonoBehaviour, IRGState
     {
-        [Header("General Information")] [Tooltip("Does this object represent a human/bot player ?")]
-        public bool isPlayer;
-
-        [Tooltip("A type name for associating like objects in the state")]
-        public string objectType;
-
-        // this is used in our toolkit to understand which things would need dynamic models
-        [Tooltip("Is this object spawned during runtime, or a fixed object in the scene?")]
-        public bool isRuntimeObject = false;
+        
+        // we require each state to have an 'RGEntity' component
+        protected RGEntity rgEntity
+        {
+            get { return GetComponent<RGEntity>(); }
+        }
 
         /**
          * A function that is overriden to provide the custom state of this specific GameObject.
@@ -42,18 +37,19 @@ namespace RegressionGames.RGBotConfigs
          */
         public RGStateEntity GetGameObjectState()
         {
-            var theTransform = this.transform;
+            var theTransform = rgEntity.transform;
             
             var state = new RGStateEntity()
             {
                 ["id"] = theTransform.GetInstanceID(),
-                ["type"] = objectType,
-                ["isPlayer"] = isPlayer,
-                ["isRuntimeObject"] = isRuntimeObject,
+                ["type"] = rgEntity.objectType,
+                ["isPlayer"] = rgEntity.isPlayer,
+                ["isRuntimeObject"] = rgEntity.isRuntimeObject,
             };
 
-            state["position"] = theTransform.position;
-            state["rotation"] = theTransform.rotation;
+            if (rgEntity.syncPosition) state["position"] = theTransform.position;
+            if (rgEntity.syncRotation) state["rotation"] = theTransform.rotation;
+
             var dict = GetState();
             foreach (var entry in dict)
             {
@@ -65,8 +61,8 @@ namespace RegressionGames.RGBotConfigs
             var components = this.gameObject.GetComponents<Component>();
             foreach (var component in components)
             {
-                // skip 'expensive' components
-                if (component is Collider or Collider2D or MonoBehaviour and not RGState and not RGAgent)
+                // skip 'expensive' components, only get colliders and MonoBehaviours
+                if (component is Collider or Collider2D or MonoBehaviour and not RGState and not RGAgent and not RGEntity)
                 {
                     var type = component.GetType();
                     var dictionary = new Dictionary<string, object>();

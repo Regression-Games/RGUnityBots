@@ -16,7 +16,8 @@ namespace RegressionGames.StateActionTypes
      */
     public class RGStateEntity : Dictionary<string, object>
     {
-        public int id => (int)this.GetValueOrDefault("id", 0);
+        // handle long to int conversion
+        public int id => int.Parse(this.GetValueOrDefault("id", 0).ToString());
         public string type => (string)this.GetValueOrDefault("type", null);
         public bool isPlayer => (bool)this.GetValueOrDefault("isPlayer", false);
 

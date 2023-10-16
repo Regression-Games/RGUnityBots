@@ -11,7 +11,7 @@ namespace RegressionGames.Editor
 #if UNITY_EDITOR
     public class RGTickInfoActionManager
     {
-        private readonly Dictionary<long, RGAgentReplayData> entityInfo = new();
+        private readonly Dictionary<long, RGEntityReplayData> entityInfo = new();
 
         public void Reset()
         {
@@ -23,17 +23,17 @@ namespace RegressionGames.Editor
             return entityInfo.Keys.ToList();
         }
 
-        public List<RGAgentReplayData> GetAllEntities()
+        public List<RGEntityReplayData> GetAllEntities()
         {
             var result = entityInfo.Values.ToList();
             return result;
         }
 
         [CanBeNull]
-        public RGAgentDataForTick GetEntityInfoForTick(int tickNumber, long entityId)
+        public RGEntityDataForTick GetEntityInfoForTick(int tickNumber, long entityId)
         {
             if (tickNumber > 0 && entityInfo.TryGetValue(entityId, out var replayData))
-                return RGAgentDataForTick.FromReplayData(replayData, tickNumber);
+                return RGEntityDataForTick.FromReplayData(replayData, tickNumber);
             return null;
         }
 
@@ -64,7 +64,7 @@ namespace RegressionGames.Editor
             foreach (var gameStateObject in tickData.gameState)
             {
                 RGStateEntity entity = gameStateObject.Value;
-                long entityId = entity.id;
+                var entityId = entity.id;
 
                 var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
 
@@ -104,11 +104,11 @@ namespace RegressionGames.Editor
                 true, true);
         }
 
-        private RGAgentReplayData populateReplayDataForEntity(long entityId, bool isPlayer = false, bool isRuntimeObject = false, [CanBeNull] string type = null,
+        private RGEntityReplayData populateReplayDataForEntity(long entityId, bool isPlayer = false, bool isRuntimeObject = false, [CanBeNull] string type = null,
             bool? showPath = null,
             bool? showActions = null, bool? highlight = null)
         {
-            entityInfo.TryAdd(entityId, new RGAgentReplayData());
+            entityInfo.TryAdd(entityId, new RGEntityReplayData());
             entityInfo[entityId].id = entityId;
             entityInfo[entityId].isPlayer = isPlayer;
             entityInfo[entityId].isRuntimeObject = isRuntimeObject;
@@ -128,27 +128,27 @@ namespace RegressionGames.Editor
             return entityInfo[entityId];
         }
 
-        private RGAgentTickInfo populateTickInfoDataForEntity(int tickNumber, long entityId)
+        private RGEntityTickInfo populateTickInfoDataForEntity(int tickNumber, long entityId)
         {
             // make sure this player is in the dictionary
             populateReplayDataForEntity(entityId);
 
-            if (entityInfo[entityId].tickInfo == null) entityInfo[entityId].tickInfo = new List<RGAgentTickInfo>();
+            if (entityInfo[entityId].tickInfo == null) entityInfo[entityId].tickInfo = new List<RGEntityTickInfo>();
 
             // make sure the list is big enough
             while (entityInfo[entityId].tickInfo.Count < tickNumber) entityInfo[entityId].tickInfo.Add(null);
 
             if (entityInfo[entityId].tickInfo[tickNumber - 1] == null)
-                entityInfo[entityId].tickInfo[tickNumber - 1] = new RGAgentTickInfo();
+                entityInfo[entityId].tickInfo[tickNumber - 1] = new RGEntityTickInfo();
 
             return entityInfo[entityId].tickInfo[tickNumber - 1];
         }
     }
 
     [Serializable]
-    public class RGAgentReplayData
+    public class RGEntityReplayData
     {
-        public List<RGAgentTickInfo> tickInfo;
+        public List<RGEntityTickInfo> tickInfo;
         public long id;
         public string type;
         public bool isPlayer = false;
@@ -161,7 +161,7 @@ namespace RegressionGames.Editor
     }
 
     [Serializable]
-    public class RGAgentTickInfo
+    public class RGEntityTickInfo
     {
         public RGActionRequest[] actions = Array.Empty<RGActionRequest>();
         public RGValidationResult[] validationResults = Array.Empty<RGValidationResult>();
@@ -169,18 +169,18 @@ namespace RegressionGames.Editor
     }
 
     [Serializable]
-    public class RGAgentDataForTick
+    public class RGEntityDataForTick
     {
-        public RGAgentReplayData data { get; private set; }
-        [CanBeNull] public RGAgentTickInfo tickInfo { get; private set; }
+        public RGEntityReplayData data { get; private set; }
+        [CanBeNull] public RGEntityTickInfo tickInfo { get; private set; }
         public bool justSpawned { get; private set; }
         public bool justDespawned { get; private set; }
 
         [CanBeNull]
-        public static RGAgentDataForTick FromReplayData(RGAgentReplayData data, int tickNumber)
+        public static RGEntityDataForTick FromReplayData(RGEntityReplayData data, int tickNumber)
         {
             var ti = tickNumber > 0 && tickNumber <= data.tickInfo.Count ? data.tickInfo[tickNumber - 1] : null;
-            var result = new RGAgentDataForTick();
+            var result = new RGEntityDataForTick();
             result.data = data;
             result.tickInfo = ti;
             // if prior tick's info was null, we just spawn
