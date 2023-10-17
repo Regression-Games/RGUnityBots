@@ -56,9 +56,9 @@ namespace RegressionGames
                 string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
                 string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
-                // Save to 'Assets/RGScripts/RGActions,RGSerialization.cs'
+                // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
                 string fileName = $"RGAction_{botAction.ActionName.Replace(" ", "_")}.cs";
-                string subfolderName = Path.Combine("RGScripts", "RGActions");
+                string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGActions");
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                 string fileContents = headerComment + formattedCode;
 
