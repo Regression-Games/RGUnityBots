@@ -2644,8 +2644,6 @@ MonoBehaviour:
   isPlayer: 0
   objectType: 
   isRuntimeObject: 0
-  syncPosition: 1
-  syncRotation: 1
 --- !u!1 &7045523072349830337
 GameObject:
   m_ObjectHideFlags: 0
