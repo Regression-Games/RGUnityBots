@@ -293,7 +293,7 @@ namespace RegressionGames
         
         private static string ReadFromJson(string fileName)
         {
-            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames");
+            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");
             string filePath = Path.Combine(folderPath, $"{fileName}.json");
 
             if (File.Exists(filePath))
@@ -324,8 +324,6 @@ namespace RegressionGames
                 ZipFile.CreateFromDirectory(folderPath, zipPath);
 
                 RGDebug.LogInfo($"Successfully Generated {zipPath}");
-                Directory.Delete(folderPath, true);
-                RGDebug.LogDebug($"Successfully removed temporary zip directory {folderPath}");
             }
             else
             {
@@ -460,11 +458,16 @@ namespace RegressionGames
             }
             
             // Write updated values back to JSON files
-            string updatedActionJson =
-                JsonConvert.SerializeObject(new RGActionsInfo { BotActions = actionsInfo.BotActions }, Formatting.Indented);
-            string updatedStateJson = 
-                JsonConvert.SerializeObject(new { RGStateInfo = statesInfo }, Formatting.Indented);
-
+            string updatedActionJson = 
+                JsonConvert.SerializeObject(new RGActionsInfo { BotActions = actionsInfo.BotActions }, Formatting.Indented, new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                });
+            string updatedStateJson = JsonConvert.SerializeObject(new { RGStateInfo = statesInfo }, Formatting.Indented, new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
+            
             WriteToJson("RGActions", updatedActionJson);
             WriteToJson("RGStates", updatedStateJson);
         }
