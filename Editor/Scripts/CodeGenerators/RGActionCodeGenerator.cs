@@ -164,6 +164,8 @@ namespace RegressionGames
                     string className = classDeclaration.Identifier.ValueText;
                     List<RGStateInfo> stateList = new List<RGStateInfo>();
 
+                    string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
+
                     var membersWithRGState = classDeclaration.Members
                         .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")));
 
@@ -241,6 +243,7 @@ namespace RegressionGames
                     {
                         rgStateInfoList.Add(new RGStatesInfo
                         {
+                            Namespace = nameSpace,
                             Object = className,
                             State = stateList
                         });
