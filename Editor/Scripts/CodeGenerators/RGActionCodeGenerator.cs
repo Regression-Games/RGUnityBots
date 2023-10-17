@@ -72,7 +72,8 @@ namespace RegressionGames
 
                 foreach (var method in botActionMethods)
                 {
-                    string nameSpace = method.Ancestors().OfType<NamespaceDeclarationSyntax>().First().Name.ToString();
+                    var namespaceAncestor = method.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault(null);
+                    string nameSpace = namespaceAncestor?.Name.ToString();
                     string className = method.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText;
                     string methodName = method.Identifier.ValueText;
 
