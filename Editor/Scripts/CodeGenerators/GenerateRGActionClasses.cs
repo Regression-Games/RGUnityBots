@@ -19,14 +19,25 @@ namespace RegressionGames
             // Iterate through BotActions
             foreach (var botAction in actionsInfo.BotActions)
             {
+                List<UsingDirectiveSyntax> usings = new()
+                {
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.StateActionTypes")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                };
+
+                if (!string.IsNullOrEmpty(botAction.Namespace))
+                {
+                    usings.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(botAction.Namespace)));
+                }
+                
                 // Create a new compilation unit
                 CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                     .AddUsings(
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                        usings.ToArray()
                     )
                     .AddMembers(
                         // Namespace
@@ -34,21 +45,32 @@ namespace RegressionGames
                         .AddMembers(
                             // Class declaration
                             SyntaxFactory.ClassDeclaration($"RGAction_{botAction.ActionName.Replace(" ", "_")}")
-                            .AddModifiers(
-                                SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                // Only add one of the "class" keywords here
-                            )
-                            .AddBaseListTypes(
-                                SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGAction"))
-                            )
-                            .AddMembers(
-                                // Start method
-                                GenerateStartMethod(botAction),
-                                // GetActionName method
-                                GenerateGetActionNameMethod(botAction),
-                                // StartAction method
-                                GenerateStartActionMethod(botAction)
-                            )
+                                .AddModifiers(
+                                    SyntaxFactory.Token(SyntaxKind.PublicKeyword)
+                                    // Only add one of the "class" keywords here
+                                )
+                                .AddBaseListTypes(
+                                    SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGAction"))
+                                )
+                                .AddMembers(
+                                    // Start method
+                                    GenerateStartMethod(botAction),
+                                    // GetActionName method
+                                    GenerateGetActionNameMethod(botAction),
+                                    // StartAction method
+                                    GenerateStartActionMethod(botAction)
+                                ),
+                            SyntaxFactory.ClassDeclaration($"RGActionRequest_{botAction.ActionName.Replace(" ", "_")}")
+                                .AddModifiers(
+                                    SyntaxFactory.Token(SyntaxKind.PublicKeyword)
+                                    // Only add one of the "class" keywords here
+                                )
+                                .AddBaseListTypes(
+                                    SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGActionRequest"))
+                                ).AddMembers(
+                                    // Action Request method
+                                    GenerateActionRequestConstructor(botAction)
+                                )
                         )
                     );
 
@@ -56,9 +78,9 @@ namespace RegressionGames
                 string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
                 string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
-                // Save to 'Assets/RGScripts/RGActions,RGSerialization.cs'
+                // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
                 string fileName = $"RGAction_{botAction.ActionName.Replace(" ", "_")}.cs";
-                string subfolderName = Path.Combine("RGScripts", "RGActions");
+                string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGActions");
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                 string fileContents = headerComment + formattedCode;
 
@@ -306,6 +328,43 @@ namespace RegressionGames
             .WithBody(methodBody);
 
             return startActionMethod;
+        }
+        
+        private static MemberDeclarationSyntax GenerateActionRequestConstructor(RGActionInfo action)
+        {
+            var methodParameters = new List<ParameterSyntax>();
+            var parameterParsingStatements = new List<StatementSyntax>();
+            
+            foreach (var rgParameterInfo in action.Parameters)
+            {
+                methodParameters.Add(SyntaxFactory.Parameter(SyntaxFactory.Identifier(rgParameterInfo.Name))
+                    .WithType(SyntaxFactory.ParseTypeName(rgParameterInfo.Type)));
+            }
+
+            parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"action = \"{action.ActionName}\";"));
+
+            var inputString = "Input = new () {";
+            foreach (var rgParameterInfo in action.Parameters)
+            {
+                inputString += $"\r\n {{ \"{rgParameterInfo.Name}\", {rgParameterInfo.Name} }},";
+            }
+
+            inputString += "\r\n};";
+            
+            parameterParsingStatements.Add(
+                SyntaxFactory.ParseStatement(inputString)
+            );
+
+            var methodBody = SyntaxFactory.Block(parameterParsingStatements);
+
+            var constructor = SyntaxFactory.ConstructorDeclaration(
+                $"RGActionRequest_{action.ActionName}"
+            )
+            .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+            .AddParameterListParameters(methodParameters.ToArray())
+            .WithBody(methodBody);
+
+            return constructor;
         }
 
     }

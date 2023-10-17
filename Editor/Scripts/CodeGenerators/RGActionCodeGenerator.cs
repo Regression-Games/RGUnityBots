@@ -16,6 +16,18 @@ namespace RegressionGames
         [MenuItem("Regression Games/Generate Scripts")]
         private static void GenerateRGScripts()
         {
+            //TODO: Someone/Anyone... remove this delete RGScripts directory code after November 1st, 2023... This is temporary to help devs migrate easily
+            // remove old 'RGScripts' folder that is no longer used
+            string dataPath = Application.dataPath;
+            string directoryToDelete = Path.Combine(dataPath, "RGScripts").Replace("\\", "/");
+
+            if (Directory.Exists(directoryToDelete))
+            {
+                Directory.Delete(directoryToDelete, true);
+                File.Delete(directoryToDelete + ".meta");
+                AssetDatabase.Refresh();
+            }
+
             // find and extract RGAction data
             string actionJson = SearchForBotActionMethods();
             
@@ -60,6 +72,9 @@ namespace RegressionGames
 
                 foreach (var method in botActionMethods)
                 {
+                    var namespaceAncestors = method.Ancestors().OfType<NamespaceDeclarationSyntax>().ToArray();
+                    var namespaceAncestor = namespaceAncestors.Length > 0 ? namespaceAncestors[0] : null; 
+                    string nameSpace = namespaceAncestor?.Name.ToString();
                     string className = method.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText;
                     string methodName = method.Identifier.ValueText;
 
@@ -88,6 +103,7 @@ namespace RegressionGames
 
                     botActionList.Add(new RGActionInfo
                     {
+                        Namespace = nameSpace,
                         Object = className,
                         MethodName = methodName,
                         ActionName = actionName,
@@ -104,7 +120,7 @@ namespace RegressionGames
             
             // remove previous RGActions
             string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGActions").Replace("\\", "/");
+            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGActions").Replace("\\", "/");
 
             if (Directory.Exists(directoryToDelete))
             {
@@ -239,7 +255,7 @@ namespace RegressionGames
             
             // remove previous RGStates
             string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RGScripts/RGStates").Replace("\\", "/");
+            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGStates").Replace("\\", "/");
             
             if (Directory.Exists(directoryToDelete))
             {
@@ -254,7 +270,7 @@ namespace RegressionGames
 
         private static void WriteToJson(string fileName, string json)
         {
-            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames");
+            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");
 
             if (!Directory.Exists(folderPath))
             {
@@ -268,17 +284,24 @@ namespace RegressionGames
         private static void ZipJson()
         {
             string parentPath = Directory.GetParent(Application.dataPath).FullName;
-            string folderPath = Path.Combine(parentPath, "RegressionGames");
+            string folderPath = Path.Combine(parentPath, "RegressionGamesZipTemp");
 
             if (Directory.Exists(folderPath))
             {
                 string zipPath = Path.Combine(parentPath, "RegressionGames.zip");
+                // delete existing zip if exists
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
                 ZipFile.CreateFromDirectory(folderPath, zipPath);
+                RGDebug.LogInfo($"Successfully Generated {zipPath}");
                 Directory.Delete(folderPath, true);
+                RGDebug.LogDebug($"Successfully removed temporary zip directory {folderPath}");
             }
             else
             {
-                Debug.LogWarning("The 'RegressionGames' folder does not exist.");
+                Debug.LogWarning("The 'RegressionGamesZipTemp' folder does not exist.");
             }
         }
         

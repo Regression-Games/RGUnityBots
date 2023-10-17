@@ -16,14 +16,26 @@ namespace RegressionGames
             // Parse JSON and extract parameter types
             List<RGActionInfo> botActions = ParseJson(jsonData);
 
+            List<UsingDirectiveSyntax> usings = new() {SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))};
+            foreach (var rgActionInfo in botActions)
+            {
+                if (!string.IsNullOrEmpty(rgActionInfo.Namespace))
+                {
+                    usings.Add(
+                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName($"{rgActionInfo.Namespace}"))
+                    );
+                }
+            }
+
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
                 .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
                 .AddUsings(
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                    usings.ToArray()
                 )
                 .AddMembers(GenerateClass(botActions));
-
+            
+            
             // Create a compilation unit and add the namespace declaration
             CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                 .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")))
@@ -33,10 +45,9 @@ namespace RegressionGames
             string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
             string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
-            // Save to 'Assets/RGScripts/RGActionMap.cs'
-            string subfolderName = "RGScripts";
+            // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActionMap.cs'
             string fileName = "RGActionMap.cs";
-            string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
+            string filePath = Path.Combine(Application.dataPath, "RegressionGames", "Runtime", "GeneratedScripts", fileName);
             string fileContents = headerComment + formattedCode;
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             File.WriteAllText(filePath, fileContents);            
