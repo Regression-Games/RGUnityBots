@@ -122,8 +122,11 @@ namespace RegressionGames
                 }
             }
 
-            string jsonResult =
-                JsonConvert.SerializeObject(new RGActionsInfo { BotActions = botActionList }, Formatting.Indented);
+            string jsonResult = 
+                JsonConvert.SerializeObject(new RGActionsInfo { BotActions = botActionList }, Formatting.Indented, new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
             
             // remove previous RGActions
             string dataPath = Application.dataPath;
@@ -255,7 +258,10 @@ namespace RegressionGames
                 }
             }
 
-            string jsonResult = JsonConvert.SerializeObject(new { RGStateInfo = rgStateInfoList }, Formatting.Indented);
+            string jsonResult = JsonConvert.SerializeObject(new { RGStateInfo = rgStateInfoList }, Formatting.Indented, new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
             
             // remove previous RGStates
             string dataPath = Application.dataPath;
