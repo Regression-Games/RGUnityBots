@@ -280,7 +280,15 @@ namespace RegressionGames
             {
                 // First, allow the developer to configure any frontend/backend for a player about to spawn,
                 // such as character selection.
-                SeatBot(botToSpawn);
+                try
+                {
+                    SeatBot(botToSpawn);
+                }
+                catch (Exception ex)
+                {
+                    RGDebug.LogError($"Error seating bot - {ex}");
+                }
+
                 RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
                 if (rgBotServerListener != null)
                 {
