@@ -43,7 +43,7 @@ namespace RegressionGames
 
         }
 
-        [MenuItem("Regression Games/Extract Data")]
+        [MenuItem("Regression Games/Agent Builder/Extract Data")]
         private static void ExtractData()
         {
             ExtractObjectType();
