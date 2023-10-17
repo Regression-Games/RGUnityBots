@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.Types;
 using UnityEngine;
+using System.Threading.Tasks;
 #if UNITY_EDITOR
 using RegressionGames.RGBotLocalRuntime;
 using UnityEditor;
@@ -71,16 +72,7 @@ namespace RegressionGames.Editor
                         priorPassword = passwordField.stringValue;
                         priorUser = emailField.stringValue;
                         priorHost = hostField.stringValue;
-                        await rgServiceManager.Auth(priorUser,
-                            priorPassword, responseToken =>
-                            {
-                                token = responseToken;
-                                bots = null;
-                            }, f =>
-                            {
-                                token = null;
-                                bots = null;
-                            });
+                        await Login(priorUser, priorPassword);
                     }
 
                     if (token != null && (bots == null || bots.Length == 0))
@@ -191,6 +183,30 @@ namespace RegressionGames.Editor
 
             return provider;
         }
+
+        public static async System.Threading.Tasks.Task Login(string user, string password)
+        {
+            priorUser = user;
+            priorPassword = password;
+            var tcs = new TaskCompletionSource<bool>();
+
+            await rgServiceManager.Auth(priorUser, priorPassword, 
+                responseToken => 
+                {
+                    token = responseToken;
+                    bots = null;
+                    tcs.SetResult(true);
+                }, 
+                f => 
+                {
+                    token = null;
+                    bots = null;
+                    tcs.SetResult(false);
+                });
+
+            await tcs.Task;
+        }
+
     }
 #endif
 }
