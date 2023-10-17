@@ -6,6 +6,8 @@ namespace RegressionGames
     [Serializable]
     public class RGActionInfo
     {
+        // the namespace of the class that contains the [RGAction] attribute tags
+        public string Namespace;
         // the name of the component class that contains the [RGAction] attribute tags
         public string Object;
         // the name of the method tagged with [RGAction]

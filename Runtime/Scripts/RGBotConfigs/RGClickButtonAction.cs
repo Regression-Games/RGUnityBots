@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using RegressionGames.StateActionTypes;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -48,6 +49,15 @@ namespace RegressionGames.RGBotConfigs
                     buttonsToClick.Enqueue(target.gameObject.GetComponent<Button>());
                 }
             }
+        }
+    }
+
+    public class RGActionRequest_ClickButton : RGActionRequest
+    {
+        public RGActionRequest_ClickButton(int targetId)
+        {
+            action = "ClickButton";
+            Input = new() { { "targetId", targetId } };
         }
     }
 }

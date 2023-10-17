@@ -16,14 +16,23 @@ namespace RegressionGames
             // Parse JSON and extract parameter types
             List<RGActionInfo> botActions = ParseJson(jsonData);
 
+            List<UsingDirectiveSyntax> usings = new() {SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))};
+            foreach (var rgActionInfo in botActions)
+            {
+                usings.Add(
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName($"{rgActionInfo.Namespace}"))
+                );
+            }
+
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
                 .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
                 .AddUsings(
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                    usings.ToArray()
                 )
                 .AddMembers(GenerateClass(botActions));
-
+            
+            
             // Create a compilation unit and add the namespace declaration
             CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                 .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")))
