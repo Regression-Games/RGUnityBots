@@ -29,7 +29,7 @@ namespace RegressionGames
                     SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
                 };
 
-                if (botAction.Namespace != null)
+                if (!string.IsNullOrEmpty(botAction.Namespace))
                 {
                     usings.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(botAction.Namespace)));
                 }
