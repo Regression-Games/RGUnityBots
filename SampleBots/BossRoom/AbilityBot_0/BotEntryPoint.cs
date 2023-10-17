@@ -43,7 +43,7 @@ namespace AbilityBot_0
                         skillId = 1;
                     }
 
-                    var targetPosition = target.position ?? Vector3.zero;
+                    var targetPosition = (Vector3)target["position"];
                     var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
                         { "skillId",  skillId},

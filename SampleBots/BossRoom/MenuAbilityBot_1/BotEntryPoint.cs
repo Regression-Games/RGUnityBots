@@ -160,8 +160,8 @@ namespace MenuAbilityBot_1
                             {
                                 var target = entities[new Random().Next(entities.Count)];
 
-                                var targetPosition = target.position ?? Vector3.zero;
-                                var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>
+                                var targetPosition = (Vector3)target["position"];
+                                var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                                 {
                                     { "skillId", new Random().Next(2) },
                                     { "targetId", target["id"] },
