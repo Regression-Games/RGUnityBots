@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bda1ebc688d044ec18c2b7a6a0cedd1c, type: 3}
+  m_Name: Shoot Gun
+  m_EditorClassIdentifier: 
+  abilityName: Shoot Gun
+  abilityIcon: {fileID: 21300000, guid: c158efc0bf8b844a59ce91c06c5839c1, type: 3}
+  castTime: 1
+  cooldownTime: 5
+  castColor: {r: 0.7529412, g: 0, b: 0.25009298, a: 1}
+  animation: Shoot Gun
+  projectile: {fileID: 4088986778379828173, guid: 013f19aa6b30c44ce914c1fd4c4616f0,
+    type: 3}
+  damage: 5
