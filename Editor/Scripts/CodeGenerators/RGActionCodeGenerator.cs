@@ -171,11 +171,11 @@ namespace RegressionGames
 
                 foreach (var classDeclaration in classDeclarations)
                 {
-                    string className = classDeclaration.Identifier.ValueText;
-                    List<RGStateInfo> stateList = new List<RGStateInfo>();
-
                     string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
 
+                    string className = classDeclaration.Identifier.ValueText;
+                    List<RGStateInfo> stateList = new List<RGStateInfo>();
+                    
                     var membersWithRGState = classDeclaration.Members
                         .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")));
 
