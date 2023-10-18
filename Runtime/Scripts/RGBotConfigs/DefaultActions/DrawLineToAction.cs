@@ -15,6 +15,8 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
      *  If removing the line:
      *    - name (string): The line to remove
      *    - remove (boolean): Set to true
+     *  If removing all lines:
+     *    - removeAll (bool): Set to true
      */
     public class DrawLineToAction: RGAction
     {
@@ -28,6 +30,12 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
 
         public override void StartAction(Dictionary<string, object> input)
         {
+            
+            if ((bool) input.GetValueOrDefault("removeAll", false))
+            {
+                _lines.Clear();
+                return;
+            }
 
             var lineName = (string) input["name"];
             if ((bool) input.GetValueOrDefault("remove", false))
@@ -39,7 +47,7 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
                 var targetPosition = (Vector3) input["position"];
                 var color = (Color) input["color"];
                 var lineParams = Tuple.Create(targetPosition, color);
-                _lines[name] = lineParams;
+                _lines[lineName] = lineParams;
             }
 
         }

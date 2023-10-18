@@ -7,14 +7,13 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
     public class DrawText: RGAction
     {
 
-        private Dictionary<string, GameObject> _billboards = new ();
+        private GameObject _billboard;
         private Object _billboardAsset;
 
         void Start()
         {
             var path = "Packages/gg.regression.unity.bots/Runtime/Prefabs/AgentBillboardText.prefab";
             _billboardAsset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            Debug.Log($"Grabbed asset from {path}: {_billboardAsset}");
         }
         
         public override string GetActionName()
@@ -25,26 +24,25 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
         public override void StartAction(Dictionary<string, object> input)
         {
             
-            var textName = (string) input["name"];
             if ((bool) input.GetValueOrDefault("remove", false))
             {
-                _billboards.Remove(textName);
+                Destroy(_billboard);
+                _billboard = null;
             }
             else
             {
                 var content = (string) input["content"];
-                if (!_billboards.ContainsKey(name))
+                if (_billboard == null)
                 {
                     var billboardText =
                         (GameObject) Instantiate(_billboardAsset, transform.position, Quaternion.identity);
                     billboardText.transform.SetParent(transform);
                     billboardText.GetComponent<BillboardText>().SetText(content);
-                    _billboards[name] = billboardText;
+                    _billboard = billboardText;
                 }
                 else
                 {
-                    var billboard = _billboards[name];
-                    billboard.GetComponent<BillboardText>().SetText(content);
+                    _billboard.GetComponent<BillboardText>().SetText(content);
                 }
             }
 

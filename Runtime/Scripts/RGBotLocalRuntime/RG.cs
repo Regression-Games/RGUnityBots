@@ -247,12 +247,64 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
 
-        public void DrawText(string content, string name)
+        public void RemoveLineTo(string name)
+        {
+            PerformAction(new RGActionRequest("DrawLineTo", new Dictionary<string, object>()
+            {
+                { "remove", true},
+                { "name", name},
+            }));
+        }
+        
+        public void RemoveAllLinesTo()
+        {
+            PerformAction(new RGActionRequest("DrawLineTo", new Dictionary<string, object>()
+            {
+                { "removeAll", true}
+            }));
+        }
+
+        public void DrawText(string content)
         {
             PerformAction(new RGActionRequest("DrawText", new Dictionary<string, object>()
             {
                 { "content", content },
+            }));
+        }
+
+        public void RemoveText()
+        {
+            PerformAction(new RGActionRequest("DrawText", new Dictionary<string, object>()
+            {
+                { "remove", true }
+            }));
+        }
+
+        public void DrawIndicator(Vector3 position, float size, Color color, string name)
+        {
+            PerformAction(new RGActionRequest("DrawIndicator", new Dictionary<string, object>()
+            {
+                { "position", position},
+                { "size", size },
+                { "color", color},
+                { "name", name},
+            }));
+        }
+
+        public void RemoveIndicator(string name)
+        {
+            PerformAction(new RGActionRequest("DrawIndicator", new Dictionary<string, object>()
+            {
+                { "remove", true },
                 { "name", name}
+            }));
+        }
+        
+        public void RemoveAllIndicators()
+        {
+            PerformAction(new RGActionRequest("DrawIndicator", new Dictionary<string, object>()
+            {
+                { "removeAll", true }
             }));
         }
     }

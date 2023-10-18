@@ -41,7 +41,8 @@ namespace RegressionGames.RGBotConfigs
                 var defaultActions = new RGAction[]
                 {
                     gameObject.AddComponent<DrawLineToAction>(),
-                    gameObject.AddComponent<DrawText>()
+                    gameObject.AddComponent<DrawText>(),
+                    gameObject.AddComponent<DrawIndicator>()
                 };
                 foreach (var defaultAction in defaultActions)
                 {
