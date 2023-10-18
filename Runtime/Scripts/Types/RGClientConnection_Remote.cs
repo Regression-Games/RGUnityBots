@@ -22,7 +22,7 @@ namespace RegressionGames.Types
 
         private const int SOCKET_READWRITE_TIMEOUT = 5_000; // 5 seconds
 
-        private bool _connecting;
+        private SemaphoreSlim _connecting = new (0,1);
         [CanBeNull] private RGBotInstanceExternalConnectionInfo _connectionInfo;
 
         public RGClientConnection_Remote(long clientId, string lifecycle = "MANAGED",
@@ -143,116 +143,126 @@ namespace RegressionGames.Types
 
         public override async void Connect()
         {
-            // trickyness to get around can't call unity webrequest off of main thread
-            // or await inside lock statements
             var shouldIConnect = false;
-            if (!_connecting && !Connected())
+            if (!Connected())
             {
-                lock (this)
+                // see if the semaphore is currently available
+                // we CANNOT do `.Wait()` here as we would block the main unity thread
+                // calling us and the main thread must be available for Unity webrequests
+                // that we do in this method to process
+                // IOW.. it will deadlock the system
+                var semaphoneAcquired = _connecting.Wait(1);
+                if (semaphoneAcquired && !Connected())
                 {
-                    if (!_connecting && !Connected())
-                    {
-                        _connecting = true;
-                        shouldIConnect = true;
-                    }
+                    shouldIConnect = true;
                 }
-            }
 
-            if (shouldIConnect)
-            {
-                RGBotServerListener.GetInstance()?.SetUnityBotState(ClientId, RGUnityBotState.CONNECTING);
-                RGDebug.LogDebug(
-                    $"Getting external connection information for botInstanceId: {ClientId}");
-                await RGServiceManager.GetInstance()?.GetExternalConnectionInformationForBotInstance(
-                    ClientId,
-                    connInfo =>
-                    {
-                        _connectionInfo = connInfo;
-                        // make sure we were able to get the current connection info
-                        var client = new TcpClient();
-                        client.ReceiveTimeout = SOCKET_READWRITE_TIMEOUT;
-                        client.SendTimeout = SOCKET_READWRITE_TIMEOUT;
-                        // create a new TcpClient, then start a connect attempt asynchronously
-                        var address = _connectionInfo.address;
-                        var port = _connectionInfo.port;
-                        
-                        // client should be null, but close down existing just in case
-                        if (_client != null)
+                if (shouldIConnect)
+                {
+                    RGBotServerListener.GetInstance()?.SetUnityBotState(ClientId, RGUnityBotState.CONNECTING);
+                    RGDebug.LogDebug(
+                        $"Getting external connection information for botInstanceId: {ClientId}");
+                    await RGServiceManager.GetInstance()?.GetExternalConnectionInformationForBotInstance(
+                        ClientId,
+                        connInfo =>
                         {
-                            Close();
-                        }
-                        
-                        _client = client;
+                            _connectionInfo = connInfo;
+                            // make sure we were able to get the current connection info
+                            var client = new TcpClient();
+                            client.ReceiveTimeout = SOCKET_READWRITE_TIMEOUT;
+                            client.SendTimeout = SOCKET_READWRITE_TIMEOUT;
+                            // create a new TcpClient, then start a connect attempt asynchronously
+                            var address = _connectionInfo.address;
+                            var port = _connectionInfo.port;
 
-                        var connectionComplete = 0; // 0 = false , 1+ = true
-                        
-                        RGDebug.LogInfo(
-                            $"Connecting to bot at {address}:{port} for ClientId: {ClientId}");
-                        var beginConnect = client.BeginConnect(address, port, ar =>
-                        {
-                            // if == 1 , we got here before the timeout
-                            if (Interlocked.Increment(ref connectionComplete) == 1)
+                            // client should be null, but close down existing just in case
+                            if (_client != null)
                             {
-                                // nodejs side should start handshakes/etc
-                                // we just need to save our connection reference
-                                try
+                                Close();
+                            }
+
+                            _client = client;
+
+                            var connectionComplete = 0; // 0 = false , 1+ = true
+
+                            RGDebug.LogInfo(
+                                $"Connecting to bot at {address}:{port} for ClientId: {ClientId}");
+                            var beginConnect = client.BeginConnect(address, port, ar =>
+                            {
+                                // if == 1 , we got here before the timeout
+                                if (Interlocked.Increment(ref connectionComplete) == 1)
                                 {
-                                    client.EndConnect(ar);
-                                    RGDebug.LogDebug($"TcpClient socket connected - {client.Connected}");
-                                    HandleClientConnection(client);
-                                }
-                                catch (Exception ex)
-                                {
-                                    // this is debug because of how we have to retry frequently when connecting bots
-                                    RGDebug.LogDebug(
-                                        $"WARNING: Failed to connect bot TCP socket to {address}:{port} - {ex.Message}");
-                                    // mark this connection as needing to try again on a future update
+                                    // nodejs side should start handshakes/etc
+                                    // we just need to save our connection reference
                                     try
                                     {
                                         client.EndConnect(ar);
+                                        RGDebug.LogDebug($"TcpClient socket connected - {client.Connected}");
+                                        HandleClientConnection(client);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        // this is debug because of how we have to retry frequently when connecting bots
+                                        RGDebug.LogDebug(
+                                            $"WARNING: Failed to connect bot TCP socket to {address}:{port} - {ex.Message}");
+                                        // mark this connection as needing to try again on a future update
+                                        try
+                                        {
+                                            client.EndConnect(ar);
+                                        }
+                                        catch (Exception e1)
+                                        {
+                                            // may not have gotten far enough to do this
+                                        }
+
+                                        Close();
+                                    }
+                                    finally
+                                    {
+                                        _connecting.Release();
+                                    }
+                                }
+                            }, null);
+
+                            // start a timer for SOCKET_READWRITE_TIMEOUT * 2 ms from now that will cancel the connection attempt if it didn't connect yet
+                            var t = new Timer(SOCKET_READWRITE_TIMEOUT * 2);
+                            t.Elapsed += (s, e) =>
+                            {
+                                // if == 1 , we got here before the connection completed
+                                if (Interlocked.Increment(ref connectionComplete) == 1)
+                                {
+                                    RGDebug.LogInfo(
+                                        $"Connection TIMED OUT to bot at {address}:{port} for ClientId: {ClientId}");
+                                    try
+                                    {
+                                        client.EndConnect(beginConnect);
                                     }
                                     catch (Exception e1)
                                     {
                                         // may not have gotten far enough to do this
+                                        // RGDebug.LogDebug($"Failed to abort connection - {e1}");
                                     }
 
                                     Close();
+                                    _connecting.Release();
                                 }
-                                finally
-                                {
-                                    _connecting = false;
-                                }
-                            }
-                        }, null);
-
-                        // start a timer for SOCKET_READWRITE_TIMEOUT * 2 ms from now that will cancel the connection attempt if it didn't connect yet
-                        var t = new Timer(SOCKET_READWRITE_TIMEOUT * 2);
-                        t.Elapsed += (s, e) =>
+                            };
+                            t.AutoReset = false;
+                            t.Start();
+                        },
+                    () =>
                         {
-                            // if == 1 , we got here before the connection completed
-                            if (Interlocked.Increment(ref connectionComplete) == 1)
-                            {
-                                RGDebug.LogInfo(
-                                    $"Connection TIMED OUT to bot at {address}:{port} for ClientId: {ClientId}");
-                                try
-                                {
-                                    client.EndConnect(beginConnect);
-                                }
-                                catch (Exception e1)
-                                {
-                                    // may not have gotten far enough to do this
-                                   // RGDebug.LogDebug($"Failed to abort connection - {e1}");
-                                }
-
-                                Close();
-                                _connecting = false;
-                            }
-                        };
-                        t.AutoReset = false;
-                        t.Start();
-                    },
-                    () => { _connecting = false; }
-                );
+                            _connecting.Release();
+                        }
+                    );
+                }
+                else
+                {
+                    if (semaphoneAcquired)
+                    {
+                        _connecting.Release();
+                    }
+                }
             }
         }
 
