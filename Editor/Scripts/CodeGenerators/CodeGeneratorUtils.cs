@@ -6,7 +6,7 @@ namespace RegressionGames
     {
         public static string SanitizeActionName(string name)
         {
-            return Regex.Replace(name.Replace(" ", "_"), "[^a-zA-Z_]", "_");
+            return Regex.Replace(name.Replace(" ", "_"), "[^0-9a-zA-Z_]", "_");
         }
     }
 }
