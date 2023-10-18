@@ -1,11 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
-//using RegressionGames;
 using RGThirdPersonDemo.Events;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
-using RGThirdPersonDemo;
 
 namespace RGThirdPersonDemo
 {
@@ -44,23 +42,8 @@ namespace RGThirdPersonDemo
         
         [Header("Player Grounded")]
         [Tooltip("If the character is grounded or not. Not part of the CharacterController built in grounded check")]
-        //[RGState]
         public bool Grounded = true;
 
-        private int test = 5;
-
-       // [RGState("My Test")]
-        public int GetTest()
-        {
-            return test;
-        }
-
-        //[RGAction("My Action")]
-        public void DoSomething()
-        {
-            Debug.Log("Test");
-        }
-        
         [Tooltip("Useful for rough ground")]
         public float GroundedOffset = -0.14f;
         
@@ -211,14 +194,6 @@ namespace RGThirdPersonDemo
             }
         }
 
-        //[RGState] public int testStateValue = 5;
-        
-        //[RGAction]
-        public void TestAction(int param)
-        {
-            Debug.Log(param);
-        }
-        
         public void LookAtTransform(Transform targetTransform)
         {
             // Calculate the direction to the target transform on the Y-axis
