@@ -60,7 +60,7 @@ namespace <TEMPLATE_NAMESPACE>
                 }
                 else
                 {
-                    RGDebug.LogWarning("No players found...");
+                    RGDebug.LogWarning("No entities found...");
                 }
             }
             catch (Exception ex)

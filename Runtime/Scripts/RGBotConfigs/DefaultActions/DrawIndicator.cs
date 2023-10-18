@@ -56,7 +56,6 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
 
         private void OnDrawGizmos()
         {
-            Debug.Log($"DRAWING {_indicators.Count} INDICATORS");
             foreach (var indicatorParams in _indicators.Values)
             {
                 Gizmos.color = indicatorParams.Item2;

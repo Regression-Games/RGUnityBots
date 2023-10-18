@@ -8,8 +8,7 @@ public class BillboardText : MonoBehaviour
     private TextMeshProUGUI _text;
     private string _content;
     private float _yOffset;
-
-    // Start is called before the first frame update
+    
     void Awake()
     {
         _mainCamera = Camera.main;
@@ -22,8 +21,7 @@ public class BillboardText : MonoBehaviour
             SetYOffset(_yOffset);
         }
     }
-
-    // Update is called once per frame
+    
     void LateUpdate()
     {
         transform.LookAt(_mainCamera.transform);

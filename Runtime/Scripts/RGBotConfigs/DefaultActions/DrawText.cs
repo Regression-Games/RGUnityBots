@@ -4,6 +4,16 @@ using UnityEngine;
 
 namespace RegressionGames.RGBotConfigs.DefaultActions
 {
+    
+    /**
+     * This action uses Gizmos to draw text above the agent.
+     * Takes the following parameters:
+     *  If adding or updating the text:
+     *    - content (string): The text to display
+     *    - yOffset (float): The distance above the agent's origin to display the text
+     *  If removing the text:
+     *    - remove (boolean): Set to true
+     */
     public class DrawText: RGAction
     {
 
@@ -31,7 +41,6 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
             }
             else
             {
-
                 var content = (string) input["content"];
                 if (_billboard == null)
                 {
@@ -47,11 +56,7 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
                 // If an offset is given, use that for placing it above the agent
                 var yOffset = (float) input.GetValueOrDefault("yOffset", 2f);
                 billboardText.SetYOffset(yOffset);
-                
-
             }
-
         }
-        
     }
 }
