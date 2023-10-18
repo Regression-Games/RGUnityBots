@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using RegressionGames.StateActionTypes;
 using TMPro;
 using UnityEngine;
@@ -874,7 +873,7 @@ namespace RegressionGames.Editor
                         // if still null
                         if (position == null && tickData.tickInfo?.state.position != null)
                             // targeting the bot's self
-                            position = tickData.tickInfo?.state.position.Value;
+                            position = tickData.tickInfo?.state.position;
                     }
 
                     if (position == null) position = Vector3.zero;

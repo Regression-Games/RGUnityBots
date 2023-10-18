@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +14,10 @@ namespace RegressionGames.RGBotConfigs
             var state = new RGStateEntity()
             {
                 ["id"] = transform.GetInstanceID(),
+                ["type"] = objectType,
+                // TODO remove these fields when we have a better way of differentiating ui components from actors
+                ["position"] = Vector3.zero,
+                ["rotation"] = Vector3.zero
             };
             
             CanvasGroup cg = this.gameObject.GetComponentInParent<CanvasGroup>();

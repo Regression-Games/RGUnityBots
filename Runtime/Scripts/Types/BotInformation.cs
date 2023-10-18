@@ -41,7 +41,10 @@ namespace RegressionGames.Types
          */
         public T ParseCharacterConfig<T>()
         {
-            return JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(characterConfig));
+            return JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(characterConfig, Formatting.None, new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            }));
         }
 
         /**
@@ -68,7 +71,10 @@ namespace RegressionGames.Types
         public void UpdateCharacterConfig<T>(T newConfig)
         {
             characterConfig =
-                JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(newConfig));
+                JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(newConfig, Formatting.None, new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                }));
         }
     }
 }

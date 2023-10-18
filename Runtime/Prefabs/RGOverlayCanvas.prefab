@@ -2469,9 +2469,9 @@ GameObject:
   - component: {fileID: 7045523072340300318}
   - component: {fileID: 6685330473564730309}
   - component: {fileID: 2013619771457747224}
-  - component: {fileID: 2711161755615678518}
   - component: {fileID: 5154676213986407094}
   - component: {fileID: 1135829319142607603}
+  - component: {fileID: 3743269787975814722}
   m_Layer: 5
   m_Name: RGOverlayCanvas
   m_TagString: Untagged
@@ -2605,18 +2605,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tickRate: 50
---- !u!114 &2711161755615678518
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7045523072340300313}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a077f2f5f4cff4e05bdfb0f6bcb4c9a3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &5154676213986407094
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2641,6 +2629,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab39863c9ca64324b3351cbd5dfb088b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &3743269787975814722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7045523072340300313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12949602f31a04a319b1d6154c6a036e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isPlayer: 0
+  objectType: 
+  isRuntimeObject: 0
 --- !u!1 &7045523072349830337
 GameObject:
   m_ObjectHideFlags: 0

@@ -48,9 +48,9 @@ namespace RegressionGames.Editor
                     for (var i = tickNumber - 1; i >= 0; i--)
                     {
                         var ti = replayData.tickInfo[i];
-                        if (ti == null || ti.state.position == null) break;
+                        if (ti == null) break;
 
-                        linePoints.Push(ti.state.position.Value);
+                        linePoints.Push(ti.state.position);
                     }
 
                     if (linePoints.Count > 0) return linePoints.ToArray();
@@ -64,7 +64,7 @@ namespace RegressionGames.Editor
             foreach (var gameStateObject in tickData.gameState)
             {
                 RGStateEntity entity = gameStateObject.Value;
-                long entityId = entity.id;
+                var entityId = entity.id;
 
                 var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
 

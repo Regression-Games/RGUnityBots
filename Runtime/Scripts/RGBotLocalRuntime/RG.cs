@@ -94,13 +94,13 @@ namespace RegressionGames.RGBotLocalRuntime
 
             if (result.Count > 1)
             {
+                var pos = position ?? GetMyPlayers()[0].position;
+                
                 // sort by distance
-                var pos = position ?? GetMyPlayers()[0].position ?? Vector3.zero;
-
                 result.Sort((e1, e2) =>
                 {
-                    var val = MathFunctions.DistanceSq(pos, e1.position ?? Vector3.zero) -
-                              MathFunctions.DistanceSq(pos, e1.position ?? Vector3.zero);
+                    var val = MathFunctions.DistanceSq(pos, e1.position) -
+                              MathFunctions.DistanceSq(pos, e1.position);
                     if (val < 0)
                         return -1;
                     if (val > 0) return 1;
