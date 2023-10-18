@@ -25,6 +25,22 @@ namespace RegressionGames
 
         private static RGBotServerListener _this = null;
         
+        /**
+         * Names of fields that are allowed to appear in multiple state scripts for the same GameObject.
+         * These are typically fields whose values are inherited from the GameObject's RGEntity component,
+         * and are expected to have the same value for each IRGState script attached to the GameObject.
+         */
+        private List<string> _duplicatedStateFields = new()
+        {
+            "id",
+            "type",
+            "isPlayer",
+            "isRuntimeObject",
+            "position",
+            "rotation",
+            "clientId"
+        };
+        
         public static RGBotServerListener GetInstance()
         {
             return _this;
@@ -505,62 +521,76 @@ namespace RegressionGames
         private Dictionary<string, RGStateEntity> GetGameState()
         {
             var overlayAgent = this.gameObject.GetComponent<RGEntity>();
-
             var statefulObjects = FindObjectsOfType<MonoBehaviour>(true).OfType<IRGState>();
-            var totalState = new Dictionary<string, RGStateEntity>();
-            
+            var fullGameState = new Dictionary<string, RGStateEntity>();
+
             // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
             // thus, this code cannot really be run in parallel, causing a major object count scaling issue....
-            foreach (var rgState in statefulObjects)
+            foreach (var statefulObject in statefulObjects)
             {
-                var state = rgState.GetGameObjectState();
-
-                bool? isPlayer = (bool?)state.GetField("isPlayer");
-
-                // if this object is a 'player' ... put the clientId that owns it into the state
-                if (true.Equals(isPlayer))
+                var gameObjectState = statefulObject.GetGameObjectState();
+                
+                var rgState = statefulObject as RGState;
+                if (rgState == null) continue; 
+                
+                // GameObjects must have an RGEntity to be tracked in the game state.
+                var rgEntity = rgState.GetComponentInParent<RGEntity>();
+                if (rgEntity == null) continue;
+                
+                if (true.Equals(gameObjectState.isPlayer))
                 {
-                    var statefulObject = rgState as RGState;
-                    if (statefulObject != null)
+                    var clientId = rgEntity.ClientId;
+                    if (clientId != null)
                     {
-                        var rgEntity = statefulObject.GetComponentInParent<RGEntity>();
-                        if (rgEntity != null)
+                        gameObjectState["clientId"] = clientId;
+                    }
+                    
+                    if (!gameObjectState.ContainsKey("clientId"))
+                    {
+                        // for things like menu bots that end up spawning a human player
+                        // use the agent from the overlay
+                        // Note: We have to be very careful here or we'll set this up wrong
+                        // we only want to give the overlay agent to the human player.
+                        // Before the clientIds are all connected, this can mess-up
+                        clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
+                        if (clientId != null)
                         {
-                            var clientId = rgEntity.ClientId;
-                            if (clientId != null)
-                            {
-                                state["clientId"] = clientId;
-                            }
-                        }
-
-                        if (!state.ContainsKey("clientId"))
-                        {
-                            // for things like menu bots that end up spawning a human player
-                            // use the agent from the overlay
-                            // Note: We have to be very careful here or we'll set this up wrong
-                            // we only want to give the overlay agent to the human player.
-                            // Before the clientIds are all connected, this can mess-up
-                            var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
-                            if (clientId != null)
-                            {
-                                state["clientId"] = clientId;
-                                // add the agent from the player's object to the agentMap now that 
-                                // we have detected that they are here 
-                                // this happens for menu bots that spawn human players to control
-                                // doing this allows actions from the bot code to process to the human player agent
-                                if (rgEntity != null)
-                                {
-                                    // set this to avoid expensive lookups next time
-                                    rgEntity.ClientId = clientId;
-                                    agentMap[clientId].Add(rgEntity);
-                                }
-                            }
+                            gameObjectState["clientId"] = clientId;
+                            // add the agent from the player's object to the agentMap now that 
+                            // we have detected that they are here 
+                            // this happens for menu bots that spawn human players to control
+                            // doing this allows actions from the bot code to process to the human player agent
+                            // set this to avoid expensive lookups next time
+                            rgEntity.ClientId = clientId;
+                            agentMap[clientId].Add(rgEntity);
                         }
                     }
                 }
-                totalState[state["id"].ToString()] = state;
+                
+                var key = gameObjectState.id.ToString();
+                if (fullGameState.TryGetValue(key, out var combinedGameObjectState))
+                {
+                    // if GameObject has multiple state scripts attached to it,
+                    // then we need to combine their state attributes into one RGStateEntity object.
+                    // iterate over the new fields and add them to the existing entry in the fullGameState.
+                    gameObjectState.ToList().ForEach(x =>
+                    {
+                        // Note that base state info like "position", "rotation", "isPlayer", etc.
+                        // is automatically set to the component's RGEntity values so we don't need to worry about conflicts
+                        if(combinedGameObjectState.ContainsKey(x.Key) && !_duplicatedStateFields.Contains(x.Key))
+                        {
+                            RGDebug.LogWarning($"RGEntity with ObjectType {rgEntity.objectType} has duplicate state attribute {x.Key}");
+                        }
+                        combinedGameObjectState[x.Key] = x.Value;
+                    });
+                    fullGameState[key] = combinedGameObjectState;
+                }
+                else
+                {
+                    fullGameState[key] = gameObjectState;
+                }
             }
-            return totalState;
+            return fullGameState;
         }
 
         public void SpawnBots(bool lateJoin = false)

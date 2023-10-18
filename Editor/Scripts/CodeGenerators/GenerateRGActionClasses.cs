@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -44,7 +45,7 @@ namespace RegressionGames
                         SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
                         .AddMembers(
                             // Class declaration
-                            SyntaxFactory.ClassDeclaration($"RGAction_{botAction.ActionName.Replace(" ", "_")}")
+                            SyntaxFactory.ClassDeclaration($"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                                 .AddModifiers(
                                     SyntaxFactory.Token(SyntaxKind.PublicKeyword)
                                     // Only add one of the "class" keywords here
@@ -60,7 +61,7 @@ namespace RegressionGames
                                     // StartAction method
                                     GenerateStartActionMethod(botAction)
                                 ),
-                            SyntaxFactory.ClassDeclaration($"RGActionRequest_{botAction.ActionName.Replace(" ", "_")}")
+                            SyntaxFactory.ClassDeclaration($"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                                 .AddModifiers(
                                     SyntaxFactory.Token(SyntaxKind.PublicKeyword)
                                     // Only add one of the "class" keywords here
@@ -79,7 +80,7 @@ namespace RegressionGames
                 string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
                 // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
-                string fileName = $"RGAction_{botAction.ActionName.Replace(" ", "_")}.cs";
+                string fileName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}.cs";
                 string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGActions");
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                 string fileContents = headerComment + formattedCode;
@@ -329,7 +330,7 @@ namespace RegressionGames
 
             return startActionMethod;
         }
-        
+
         private static MemberDeclarationSyntax GenerateActionRequestConstructor(RGActionInfo action)
         {
             var methodParameters = new List<ParameterSyntax>();
@@ -358,7 +359,7 @@ namespace RegressionGames
             var methodBody = SyntaxFactory.Block(parameterParsingStatements);
 
             var constructor = SyntaxFactory.ConstructorDeclaration(
-                $"RGActionRequest_{action.ActionName}"
+                $"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(action.ActionName)}"
             )
             .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
             .AddParameterListParameters(methodParameters.ToArray())
