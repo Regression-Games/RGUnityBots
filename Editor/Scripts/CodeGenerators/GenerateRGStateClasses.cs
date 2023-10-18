@@ -61,8 +61,8 @@ namespace RegressionGames
                 // Write the code to a .cs file
                 string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
-                // Save to 'Assets/RGScripts/RGStates/{name}.cs'
-                string subfolderName = Path.Combine("RGScripts", "RGStates");
+                // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGStates/{name}.cs'
+                string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGStates");
                 string fileName = $"{className}.cs";
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                 string fileContents = headerComment + formattedCode;

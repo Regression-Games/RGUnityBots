@@ -38,9 +38,9 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 {
                     var target = entities[new Random().Next(entities.Count)];
 
-                    var targetPosition = target.position ?? Vector3.zero;
+                    var targetPosition = (Vector3)target["position"];
                     //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
-                    var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>
+                    var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
                         { "skillId", new Random().Next(2) },
                         { "targetId", target["id"] },
