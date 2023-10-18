@@ -20,7 +20,7 @@
     {
       "displayName": "Third Person Demo (URP)",
       "description": "This third person demo is a sample Unity game demoing Regression Game’s Unity SDK",
-      "path": "Samples~/SamplesUniversalRP"
+      "path": "Samples~/ThirdPersonDemoURP"
     }
   ]
 }
