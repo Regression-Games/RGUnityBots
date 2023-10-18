@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using RegressionGames.RGBotConfigs.DefaultActions;
 using UnityEngine;
 
 namespace RegressionGames.RGBotConfigs
@@ -39,8 +40,22 @@ namespace RegressionGames.RGBotConfigs
 
             if (actionMap.Count > 0)
             {
-                RGDebug.LogDebug($"Entity registered with {actionMap.Count} actions");
+
+                // If this is an entity with other actions, also give it default actions
+                var defaultActions = new RGAction[]
+                {
+                    gameObject.AddComponent<DrawLineToAction>(),
+                    gameObject.AddComponent<DrawText>()
+                };
+                foreach (var defaultAction in defaultActions)
+                {
+                    actionMap[defaultAction.GetActionName()] = defaultAction;
+                }
+                
+                RGDebug.LogDebug($"Entity registered with {actionMap.Count} actions ({defaultActions.Length} are default actions)");
+
             }
+
         }
 
         public RGAction GetActionHandler(string actionName)

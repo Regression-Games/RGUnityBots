@@ -235,7 +235,26 @@ namespace RegressionGames.RGBotLocalRuntime
             return result;
         }
         
-        
+        // Debug actions for bots
+
+        public void DrawLineTo(Vector3 position, Color color, string name)
+        {
+            PerformAction(new RGActionRequest("DrawLineTo", new Dictionary<string, object>()
+            {
+                { "position", position},
+                { "color", color},
+                { "name", name},
+            }));
+        }
+
+        public void DrawText(string content, string name)
+        {
+            PerformAction(new RGActionRequest("DrawText", new Dictionary<string, object>()
+            {
+                { "content", content },
+                { "name", name}
+            }));
+        }
     }
     
     internal static class MathFunctions 
