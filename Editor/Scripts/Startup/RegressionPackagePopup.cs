@@ -42,7 +42,7 @@ public class RegressionPackagePopup : EditorWindow
         if (window == null)
         {
             Rect windowRect = new Rect(100, 100, 600, 600);
-            window = (RegressionPackagePopup)EditorWindow.GetWindowWithRect(typeof(RegressionPackagePopup), windowRect, true, "Welcome to Regression!");
+            window = (RegressionPackagePopup)EditorWindow.GetWindowWithRect(typeof(RegressionPackagePopup), windowRect, true, "Welcome to Regression Games!");
         }
         else
         {
@@ -83,7 +83,7 @@ public class RegressionPackagePopup : EditorWindow
         // Title
         GUILayout.BeginHorizontal();
         GUILayout.FlexibleSpace();
-        GUILayout.Label("Welcome to Regression!", h1Style, GUILayout.Width(550));
+        GUILayout.Label("Welcome to Regression Games!", h1Style, GUILayout.Width(550));
         GUILayout.FlexibleSpace();
         GUILayout.EndHorizontal();
         GUILayout.Space(10);
@@ -94,8 +94,8 @@ public class RegressionPackagePopup : EditorWindow
         GUILayout.Label(
             "Regression Games Unity Bots is an SDK that makes it easy to integrate powerful and useful bots into " +
             "your game. Build bots to QA test your game, act as NPCs, compete against players in multiplayer, and " +
-            "determine optimal game balance. Our integration patterns, ready-to-go bots, and samples make it easy to " +
-            "get started.", pStyle, GUILayout.Width(550));
+            "determine optimal game balance. Our integration patterns, ready-to-go bots (coming soon), and samples " +
+            "make it easy to get started.", pStyle, GUILayout.Width(550));
         GUILayout.FlexibleSpace();
         GUILayout.EndHorizontal();
         
@@ -188,7 +188,7 @@ public class RegressionPackagePopup : EditorWindow
         Rect textRect = new Rect(40, 50, 600, 25);
 
         // Draw the title text
-        GUI.Label(textRect, "Regression Setup Guide", h1Style);
+        GUI.Label(textRect, "Regression Games Setup Guide", h1Style);
 
         // Define the styles
         GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
