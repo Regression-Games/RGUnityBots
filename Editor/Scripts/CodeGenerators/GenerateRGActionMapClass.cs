@@ -19,9 +19,12 @@ namespace RegressionGames
             List<UsingDirectiveSyntax> usings = new() {SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))};
             foreach (var rgActionInfo in botActions)
             {
-                usings.Add(
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName($"{rgActionInfo.Namespace}"))
-                );
+                if (!string.IsNullOrEmpty(rgActionInfo.Namespace))
+                {
+                    usings.Add(
+                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName($"{rgActionInfo.Namespace}"))
+                    );
+                }
             }
 
             // Create a namespace and class declaration

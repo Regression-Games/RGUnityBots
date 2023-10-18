@@ -19,18 +19,25 @@ namespace RegressionGames
             // Iterate through BotActions
             foreach (var botAction in actionsInfo.BotActions)
             {
+                List<UsingDirectiveSyntax> usings = new()
+                {
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.StateActionTypes")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                };
+
+                if (!string.IsNullOrEmpty(botAction.Namespace))
+                {
+                    usings.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(botAction.Namespace)));
+                }
                 
                 // Create a new compilation unit
                 CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                     .AddUsings(
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.StateActionTypes")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(botAction.Namespace)),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
-                        
+                        usings.ToArray()
                     )
                     .AddMembers(
                         // Namespace
