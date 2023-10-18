@@ -4,6 +4,7 @@ using RegressionGames;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
+using Random = System.Random;
 
 namespace <TEMPLATE_NAMESPACE>
 {
@@ -38,22 +39,28 @@ namespace <TEMPLATE_NAMESPACE>
                 var entities = rgObject.FindEntities();
                 if (entities.Count > 0)
                 {
-                    var target = entities[new System.Random().Next(entities.Count)];
+                    var target = entities[new Random().Next(entities.Count)];
+                    
+                    rgObject.DrawLineTo(target.position, Color.red, "TargetEnemy");
+                    rgObject.DrawIndicator(target.position, 0.3f, Color.blue, "TargetEnemy");
+
+                    var chosenAbility = new Random().Next(2);
+                    rgObject.DrawText($"Ability {chosenAbility} on enemy {target["id"]}");
 
                     var targetPosition = (Vector3)target["position"];
                     var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
-                        { "skillId", new Random().Next(2) },
+                        { "skillId", chosenAbility },
                         { "targetId", target["id"] },
                         { "xPosition", targetPosition.x },
                         { "yPosition", targetPosition.y },
-                        { "zPosition", targetPosition.z },
+                        { "zPosition", targetPosition.z }
                     });
                     rgObject.PerformAction(action);
                 }
                 else
                 {
-                    RGDebug.LogWarning("No entities found...");
+                    RGDebug.LogWarning("No players found...");
                 }
             }
             catch (Exception ex)

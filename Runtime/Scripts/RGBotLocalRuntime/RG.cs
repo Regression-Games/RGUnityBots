@@ -237,6 +237,17 @@ namespace RegressionGames.RGBotLocalRuntime
         
         // Debug actions for bots
 
+        /**
+         * Draws a line from this agent's position to a position in the scene with the given color. The name can be
+         * used to update and remove this line later.
+         * <remarks>Gizmos must be enabled to see this line.</remarks>
+         * <param name="position">The position in the world to draw the line toward</param>
+         * <param name="color">The color of the line</param>
+         * <param name="name">A name to reference this line by for later operations</param>
+         * <example><code>rgObject.DrawLineTo(target.position, Color.red, "TargetEnemy");</code></example>
+         * <seealso cref="RemoveLineTo"/>
+         * <seealso cref="RemoveAllLinesTo"/>
+         */
         public void DrawLineTo(Vector3 position, Color color, string name)
         {
             PerformAction(new RGActionRequest("DrawLineTo", new Dictionary<string, object>()
@@ -247,6 +258,12 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
 
+        /**
+         * Removes a line that was drawn with DrawLineTo using its identifier
+         * <param name="name">The name of the line that was drawn</param>
+         * <seealso cref="DrawLineTo"/>
+         * <seealso cref="RemoveAllLinesTo"/>
+         */
         public void RemoveLineTo(string name)
         {
             PerformAction(new RGActionRequest("DrawLineTo", new Dictionary<string, object>()
@@ -256,6 +273,11 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
         
+        /**
+         * Removes all lines drawn using DrawLineTo
+         * <seealso cref="DrawLineTo"/>
+         * <seealso cref="RemoveLineTo"/>
+         */
         public void RemoveAllLinesTo()
         {
             PerformAction(new RGActionRequest("DrawLineTo", new Dictionary<string, object>()
@@ -264,6 +286,14 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
 
+        /**
+         * Draws a snippet of text above this agent. Optionally change the offset which defines how far
+         * above the agent the text is drawn.
+         * <param name="content">The text to place above the agent</param>
+         * <param name="yOffset">The distance from this agent's origin to this text's Y position. Defaults to 2.</param>
+         * <example><code>rgObject.DrawText($"Ability {chosenAbility} on enemy {enemyId}", 3.0f);</code></example>
+         * <seealso cref="RemoveText"/>
+         */
         public void DrawText(string content, float yOffset = 2.0f)
         {
             PerformAction(new RGActionRequest("DrawText", new Dictionary<string, object>()
@@ -273,6 +303,10 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
 
+        /**
+         * Removes any text above the agent written using DrawText.
+         * <seealso cref="DrawText"/>
+         */
         public void RemoveText()
         {
             PerformAction(new RGActionRequest("DrawText", new Dictionary<string, object>()
@@ -281,6 +315,18 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
 
+        /**
+         * Draws an indicator (essentially a sphere) at the given position with the specified size and color. The name
+         * can be used to update and remove this indicator later.
+         * <remarks>Gizmos must be enabled to see this indicator.</remarks>
+         * <param name="position">The position in the world to draw this indicator</param>
+         * <param name="size">The size of the indicator to draw</param>
+         * <param name="color">The color of the indicator</param>
+         * <param name="name">A name to reference this indicator by for later operations</param>
+         * <example><code>rgObject.DrawIndicator(target.position, 0.3f, Color.blue, "TargetEnemy");</code></example>
+         * <seealso cref="RemoveIndicator"/>
+         * <seealso cref="RemoveAllIndicators"/>
+         */
         public void DrawIndicator(Vector3 position, float size, Color color, string name)
         {
             PerformAction(new RGActionRequest("DrawIndicator", new Dictionary<string, object>()
@@ -292,6 +338,12 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
 
+        /**
+         * Removes an indicator that was drawn with DrawIndicator using its identifier
+         * <param name="name">The name of the indicator that was drawn</param>
+         * <seealso cref="DrawIndicator"/>
+         * <seealso cref="RemoveAllIndicators"/>
+         */
         public void RemoveIndicator(string name)
         {
             PerformAction(new RGActionRequest("DrawIndicator", new Dictionary<string, object>()
@@ -301,6 +353,11 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
         
+        /**
+         * Removes all indicators drawn using DrawIndicator
+         * <seealso cref="DrawIndicator"/>
+         * <seealso cref="RemoveIndicator"/>
+         */
         public void RemoveAllIndicators()
         {
             PerformAction(new RGActionRequest("DrawIndicator", new Dictionary<string, object>()
