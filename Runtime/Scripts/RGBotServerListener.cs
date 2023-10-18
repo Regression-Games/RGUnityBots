@@ -25,6 +25,22 @@ namespace RegressionGames
 
         private static RGBotServerListener _this = null;
         
+        /**
+         * Names of fields that are allowed to appear in multiple state scripts for the same GameObject.
+         * These are typically fields whose values are inherited from the GameObject's RGEntity component,
+         * and are expected to have the same value for each IRGState script attached to the GameObject.
+         */
+        private List<string> _duplicatedStateFields = new()
+        {
+            "id",
+            "type",
+            "isPlayer",
+            "isRuntimeObject",
+            "position",
+            "rotation",
+            "clientId"
+        };
+        
         public static RGBotServerListener GetInstance()
         {
             return _this;
@@ -507,17 +523,7 @@ namespace RegressionGames
             var overlayAgent = this.gameObject.GetComponent<RGEntity>();
             var statefulObjects = FindObjectsOfType<MonoBehaviour>(true).OfType<IRGState>();
             var fullGameState = new Dictionary<string, RGStateEntity>();
-            var duplicatedFields = new List<string>()
-            {
-                "id",
-                "type",
-                "isPlayer",
-                "isRuntimeObject",
-                "position",
-                "rotation",
-                "clientId"
-            };
-            
+
             // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
             // thus, this code cannot really be run in parallel, causing a major object count scaling issue....
             foreach (var statefulObject in statefulObjects)
@@ -571,7 +577,7 @@ namespace RegressionGames
                     {
                         // Note that base state info like "position", "rotation", "isPlayer", etc.
                         // is automatically set to the component's RGEntity values so we don't need to worry about conflicts
-                        if(combinedGameObjectState.ContainsKey(x.Key) && !duplicatedFields.Contains(x.Key))
+                        if(combinedGameObjectState.ContainsKey(x.Key) && !_duplicatedStateFields.Contains(x.Key))
                         {
                             RGDebug.LogWarning($"RGEntity with ObjectType {rgEntity.objectType} has duplicate state attribute {x.Key}");
                         }
