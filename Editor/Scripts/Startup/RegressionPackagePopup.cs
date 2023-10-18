@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using RegressionGames;
 using RegressionGames.Editor;
 using UnityEngine;
@@ -5,11 +6,11 @@ using UnityEditor;
 
 public class RegressionPackagePopup : EditorWindow
 {
-    static bool hasShown = false;
+    private const string RGSetupCheck = "rgsetup";
     private Texture2D bannerImage;
     private static RegressionPackagePopup window;
-    private string email = "";
-    private string password = "";
+    private static string email = "";
+    private static string password = "";
     
     void OnEnable()
     {
@@ -30,8 +31,20 @@ public class RegressionPackagePopup : EditorWindow
     }
     
     [MenuItem("Regression Games/Setup")]
-    public static void ShowWindow()
+    public static async void ShowWindow()
     {
+        email = RGSettings.GetOrCreateSettings().GetEmail();
+        password = RGSettings.GetOrCreateSettings().GetPassword();
+
+        bool loggedIn = await Login();
+        if (loggedIn)
+        {
+            Debug.Log("Logged in!");
+        }
+        else
+        {
+            Debug.Log("Not logged in!");
+        }
         if (window == null)
         {
             Rect windowRect = new Rect(100, 100, 600, 600);
@@ -144,6 +157,7 @@ public class RegressionPackagePopup : EditorWindow
     [InitializeOnLoadMethod]
     private static void InitializeOnLoadMethod()
     {
+        bool hasShown = PlayerPrefs.HasKey(RGSetupCheck);
         if (!hasShown)
         { 
             EditorApplication.update += ShowOnStartup;
@@ -154,18 +168,18 @@ public class RegressionPackagePopup : EditorWindow
     {
         if (EditorApplication.timeSinceStartup > 3) // 3 seconds delay
         {
-            hasShown = true;
+            PlayerPrefs.SetInt(RGSetupCheck, 1);
             EditorApplication.update -= ShowOnStartup;
             ShowWindow();
         }
     }
     
-    private async void Login()
+    private static async Task<bool> Login()
     {
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
             Debug.LogWarning("Email or password is empty.");
-            return;
+            return false;
         }
 
         var settings = RGSettings.GetOrCreateSettings();
@@ -173,6 +187,7 @@ public class RegressionPackagePopup : EditorWindow
         settings.SetPassword(password);
         RGSettings.OptionsUpdated();
 
-        await RGSettingsUIRegistrar.Login(email, password);
+        var login = await RGSettingsUIRegistrar.Login(email, password);
+        return login;
     }
 }

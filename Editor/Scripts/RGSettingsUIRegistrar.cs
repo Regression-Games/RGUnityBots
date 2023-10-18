@@ -184,10 +184,11 @@ namespace RegressionGames.Editor
             return provider;
         }
 
-        public static async System.Threading.Tasks.Task Login(string user, string password)
+        public static async Task<bool> Login(string user, string password)
         {
             priorUser = user;
             priorPassword = password;
+
             var tcs = new TaskCompletionSource<bool>();
 
             await rgServiceManager.Auth(priorUser, priorPassword, 
@@ -205,8 +206,8 @@ namespace RegressionGames.Editor
                 });
 
             await tcs.Task;
+            return tcs.Task.Result;
         }
-
     }
 #endif
 }
