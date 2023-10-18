@@ -82,9 +82,7 @@ namespace RegressionGames
 
                 foreach (var method in botActionMethods)
                 {
-                    var namespaceAncestors = method.Ancestors().OfType<NamespaceDeclarationSyntax>().ToArray();
-                    var namespaceAncestor = namespaceAncestors.Length > 0 ? namespaceAncestors[0] : null; 
-                    string nameSpace = namespaceAncestor?.Name.ToString();
+                    string nameSpace = method.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
                     string className = method.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText;
                     string methodName = method.Identifier.ValueText;
 
@@ -171,9 +169,11 @@ namespace RegressionGames
 
                 foreach (var classDeclaration in classDeclarations)
                 {
+                    string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
+
                     string className = classDeclaration.Identifier.ValueText;
                     List<RGStateInfo> stateList = new List<RGStateInfo>();
-
+                    
                     var membersWithRGState = classDeclaration.Members
                         .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")));
 
@@ -251,6 +251,7 @@ namespace RegressionGames
                     {
                         rgStateInfoList.Add(new RGStatesInfo
                         {
+                            Namespace = nameSpace,
                             Object = className,
                             State = stateList
                         });
