@@ -7,6 +7,7 @@ public class BillboardText : MonoBehaviour
     private Camera _mainCamera;
     private TextMeshProUGUI _text;
     private string _content;
+    private float _yOffset;
 
     // Start is called before the first frame update
     void Awake()
@@ -15,11 +16,10 @@ public class BillboardText : MonoBehaviour
         _text = GetComponentInChildren<TextMeshProUGUI>();
         // Rotate the text 180 degrees, otherwise billboard will show it backwards
         _text.transform.Rotate(Vector3.up, 180);
-        // Also shift the text up to be above the agent
-        _text.transform.transform.position += new Vector3(0, 2, 0);
         if (_content != null)
         {
             SetText(_content);
+            SetYOffset(_yOffset);
         }
     }
 
@@ -36,6 +36,13 @@ public class BillboardText : MonoBehaviour
         _content = content;
         if (_text == null) return;
         _text.text = content;
+    }
+
+    public void SetYOffset(float yOffset)
+    {
+        _yOffset = yOffset;
+        if (_text == null) return;
+        _text.transform.localPosition = new Vector3(0, yOffset, 0);
     }
 
 }

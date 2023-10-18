@@ -37,12 +37,18 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 if (entities.Count > 0)
                 {
                     var target = entities[new Random().Next(entities.Count)];
+                    
+                    rgObject.DrawLineTo(target.position, Color.red, "TargetEnemy");
+                    rgObject.DrawIndicator(target.position, 0.3f, Color.blue, "TargetEnemy");
+
+                    var chosenAbility = new Random().Next(2);
+                    rgObject.DrawText($"Ability {chosenAbility} on enemy {target["id"]}");
 
                     var targetPosition = (Vector3)target["position"];
                     //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
                     var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
-                        { "skillId", new Random().Next(2) },
+                        { "skillId", chosenAbility },
                         { "targetId", target["id"] },
                         { "xPosition", targetPosition.x },
                         { "yPosition", targetPosition.y },

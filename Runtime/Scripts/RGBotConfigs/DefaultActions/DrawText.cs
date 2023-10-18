@@ -31,19 +31,24 @@ namespace RegressionGames.RGBotConfigs.DefaultActions
             }
             else
             {
+
                 var content = (string) input["content"];
                 if (_billboard == null)
                 {
-                    var billboardText =
+                    var billboardObject =
                         (GameObject) Instantiate(_billboardAsset, transform.position, Quaternion.identity);
-                    billboardText.transform.SetParent(transform);
-                    billboardText.GetComponent<BillboardText>().SetText(content);
-                    _billboard = billboardText;
+                    billboardObject.transform.SetParent(transform);
+                    _billboard = billboardObject;
                 }
-                else
-                {
-                    _billboard.GetComponent<BillboardText>().SetText(content);
-                }
+                
+                var billboardText = _billboard.GetComponent<BillboardText>();
+                billboardText.SetText(content);
+                
+                // If an offset is given, use that for placing it above the agent
+                var yOffset = (float) input.GetValueOrDefault("yOffset", 2f);
+                billboardText.SetYOffset(yOffset);
+                
+
             }
 
         }

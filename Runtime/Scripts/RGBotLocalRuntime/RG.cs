@@ -264,11 +264,12 @@ namespace RegressionGames.RGBotLocalRuntime
             }));
         }
 
-        public void DrawText(string content)
+        public void DrawText(string content, float yOffset = 2.0f)
         {
             PerformAction(new RGActionRequest("DrawText", new Dictionary<string, object>()
             {
                 { "content", content },
+                { "yOffset", yOffset }
             }));
         }
 
