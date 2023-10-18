@@ -9,6 +9,7 @@ public class RegressionPackagePopup : EditorWindow
     private const string RGSetupCheck = "rgsetup";
     private Texture2D bannerImage;
     private static RegressionPackagePopup window;
+    private static bool loggedIn = false;
     private static string email = "";
     private static string password = "";
     
@@ -33,18 +34,11 @@ public class RegressionPackagePopup : EditorWindow
     [MenuItem("Regression Games/Setup")]
     public static async void ShowWindow()
     {
+        // attempt a login with saved credentials
         email = RGSettings.GetOrCreateSettings().GetEmail();
         password = RGSettings.GetOrCreateSettings().GetPassword();
-
-        bool loggedIn = await Login();
-        if (loggedIn)
-        {
-            Debug.Log("Logged in!");
-        }
-        else
-        {
-            Debug.Log("Not logged in!");
-        }
+        await Login();
+        
         if (window == null)
         {
             Rect windowRect = new Rect(100, 100, 600, 600);
@@ -57,6 +51,18 @@ public class RegressionPackagePopup : EditorWindow
     }
 
     void OnGUI()
+    {
+        if (!loggedIn)
+        {
+            RenderLoginScreen();
+        }
+        else
+        {
+            RenderWelcomeScreen();
+        }
+    }
+
+    private void RenderLoginScreen()
     {
         if (bannerImage != null)
         { 
@@ -71,9 +77,8 @@ public class RegressionPackagePopup : EditorWindow
         
         // P
         GUIStyle pStyle = new GUIStyle(EditorStyles.label);
-        pStyle.fontSize = 12; // Adjust size as needed
-        //pStyle.normal.textColor = Color.white; // You can adjust this color if needed
-        pStyle.wordWrap = true; // This ensures the text wraps if it's too long
+        pStyle.fontSize = 12;
+        pStyle.wordWrap = true;
 
         // Title
         GUILayout.BeginHorizontal();
@@ -154,6 +159,70 @@ public class RegressionPackagePopup : EditorWindow
         } 
     }
 
+    private void RenderWelcomeScreen()
+    {
+        // Get a space in the layout for the banner
+        GUILayout.Space(120);
+
+        Rect sourceRect = new Rect(0, 0.25f, 1, 0.6f);
+        Rect destRect = new Rect(0, 0, 600, 120);
+
+        GUI.DrawTextureWithTexCoords(destRect, bannerImage, sourceRect);
+
+        // Overlay the banner with a faded black box
+        Color prevColor = GUI.color;
+        GUI.color = new Color(0, 0, 0, 0.5f);
+        GUI.DrawTexture(new Rect(0, 0, 600, 120), EditorGUIUtility.whiteTexture);
+        GUI.color = prevColor;
+        
+        // Define the text style
+        GUIStyle h1Style = new GUIStyle(EditorStyles.largeLabel)
+        {
+            normal = { textColor = Color.white },
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = 20,
+            fontStyle = FontStyle.Bold 
+        };
+
+        // Determine the position and size for the label
+        Rect textRect = new Rect(40, 50, 600, 25);
+
+        // Draw the title text
+        GUI.Label(textRect, "Regression Setup Guide", h1Style);
+
+        // Define the styles
+        GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
+        {
+            fontSize = 14,
+            normal = { textColor = Color.white }
+        };
+
+        GUIStyle descriptionStyle = new GUIStyle(EditorStyles.label)
+        {
+            wordWrap = true
+        };
+
+        // Define the background box
+        Rect infoBoxRect = new Rect(10, 130, 550, 130);
+        prevColor = GUI.color;
+        GUI.color = new Color(100, 100, 100, 0.25f);
+        GUI.Box(infoBoxRect, "");
+        GUI.color = prevColor;
+
+        // Draw the quick start title
+        GUI.Label(new Rect(20, 140, 550, 20), "Quick Start with Local Bots", titleStyle);
+
+        // Draw the description
+        GUI.Label(new Rect(20, 140, 550, 100), "Jump into creating your first bot using C# by following this Local Unity Bot guide. Regression Games Bots are flexible and highly customizable. Bots can simulate players, function as NPCs, interact with menus and UIs, validate gameplay, and more.", descriptionStyle);
+
+        // Draw the docs button
+        if (GUI.Button(new Rect(20, 220, 100, 30), "View Docs"))
+        {
+            Application.OpenURL("https://docs.regression.gg/studios/unity/unity-sdk/csharp/configuration");
+        }
+
+    }
+    
     [InitializeOnLoadMethod]
     private static void InitializeOnLoadMethod()
     {
@@ -174,12 +243,12 @@ public class RegressionPackagePopup : EditorWindow
         }
     }
     
-    private static async Task<bool> Login()
+    private static async Task Login()
     {
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
         {
             Debug.LogWarning("Email or password is empty.");
-            return false;
+            return;
         }
 
         var settings = RGSettings.GetOrCreateSettings();
@@ -187,7 +256,10 @@ public class RegressionPackagePopup : EditorWindow
         settings.SetPassword(password);
         RGSettings.OptionsUpdated();
 
-        var login = await RGSettingsUIRegistrar.Login(email, password);
-        return login;
+        loggedIn = await RGSettingsUIRegistrar.Login(email, password);
+        if (window != null)
+        {
+            window.Repaint();
+        }
     }
 }
