@@ -12,6 +12,7 @@ namespace RegressionGames
     [Serializable]
     public class RGStatesInfo
     {
+        public string Namespace;
         public string Object;
         // the object type, given by the developer
         public string ObjectType;
