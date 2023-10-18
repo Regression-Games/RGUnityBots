@@ -45,10 +45,9 @@ namespace RegressionGames.RGBotConfigs
                 ["type"] = rgEntity.objectType,
                 ["isPlayer"] = rgEntity.isPlayer,
                 ["isRuntimeObject"] = rgEntity.isRuntimeObject,
+				["position"] = theTransform.position,
+				["rotation"] = theTransform.rotation,
             };
-
-            if (rgEntity.syncPosition) state["position"] = theTransform.position;
-            if (rgEntity.syncRotation) state["rotation"] = theTransform.rotation;
 
             var dict = GetState();
             foreach (var entry in dict)

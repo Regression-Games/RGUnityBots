@@ -14,6 +14,8 @@ namespace RegressionGames
     {
         public string Namespace;
         public string Object;
+        // the object type, given by the developer
+        public string ObjectType;
         public List<RGStateInfo> State;
     }
 }

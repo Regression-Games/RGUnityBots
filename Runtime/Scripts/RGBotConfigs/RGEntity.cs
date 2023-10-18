@@ -1,4 +1,7 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace RegressionGames.RGBotConfigs
@@ -14,10 +17,6 @@ namespace RegressionGames.RGBotConfigs
         // this is used in our toolkit to understand which things would need dynamic models
         [Tooltip("Is this object spawned during runtime, or a fixed object in the scene?")]
         public bool isRuntimeObject = false;
-
-        [Header("3D Positioning")] 
-        public bool syncPosition = true;
-        public bool syncRotation = true;
         
         // maps action names to RGAction components
         private Dictionary<string, RGAction> actionMap = new Dictionary<string, RGAction>();
@@ -50,6 +49,35 @@ namespace RegressionGames.RGBotConfigs
                 return action;
             }
             return null;
+        }
+
+        /*
+         * RGEntity holds an 'ObjectType' that is provided by the developer. We map this object type
+         * to its actions and states
+         */
+        public Dictionary<Type, string> MapObjectType(Dictionary<Type, string> objectTypeMap)
+        {
+            Dictionary<Type, string> cloneDict = new Dictionary<Type, string>(objectTypeMap);
+            KeyValuePair<Type, string>[] keyValuePairs = objectTypeMap.ToArray();
+
+            for(int i= 0; i < keyValuePairs.Length; i++)
+            {
+                Type componentType = keyValuePairs[i].Key;
+                
+                // skip previously assigned object types
+                if (!string.IsNullOrEmpty(keyValuePairs[i].Value))
+                {
+                    continue;
+                }
+                
+                // map object type to components with 'objectName'
+                var component = gameObject.GetComponent(componentType);
+                if (component != null)
+                {
+                    cloneDict[componentType] = objectType;
+                }
+            }
+            return cloneDict;
         }
     }
 }
