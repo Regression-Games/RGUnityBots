@@ -289,7 +289,7 @@ namespace RegressionGames
                 }
                 else
                 {
-                    tryParseStatement = $"{paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_")}({paramName}Input);";
+                    tryParseStatement = $"{paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_").Replace("?", "_Nullable")}({paramName}Input);";
                 }
 
                 var tryBlock = SyntaxFactory.Block(SyntaxFactory.SingletonList<StatementSyntax>(

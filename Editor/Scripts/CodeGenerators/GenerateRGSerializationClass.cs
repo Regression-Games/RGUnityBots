@@ -68,7 +68,7 @@ namespace RegressionGames
                          */
                         MethodDeclarationSyntax method = SyntaxFactory
                             .MethodDeclaration(SyntaxFactory.ParseTypeName(parameter.Type),
-                                $"Deserialize_{parameter.Type.Replace(".", "_")}")
+                                $"Deserialize_{parameter.Type.Replace(".", "_").Replace("?", "_Nullable")}")
                             .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                                 SyntaxFactory.Token(SyntaxKind.StaticKeyword))
                             .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("paramJson"))
