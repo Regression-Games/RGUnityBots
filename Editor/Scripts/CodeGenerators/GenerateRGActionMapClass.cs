@@ -71,7 +71,7 @@ namespace RegressionGames
                                         SyntaxFactory.MemberAccessExpression(
                                             SyntaxKind.SimpleMemberAccessExpression, 
                                             SyntaxFactory.IdentifierName("gameObject"), 
-                                            SyntaxFactory.IdentifierName($"AddComponent<RGAction_{b.ActionName.Replace(" ", "_")}>")
+                                            SyntaxFactory.IdentifierName($"AddComponent<RGAction_{CodeGeneratorUtils.SanitizeActionName(b.ActionName)}>")
                                         )
                                     )
                                 )
