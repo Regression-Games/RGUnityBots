@@ -92,10 +92,10 @@ public class RegressionPackagePopup : EditorWindow
         GUILayout.BeginHorizontal();
         GUILayout.FlexibleSpace();
         GUILayout.Label(
-            "Regression Games Unity Bots is an SDK that makes it easy to integrate powerful and useful bots into " +
+            "This Regression Games SDK makes it easy to integrate powerful and useful bots into " +
             "your game. Build bots to QA test your game, act as NPCs, compete against players in multiplayer, and " +
-            "determine optimal game balance. Our integration patterns, ready-to-go bots (coming soon), and samples " +
-            "make it easy to get started.", pStyle, GUILayout.Width(550));
+            "determine optimal game balance, and more. Our integration patterns, ready-to-go bots (coming soon), and samples " +
+            "will help you get started quickly.", pStyle, GUILayout.Width(550));
         GUILayout.FlexibleSpace();
         GUILayout.EndHorizontal();
         
