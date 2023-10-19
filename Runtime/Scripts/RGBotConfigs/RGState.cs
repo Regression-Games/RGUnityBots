@@ -13,9 +13,11 @@ namespace RegressionGames.RGBotConfigs
 {
     [DisallowMultipleComponent]    
     [RequireComponent(typeof(RGEntity))]
+    // ReSharper disable once InconsistentNaming
     public class RGState : MonoBehaviour, IRGState
     {
         
+        // ReSharper disable once InconsistentNaming
         // we require each state to have an 'RGEntity' component
         protected RGEntity rgEntity
         {
@@ -40,23 +42,27 @@ namespace RegressionGames.RGBotConfigs
         {
             var theTransform = rgEntity.transform;
             
-            var state = new RGStateEntity()
-            {
-                ["id"] = theTransform.GetInstanceID(),
-                ["type"] = rgEntity.objectType,
-                ["isPlayer"] = rgEntity.isPlayer,
-                ["isRuntimeObject"] = rgEntity.isRuntimeObject,
-				["position"] = theTransform.position,
-				["rotation"] = theTransform.rotation,
-            };
-
+            var state = CreateStateEntity();
+            state["id"] = theTransform.GetInstanceID();
+            state["type"] = rgEntity.objectType;
+            state["isPlayer"] = rgEntity.isPlayer;
+            state["isRuntimeObject"] = rgEntity.isRuntimeObject;
+            state["position"] = theTransform.position;
+            state["rotation"] = theTransform.rotation;
+            
             var dict = GetState();
             foreach (var entry in dict)
             {
-                state.Add(entry.Key, entry.Value);
+                // allow overriding default state fields like position
+                state[entry.Key] = entry.Value;
             }
 
             return state;
+        }
+
+        protected virtual RGStateEntity CreateStateEntity()
+        {
+            return new RGStateEntity();
         }
     }
 
