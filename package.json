@@ -19,7 +19,7 @@
   "samples": [
     {
       "displayName": "Third Person Demo (URP)",
-      "description": "This third person demo is a sample Unity game demoing Regression Game’s Unity SDK",
+      "description": "This third person demo is a sample Unity game demoing Regression Game’s Unity SDK. It uses Unity's Universal Render Pipeline (URP). To make sure shaders appear correctly, please make sure your project is setup with URP before downloading sample.",
       "path": "Samples~/ThirdPersonDemoURP"
     }
   ]
