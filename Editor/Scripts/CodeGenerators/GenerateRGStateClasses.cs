@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-namespace RegressionGames
+namespace RegressionGames.Editor.CodeGenerators
 {
     public static class GenerateRGStateClasses
     {
