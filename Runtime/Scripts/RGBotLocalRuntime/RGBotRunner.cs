@@ -146,5 +146,13 @@ namespace RegressionGames.RGBotLocalRuntime
             RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STOPPED);
         }
 
+        public void OnDrawGizmos()
+        {
+            if (_running)
+            {
+                _userBotCode.OnDrawGizmos();
+            }
+        }
+
     }
 }

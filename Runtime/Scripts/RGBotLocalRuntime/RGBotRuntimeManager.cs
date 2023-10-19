@@ -92,6 +92,13 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return 0;
         }
-        
+
+        private void OnDrawGizmos()
+        {
+            foreach (var botRunner in _botRunners.Values)
+            {
+                botRunner.OnDrawGizmos();
+            }
+        }
     }
 }

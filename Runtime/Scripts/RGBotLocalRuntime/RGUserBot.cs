@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace RegressionGames.RGBotLocalRuntime
@@ -34,5 +35,9 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="rgObject">{RG} Container object with access to character config, clientId, and state information</param>
          */
         public abstract void ProcessTick(RG rgObject);
+
+        public virtual void OnDrawGizmos()
+        {
+        }
     }
 }
