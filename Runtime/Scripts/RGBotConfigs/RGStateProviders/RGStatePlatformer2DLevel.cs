@@ -175,7 +175,7 @@ namespace RegressionGames.RGBotConfigs
 
         public override string ToString()
         {
-            return $"Position: ({position.x}, {position.y}) , Height: {height}";
+            return $"Position: ({position.x}, {position.y}) , Height: {height} , TileHeight: {tilesHeight}";
         }
     }
 }
