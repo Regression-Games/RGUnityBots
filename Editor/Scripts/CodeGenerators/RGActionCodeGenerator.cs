@@ -370,7 +370,7 @@ namespace RegressionGames
             // Get all Object names from RGActions
             foreach (var action in actionsInfo.BotActions)
             {
-                string objectName = action.Object;
+                string objectName = action.ObjectType;
                 if (!objectTypeNames.Contains(objectName))
                 {
                     objectTypeNames.Add(objectName);
@@ -380,7 +380,7 @@ namespace RegressionGames
             // Get all Object names from RGStates
             foreach (var state in statesInfo)
             {
-                string objectName = state.Object;
+                string objectName = state.ObjectType;
                 if (!objectTypeNames.Contains(objectName))
                 {
                     objectTypeNames.Add(objectName);

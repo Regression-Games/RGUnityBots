@@ -1,3 +1,4 @@
+using RegressionGames.DebugUtils;
 using UnityEngine;
 
 namespace RegressionGames.RGBotLocalRuntime
@@ -13,6 +14,9 @@ namespace RegressionGames.RGBotLocalRuntime
 
         private long _botId;
         private string _botName;
+        private readonly RGGizmos _rgGizmos = new ();
+
+        public RGGizmos RGGizmos => _rgGizmos;
 
         public void Init(long botId, string botName)
         {
@@ -34,5 +38,16 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="rgObject">{RG} Container object with access to character config, clientId, and state information</param>
          */
         public abstract void ProcessTick(RG rgObject);
+        
+        // Debug functions
+        
+        public void OnDrawGizmos()
+        {
+            _rgGizmos.OnDrawGizmos();
+        }
+        
+        
+        
+        
     }
 }
