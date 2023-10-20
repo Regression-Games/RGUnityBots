@@ -132,7 +132,7 @@ namespace RegressionGames.RGBotConfigs
                 {
                     "platformer2D", new RGStateEntityPlatformer2DLevel()
                     {
-                        tillCellSize = lastCellSize,
+                        tileCellSize = lastCellSize,
                         platformPositions = safePositions.ToArray()
                     }
                 }
@@ -159,7 +159,7 @@ namespace RegressionGames.RGBotConfigs
     public class RGStateEntityPlatformer2DLevel : RGStateEntity
     {
         [FormerlySerializedAs("spriteSize")]
-        public Vector3 tillCellSize = Vector3.one;
+        public Vector3 tileCellSize = Vector3.one;
         public RGPlatformer2DPosition[] platformPositions = Array.Empty<RGPlatformer2DPosition>();
     }
 
