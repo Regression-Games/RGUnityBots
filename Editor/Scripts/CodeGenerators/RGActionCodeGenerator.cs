@@ -12,7 +12,7 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace RegressionGames
+namespace RegressionGames.Editor.CodeGenerators
 {
     public class RGActionCodeGenerator
     {

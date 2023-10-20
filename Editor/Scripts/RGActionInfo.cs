@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace RegressionGames
+namespace RegressionGames.Editor
 {
     [Serializable]
     public class RGActionInfo

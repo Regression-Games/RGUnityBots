@@ -10,7 +10,7 @@ using UnityEditor;
 using UnityEditor.Compilation;
 #endif
 
-namespace Editor.Scripts.BotManagement
+namespace RegressionGames.Editor.BotManagement
 {
     public class RGBotSynchronizer
     {
