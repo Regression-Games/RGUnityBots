@@ -1,3 +1,4 @@
+using System;
 using RegressionGames.DebugUtils;
 using UnityEngine;
 
@@ -14,8 +15,11 @@ namespace RegressionGames.RGBotLocalRuntime
 
         private long _botId;
         private string _botName;
-        private readonly RGGizmos _rgGizmos = new ();
+        private RGGizmos _rgGizmos;
 
+        /**
+         * A set of debug utilities for drawing gizmos and text on top of entities in your scene.
+         */
         public RGGizmos RGGizmos => _rgGizmos;
 
         public void Init(long botId, string botName)
@@ -23,7 +27,12 @@ namespace RegressionGames.RGBotLocalRuntime
             _botId = botId;
             _botName = botName;
         }
-        
+
+        public void OnEnable()
+        {
+            _rgGizmos = new RGGizmos();
+        }
+
         protected abstract bool GetIsSpawnable();
         protected abstract RGBotLifecycle GetBotLifecycle();
         
@@ -45,9 +54,6 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             _rgGizmos.OnDrawGizmos();
         }
-        
-        
-        
-        
+
     }
 }

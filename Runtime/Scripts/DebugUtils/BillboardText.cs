@@ -13,8 +13,6 @@ public class BillboardText : MonoBehaviour
     {
         _mainCamera = Camera.main;
         _text = GetComponentInChildren<TextMeshProUGUI>();
-        // Rotate the text 180 degrees, otherwise billboard will show it backwards
-        _text.transform.Rotate(Vector3.up, 180);
         if (_content != null)
         {
             SetText(_content);
@@ -24,7 +22,10 @@ public class BillboardText : MonoBehaviour
     
     void LateUpdate()
     {
-        transform.LookAt(_mainCamera.transform);
+        Vector3 newRotation = _mainCamera.transform.eulerAngles;
+        newRotation.x = 0;
+        newRotation.z = 0;
+        transform.eulerAngles = newRotation;
     }
 
     public void SetText(string content)
