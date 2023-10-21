@@ -1,16 +1,13 @@
 using System;
 using System.Collections.Generic;
-using RegressionGames;
-using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 using Random = System.Random;
 
-namespace <TEMPLATE_NAMESPACE>
+namespace RegressionGames.RGBotLocalRuntime.SampleBot
 {
-    public class BotEntryPoint : RGUserBot
+    public class RGSampleBot : RGUserBot
     {
-
         protected override bool GetIsSpawnable()
         {
             return true;
@@ -23,8 +20,8 @@ namespace <TEMPLATE_NAMESPACE>
 
         public override void ConfigureBot(RG rgObject)
         {
-            var classIndex = new System.Random().Next(4);
-            var classes = new string[] {"Mage", "Rogue", "Tank", "Archer"};
+            var classIndex = new Random().Next(4);
+            var classes = new[] { "Mage", "Rogue", "Tank", "Archer" };
             rgObject.CharacterConfig = new Dictionary<string, object>
             {
                 { "characterType", $"{classes[classIndex]}" }
@@ -33,6 +30,11 @@ namespace <TEMPLATE_NAMESPACE>
 
         public override void ProcessTick(RG rgObject)
         {
+
+            var myPlayers = rgObject.GetMyPlayers();
+            if (myPlayers.Count == 0) return;
+            var thisEntity = myPlayers[0];
+            
             //Temporary test code
             try
             {
@@ -41,11 +43,11 @@ namespace <TEMPLATE_NAMESPACE>
                 {
                     var target = entities[new Random().Next(entities.Count)];
                     
-                    rgObject.DrawLineTo(target.position, Color.red, "TargetEnemy");
-                    rgObject.DrawIndicator(target.position, 0.3f, Color.blue, "TargetEnemy");
+                    RGGizmos.CreateLine(thisEntity.id, target.position, Color.red, "TargetEnemy");
+                    RGGizmos.CreateSphere(target.id, Color.blue, 0.3f, true, "TargetEnemy");
 
                     var chosenAbility = new Random().Next(2);
-                    rgObject.DrawText($"Ability {chosenAbility} on enemy {target["id"]}");
+                    RGGizmos.CreateText(thisEntity.id, $"Ability {chosenAbility} on enemy {target["id"]}");
 
                     var targetPosition = (Vector3)target["position"];
                     var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
@@ -60,7 +62,7 @@ namespace <TEMPLATE_NAMESPACE>
                 }
                 else
                 {
-                    RGDebug.LogWarning("No entities found...");
+                    RGDebug.LogWarning("No players found...");
                 }
             }
             catch (Exception ex)

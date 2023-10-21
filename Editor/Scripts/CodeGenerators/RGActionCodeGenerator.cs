@@ -371,7 +371,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Get all Object names from RGActions
             foreach (var action in actionsInfo.BotActions)
             {
-                string objectName = action.ObjectType;
+                string objectName = action.Object;
                 if (!objectTypeNames.Contains(objectName))
                 {
                     objectTypeNames.Add(objectName);
@@ -381,7 +381,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Get all Object names from RGStates
             foreach (var state in statesInfo)
             {
-                string objectName = state.ObjectType;
+                string objectName = state.Object;
                 if (!objectTypeNames.Contains(objectName))
                 {
                     objectTypeNames.Add(objectName);

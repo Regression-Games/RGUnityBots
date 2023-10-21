@@ -30,6 +30,11 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
 
         public override void ProcessTick(RG rgObject)
         {
+
+            var myPlayers = rgObject.GetMyPlayers();
+            if (myPlayers.Count == 0) return;
+            var thisEntity = myPlayers[0];
+            
             //Temporary test code
             try
             {
@@ -38,11 +43,11 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 {
                     var target = entities[new Random().Next(entities.Count)];
                     
-                    rgObject.DrawLineTo(target.position, Color.red, "TargetEnemy");
-                    rgObject.DrawIndicator(target.position, 0.3f, Color.blue, "TargetEnemy");
+                    RGGizmos.CreateLine(thisEntity.id, target.position, Color.red, "TargetEnemy");
+                    RGGizmos.CreateSphere(target.id, Color.blue, 0.3f, true, "TargetEnemy");
 
                     var chosenAbility = new Random().Next(2);
-                    rgObject.DrawText($"Ability {chosenAbility} on enemy {target["id"]}");
+                    RGGizmos.CreateText(thisEntity.id, $"Ability {chosenAbility} on enemy {target["id"]}");
 
                     var targetPosition = (Vector3)target["position"];
                     //TODO (REG-1302): If Actions were strongly typed we wouldn't need to build this weird map...
