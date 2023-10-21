@@ -1,6 +1,6 @@
 using System;
 
-namespace RegressionGames
+namespace RegressionGames.Editor
 {
     [Serializable]
     public class RGStateInfo

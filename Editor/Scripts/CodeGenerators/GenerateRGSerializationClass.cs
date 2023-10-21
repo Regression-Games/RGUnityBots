@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using UnityEditor;
 using UnityEngine;
 
-namespace RegressionGames
+namespace RegressionGames.Editor.CodeGenerators
 {
     public static class GenerateRGSerializationClass
     {

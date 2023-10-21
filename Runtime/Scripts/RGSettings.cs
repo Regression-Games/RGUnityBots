@@ -162,11 +162,21 @@ namespace RegressionGames
             return email;
         }
 
+        public void SetEmail(string newEmail)
+        {
+            email = newEmail;
+        }
+        
         public string GetPassword()
         {
             return password;
         }
 
+        public void SetPassword(string newPassword)
+        {
+            password = newPassword;
+        }
+        
         public long[] GetBotsSelected()
         {
             return botsSelected;
