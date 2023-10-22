@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
+using RegressionGames;
+using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 using Random = System.Random;
 
-namespace RegressionGames.RGBotLocalRuntime.SampleBot
+namespace <TEMPLATE_NAMESPACE>
 {
-    public class RGSampleBot : RGUserBot
+    public class BotEntryPoint : RGUserBot
     {
         protected override bool GetIsSpawnable()
         {
@@ -62,7 +64,7 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 }
                 else
                 {
-                    RGDebug.LogWarning("No players found...");
+                    RGDebug.LogWarning("No entities found...");
                 }
             }
             catch (Exception ex)

@@ -286,6 +286,8 @@ namespace RegressionGames.DebugUtils
             foreach (var lineParams in _linesFromEntityToPosition.Values)
             {
                 var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item1);
+                Debug.Log(originInstance);
+                Debug.Log(lineParams);
                 if (originInstance != null)
                 {
                     Debug.DrawLine(originInstance.transform.position, lineParams.Item2, lineParams.Item3);
@@ -322,6 +324,7 @@ namespace RegressionGames.DebugUtils
             foreach (var sphereParams in _spheresAtEntity.Values)
             {
                 var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(sphereParams.Item1);
+                if (originInstance == null) continue;
                 if (sphereParams.Item4)
                 {
                     Gizmos.color = sphereParams.Item2;
@@ -349,6 +352,7 @@ namespace RegressionGames.DebugUtils
                 if (!_drawnBillboards.ContainsKey(billboardParams.Key))
                 {
                     var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
+                    if (entityGameObject == null) continue;
                     var billboardObject = Object.Instantiate(_billboardAsset, entityGameObject.transform.position,
                         Quaternion.identity);
                     billboardObject.transform.SetParent(entityGameObject.transform);
