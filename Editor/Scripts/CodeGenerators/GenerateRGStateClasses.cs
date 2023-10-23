@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-namespace RegressionGames
+namespace RegressionGames.Editor.CodeGenerators
 {
     public static class GenerateRGStateClasses
     {
@@ -18,14 +18,30 @@ namespace RegressionGames
 
             foreach (var rgStateInfo in rgStateInfos)
             {
+                List<UsingDirectiveSyntax> usings = new()
+                {
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.StateActionTypes")),
+                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                };
+
+                if (!string.IsNullOrEmpty(rgStateInfo.Namespace))
+                {
+                    usings.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(rgStateInfo.Namespace)));
+                }
+                
                 var className = $"{rgStateInfo.Object}_RGState";
                 var componentType = rgStateInfo.Object;
 
                 // Create a new compilation unit
                 var compilationUnit = SyntaxFactory.CompilationUnit()
-                    .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")));
-
+                    .AddUsings(
+                        usings.ToArray()
+                    );
+                
                 // Create a new class declaration with the desired name
                 var classDeclaration = SyntaxFactory.ClassDeclaration(className)
                     .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))

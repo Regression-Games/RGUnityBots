@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace RegressionGames
+namespace RegressionGames.Editor
 {
     [Serializable]
     public class RGStateInfoWrapper
@@ -12,7 +12,10 @@ namespace RegressionGames
     [Serializable]
     public class RGStatesInfo
     {
+        public string Namespace;
         public string Object;
+        // the object type, given by the developer
+        public string ObjectType;
         public List<RGStateInfo> State;
     }
 }

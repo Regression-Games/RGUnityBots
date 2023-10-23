@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -6,10 +7,12 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Newtonsoft.Json;
+using RegressionGames.RGBotConfigs;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
-namespace RegressionGames
+namespace RegressionGames.Editor.CodeGenerators
 {
     public class RGActionCodeGenerator
     {
@@ -38,6 +41,13 @@ namespace RegressionGames
             WriteToJson("RGActions", actionJson);
             WriteToJson("RGStates", stateJson);
 
+        }
+
+        [MenuItem("Regression Games/Agent Builder/Extract Data")]
+        private static void ExtractData()
+        {
+            ExtractObjectType();
+            
             // create 'RegressionGames.zip' in project folder
             ZipJson();
         }
@@ -72,9 +82,7 @@ namespace RegressionGames
 
                 foreach (var method in botActionMethods)
                 {
-                    var namespaceAncestors = method.Ancestors().OfType<NamespaceDeclarationSyntax>().ToArray();
-                    var namespaceAncestor = namespaceAncestors.Length > 0 ? namespaceAncestors[0] : null; 
-                    string nameSpace = namespaceAncestor?.Name.ToString();
+                    string nameSpace = method.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
                     string className = method.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText;
                     string methodName = method.Identifier.ValueText;
 
@@ -112,11 +120,11 @@ namespace RegressionGames
                 }
             }
 
-            string jsonResult =
+            string jsonResult = 
                 JsonConvert.SerializeObject(new RGActionsInfo { BotActions = botActionList }, Formatting.Indented, new JsonSerializerSettings
-                {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                });
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
             
             // remove previous RGActions
             string dataPath = Application.dataPath;
@@ -161,9 +169,11 @@ namespace RegressionGames
 
                 foreach (var classDeclaration in classDeclarations)
                 {
+                    string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
+
                     string className = classDeclaration.Identifier.ValueText;
                     List<RGStateInfo> stateList = new List<RGStateInfo>();
-
+                    
                     var membersWithRGState = classDeclaration.Members
                         .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")));
 
@@ -241,6 +251,7 @@ namespace RegressionGames
                     {
                         rgStateInfoList.Add(new RGStatesInfo
                         {
+                            Namespace = nameSpace,
                             Object = className,
                             State = stateList
                         });
@@ -280,6 +291,22 @@ namespace RegressionGames
             string filePath = Path.Combine(folderPath, $"{fileName}.json");
             File.WriteAllText(filePath, json);
         }
+        
+        private static string ReadFromJson(string fileName)
+        {
+            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");
+            string filePath = Path.Combine(folderPath, $"{fileName}.json");
+
+            if (File.Exists(filePath))
+            {
+                return File.ReadAllText(filePath);
+            }
+            else
+            {
+                Debug.LogWarning($"File '{fileName}.json' does not exist in '{folderPath}'.");
+                return null;
+            }
+        }
 
         private static void ZipJson()
         {
@@ -289,15 +316,15 @@ namespace RegressionGames
             if (Directory.Exists(folderPath))
             {
                 string zipPath = Path.Combine(parentPath, "RegressionGames.zip");
-                // delete existing zip if exists
+
+                // Check if the zip file already exists and delete it
                 if (File.Exists(zipPath))
                 {
                     File.Delete(zipPath);
                 }
                 ZipFile.CreateFromDirectory(folderPath, zipPath);
+
                 RGDebug.LogInfo($"Successfully Generated {zipPath}");
-                Directory.Delete(folderPath, true);
-                RGDebug.LogDebug($"Successfully removed temporary zip directory {folderPath}");
             }
             else
             {
@@ -322,6 +349,128 @@ namespace RegressionGames
                 namespacePrefix += ".";
 
             return namespacePrefix + typeSymbol.Name;
+        }
+
+        private static void ExtractObjectType()
+        {
+            // read current JSON for actions and states
+            string actionJson = ReadFromJson("RGActions");
+            string stateJson = ReadFromJson("RGStates");
+            
+            // deserialize into action and state objects
+            RGActionsInfo actionsInfo = JsonUtility.FromJson<RGActionsInfo>(actionJson);
+            var statesInfo = JsonConvert.DeserializeObject<RGStateInfoWrapper>(stateJson).RGStateInfo;
+
+            // all unique object names in actions and states
+            List<string> objectTypeNames = new List<string>();
+            
+            // map of object names and object types
+            Dictionary<Type, string> objectTypeMap = new Dictionary<Type, string>();
+            Dictionary<string, string> objectNameMap = new Dictionary<string, string>();
+            
+            // Get all Object names from RGActions
+            foreach (var action in actionsInfo.BotActions)
+            {
+                string objectName = action.Object;
+                if (!objectTypeNames.Contains(objectName))
+                {
+                    objectTypeNames.Add(objectName);
+                }
+            }
+
+            // Get all Object names from RGStates
+            foreach (var state in statesInfo)
+            {
+                string objectName = state.Object;
+                if (!objectTypeNames.Contains(objectName))
+                {
+                    objectTypeNames.Add(objectName);
+                }
+            }
+
+            // Convert the Object name into a System.Type
+            foreach (var objectName in objectTypeNames)
+            {
+                Type objectType = Type.GetType(objectName + ", Assembly-CSharp");
+                if (objectType != null)
+                {
+                    objectTypeMap.TryAdd(objectType, null);
+                }else
+                {
+                    RGDebug.LogWarning("Type not found: " + objectName);
+                }
+            }
+
+            // For objects in the scene
+            RGEntity[] allEntities = Object.FindObjectsOfType<RGEntity>();
+            for (int i = 0; i < allEntities.Length; i++)
+            {
+                RGEntity entity = allEntities[i];
+                var entityMap = entity.MapObjectType(objectTypeMap);
+                foreach (var kvp in entityMap)
+                {
+                    objectTypeMap[kvp.Key] = kvp.Value;
+                }
+            }
+            
+            // For prefabs
+            string[] allPrefabs = AssetDatabase.FindAssets("t:Prefab");
+            foreach (string prefabGuid in allPrefabs)
+            {
+                string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            
+                if (prefab != null)
+                {
+                    RGEntity prefabComponent = prefab.GetComponent<RGEntity>();
+                    if (prefabComponent != null)
+                    {
+                        var entityMap = prefabComponent.MapObjectType(objectTypeMap);
+                        foreach (var kvp in entityMap)
+                        {
+                            objectTypeMap[kvp.Key] = kvp.Value;
+                        }
+                    }
+                }
+            }
+            
+            // Convert System Type to string
+            foreach (var kvp in objectTypeMap)
+            {
+                objectNameMap.TryAdd(kvp.Key.ToString(), kvp.Value);
+            }
+            
+            // Assign ObjectTypes to RGActions
+            foreach (var action in actionsInfo.BotActions)
+            {
+                if (objectNameMap.ContainsKey(action.Object))
+                {
+                    action.ObjectType = objectNameMap[action.Object];
+                }
+            }
+            
+            // Assign Object Types to RGStates
+            foreach (var state in statesInfo)
+            {
+                if (objectNameMap.ContainsKey(state.Object))
+                {
+                    state.ObjectType = objectNameMap[state.Object];
+                }
+            }
+            
+            // Write updated values back to JSON files
+            string updatedActionJson = 
+                JsonConvert.SerializeObject(new RGActionsInfo { BotActions = actionsInfo.BotActions }, Formatting.Indented, new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                });
+            string updatedStateJson = JsonConvert.SerializeObject(new { RGStateInfo = statesInfo }, Formatting.Indented, new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
+            
+            WriteToJson("RGActions", updatedActionJson);
+            WriteToJson("RGStates", updatedStateJson);
         }
     }
 }

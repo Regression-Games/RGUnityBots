@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using UnityEditor;
 using UnityEngine;
 
-namespace RegressionGames
+namespace RegressionGames.Editor.CodeGenerators
 {
     public static class GenerateRGActionMapClass
     {
@@ -71,7 +71,7 @@ namespace RegressionGames
                                         SyntaxFactory.MemberAccessExpression(
                                             SyntaxKind.SimpleMemberAccessExpression, 
                                             SyntaxFactory.IdentifierName("gameObject"), 
-                                            SyntaxFactory.IdentifierName($"AddComponent<RGAction_{b.ActionName.Replace(" ", "_")}>")
+                                            SyntaxFactory.IdentifierName($"AddComponent<RGAction_{CodeGeneratorUtils.SanitizeActionName(b.ActionName)}>")
                                         )
                                     )
                                 )
