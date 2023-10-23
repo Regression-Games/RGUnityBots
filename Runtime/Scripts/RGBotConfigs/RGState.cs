@@ -11,7 +11,6 @@ using UnityEngine;
  */
 namespace RegressionGames.RGBotConfigs
 {
-    [DisallowMultipleComponent]    
     [RequireComponent(typeof(RGEntity))]
     // ReSharper disable once InconsistentNaming
     public class RGState : MonoBehaviour, IRGState
