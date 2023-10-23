@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.RGBotConfigs;
@@ -18,13 +19,13 @@ namespace RegressionGames.DebugUtils
         
         const string BillboardTextAsset = "Packages/gg.regression.unity.bots/Runtime/Prefabs/AgentBillboardText.prefab";
         
-        private readonly Dictionary<string, (int, Vector3, Color)> _linesFromEntityToPosition = new();
-        private readonly Dictionary<string, (int, int, Color)> _linesFromEntityToEntity = new();
-        private readonly Dictionary<string, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
-        private readonly Dictionary<string, (Vector3, Color, float, bool)> _spheresAtPosition = new();
-        private readonly Dictionary<string, (int, Color, float, bool)> _spheresAtEntity = new();
-        private readonly Dictionary<int, (string, float)> _billboardsToDraw = new();
-        private readonly Dictionary<int, GameObject> _drawnBillboards = new();
+        private readonly ConcurrentDictionary<string, (int, Vector3, Color)> _linesFromEntityToPosition = new();
+        private readonly ConcurrentDictionary<string, (int, int, Color)> _linesFromEntityToEntity = new();
+        private readonly ConcurrentDictionary<string, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
+        private readonly ConcurrentDictionary<string, (Vector3, Color, float, bool)> _spheresAtPosition = new();
+        private readonly ConcurrentDictionary<string, (int, Color, float, bool)> _spheresAtEntity = new();
+        private readonly ConcurrentDictionary<int, (string, float)> _billboardsToDraw = new();
+        private readonly ConcurrentDictionary<int, GameObject> _drawnBillboards = new();
         
         // Billboard text objects
         private readonly GameObject _billboardAsset;
@@ -128,9 +129,9 @@ namespace RegressionGames.DebugUtils
          */
         public void DestroyLine(string name)
         {
-            _linesFromEntityToPosition.Remove(name);
-            _linesFromEntityToEntity.Remove(name);
-            _linesFromPositionToPosition.Remove(name);
+            _linesFromEntityToPosition.Remove(name, out _);
+            _linesFromEntityToEntity.Remove(name, out _);
+            _linesFromPositionToPosition.Remove(name, out _);
         }
 
         /**
@@ -208,8 +209,8 @@ namespace RegressionGames.DebugUtils
          */
         public void DestroySphere(string name)
         {
-            _spheresAtPosition.Remove(name);
-            _spheresAtEntity.Remove(name);
+            _spheresAtPosition.Remove(name, out _);
+            _spheresAtEntity.Remove(name, out _);
         }
 
         /**
@@ -264,7 +265,7 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="CreateText"/>
          * <seealso cref="DestroyAllTexts"/>
          */
-        public void DestroyText(int entityId) => _billboardsToDraw.Remove(entityId);
+        public void DestroyText(int entityId) => _billboardsToDraw.Remove(entityId, out _);
 
         /**
          * <summary>
@@ -348,7 +349,7 @@ namespace RegressionGames.DebugUtils
             foreach (var billboard in billboardsToRemove)
             {
                 Object.Destroy(billboard.Value);
-                _drawnBillboards.Remove(billboard.Key);
+                _drawnBillboards.Remove(billboard.Key, out _);
             }
             
             // Now update or create any billboards that are being drawn
@@ -365,6 +366,8 @@ namespace RegressionGames.DebugUtils
                             Quaternion.identity);
                         billboardObject.transform.SetParent(entityGameObject.transform);
                         _drawnBillboards[billboardParams.Key] = billboardObject;
+                        // Delete the object for a test
+                        Object.Destroy(entityGameObject.gameObject);
                     }
                 
                     // Then set the parameters
@@ -374,11 +377,11 @@ namespace RegressionGames.DebugUtils
                     // If an offset is given, use that for placing it above the agent
                     billboardText.SetYOffset(billboardParams.Value.Item2);
                 }
-                catch (Exception e)
+                catch (MissingReferenceException e)
                 {
                     // If an exception occurred, it's likely that the existing entity was destroyed.
                     // In that case, just remove the billboard from the list of drawn billboards.
-                    _drawnBillboards.Remove(billboardParams.Key);
+                    _drawnBillboards.Remove(billboardParams.Key, out _);
                 }
                 
             }
