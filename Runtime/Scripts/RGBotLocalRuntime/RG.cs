@@ -50,7 +50,9 @@ namespace RegressionGames.RGBotLocalRuntime
         }
 
         /**
-         * <summary>Returns the first player for my client id.  With multiple players controller by a single client this method is UNSAFE.</summary>
+         * <summary>Returns the first player for my client id.
+         * <br/><br/>
+         * WARNING: When controlling multiple player bots from a single client the result of this method may change from one tick to the next.</summary>
          */
         public RGStateEntity GetMyPlayer()
         {
@@ -59,7 +61,6 @@ namespace RegressionGames.RGBotLocalRuntime
             {
                 return players[0];
             }
-
             return null;
         }
 
