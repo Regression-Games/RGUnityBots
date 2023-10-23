@@ -348,23 +348,33 @@ namespace RegressionGames.DebugUtils
             // Now update or create any billboards that are being drawn
             foreach (var billboardParams in _billboardsToDraw)
             {
-                // If the billboard does not exist, create it
-                if (!_drawnBillboards.ContainsKey(billboardParams.Key))
+                try
                 {
-                    var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
-                    if (entityGameObject == null) continue;
-                    var billboardObject = Object.Instantiate(_billboardAsset, entityGameObject.transform.position,
-                        Quaternion.identity);
-                    billboardObject.transform.SetParent(entityGameObject.transform);
-                    _drawnBillboards[billboardParams.Key] = billboardObject;
+                    // If the billboard does not exist, create it
+                    if (!_drawnBillboards.ContainsKey(billboardParams.Key))
+                    {
+                        var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
+                        if (entityGameObject == null) continue;
+                        var billboardObject = Object.Instantiate(_billboardAsset, entityGameObject.transform.position,
+                            Quaternion.identity);
+                        billboardObject.transform.SetParent(entityGameObject.transform);
+                        _drawnBillboards[billboardParams.Key] = billboardObject;
+                    }
+                
+                    // Then set the parameters
+                    var billboardText = _drawnBillboards[billboardParams.Key].GetComponent<BillboardText>();
+                    billboardText.SetText(billboardParams.Value.Item1);
+                
+                    // If an offset is given, use that for placing it above the agent
+                    billboardText.SetYOffset(billboardParams.Value.Item2);
+                }
+                catch (Exception e)
+                {
+                    // If an exception occurred, it's likely that the existing entity was destroyed.
+                    // In that case, just remove the billboard from the list of drawn billboards.
+                    _drawnBillboards.Remove(billboardParams.Key);
                 }
                 
-                // Then set the parameters
-                var billboardText = _drawnBillboards[billboardParams.Key].GetComponent<BillboardText>();
-                billboardText.SetText(billboardParams.Value.Item1);
-                
-                // If an offset is given, use that for placing it above the agent
-                billboardText.SetYOffset(billboardParams.Value.Item2);
             }
 
         }
