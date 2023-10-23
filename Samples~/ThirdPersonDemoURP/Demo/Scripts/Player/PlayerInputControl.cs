@@ -1,7 +1,4 @@
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem;
-#endif
 
 namespace RGThirdPersonDemo
 {
@@ -11,27 +8,15 @@ namespace RGThirdPersonDemo
         public Vector2 move;
         public Vector2 look;
         public bool jump;
-        public bool sprint;
 
         [Header("Movement Settings")]
         public bool analogMovement;
 
-#if ENABLE_INPUT_SYSTEM
-        public void OnMove(InputValue value)
+        private void Update()
         {
-            MoveInput(value.Get<Vector2>());
+            MoveInput(new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")));
+            JumpInput(Input.GetButtonDown("Jump"));
         }
-        
-        public void OnJump(InputValue value)
-        {
-            JumpInput(value.isPressed);
-        }
-
-        public void OnSprint(InputValue value)
-        {
-            SprintInput(value.isPressed);
-        }
-#endif
 
         public void MoveInput(Vector2 newMoveDirection)
         {
@@ -42,11 +27,5 @@ namespace RGThirdPersonDemo
         {
             jump = newJumpState;
         }
-
-        public void SprintInput(bool newSprintState)
-        {
-            sprint = newSprintState;
-        }
     }
-	
 }
