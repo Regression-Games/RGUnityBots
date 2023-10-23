@@ -2,13 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using RGThirdPersonDemo.Events;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 
 namespace RGThirdPersonDemo
 {
     [RequireComponent(typeof(CharacterController))]
-    [RequireComponent(typeof(PlayerInput))]
     public class PlayerMovement : MonoBehaviour
     {
         [FormerlySerializedAs("startMovingEvent")]
@@ -57,7 +55,6 @@ namespace RGThirdPersonDemo
         private bool _hasAnimator;
         
         private GameObject _mainCamera;
-        private PlayerInput _playerInput;
         private Animator _animator;
         private CharacterController _controller;
         private PlayerInputControl _input;
@@ -94,7 +91,6 @@ namespace RGThirdPersonDemo
             _hasAnimator = TryGetComponent(out _animator);
             _controller = GetComponent<CharacterController>();
             _input = GetComponent<PlayerInputControl>();
-            _playerInput = GetComponent<PlayerInput>();
             
             AssignAnimationIDs();
             
