@@ -16,26 +16,26 @@ namespace RegressionGames.DebugUtils
     public class RGGizmos
     {
         
-        private readonly Dictionary<string, Tuple<int, Vector3, Color>> _linesFromEntityToPosition = new();
-        private readonly Dictionary<string, Tuple<int, int, Color>> _linesFromEntityToEntity = new();
-        private readonly Dictionary<string, Tuple<Vector3, Vector3, Color>> _linesFromPositionToPosition = new();
-        private readonly Dictionary<string, Tuple<Vector3, Color, float, bool>> _spheresAtPosition = new();
-        private readonly Dictionary<string, Tuple<int, Color, float, bool>> _spheresAtEntity = new();
-        private readonly Dictionary<int, Tuple<string, float>> _billboardsToDraw = new();
+        const string BillboardTextAsset = "Packages/gg.regression.unity.bots/Runtime/Prefabs/AgentBillboardText.prefab";
+        
+        private readonly Dictionary<string, (int, Vector3, Color)> _linesFromEntityToPosition = new();
+        private readonly Dictionary<string, (int, int, Color)> _linesFromEntityToEntity = new();
+        private readonly Dictionary<string, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
+        private readonly Dictionary<string, (Vector3, Color, float, bool)> _spheresAtPosition = new();
+        private readonly Dictionary<string, (int, Color, float, bool)> _spheresAtEntity = new();
+        private readonly Dictionary<int, (string, float)> _billboardsToDraw = new();
         private readonly Dictionary<int, GameObject> _drawnBillboards = new();
         
         // Billboard text objects
         private readonly GameObject _billboardAsset;
 
-        public RGGizmos()
-        {
-            var path = "Packages/gg.regression.unity.bots/Runtime/Prefabs/AgentBillboardText.prefab";
-            _billboardAsset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-        }
+        public RGGizmos() => _billboardAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BillboardTextAsset);
 
         /**
+         * <summary>
          * Creates a line from the entity with the given id to a specific position. The line
          * will persist until removed using `DestroyLine(name)` or `DestroyAllLines()`.
+         * </summary>
          * <param name="startEntityId">The id of the entity this line should start at.</param>
          * <param name="endPosition">The end position of the line.</param>
          * <param name="color">The color of the line.</param>
@@ -49,14 +49,14 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(int startEntityId, Vector3 endPosition, Color color, string name)
-        {
-            _linesFromEntityToPosition[name] = Tuple.Create(startEntityId, endPosition, color);
-        }
-        
+        public void CreateLine(int startEntityId, Vector3 endPosition, Color color, string name) =>
+            _linesFromEntityToPosition[name] = (startEntityId, endPosition, color);
+
         /**
+         * <summary>
          * Creates a line from a position to an entity with the given id. The line
          * will persist until removed using `DestroyLine(name)` or `DestroyAllLines()`.
+         * </summary>
          * <param name="startPosition">The start position of the line.</param>
          * <param name="endEntityId">The id of the entity this line should end at.</param>
          * <param name="color">The color of the line.</param>
@@ -70,14 +70,14 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(Vector3 startPosition, int endEntityId, Color color, string name)
-        {
+        public void CreateLine(Vector3 startPosition, int endEntityId, Color color, string name) => 
             CreateLine(endEntityId, startPosition, color, name);
-        }
-        
+
         /**
+         * <summary>
          * Creates a line between two entities with the given ids. The line
          * will persist until removed using `DestroyLine(name)` or `DestroyAllLines()`.
+         * </summary>
          * <param name="startEntityId">The id of the entity this line should start at.</param>
          * <param name="endEntityId">The id of the entity this line should end at.</param>
          * <param name="color">The color of the line.</param>
@@ -91,14 +91,14 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(int startEntityId, int endEntityId, Color color, string name)
-        {
-            _linesFromEntityToEntity[name] = Tuple.Create(startEntityId, endEntityId, color);
-        }
-        
+        public void CreateLine(int startEntityId, int endEntityId, Color color, string name) => 
+            _linesFromEntityToEntity[name] = (startEntityId, endEntityId, color);
+
         /**
+         * <summary>
          * Creates a line between two positions. The line will persist until removed using
          * `DestroyLine(name)` or `DestroyAllLines()`.
+         * </summary>
          * <param name="startPosition">The start position of the line.</param>
          * <param name="endPosition">The end position of the line</param>
          * <param name="color">The color of the line.</param>
@@ -112,13 +112,13 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(Vector3 startPosition, Vector3 endPosition, Color color, string name)
-        {
-            _linesFromPositionToPosition[name] = Tuple.Create(startPosition, endPosition, color);
-        }
+        public void CreateLine(Vector3 startPosition, Vector3 endPosition, Color color, string name) => 
+            _linesFromPositionToPosition[name] = (startPosition, endPosition, color);
 
         /**
+         * <summary>
          * Destroys a line with the given name. If no line with the given name exists, nothing happens.
+         * </summary>
          * <param name="name">The name of the line to destroy.</param>
          * <example>
          * <code>
@@ -134,7 +134,9 @@ namespace RegressionGames.DebugUtils
         }
 
         /**
+         * <summary>
          * Destroys all lines created.
+         * </summary>
          * <example>
          * <code>
          * RGGizmos.DestroyAllLines();
@@ -150,8 +152,10 @@ namespace RegressionGames.DebugUtils
         }
         
         /**
+         * <summary>
          * Creates a sphere at the given position. The sphere will persist until removed using
          * `DestroySphere(name)` or `DestroyAllSpheres()`.
+         * </summary>
          * <param name="position">The position of the sphere.</param>
          * <param name="color">The color of the sphere.</param>
          * <param name="size">The size of the sphere.</param>
@@ -166,14 +170,14 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroySphere"/>
          * <seealso cref="DestroyAllSpheres"/>
          */
-        public void CreateSphere(Vector3 position, Color color, float size, bool isWireframe, string name)
-        {
-            _spheresAtPosition[name] = Tuple.Create(position, color, size, isWireframe);
-        }
+        public void CreateSphere(Vector3 position, Color color, float size, bool isWireframe, string name) => 
+            _spheresAtPosition[name] = (position, color, size, isWireframe);
 
         /**
+         * <summary>
          * Creates a sphere at the origin of the entity with the given id. The sphere will persist until removed using
          * `DestroySphere(name)` or `DestroyAllSpheres()`.
+         * </summary>
          * <param name="entityId">The entity of the id to place this sphere.</param>
          * <param name="color">The color of the sphere.</param>
          * <param name="size">The size of the sphere.</param>
@@ -188,13 +192,13 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroySphere"/>
          * <seealso cref="DestroyAllSpheres"/>
          */
-        public void CreateSphere(int entityId, Color color, float size, bool isWireframe, string name)
-        {
-            _spheresAtEntity[name] = Tuple.Create(entityId, color, size, isWireframe);
-        }
+        public void CreateSphere(int entityId, Color color, float size, bool isWireframe, string name) => 
+            _spheresAtEntity[name] = (entityId, color, size, isWireframe);
 
         /**
+         * <summary>
          * Destroys a sphere with the given name. If no sphere with the given name exists, nothing happens.
+         * </summary>
          * <param name="name">The name of the sphere to destroy.</param>
          * <example>
          * <code>
@@ -209,7 +213,9 @@ namespace RegressionGames.DebugUtils
         }
 
         /**
+         * <summary>
          * Destroys all spheres created.
+         * </summary>
          * <example>
          * <code>
          * RGGizmos.DestroyAllSpheres();
@@ -224,9 +230,11 @@ namespace RegressionGames.DebugUtils
         }
         
         /**
+         * <summary>
          * Creates a text billboard on an entity with the given id. The text will persist until removed using
          * `DestroyText(entityId)` or `DestroyAllTexts()`. Use the yOffset parameter to place the billboard text
          * a certain distance above the entity. An entity can only have one billboard text at a time.
+         * </summary>
          * <param name="entityId">The entity of the id to place this text billboard.</param>
          * <param name="content">The content of the text billboard.</param>
          * <param name="yOffset">The y offset of the text billboard (defaults to 2.0).</param>
@@ -239,14 +247,14 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyText"/>
          * <seealso cref="DestroyAllTexts"/>
          */
-        public void CreateText(int entityId, string content, float yOffset = 2.0f)
-        {
-            _billboardsToDraw[entityId] = Tuple.Create(content, yOffset);
-        }
+        public void CreateText(int entityId, string content, float yOffset = 2.0f) => 
+            _billboardsToDraw[entityId] = (content, yOffset);
 
         /**
+         * <summary>
          * Destroys the text billboard on an entity with the given id. If no text billboard exists on the entity, nothing
          * happens.
+         * </summary>
          * <param name="entityId">The entity of the id whose text billboard should be destroyed.</param>
          * <example>
          * <code>
@@ -256,13 +264,12 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="CreateText"/>
          * <seealso cref="DestroyAllTexts"/>
          */
-        public void DestroyText(int entityId)
-        {
-            _billboardsToDraw.Remove(entityId);
-        }
+        public void DestroyText(int entityId) => _billboardsToDraw.Remove(entityId);
 
         /**
+         * <summary>
          * Destroys all text billboards created.
+         * </summary>
          * <example>
          * <code>
          * RGGizmos.DestroyAllTexts();
@@ -271,13 +278,12 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="CreateText"/>
          * <seealso cref="DestroyText"/>
          */
-        public void DestroyAllTexts()
-        {
-            _billboardsToDraw.Clear();
-        }
+        public void DestroyAllTexts() => _billboardsToDraw.Clear();
 
         /**
+         * <summary>
          * Draws all Gizmos that have been set.
+         * </summary>
          */
         protected internal void OnDrawGizmos()
         {
