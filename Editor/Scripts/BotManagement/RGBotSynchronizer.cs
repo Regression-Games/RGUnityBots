@@ -195,6 +195,8 @@ namespace RegressionGames.Editor.BotManagement
 
             if (File.Exists(zipDownloadPath))
             {
+                // this shouldn't be reached 99.999% of the time but is here to avoid getting stuck
+                // if someone happened to have a file open in the temp directory and blocked it from cleaning up properly
                 File.Delete(zipDownloadPath);
             }
                     
