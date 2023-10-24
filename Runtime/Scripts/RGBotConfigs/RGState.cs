@@ -24,9 +24,9 @@ namespace RegressionGames.RGBotConfigs
         }
 
         /**
-         * A function that is overriden to provide the custom state of this specific GameObject.
+         * <summary>A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
-         * object, or their inventory information
+         * object, or their inventory information</summary>
          */
         protected virtual Dictionary<string, object> GetState()
         {
@@ -34,8 +34,8 @@ namespace RegressionGames.RGBotConfigs
         }
 
         /**
-         * Returns the entire internal state for this object, which consists of the default
-         * states tracked by RG, and the result of any overridden GetState implementation.
+         * <summary>Returns the entire internal state for this object, which consists of the default
+         * states tracked by RG, and the result of any overridden GetState implementation.</summary>
          */
         public RGStateEntity GetGameObjectState()
         {
@@ -59,6 +59,11 @@ namespace RegressionGames.RGBotConfigs
             return state;
         }
 
+        /**
+         * <summary>A function that is overridden to supply a custom implementation of RGStateEntity.
+         * This allows more natural coding when working with the state for local C# Unity bots vs accessing entries in a Dictionary.</summary>
+         * <example>RGStatePlatformer2DPlayer</example>
+         */
         protected virtual RGStateEntity CreateStateEntity()
         {
             return new RGStateEntity();

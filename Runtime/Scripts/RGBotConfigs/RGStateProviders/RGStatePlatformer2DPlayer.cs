@@ -96,8 +96,6 @@ namespace RegressionGames
             {
                 Gizmos.color = Color.green;
                 Gizmos.DrawWireSphere((Vector2)_truePosition, 0.125f);
-                //Gizmos.color = Color.red;
-                //Gizmos.DrawWireSphere((Vector2)transform.position, 0.125f);
             }
         }
     }
