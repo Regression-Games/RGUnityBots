@@ -60,7 +60,7 @@ namespace RegressionGames.Editor.BotManagement
          *   - Uploads any zips that need updating
          *   - NOTE: Currently this always pushes from local to remote assuming the local is the preferred record for bots that you already have.
          *   -       if you want the new remote bot, you should delete your local bot before syncing.
-         * - Creates new local bot records for any bots on RG that are missing locally  
+         * - Creates new local bot records and downloads the files for any bots on RG that are missing locally  
          */
         [MenuItem("Regression Games/Synchronize Bots with RG")]
         private static async void SynchronizeBots()
