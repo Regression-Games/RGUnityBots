@@ -7,5 +7,6 @@ namespace RegressionGames
     {
         public string Name;
         public string Type;
+        public bool Nullable;
     }
 }

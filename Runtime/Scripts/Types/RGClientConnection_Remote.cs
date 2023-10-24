@@ -22,7 +22,7 @@ namespace RegressionGames.Types
 
         private const int SOCKET_READWRITE_TIMEOUT = 5_000; // 5 seconds
 
-        private SemaphoreSlim _connecting = new (0,1);
+        private SemaphoreSlim _connecting = new (1,1);
         [CanBeNull] private RGBotInstanceExternalConnectionInfo _connectionInfo;
 
         public RGClientConnection_Remote(long clientId, string lifecycle = "MANAGED",
@@ -151,8 +151,8 @@ namespace RegressionGames.Types
                 // calling us and the main thread must be available for Unity webrequests
                 // that we do in this method to process
                 // IOW.. it will deadlock the system
-                var semaphoneAcquired = _connecting.Wait(1);
-                if (semaphoneAcquired && !Connected())
+                var semaphoreAcquired = _connecting.Wait(1);
+                if (semaphoreAcquired && !Connected())
                 {
                     shouldIConnect = true;
                 }
@@ -258,7 +258,7 @@ namespace RegressionGames.Types
                 }
                 else
                 {
-                    if (semaphoneAcquired)
+                    if (semaphoreAcquired)
                     {
                         _connecting.Release();
                     }
