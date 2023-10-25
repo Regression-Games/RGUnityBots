@@ -4,17 +4,12 @@ using UnityEngine;
 public class BillboardText : MonoBehaviour
 {
     private TextMeshProUGUI _text;
-    private string _content;
-    private float _yOffset;
+    public string content = "";
+    public float yOffset = 2f;
     
     void Awake()
     {
         _text = GetComponentInChildren<TextMeshProUGUI>();
-        if (_content != null)
-        {
-            SetText(_content);
-            SetYOffset(_yOffset);
-        }
     }
     
     void LateUpdate()
@@ -27,22 +22,15 @@ public class BillboardText : MonoBehaviour
                                 ( camTransform.forward) * 100_000;
             transform.LookAt(lookPoint);
         }
-    }
-
-    public void SetText(string content)
-    {
-        // In some cases, the content is set when the object is not awake. Instead, wait until the object is
-        // awake
-        _content = content;
-        if (_text == null) return;
-        _text.text = content;
-    }
-
-    public void SetYOffset(float yOffset)
-    {
-        _yOffset = yOffset;
-        if (_text == null) return;
+        else
+        {
+            Debug.Log("UOH");
+        }
         _text.transform.localPosition = new Vector3(0, yOffset, 0);
+        if (content != _text.text)
+        {
+            _text.text = content;
+        }
     }
 
 }

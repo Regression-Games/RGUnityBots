@@ -298,8 +298,6 @@ namespace RegressionGames.DebugUtils
             foreach (var lineParams in _linesFromEntityToPosition.Values)
             {
                 var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item1);
-                Debug.Log(originInstance);
-                Debug.Log(lineParams);
                 if (originInstance != null)
                 {
                     Debug.DrawLine(originInstance.transform.position, lineParams.Item2, lineParams.Item3);
@@ -378,10 +376,10 @@ namespace RegressionGames.DebugUtils
                     if (billboard == null || !billboard.activeInHierarchy) continue;
                         
                     var billboardText = billboard.GetComponent<BillboardText>();
-                    billboardText.SetText(billboardParams.Value.Item1);
+                    billboardText.content = billboardParams.Value.Item1;
                 
                     // If an offset is given, use that for placing it above the agent
-                    billboardText.SetYOffset(billboardParams.Value.Item2);
+                    billboardText.yOffset = billboardParams.Value.Item2;
                 }
                 catch (MissingReferenceException e)
                 {
