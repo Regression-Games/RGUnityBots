@@ -5,14 +5,14 @@ namespace RegressionGames.RGBotLocalRuntime
     public class RGBotAssetRecord
     {
         public string Path;
-        public RGBot BotRecord;
+        public RGBotAsset BotAsset;
 
-        public RGBotAssetRecord(string path, RGBot botRecord = null)
+        public RGBotAssetRecord(string path, RGBotAsset botAsset = null)
         {
             this.Path = path;
-            if (botRecord != null)
+            if (botAsset != null)
             {
-                this.BotRecord = botRecord;
+                this.BotAsset = botAsset;
             }
         }
     }
