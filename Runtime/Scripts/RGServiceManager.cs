@@ -19,6 +19,9 @@ namespace RegressionGames
         // 10 seconds
         public static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 10;
 
+        // 1 hour
+        public static readonly int WEB_REQUEST_FILE_TIMEOUT_SECONDS = 60 * 60;
+
         private static Mutex authLock = new Mutex(false,"AuthLock");
 
         private string rgAuthToken;
@@ -208,6 +211,121 @@ namespace RegressionGames
                 onFailure();
             }
         }
+        
+        public async Task CreateBot(RGCreateBotRequest request, Action<RGBot> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot",
+                    method: "POST",
+                    payload: JsonUtility.ToJson(request),
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGBot response = JsonUtility.FromJson<RGBot>(s);
+                        RGDebug.LogDebug(
+                            $"RGService CreateBot response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to create bot for current user: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+
+        public async Task GetBotCodeDetails(long botId, Action<RGBotCodeDetails> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot/{botId}/code-details",
+                    method: "GET",
+                    payload: null,
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGBotCodeDetails response = JsonUtility.FromJson<RGBotCodeDetails>(s);
+                        RGDebug.LogDebug(
+                            $"RGService GetBotCodeDetails response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to get bot code details for bot id: {botId} - {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+        
+        public async Task DownloadBotCode(long botId, string destinationFilePath, Action onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebFileDownloadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot/{botId}/download-code",
+                    method: "GET",
+                    payload: null,
+                    destinationFilePath: destinationFilePath, 
+                    onSuccess: async () =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService DownloadBotCode response received for bot id: {botId}");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to DownloadBotCode for bot id: {botId} - {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+        
+        public async Task UpdateBotCode(long botId, string filePath, Action<RGBotCodeDetails> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot/{botId}/update-code",
+                    method: "POST",
+                    filePath: filePath,
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGBotCodeDetails response = JsonUtility.FromJson<RGBotCodeDetails>(s);
+                        RGDebug.LogDebug(
+                            $"RGService GetBotCodeDetails response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to get bot code details for bot id: {botId} - {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
 
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
@@ -319,7 +437,23 @@ namespace RegressionGames
 
             try
             {
-            	SetupWebRequest(request, (payload == null ? null : Encoding.UTF8.GetBytes(payload)), isAuth);
+                var payloadBytes = payload == null ? null : Encoding.UTF8.GetBytes(payload);
+                request.timeout = WEB_REQUEST_TIMEOUT_SECONDS;
+                UploadHandler uh = new UploadHandlerRaw(payloadBytes);
+                uh.contentType = "application/json";
+                request.uploadHandler = uh;
+                request.downloadHandler = new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Accept", "application/json");
+                if (rgAuthToken != null && !isAuth)
+                {
+                    request.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+                }
+
+                if (request.uri.Scheme.Equals(Uri.UriSchemeHttps))
+                {
+                    request.certificateHandler = RGCertOnlyPublicKey.GetInstance();
+                }
                 var task = request.SendWebRequest();
                 RGDebug.LogVerbose($"<{messageId}> API request sent ...");
                 await new UnityWebRequestAwaiter(task);
@@ -357,26 +491,135 @@ namespace RegressionGames
             }
 
         }
-
-
-        private void SetupWebRequest(UnityWebRequest webRequest, byte[] payload, bool isAuth=false)
+        
+        /**
+         * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
+         */
+        private async Task SendWebFileUploadRequest(string uri, string method, string filePath, Func<string, Task> onSuccess, Func<string, Task> onFailure)
         {
-            webRequest.timeout = WEB_REQUEST_TIMEOUT_SECONDS;
-            UploadHandler uh = new UploadHandlerRaw(payload);
-            uh.contentType = "application/json";
-            webRequest.uploadHandler = uh;
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
-            webRequest.SetRequestHeader("Content-Type", "application/json");
-            webRequest.SetRequestHeader("Accept", "application/json");
-            if (rgAuthToken != null && !isAuth)
+            var messageId = ++correlationId;
+            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}\r\nfilePath:{filePath}");
+            UnityWebRequest request = new UnityWebRequest(uri, method);
+
+            try
             {
-                webRequest.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+                request.timeout = WEB_REQUEST_TIMEOUT_SECONDS;
+                UploadHandler uh = new UploadHandlerFile(filePath);
+                uh.contentType = "application/zip";
+                request.uploadHandler = uh;
+                request.downloadHandler = new DownloadHandlerBuffer();
+                request.SetRequestHeader("Content-Type", "application/zip");
+                request.SetRequestHeader("Accept", "application/json");
+                if (rgAuthToken != null)
+                {
+                    request.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+                }
+
+                if (request.uri.Scheme.Equals(Uri.UriSchemeHttps))
+                {
+                    request.certificateHandler = RGCertOnlyPublicKey.GetInstance();
+                }
+
+                var task = request.SendWebRequest();
+                RGDebug.LogVerbose($"<{messageId}> API file request sent ...");
+                await new UnityWebRequestAwaiter(task);
+                RGDebug.LogVerbose($"<{messageId}> API file request complete ...");
+                
+                string resultText = request.downloadHandler?.text;
+                string resultToLog = resultText;
+                
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    // pretty print
+                    RGDebug.LogVerbose($"<{messageId}> API file response - {method}  {uri}\r\n{resultToLog}");
+                    await onSuccess.Invoke(resultText);
+                }
+                else
+                {
+                    // since we call this method frequently waiting for bots to come online, we log this at a more debug level
+                    string errorString =
+                        $"<{messageId}> API file error - {method}  {uri}\r\n{request.error} - {request.result} - {resultToLog}";
+                    RGDebug.LogDebug(errorString);
+                    await onFailure.Invoke(errorString);
+                }
+            }
+            catch (Exception ex)
+            {
+                // since we call this method frequently waiting for bots to come online, we log this at a more debug level
+                string errorString =
+                    $"<{messageId}> API file Exception - {method}  {uri} - {ex}";
+                RGDebug.LogDebug(errorString);
+                await onFailure.Invoke(errorString);
+            }
+            finally
+            {
+                request?.Dispose();
             }
 
-            if (webRequest.uri.Scheme.Equals(Uri.UriSchemeHttps))
+        }
+                
+        /**
+         * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
+         */
+        private async Task SendWebFileDownloadRequest(string uri, string method, string payload, string destinationFilePath, Func<Task> onSuccess, Func<string, Task> onFailure)
+        {
+            var messageId = ++correlationId;
+            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}");
+            UnityWebRequest request = new UnityWebRequest(uri, method);
+
+            try
             {
-                webRequest.certificateHandler = RGCertOnlyPublicKey.GetInstance();
+                var payloadBytes = payload == null ? null : Encoding.UTF8.GetBytes(payload);
+                request.timeout = WEB_REQUEST_TIMEOUT_SECONDS;
+                UploadHandler uh = new UploadHandlerRaw(payloadBytes);
+                uh.contentType = "application/json";
+                request.uploadHandler = uh;
+                request.downloadHandler = new DownloadHandlerFile(destinationFilePath);
+                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Accepts", "application/zip");
+                if (rgAuthToken != null)
+                {
+                    request.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+                }
+
+                if (request.uri.Scheme.Equals(Uri.UriSchemeHttps))
+                {
+                    request.certificateHandler = RGCertOnlyPublicKey.GetInstance();
+                }
+
+                var task = request.SendWebRequest();
+                RGDebug.LogVerbose($"<{messageId}> API file request sent ...");
+                await new UnityWebRequestAwaiter(task);
+                RGDebug.LogVerbose($"<{messageId}> API file request complete ...");
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    // pretty print
+                    RGDebug.LogVerbose($"<{messageId}> API file response - {method}  {uri}\r\ndestinationFilePath: {destinationFilePath}");
+                    await onSuccess.Invoke();
+                }
+                else
+                {
+                    // since we call this method frequently waiting for bots to come online, we log this at a more debug level
+                    string errorString =
+                        $"<{messageId}> API file error - {method}  {uri}\r\n{request.error}";
+                    RGDebug.LogDebug(errorString);
+                    await onFailure.Invoke(errorString);
+                }
             }
+            catch (Exception ex)
+            {
+                // since we call this method frequently waiting for bots to come online, we log this at a more debug level
+                string errorString =
+                    $"<{messageId}> API file Exception - {method}  {uri} - {ex}";
+                RGDebug.LogDebug(errorString);
+                await onFailure.Invoke(errorString);
+            }
+            finally
+            {
+                request?.Dispose();
+            }
+
         }
     }
 
