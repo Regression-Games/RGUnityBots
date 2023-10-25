@@ -287,7 +287,7 @@ namespace RegressionGames
          *      RGDebug.LogError(ex.Message);
          * }
          */
-        private static TryStatementSyntax IfBody(RGParameterInfo param)
+        private static StatementSyntax IfBody(RGParameterInfo param)
         {
             var paramType = param.Type;
             var paramName = param.Name;
@@ -324,9 +324,11 @@ namespace RegressionGames
                     SyntaxFactory.ParseStatement("RGDebug.LogError(ex.Message);")
                 }));
 
-            return SyntaxFactory.TryStatement()
-                .WithBlock(tryBlock)
-                .WithCatches(SyntaxFactory.SingletonList(catchBlock));
+            return SyntaxFactory.Block(
+                SyntaxFactory.TryStatement()
+                    .WithBlock(tryBlock)
+                    .WithCatches(SyntaxFactory.SingletonList(catchBlock))
+            );
         }
 
         /**
