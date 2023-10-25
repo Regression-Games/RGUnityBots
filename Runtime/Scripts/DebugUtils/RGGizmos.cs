@@ -380,7 +380,7 @@ namespace RegressionGames.DebugUtils
                     });
 
                     // If the billboard exist but is no longer active (i.e. destroyed), skip this
-                    if (billboard is not {activeInHierarchy: true})
+                    if (billboard == null || !billboard.activeInHierarchy)
                     {
                         _drawnBillboards.Remove(billboardParams.Key, out _);
                         continue;
