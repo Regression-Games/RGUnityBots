@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using RegressionGames.DataCollection;
 using RegressionGames.RGBotConfigs;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
@@ -24,6 +25,8 @@ namespace RegressionGames
         private long tick = 0;
 
         private static RGBotServerListener _this = null;
+        
+        private RGDataCollection _dataCollection = null;
         
         /**
          * Names of fields that are allowed to appear in multiple state scripts for the same GameObject.
@@ -57,6 +60,7 @@ namespace RegressionGames
             // keep this thing alive across scenes
             DontDestroyOnLoad(this.gameObject);
             _this = this;
+            _dataCollection = new();
         }
 
         void OnApplicationQuit()
@@ -245,6 +249,9 @@ namespace RegressionGames
                 
                 clientConnection.Close();
                 
+                // Upload the replay data for this bot
+                _dataCollection.RecordSession(clientId, clientConnection.Type);
+                
                 // we originally didn't call RGService StopBotInstance here
                 // But.. leaving the bot running was annoying in the editor to have to stop it
                 // every time.  In the future, we need to solve how to easily get to the bot replay
@@ -272,6 +279,13 @@ namespace RegressionGames
             botStateListeners.TryRemove(clientId, out _);
             botStates.TryRemove(clientId, out _);
             mainThreadTaskQueue.TryRemove(clientId, out _);
+            
+            // If there are no more bots, we can clear all of the data used so far
+            if (clientConnectionMap.IsEmpty)
+            {
+                // TODO: This seems to call early due to the recording being a task?
+                //_dataCollection.Cleanup();
+            }
 
         }
 
@@ -474,6 +488,9 @@ namespace RegressionGames
                     var sceneName = SceneManager.GetActiveScene().name;
                     var tickInfoData = new RGTickInfoData(tick, sceneName, state);
                     var sentTo = new List<long>();
+                    
+                    // Also take a screenshot at this point
+                    _dataCollection.CaptureScreenshot(tick);
                     
                     // we tried to send these out in parallel on thread pool,
                     // but scheduling the tasks on the thread took longer than
