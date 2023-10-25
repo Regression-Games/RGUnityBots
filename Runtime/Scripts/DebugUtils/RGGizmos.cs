@@ -366,12 +366,13 @@ namespace RegressionGames.DebugUtils
                             Quaternion.identity);
                         billboardObject.transform.SetParent(entityGameObject.transform);
                         _drawnBillboards[billboardParams.Key] = billboardObject;
-                        // Delete the object for a test
-                        Object.Destroy(entityGameObject.gameObject);
                     }
                 
                     // Then set the parameters
-                    var billboardText = _drawnBillboards[billboardParams.Key].GetComponent<BillboardText>();
+                    var billboard = _drawnBillboards[billboardParams.Key];
+                    if (billboard == null || !billboard.activeInHierarchy) continue;
+                        
+                    var billboardText = billboard.GetComponent<BillboardText>();
                     billboardText.SetText(billboardParams.Value.Item1);
                 
                     // If an offset is given, use that for placing it above the agent
