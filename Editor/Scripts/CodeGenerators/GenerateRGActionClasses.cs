@@ -219,10 +219,8 @@ namespace RegressionGames
                 string paramName = parameter.Name;
                 
                 methodInvocationArguments.Add(paramName);
-                
-                parameterParsingStatements.Add(InitializeValue(parameter));
+                parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"{parameter.Type} {paramName} = default;"));
                 parameterParsingStatements.Add(SyntaxFactory.IfStatement(IfCondition(parameter), IfBody(parameter), ElseBody(parameter)));
-
             }
 
             string methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ? 
@@ -238,14 +236,6 @@ namespace RegressionGames
             .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.OverrideKeyword))
             .AddParameterListParameters(methodParameters.ToArray())
             .WithBody(SyntaxFactory.Block(parameterParsingStatements));
-        }
-
-        /**
-         * KeyType keyName = default;
-         */
-        private static StatementSyntax InitializeValue(RGParameterInfo param)
-        {
-            return SyntaxFactory.ParseStatement($"{param.Type} {param.Name} = default;");
         }
 
         /**
