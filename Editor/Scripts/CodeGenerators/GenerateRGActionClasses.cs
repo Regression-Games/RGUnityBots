@@ -254,7 +254,6 @@ namespace RegressionGames
          */
         private static InvocationExpressionSyntax IfCondition(RGParameterInfo param)
         {
-            var inputName = $"{param.Name}Input";
             return SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression, 
@@ -270,17 +269,13 @@ namespace RegressionGames
                                 SyntaxFactory.Literal(param.Name)
                             )
                         ),
-                        // SyntaxFactory.Argument(
-                        //     SyntaxFactory.DeclarationExpression(
-                        //             SyntaxFactory.IdentifierName(SyntaxFactory.Token(SyntaxKind.VarKeyword)),
-                        //             SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier(inputName))
-                        //         )
-                        //     )
+                        SyntaxFactory.Argument(
+                            SyntaxFactory.DeclarationExpression(
+                                    SyntaxFactory.IdentifierName("var"),
+                                    SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier($"{param.Name}Input")))
+                            ).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.OutKeyword))
                     })
                 ));
-            
-            
-            
         }
 
         /**
@@ -293,7 +288,7 @@ namespace RegressionGames
          *      KeyType.TryParse(keyInput.ToString(), out key);
          *
          *      nonprimitive:
-         *      key = RGSerialization.Deserialize_KeyType;
+         *      key = RGSerialization.Deserialize_KeyType(key.ToString());
          * 
          * }
          * catch (Exception ex)
@@ -324,7 +319,7 @@ namespace RegressionGames
                     tryParseStatement = tryParseStatement.Replace("?", "");
                     tryParseStatement += "_Nullable";
                 }
-                tryParseStatement += $"({paramName}Input);";
+                tryParseStatement += $"({paramName}Input.ToString());";
             }
 
             var tryBlock = SyntaxFactory.Block(SyntaxFactory.SingletonList(
