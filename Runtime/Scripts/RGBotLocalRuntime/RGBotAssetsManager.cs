@@ -40,14 +40,21 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return null;
         }
+        
+        public List<RGBotAsset> GetAvailableBotAssets()
+        {
+            return _botAssets.Values.Select(v => v.BotAsset).ToList();
+        }
 
         public List<RGBot> GetAvailableBots()
         {
-            return _botAssets.Values.Select(v => v.BotRecord).ToList();
+            return _botAssets.Values.Select(v => v.BotAsset.Bot).ToList();
         }
         
         public void RefreshAvailableBots()
         {
+            _botAssets.Clear();
+            
             // Load up the listing of available local bots
             string[] botGuids = AssetDatabase.FindAssets("BotRecord", new string[] {BOTS_PATH});
             foreach (var botGuid in botGuids)
@@ -59,7 +66,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 {
                     var botAsset = AssetDatabase.LoadAssetAtPath<RGBotAsset>(botAssetPath);
 
-                    var botAssetRecord = new RGBotAssetRecord(botDirectory, botAsset.Bot);
+                    var botAssetRecord = new RGBotAssetRecord(botDirectory, botAsset);
                     _botAssets[botAsset.Bot.id] = botAssetRecord;
                 }
                 catch (Exception ex)
