@@ -291,6 +291,12 @@ namespace RegressionGames.DebugUtils
          */
         protected internal void OnDrawGizmos()
         {
+
+            var gizmosContainer = GameObject.Find("RGGizmosContainer");
+            if ( gizmosContainer == null)
+            {
+                gizmosContainer = new GameObject("RGGizmosContainer");
+            }
             
             // Draw lines
             foreach (var lineParams in _linesFromEntityToPosition.Values)
@@ -368,9 +374,8 @@ namespace RegressionGames.DebugUtils
                     
                     // If the billboard game object does not exist, create it
                     var billboard = _drawnBillboards.GetOrAdd(billboardParams.Key, (key) => {
-                        var billboardObject = Object.Instantiate(_billboardAsset, entityGameObject.transform.position,
-                            Quaternion.identity);
-                        billboardObject.transform.SetParent(entityGameObject.transform);
+                        var billboardObject = Object.Instantiate(_billboardAsset, Vector3.zero, Quaternion.identity);
+                        billboardObject.transform.parent = gizmosContainer.transform;
                         return billboardObject;
                     });
 
@@ -384,9 +389,8 @@ namespace RegressionGames.DebugUtils
                     // Then set the parameters
                     var billboardText = billboard.GetComponent<BillboardText>();
                     billboardText.content = billboardParams.Value.Item1;
-                
-                    // If an offset is given, use that for placing it above the agent
                     billboardText.yOffset = billboardParams.Value.Item2;
+                    billboardText.target = entityGameObject.gameObject;
                 }
                 catch (MissingReferenceException e)
                 {
