@@ -214,7 +214,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Create the GetState method
             var getStateMethod = SyntaxFactory
                 .MethodDeclaration(SyntaxFactory.ParseTypeName("Dictionary<string, object>"), "GetState")
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                .AddModifiers(SyntaxFactory.Token(SyntaxKind.ProtectedKeyword),
                     SyntaxFactory.Token(SyntaxKind.OverrideKeyword))
                 .WithBody(SyntaxFactory.Block(statements));
 

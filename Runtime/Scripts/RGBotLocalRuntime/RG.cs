@@ -50,6 +50,21 @@ namespace RegressionGames.RGBotLocalRuntime
         }
 
         /**
+         * <summary>Returns the first player for my client id.
+         * <br/><br/>
+         * WARNING: When controlling multiple player bots from a single client the result of this method may change from one tick to the next.</summary>
+         */
+        public RGStateEntity GetMyPlayer()
+        {
+            var players = GetMyPlayers();
+            if (players.Count > 0)
+            {
+                return players[0];
+            }
+            return null;
+        }
+
+        /**
          * <summary>Retrieve list of all player/bot entities controlled by this clientId.</summary>
          * <returns>{List&lt;RGStateEntity&gt;} List of the entities from the state.</returns>
          */

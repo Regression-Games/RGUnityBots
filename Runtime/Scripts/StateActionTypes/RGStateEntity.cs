@@ -59,6 +59,18 @@ namespace RegressionGames.StateActionTypes
         [CanBeNull]
         public static T GetField<T>(this IDictionary<string, object> dictionary, string fieldName)
         {
+            return GetField<T>(dictionary, fieldName, default(T));
+        }
+        
+        /**
+         * <summary>Retrieve the value of the named field as the specified type or null if it does not exist.
+         * Note, some types in Unity can only be constructed on the Main thread.
+         * Because of that fact, this method may return null or the default for the requested type in cases where you wouldn't expect it to.
+         * (Example: Collider2D)</summary>
+         */
+        [CanBeNull]
+        public static T GetField<T>(this IDictionary<string, object> dictionary, string fieldName, T defaultValue)
+        {
             try
             {
                 if (dictionary.TryGetValue(fieldName, out var result))
@@ -82,7 +94,7 @@ namespace RegressionGames.StateActionTypes
                 // ignored
             }
 
-            return default(T);
+            return defaultValue;
         }
         
         /**
