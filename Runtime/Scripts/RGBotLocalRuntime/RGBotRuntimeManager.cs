@@ -100,6 +100,6 @@ namespace RegressionGames.RGBotLocalRuntime
                 botRunner.OnDrawGizmos();
             }
         }
-        
+
     }
 }

@@ -3,15 +3,12 @@ using UnityEngine;
 
 public class BillboardText : MonoBehaviour
 {
-
-    private Camera _mainCamera;
     private TextMeshProUGUI _text;
     private string _content;
     private float _yOffset;
     
     void Awake()
     {
-        _mainCamera = Camera.main;
         _text = GetComponentInChildren<TextMeshProUGUI>();
         if (_content != null)
         {
@@ -22,10 +19,14 @@ public class BillboardText : MonoBehaviour
     
     void LateUpdate()
     {
-        Vector3 newRotation = _mainCamera.transform.eulerAngles;
-        newRotation.x = 0;
-        newRotation.z = 0;
-        transform.eulerAngles = newRotation;
+        Transform camTransform = Camera.main != null ? Camera.main.transform : null;
+        if (camTransform != null)
+        {
+            // Set the point of focus of the object to far behind the camera
+            Vector3 lookPoint = camTransform.position +
+                                ( camTransform.forward) * 100_000;
+            transform.LookAt(lookPoint);
+        }
     }
 
     public void SetText(string content)

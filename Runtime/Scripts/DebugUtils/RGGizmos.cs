@@ -236,6 +236,11 @@ namespace RegressionGames.DebugUtils
          * `DestroyText(entityId)` or `DestroyAllTexts()`. Use the yOffset parameter to place the billboard text
          * a certain distance above the entity. An entity can only have one billboard text at a time.
          * </summary>
+         * <remarks>
+         * Note: Since the text billboard feature is not a real Gizmo, you need to make sure to actively
+         * remove them if you want them to disappear after turning Gizmos off in your editor. These will
+         * still appear even if Gizmos are off and you requested them before the Gizmos were turned off.
+         * </remarks>
          * <param name="entityId">The entity of the id to place this text billboard.</param>
          * <param name="content">The content of the text billboard.</param>
          * <param name="yOffset">The y offset of the text billboard (defaults to 2.0).</param>
