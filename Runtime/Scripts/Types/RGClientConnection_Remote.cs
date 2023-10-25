@@ -22,7 +22,7 @@ namespace RegressionGames.Types
 
         private const int SOCKET_READWRITE_TIMEOUT = 5_000; // 5 seconds
 
-        private SemaphoreSlim _connecting = new (0,1);
+        private SemaphoreSlim _connecting = new (1,1);
         [CanBeNull] private RGBotInstanceExternalConnectionInfo _connectionInfo;
 
         public RGClientConnection_Remote(long clientId, string lifecycle = "MANAGED",
