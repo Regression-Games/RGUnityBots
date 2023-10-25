@@ -358,21 +358,30 @@ namespace RegressionGames.DebugUtils
             {
                 try
                 {
-                    // If the billboard does not exist, create it
-                    if (!_drawnBillboards.ContainsKey(billboardParams.Key))
+                    // First, skip this billboard if the entity does not exist anymore
+                    var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
+                    if (entityGameObject == null)
                     {
-                        var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
-                        if (entityGameObject == null) continue;
+                        _drawnBillboards.Remove(billboardParams.Key, out _);
+                        continue;
+                    }
+                    
+                    // If the billboard game object does not exist, create it
+                    var billboard = _drawnBillboards.GetOrAdd(billboardParams.Key, (key) => {
                         var billboardObject = Object.Instantiate(_billboardAsset, entityGameObject.transform.position,
                             Quaternion.identity);
                         billboardObject.transform.SetParent(entityGameObject.transform);
-                        _drawnBillboards[billboardParams.Key] = billboardObject;
-                    }
-                
-                    // Then set the parameters
-                    var billboard = _drawnBillboards[billboardParams.Key];
-                    if (billboard == null || !billboard.activeInHierarchy) continue;
+                        return billboardObject;
+                    });
+
+                    // If the billboard exist but is no longer active (i.e. destroyed), skip this
+                    if (billboard is not {activeInHierarchy: true})
+                    {
+                        _drawnBillboards.Remove(billboardParams.Key, out _);
+                        continue;
+                    };
                         
+                    // Then set the parameters
                     var billboardText = billboard.GetComponent<BillboardText>();
                     billboardText.content = billboardParams.Value.Item1;
                 
