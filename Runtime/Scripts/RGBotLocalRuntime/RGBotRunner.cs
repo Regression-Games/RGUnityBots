@@ -117,21 +117,30 @@ namespace RegressionGames.RGBotLocalRuntime
                         _rgObject.SetTickInfo(tickInfo);
 
                         // Run User Code
-                        _userBotCode.ProcessTick(_rgObject);
-
-                        // Flush Actions / Validations
-                        List<RGActionRequest> actions = _rgObject.FlushActions();
-                        foreach (RGActionRequest rgActionRequest in actions)
+                        try
                         {
-                            RGBotServerListener.GetInstance()
-                                .HandleClientActionRequest(BotInstance.id, rgActionRequest);
+                            _userBotCode.ProcessTick(_rgObject);
+
+                            // Flush Actions / Validations
+                            List<RGActionRequest> actions = _rgObject.FlushActions();
+                            foreach (RGActionRequest rgActionRequest in actions)
+                            {
+                                RGBotServerListener.GetInstance()
+                                    .HandleClientActionRequest(BotInstance.id, rgActionRequest);
+                            }
+
+                            List<RGValidationResult> validations = _rgObject.FlushValidations();
+                            foreach (RGValidationResult rgValidationResult in validations)
+                            {
+                                RGBotServerListener.GetInstance()
+                                    .HandleClientValidationResult(BotInstance.id, rgValidationResult);
+                            }
                         }
-
-                        List<RGValidationResult> validations = _rgObject.FlushValidations();
-                        foreach (RGValidationResult rgValidationResult in validations)
+                        catch (Exception ex)
                         {
-                            RGBotServerListener.GetInstance()
-                                .HandleClientValidationResult(BotInstance.id, rgValidationResult);
+                            RGDebug.LogError($"ERROR: Bot instanceId: {BotInstance.id}, botName: {BotInstance.bot.name}, botId: {BotInstance.bot.id} crashed due to an uncaught exception. - {ex}");
+                            _running = false;
+                            RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.ERRORED);
                         }
                     }
                     else
@@ -143,7 +152,11 @@ namespace RegressionGames.RGBotLocalRuntime
                     }
                 }
             }
-            RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STOPPED);
+
+            if (!Equals(RGBotServerListener.GetInstance().GetUnityBotState(BotInstance.id), RGUnityBotState.ERRORED))
+            {
+                RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STOPPED);
+            }
         }
 
     }
