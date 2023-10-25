@@ -17,7 +17,7 @@ namespace RegressionGames.DebugUtils
     public class RGGizmos
     {
         
-        const string BillboardTextAsset = "Packages/gg.regression.unity.bots/Runtime/Prefabs/AgentBillboardText.prefab";
+        const string BillboardTextAsset = "AgentBillboardText";
         
         private readonly ConcurrentDictionary<string, (int, Vector3, Color)> _linesFromEntityToPosition = new();
         private readonly ConcurrentDictionary<string, (int, int, Color)> _linesFromEntityToEntity = new();
@@ -30,7 +30,7 @@ namespace RegressionGames.DebugUtils
         // Billboard text objects
         private readonly GameObject _billboardAsset;
 
-        public RGGizmos() => _billboardAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BillboardTextAsset);
+        public RGGizmos() => _billboardAsset = Resources.Load<GameObject>(BillboardTextAsset);
 
         /**
          * <summary>
