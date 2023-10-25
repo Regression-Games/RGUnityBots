@@ -14,17 +14,12 @@ public class BillboardText : MonoBehaviour
     
     void LateUpdate()
     {
-        Transform camTransform = Camera.main != null ? Camera.main.transform : null;
-        if (camTransform != null)
+        if (Camera.main is { transform: {} camTransform })
         {
             // Set the point of focus of the object to far behind the camera
             Vector3 lookPoint = camTransform.position +
-                                ( camTransform.forward) * 100_000;
+                                (camTransform.forward * 100_000);
             transform.LookAt(lookPoint);
-        }
-        else
-        {
-            Debug.Log("UOH");
         }
         _text.transform.localPosition = new Vector3(0, yOffset, 0);
         if (content != _text.text)

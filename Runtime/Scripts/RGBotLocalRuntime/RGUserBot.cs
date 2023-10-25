@@ -18,7 +18,9 @@ namespace RegressionGames.RGBotLocalRuntime
         private RGGizmos _rgGizmos;
 
         /**
+         * <summary>
          * A set of debug utilities for drawing gizmos and text on top of entities in your scene.
+         * </summary>
          */
         public RGGizmos RGGizmos => _rgGizmos;
 
