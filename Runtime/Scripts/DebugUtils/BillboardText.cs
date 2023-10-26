@@ -28,7 +28,8 @@ public class BillboardText : MonoBehaviour
         transform.position = target.transform.position + new Vector3(0, yOffset, 0);
         
         // Then rotate to face the camera
-        if (Camera.main is { transform: {} camTransform })
+        Transform camTransform = Camera.main != null ? Camera.main.transform : null;
+        if (camTransform != null)
         {
             // Set the point of focus of the object to far behind the camera
             Vector3 lookPoint = camTransform.position +
