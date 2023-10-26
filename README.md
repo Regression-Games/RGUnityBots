@@ -29,7 +29,7 @@ In the Unity Editor, inside of **Window** > **Package Manager** > **+** >
 **Add package from git URL**, enter this URL (and restart your IDE after adding):
 
 ```
-https://github.com/Regression-Games/RGUnityBots.git#0.0.14
+https://github.com/Regression-Games/RGUnityBots.git#v0.0.1
 ```
 
 Once you add the package, create an account at https://play.regression.gg, then visit our [documentation site](https://docs.regression.gg) to get started!
