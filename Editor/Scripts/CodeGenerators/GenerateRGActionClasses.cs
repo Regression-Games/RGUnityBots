@@ -386,7 +386,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 inputString += $"\r\n {{ \"{rgParameterInfo.Name}\", {rgParameterInfo.Name} }},";
             }
 
-            inputString += $"\r\n}};";
+            inputString += "\r\n};";
             
             parameterParsingStatements.Add(
                 SyntaxFactory.ParseStatement(inputString)
