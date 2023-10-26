@@ -217,99 +217,10 @@ namespace RegressionGames.Editor.CodeGenerators
             foreach (var parameter in action.Parameters)
             {
                 string paramName = parameter.Name;
-                string paramType = parameter.Type;
-
-                // Adding validation check for key existence
-                parameterParsingStatements.Add(SyntaxFactory.IfStatement(
-                    SyntaxFactory.PrefixUnaryExpression(
-                        SyntaxKind.LogicalNotExpression,
-                        SyntaxFactory.InvocationExpression(
-                            SyntaxFactory.MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                SyntaxFactory.IdentifierName("input"),
-                                SyntaxFactory.IdentifierName("ContainsKey")
-                            )
-                        )
-                        .WithArgumentList(
-                            SyntaxFactory.ArgumentList(
-                                SyntaxFactory.SingletonSeparatedList(
-                                    SyntaxFactory.Argument(
-                                        SyntaxFactory.LiteralExpression(
-                                            SyntaxKind.StringLiteralExpression, 
-                                            SyntaxFactory.Literal(paramName)
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    ),
-                    SyntaxFactory.Block(
-                        new StatementSyntax[]
-                        {
-                            SyntaxFactory.ExpressionStatement(
-                                SyntaxFactory.InvocationExpression(
-                                    SyntaxFactory.MemberAccessExpression(
-                                        SyntaxKind.SimpleMemberAccessExpression,
-                                        SyntaxFactory.IdentifierName("RGDebug"),
-                                        SyntaxFactory.IdentifierName("LogError")
-                                    )
-                                )
-                                .WithArgumentList(
-                                    SyntaxFactory.ArgumentList(
-                                        SyntaxFactory.SingletonSeparatedList(
-                                            SyntaxFactory.Argument(
-                                                SyntaxFactory.LiteralExpression(
-                                                    SyntaxKind.StringLiteralExpression, 
-                                                    SyntaxFactory.Literal($"No parameter '{paramName}' found")
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            ),
-                            SyntaxFactory.ReturnStatement()
-                        }
-                    )
-                ));
-
+                
                 methodInvocationArguments.Add(paramName);
-
-                parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"string {paramName}Input = input[\"{paramName}\"].ToString();"));
-                parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"{paramType} {paramName} = default;"));
-
-                string tryParseStatement;
-
-                if (paramType.ToLower() == "string" || paramType.ToLower() == "system.string")
-                {
-                    tryParseStatement = $"{paramName} = {paramName}Input;";
-                }
-                else if (RGUtils.IsCSharpPrimitive(paramType))
-                {
-                    tryParseStatement = $"{paramType}.TryParse({paramName}Input, out {paramName});";
-                }
-                else
-                {
-                    tryParseStatement = $"{paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_")}({paramName}Input);";
-                }
-
-                var tryBlock = SyntaxFactory.Block(SyntaxFactory.SingletonList<StatementSyntax>(
-                    SyntaxFactory.ParseStatement(tryParseStatement)
-                ));
-
-                var catchBlock = SyntaxFactory.CatchClause()
-                    .WithDeclaration(SyntaxFactory.CatchDeclaration(SyntaxFactory.ParseTypeName("Exception"), SyntaxFactory.Identifier("ex")))
-                    .WithBlock(SyntaxFactory.Block(new StatementSyntax[]
-                    {
-                        SyntaxFactory.ParseStatement($"RGDebug.LogError(\"Failed to parse '{paramName}'\");"),
-                        SyntaxFactory.ParseStatement("RGDebug.LogError(ex.Message);")
-                    }));
-
-                var tryCatchStatement = SyntaxFactory.TryStatement()
-                                                     .WithBlock(tryBlock)
-                                                     .WithCatches(SyntaxFactory.SingletonList(catchBlock))
-                                                     .WithFinally(SyntaxFactory.FinallyClause().WithBlock(SyntaxFactory.Block()));
-
-                parameterParsingStatements.Add(tryCatchStatement);
+                parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"{parameter.Type} {paramName} = default;"));
+                parameterParsingStatements.Add(SyntaxFactory.IfStatement(IfCondition(parameter), IfBody(parameter), ElseBody(parameter)));
             }
 
             string methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ? 
@@ -318,17 +229,143 @@ namespace RegressionGames.Editor.CodeGenerators
 
             parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"Invoke(\"{action.ActionName}\"{methodInvocationArgumentsString});"));
 
-            var methodBody = SyntaxFactory.Block(parameterParsingStatements);
-
-            var startActionMethod = SyntaxFactory.MethodDeclaration(
+            return SyntaxFactory.MethodDeclaration(
                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
                 "StartAction"
             )
             .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.OverrideKeyword))
             .AddParameterListParameters(methodParameters.ToArray())
-            .WithBody(methodBody);
+            .WithBody(SyntaxFactory.Block(parameterParsingStatements));
+        }
 
-            return startActionMethod;
+        /**
+         * input.TryGetValue("targetId", out var targetIdInput)
+         */
+        private static InvocationExpressionSyntax IfCondition(RGParameterInfo param)
+        {
+            return SyntaxFactory.InvocationExpression(
+                SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression, 
+                    SyntaxFactory.IdentifierName("input"), 
+                    SyntaxFactory.IdentifierName("TryGetValue")
+                    )).WithArgumentList(
+                SyntaxFactory.ArgumentList(
+                    SyntaxFactory.SeparatedList(new List<ArgumentSyntax> 
+                    { 
+                        SyntaxFactory.Argument(
+                            SyntaxFactory.LiteralExpression(
+                                SyntaxKind.StringLiteralExpression, 
+                                SyntaxFactory.Literal(param.Name)
+                            )
+                        ),
+                        SyntaxFactory.Argument(
+                            SyntaxFactory.DeclarationExpression(
+                                    SyntaxFactory.IdentifierName("var"),
+                                    SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier($"{param.Name}Input")))
+                            ).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.OutKeyword))
+                    })
+                ));
+        }
+
+        /**
+         * try
+         * {
+         *      string:
+         *      key = keyInput.ToString();
+         * 
+         *      primitive:
+         *      KeyType.TryParse(keyInput.ToString(), out key);
+         *
+         *      nonprimitive:
+         *      key = RGSerialization.Deserialize_KeyType(key.ToString());
+         * 
+         * }
+         * catch (Exception ex)
+         * {
+         *      RGDebug.LogError("Failed to parse 'skillId'");
+         *      RGDebug.LogError(ex.Message);
+         * }
+         */
+        private static StatementSyntax IfBody(RGParameterInfo param)
+        {
+            var paramType = param.Type;
+            var paramName = param.Name;
+            
+            string tryParseStatement;
+            if (paramType.ToLower() == "string" || paramType.ToLower() == "system.string")
+            {
+                tryParseStatement = $"{paramName} = {paramName}Input.ToString();";
+            }
+            else if (RGUtils.IsCSharpPrimitive(paramType))
+            {
+                tryParseStatement = $"{paramType}.TryParse({paramName}Input.ToString(), out {paramName});";
+            }
+            else
+            {
+                tryParseStatement = $"{paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_")}";
+                if (param.Nullable)
+                {
+                    tryParseStatement = tryParseStatement.Replace("?", "");
+                    tryParseStatement += "_Nullable";
+                }
+                tryParseStatement += $"({paramName}Input.ToString());";
+            }
+
+            var tryBlock = SyntaxFactory.Block(SyntaxFactory.SingletonList(
+                SyntaxFactory.ParseStatement(tryParseStatement)
+            ));
+
+            var catchBlock = SyntaxFactory.CatchClause()
+                .WithDeclaration(SyntaxFactory.CatchDeclaration(SyntaxFactory.ParseTypeName("Exception"), SyntaxFactory.Identifier("ex")))
+                .WithBlock(SyntaxFactory.Block(new StatementSyntax[]
+                {
+                    SyntaxFactory.ParseStatement($"RGDebug.LogError(\"Failed to parse '{paramName}'\");"),
+                    SyntaxFactory.ParseStatement("RGDebug.LogError(ex.Message);")
+                }));
+
+            return SyntaxFactory.Block(
+                SyntaxFactory.TryStatement()
+                    .WithBlock(tryBlock)
+                    .WithCatches(SyntaxFactory.SingletonList(catchBlock))
+            );
+        }
+
+        /**
+         * RGDebug.LogError("No parameter 'key' found");
+         * return;
+         */
+        private static ElseClauseSyntax ElseBody(RGParameterInfo param)
+        {
+            if (param.Nullable)
+            {
+                return default(ElseClauseSyntax);
+            }
+            
+            // Validation check for key existence if param must be non-null
+            return SyntaxFactory.ElseClause(SyntaxFactory.Block(new StatementSyntax[] 
+                    {
+                        SyntaxFactory.ExpressionStatement(
+                            SyntaxFactory.InvocationExpression(
+                                    SyntaxFactory.MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression, 
+                                        SyntaxFactory.IdentifierName("RGDebug"), 
+                                        SyntaxFactory.IdentifierName("LogError")
+                                )
+                            ).WithArgumentList(
+                                SyntaxFactory.ArgumentList(
+                                    SyntaxFactory.SingletonSeparatedList(
+                                        SyntaxFactory.Argument(
+                                            SyntaxFactory.LiteralExpression(
+                                                SyntaxKind.StringLiteralExpression, 
+                                                SyntaxFactory.Literal($"No parameter '{param.Name}' found")
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            ), SyntaxFactory.ReturnStatement() 
+                    }
+                ));
         }
 
         private static MemberDeclarationSyntax GenerateActionRequestConstructor(RGActionInfo action)
