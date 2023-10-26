@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RegressionGames.RGBotConfigs;
 using UnityEditor;
 using UnityEngine;
@@ -16,10 +17,60 @@ namespace RegressionGames.Editor.CodeGenerators
 {
     public class RGActionCodeGenerator
     {
+        /**
+         * Collect names of all assemblies in this project
+         */
+        private static Dictionary<string, string> CacheAsmdefFiles()
+        {
+            var asmdefFiles = Directory.GetFiles(Application.dataPath, "*.asmdef", SearchOption.AllDirectories);
+            var asmdefPaths = new Dictionary<string, string>();
+
+            foreach (var asmdefFile in asmdefFiles)
+            {
+                var content = JObject.Parse(File.ReadAllText(asmdefFile));
+                var assemblyName = content["name"]?.ToString();
+                if (!string.IsNullOrEmpty(assemblyName))
+                {
+                    asmdefPaths[assemblyName] = asmdefFile;
+                }
+            }
+
+            return asmdefPaths;
+        }
+        
+        /**
+         * Given a script, figure out which assembly it belongs to
+         */
+        private static string FindAssemblyNameForScript(string scriptPath, Dictionary<string, string> asmdefPaths)
+        {
+            const string defaultAssembly = "Assembly-CSharp";
+            var path = Path.GetDirectoryName(scriptPath);
+            if (path == null)
+            {
+                return defaultAssembly;
+            }
+            
+            var currentDirectory = new DirectoryInfo(path);
+            while (currentDirectory != null && currentDirectory.Exists)
+            {
+                foreach (var asmdefEntry in asmdefPaths)
+                {
+                    var asmdefDirectory = Path.GetDirectoryName(asmdefEntry.Value);
+                    if (!string.IsNullOrEmpty(asmdefDirectory) && scriptPath.StartsWith(asmdefDirectory))
+                    {
+                        return asmdefEntry.Key;
+                    }
+                }
+                currentDirectory = currentDirectory.Parent;
+            }
+            
+            return defaultAssembly;
+        }
+
         [MenuItem("Regression Games/Generate Scripts")]
         private static void GenerateRGScripts()
         {
-            //TODO: Someone/Anyone... remove this delete RGScripts directory code after November 1st, 2023... This is temporary to help devs migrate easily
+            // TODO: Someone/Anyone... remove this delete RGScripts directory code after November 1st, 2023... This is temporary to help devs migrate easily
             // remove old 'RGScripts' folder that is no longer used
             string dataPath = Application.dataPath;
             string directoryToDelete = Path.Combine(dataPath, "RGScripts").Replace("\\", "/");
@@ -40,20 +91,20 @@ namespace RegressionGames.Editor.CodeGenerators
             // write extracted data to json files
             WriteToJson("RGActions", actionJson);
             WriteToJson("RGStates", stateJson);
-
         }
 
         [MenuItem("Regression Games/Agent Builder/Extract Data")]
         private static void ExtractData()
         {
             ExtractObjectType();
-            
-            // create 'RegressionGames.zip' in project folder
-            ZipJson();
+            ZipJson(); // create 'RegressionGames.zip' in project folder
         }
         
         private static string SearchForBotActionMethods()
         {
+            // Cache all 'asmdef' files in the project
+            var asmdefPaths = CacheAsmdefFiles();
+            
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => !path.Contains("Library") && !path.Contains("Temp"))
                 .ToArray();
@@ -112,8 +163,12 @@ namespace RegressionGames.Editor.CodeGenerators
                                         ((GenericNameSyntax) parameter.Type).Identifier.ValueText == "Nullable")
                         }).ToList();
 
+                    // Find the assembly name for the script
+                    string assemblyName = FindAssemblyNameForScript(csFilePath, asmdefPaths);
+
                     botActionList.Add(new RGActionInfo
                     {
+                        AssemblyName = assemblyName,
                         Namespace = nameSpace,
                         Object = className,
                         MethodName = methodName,
@@ -149,6 +204,9 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static string SearchForBotStates()
         {
+            // Cache all 'asmdef' files in the project
+            var asmdefPaths = CacheAsmdefFiles();
+            
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => !path.Contains("Library") && !path.Contains("Temp"))
                 .ToArray();
@@ -172,6 +230,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 foreach (var classDeclaration in classDeclarations)
                 {
+                    string assemblyName = FindAssemblyNameForScript(csFilePath, asmdefPaths);
                     string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
 
                     string className = classDeclaration.Identifier.ValueText;
@@ -254,6 +313,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     {
                         rgStateInfoList.Add(new RGStatesInfo
                         {
+                            AssemblyName = assemblyName,
                             Namespace = nameSpace,
                             Object = className,
                             State = stateList
@@ -357,58 +417,65 @@ namespace RegressionGames.Editor.CodeGenerators
         private static void ExtractObjectType()
         {
             // read current JSON for actions and states
-            string actionJson = ReadFromJson("RGActions");
-            string stateJson = ReadFromJson("RGStates");
+            var actionJson = ReadFromJson("RGActions");
+            var stateJson = ReadFromJson("RGStates");
             
             // deserialize into action and state objects
-            RGActionsInfo actionsInfo = JsonUtility.FromJson<RGActionsInfo>(actionJson);
+            var actionsInfo = JsonUtility.FromJson<RGActionsInfo>(actionJson);
             var statesInfo = JsonConvert.DeserializeObject<RGStateInfoWrapper>(stateJson).RGStateInfo;
 
-            // all unique object names in actions and states
-            List<string> objectTypeNames = new List<string>();
+            // all unique fully-qualified namespaces for classes that contains actions and/or states
+            var assemblyQualifiedNameSpaces = new HashSet<string>();
             
             // map of object names and object types
-            Dictionary<Type, string> objectTypeMap = new Dictionary<Type, string>();
-            Dictionary<string, string> objectNameMap = new Dictionary<string, string>();
+            var objectTypeMap = new Dictionary<Type, string>();
+            var objectNameMap = new Dictionary<string, string>();
             
-            // Get all Object names from RGActions
+            // Construct full path for all actions, which we can use for "GetType" below
             foreach (var action in actionsInfo.BotActions)
             {
-                string objectName = action.Object;
-                if (!objectTypeNames.Contains(objectName))
+                var qualifiedNamespace = "";
+                if (!string.IsNullOrEmpty(action.Namespace))
                 {
-                    objectTypeNames.Add(objectName);
+                    qualifiedNamespace += $"{action.Namespace}.";
                 }
+                qualifiedNamespace += action.Object;
+                qualifiedNamespace += $", {action.AssemblyName}";
+                assemblyQualifiedNameSpaces.Add(qualifiedNamespace);
             }
 
-            // Get all Object names from RGStates
+            // Construct full path for all states, which we can use for "GetType" below
             foreach (var state in statesInfo)
             {
-                string objectName = state.Object;
-                if (!objectTypeNames.Contains(objectName))
+                var qualifiedNamespace = "";
+                if (!string.IsNullOrEmpty(state.Namespace))
                 {
-                    objectTypeNames.Add(objectName);
+                    qualifiedNamespace += $"{state.Namespace}.";
                 }
+                qualifiedNamespace += state.Object;
+                qualifiedNamespace += $", {state.AssemblyName}";
+                assemblyQualifiedNameSpaces.Add(qualifiedNamespace);
             }
 
             // Convert the Object name into a System.Type
-            foreach (var objectName in objectTypeNames)
+            foreach (var qualifiedNameSpace in assemblyQualifiedNameSpaces)
             {
-                Type objectType = Type.GetType(objectName + ", Assembly-CSharp");
+                var objectType = Type.GetType(qualifiedNameSpace);
                 if (objectType != null)
                 {
                     objectTypeMap.TryAdd(objectType, null);
                 }else
                 {
-                    RGDebug.LogWarning("Type not found: " + objectName);
+                    RGDebug.LogWarning("Type not found: " + qualifiedNameSpace);
                 }
             }
 
+            // TODO (REG-1373) iterate through all scenes rather than only the current one in the editor
             // For objects in the scene
-            RGEntity[] allEntities = Object.FindObjectsOfType<RGEntity>();
+            var allEntities = Object.FindObjectsOfType<RGEntity>();
             for (int i = 0; i < allEntities.Length; i++)
             {
-                RGEntity entity = allEntities[i];
+                var entity = allEntities[i];
                 var entityMap = entity.MapObjectType(objectTypeMap);
                 foreach (var kvp in entityMap)
                 {
@@ -417,15 +484,15 @@ namespace RegressionGames.Editor.CodeGenerators
             }
             
             // For prefabs
-            string[] allPrefabs = AssetDatabase.FindAssets("t:Prefab");
-            foreach (string prefabGuid in allPrefabs)
+            var allPrefabs = AssetDatabase.FindAssets("t:Prefab");
+            foreach (var prefabGuid in allPrefabs)
             {
-                string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
-                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                var prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             
                 if (prefab != null)
                 {
-                    RGEntity prefabComponent = prefab.GetComponent<RGEntity>();
+                    var prefabComponent = prefab.GetComponent<RGEntity>();
                     if (prefabComponent != null)
                     {
                         var entityMap = prefabComponent.MapObjectType(objectTypeMap);
@@ -446,28 +513,40 @@ namespace RegressionGames.Editor.CodeGenerators
             // Assign ObjectTypes to RGActions
             foreach (var action in actionsInfo.BotActions)
             {
-                if (objectNameMap.ContainsKey(action.Object))
+                var qualifiedNamespace = "";
+                if (!string.IsNullOrEmpty(action.Namespace))
                 {
-                    action.ObjectType = objectNameMap[action.Object];
+                    qualifiedNamespace += $"{action.Namespace}.";
+                }
+                qualifiedNamespace += action.Object;
+                if(objectNameMap.TryGetValue(qualifiedNamespace, out var objectType)) {}
+                {
+                    action.ObjectType = objectType;
                 }
             }
             
             // Assign Object Types to RGStates
             foreach (var state in statesInfo)
             {
-                if (objectNameMap.ContainsKey(state.Object))
+                var qualifiedNamespace = "";
+                if (!string.IsNullOrEmpty(state.Namespace))
                 {
-                    state.ObjectType = objectNameMap[state.Object];
+                    qualifiedNamespace += $"{state.Namespace}.";
+                }
+                qualifiedNamespace += state.Object;
+                if(objectNameMap.TryGetValue(qualifiedNamespace, out var objectType))
+                {
+                    state.ObjectType = objectType;
                 }
             }
             
             // Write updated values back to JSON files
-            string updatedActionJson = 
+            var updatedActionJson = 
                 JsonConvert.SerializeObject(new RGActionsInfo { BotActions = actionsInfo.BotActions }, Formatting.Indented, new JsonSerializerSettings
                 {
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 });
-            string updatedStateJson = JsonConvert.SerializeObject(new { RGStateInfo = statesInfo }, Formatting.Indented, new JsonSerializerSettings
+            var updatedStateJson = JsonConvert.SerializeObject(new { RGStateInfo = statesInfo }, Formatting.Indented, new JsonSerializerSettings
             {
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore
             });
