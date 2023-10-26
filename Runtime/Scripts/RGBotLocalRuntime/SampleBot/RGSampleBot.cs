@@ -44,7 +44,7 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                     var target = entities[new Random().Next(entities.Count)];
                     
                     RGGizmos.CreateLine(thisEntity.id, target.position, Color.red, "TargetEnemy");
-                    RGGizmos.CreateSphere(target.id, Color.blue, 0.3f, true, "TargetEnemy");
+                    RGGizmos.CreateSphere(target.id, Color.blue, 0.7f, false, "TargetEnemy");
 
                     var chosenAbility = new Random().Next(2);
                     RGGizmos.CreateText(thisEntity.id, $"Ability {chosenAbility} on enemy {target["id"]}");
