@@ -457,11 +457,10 @@ namespace RegressionGames.Editor.CodeGenerators
             var actionsInfo = JsonUtility.FromJson<RGActionsInfo>(actionJson);
             var statesInfo = JsonConvert.DeserializeObject<RGStateInfoWrapper>(stateJson).RGStateInfo;
 
-            // map of object names and object types
+            // map of action/state script to the entity this script is attached to
             var objectTypeMap = new Dictionary<Type, string>();
             var objectNameMap = new Dictionary<string, string>();
             
-            // Construct full path for all actions, which we can use for "GetType" below
             foreach (var action in actionsInfo.BotActions)
             {
                 var key = GetActionKey(action, true);
@@ -475,7 +474,6 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
             }
 
-            // Construct full path for all states, which we can use for "GetType" below
             foreach (var state in statesInfo)
             {
                 var key = GetStateKey(state, true);
