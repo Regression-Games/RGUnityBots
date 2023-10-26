@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,14 +17,15 @@ namespace RegressionGames.Editor.CodeGenerators
             // Parse JSON and extract parameter types
             List<RGActionInfo> botActions = ParseJson(jsonData);
 
-            List<UsingDirectiveSyntax> usings = new() {SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))};
+            HashSet<string> usings = new()
+            {
+                "UnityEngine"
+            };
             foreach (var rgActionInfo in botActions)
             {
                 if (!string.IsNullOrEmpty(rgActionInfo.Namespace))
                 {
-                    usings.Add(
-                        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName($"{rgActionInfo.Namespace}"))
-                    );
+                    usings.Add(rgActionInfo.Namespace);
                 }
             }
 
@@ -31,7 +33,7 @@ namespace RegressionGames.Editor.CodeGenerators
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
                 .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
                 .AddUsings(
-                    usings.ToArray()
+                    usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                 )
                 .AddMembers(GenerateClass(botActions));
             
@@ -43,12 +45,11 @@ namespace RegressionGames.Editor.CodeGenerators
 
             // Format the generated code
             string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
-            string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
             // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActionMap.cs'
             string fileName = "RGActionMap.cs";
             string filePath = Path.Combine(Application.dataPath, "RegressionGames", "Runtime", "GeneratedScripts", fileName);
-            string fileContents = headerComment + formattedCode;
+            string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             File.WriteAllText(filePath, fileContents);            
             RGDebug.Log($"Successfully Generated {filePath}");
