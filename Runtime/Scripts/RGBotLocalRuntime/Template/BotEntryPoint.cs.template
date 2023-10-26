@@ -4,12 +4,12 @@ using RegressionGames;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
+using Random = System.Random;
 
 namespace <TEMPLATE_NAMESPACE>
 {
     public class BotEntryPoint : RGUserBot
     {
-
         protected override bool GetIsSpawnable()
         {
             return true;
@@ -22,8 +22,8 @@ namespace <TEMPLATE_NAMESPACE>
 
         public override void ConfigureBot(RG rgObject)
         {
-            var classIndex = new System.Random().Next(4);
-            var classes = new string[] {"Mage", "Rogue", "Tank", "Archer"};
+            var classIndex = new Random().Next(4);
+            var classes = new[] { "Mage", "Rogue", "Tank", "Archer" };
             rgObject.CharacterConfig = new Dictionary<string, object>
             {
                 { "characterType", $"{classes[classIndex]}" }
@@ -32,22 +32,33 @@ namespace <TEMPLATE_NAMESPACE>
 
         public override void ProcessTick(RG rgObject)
         {
+
+            var myPlayers = rgObject.GetMyPlayers();
+            if (myPlayers.Count == 0) return;
+            var thisEntity = myPlayers[0];
+            
             //Temporary test code
             try
             {
                 var entities = rgObject.FindEntities();
                 if (entities.Count > 0)
                 {
-                    var target = entities[new System.Random().Next(entities.Count)];
+                    var target = entities[new Random().Next(entities.Count)];
+                    
+                    RGGizmos.CreateLine(thisEntity.id, target.position, Color.red, "TargetEnemy");
+                    RGGizmos.CreateSphere(target.id, Color.blue, 0.7f, false, "TargetEnemy");
+
+                    var chosenAbility = new Random().Next(2);
+                    RGGizmos.CreateText(thisEntity.id, $"Ability {chosenAbility} on enemy {target["id"]}");
 
                     var targetPosition = (Vector3)target["position"];
                     var action = new RGActionRequest("PerformSkill", new Dictionary<string, object>()
                     {
-                        { "skillId", new Random().Next(2) },
+                        { "skillId", chosenAbility },
                         { "targetId", target["id"] },
                         { "xPosition", targetPosition.x },
                         { "yPosition", targetPosition.y },
-                        { "zPosition", targetPosition.z },
+                        { "zPosition", targetPosition.z }
                     });
                     rgObject.PerformAction(action);
                 }

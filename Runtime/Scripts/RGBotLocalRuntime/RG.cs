@@ -250,7 +250,6 @@ namespace RegressionGames.RGBotLocalRuntime
             return result;
         }
         
-        
     }
     
     internal static class MathFunctions 
