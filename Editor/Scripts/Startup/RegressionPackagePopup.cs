@@ -250,6 +250,12 @@ public class RegressionPackagePopup : EditorWindow
         {
             wordWrap = true
         };
+        
+        GUIStyle boldDescriptionStyle = new GUIStyle(EditorStyles.label)
+        {
+            wordWrap = true,
+            fontStyle = FontStyle.Bold
+        };
 
         // Define the background box for the new section
         Rect demoInfoBoxRect = new Rect(10, 270, 550, 130);
@@ -262,7 +268,9 @@ public class RegressionPackagePopup : EditorWindow
         GUI.Label(new Rect(20, 280, 550, 20), "Third Person Demo", titleStyle);
 
         // Draw the description for the sample
-        GUI.Label(new Rect(20, 300, 550, 60), "Explore a third-person character demo using Regression Game’s Unity SDK. Ensure your project is set up with URP before opening the sample.", descriptionStyle);
+        GUI.Label(new Rect(20, 310, 535, 20), "Explore a third-person character demo using Regression Game’s Unity SDK.", descriptionStyle);
+
+        GUI.Label(new Rect(20, 326, 535, 20), "Ensure your project is set up with URP before opening the sample.", boldDescriptionStyle);
 
         // Draw the "Open Sample" button. Disable if not using URP
         GUI.enabled = IsURPEnabled();
