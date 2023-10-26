@@ -30,12 +30,10 @@ namespace RegressionGames.Editor.CodeGenerators
             // Format the generated code
             string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
 
-            string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
-
             // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGSerialization.cs'
             string fileName = "RGSerialization.cs";
             string filePath = Path.Combine(Application.dataPath, "RegressionGames", "Runtime", "GeneratedScripts", fileName);
-            string fileContents = headerComment + formattedCode;
+            string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             File.WriteAllText(filePath, fileContents);
             RGDebug.Log($"Successfully Generated {filePath}");
