@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,25 +21,25 @@ namespace RegressionGames.Editor.CodeGenerators
             // Iterate through BotActions
             foreach (var botAction in actionsInfo.BotActions)
             {
-                List<UsingDirectiveSyntax> usings = new()
+                HashSet<string> usings = new()
                 {
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.StateActionTypes")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                    "System",
+                    "System.Collections.Generic",
+                    "RegressionGames",
+                    "RegressionGames.RGBotConfigs",
+                    "RegressionGames.StateActionTypes",
+                    "UnityEngine"
                 };
 
                 if (!string.IsNullOrEmpty(botAction.Namespace))
                 {
-                    usings.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(botAction.Namespace)));
+                    usings.Add(botAction.Namespace);
                 }
                 
                 // Create a new compilation unit
                 CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                     .AddUsings(
-                        usings.ToArray()
+                        usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                     )
                     .AddMembers(
                         // Namespace
@@ -77,13 +78,12 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 // Format the generated code
                 string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
-                string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
 
                 // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
                 string fileName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}.cs";
                 string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGActions");
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
-                string fileContents = headerComment + formattedCode;
+                string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
 
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath));
                 File.WriteAllText(filePath, fileContents);
@@ -319,8 +319,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 .WithDeclaration(SyntaxFactory.CatchDeclaration(SyntaxFactory.ParseTypeName("Exception"), SyntaxFactory.Identifier("ex")))
                 .WithBlock(SyntaxFactory.Block(new StatementSyntax[]
                 {
-                    SyntaxFactory.ParseStatement($"RGDebug.LogError(\"Failed to parse '{paramName}'\");"),
-                    SyntaxFactory.ParseStatement("RGDebug.LogError(ex.Message);")
+                    SyntaxFactory.ParseStatement($"RGDebug.LogError($\"Failed to parse '{paramName}' - {{ex}}\");"),
                 }));
 
             return SyntaxFactory.Block(
