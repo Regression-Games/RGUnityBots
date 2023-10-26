@@ -7,5 +7,6 @@ namespace RegressionGames.Editor
     {
         public string Name;
         public string Type;
+        public bool Nullable;
     }
 }

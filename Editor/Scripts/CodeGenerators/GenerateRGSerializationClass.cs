@@ -24,6 +24,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Create a compilation unit and add the namespace declaration
             CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                 .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")))
+                .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("Newtonsoft.Json")))
                 .AddMembers(namespaceDeclaration);
 
             // Format the generated code
@@ -64,11 +65,10 @@ namespace RegressionGames.Editor.CodeGenerators
                          * Generates a method called Deserialize_{Type} for every non-primitive type
                          * Ex: Vector3
                          * public static Vector3 Deserialize_Vector3(string paramJson)
-                         *    return JsonUtility.FromJson<Vector3>(paramJson);
+                         *    return JsonConvert.DeserializeObject<Vector3>(paramJson);
                          */
                         MethodDeclarationSyntax method = SyntaxFactory
-                            .MethodDeclaration(SyntaxFactory.ParseTypeName(parameter.Type),
-                                $"Deserialize_{parameter.Type.Replace(".", "_")}")
+                            .MethodDeclaration(SyntaxFactory.ParseTypeName(parameter.Type), GetDeserializerMethodName(parameter))
                             .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                                 SyntaxFactory.Token(SyntaxKind.StaticKeyword))
                             .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("paramJson"))
@@ -77,8 +77,8 @@ namespace RegressionGames.Editor.CodeGenerators
                                 SyntaxFactory.InvocationExpression(
                                     SyntaxFactory.MemberAccessExpression(
                                         SyntaxKind.SimpleMemberAccessExpression,
-                                        SyntaxFactory.ParseTypeName("JsonUtility"),
-                                        SyntaxFactory.GenericName(SyntaxFactory.Identifier("FromJson"))
+                                        SyntaxFactory.ParseTypeName("JsonConvert"),
+                                        SyntaxFactory.GenericName(SyntaxFactory.Identifier("DeserializeObject"))
                                             .WithTypeArgumentList(SyntaxFactory.TypeArgumentList(
                                                 SyntaxFactory.SingletonSeparatedList<TypeSyntax>(
                                                     SyntaxFactory.ParseTypeName(parameter.Type))))),
@@ -97,6 +97,17 @@ namespace RegressionGames.Editor.CodeGenerators
                 .AddMembers(methodDeclarations.ToArray());
 
             return classDeclaration;
+        }
+
+        private static string GetDeserializerMethodName(RGParameterInfo parameter)
+        {
+            var result = $"Deserialize_{parameter.Type.Replace(".", "_")}";
+            if (parameter.Nullable)
+            {
+                result = result.Replace("?", "");
+                result += "_Nullable";
+            }
+            return result;
         }
         
         // Convert jsonData to RGActionsInfo

@@ -106,7 +106,10 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             Name = parameter.Identifier.ValueText,
                             Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
-                                .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                                .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
+                            Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
+                                       (parameter.Type is GenericNameSyntax && // ex. Nullable<float>
+                                        ((GenericNameSyntax) parameter.Type).Identifier.ValueText == "Nullable")
                         }).ToList();
 
                     botActionList.Add(new RGActionInfo
