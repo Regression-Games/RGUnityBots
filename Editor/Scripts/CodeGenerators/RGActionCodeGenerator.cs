@@ -414,6 +414,39 @@ namespace RegressionGames.Editor.CodeGenerators
             return namespacePrefix + typeSymbol.Name;
         }
 
+
+        private static string GetActionKey(RGActionInfo action, bool includeAssembly)
+        {
+            var qualifiedNamespace = "";
+            if (!string.IsNullOrEmpty(action.Namespace))
+            {
+                qualifiedNamespace += $"{action.Namespace}.";
+            }
+            qualifiedNamespace += action.Object;
+            if (includeAssembly)
+            {
+                qualifiedNamespace += $", {action.AssemblyName}";
+            }
+
+            return qualifiedNamespace;
+        }
+        
+        private static string GetStateKey(RGStatesInfo state, bool includeAssembly)
+        {
+            var qualifiedNamespace = "";
+            if (!string.IsNullOrEmpty(state.Namespace))
+            {
+                qualifiedNamespace += $"{state.Namespace}.";
+            }
+            qualifiedNamespace += state.Object;
+            if (includeAssembly)
+            {
+                qualifiedNamespace += $", {state.AssemblyName}";
+            }
+
+            return qualifiedNamespace;
+        }
+        
         private static void ExtractObjectType()
         {
             // read current JSON for actions and states
@@ -424,9 +457,6 @@ namespace RegressionGames.Editor.CodeGenerators
             var actionsInfo = JsonUtility.FromJson<RGActionsInfo>(actionJson);
             var statesInfo = JsonConvert.DeserializeObject<RGStateInfoWrapper>(stateJson).RGStateInfo;
 
-            // all unique fully-qualified namespaces for classes that contains actions and/or states
-            var assemblyQualifiedNameSpaces = new HashSet<string>();
-            
             // map of object names and object types
             var objectTypeMap = new Dictionary<Type, string>();
             var objectNameMap = new Dictionary<string, string>();
@@ -434,39 +464,28 @@ namespace RegressionGames.Editor.CodeGenerators
             // Construct full path for all actions, which we can use for "GetType" below
             foreach (var action in actionsInfo.BotActions)
             {
-                var qualifiedNamespace = "";
-                if (!string.IsNullOrEmpty(action.Namespace))
-                {
-                    qualifiedNamespace += $"{action.Namespace}.";
-                }
-                qualifiedNamespace += action.Object;
-                qualifiedNamespace += $", {action.AssemblyName}";
-                assemblyQualifiedNameSpaces.Add(qualifiedNamespace);
-            }
-
-            // Construct full path for all states, which we can use for "GetType" below
-            foreach (var state in statesInfo)
-            {
-                var qualifiedNamespace = "";
-                if (!string.IsNullOrEmpty(state.Namespace))
-                {
-                    qualifiedNamespace += $"{state.Namespace}.";
-                }
-                qualifiedNamespace += state.Object;
-                qualifiedNamespace += $", {state.AssemblyName}";
-                assemblyQualifiedNameSpaces.Add(qualifiedNamespace);
-            }
-
-            // Convert the Object name into a System.Type
-            foreach (var qualifiedNameSpace in assemblyQualifiedNameSpaces)
-            {
-                var objectType = Type.GetType(qualifiedNameSpace);
+                var key = GetActionKey(action, true);
+                var objectType = Type.GetType(key);
                 if (objectType != null)
                 {
                     objectTypeMap.TryAdd(objectType, null);
                 }else
                 {
-                    RGDebug.LogWarning("Type not found: " + qualifiedNameSpace);
+                    RGDebug.LogWarning("Type not found: " + key);
+                }
+            }
+
+            // Construct full path for all states, which we can use for "GetType" below
+            foreach (var state in statesInfo)
+            {
+                var key = GetStateKey(state, true);
+                var objectType = Type.GetType(key);
+                if (objectType != null)
+                {
+                    objectTypeMap.TryAdd(objectType, null);
+                }else
+                {
+                    RGDebug.LogWarning("Type not found: " + key);
                 }
             }
 
@@ -513,13 +532,8 @@ namespace RegressionGames.Editor.CodeGenerators
             // Assign ObjectTypes to RGActions
             foreach (var action in actionsInfo.BotActions)
             {
-                var qualifiedNamespace = "";
-                if (!string.IsNullOrEmpty(action.Namespace))
-                {
-                    qualifiedNamespace += $"{action.Namespace}.";
-                }
-                qualifiedNamespace += action.Object;
-                if(objectNameMap.TryGetValue(qualifiedNamespace, out var objectType)) {}
+                var key = GetActionKey(action, false);
+                if(objectNameMap.TryGetValue(key, out var objectType)) {}
                 {
                     action.ObjectType = objectType;
                 }
@@ -528,13 +542,8 @@ namespace RegressionGames.Editor.CodeGenerators
             // Assign Object Types to RGStates
             foreach (var state in statesInfo)
             {
-                var qualifiedNamespace = "";
-                if (!string.IsNullOrEmpty(state.Namespace))
-                {
-                    qualifiedNamespace += $"{state.Namespace}.";
-                }
-                qualifiedNamespace += state.Object;
-                if(objectNameMap.TryGetValue(qualifiedNamespace, out var objectType))
+                var key = GetStateKey(state, false);
+                if(objectNameMap.TryGetValue(key, out var objectType))
                 {
                     state.ObjectType = objectType;
                 }
