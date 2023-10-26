@@ -1,8 +1,13 @@
+using System.IO;
 using System.Threading.Tasks;
 using RegressionGames;
 using RegressionGames.Editor;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.PackageManager;
+using UnityEditor.PackageManager.Requests;
+using UnityEditor.SceneManagement;
+using UnityEngine.Rendering;
 
 public class RegressionPackagePopup : EditorWindow
 {
@@ -12,7 +17,11 @@ public class RegressionPackagePopup : EditorWindow
     private static bool loggedIn = false;
     private static string email = "";
     private static string password = "";
-    
+    private static bool isSampleImportInProgress = false;
+    private static AddRequest addRequest;
+    private static ListRequest listRequest;
+    private static string samplePath = "Samples~/ThirdPersonDemoURP";
+
     void OnEnable()
     {
         string packagePath = "Packages/gg.regression.unity.bots/Editor/Images/banner.png";
@@ -161,6 +170,12 @@ public class RegressionPackagePopup : EditorWindow
 
     private void RenderWelcomeScreen()
     {
+        RenderQuickstartDocs();
+        RenderSampleQuickstart();
+    }
+
+    private void RenderQuickstartDocs()
+    {
         // Get a space in the layout for the banner
         GUILayout.Space(120);
 
@@ -220,7 +235,94 @@ public class RegressionPackagePopup : EditorWindow
         {
             Application.OpenURL("https://docs.regression.gg/studios/unity/unity-sdk/csharp/configuration");
         }
+    }
+    
+    private void RenderSampleQuickstart()
+    {
+        // Define the styles for the sample section
+        GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
+        {
+            fontSize = 14,
+            normal = { textColor = Color.white }
+        };
 
+        GUIStyle descriptionStyle = new GUIStyle(EditorStyles.label)
+        {
+            wordWrap = true
+        };
+        
+        GUIStyle boldDescriptionStyle = new GUIStyle(EditorStyles.label)
+        {
+            wordWrap = true,
+            fontStyle = FontStyle.Bold
+        };
+
+        // Define the background box for the new section
+        Rect demoInfoBoxRect = new Rect(10, 270, 550, 130);
+        Color prevColor = GUI.color;
+        GUI.color = new Color(100, 100, 100, 0.25f);
+        GUI.Box(demoInfoBoxRect, "");
+        GUI.color = prevColor;
+
+        // Draw the sample title
+        GUI.Label(new Rect(20, 280, 550, 20), "Third Person Demo", titleStyle);
+
+        // Draw the description for the sample
+        GUI.Label(new Rect(20, 310, 535, 20), "Explore a third-person character demo using Regression Game’s Unity SDK.", descriptionStyle);
+
+        GUI.Label(new Rect(20, 326, 535, 20), "Ensure your project is set up with URP before opening the sample.", boldDescriptionStyle);
+
+        // Draw the "Open Sample" button. Disable if not using URP
+        GUI.enabled = IsURPEnabled();
+        if (GUI.Button(new Rect(20, 360, 100, 30), "Open Sample"))
+        {
+            ImportSample();
+            Close();
+        }
+        GUI.enabled = true;
+    }
+    
+    private bool IsURPEnabled()
+    {
+        var renderPipelineAsset = GraphicsSettings.currentRenderPipeline;
+        if (renderPipelineAsset != null)
+        {
+            var typeName = renderPipelineAsset.GetType().FullName;
+            if (typeName.Contains("UniversalRenderPipelineAsset"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    
+    private void ImportSample()
+    {
+        string packageName = "gg.regression.unity.bots";
+        string samplePath = "Samples~/ThirdPersonDemoURP";
+        string destinationPath = "Assets/ThirdPersonDemoURP";
+
+        // Construct the path to the sample within the package
+        string packagePath = Path.Combine("Packages", packageName, samplePath);
+
+        // Check if the package is an embedded or local package
+        if (Directory.Exists(packagePath))
+        {
+            // The package is local or embedded, copy the sample to the project's Assets folder
+            FileUtil.CopyFileOrDirectory(packagePath, destinationPath);
+            AssetDatabase.Refresh();
+
+            // Open the specific scene from the sample
+            EditorSceneManager.OpenScene(Path.Combine(destinationPath, "Demo/Scenes/Playground.unity"));
+        }
+        else
+        {
+            // Handle the case where the package might be installed from the Unity Package Manager registry
+            // This part is more complex and depends on how Unity packages and caches downloaded packages
+            // For now we're assuming samples are embedded
+            RGDebug.LogError("The sample could not be found or is not in an embedded or local package.");
+        }
     }
     
     [InitializeOnLoadMethod]
