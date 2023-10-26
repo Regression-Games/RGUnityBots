@@ -239,7 +239,6 @@ namespace RegressionGames.Editor.CodeGenerators
         }
 
         /**
-         *
          * input.TryGetValue("targetId", out var targetIdInput)
          */
         private static InvocationExpressionSyntax IfCondition(RGParameterInfo param)
