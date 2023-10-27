@@ -13,9 +13,12 @@ namespace RegressionGames.BehaviorTree
         /// A reference to the tree this node is a part of.
         /// </summary>
         protected BehaviorTreeNode Parent { get; private set; }
-        
+
         /// <summary>The name of the node.</summary>
-        public string Name { get; }
+        public readonly string Name;
+        
+        /// <summary>The path from the root to this node.</summary>
+        public string Path => Parent is null ? Name : $"{Parent.Path}/{Name}";
 
         /// <summary>
         /// Initializes the node with a name.
@@ -25,13 +28,26 @@ namespace RegressionGames.BehaviorTree
         {
             Name = name;
         }
+
+        /// <summary>
+        /// Executes the node, given the provided <see cref="RG"/> object as context.
+        /// </summary>
+        /// <param name="rgObject">The <see cref="RG"/> context object.</param>
+        /// <returns>A <see cref="NodeStatus"/> indicating the result of executing the node.</returns>
+        public NodeStatus Invoke(RG rgObject)
+        {
+            // We use a public wrapper to call the protected Execute method so that we can log the result.
+            var result = Execute(rgObject);
+            RGDebug.LogVerbose($"Behavior Tree Node '{Path}' completed with result '{result}'");
+            return result;
+        }
         
         /// <summary>
         /// Executes the node, given the provided <see cref="RG"/> object as context.
         /// </summary>
         /// <param name="rgObject">The <see cref="RG"/> context object.</param>
         /// <returns>A <see cref="NodeStatus"/> indicating the result of executing the node.</returns>
-        public abstract NodeStatus Execute(RG rgObject);
+        protected abstract NodeStatus Execute(RG rgObject);
 
         /// <summary>
         /// Sets a data value with the specified key and value.

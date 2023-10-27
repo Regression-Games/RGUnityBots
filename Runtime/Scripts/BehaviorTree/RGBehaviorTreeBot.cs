@@ -14,8 +14,7 @@ namespace RegressionGames.BehaviorTree
 
         public override void ProcessTick(RG rgObject)
         {
-            var result = _rootNode.Execute(rgObject);
-            RGDebug.LogVerbose($"Behavior tree completed with status: {result}");
+            _ = _rootNode.Invoke(rgObject);
         }
 
         protected abstract RootNode BuildBehaviorTree();

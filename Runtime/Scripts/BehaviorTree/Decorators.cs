@@ -1,30 +1,57 @@
 using System;
+using Codice.CM.Common;
 using RegressionGames.RGBotLocalRuntime;
 
 namespace RegressionGames.BehaviorTree
 {
     /// <summary>
-    /// A node that always returns <see cref="NodeStatus.Success"/> when executed.
+    /// Base class for decorator nodes.
     /// </summary>
-    public class AlwaysSucceed: BehaviorTreeNode
+    public abstract class DecoratorNode : BehaviorTreeNode
     {
-        public AlwaysSucceed() : base("Always Succeed")
-        {
-        }
+        protected readonly BehaviorTreeNode Child;
 
-        public override NodeStatus Execute(RG rgObject) => NodeStatus.Success;
+        /// <summary>
+        /// Creates a new decorator node with the specified name and child node.
+        /// </summary>
+        /// <param name="name">The name of the node.</param>
+        /// <param name="child">The <see cref="BehaviorTreeNode"/> child of this node.</param>
+        protected DecoratorNode(string name, BehaviorTreeNode child) : base(name)
+        {
+            Child = child;
+        }
     }
     
     /// <summary>
-    /// A node that always returns <see cref="NodeStatus.Failure"/> when executed.
+    /// A node that executes it's child, but ignores the result and always returns <see cref="NodeStatus.Success"/>.
     /// </summary>
-    public class AlwaysFail: BehaviorTreeNode
+    public class AlwaysSucceed: DecoratorNode
     {
-        public AlwaysFail() : base("Always Fail")
+        public AlwaysSucceed(BehaviorTreeNode child) : base("Always Succeed", child)
         {
         }
 
-        public override NodeStatus Execute(RG rgObject) => NodeStatus.Failure;
+        protected override NodeStatus Execute(RG rgObject)
+        {
+            _ = Child.Invoke(rgObject);
+            return NodeStatus.Success;
+        }
+    }
+    
+    /// <summary>
+    /// A node that executes it's child, but ignores the result and always returns <see cref="NodeStatus.Failure"/>.
+    /// </summary>
+    public class AlwaysFail: DecoratorNode
+    {
+        public AlwaysFail(BehaviorTreeNode child) : base("Always Fail", child)
+        {
+        }
+
+        protected override NodeStatus Execute(RG rgObject)
+        {
+            _ = Child.Invoke(rgObject);
+            return NodeStatus.Failure;
+        }
     }
     
     /// <summary>
@@ -35,17 +62,14 @@ namespace RegressionGames.BehaviorTree
     /// If the child node returns <see cref="NodeStatus.Failure"/>, this node returns <see cref="NodeStatus.Success"/>.
     /// If the child node returns <see cref="NodeStatus.Success"/>, this node returns <see cref="NodeStatus.Failure"/>.
     /// </remarks>
-    public class Invert: BehaviorTreeNode
+    public class Invert: DecoratorNode
     {
-        private readonly BehaviorTreeNode _child;
-
-        public Invert(BehaviorTreeNode child) : base("Invert")
+        public Invert(BehaviorTreeNode child) : base("Invert", child)
         {
-            _child = child;
         }
 
-        public override NodeStatus Execute(RG rgObject) =>
-            _child.Execute(rgObject) switch
+        protected override NodeStatus Execute(RG rgObject) =>
+            Child.Invoke(rgObject) switch
             {
                 NodeStatus.Success => NodeStatus.Failure,
                 NodeStatus.Failure => NodeStatus.Success,
