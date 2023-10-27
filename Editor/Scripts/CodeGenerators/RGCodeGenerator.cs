@@ -281,11 +281,17 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
-            string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
+            var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 // don't look in the RG generated scripts or we'll get dupes as they generate their own RGStateEntities
-                .Where(path => !path.Contains("Library") && !path.Contains("Temp") && !path.Contains("GeneratedScripts"))
-                .ToArray();
-
+                .Where(path => !path.Contains("GeneratedScripts"))
+                .ToList();
+            
+            // this will find results even when the package is a local filesystem reference in the manifest.. sometimes unity does good stuff :D
+            var sdkPackageCsFiles = Directory.GetFiles(Path.GetFullPath("Packages/gg.regression.unity.bots"), "*.cs", SearchOption.AllDirectories);
+            
+            // add files from the sdk for evaluation
+            csFiles.AddRange(sdkPackageCsFiles);
+            
             List<RGStatesInfo> rgStateInfoList = new List<RGStatesInfo>();
 
             foreach (string csFilePath in csFiles)
