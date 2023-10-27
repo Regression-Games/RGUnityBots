@@ -414,7 +414,10 @@ namespace RegressionGames.Editor.CodeGenerators
             return namespacePrefix + typeSymbol.Name;
         }
 
-
+        /**
+         * returns a key for Type.GetType as a string in the format: "{namespace}.{typeName}, {assemblyName}"
+         * This key is also used to reference a Type, which ToString() converts to this same format excluding assemblyName.
+         */
         private static string GetActionKey(RGActionInfo action, bool includeAssembly)
         {
             var qualifiedNamespace = "";
@@ -431,6 +434,10 @@ namespace RegressionGames.Editor.CodeGenerators
             return qualifiedNamespace;
         }
         
+        /**
+         * returns a key for Type.GetType as a string in the format: "{namespace}.{typeName}, {assemblyName}"
+         * This key is also used to reference a Type, which ToString() converts to this same format excluding assemblyName.
+         */
         private static string GetStateKey(RGStatesInfo state, bool includeAssembly)
         {
             var qualifiedNamespace = "";
