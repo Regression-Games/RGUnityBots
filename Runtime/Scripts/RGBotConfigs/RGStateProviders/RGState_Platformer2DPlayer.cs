@@ -8,7 +8,7 @@ using UnityEngine;
 namespace RegressionGames
 {
     [Serializable]
-    public class RGStatePlatformer2DPlayer : RGState
+    public class RGState_Platformer2DPlayer : RGState
     {
         [Tooltip("Draw debug gizmos for player locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
@@ -69,9 +69,9 @@ namespace RegressionGames
             };
         }
 
-        protected override RGStateEntity CreateStateEntity()
+        protected override RGStateEntity CreateStateEntityClassInstance()
         {
-            return new RGStateEntityPlatformer2DPlayer();
+            return new RGStateEntity_Platformer2DPlayer();
         }
 
         // ReSharper disable once InconsistentNaming
@@ -102,7 +102,7 @@ namespace RegressionGames
     
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RGStateEntityPlatformer2DPlayer : RGStateEntity
+    public class RGStateEntity_Platformer2DPlayer : RGStateEntity
     {
         public float jumpHeight => (float)this.GetValueOrDefault("jumpHeight", 0);
         public float maxJumpHeight => (float)this.GetValueOrDefault("maxJumpHeight", 0);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace RegressionGames.Editor
 {
+    // ReSharper disable InconsistentNaming
     [Serializable]
     public class RGActionInfo
     {

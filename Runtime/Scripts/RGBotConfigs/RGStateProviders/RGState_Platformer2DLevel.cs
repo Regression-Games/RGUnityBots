@@ -13,7 +13,7 @@ namespace RegressionGames.RGBotConfigs
      */
     [DisallowMultipleComponent]
     [Tooltip("Provides state information about the tile grid in the current visible screen space.")]
-    public class RGStatePlatformer2DLevel: RGState
+    public class RGState_Platformer2DLevel: RGState
     {
         [Tooltip("How many tile spaces above a platform to consider when determining the height available on top of a platform.  This should match the height of the largest character model navigating the scene in tile units.")]
         [Min(1)]
@@ -74,13 +74,13 @@ namespace RegressionGames.RGBotConfigs
                     {
                         // checks for colliders to avoid decoration sprites being considered
                         var cellPlace = new Vector3Int(x, y, z);
-                        var tile = tileMap.GetTile<UnityEngine.Tilemaps.Tile>(cellPlace);
+                        var tile = tileMap.GetTile<Tile>(cellPlace);
                         if (tile is not null && tile.colliderType != Tile.ColliderType.None)
                         {
                             var heightAvailable = 0;
                             Vector3Int? finalSpotAbove = null;
                             cellPlace += upInt;
-                            var tileAbove = tileMap.GetTile<UnityEngine.Tilemaps.Tile>(cellPlace);
+                            var tileAbove = tileMap.GetTile<Tile>(cellPlace);
                             //see if there is a tile above it or not
                             if (tileAbove is null || tileAbove.colliderType == Tile.ColliderType.None)
                             {
@@ -92,7 +92,7 @@ namespace RegressionGames.RGBotConfigs
                             for (int i = 2; i <= tileSpaceAbove; i++)
                             {
                                 cellPlace += upInt;
-                                tileAbove = tileMap.GetTile<UnityEngine.Tilemaps.Tile>(cellPlace);
+                                tileAbove = tileMap.GetTile<Tile>(cellPlace);
                                 //see if there is a tile above it or not
                                 if (tileAbove is null || tileAbove.colliderType == Tile.ColliderType.None)
                                 {
@@ -130,7 +130,7 @@ namespace RegressionGames.RGBotConfigs
             return new Dictionary<string, object>()
             {
                 {
-                    "platformer2D", new RGStateEntityPlatformer2DLevel()
+                    "platformer2D", new RGStateEntity_Platformer2DLevel()
                     {
                         tileCellSize = lastCellSize,
                         platformPositions = safePositions.ToArray()
@@ -148,26 +148,27 @@ namespace RegressionGames.RGBotConfigs
             }
         }
         
-        protected override RGStateEntity CreateStateEntity()
+        protected override RGStateEntity CreateStateEntityClassInstance()
         {
-            return new RGStateEntityPlatformer2DLevel();
+            return new RGStateEntity_Platformer2DLevel();
         }
     }
 
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RGStateEntityPlatformer2DLevel : RGStateEntity
+    public class RGStateEntity_Platformer2DLevel : RGStateEntity
     {
         [FormerlySerializedAs("spriteSize")]
         public Vector3 tileCellSize = Vector3.one;
         public RGPlatformer2DPosition[] platformPositions = Array.Empty<RGPlatformer2DPosition>();
     }
 
+    [Serializable]
     public class RGPlatformer2DPosition
     {
         public Vector2 position;
         
-        // number of grid tiles tall this position is (computed up to the configured max on RGStatePlatformer2DLevel)
+        // number of grid tiles tall this position is (computed up to the configured max on RGState_Platformer2DLevel)
         public int tilesHeight;
 
         // height in world units of this space

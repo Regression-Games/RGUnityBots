@@ -1,5 +1,3 @@
-using RegressionGames.Types;
-
 namespace RegressionGames.RGBotLocalRuntime
 {
     public class RGBotAssetRecord

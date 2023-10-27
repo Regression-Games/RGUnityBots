@@ -14,15 +14,49 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.Editor.CodeGenerators
 {
-    public class RGActionCodeGenerator
+    public class RGCodeGenerator
     {
         [MenuItem("Regression Games/Generate Scripts")]
         private static void GenerateRGScripts()
         {
-            //TODO: Someone/Anyone... remove this delete RGScripts directory code after November 1st, 2023... This is temporary to help devs migrate easily
-            // remove old 'RGScripts' folder that is no longer used
+            // find and extract RGAction data
+            var actionInfos = SearchForBotActionAttributes();
+            
+            // find and extract RGState data
+            var statesInfos = SearchForBotStateAttributes();
+            
+            // generate classes
+            GenerateStateClasses(statesInfos);
+            GenerateActionClasses(actionInfos);
+        }
+
+        [MenuItem("Regression Games/Agent Builder/Extract Data")]
+        private static void ExtractData()
+        {
+            // just in case they haven't done this recently or ever...
+            // find and extract RGState data
+            var statesInfos = SearchForBotStateAttributes();
+            // find and extract RGAction data
+            var actionInfos = SearchForBotActionAttributes();
+
+            // if these have been associated to gameObjects with RGEntities, fill in their objectTypes
+            PopulateObjectTypes(statesInfos, actionInfos);
+            
+            // Find RGStateEntity scripts and generate state info for them
+            statesInfos.AddRange(CreateStateInfoFromRGStateEntities());
+            
+            // update/write the json
+            WriteJsonFiles(statesInfos, actionInfos);
+
+            // create 'RegressionGames.zip' in project folder
+            CreateJsonZip();
+        }
+        
+        private static void GenerateActionClasses(List<RGActionInfo> actionInfos)
+        {
+            // remove previous RGActions
             string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RGScripts").Replace("\\", "/");
+            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGActions").Replace("\\", "/");
 
             if (Directory.Exists(directoryToDelete))
             {
@@ -30,29 +64,13 @@ namespace RegressionGames.Editor.CodeGenerators
                 File.Delete(directoryToDelete + ".meta");
                 AssetDatabase.Refresh();
             }
-
-            // find and extract RGAction data
-            string actionJson = SearchForBotActionMethods();
             
-            // find and extract RGState data
-            string stateJson = SearchForBotStates();
-            
-            // write extracted data to json files
-            WriteToJson("RGActions", actionJson);
-            WriteToJson("RGStates", stateJson);
-
-        }
-
-        [MenuItem("Regression Games/Agent Builder/Extract Data")]
-        private static void ExtractData()
-        {
-            ExtractObjectType();
-            
-            // create 'RegressionGames.zip' in project folder
-            ZipJson();
+            GenerateRGSerializationClass.Generate(actionInfos);
+            GenerateRGActionClasses.Generate(actionInfos);
+            GenerateRGActionMapClass.Generate(actionInfos);
         }
         
-        private static string SearchForBotActionMethods()
+        private static List<RGActionInfo> SearchForBotActionAttributes()
         {
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => !path.Contains("Library") && !path.Contains("Temp"))
@@ -123,16 +141,16 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
             }
 
-            string jsonResult = 
-                JsonConvert.SerializeObject(new RGActionsInfo { BotActions = botActionList }, Formatting.Indented, new JsonSerializerSettings
-            {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-            });
-            
-            // remove previous RGActions
-            string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGActions").Replace("\\", "/");
+            return botActionList;
 
+        }
+        
+        private static void GenerateStateClasses(List<RGStatesInfo> rgStatesInfos)
+        {
+            // remove previous RGStates
+            string dataPath = Application.dataPath;
+            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGStates").Replace("\\", "/");
+            
             if (Directory.Exists(directoryToDelete))
             {
                 Directory.Delete(directoryToDelete, true);
@@ -140,14 +158,10 @@ namespace RegressionGames.Editor.CodeGenerators
                 AssetDatabase.Refresh();
             }
             
-            GenerateRGSerializationClass.Generate(jsonResult);
-            GenerateRGActionClasses.Generate(jsonResult);
-            GenerateRGActionMapClass.Generate(jsonResult);
-
-            return jsonResult;
+            GenerateRGStateClasses.Generate(rgStatesInfos);
         }
 
-        private static string SearchForBotStates()
+        private static List<RGStatesInfo> SearchForBotStateAttributes()
         {
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => !path.Contains("Library") && !path.Contains("Temp"))
@@ -262,56 +276,98 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
             }
 
-            string jsonResult = JsonConvert.SerializeObject(new { RGStateInfo = rgStateInfoList }, Formatting.Indented, new JsonSerializerSettings
-            {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-            });
-            
-            // remove previous RGStates
-            string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGStates").Replace("\\", "/");
-            
-            if (Directory.Exists(directoryToDelete))
-            {
-                Directory.Delete(directoryToDelete, true);
-                File.Delete(directoryToDelete + ".meta");
-                AssetDatabase.Refresh();
-            }
-            
-            GenerateRGStateClasses.Generate(jsonResult);
-            return jsonResult;
+            return rgStateInfoList;
         }
 
-        private static void WriteToJson(string fileName, string json)
+        private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
-            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");
+            string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
+                // don't look in the RG generated scripts or we'll get dupes as they generate their own RGStateEntities
+                .Where(path => !path.Contains("Library") && !path.Contains("Temp") && !path.Contains("GeneratedScripts"))
+                .ToArray();
 
-            if (!Directory.Exists(folderPath))
+            List<RGStatesInfo> rgStateInfoList = new List<RGStatesInfo>();
+
+            foreach (string csFilePath in csFiles)
             {
-                Directory.CreateDirectory(folderPath);
+                string scriptText = File.ReadAllText(csFilePath);
+
+                SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(scriptText);
+
+                var compilation = CSharpCompilation.Create("RGCompilation")
+                    .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+                    .AddSyntaxTrees(syntaxTree);
+
+                CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
+                var semanticModel = compilation.GetSemanticModel(syntaxTree);
+
+                var rgStateEntityClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>().Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "RGStateEntity");
+
+                foreach (var classDeclaration in rgStateEntityClassDeclarations)
+                {
+                    string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
+
+                    string className = classDeclaration.Identifier.ValueText;
+                    List<RGStateInfo> stateList = new List<RGStateInfo>();
+                    
+                    var publicMembersAndDelegates = classDeclaration.Members
+                        .Where(m => m.Modifiers.Any());
+
+                    foreach (var member in publicMembersAndDelegates)
+                    {
+                        if (member is FieldDeclarationSyntax fieldDeclaration)
+                        {
+                            if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RGDebug.LogWarning($"Warning: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
+                                continue;
+                            }
+                        }
+                        else if (member is PropertyDeclarationSyntax propertyDeclaration)
+                        {
+                            if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RGDebug.LogWarning($"Warning: Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
+                                continue;
+                            }
+                        }
+
+                        string fieldType = "variable"; // property delegate or field.. still just looks like a variable to the code generator
+                        string fieldName = member is PropertyDeclarationSyntax
+                            ? ((PropertyDeclarationSyntax) member).Identifier.ValueText
+                            : ((FieldDeclarationSyntax) member).Declaration.Variables.First().Identifier.ValueText;
+
+                        string type = member is PropertyDeclarationSyntax
+                            ? RemoveGlobalPrefix(semanticModel.GetTypeInfo(((PropertyDeclarationSyntax) member).Type)
+                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                            : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
+                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+
+                        stateList.Add(new RGStateInfo
+                        {
+                            FieldType = fieldType,
+                            FieldName = fieldName,
+                            StateName = fieldName,
+                            Type = type
+                        });
+                    }
+
+                    if (stateList.Any())
+                    {
+                        rgStateInfoList.Add(new RGStatesInfo
+                        {
+                            Namespace = nameSpace,
+                            Object = className,
+                            State = stateList
+                        });
+                    }
+                }
             }
 
-            string filePath = Path.Combine(folderPath, $"{fileName}.json");
-            File.WriteAllText(filePath, json);
+            return rgStateInfoList;
         }
-        
-        private static string ReadFromJson(string fileName)
-        {
-            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");
-            string filePath = Path.Combine(folderPath, $"{fileName}.json");
 
-            if (File.Exists(filePath))
-            {
-                return File.ReadAllText(filePath);
-            }
-            else
-            {
-                Debug.LogWarning($"File '{fileName}.json' does not exist in '{folderPath}'.");
-                return null;
-            }
-        }
-
-        private static void ZipJson()
+        private static void CreateJsonZip()
         {
             string parentPath = Directory.GetParent(Application.dataPath).FullName;
             string folderPath = Path.Combine(parentPath, "RegressionGamesZipTemp");
@@ -354,15 +410,8 @@ namespace RegressionGames.Editor.CodeGenerators
             return namespacePrefix + typeSymbol.Name;
         }
 
-        private static void ExtractObjectType()
+        private static void PopulateObjectTypes(List<RGStatesInfo> statesInfos, List<RGActionInfo> actionInfos)
         {
-            // read current JSON for actions and states
-            string actionJson = ReadFromJson("RGActions");
-            string stateJson = ReadFromJson("RGStates");
-            
-            // deserialize into action and state objects
-            RGActionsInfo actionsInfo = JsonUtility.FromJson<RGActionsInfo>(actionJson);
-            var statesInfo = JsonConvert.DeserializeObject<RGStateInfoWrapper>(stateJson).RGStateInfo;
 
             // all unique object names in actions and states
             List<string> objectTypeNames = new List<string>();
@@ -372,7 +421,7 @@ namespace RegressionGames.Editor.CodeGenerators
             Dictionary<string, string> objectNameMap = new Dictionary<string, string>();
             
             // Get all Object names from RGActions
-            foreach (var action in actionsInfo.BotActions)
+            foreach (var action in actionInfos)
             {
                 string objectName = action.Object;
                 if (!objectTypeNames.Contains(objectName))
@@ -382,7 +431,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
 
             // Get all Object names from RGStates
-            foreach (var state in statesInfo)
+            foreach (var state in statesInfos)
             {
                 string objectName = state.Object;
                 if (!objectTypeNames.Contains(objectName))
@@ -444,36 +493,54 @@ namespace RegressionGames.Editor.CodeGenerators
             }
             
             // Assign ObjectTypes to RGActions
-            foreach (var action in actionsInfo.BotActions)
+            foreach (var action in actionInfos)
             {
-                if (objectNameMap.ContainsKey(action.Object))
+                if (objectNameMap.TryGetValue(action.Object, out var value))
                 {
-                    action.ObjectType = objectNameMap[action.Object];
+                    action.ObjectType = value;
                 }
             }
             
             // Assign Object Types to RGStates
-            foreach (var state in statesInfo)
+            foreach (var state in statesInfos)
             {
-                if (objectNameMap.ContainsKey(state.Object))
+                if (objectNameMap.TryGetValue(state.Object, out var value))
                 {
-                    state.ObjectType = objectNameMap[state.Object];
+                    state.ObjectType = value;
                 }
             }
-            
-            // Write updated values back to JSON files
+        }
+
+        private static void WriteJsonFiles(List<RGStatesInfo> statesInfos, List<RGActionInfo> actionInfos)
+        {
+            // Write values to JSON files
             string updatedActionJson = 
-                JsonConvert.SerializeObject(new RGActionsInfo { BotActions = actionsInfo.BotActions }, Formatting.Indented, new JsonSerializerSettings
+                JsonConvert.SerializeObject(new RGActionsInfo() {BotActions = actionInfos}, Formatting.Indented, new JsonSerializerSettings
                 {
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 });
-            string updatedStateJson = JsonConvert.SerializeObject(new { RGStateInfo = statesInfo }, Formatting.Indented, new JsonSerializerSettings
-            {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-            });
             
-            WriteToJson("RGActions", updatedActionJson);
-            WriteToJson("RGStates", updatedStateJson);
+            string updatedStateJson = 
+                JsonConvert.SerializeObject(new { RGStateInfo = statesInfos }, Formatting.Indented, new JsonSerializerSettings
+                {
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                });
+            
+            WriteJsonToFile("RGActions", updatedActionJson);
+            WriteJsonToFile("RGStates", updatedStateJson);
+        }
+        
+        private static void WriteJsonToFile(string fileName, string json)
+        {
+            string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");
+
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            string filePath = Path.Combine(folderPath, $"{fileName}.json");
+            File.WriteAllText(filePath, json);
         }
     }
 }

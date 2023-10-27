@@ -1,8 +1,7 @@
-using System;
+
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,15 +10,13 @@ using UnityEngine;
 
 namespace RegressionGames.Editor.CodeGenerators
 {
+    // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGActionClasses
     {
-        public static void Generate(string jsonData)
+        public static void Generate(List<RGActionInfo> actionInfos)
         {
-            // Load JSON input
-            RGActionsInfo actionsInfo = JsonUtility.FromJson<RGActionsInfo>(jsonData);
-
             // Iterate through BotActions
-            foreach (var botAction in actionsInfo.BotActions)
+            foreach (var botAction in actionInfos)
             {
                 HashSet<string> usings = new()
                 {

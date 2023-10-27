@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Reflection;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 
@@ -18,10 +16,7 @@ namespace RegressionGames.RGBotConfigs
         
         // ReSharper disable once InconsistentNaming
         // we require each state to have an 'RGEntity' component
-        protected RGEntity rgEntity
-        {
-            get { return GetComponent<RGEntity>(); }
-        }
+        protected RGEntity rgEntity => GetComponent<RGEntity>();
 
         /**
          * <summary>A function that is overriden to provide the custom state of this specific GameObject.
@@ -41,7 +36,7 @@ namespace RegressionGames.RGBotConfigs
         {
             var theTransform = rgEntity.transform;
             
-            var state = CreateStateEntity();
+            var state = CreateStateEntityClassInstance();
             state["id"] = theTransform.GetInstanceID();
             state["type"] = rgEntity.objectType;
             state["isPlayer"] = rgEntity.isPlayer;
@@ -62,9 +57,9 @@ namespace RegressionGames.RGBotConfigs
         /**
          * <summary>A function that is overridden to supply a custom implementation of RGStateEntity.
          * This allows more natural coding when working with the state for local C# Unity bots vs accessing entries in a Dictionary.</summary>
-         * <example>RGStatePlatformer2DPlayer</example>
+         * <example>RGStateEntity_Platformer2DPlayer</example>
          */
-        protected virtual RGStateEntity CreateStateEntity()
+        protected virtual RGStateEntity CreateStateEntityClassInstance()
         {
             return new RGStateEntity();
         }

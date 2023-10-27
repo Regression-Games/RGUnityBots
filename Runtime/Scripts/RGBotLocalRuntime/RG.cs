@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Newtonsoft.Json.Linq;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 
@@ -218,11 +219,18 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             _validationResults.Enqueue(rgValidation);
         }
-        
-        
+
         internal void SetCharacterConfig(Dictionary<string, object> characterConfig)
         {
             this.CharacterConfig = characterConfig;
+        }
+        
+        internal void SetCharacterConfigFromJson(string jsonString)
+        {
+            // handle escaped JSON string elements
+            var data = jsonString?.Replace("\\\"", "\"").Replace("\"{", "{").Replace("}\"","}");
+            var jObject = data == null ? null : JObject.Parse(data);
+            this.CharacterConfig = jObject?.ToObject<Dictionary<string,object>>();
         }
         
         internal void SetTickInfo(RGTickInfoData tickInfo)
