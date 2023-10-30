@@ -45,7 +45,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>Retrieve the current game state.</summary>
          * <returns>{RGStateEntity} The current game state.</returns>
          */
-        public Dictionary<string, RGStateEntity> GetState()
+        public Dictionary<string, IRGStateEntity> GetState()
         {
             return _tickInfo.gameState;
         }
@@ -55,7 +55,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <br/><br/>
          * WARNING: When controlling multiple player bots from a single client the result of this method may change from one tick to the next.</summary>
          */
-        public RGStateEntity GetMyPlayer()
+        public IRGStateEntity GetMyPlayer()
         {
             var players = GetMyPlayers();
             if (players.Count > 0)
@@ -69,7 +69,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>Retrieve list of all player/bot entities controlled by this clientId.</summary>
          * <returns>{List&lt;RGStateEntity&gt;} List of the entities from the state.</returns>
          */
-        public List<RGStateEntity> GetMyPlayers()
+        public List<IRGStateEntity> GetMyPlayers()
         {
             return FindPlayers(ClientId);
         }
@@ -85,8 +85,8 @@ namespace RegressionGames.RGBotLocalRuntime
          * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
-        public RGStateEntity FindNearestEntity(string objectType = null, Vector3? position = null,
-            Func<RGStateEntity, bool> filterFunction = null)
+        public IRGStateEntity FindNearestEntity(string objectType = null, Vector3? position = null,
+            Func<IRGStateEntity, bool> filterFunction = null)
         {
             var result = FindEntities(objectType);
 
@@ -119,9 +119,9 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="buttonName">{string | null} Search for button entities with a specific type name.</param>
          * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
          */
-        public RGStateEntity GetInteractableButton(string buttonName)
+        public IRGStateEntity GetInteractableButton(string buttonName)
         {
-            RGStateEntity button = FindEntities(buttonName).FirstOrDefault();
+            IRGStateEntity button = FindEntities(buttonName).FirstOrDefault();
             if (button != null && EntityHasAttribute(button, "interactable", true))
             {
                 return button;
@@ -134,12 +134,12 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="objectType">{string | null} Search for entities of a specific type</param>
          * <returns>{List&lt;RGStateEntity&gt;} All entities with the given objectType, or all entities in the state if objectType is null.</returns>
          */
-        public List<RGStateEntity> FindEntities(string objectType = null)
+        public List<IRGStateEntity> FindEntities(string objectType = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
             {
-                return new List<RGStateEntity>();
+                return new List<IRGStateEntity>();
             }
             
             // filter down to objectType Matches
@@ -160,12 +160,12 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="clientId">{long | null} Search for players owned by a specific clientId</param>
          * <returns>{List&lt;RGStateEntity&gt;} All players owned by the given clientId, or all players in the state if client is null.</returns>
          */
-        public List<RGStateEntity> FindPlayers(long? clientId = null)
+        public List<IRGStateEntity> FindPlayers(long? clientId = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
             {
-                return new List<RGStateEntity>();
+                return new List<IRGStateEntity>();
             }
 
             // filter down to isPlayer
@@ -187,7 +187,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * * <param name="expectedValue">{object | null} Expected value of the attribute. `null` means that the attribute's value is not evaluated</param>
          * <returns>{bool} True if the provided entity has the specified attribute and matches the expectedValue if provided.</returns>
          */
-        public bool EntityHasAttribute(RGStateEntity entity, string attribute, object expectedValue = null)
+        public bool EntityHasAttribute(IRGStateEntity entity, string attribute, object expectedValue = null)
         {
             if (entity.TryGetValue(attribute, out var attributeValue))
             {

@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Newtonsoft.Json;
 using RegressionGames.RGBotConfigs;
+using RegressionGames.StateActionTypes;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -36,14 +37,19 @@ namespace RegressionGames.Editor.CodeGenerators
             // just in case they haven't done this recently or ever...
             // find and extract RGState data
             var statesInfos = SearchForBotStateAttributes();
+            // generate classes from these so that their RGStateEntity classes exist before the below step
+            GenerateStateClasses(statesInfos);
+            
             // find and extract RGAction data
             var actionInfos = SearchForBotActionAttributes();
 
+            // Find RGStateEntity scripts and generate state info from them
+            // Do NOT include the previous state infos.. so we don't have dupes
+            // This gives us a consistent view across both generated and hand written state class entities
+            statesInfos = CreateStateInfoFromRGStateEntities();
+            
             // if these have been associated to gameObjects with RGEntities, fill in their objectTypes
             PopulateObjectTypes(statesInfos, actionInfos);
-            
-            // Find RGStateEntity scripts and generate state info for them
-            statesInfos.AddRange(CreateStateInfoFromRGStateEntities());
             
             // update/write the json
             WriteJsonFiles(statesInfos, actionInfos);
@@ -281,10 +287,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
-            var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
-                // don't look in the RG generated scripts or we'll get dupes as they generate their own RGStateEntities
-                .Where(path => !path.Contains("GeneratedScripts"))
-                .ToList();
+            var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToList();
             
             // this will find results even when the package is a local filesystem reference in the manifest.. sometimes unity does good stuff :D
             var sdkPackageCsFiles = Directory.GetFiles(Path.GetFullPath("Packages/gg.regression.unity.bots"), "*.cs", SearchOption.AllDirectories);
@@ -315,6 +318,9 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     string className = classDeclaration.Identifier.ValueText;
                     List<RGStateInfo> stateList = new List<RGStateInfo>();
+
+                    var classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as ITypeSymbol;
+                    var rgStateClassName = classSymbol.BaseType.TypeArguments[0].ToDisplayString();
                     
                     var publicMembersAndDelegates = classDeclaration.Members
                         .Where(m => m.Modifiers.Any());
@@ -363,7 +369,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         rgStateInfoList.Add(new RGStatesInfo
                         {
                             Namespace = nameSpace,
-                            Object = className,
+                            Object = rgStateClassName,
                             State = stateList
                         });
                     }

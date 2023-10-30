@@ -11,7 +11,7 @@ namespace RegressionGames.RGBotConfigs
         [Tooltip("A type name for associating like objects in the state")]
         public string objectType = "Button";
 
-        public RGStateEntity GetGameObjectState()
+        public IRGStateEntity GetGameObjectState()
         {
             var state = new RGStateEntity_Button()
             {
@@ -30,7 +30,7 @@ namespace RegressionGames.RGBotConfigs
         }
 
         [Serializable]
-        public class RGStateEntity_Button : RGStateEntity
+        public class RGStateEntity_Button : RGStateEntity<RGState_Button>
         {
             // ReSharper disable once InconsistentNaming
             public bool interactable => (bool)this.GetValueOrDefault("interactable", false);

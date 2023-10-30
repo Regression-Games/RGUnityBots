@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
@@ -32,7 +33,7 @@ namespace RegressionGames.RGBotConfigs
          * <summary>Returns the entire internal state for this object, which consists of the default
          * states tracked by RG, and the result of any overridden GetState implementation.</summary>
          */
-        public RGStateEntity GetGameObjectState()
+        public IRGStateEntity GetGameObjectState()
         {
             var theTransform = rgEntity.transform;
             
@@ -59,9 +60,9 @@ namespace RegressionGames.RGBotConfigs
          * This allows more natural coding when working with the state for local C# Unity bots vs accessing entries in a Dictionary.</summary>
          * <example>RGStateEntity_Platformer2DPlayer</example>
          */
-        protected virtual RGStateEntity CreateStateEntityClassInstance()
+        protected virtual IRGStateEntity CreateStateEntityClassInstance()
         {
-            return new RGStateEntity();
+            return new RGStateEntity<RGState>();
         }
     }
 

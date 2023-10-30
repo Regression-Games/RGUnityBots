@@ -72,13 +72,24 @@ namespace RegressionGames.Editor.CodeGenerators
                                 // Only add one of the "class" keywords here
                             )
                             .AddBaseListTypes(
-                                SimpleBaseType(ParseTypeName("RGStateEntity"))
+                                SimpleBaseType(
+                                    GenericName(
+                                            Identifier("RGStateEntity")
+                                        )
+                                        .WithTypeArgumentList(
+                                            TypeArgumentList(
+                                                SingletonSeparatedList<TypeSyntax>(
+                                                    IdentifierName($"RGState_{rgStateInfo.Object}")
+                                                )
+                                            )
+                                        )
+                                )
                             ).AddMembers(
                                 GenerateStateEntityFields(rgStateInfo.State)
                             )
-                        );
-                
 
+                    );
+                
                 // Add the namespace declaration to the compilation unit
                 compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
 

@@ -148,7 +148,7 @@ namespace RegressionGames.RGBotConfigs
             }
         }
         
-        protected override RGStateEntity CreateStateEntityClassInstance()
+        protected override IRGStateEntity CreateStateEntityClassInstance()
         {
             return new RGStateEntity_Platformer2DLevel();
         }
@@ -156,8 +156,9 @@ namespace RegressionGames.RGBotConfigs
 
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RGStateEntity_Platformer2DLevel : RGStateEntity
+    public class RGStateEntity_Platformer2DLevel : RGStateEntity<RGState_Platformer2DLevel>
     {
+        
         [FormerlySerializedAs("spriteSize")]
         public Vector3 tileCellSize = Vector3.one;
         public RGPlatformer2DPosition[] platformPositions = Array.Empty<RGPlatformer2DPosition>();

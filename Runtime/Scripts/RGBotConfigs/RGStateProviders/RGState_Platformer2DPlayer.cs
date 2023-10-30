@@ -69,7 +69,7 @@ namespace RegressionGames
             };
         }
 
-        protected override RGStateEntity CreateStateEntityClassInstance()
+        protected override IRGStateEntity CreateStateEntityClassInstance()
         {
             return new RGStateEntity_Platformer2DPlayer();
         }
@@ -102,7 +102,7 @@ namespace RegressionGames
     
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RGStateEntity_Platformer2DPlayer : RGStateEntity
+    public class RGStateEntity_Platformer2DPlayer : RGStateEntity<RGState_Platformer2DPlayer>
     {
         public float jumpHeight => (float)this.GetValueOrDefault("jumpHeight", 0);
         public float maxJumpHeight => (float)this.GetValueOrDefault("maxJumpHeight", 0);
