@@ -302,13 +302,18 @@ namespace RegressionGames.Editor.CodeGenerators
             }
             else
             {
-                tryParseStatement = $"{paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_")}";
+                tryParseStatement =
+                    $"if ({paramName}Input is {paramType}) {{ {paramName} = ({paramType}){paramName}Input; }}";
+                tryParseStatement += $"else {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_")}";
+
                 if (param.Nullable)
                 {
                     tryParseStatement = tryParseStatement.Replace("?", "");
                     tryParseStatement += "_Nullable";
                 }
                 tryParseStatement += $"({paramName}Input.ToString());";
+
+                tryParseStatement += "}";
             }
 
             var tryBlock = SyntaxFactory.Block(SyntaxFactory.SingletonList(
