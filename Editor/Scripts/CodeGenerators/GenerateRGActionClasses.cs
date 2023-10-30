@@ -303,7 +303,7 @@ namespace RegressionGames.Editor.CodeGenerators
             else
             {
                 tryParseStatement =
-                    $"if ({paramName}Input is {paramType}) {{ {paramName} = ({paramType}){paramName}Input; }}";
+                    $"if ({paramName}Input is {paramType} value) {{ {paramName} = value; }}";
                 tryParseStatement += $"else {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_")}";
 
                 if (param.Nullable)
