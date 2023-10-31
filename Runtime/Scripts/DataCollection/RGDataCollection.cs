@@ -42,13 +42,8 @@ namespace RegressionGames.DataCollection
         {
             Debug.Log($"Captured screenshot at tick {tick}");
             string path = GetSessionDirectory($"screenshots/{tick}.jpg");
-            //ScreenCapture.CaptureScreenshot(path);
-            // Create a new texture with the screen dimensions
-            Texture2D texture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
 
-            // Read the pixels from the screen into the texture
-            texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
-            texture.Apply();
+            var texture = ScreenCapture.CaptureScreenshotAsTexture(1);
 
             // Encode the texture into a jpg byte array
             byte[] bytes = texture.EncodeToJPG(100);
