@@ -334,7 +334,7 @@ namespace RegressionGames
             if (await EnsureAuthed())
             {
                 await SendWebFileUploadRequest(
-                    uri: $"{GetRgServiceBaseUri()}/bot-results/{botInstanceId}/screenshots/{tick}",
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/screenshots/{tick}",
                     method: "POST",
                     filePath: filePath,
                     contentType: "image/jpeg",
