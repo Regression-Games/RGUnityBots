@@ -102,7 +102,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 result.Sort((e1, e2) =>
                 {
                     var val = MathFunctions.DistanceSq(pos, e1.position) -
-                              MathFunctions.DistanceSq(pos, e1.position);
+                              MathFunctions.DistanceSq(pos, e2.position);
                     if (val < 0)
                         return -1;
                     if (val > 0) return 1;
@@ -259,15 +259,16 @@ namespace RegressionGames.RGBotLocalRuntime
             return result;
         }
         
+        public static class MathFunctions 
+        {
+            /**
+             * <returns>{double} The square distance between two positions</returns>
+             */
+            public static double DistanceSq (Vector3 position1, Vector3 position2) {
+                return Math.Pow(position2.x - position1.x, 2) + Math.Pow(position2.y - position1.y, 2) + Math.Pow(position2.z - position1.z, 2);
+            }
+        }
+        
     }
     
-    internal static class MathFunctions 
-    {
-        /**
-         * <returns>{double} The square distance between two positions</returns>
-         */
-        public static double DistanceSq (Vector3 position1, Vector3 position2) {
-            return Math.Pow(position2.x - position1.x, 2) + Math.Pow(position2.y - position1.y, 2) + Math.Pow(position2.z - position1.z, 2);
-        }
-    }
 }
