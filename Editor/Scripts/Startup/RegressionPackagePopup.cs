@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading.Tasks;
 using RegressionGames;
 using RegressionGames.Editor;
+using RegressionGames.RGBotLocalRuntime;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.PackageManager;
@@ -12,6 +13,7 @@ using UnityEngine.Rendering;
 public class RegressionPackagePopup : EditorWindow
 {
     private const string RGSetupCheck = "rgsetup";
+    private const string RGGuestCheck = "rgguest";
     private Texture2D bannerImage;
     private static RegressionPackagePopup window;
     private static bool loggedIn = false;
@@ -61,7 +63,8 @@ public class RegressionPackagePopup : EditorWindow
 
     void OnGUI()
     {
-        if (!loggedIn)
+        bool isGuest = PlayerPrefs.HasKey(RGGuestCheck);
+        if (!loggedIn && !isGuest)
         {
             RenderLoginScreen();
         }
@@ -133,6 +136,16 @@ public class RegressionPackagePopup : EditorWindow
         }
         GUILayout.FlexibleSpace();
         GUILayout.EndHorizontal();
+
+        // Continue as guest button
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+        if (GUILayout.Button("Continue as Guest", GUILayout.Width(550), GUILayout.Height(30)))
+        {
+            ContinueAsGuest();
+        }
+        GUILayout.FlexibleSpace();
+        GUILayout.EndHorizontal();
         GUILayout.Space(20);
 
         // Create Account and Forgot Password Links
@@ -170,6 +183,11 @@ public class RegressionPackagePopup : EditorWindow
 
     private void RenderWelcomeScreen()
     {
+        // set flags on render as extra check against duplicated popups
+        PlayerPrefs.SetInt(RGSetupCheck, 1);
+        PlayerPrefs.SetInt(RGGuestCheck, 1);
+        
+        // render window info
         RenderQuickstartDocs();
         RenderSampleQuickstart();
     }
@@ -218,17 +236,17 @@ public class RegressionPackagePopup : EditorWindow
         };
 
         // Define the background box
-        Rect infoBoxRect = new Rect(10, 130, 550, 130);
+        Rect infoBoxRect = new Rect(10, 130, 580, 130);
         prevColor = GUI.color;
         GUI.color = new Color(100, 100, 100, 0.25f);
         GUI.Box(infoBoxRect, "");
         GUI.color = prevColor;
 
         // Draw the quick start title
-        GUI.Label(new Rect(20, 140, 550, 20), "Quick Start with Local Bots", titleStyle);
+        GUI.Label(new Rect(20, 140, 580, 20), "Quick Start with Local Bots", titleStyle);
 
         // Draw the description
-        GUI.Label(new Rect(20, 140, 550, 100), "Jump into creating your first bot using C# by following this Local Unity Bot guide. Regression Games Bots are flexible and highly customizable. Bots can simulate players, function as NPCs, interact with menus and UIs, validate gameplay, and more.", descriptionStyle);
+        GUI.Label(new Rect(20, 140, 580, 100), "Jump into creating your first bot using C# by following this Local Unity Bot guide. Regression Games Bots are flexible and highly customizable. Bots can simulate players, function as NPCs, interact with menus and UIs, validate gameplay, and more.", descriptionStyle);
 
         // Draw the docs button
         if (GUI.Button(new Rect(20, 220, 100, 30), "View Docs"))
@@ -258,19 +276,19 @@ public class RegressionPackagePopup : EditorWindow
         };
 
         // Define the background box for the new section
-        Rect demoInfoBoxRect = new Rect(10, 270, 550, 130);
+        Rect demoInfoBoxRect = new Rect(10, 270, 580, 130);
         Color prevColor = GUI.color;
         GUI.color = new Color(100, 100, 100, 0.25f);
         GUI.Box(demoInfoBoxRect, "");
         GUI.color = prevColor;
 
         // Draw the sample title
-        GUI.Label(new Rect(20, 280, 550, 20), "Third Person Demo", titleStyle);
+        GUI.Label(new Rect(20, 280, 580, 20), "Third Person Demo", titleStyle);
 
         // Draw the description for the sample
-        GUI.Label(new Rect(20, 310, 535, 20), "Explore a third-person character demo using Regression Game’s Unity SDK.", descriptionStyle);
+        GUI.Label(new Rect(20, 310, 565, 20), "Explore a third-person character demo using Regression Game’s Unity SDK.", descriptionStyle);
 
-        GUI.Label(new Rect(20, 326, 535, 20), "Ensure your project is set up with URP before opening the sample.", boldDescriptionStyle);
+        GUI.Label(new Rect(20, 326, 565, 20), "Ensure your project is set up with URP before opening the sample.", boldDescriptionStyle);
 
         // Draw the "Open Sample" button. Disable if not using URP
         GUI.enabled = IsURPEnabled();
@@ -295,7 +313,6 @@ public class RegressionPackagePopup : EditorWindow
         }
         return false;
     }
-
     
     private void ImportSample()
     {
@@ -359,6 +376,23 @@ public class RegressionPackagePopup : EditorWindow
         RGSettings.OptionsUpdated();
 
         loggedIn = await RGSettingsUIRegistrar.Login(email, password);
+        if (window != null)
+        {
+            window.Repaint();
+        }
+    }
+
+    private static void ContinueAsGuest()
+    {
+        // check if already logged in
+        if (loggedIn && window != null)
+        {
+            window.Repaint();
+            return;
+        }
+        
+        // continue without log in
+        PlayerPrefs.SetInt(RGGuestCheck, 1);
         if (window != null)
         {
             window.Repaint();
