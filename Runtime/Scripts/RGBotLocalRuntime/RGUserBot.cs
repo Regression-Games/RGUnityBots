@@ -23,7 +23,7 @@ namespace RegressionGames.RGBotLocalRuntime
          */
         public RGGizmos RGGizmos => _rgGizmos;
 
-        public void Init(long botId, string botName)
+        internal virtual void Init(long botId, string botName)
         {
             _botId = botId;
             _botName = botName;

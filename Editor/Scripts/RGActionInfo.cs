@@ -7,6 +7,8 @@ namespace RegressionGames.Editor
     [Serializable]
     public class RGActionInfo
     {
+        // the assembly that the class containing the [RGAction] attribute tags is in
+        public string AssemblyName;
         // the namespace of the class that contains the [RGAction] attribute tags
         public string Namespace;
         // the name of the component class that contains the [RGAction] attribute tags

@@ -301,13 +301,23 @@ namespace RegressionGames.Editor.CodeGenerators
             }
             else
             {
-                tryParseStatement = $"{paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_")}";
+                // Do direct type cast whenever possible, taking into account nullable types 
+                tryParseStatement = $"if ({paramName}Input is {paramType.Replace("?", "")}";
                 if (param.Nullable)
                 {
-                    tryParseStatement = tryParseStatement.Replace("?", "");
+                    tryParseStatement += " or null";
+                }
+                tryParseStatement += ")";
+                tryParseStatement += $"{{ {paramName} = ({paramType}){paramName}Input; }}";
+                tryParseStatement += $"\r\nelse {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_").Replace("?", "")}";
+
+                if (param.Nullable)
+                {
                     tryParseStatement += "_Nullable";
                 }
                 tryParseStatement += $"({paramName}Input.ToString());";
+
+                tryParseStatement += "}";
             }
 
             var tryBlock = SyntaxFactory.Block(SyntaxFactory.SingletonList(
