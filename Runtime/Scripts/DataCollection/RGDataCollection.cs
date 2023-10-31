@@ -2,11 +2,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames.DataCollection
 {
@@ -22,13 +22,15 @@ namespace RegressionGames.DataCollection
         private readonly string _sessionName;
         private ConcurrentQueue<LogDataPoint> _logDataPoints;
         private Dictionary<long, ReplayDataPoint> _replayDataForTick;
+        private GameObject _parent;
 
-        public RGDataCollection()
+        public RGDataCollection(GameObject parent)
         {
             // Name the session, and setup a temporary directory for all data
             _sessionName = Guid.NewGuid().ToString();
             _logDataPoints = new ConcurrentQueue<LogDataPoint>();
             _replayDataForTick = new ();
+            _parent = parent;
 
             // Setup all listener-based data collection (as opposed to tick-based)
             Application.logMessageReceivedThreaded += CaptureLog;
@@ -39,8 +41,23 @@ namespace RegressionGames.DataCollection
         public void CaptureScreenshot(long tick)
         {
             Debug.Log($"Captured screenshot at tick {tick}");
-            string path = GetSessionDirectory($"screenshots/{tick}.png");
-            ScreenCapture.CaptureScreenshot(path);
+            string path = GetSessionDirectory($"screenshots/{tick}.jpg");
+            //ScreenCapture.CaptureScreenshot(path);
+            // Create a new texture with the screen dimensions
+            Texture2D texture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+
+            // Read the pixels from the screen into the texture
+            texture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+            texture.Apply();
+
+            // Encode the texture into a jpg byte array
+            byte[] bytes = texture.EncodeToJPG(100);
+
+            // Save the byte array as a jpg file
+            File.WriteAllBytes(path, bytes);
+
+            // Destroy the texture to free up memory
+            Object.Destroy(texture);
         }
 
         public void CaptureReplayDataPoint(RGTickInfoData tickInfo, long playerId, RGActionRequest[] actions, RGValidationResult[] validations)
@@ -106,6 +123,7 @@ namespace RegressionGames.DataCollection
             var fullPath = Path.Join(Application.persistentDataPath, $"RGData/{_sessionName}", path);
             // Trim the file name from the path if this is a file path and not directory
             var trimmedPath = fullPath.Substring(0, fullPath.LastIndexOf('/'));
+            Debug.Log("CREATING PATH: " + trimmedPath);
             Directory.CreateDirectory(trimmedPath);
             return fullPath;
         }

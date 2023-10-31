@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,19 +19,19 @@ namespace RegressionGames.Editor.CodeGenerators
 
             foreach (var rgStateInfo in rgStateInfos)
             {
-                List<UsingDirectiveSyntax> usings = new()
+                HashSet<string> usings = new()
                 {
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.RGBotConfigs")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("RegressionGames.StateActionTypes")),
-                    SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine"))
+                    "System",
+                    "System.Collections.Generic",
+                    "RegressionGames",
+                    "RegressionGames.RGBotConfigs",
+                    "RegressionGames.StateActionTypes",
+                    "UnityEngine"
                 };
 
                 if (!string.IsNullOrEmpty(rgStateInfo.Namespace))
                 {
-                    usings.Add(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(rgStateInfo.Namespace)));
+                    usings.Add(rgStateInfo.Namespace);
                 }
                 
                 var className = $"{rgStateInfo.Object}_RGState";
@@ -39,7 +40,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 // Create a new compilation unit
                 var compilationUnit = SyntaxFactory.CompilationUnit()
                     .AddUsings(
-                        usings.ToArray()
+                        usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                     );
                 
                 // Create a new class declaration with the desired name
@@ -75,13 +76,11 @@ namespace RegressionGames.Editor.CodeGenerators
                 var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
 
                 // Write the code to a .cs file
-                string headerComment = "/*\n* This file has been automatically generated. Do not modify.\n*/\n\n";
-
                 // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGStates/{name}.cs'
                 string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGStates");
                 string fileName = $"{className}.cs";
                 string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
-                string fileContents = headerComment + formattedCode;
+                string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath));
                 File.WriteAllText(filePath, fileContents);
                 RGDebug.Log($"Successfully Generated {filePath}");
@@ -214,7 +213,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Create the GetState method
             var getStateMethod = SyntaxFactory
                 .MethodDeclaration(SyntaxFactory.ParseTypeName("Dictionary<string, object>"), "GetState")
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                .AddModifiers(SyntaxFactory.Token(SyntaxKind.ProtectedKeyword),
                     SyntaxFactory.Token(SyntaxKind.OverrideKeyword))
                 .WithBody(SyntaxFactory.Block(statements));
 

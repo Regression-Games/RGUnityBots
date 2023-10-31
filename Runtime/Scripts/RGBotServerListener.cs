@@ -60,7 +60,7 @@ namespace RegressionGames
             // keep this thing alive across scenes
             DontDestroyOnLoad(this.gameObject);
             _this = this;
-            _dataCollection = new();
+            _dataCollection = new RGDataCollection(this.gameObject);
         }
 
         void OnApplicationQuit()
@@ -547,39 +547,44 @@ namespace RegressionGames
             {
                 var gameObjectState = statefulObject.GetGameObjectState();
                 
+                // If user implements their own state script that implements IRGState
+                // then we won't be able to cast it to RGState.
+                // We'll still try to add it to the fullGameState...
+                // but we can't access its RGEntity component :-(
                 var rgState = statefulObject as RGState;
-                if (rgState == null) continue; 
-                
-                // GameObjects must have an RGEntity to be tracked in the game state.
-                var rgEntity = rgState.GetComponentInParent<RGEntity>();
-                if (rgEntity == null) continue;
-                
-                if (true.Equals(gameObjectState.isPlayer))
+                if (rgState != null) 
                 {
-                    var clientId = rgEntity.ClientId;
-                    if (clientId != null)
+                    // GameObjects must have an RGEntity to be tracked in the game state.
+                    var rgEntity = rgState.GetComponentInParent<RGEntity>();
+                    if (rgEntity == null) continue;
+                
+                    if (true.Equals(gameObjectState.isPlayer))
                     {
-                        gameObjectState["clientId"] = clientId;
-                    }
-                    
-                    if (!gameObjectState.ContainsKey("clientId"))
-                    {
-                        // for things like menu bots that end up spawning a human player
-                        // use the agent from the overlay
-                        // Note: We have to be very careful here or we'll set this up wrong
-                        // we only want to give the overlay agent to the human player.
-                        // Before the clientIds are all connected, this can mess-up
-                        clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
+                        var clientId = rgEntity.ClientId;
                         if (clientId != null)
                         {
                             gameObjectState["clientId"] = clientId;
-                            // add the agent from the player's object to the agentMap now that 
-                            // we have detected that they are here 
-                            // this happens for menu bots that spawn human players to control
-                            // doing this allows actions from the bot code to process to the human player agent
-                            // set this to avoid expensive lookups next time
-                            rgEntity.ClientId = clientId;
-                            agentMap[clientId].Add(rgEntity);
+                        }
+                    
+                        if (!gameObjectState.ContainsKey("clientId"))
+                        {
+                            // for things like menu bots that end up spawning a human player
+                            // use the agent from the overlay
+                            // Note: We have to be very careful here or we'll set this up wrong
+                            // we only want to give the overlay agent to the human player.
+                            // Before the clientIds are all connected, this can mess-up
+                            clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
+                            if (clientId != null)
+                            {
+                                gameObjectState["clientId"] = clientId;
+                                // add the agent from the player's object to the agentMap now that 
+                                // we have detected that they are here 
+                                // this happens for menu bots that spawn human players to control
+                                // doing this allows actions from the bot code to process to the human player agent
+                                // set this to avoid expensive lookups next time
+                                rgEntity.ClientId = clientId;
+                                agentMap[clientId].Add(rgEntity);
+                            }
                         }
                     }
                 }
@@ -596,7 +601,7 @@ namespace RegressionGames
                         // is automatically set to the component's RGEntity values so we don't need to worry about conflicts
                         if(combinedGameObjectState.ContainsKey(x.Key) && !_duplicatedStateFields.Contains(x.Key))
                         {
-                            RGDebug.LogWarning($"RGEntity with ObjectType {rgEntity.objectType} has duplicate state attribute {x.Key}");
+                            RGDebug.LogWarning($"RGEntity with ObjectType {combinedGameObjectState["type"]} has duplicate state attribute {x.Key}");
                         }
                         combinedGameObjectState[x.Key] = x.Value;
                     });

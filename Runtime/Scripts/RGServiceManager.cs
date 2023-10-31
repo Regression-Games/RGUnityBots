@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.Windows;
 
 namespace RegressionGames
 {
@@ -211,6 +212,94 @@ namespace RegressionGames
                 onFailure();
             }
         }
+        
+        public async Task CreateBot(RGCreateBotRequest request, Action<RGBot> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot",
+                    method: "POST",
+                    payload: JsonUtility.ToJson(request),
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGBot response = JsonUtility.FromJson<RGBot>(s);
+                        RGDebug.LogDebug(
+                            $"RGService CreateBot response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to create bot for current user: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+
+        public async Task GetBotCodeDetails(long botId, Action<RGBotCodeDetails> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot/{botId}/code-details",
+                    method: "GET",
+                    payload: null,
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGBotCodeDetails response = JsonUtility.FromJson<RGBotCodeDetails>(s);
+                        RGDebug.LogDebug(
+                            $"RGService GetBotCodeDetails response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to get bot code details for bot id: {botId} - {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+
+        public async Task UpdateBotCode(long botId, string filePath, Action<RGBotCodeDetails> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot/{botId}/update-code",
+                    method: "POST",
+                    filePath: filePath,
+                    contentType: "application/zip",
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGBotCodeDetails response = JsonUtility.FromJson<RGBotCodeDetails>(s);
+                        RGDebug.LogDebug(
+                            $"RGService GetBotCodeDetails response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to get bot code details for bot id: {botId} - {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
 
         public async Task DownloadBotCode(long botId, string destinationFilePath, Action onSuccess, Action onFailure)
         {
@@ -248,7 +337,7 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot-results/{botInstanceId}/screenshots/{tick}",
                     method: "POST",
                     filePath: filePath,
-                    contentType: "image/png",
+                    contentType: "image/jpeg",
                     onSuccess: async (s) =>
                     {
                         onSuccess.Invoke();

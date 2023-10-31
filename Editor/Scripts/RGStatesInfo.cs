@@ -12,6 +12,7 @@ namespace RegressionGames.Editor
     [Serializable]
     public class RGStatesInfo
     {
+        public string AssemblyName;
         public string Namespace;
         public string Object;
         // the object type, given by the developer

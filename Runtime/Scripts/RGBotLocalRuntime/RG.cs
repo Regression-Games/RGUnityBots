@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 
@@ -47,6 +48,21 @@ namespace RegressionGames.RGBotLocalRuntime
         public Dictionary<string, RGStateEntity> GetState()
         {
             return _tickInfo.gameState;
+        }
+
+        /**
+         * <summary>Returns the first player for my client id.
+         * <br/><br/>
+         * WARNING: When controlling multiple player bots from a single client the result of this method may change from one tick to the next.</summary>
+         */
+        public RGStateEntity GetMyPlayer()
+        {
+            var players = GetMyPlayers();
+            if (players.Count > 0)
+            {
+                return players[0];
+            }
+            return null;
         }
 
         /**
@@ -188,7 +204,7 @@ namespace RegressionGames.RGBotLocalRuntime
         
         /**
          * <summary>Queue an action to perform.  Multiple actions can be queued per tick</summary>
-         * <param name="rgAction">{RGActionRequest} action request to queue</param>
+         * <param name="rgAction"><see cref="RGActionRequest"/> action request to queue</param>
          */
         public void PerformAction(RGActionRequest rgAction)
         {
@@ -197,13 +213,21 @@ namespace RegressionGames.RGBotLocalRuntime
         
         /**
          * <summary>Record a validation result.  Multiple validation results can be recorded per tick</summary>
-         * <param name="rgValidation">{RGValidationResult} validation result to queue</param>
+         * <param name="rgValidation"><see cref="RGValidationResult"/> validation result to queue</param>
          */
         public void RecordValidation(RGValidationResult rgValidation)
         {
             _validationResults.Enqueue(rgValidation);
         }
-        
+
+        /**
+         * <summary>Sets the <see cref="CharacterConfig"/> field by parsing the provided JSON string.</summary>
+         * <param name="characterConfigJson">A JSON string representing the character config.</param>
+         */
+        public void SetCharacterConfigFromJson(string characterConfigJson)
+        {
+            this.CharacterConfig = JsonConvert.DeserializeObject<Dictionary<string, object>>(characterConfigJson);
+        }
         
         internal void SetCharacterConfig(Dictionary<string, object> characterConfig)
         {
@@ -234,7 +258,6 @@ namespace RegressionGames.RGBotLocalRuntime
             }
             return result;
         }
-        
         
     }
     

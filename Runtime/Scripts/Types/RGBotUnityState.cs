@@ -15,6 +15,7 @@ namespace RegressionGames.Types
         public static RGUnityBotState RUNNING => new("RUNNING");
         public static RGUnityBotState TEARING_DOWN => new("TEARING_DOWN");
         public static RGUnityBotState STOPPED => new("STOPPED");
+        public static RGUnityBotState ERRORED => new("ERRORED");
         public static RGUnityBotState UNKNOWN => new("UNKNOWN");
 
         public override string ToString()
