@@ -3,8 +3,10 @@ using System;
 namespace RegressionGames.Editor
 {
     [Serializable]
-    public class RGStateInfo
+    public class RGStateAttributeInfo
     {
+        public string FieldType;
+        public string FieldName;
         public string StateName;
         public string Type;
     }

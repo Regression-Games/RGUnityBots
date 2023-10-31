@@ -15,19 +15,33 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.Editor.CodeGenerators
 {
+    /**
+     * This calls takes a multi pass approach for states, but a single pass approach for actions.
+     * This may change for actions in the future if we see more prevalence of writing custom action classes,
+     * but for now assumes that actions are only done with [RGAction] attributes.
+     *
+     * State
+     * 1. Find [RGState] attributes and generate classes for them
+     * 2. Use RGStateEntity classes to define what is the state for AgentBuilder json.
+     *      (this accounts for generated and hand written state classes)
+     *
+     * Actions
+     * 1. Find [RGAction] attributes and generate classes for them; captures the generated class name
+     * 2. /\ This same information is used as the available actions for AgentBuilder json.
+     */
     public class RGCodeGenerator
     {
         [MenuItem("Regression Games/Generate Scripts")]
         private static void GenerateRGScripts()
         {
+            // find and extract RGState data
+            var stateAttributesInfos = SearchForBotStateAttributes();            
+            // generate classes
+            GenerateStateClasses(stateAttributesInfos);
+
             // find and extract RGAction data
             var actionInfos = SearchForBotActionAttributes();
-            
-            // find and extract RGState data
-            var statesInfos = SearchForBotStateAttributes();
-            
             // generate classes
-            GenerateStateClasses(statesInfos);
             GenerateActionClasses(actionInfos);
         }
 
@@ -36,18 +50,20 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // just in case they haven't done this recently or ever...
             // find and extract RGState data
-            var statesInfos = SearchForBotStateAttributes();
-            // generate classes from these so that their RGStateEntity classes exist before the below step
-            GenerateStateClasses(statesInfos);
+            var stateAttributesInfos = SearchForBotStateAttributes();
+            // generate classes so that their RGStateEntity classes exist before the CreateStateInfoFromRGStateEntities step
+            GenerateStateClasses(stateAttributesInfos);
             
             // find and extract RGAction data
             var actionInfos = SearchForBotActionAttributes();
+            // generate classes
+            GenerateActionClasses(actionInfos);
 
             // Find RGStateEntity scripts and generate state info from them
             // Do NOT include the previous state infos.. so we don't have dupes
             // This gives us a consistent view across both generated and hand written state class entities
-            statesInfos = CreateStateInfoFromRGStateEntities();
-            
+            var statesInfos = CreateStateInfoFromRGStateEntities();
+
             // if these have been associated to gameObjects with RGEntities, fill in their objectTypes
             PopulateObjectTypes(statesInfos, actionInfos);
             
@@ -151,7 +167,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
         }
         
-        private static void GenerateStateClasses(List<RGStatesInfo> rgStatesInfos)
+        private static void GenerateStateClasses(List<RGStateAttributesInfo> rgStateAttributesInfos)
         {
             // remove previous RGStates
             string dataPath = Application.dataPath;
@@ -164,16 +180,16 @@ namespace RegressionGames.Editor.CodeGenerators
                 AssetDatabase.Refresh();
             }
             
-            GenerateRGStateClasses.Generate(rgStatesInfos);
+            GenerateRGStateClasses.Generate(rgStateAttributesInfos);
         }
 
-        private static List<RGStatesInfo> SearchForBotStateAttributes()
+        private static List<RGStateAttributesInfo> SearchForBotStateAttributes()
         {
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => !path.Contains("Library") && !path.Contains("Temp"))
                 .ToArray();
 
-            List<RGStatesInfo> rgStateInfoList = new List<RGStatesInfo>();
+            List<RGStateAttributesInfo> rgStateInfoList = new List<RGStateAttributesInfo>();
 
             foreach (string csFilePath in csFiles)
             {
@@ -195,7 +211,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
 
                     string className = classDeclaration.Identifier.ValueText;
-                    List<RGStateInfo> stateList = new List<RGStateInfo>();
+                    List<RGStateAttributeInfo> stateList = new List<RGStateAttributeInfo>();
                     
                     var membersWithRGState = classDeclaration.Members
                         .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")));
@@ -261,7 +277,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
                                 .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
-                        stateList.Add(new RGStateInfo
+                        stateList.Add(new RGStateAttributeInfo
                         {
                             FieldType = fieldType,
                             FieldName = fieldName,
@@ -272,10 +288,10 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     if (stateList.Any())
                     {
-                        rgStateInfoList.Add(new RGStatesInfo
+                        rgStateInfoList.Add(new RGStateAttributesInfo
                         {
-                            Namespace = nameSpace,
-                            Object = className,
+                            NameSpace = nameSpace,
+                            ClassName = className,
                             State = stateList
                         });
                     }
@@ -314,14 +330,13 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 foreach (var classDeclaration in rgStateEntityClassDeclarations)
                 {
-                    string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
-
                     string className = classDeclaration.Identifier.ValueText;
                     List<RGStateInfo> stateList = new List<RGStateInfo>();
 
                     var classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as ITypeSymbol;
                     var rgStateClassName = classSymbol.BaseType.TypeArguments[0].ToDisplayString();
-                    
+
+                    // for now we assume RGStateEntity is directly subclassed; if we allow nesting.. then we'll need to get the members from the parent type as well
                     var publicMembersAndDelegates = classDeclaration.Members
                         .Where(m => m.Modifiers.Any());
 
@@ -343,8 +358,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                 continue;
                             }
                         }
-
-                        string fieldType = "variable"; // property delegate or field.. still just looks like a variable to the code generator
+                        
                         string fieldName = member is PropertyDeclarationSyntax
                             ? ((PropertyDeclarationSyntax) member).Identifier.ValueText
                             : ((FieldDeclarationSyntax) member).Declaration.Variables.First().Identifier.ValueText;
@@ -357,8 +371,6 @@ namespace RegressionGames.Editor.CodeGenerators
 
                         stateList.Add(new RGStateInfo
                         {
-                            FieldType = fieldType,
-                            FieldName = fieldName,
                             StateName = fieldName,
                             Type = type
                         });
@@ -368,8 +380,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     {
                         rgStateInfoList.Add(new RGStatesInfo
                         {
-                            Namespace = nameSpace,
-                            Object = rgStateClassName,
+                            ClassName = rgStateClassName,
                             State = stateList
                         });
                     }
@@ -430,12 +441,12 @@ namespace RegressionGames.Editor.CodeGenerators
             
             // map of object names and object types
             Dictionary<Type, string> objectTypeMap = new Dictionary<Type, string>();
-            Dictionary<string, string> objectNameMap = new Dictionary<string, string>();
+            Dictionary<string, string> objectClassNameMap = new Dictionary<string, string>();
             
             // Get all Object names from RGActions
             foreach (var action in actionInfos)
             {
-                string objectName = action.Object;
+                string objectName = action.GeneratedClassName;
                 if (!objectTypeNames.Contains(objectName))
                 {
                     objectTypeNames.Add(objectName);
@@ -445,7 +456,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Get all Object names from RGStates
             foreach (var state in statesInfos)
             {
-                string objectName = state.Object;
+                string objectName = state.ClassName;
                 if (!objectTypeNames.Contains(objectName))
                 {
                     objectTypeNames.Add(objectName);
@@ -459,9 +470,17 @@ namespace RegressionGames.Editor.CodeGenerators
                 if (objectType != null)
                 {
                     objectTypeMap.TryAdd(objectType, null);
-                }else
+                }
+                else
                 {
-                    RGDebug.LogWarning("Type not found: " + objectName);
+                    objectType = Type.GetType(objectName+ ", RegressionGames");
+                    if (objectType != null)
+                    {
+                        objectTypeMap.TryAdd(objectType, null);
+                    }else
+                    {
+                        RGDebug.LogWarning("Type not found: " + objectName);
+                    }
                 }
             }
 
@@ -473,7 +492,10 @@ namespace RegressionGames.Editor.CodeGenerators
                 var entityMap = entity.MapObjectType(objectTypeMap);
                 foreach (var kvp in entityMap)
                 {
-                    objectTypeMap[kvp.Key] = kvp.Value;
+                    if (kvp.Value != null)
+                    {
+                        objectTypeMap[kvp.Key] = kvp.Value;
+                    }
                 }
             }
             
@@ -492,7 +514,10 @@ namespace RegressionGames.Editor.CodeGenerators
                         var entityMap = prefabComponent.MapObjectType(objectTypeMap);
                         foreach (var kvp in entityMap)
                         {
-                            objectTypeMap[kvp.Key] = kvp.Value;
+                            if (kvp.Value != null)
+                            {
+                                objectTypeMap[kvp.Key] = kvp.Value;
+                            }
                         }
                     }
                 }
@@ -501,13 +526,13 @@ namespace RegressionGames.Editor.CodeGenerators
             // Convert System Type to string
             foreach (var kvp in objectTypeMap)
             {
-                objectNameMap.TryAdd(kvp.Key.ToString(), kvp.Value);
+                objectClassNameMap.TryAdd(kvp.Key.ToString(), kvp.Value);
             }
             
             // Assign ObjectTypes to RGActions
             foreach (var action in actionInfos)
             {
-                if (objectNameMap.TryGetValue(action.Object, out var value))
+                if (objectClassNameMap.TryGetValue(action.GeneratedClassName, out var value))
                 {
                     action.ObjectType = value;
                 }
@@ -516,7 +541,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Assign Object Types to RGStates
             foreach (var state in statesInfos)
             {
-                if (objectNameMap.TryGetValue(state.Object, out var value))
+                if (objectClassNameMap.TryGetValue(state.ClassName, out var value))
                 {
                     state.ObjectType = value;
                 }

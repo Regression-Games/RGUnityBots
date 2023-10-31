@@ -20,5 +20,8 @@ namespace RegressionGames.Editor
         public string ActionName;
         // the parameters of the method
         public List<RGParameterInfo> Parameters;
+
+        // The fully qualified name of the class generated for this [RGAction] attribute
+        public string GeneratedClassName;
     }
 }

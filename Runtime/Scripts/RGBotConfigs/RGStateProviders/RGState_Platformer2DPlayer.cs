@@ -5,7 +5,7 @@ using RegressionGames.StateActionTypes;
 using RGBotConfigs.RGStateProviders;
 using UnityEngine;
 
-namespace RegressionGames
+namespace RegressionGames.RGBotConfigs.RGStateProviders
 {
     [Serializable]
     public class RGState_Platformer2DPlayer : RGState

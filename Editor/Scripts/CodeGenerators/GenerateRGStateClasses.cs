@@ -13,9 +13,9 @@ namespace RegressionGames.Editor.CodeGenerators
     // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGStateClasses
     {
-        public static void Generate(List<RGStatesInfo> rgStateInfos)
+        public static void Generate(List<RGStateAttributesInfo> rgStateAttributesInfos)
         {
-            foreach (var rgStateInfo in rgStateInfos)
+            foreach (var rgStateAttributeInfo in rgStateAttributesInfos)
             {
                 HashSet<string> usings = new()
                 {
@@ -27,13 +27,13 @@ namespace RegressionGames.Editor.CodeGenerators
                     "UnityEngine"
                 };
 
-                if (!string.IsNullOrEmpty(rgStateInfo.Namespace))
+                if (!string.IsNullOrEmpty(rgStateAttributeInfo.NameSpace))
                 {
-                    usings.Add(rgStateInfo.Namespace);
+                    usings.Add(rgStateAttributeInfo.NameSpace);
                 }
                 
-                var className = $"RGState_{rgStateInfo.Object}";
-                var componentType = rgStateInfo.Object;
+                var className = $"RGState_{rgStateAttributeInfo.ClassName}";
+                var componentType = rgStateAttributeInfo.ClassName;
 
                 // Create a new compilation unit
                 var compilationUnit = CompilationUnit()
@@ -53,10 +53,10 @@ namespace RegressionGames.Editor.CodeGenerators
                     .AddModifiers(Token(SyntaxKind.PrivateKeyword));
 
                 // Create the Start method
-                var startMethod = GenerateStartMethod(componentType, rgStateInfo.State);
+                var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
 
                 // Create the GetState method
-                var getStateMethod = GenerateGetStateMethod(componentType, rgStateInfo.State);
+                var getStateMethod = GenerateGetStateMethod(componentType, rgStateAttributeInfo.State);
 
                 // Add the members to the class declaration
                 classDeclaration = classDeclaration
@@ -66,7 +66,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 var namespaceDeclaration = NamespaceDeclaration(ParseName("RegressionGames.RGBotConfigs"))
                     .AddMembers(
                         classDeclaration,
-                        ClassDeclaration($"RGStateEntity_{rgStateInfo.Object}")
+                        ClassDeclaration($"RGStateEntity_{rgStateAttributeInfo.ClassName}")
                             .AddModifiers(
                                 Token(SyntaxKind.PublicKeyword)
                                 // Only add one of the "class" keywords here
@@ -79,13 +79,13 @@ namespace RegressionGames.Editor.CodeGenerators
                                         .WithTypeArgumentList(
                                             TypeArgumentList(
                                                 SingletonSeparatedList<TypeSyntax>(
-                                                    IdentifierName($"RGState_{rgStateInfo.Object}")
+                                                    IdentifierName($"RGState_{rgStateAttributeInfo.ClassName}")
                                                 )
                                             )
                                         )
                                 )
                             ).AddMembers(
-                                GenerateStateEntityFields(rgStateInfo.State)
+                                GenerateStateEntityFields(rgStateAttributeInfo.State)
                             )
 
                     );
@@ -109,7 +109,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
 
-        private static MethodDeclarationSyntax GenerateStartMethod(string componentType, List<RGStateInfo> stateInfos)
+        private static MethodDeclarationSyntax GenerateStartMethod(string componentType, List<RGStateAttributeInfo> stateInfos)
         {
             var startMethod = MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), "Start")
                 .AddModifiers(Token(SyntaxKind.PublicKeyword))
@@ -174,7 +174,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return startMethod;
         }
 
-        private static MethodDeclarationSyntax GenerateGetStateMethod(string componentType, List<RGStateInfo> memberInfos)
+        private static MethodDeclarationSyntax GenerateGetStateMethod(string componentType, List<RGStateAttributeInfo> memberInfos)
         {
             var statements = new List<StatementSyntax>
             {
@@ -240,7 +240,7 @@ namespace RegressionGames.Editor.CodeGenerators
         
         
         
-        private static MemberDeclarationSyntax[] GenerateStateEntityFields(List<RGStateInfo> memberInfos)
+        private static MemberDeclarationSyntax[] GenerateStateEntityFields(List<RGStateAttributeInfo> memberInfos)
         {
             var fields = new List<MemberDeclarationSyntax>();
             foreach (var memberInfo in memberInfos)
@@ -251,7 +251,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return fields.ToArray();
         }
 
-        private static PropertyDeclarationSyntax GeneratePropertyDeclaration(RGStateInfo memberInfo)
+        private static PropertyDeclarationSyntax GeneratePropertyDeclaration(RGStateAttributeInfo memberInfo)
         {
             var specialNumberTypes = new [] {
                 "float","double","decimal","sbyte","byte","short","ushort","int","uint","long","ulong"
@@ -264,7 +264,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return GeneratePropertyDeclarationForNormalTypes(memberInfo);
         }
 
-        private static PropertyDeclarationSyntax GeneratePropertyDeclarationForNormalTypes(RGStateInfo memberInfo)
+        private static PropertyDeclarationSyntax GeneratePropertyDeclarationForNormalTypes(RGStateAttributeInfo memberInfo)
         {
             return PropertyDeclaration(
                     IdentifierName(memberInfo.Type),
@@ -325,7 +325,7 @@ namespace RegressionGames.Editor.CodeGenerators
          * public nuint nui1 => (nuint)this.GetValueOrDefault("nui1");
          * public bool isAlive => (bool)this.GetValueOrDefault("isAlive");
          */
-        private static PropertyDeclarationSyntax GeneratePropertyDeclarationForNumbers(RGStateInfo memberInfo)
+        private static PropertyDeclarationSyntax GeneratePropertyDeclarationForNumbers(RGStateAttributeInfo memberInfo)
         {
             return PropertyDeclaration(
                     IdentifierName(memberInfo.Type),

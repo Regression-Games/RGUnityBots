@@ -32,6 +32,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     usings.Add(botAction.Namespace);
                 }
+
+                botAction.GeneratedClassName = $"RegressionGames.RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
                 
                 // Create a new compilation unit
                 CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()

@@ -1,16 +1,18 @@
 using System;
 using System.Collections.Generic;
+using RegressionGames.RGBotConfigs;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.Tilemaps;
 
-namespace RegressionGames.RGBotConfigs
+namespace RegressionGames.RGBotConfigs.RGStateProviders
 {
     /**
      * Provides 2D raycast information in the state from the perspective of the
      * GameObject to which this behavior is attached
      */
+    [Serializable]
     [DisallowMultipleComponent]
     [Tooltip("Provides state information about the tile grid in the current visible screen space.")]
     public class RGState_Platformer2DLevel: RGState
