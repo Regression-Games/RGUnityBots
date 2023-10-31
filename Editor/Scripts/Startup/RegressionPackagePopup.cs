@@ -40,7 +40,7 @@ public class RegressionPackagePopup : EditorWindow
         }
     }
     
-    [MenuItem("Regression Games/Setup")]
+    [MenuItem("Regression Games/Getting Started")]
     public static async void ShowWindow()
     {
         // attempt a login with saved credentials
