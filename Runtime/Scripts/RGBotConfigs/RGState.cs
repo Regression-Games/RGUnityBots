@@ -11,6 +11,7 @@ using UnityEngine;
  */
 namespace RegressionGames.RGBotConfigs
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     [RequireComponent(typeof(RGEntity))]
     // ReSharper disable once InconsistentNaming
     public abstract class RGState : MonoBehaviour, IRGState

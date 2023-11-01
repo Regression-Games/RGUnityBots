@@ -13,6 +13,7 @@ using UnityEngine.SceneManagement;
 
 namespace RegressionGames
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGBotServerListener : MonoBehaviour
     {
         [SerializeField]

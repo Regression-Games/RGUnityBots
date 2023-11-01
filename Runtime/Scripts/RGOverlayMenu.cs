@@ -10,6 +10,7 @@ using UnityEngine.UI;
 
 namespace RegressionGames
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGOverlayMenu : MonoBehaviour
     {
         
