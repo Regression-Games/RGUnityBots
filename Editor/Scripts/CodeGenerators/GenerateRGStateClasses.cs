@@ -270,7 +270,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             return PropertyDeclaration(
                     IdentifierName(memberInfo.Type),
-                    Identifier(memberInfo.FieldName)
+                    Identifier(memberInfo.StateName)
                 )
                 .WithModifiers(
                     TokenList(
@@ -294,7 +294,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                             Argument(
                                                 LiteralExpression(
                                                     SyntaxKind.StringLiteralExpression,
-                                                    Literal(memberInfo.FieldName)
+                                                    Literal(memberInfo.StateName)
                                                 )
                                             )
                                         )
@@ -331,7 +331,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             return PropertyDeclaration(
                     IdentifierName(memberInfo.Type),
-                    Identifier(memberInfo.FieldName)
+                    Identifier(memberInfo.StateName)
                 )
                 .WithModifiers(
                     TokenList(
@@ -369,7 +369,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                                                 Argument(
                                                                     LiteralExpression(
                                                                         SyntaxKind.StringLiteralExpression,
-                                                                        Literal(memberInfo.FieldName)
+                                                                        Literal(memberInfo.StateName)
                                                                     )
                                                                 )
                                                             )
