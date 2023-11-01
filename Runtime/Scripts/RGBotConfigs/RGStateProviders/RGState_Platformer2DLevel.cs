@@ -27,8 +27,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     [Serializable]
     public class RGStateEntity_Platformer2DLevel : RGStateEntity<RGState_Platformer2DLevel>
     {
-        public Vector3 tileCellSize = Vector3.one;
-        public RGPlatformer2DPosition[] platformPositions = Array.Empty<RGPlatformer2DPosition>();
+        public Vector3 tileCellSize => (Vector3)this.GetValueOrDefault("tileCellSize", Vector3.one);
+        public RGPlatformer2DPosition[] platformPositions => (RGPlatformer2DPosition[])this.GetValueOrDefault("platformPositions", Array.Empty<RGPlatformer2DPosition>());
     }
     
     /**
