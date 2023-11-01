@@ -12,7 +12,7 @@ namespace RegressionGames.Editor.CodeGenerators
     // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGActionMapClass
     {
-        public static void Generate(List<RGActionInfo> botActions)
+        public static void Generate(List<RGActionAttributeInfo> botActions)
         {
 
             HashSet<string> usings = new()
@@ -54,7 +54,7 @@ namespace RegressionGames.Editor.CodeGenerators
             AssetDatabase.Refresh();
         }
 
-        private static ClassDeclarationSyntax GenerateClass(List<RGActionInfo> botActions)
+        private static ClassDeclarationSyntax GenerateClass(List<RGActionAttributeInfo> botActions)
         {
             var methodsList = new List<MethodDeclarationSyntax>();
 

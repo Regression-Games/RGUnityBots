@@ -13,7 +13,7 @@ namespace RegressionGames.Editor.CodeGenerators
     // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGActionClasses
     {
-        public static void Generate(List<RGActionInfo> actionInfos)
+        public static void Generate(List<RGActionAttributeInfo> actionInfos)
         {
             // Iterate through BotActions
             foreach (var botAction in actionInfos)
@@ -91,7 +91,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
 
-        private static MemberDeclarationSyntax GenerateStartMethod(RGActionInfo action)
+        private static MemberDeclarationSyntax GenerateStartMethod(RGActionAttributeInfo action)
         {
             var methodBody = SyntaxFactory.Block(
                 SyntaxFactory.ExpressionStatement(
@@ -128,7 +128,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return startMethod;
         }
 
-        private static MemberDeclarationSyntax GenerateGetActionNameMethod(RGActionInfo action)
+        private static MemberDeclarationSyntax GenerateGetActionNameMethod(RGActionAttributeInfo action)
         {
             // Create a method body with return statement
             BlockSyntax methodBody = SyntaxFactory.Block(
@@ -148,7 +148,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return getActionNameMethod;
         }
         
-        private static ArgumentSyntax GenerateActionDelegate(RGActionInfo action)
+        private static ArgumentSyntax GenerateActionDelegate(RGActionAttributeInfo action)
         {
             // Generate the GetComponent<Object>().MethodName piece for both cases (0 and non-0 parameters)
             var methodExpression = SyntaxFactory.MemberAccessExpression(

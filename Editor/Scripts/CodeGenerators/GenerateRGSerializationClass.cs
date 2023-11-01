@@ -11,7 +11,7 @@ namespace RegressionGames.Editor.CodeGenerators
     // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGSerializationClass
     {
-        public static void Generate(List<RGActionInfo> botActions)
+        public static void Generate(List<RGActionAttributeInfo> botActions)
         {
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
@@ -38,7 +38,7 @@ namespace RegressionGames.Editor.CodeGenerators
             AssetDatabase.Refresh();
         }
 
-        private static ClassDeclarationSyntax GenerateClass(List<RGActionInfo> botActions)
+        private static ClassDeclarationSyntax GenerateClass(List<RGActionAttributeInfo> botActions)
         {
             // Generate methods for deserialization based on parameter types
             List<MemberDeclarationSyntax> methodDeclarations = new List<MemberDeclarationSyntax>();
