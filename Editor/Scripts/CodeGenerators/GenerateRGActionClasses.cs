@@ -1,8 +1,7 @@
-using System;
+
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,88 +10,96 @@ using UnityEngine;
 
 namespace RegressionGames.Editor.CodeGenerators
 {
+    // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGActionClasses
     {
-        public static void Generate(string jsonData)
+        public static void Generate(List<RGActionAttributeInfo> actionInfos)
         {
-            // Load JSON input
-            RGActionsInfo actionsInfo = JsonUtility.FromJson<RGActionsInfo>(jsonData);
-
             // Iterate through BotActions
-            foreach (var botAction in actionsInfo.BotActions)
+            foreach (var botAction in actionInfos)
             {
-                HashSet<string> usings = new()
+                if (botAction.ShouldGenerateCSFile)
                 {
-                    "System",
-                    "System.Collections.Generic",
-                    "RegressionGames",
-                    "RegressionGames.RGBotConfigs",
-                    "RegressionGames.StateActionTypes",
-                    "UnityEngine"
-                };
+                    HashSet<string> usings = new()
+                    {
+                        "System",
+                        "System.Collections.Generic",
+                        "RegressionGames",
+                        "RegressionGames.RGBotConfigs",
+                        "RegressionGames.StateActionTypes",
+                        "UnityEngine"
+                    };
 
-                if (!string.IsNullOrEmpty(botAction.Namespace))
-                {
-                    usings.Add(botAction.Namespace);
-                }
-                
-                // Create a new compilation unit
-                CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
-                    .AddUsings(
-                        usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
-                    )
-                    .AddMembers(
-                        // Namespace
-                        SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
-                        .AddMembers(
-                            // Class declaration
-                            SyntaxFactory.ClassDeclaration($"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
-                                .AddModifiers(
-                                    SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                    // Only add one of the "class" keywords here
-                                )
-                                .AddBaseListTypes(
-                                    SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGAction"))
-                                )
-                                .AddMembers(
-                                    // Start method
-                                    GenerateStartMethod(botAction),
-                                    // GetActionName method
-                                    GenerateGetActionNameMethod(botAction),
-                                    // StartAction method
-                                    GenerateStartActionMethod(botAction)
-                                ),
-                            SyntaxFactory.ClassDeclaration($"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
-                                .AddModifiers(
-                                    SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                    // Only add one of the "class" keywords here
-                                )
-                                .AddBaseListTypes(
-                                    SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGActionRequest"))
-                                ).AddMembers(
-                                    // Action Request method
-                                    GenerateActionRequestConstructor(botAction)
-                                )
+                    if (!string.IsNullOrEmpty(botAction.Namespace))
+                    {
+                        usings.Add(botAction.Namespace);
+                    }
+
+                    botAction.GeneratedClassName =
+                        $"RegressionGames.RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
+
+                    // Create a new compilation unit
+                    CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
+                        .AddUsings(
+                            usings.Select(v => SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                         )
-                    );
+                        .AddMembers(
+                            // Namespace
+                            SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
+                                .AddMembers(
+                                    // Class declaration
+                                    SyntaxFactory
+                                        .ClassDeclaration(
+                                            $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
+                                        .AddModifiers(
+                                            SyntaxFactory.Token(SyntaxKind.PublicKeyword)
+                                            // Only add one of the "class" keywords here
+                                        )
+                                        .AddBaseListTypes(
+                                            SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGAction"))
+                                        )
+                                        .AddMembers(
+                                            // Start method
+                                            GenerateStartMethod(botAction),
+                                            // GetActionName method
+                                            GenerateGetActionNameMethod(botAction),
+                                            // StartAction method
+                                            GenerateStartActionMethod(botAction)
+                                        ),
+                                    SyntaxFactory
+                                        .ClassDeclaration(
+                                            $"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
+                                        .AddModifiers(
+                                            SyntaxFactory.Token(SyntaxKind.PublicKeyword)
+                                            // Only add one of the "class" keywords here
+                                        )
+                                        .AddBaseListTypes(
+                                            SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGActionRequest"))
+                                        ).AddMembers(
+                                            // Action Request method
+                                            GenerateActionRequestConstructor(botAction)
+                                        )
+                                )
+                        );
 
-                // Format the generated code
-                string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
+                    // Format the generated code
+                    string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
 
-                // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
-                string fileName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}.cs";
-                string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGActions");
-                string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
-                string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
+                    // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
+                    string fileName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}.cs";
+                    string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGActions");
+                    string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
+                    string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
 
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                File.WriteAllText(filePath, fileContents);
-                RGDebug.Log($"Successfully Generated {filePath}");
-                AssetDatabase.Refresh();
+                    Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+                    File.WriteAllText(filePath, fileContents);
+                    RGDebug.Log($"Successfully Generated {filePath}");
+                    AssetDatabase.Refresh();
+                }
             }
         }
 
-        private static MemberDeclarationSyntax GenerateStartMethod(RGActionInfo action)
+        private static MemberDeclarationSyntax GenerateStartMethod(RGActionAttributeInfo action)
         {
             var methodBody = SyntaxFactory.Block(
                 SyntaxFactory.ExpressionStatement(
@@ -129,7 +136,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return startMethod;
         }
 
-        private static MemberDeclarationSyntax GenerateGetActionNameMethod(RGActionInfo action)
+        private static MemberDeclarationSyntax GenerateGetActionNameMethod(RGActionAttributeInfo action)
         {
             // Create a method body with return statement
             BlockSyntax methodBody = SyntaxFactory.Block(
@@ -149,7 +156,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return getActionNameMethod;
         }
         
-        private static ArgumentSyntax GenerateActionDelegate(RGActionInfo action)
+        private static ArgumentSyntax GenerateActionDelegate(RGActionAttributeInfo action)
         {
             // Generate the GetComponent<Object>().MethodName piece for both cases (0 and non-0 parameters)
             var methodExpression = SyntaxFactory.MemberAccessExpression(
@@ -310,7 +317,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 tryParseStatement += ")";
                 tryParseStatement += $"{{ {paramName} = ({paramType}){paramName}Input; }}";
-                tryParseStatement += $"\r\nelse {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_").Replace("?", "")}";
+                tryParseStatement += $"else {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_").Replace("?", "")}";
 
                 if (param.Nullable)
                 {
