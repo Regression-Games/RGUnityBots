@@ -35,7 +35,7 @@ namespace RegressionGames.Editor.CodeGenerators
         // Used to exclude sample projects' directories from generation
         // so that we don't duplicate .cs files that are already included in the sample projects.
         // But while still scanning them so that we can include their States/Actions in the json.
-        internal static HashSet<string> _excludeDirectories = new() {
+        private static HashSet<string> _excludeDirectories = new() {
             "ThirdPersonDemoURP"
         };
 
