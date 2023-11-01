@@ -63,7 +63,7 @@ namespace RegressionGames.Editor
         {
             foreach (var gameStateObject in tickData.gameState)
             {
-                RGStateEntity entity = gameStateObject.Value;
+                IRGStateEntity entity = gameStateObject.Value;
                 var entityId = entity.id;
 
                 var tickInfo = populateTickInfoDataForEntity(tickNumber, entityId);
@@ -165,7 +165,7 @@ namespace RegressionGames.Editor
     {
         public RGActionRequest[] actions = Array.Empty<RGActionRequest>();
         public RGValidationResult[] validationResults = Array.Empty<RGValidationResult>();
-        public RGStateEntity state;
+        public IRGStateEntity state;
     }
 
     [Serializable]

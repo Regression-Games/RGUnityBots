@@ -4,6 +4,6 @@ namespace RegressionGames.RGBotConfigs
 {
     public interface IRGState
     {
-        public RGStateEntity GetGameObjectState();
+        public IRGStateEntity GetGameObjectState();
     }
 }

@@ -17,11 +17,9 @@ namespace RegressionGames.RGBotConfigs
     public abstract class RGState : MonoBehaviour, IRGState
     {
         // ReSharper disable once InconsistentNaming
-        // we require each state to have an 'RGEntity' component on the same GameObject
-        protected RGEntity rgEntity
-        {
-            get { return GetComponent<RGEntity>(); }
-        }
+        // we require each state to have an 'RGEntity' component
+        protected RGEntity rgEntity => GetComponent<RGEntity>();
+
 
         /**
          * <summary>A function that is overriden to provide the custom state of this specific GameObject.
@@ -37,9 +35,10 @@ namespace RegressionGames.RGBotConfigs
          * <summary>Returns the entire internal state for this object, which consists of the default
          * states tracked by RG, and the result of any overridden GetState implementation.</summary>
          */
-        public RGStateEntity GetGameObjectState()
+        public IRGStateEntity GetGameObjectState()
         {
-            var state = CreateStateEntity();
+            var state = CreateStateEntityClassInstance();
+
             var dict = GetState();
             foreach (var entry in dict)
             {
@@ -53,19 +52,19 @@ namespace RegressionGames.RGBotConfigs
         /**
          * <summary>A function that is overridden to supply a custom implementation of RGStateEntity.
          * This allows more natural coding when working with the state for local C# Unity bots vs accessing entries in a Dictionary.</summary>
-         * <example>RGStatePlatformer2DPlayer</example>
+         * <example>RGStateEntity_Platformer2DPlayer</example>
          */
-        protected virtual RGStateEntity CreateStateEntity()
+        protected virtual IRGStateEntity CreateStateEntityClassInstance()
         {
-            return new RGStateEntity();
+            return new RGStateEntity<RGState>();
         }
         
         
         // Used to fill in the core state for any RGEntity that does NOT have an
         // RGState implementation on its game object
-        public static RGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
+        public static IRGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
         {
-            var state = new RGStateEntity();
+            var state = new RGStateEntity<RGState>();
             PopulateCoreStateForEntity(state, rgEntity);
             if (rgEntity.includeStateForAllBehaviours)
             {
@@ -74,7 +73,7 @@ namespace RegressionGames.RGBotConfigs
             return state;
         }
 
-        private static void PopulateCoreStateForEntity(RGStateEntity state, RGEntity entity)
+        private static void PopulateCoreStateForEntity(IRGStateEntity state, RGEntity entity)
         {
             var theTransform = entity.transform;
             
@@ -86,7 +85,7 @@ namespace RegressionGames.RGBotConfigs
             state["rotation"] = theTransform.rotation;
         }
 
-        private static void PopulateEverythingStateForEntity(RGStateEntity state, RGEntity entity)
+        private static void PopulateEverythingStateForEntity(IRGStateEntity state, RGEntity entity)
         {
             var obsoleteAttributeType = typeof(ObsoleteAttribute);
             // find all Components and get their values
