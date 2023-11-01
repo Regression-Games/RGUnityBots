@@ -15,6 +15,8 @@ namespace RegressionGames.Editor
         public string MethodName;
         // The fully qualified name of the class generated for this [RGAction] attribute
         public string GeneratedClassName;
+        // Whether to generate a CS file for this action, default true, but false for sample project assets
+        public bool ShouldGenerateCSFile = true;
 
         public RGActionInfo toRGActionInfo()
         {

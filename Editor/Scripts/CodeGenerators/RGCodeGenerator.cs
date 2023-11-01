@@ -32,6 +32,13 @@ namespace RegressionGames.Editor.CodeGenerators
      */
     public class RGCodeGenerator
     {
+        // Used to exclude sample projects' directories from generation
+        // so that we don't duplicate .cs files that are already included in the sample projects.
+        // But while still scanning them so that we can include their States/Actions in the json.
+        internal static HashSet<string> _excludeDirectories = new() {
+            "ThirdPersonDemoURP"
+        };
+
         // Cache all 'asmdef' files in the project
         private static HashSet<string> _asmdefNames = new();
         
@@ -99,11 +106,11 @@ namespace RegressionGames.Editor.CodeGenerators
                 // find and extract RGAction data
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Searching for RGAction attributes", 0.6f);
-                var actionInfos = SearchForBotActionAttributes();
+                var actionAttributeInfos = SearchForBotActionAttributes();
                 // generate classes
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Generating classes for RGAction attributes", 0.8f);
-                GenerateActionClasses(actionInfos);
+                GenerateActionClasses(actionAttributeInfos);
             }
             finally
             {
@@ -174,6 +181,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 AssetDatabase.Refresh();
             }
             
+            //NOTE: We may have trouble here with serialization or actionMap with sample projects
+            // Much testing needed
             GenerateRGSerializationClass.Generate(actionInfos);
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
@@ -181,6 +190,10 @@ namespace RegressionGames.Editor.CodeGenerators
         
         private static List<RGActionAttributeInfo> SearchForBotActionAttributes()
         {
+            // make sure to exclude any sample project directories from generation
+            var excludedPaths =
+                _excludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
+            
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToArray();
 
             List<RGActionAttributeInfo> botActionList = new List<RGActionAttributeInfo>();
@@ -239,6 +252,8 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     botActionList.Add(new RGActionAttributeInfo
                     {
+                        // if this wasn't in a sample project folder, we need to generate CS for it
+                        ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
                         Namespace = nameSpace,
                         Object = className,
                         MethodName = methodName,
@@ -270,7 +285,12 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static List<RGStateAttributesInfo> SearchForBotStateAttributes()
         {
-            string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToArray();
+            // make sure to exclude any sample project directories from the search
+            var excludedPaths =
+                _excludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
+            
+            string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
+                .ToArray();
 
             List<RGStateAttributesInfo> rgStateInfoList = new List<RGStateAttributesInfo>();
 
@@ -374,6 +394,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     {
                         rgStateInfoList.Add(new RGStateAttributesInfo
                         {
+                            ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
                             NameSpace = nameSpace,
                             ClassName = className,
                             State = stateList

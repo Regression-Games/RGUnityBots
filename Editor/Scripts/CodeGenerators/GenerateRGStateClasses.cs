@@ -17,97 +17,100 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             foreach (var rgStateAttributeInfo in rgStateAttributesInfos)
             {
-                HashSet<string> usings = new()
+                if (rgStateAttributeInfo.ShouldGenerateCSFile)
                 {
-                    "System",
-                    "System.Collections.Generic",
-                    "RegressionGames",
-                    "RegressionGames.RGBotConfigs",
-                    "RegressionGames.StateActionTypes",
-                    "UnityEngine"
-                };
+                    HashSet<string> usings = new()
+                    {
+                        "System",
+                        "System.Collections.Generic",
+                        "RegressionGames",
+                        "RegressionGames.RGBotConfigs",
+                        "RegressionGames.StateActionTypes",
+                        "UnityEngine"
+                    };
 
-                if (!string.IsNullOrEmpty(rgStateAttributeInfo.NameSpace))
-                {
-                    usings.Add(rgStateAttributeInfo.NameSpace);
-                }
-                
-                var className = $"RGState_{rgStateAttributeInfo.ClassName}";
-                var componentType = rgStateAttributeInfo.ClassName;
+                    if (!string.IsNullOrEmpty(rgStateAttributeInfo.NameSpace))
+                    {
+                        usings.Add(rgStateAttributeInfo.NameSpace);
+                    }
 
-                // Create a new compilation unit
-                var compilationUnit = CompilationUnit()
-                    .AddUsings(
-                        usings.Select(v=>UsingDirective(ParseName(v))).ToArray()
-                    );
-                
-                // Create a new class declaration with the desired name
-                var classDeclaration = ClassDeclaration(className)
-                    .AddModifiers(Token(SyntaxKind.PublicKeyword))
-                    .AddBaseListTypes(SimpleBaseType(ParseTypeName("RGState")));
+                    var className = $"RGState_{rgStateAttributeInfo.ClassName}";
+                    var componentType = rgStateAttributeInfo.ClassName;
 
-                // Create the private field
-                var fieldDeclaration = FieldDeclaration(
-                        VariableDeclaration(ParseTypeName(componentType))
-                            .AddVariables(VariableDeclarator("myComponent")))
-                    .AddModifiers(Token(SyntaxKind.PrivateKeyword));
+                    // Create a new compilation unit
+                    var compilationUnit = CompilationUnit()
+                        .AddUsings(
+                            usings.Select(v => UsingDirective(ParseName(v))).ToArray()
+                        );
 
-                // Create the Start method
-                var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
+                    // Create a new class declaration with the desired name
+                    var classDeclaration = ClassDeclaration(className)
+                        .AddModifiers(Token(SyntaxKind.PublicKeyword))
+                        .AddBaseListTypes(SimpleBaseType(ParseTypeName("RGState")));
 
-                // Create the GetState method
-                var getStateMethod = GenerateGetStateMethod(componentType, rgStateAttributeInfo.State);
+                    // Create the private field
+                    var fieldDeclaration = FieldDeclaration(
+                            VariableDeclaration(ParseTypeName(componentType))
+                                .AddVariables(VariableDeclarator("myComponent")))
+                        .AddModifiers(Token(SyntaxKind.PrivateKeyword));
 
-                // Add the members to the class declaration
-                classDeclaration = classDeclaration
-                    .AddMembers(fieldDeclaration, startMethod, getStateMethod);
+                    // Create the Start method
+                    var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
 
-                // Create namespace
-                var namespaceDeclaration = NamespaceDeclaration(ParseName("RegressionGames.RGBotConfigs"))
-                    .AddMembers(
-                        // make sure to define the RGStateEntity class first in the file
-                        // If you don't, then when the real class gets too large.. Roslyn will lose its way and forget that the RGStateEntity in the same file has a namespace... yes, really!
-                        ClassDeclaration($"RGStateEntity_{rgStateAttributeInfo.ClassName}")
-                            .AddModifiers(
-                                Token(SyntaxKind.PublicKeyword)
-                                // Only add one of the "class" keywords here
-                            )
-                            .AddBaseListTypes(
-                                SimpleBaseType(
-                                    GenericName(
-                                            Identifier("RGStateEntity")
-                                        )
-                                        .WithTypeArgumentList(
-                                            TypeArgumentList(
-                                                SingletonSeparatedList<TypeSyntax>(
-                                                    IdentifierName($"RGState_{rgStateAttributeInfo.ClassName}")
+                    // Create the GetState method
+                    var getStateMethod = GenerateGetStateMethod(componentType, rgStateAttributeInfo.State);
+
+                    // Add the members to the class declaration
+                    classDeclaration = classDeclaration
+                        .AddMembers(fieldDeclaration, startMethod, getStateMethod);
+
+                    // Create namespace
+                    var namespaceDeclaration = NamespaceDeclaration(ParseName("RegressionGames.RGBotConfigs"))
+                        .AddMembers(
+                            // make sure to define the RGStateEntity class first in the file
+                            // If you don't, then when the real class gets too large.. Roslyn will lose its way and forget that the RGStateEntity in the same file has a namespace... yes, really!
+                            ClassDeclaration($"RGStateEntity_{rgStateAttributeInfo.ClassName}")
+                                .AddModifiers(
+                                    Token(SyntaxKind.PublicKeyword)
+                                    // Only add one of the "class" keywords here
+                                )
+                                .AddBaseListTypes(
+                                    SimpleBaseType(
+                                        GenericName(
+                                                Identifier("RGStateEntity")
+                                            )
+                                            .WithTypeArgumentList(
+                                                TypeArgumentList(
+                                                    SingletonSeparatedList<TypeSyntax>(
+                                                        IdentifierName($"RGState_{rgStateAttributeInfo.ClassName}")
+                                                    )
                                                 )
                                             )
-                                        )
-                                )
-                            ).AddMembers(
-                                GenerateStateEntityFields(rgStateAttributeInfo.State)
-                            ),
-                        classDeclaration
+                                    )
+                                ).AddMembers(
+                                    GenerateStateEntityFields(rgStateAttributeInfo.State)
+                                ),
+                            classDeclaration
 
-                    );
-                
-                // Add the namespace declaration to the compilation unit
-                compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
+                        );
 
-                // Get the full code text
-                var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
+                    // Add the namespace declaration to the compilation unit
+                    compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
 
-                // Write the code to a .cs file
-                // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGStates/{name}.cs'
-                string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGStates");
-                string fileName = $"{className}.cs";
-                string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
-                string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                File.WriteAllText(filePath, fileContents);
-                RGDebug.Log($"Successfully Generated {filePath}");
-                AssetDatabase.Refresh();
+                    // Get the full code text
+                    var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
+
+                    // Write the code to a .cs file
+                    // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGStates/{name}.cs'
+                    string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGStates");
+                    string fileName = $"{className}.cs";
+                    string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
+                    string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
+                    Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+                    File.WriteAllText(filePath, fileContents);
+                    RGDebug.Log($"Successfully Generated {filePath}");
+                    AssetDatabase.Refresh();
+                }
             }
         }
 
@@ -270,7 +273,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             return PropertyDeclaration(
                     IdentifierName(memberInfo.Type),
-                    Identifier(memberInfo.StateName)
+                    Identifier(memberInfo.StateName.Replace(" ", "_"))
                 )
                 .WithModifiers(
                     TokenList(
@@ -331,7 +334,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             return PropertyDeclaration(
                     IdentifierName(memberInfo.Type),
-                    Identifier(memberInfo.StateName)
+                    Identifier(memberInfo.StateName.Replace(" ", "_"))
                 )
                 .WithModifiers(
                     TokenList(

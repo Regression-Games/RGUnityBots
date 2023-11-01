@@ -18,5 +18,7 @@ namespace RegressionGames.Editor
         public string NameSpace;
         public string ClassName;
         public List<RGStateAttributeInfo> State;
+        // Whether to generate a CS file for this action, default true, but false for sample project assets
+        public bool ShouldGenerateCSFile = true;
     }
 }
