@@ -93,7 +93,7 @@ namespace RegressionGames.Editor.CodeGenerators
             WriteToJson("RGStates", stateJson);
         }
 
-        [MenuItem("Regression Games/Agent Builder/Extract Data")]
+        [MenuItem("Regression Games/Agent Builder/Extract Game Context")]
         private static void ExtractData()
         {
             ExtractObjectType();
