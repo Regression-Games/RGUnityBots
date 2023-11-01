@@ -384,7 +384,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return rgStateInfoList;
         }
-
+        
         private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
             var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToList();

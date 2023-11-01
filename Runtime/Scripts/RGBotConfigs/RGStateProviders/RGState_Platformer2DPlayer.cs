@@ -7,9 +7,22 @@ using UnityEngine;
 
 namespace RegressionGames.RGBotConfigs.RGStateProviders
 {
+    // ReSharper disable InconsistentNaming
+    [Serializable]
+    public class RGStateEntity_Platformer2DPlayer : RGStateEntity<RGState_Platformer2DPlayer>
+    {
+        public float jumpHeight => (float)this.GetValueOrDefault("jumpHeight", 0);
+        public float maxJumpHeight => (float)this.GetValueOrDefault("maxJumpHeight", 0);
+        public float velocity => (float)this.GetValueOrDefault("velocity", 0f);
+        public float maxVelocity => (float)this.GetValueOrDefault("maxVelocity", 0f);
+        public float safeFallHeight => (float)this.GetValueOrDefault("safeFallHeight", -1f);
+        public float nonFatalFallHeight => (float)this.GetValueOrDefault("nonFatalFallHeight", -1f);
+    }
+    
     [Serializable]
     public class RGState_Platformer2DPlayer : RGState
     {
+        [NonSerialized]
         [Tooltip("Draw debug gizmos for player locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
@@ -98,17 +111,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 Gizmos.DrawWireSphere((Vector2)_truePosition, 0.125f);
             }
         }
+        
     }
     
-    // ReSharper disable InconsistentNaming
-    [Serializable]
-    public class RGStateEntity_Platformer2DPlayer : RGStateEntity<RGState_Platformer2DPlayer>
-    {
-        public float jumpHeight => (float)this.GetValueOrDefault("jumpHeight", 0);
-        public float maxJumpHeight => (float)this.GetValueOrDefault("maxJumpHeight", 0);
-        public float velocity => (float)this.GetValueOrDefault("velocity", 0f);
-        public float maxVelocity => (float)this.GetValueOrDefault("maxVelocity", 0f);
-        public float safeFallHeight => (float)this.GetValueOrDefault("safeFallHeight", -1f);
-        public float nonFatalFallHeight => (float)this.GetValueOrDefault("nonFatalFallHeight", -1f);
-    }
 }

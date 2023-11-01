@@ -65,7 +65,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 // Create namespace
                 var namespaceDeclaration = NamespaceDeclaration(ParseName("RegressionGames.RGBotConfigs"))
                     .AddMembers(
-                        classDeclaration,
+                        // make sure to define the RGStateEntity class first in the file
+                        // If you don't, then when the real class gets too large.. Roslyn will lose its way and forget that the RGStateEntity in the same file has a namespace... yes, really!
                         ClassDeclaration($"RGStateEntity_{rgStateAttributeInfo.ClassName}")
                             .AddModifiers(
                                 Token(SyntaxKind.PublicKeyword)
@@ -86,7 +87,8 @@ namespace RegressionGames.Editor.CodeGenerators
                                 )
                             ).AddMembers(
                                 GenerateStateEntityFields(rgStateAttributeInfo.State)
-                            )
+                            ),
+                        classDeclaration
 
                     );
                 

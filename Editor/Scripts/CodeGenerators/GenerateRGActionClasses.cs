@@ -309,7 +309,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 tryParseStatement += ")";
                 tryParseStatement += $"{{ {paramName} = ({paramType}){paramName}Input; }}";
-                tryParseStatement += $"\r\nelse {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_").Replace("?", "")}";
+                tryParseStatement += $"else {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_").Replace("?", "")}";
 
                 if (param.Nullable)
                 {
