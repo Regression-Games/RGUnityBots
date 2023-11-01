@@ -46,6 +46,12 @@ namespace RegressionGames.StateActionTypes
         {
             return DictionaryExtensions.GetField(this, fieldName);
         }
+
+        // This is mostly implemented to make visibility in the debugger much easier... especially when finding the right object in the overall state
+        public override string ToString()
+        {
+            return $"{this.GetType().Name} - type: {type} , id: {id} , clientId: {clientId}";
+        }
     }
     
     public static class DictionaryExtensions

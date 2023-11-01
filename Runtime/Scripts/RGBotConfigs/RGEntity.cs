@@ -8,15 +8,20 @@ namespace RegressionGames.RGBotConfigs
 {
     public class RGEntity : MonoBehaviour
     {
-        [Header("General Information")] [Tooltip("Does this object represent a human/bot player ?")]
-        public bool isPlayer;
-
+        [Header("General Information")]
+        
         [Tooltip("A type name for associating like objects in the state")]
         public string objectType;
+        
+        [Tooltip("Does this object represent a human/bot player ?")]
+        public bool isPlayer;
 
         // this is used in our toolkit to understand which things would need dynamic models
         [Tooltip("Is this object spawned during runtime, or a fixed object in the scene?")]
         public bool isRuntimeObject = false;
+        
+        [Tooltip("This option allows you to quickly include most public or serializable properties from all Colliders and MonoBehaviours attached to this same game object.\r\n\r\nWARNING: This can negatively impact game performance and is best used during early development to quickly prototype your bots before optimizing later using [RGState] attributes to generate custom RGState classes.\r\n\r\nSee https://docs.regression.gg/ for more information on optimizing state size and performance.")]
+        public bool includeStateForAllBehaviours = false;
         
         // maps action names to RGAction components
         private Dictionary<string, RGAction> actionMap = new Dictionary<string, RGAction>();
