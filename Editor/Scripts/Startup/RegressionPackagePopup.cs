@@ -12,7 +12,8 @@ using UnityEngine.Rendering;
 
 public class RegressionPackagePopup : EditorWindow
 {
-    private const string RGSetupCheck = "rgsetup";
+    private const string RGUnityCheck = "rgunitycheck";
+    private const string RGWindowCheck = "rgwindowcheck";
     private const string RGGuestCheck = "rgguest";
     private Texture2D bannerImage;
     private static RegressionPackagePopup window;
@@ -63,7 +64,7 @@ public class RegressionPackagePopup : EditorWindow
 
     void OnGUI()
     {
-        bool isGuest = PlayerPrefs.HasKey(RGGuestCheck);
+        bool isGuest = EditorPrefs.HasKey(RGGuestCheck);
         if (!loggedIn && !isGuest)
         {
             RenderLoginScreen();
@@ -184,19 +185,17 @@ public class RegressionPackagePopup : EditorWindow
     private void RenderWelcomeScreen()
     {
         // set flags on render as extra check against duplicated popups
-        PlayerPrefs.SetInt(RGSetupCheck, 1);
-        PlayerPrefs.SetInt(RGGuestCheck, 1);
+        EditorPrefs.SetInt(RGGuestCheck, 1);
         
         // render window info
+        RenderBanner();
+        RenderAlwaysShowOnStartupCheckbox();
         RenderQuickstartDocs();
         RenderSampleQuickstart();
     }
 
-    private void RenderQuickstartDocs()
+    private void RenderBanner()
     {
-        // Get a space in the layout for the banner
-        GUILayout.Space(120);
-
         Rect sourceRect = new Rect(0, 0.25f, 1, 0.6f);
         Rect destRect = new Rect(0, 0, 600, 120);
 
@@ -222,6 +221,53 @@ public class RegressionPackagePopup : EditorWindow
 
         // Draw the title text
         GUI.Label(textRect, "Regression Games Setup Guide", h1Style);
+    }
+    
+    private void RenderAlwaysShowOnStartupCheckbox()
+    {
+        GUILayout.Space(120);
+        
+        // Get the current value from PlayerPrefs
+        bool alwaysShowOnStartup = EditorPrefs.GetInt(RGWindowCheck, 1) == 1;
+
+        // Define the style for the label
+        GUIStyle labelStyle = new GUIStyle(GUI.skin.label) 
+        {
+            fontStyle = FontStyle.Bold,
+            fontSize = 12
+        };
+
+        // Define the position and size for the label
+        Rect labelRect = new Rect(20, 130, 200, 20);
+    
+        // Draw the label
+        GUI.Label(labelRect, "Always Show On Startup", labelStyle);
+
+        // Calculate the position and size for the checkbox based on the label dimensions
+        Rect checkboxRect = new Rect(labelRect.x + labelRect.width + 5, 130, 20, 20);
+
+        // Draw the checkbox
+        if (GUI.Button(checkboxRect, "", GUI.skin.box))
+        {
+            // Toggle the value when the checkbox is clicked
+            alwaysShowOnStartup = !alwaysShowOnStartup;
+            EditorPrefs.SetInt(RGWindowCheck, alwaysShowOnStartup ? 1 : 0);
+        }
+
+        // Draw the checkmark if the checkbox is checked
+        if (alwaysShowOnStartup)
+        {
+            GUI.Label(checkboxRect, " ✔", labelStyle);
+        }
+
+        // Add some spacing after the checkbox
+        GUILayout.Space(30);
+    }
+
+    private void RenderQuickstartDocs()
+    {
+        // Get a space in the layout for the banner
+        GUILayout.Space(120);
 
         // Define the styles
         GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
@@ -236,20 +282,20 @@ public class RegressionPackagePopup : EditorWindow
         };
 
         // Define the background box
-        Rect infoBoxRect = new Rect(10, 130, 580, 130);
-        prevColor = GUI.color;
+        Rect infoBoxRect = new Rect(10, 160, 580, 130);
+        Color prevColor = GUI.color;
         GUI.color = new Color(100, 100, 100, 0.25f);
         GUI.Box(infoBoxRect, "");
         GUI.color = prevColor;
 
         // Draw the quick start title
-        GUI.Label(new Rect(20, 140, 580, 20), "Quick Start with Local Bots", titleStyle);
+        GUI.Label(new Rect(20, 170, 580, 20), "Quick Start with Local Bots", titleStyle);
 
         // Draw the description
-        GUI.Label(new Rect(20, 140, 580, 100), "Jump into creating your first bot using C# by following this Local Unity Bot guide. Regression Games Bots are flexible and highly customizable. Bots can simulate players, function as NPCs, interact with menus and UIs, validate gameplay, and more.", descriptionStyle);
+        GUI.Label(new Rect(20, 170, 580, 100), "Jump into creating your first bot using C# by following this Local Unity Bot guide. Regression Games Bots are flexible and highly customizable. Bots can simulate players, function as NPCs, interact with menus and UIs, validate gameplay, and more.", descriptionStyle);
 
         // Draw the docs button
-        if (GUI.Button(new Rect(20, 220, 100, 30), "View Docs"))
+        if (GUI.Button(new Rect(20, 250, 100, 30), "View Docs"))
         {
             Application.OpenURL("https://docs.regression.gg/studios/unity/unity-sdk/csharp/configuration");
         }
@@ -276,23 +322,23 @@ public class RegressionPackagePopup : EditorWindow
         };
 
         // Define the background box for the new section
-        Rect demoInfoBoxRect = new Rect(10, 270, 580, 130);
+        Rect demoInfoBoxRect = new Rect(10, 300, 580, 130);
         Color prevColor = GUI.color;
         GUI.color = new Color(100, 100, 100, 0.25f);
         GUI.Box(demoInfoBoxRect, "");
         GUI.color = prevColor;
 
         // Draw the sample title
-        GUI.Label(new Rect(20, 280, 580, 20), "Third Person Demo", titleStyle);
+        GUI.Label(new Rect(20, 310, 580, 20), "Third Person Demo", titleStyle);
 
         // Draw the description for the sample
-        GUI.Label(new Rect(20, 310, 565, 20), "Explore a third-person character demo using Regression Game’s Unity SDK.", descriptionStyle);
+        GUI.Label(new Rect(20, 340, 565, 20), "Explore a third-person character demo using Regression Game’s Unity SDK.", descriptionStyle);
 
-        GUI.Label(new Rect(20, 326, 565, 20), "Ensure your project is set up with URP before opening the sample.", boldDescriptionStyle);
+        GUI.Label(new Rect(20, 356, 565, 20), "Ensure your project is set up with URP before opening the sample.", boldDescriptionStyle);
 
         // Draw the "Open Sample" button. Disable if not using URP
         GUI.enabled = IsURPEnabled();
-        if (GUI.Button(new Rect(20, 360, 100, 30), "Open Sample"))
+        if (GUI.Button(new Rect(20, 390, 100, 30), "Open Sample"))
         {
             ImportSample();
             Close();
@@ -345,18 +391,21 @@ public class RegressionPackagePopup : EditorWindow
     [InitializeOnLoadMethod]
     private static void InitializeOnLoadMethod()
     {
-        bool hasShown = PlayerPrefs.HasKey(RGSetupCheck);
-        if (!hasShown)
-        { 
-            EditorApplication.update += ShowOnStartup;
+        if (!SessionState.GetBool(RGUnityCheck, false))
+        {
+            SessionState.SetBool(RGUnityCheck, true);
+            bool showOnStartup = EditorPrefs.GetInt(RGWindowCheck, 1) == 1;
+            if (showOnStartup)
+            { 
+                EditorApplication.update += ShowOnStartup;
+            }
         }
     }
 
     private static void ShowOnStartup()
     {
-        if (EditorApplication.timeSinceStartup > 3) // 3 seconds delay
+        if (EditorApplication.timeSinceStartup > 3)
         {
-            PlayerPrefs.SetInt(RGSetupCheck, 1);
             EditorApplication.update -= ShowOnStartup;
             ShowWindow();
         }
@@ -389,10 +438,10 @@ public class RegressionPackagePopup : EditorWindow
         {
             window.Repaint();
             return;
-        }
+        } 
         
         // continue without log in
-        PlayerPrefs.SetInt(RGGuestCheck, 1);
+        EditorPrefs.SetInt(RGGuestCheck, 1);
         if (window != null)
         {
             window.Repaint();
