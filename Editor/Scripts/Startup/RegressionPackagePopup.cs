@@ -64,7 +64,7 @@ public class RegressionPackagePopup : EditorWindow
 
     void OnGUI()
     {
-        bool isGuest = EditorPrefs.HasKey(RGGuestCheck);
+        bool isGuest = PlayerPrefs.HasKey(RGGuestCheck);
         if (!loggedIn && !isGuest)
         {
             RenderLoginScreen();
@@ -185,7 +185,7 @@ public class RegressionPackagePopup : EditorWindow
     private void RenderWelcomeScreen()
     {
         // set flags on render as extra check against duplicated popups
-        EditorPrefs.SetInt(RGGuestCheck, 1);
+        PlayerPrefs.SetInt(RGGuestCheck, 1);
         
         // render window info
         RenderBanner();
@@ -228,7 +228,7 @@ public class RegressionPackagePopup : EditorWindow
         GUILayout.Space(120);
         
         // Get the current value from PlayerPrefs
-        bool alwaysShowOnStartup = EditorPrefs.GetInt(RGWindowCheck, 1) == 1;
+        bool alwaysShowOnStartup = PlayerPrefs.GetInt(RGWindowCheck, 1) == 1;
 
         // Define the style for the label
         GUIStyle labelStyle = new GUIStyle(GUI.skin.label) 
@@ -251,7 +251,7 @@ public class RegressionPackagePopup : EditorWindow
         {
             // Toggle the value when the checkbox is clicked
             alwaysShowOnStartup = !alwaysShowOnStartup;
-            EditorPrefs.SetInt(RGWindowCheck, alwaysShowOnStartup ? 1 : 0);
+            PlayerPrefs.SetInt(RGWindowCheck, alwaysShowOnStartup ? 1 : 0);
         }
 
         // Draw the checkmark if the checkbox is checked
@@ -394,7 +394,7 @@ public class RegressionPackagePopup : EditorWindow
         if (!SessionState.GetBool(RGUnityCheck, false))
         {
             SessionState.SetBool(RGUnityCheck, true);
-            bool showOnStartup = EditorPrefs.GetInt(RGWindowCheck, 1) == 1;
+            bool showOnStartup = PlayerPrefs.GetInt(RGWindowCheck, 1) == 1;
             if (showOnStartup)
             { 
                 EditorApplication.update += ShowOnStartup;
@@ -441,7 +441,7 @@ public class RegressionPackagePopup : EditorWindow
         } 
         
         // continue without log in
-        EditorPrefs.SetInt(RGGuestCheck, 1);
+        PlayerPrefs.SetInt(RGGuestCheck, 1);
         if (window != null)
         {
             window.Repaint();
