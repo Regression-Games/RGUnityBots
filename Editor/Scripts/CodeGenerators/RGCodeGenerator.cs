@@ -17,7 +17,7 @@ using Object = UnityEngine.Object;
 namespace RegressionGames.Editor.CodeGenerators
 {
     /**
-     * This calls takes a multi pass approach for states, but a single pass approach for actions.
+     * This class takes a multi pass approach for states, but a single pass approach for actions.
      * This may change for actions in the future if we see more prevalence of writing custom action classes,
      * but for now assumes that actions are only done with [RGAction] attributes.
      *
