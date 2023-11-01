@@ -11,13 +11,13 @@ namespace RegressionGames.StateActionTypes
         public long tick;
         public string sceneName;
         // ReSharper disable once InconsistentNaming
-        public Dictionary<string, RGStateEntity> gameState;
+        public Dictionary<string, IRGStateEntity> gameState;
 
         [NonSerialized]
         // cache this so no matter how many clients we send to, we only convert to string one time
         private string _serializedForm = null;
 
-        public RGTickInfoData(long t, string sceneName, Dictionary<string, RGStateEntity> gameState)
+        public RGTickInfoData(long t, string sceneName, Dictionary<string, IRGStateEntity> gameState)
         {
             tick = t;
             this.sceneName = sceneName;

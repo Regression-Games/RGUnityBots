@@ -3,18 +3,17 @@ using System.Collections.Generic;
 
 namespace RegressionGames.Editor
 {
+    // ReSharper disable InconsistentNaming
     [Serializable]
     public class RGStateInfoWrapper
     {
-        public List<RGStatesInfo> RGStateInfo { get; set; }
+        public List<RGStatesInfo> RGStatesInfo { get; set; }
     }
     
     [Serializable]
     public class RGStatesInfo
     {
-        public string AssemblyName;
-        public string Namespace;
-        public string Object;
+        public string ClassName;
         // the object type, given by the developer
         public string ObjectType;
         public List<RGStateInfo> State;
