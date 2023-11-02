@@ -67,10 +67,6 @@ namespace NewRGBot_n1024122209000000000
                     return;
                 }
             }
-            
-            // Draw some debug lines to help us see where we are going. Turn on Gizmos in the editor to see this.
-            RGGizmos.CreateSphere((Vector3) _destination, Color.yellow, 0.5f, true, "Destination Point");
-            RGGizmos.CreateLine(thisBot.id, (Vector3) _destination, Color.red, "Destination Point");
 
             // Get the direction from the bot position to this new position
             var direction = (Vector3) _destination - new Vector3(thisBot.position.x, 0, thisBot.position.z);
