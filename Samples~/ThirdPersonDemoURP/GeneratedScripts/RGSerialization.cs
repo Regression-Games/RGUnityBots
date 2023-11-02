@@ -5,7 +5,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace RegressionGames
+namespace RGThirdPersonDemo
 {
     using UnityEngine;
 

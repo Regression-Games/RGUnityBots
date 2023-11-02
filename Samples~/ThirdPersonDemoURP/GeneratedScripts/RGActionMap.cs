@@ -4,7 +4,7 @@
 
 using System;
 
-namespace RegressionGames
+namespace RGThirdPersonDemo
 {
     using UnityEngine;
     using RGThirdPersonDemo;

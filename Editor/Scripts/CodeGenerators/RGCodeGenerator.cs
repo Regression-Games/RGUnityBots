@@ -181,7 +181,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 AssetDatabase.Refresh();
             }
             
-            //NOTE: We may have trouble here with serialization or actionMap with sample projects
+            // NOTE: We may have trouble here with serialization or actionMap with sample projects
             // Much testing needed
             GenerateRGSerializationClass.Generate(actionInfos);
             GenerateRGActionClasses.Generate(actionInfos);

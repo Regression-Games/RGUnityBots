@@ -10,7 +10,7 @@ using RegressionGames.StateActionTypes;
 using UnityEngine;
 using RGThirdPersonDemo;
 
-namespace RegressionGames.RGBotConfigs
+namespace RGThirdPersonDemo
 {
     public class RGStateEntity_EnemyController : RGStateEntity<RGState_EnemyController>
     {

@@ -8,9 +8,8 @@ using RegressionGames;
 using RegressionGames.RGBotConfigs;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
-using RGThirdPersonDemo;
 
-namespace RegressionGames
+namespace RGThirdPersonDemo
 {
     public class RGAction_MoveInDirection : RGAction
     {
