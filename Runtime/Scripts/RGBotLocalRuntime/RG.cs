@@ -12,11 +12,11 @@ namespace RegressionGames.RGBotLocalRuntime
     public class RG
     {
         public bool Completed { get; private set; } = false;
-        
-        private RGTickInfoData _tickInfo; 
-        
+
+        private RGTickInfoData _tickInfo;
+
         private readonly ConcurrentQueue<RGActionRequest> _actionQueue = new();
-        
+
         private readonly ConcurrentQueue<RGValidationResult> _validationResults = new();
 
         public Dictionary<string, object> CharacterConfig = new();
@@ -97,7 +97,7 @@ namespace RegressionGames.RGBotLocalRuntime
             if (result.Count > 1)
             {
                 var pos = position ?? GetMyPlayers()[0].position;
-                
+
                 // sort by distance
                 result.Sort((e1, e2) =>
                 {
@@ -141,7 +141,7 @@ namespace RegressionGames.RGBotLocalRuntime
             {
                 return new List<IRGStateEntity>();
             }
-            
+
             // filter down to objectType Matches
             var result = gameState.Values.Where(value =>
             {
@@ -170,7 +170,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
             // filter down to isPlayer
             var result = gameState.Values.Where(value => value.isPlayer);
-            
+
             // filter down to clientId Matches
             if (clientId != null)
             {
@@ -195,13 +195,13 @@ namespace RegressionGames.RGBotLocalRuntime
                 {
                     return attributeValue.Equals(expectedValue);
                 }
-                
+
                 return true;
             }
 
             return false;
         }
-        
+
         /**
          * <summary>Queue an action to perform.  Multiple actions can be queued per tick</summary>
          * <param name="rgAction"><see cref="RGActionRequest"/> action request to queue</param>
@@ -210,7 +210,7 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             _actionQueue.Enqueue(rgAction);
         }
-        
+
         /**
          * <summary>Record a validation result.  Multiple validation results can be recorded per tick</summary>
          * <param name="rgValidation"><see cref="RGValidationResult"/> validation result to queue</param>
@@ -219,26 +219,28 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             _validationResults.Enqueue(rgValidation);
         }
-        
+
         internal void SetCharacterConfig(Dictionary<string, object> characterConfig)
         {
             this.CharacterConfig = characterConfig;
         }
-        
+
         /**
          * <summary>Sets the <see cref="CharacterConfig"/> field by parsing the provided JSON string.</summary>
          * <param name="characterConfigJson">A JSON string representing the character config.</param>
          */
-        internal void SetCharacterConfigFromJson(string characterConfigJson)
+        // NOTE: This is called by the generated BotEntryPoint class in Agent Builder Bots.
+        // Avoid changing the signature, name, or accessibility of this method!
+        public void SetCharacterConfigFromJson(string characterConfigJson)
         {
             this.CharacterConfig = JsonConvert.DeserializeObject<Dictionary<string, object>>(characterConfigJson);
         }
-        
+
         internal void SetTickInfo(RGTickInfoData tickInfo)
         {
             this._tickInfo = tickInfo;
         }
-        
+
         internal List<RGActionRequest> FlushActions()
         {
             List<RGActionRequest> result = new();
@@ -258,8 +260,8 @@ namespace RegressionGames.RGBotLocalRuntime
             }
             return result;
         }
-        
-        public static class MathFunctions 
+
+        public static class MathFunctions
         {
             /**
              * <returns>{double} The square distance between two positions</returns>
@@ -268,7 +270,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 return Math.Pow(position2.x - position1.x, 2) + Math.Pow(position2.y - position1.y, 2) + Math.Pow(position2.z - position1.z, 2);
             }
         }
-        
+
     }
-    
+
 }
