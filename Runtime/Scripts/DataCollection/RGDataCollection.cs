@@ -20,11 +20,15 @@ namespace RegressionGames.DataCollection
     {
 
         private readonly string _sessionName;
+        private Dictionary<long, List<RGTickInfoData>> _sessionTickInfo;
 
         public RGDataCollection()
         {
             // Name the session, and setup a temporary directory for all data
             _sessionName = Guid.NewGuid().ToString();
+            
+            // Current tick info for the running instance
+            _sessionTickInfo = new Dictionary<long, List<RGTickInfoData>>();
         }
 
         public void CaptureScreenshot(long tick)
@@ -49,6 +53,21 @@ namespace RegressionGames.DataCollection
             
         }
 
+        public void SaveReplayTickInfo(long clientId, RGTickInfoData tickInfoData)
+        {
+            // Check if the dictionary already has the clientId key
+            if (_sessionTickInfo.TryGetValue(clientId, out List<RGTickInfoData> existingList))
+            {
+                // Key exists, so add the tickInfoData to the existing list
+                existingList.Add(tickInfoData);
+            }
+            else
+            {
+                // Key does not exist, so create a new list and add it to the dictionary
+                _sessionTickInfo[clientId] = new List<RGTickInfoData> { tickInfoData };
+            }
+        }
+
         public void RecordSession(long botInstanceId, RGClientConnectionType rgClientConnectionType)
         {
             RGDebug.LogVerbose("Ending data collection, uploading data to Regression Games...");
@@ -71,6 +90,8 @@ namespace RegressionGames.DataCollection
                     });
             }
 
+            // TODO write tik information to file
+            
             RGDebug.LogVerbose("Data uploaded to Regression Games");
             
         }

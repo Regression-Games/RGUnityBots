@@ -503,6 +503,7 @@ namespace RegressionGames
                     {
                         if (client.SendTickInfo(tickInfoData))
                         {
+                            _dataCollection.SaveReplayTickInfo(clientId, tickInfoData);
                             sentTo.Add(clientId);
                         }
                     }
