@@ -20,35 +20,38 @@ namespace RegressionGames.DataCollection
     {
 
         private readonly string _sessionName;
-        private GameObject _parent;
 
-        public RGDataCollection(GameObject parent)
+        public RGDataCollection()
         {
             // Name the session, and setup a temporary directory for all data
             _sessionName = Guid.NewGuid().ToString();
-            _parent = parent;
         }
 
         public void CaptureScreenshot(long tick)
         {
-            Debug.Log($"Captured screenshot at tick {tick}");
+            RGDebug.LogVerbose($"Captured screenshot at tick {tick}");
             string path = GetSessionDirectory($"screenshots/{tick}.jpg");
-
             var texture = ScreenCapture.CaptureScreenshotAsTexture(1);
 
-            // Encode the texture into a jpg byte array
-            byte[] bytes = texture.EncodeToJPG(100);
+            try
+            {
+                // Encode the texture into a jpg byte array
+                byte[] bytes = texture.EncodeToJPG(100);
 
-            // Save the byte array as a jpg file
-            File.WriteAllBytes(path, bytes);
-
-            // Destroy the texture to free up memory
-            Object.Destroy(texture);
+                // Save the byte array as a jpg file
+                File.WriteAllBytes(path, bytes);
+            }
+            finally
+            {
+                // Destroy the texture to free up memory
+                Object.Destroy(texture);
+            }
+            
         }
 
         public void RecordSession(long botInstanceId, RGClientConnectionType rgClientConnectionType)
         {
-            Debug.Log("Ending data collection, uploading data to Regression Games...");
+            RGDebug.LogVerbose("Ending data collection, uploading data to Regression Games...");
 
             // First, upload all of the screenshots
             var screenshotFiles = Directory.GetFiles(GetSessionDirectory($"screenshots"));
@@ -60,7 +63,7 @@ namespace RegressionGames.DataCollection
                     botInstanceId, tick, screenshotFilePath,
                     () =>
                     {
-                        Debug.Log($"Successfully uploaded screenshot for bot instance {botInstanceId} and tick {tick}");
+                        RGDebug.LogVerbose($"Successfully uploaded screenshot for bot instance {botInstanceId} and tick {tick}");
                     },
                     () =>
                     {
@@ -68,16 +71,18 @@ namespace RegressionGames.DataCollection
                     });
             }
 
-            Debug.Log("Data uploaded to Regression Games");
+            RGDebug.LogVerbose("Data uploaded to Regression Games");
             
         }
 
         private string GetSessionDirectory(string path = "")
         {
-            var fullPath = Path.Join(Application.persistentDataPath, $"RGData/{_sessionName}", path);
-            // Trim the file name from the path if this is a file path and not directory
-            var trimmedPath = fullPath.Substring(0, fullPath.LastIndexOf('/'));
-            Directory.CreateDirectory(trimmedPath);
+            var fullPath = Path.Combine(Application.persistentDataPath, "RGData",  _sessionName, path);
+            var directory = Path.GetDirectoryName(fullPath);
+            if (directory != null)
+            {
+                Directory.CreateDirectory(directory);
+            }
             return fullPath;
         }
 

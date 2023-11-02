@@ -49,6 +49,11 @@ namespace RegressionGames
             return _this;
         }
 
+        public void Start()
+        {
+            _dataCollection = new RGDataCollection();
+        }
+
         public void Awake()
         {
             // only allow 1 of these to be alive
@@ -60,7 +65,6 @@ namespace RegressionGames
             // keep this thing alive across scenes
             DontDestroyOnLoad(this.gameObject);
             _this = this;
-            _dataCollection = new RGDataCollection(this.gameObject);
         }
 
         void OnApplicationQuit()
