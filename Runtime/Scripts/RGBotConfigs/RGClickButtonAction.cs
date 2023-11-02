@@ -43,7 +43,7 @@ namespace RegressionGames.RGBotConfigs
             if (input["targetId"] != null)
             {
                 var targetId = int.Parse(input["targetId"].ToString());
-                var target = RGFindUtils.Instance.FindOneByInstanceId<RGButtonState>(targetId);
+                var target = RGFindUtils.Instance.FindOneByInstanceId<RGState_Button>(targetId);
                 if (target != null) // this is the unity overloaded != checking for destroyed
                 {
                     buttonsToClick.Enqueue(target.gameObject.GetComponent<Button>());

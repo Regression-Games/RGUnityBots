@@ -700,7 +700,7 @@ namespace RegressionGames.Editor
                 {
                     Vector3? position = null;
                     Quaternion? rotation = null;
-                    string characterType = (string)ti?.state?.GetValueOrDefault("characterType", "");
+                    string characterType = ti?.state?.GetField("characterType", "");
 
                     if (ti?.state?.position != null)
                     {

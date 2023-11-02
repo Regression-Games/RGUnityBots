@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using RegressionGames.Types;
 using UnityEngine;
-using System.Threading.Tasks;
 #if UNITY_EDITOR
 using RegressionGames.RGBotLocalRuntime;
 using UnityEditor;
