@@ -105,7 +105,6 @@ namespace RGThirdPersonDemo
         {
             if (!string.IsNullOrEmpty(_attackAnimation))
             {
-                Debug.Log("Cancelling attack animation");
                 _animator.SetBool(_attackAnimation, false);
             }
         }
@@ -139,7 +138,6 @@ namespace RGThirdPersonDemo
         [RGAction]
         public void SelectAndAttackEnemy(int enemyId, int ability)
         {
-            Debug.Log("Attack enemy with id " + enemyId);
             var enemy = RGFindUtils.Instance.FindOneByInstanceId<EnemyController>(enemyId);
             SelectEnemy(enemy);
             Attack(abilities[ability]);
