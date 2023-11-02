@@ -1,4 +1,3 @@
-using System;
 using RegressionGames.DebugUtils;
 using UnityEngine;
 

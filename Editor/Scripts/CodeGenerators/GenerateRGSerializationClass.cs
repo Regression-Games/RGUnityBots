@@ -8,13 +8,11 @@ using UnityEngine;
 
 namespace RegressionGames.Editor.CodeGenerators
 {
+    // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGSerializationClass
     {
-        public static void Generate(string jsonData)
+        public static void Generate(List<RGActionAttributeInfo> botActions)
         {
-            // Parse JSON and extract parameter types
-            List<RGActionInfo> botActions = ParseJson(jsonData);
-
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
                 .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
@@ -40,7 +38,7 @@ namespace RegressionGames.Editor.CodeGenerators
             AssetDatabase.Refresh();
         }
 
-        private static ClassDeclarationSyntax GenerateClass(List<RGActionInfo> botActions)
+        private static ClassDeclarationSyntax GenerateClass(List<RGActionAttributeInfo> botActions)
         {
             // Generate methods for deserialization based on parameter types
             List<MemberDeclarationSyntax> methodDeclarations = new List<MemberDeclarationSyntax>();
