@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using RegressionGames;
+using UnityEditor;
 using UnityEngine;
 
 namespace RGThirdPersonDemo
@@ -17,6 +19,8 @@ namespace RGThirdPersonDemo
         private IEnumerator _attackEndCoroutine;
         private bool _hasProjectile;
         private string _attackAnimation;
+
+        public List<AttackAbility> abilities = new ();
         
         void Awake()
         {
@@ -101,7 +105,8 @@ namespace RGThirdPersonDemo
         {
             if (!string.IsNullOrEmpty(_attackAnimation))
             {
-                _animator.SetBool(_attackAnimation, false);   
+                Debug.Log("Cancelling attack animation");
+                _animator.SetBool(_attackAnimation, false);
             }
         }
         
@@ -130,5 +135,21 @@ namespace RGThirdPersonDemo
             _attackEndCoroutine = null;
             _hasProjectile = false;
         }
+
+        [RGAction]
+        public void SelectAndAttackEnemy(int enemyId, int ability)
+        {
+            Debug.Log("Attack enemy with id " + enemyId);
+            var enemy = RGFindUtils.Instance.FindOneByInstanceId<EnemyController>(enemyId);
+            SelectEnemy(enemy);
+            Attack(abilities[ability]);
+        }
+
+        [RGState]
+        public bool IsAttacking()
+        {
+            return _animator.GetBool(_attackAnimation);   
+        }
+        
     }
 }

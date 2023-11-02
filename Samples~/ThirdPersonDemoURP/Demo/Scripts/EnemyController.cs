@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using RegressionGames;
 using UnityEngine;
 using RGThirdPersonDemo.Events;
 using UnityEngine.EventSystems;
@@ -17,6 +18,7 @@ namespace RGThirdPersonDemo
         private Animator _animator;
         private CheckCameraVisibility _checkCameraVisibility;
         private Transform _player;
+        
         private int _currentHp;
         private bool _isSelected = false;
         private bool _isMouseOver = false;
@@ -129,6 +131,7 @@ namespace RGThirdPersonDemo
         /*
          * Gets the enemies current hp
          */
+        [RGState("currentHealth")]
         public int GetCurrentHp()
         {
             return _currentHp;
@@ -137,6 +140,7 @@ namespace RGThirdPersonDemo
         /*
          * Gets the enemy's total HP from its assigned info
          */
+        [RGState("maxHealth")]
         public int GetTotalHp()
         {
             if (!enemyInfo)
