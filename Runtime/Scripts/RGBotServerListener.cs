@@ -25,21 +25,14 @@ namespace RegressionGames
         private long tick = 0;
 
         private static RGBotServerListener _this = null;
-        
-        /**
-         * Names of fields that are allowed to appear in multiple state scripts for the same GameObject.
-         * These are typically fields whose values are inherited from the GameObject's RGEntity component,
-         * and are expected to have the same value for each IRGState script attached to the GameObject.
-         */
-        private List<string> _duplicatedStateFields = new()
+
+        // of the core state fields, only position and rotation can be overridden by custom state classes
+        // an example of this being useful is remapping position for a platformer character to better align with
+        // their collider's bottom edge instead of the center of the character
+        private HashSet<string> _overridableCoreStateFields = new()
         {
-            "id",
-            "type",
-            "isPlayer",
-            "isRuntimeObject",
             "position",
-            "rotation",
-            "clientId"
+            "rotation"
         };
         
         public static RGBotServerListener GetInstance()
@@ -523,85 +516,101 @@ namespace RegressionGames
         {
             var overlayAgent = this.gameObject.GetComponent<RGEntity>();
             
-            var statefulRGEntities = FindObjectsOfType<MonoBehaviour>(true).OfType<RGEntity>();
+            var rgEntities = FindObjectsOfType<MonoBehaviour>(true).OfType<RGEntity>();
             var fullGameState = new Dictionary<string, IRGStateEntity>();
 
             // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
             // thus, this code cannot really be run in parallel, causing a major object count scaling issue....
-            foreach (var statefulRGEntity in statefulRGEntities)
+            foreach (var rgEntity in rgEntities)
             {
                 // Give the Entity its 'core' state fields whether their are custom RGstates on the object or not
                 // Custom states can then override these values
-                var entityCoreState = RGState.GenerateCoreStateForRGEntity(statefulRGEntity);
-                fullGameState[entityCoreState.id.ToString()] = entityCoreState;
+                var coreEntityState = RGState.GenerateCoreStateForRGEntity(rgEntity);
+                
+                if (true.Equals(rgEntity.isPlayer))
+                {
+                    if (!coreEntityState.ContainsKey("clientId") || coreEntityState["clientId"] == null)
+                    {
+                        // for things like menu bots that end up spawning a human player
+                        // use the agent from the overlay
+                        // Note: We have to be very careful here or we'll set this up wrong
+                        // we only want to give the overlay agent to the human player.
+                        // Before the clientIds are all connected, this can mess-up
+                        var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
+                        if (clientId != null)
+                        {
+                            coreEntityState["clientId"] = clientId;
+                            // add the agent from the player's object to the agentMap now that 
+                            // we have detected that they are here 
+                            // this happens for menu bots that spawn human players to control
+                            // doing this allows actions from the bot code to process to the human player agent
+                            // set this to avoid expensive lookups next time
+                            rgEntity.ClientId = clientId;
+                            agentMap[clientId].Add(rgEntity);
+                        }
+                    }
+                }
+                
+                IRGStateEntity currentEntityState = null;
                 
                 // get the state behaviors on this game object
-                var rgStates = statefulRGEntity.gameObject.GetComponents<IRGState>();
-                
+                var rgStates = rgEntity.gameObject.GetComponents<IRGState>();
+
                 // build up the state for this entity from all the different state classes
                 foreach (var rgState in rgStates)
                 {
-                    var gameObjectStateEntity = rgState.GetGameObjectState();
-                    if (true.Equals(gameObjectStateEntity.isPlayer))
-                    {
-                        var clientId = statefulRGEntity.ClientId;
-                        if (clientId != null)
-                        {
-                            gameObjectStateEntity["clientId"] = clientId;
-                        }
-
-                        if (!gameObjectStateEntity.ContainsKey("clientId"))
-                        {
-                            // for things like menu bots that end up spawning a human player
-                            // use the agent from the overlay
-                            // Note: We have to be very careful here or we'll set this up wrong
-                            // we only want to give the overlay agent to the human player.
-                            // Before the clientIds are all connected, this can mess-up
-                            clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
-                            if (clientId != null)
-                            {
-                                gameObjectStateEntity["clientId"] = clientId;
-                                // add the agent from the player's object to the agentMap now that 
-                                // we have detected that they are here 
-                                // this happens for menu bots that spawn human players to control
-                                // doing this allows actions from the bot code to process to the human player agent
-                                // set this to avoid expensive lookups next time
-                                statefulRGEntity.ClientId = clientId;
-                                agentMap[clientId].Add(statefulRGEntity);
-                            }
-                        }
-                    }
-
+                    var rgStateEntity = rgState.GetGameObjectState();
                     // handle merging all the states into 1 overall state for the entity
-                    var key = gameObjectStateEntity.id.ToString();
-                    if (fullGameState.TryGetValue(key, out var combinedGameObjectState))
+                    // if GameObject has multiple state scripts attached to it,
+                    // then we need to combine their state attributes into one IGStateEntity object.
+                    // ... hopefully there is only 1, but if multiple.. the Type of the last one wins
+                    // ... you still have all the data, just not easy '.' accessors for everything from the other Type(s)
+                    currentEntityState?.ToList().ForEach(x =>
                     {
-                        // if GameObject has multiple state scripts attached to it,
-                        // then we need to combine their state attributes into one RGStateEntity object.
-                        // iterate over the existing fields and add them to the new entry in the fullGameState.
-                        // ... hopefully there is only 1, so we we can have a nice 'typed' RGstateentity in the state, but if multiple.. last one wins :/
-                        // ... you still have all the data, just not easy '.' accessors for everything
-                        combinedGameObjectState.ToList().ForEach(x =>
+                        // custom states can override only some core fields
+                        if (rgStateEntity.ContainsKey(x.Key))
                         {
-                            // Note that core state files like "position", "rotation", "isPlayer", etc are ignored.
-                            // They are part of the core state and can be overridden, but we don't log a warning for it.
-                            if (gameObjectStateEntity.ContainsKey(x.Key) &&
-                                !_duplicatedStateFields.Contains(x.Key))
+                            RGDebug.LogWarning(
+                                $"RGEntity with ObjectType {coreEntityState["type"]} has duplicate state attribute {x.Key} on {rgStateEntity.GetType().Name} and {currentEntityState.GetType().Name}.");
+                        }
+                        else
+                        {
+                            rgStateEntity[x.Key] = x.Value;
+                        }
+                    });
+                    // update the current to the new class wrapper type
+                    currentEntityState = rgStateEntity;
+                }
+
+                if (currentEntityState == null)
+                {
+                    // use the core state
+                    currentEntityState = coreEntityState;
+                }
+                else
+                {
+                    // merge the 'core' state into this
+                    foreach (var x in coreEntityState)
+                    {
+                        if (_overridableCoreStateFields.Contains(x.Key) && currentEntityState.ContainsKey(x.Key))
+                        {
+                            // keep their override
+                        }
+                        else
+                        {
+                            if (currentEntityState.ContainsKey(x.Key))
                             {
                                 RGDebug.LogWarning(
-                                    $"RGEntity with ObjectType {combinedGameObjectState["type"]} has duplicate state attribute {x.Key} on {gameObjectStateEntity.GetType().Name} and at least 1 other type.");
+                                    $"GameObject: {rgEntity.gameObject.name} with RGEntity objectType: {coreEntityState["type"]} has an RGState Behaviour that overrides core state attribute: {x.Key}; using the core state value instead.");
                             }
-
-                            gameObjectStateEntity[x.Key] = x.Value;
-                        });
-                        fullGameState[key] = gameObjectStateEntity;
-                    }
-                    else
-                    {
-                        fullGameState[key] = gameObjectStateEntity;
+                            // write the value from the core state
+                            currentEntityState[x.Key] = x.Value;
+                        }
                     }
                 }
 
+                //update the full game state
+                fullGameState[currentEntityState.id.ToString()] = currentEntityState;
             }
             return fullGameState;
         }

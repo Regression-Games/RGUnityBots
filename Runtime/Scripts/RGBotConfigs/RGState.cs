@@ -83,6 +83,7 @@ namespace RegressionGames.RGBotConfigs
             state["isRuntimeObject"] = entity.isRuntimeObject;
             state["position"] = theTransform.position;
             state["rotation"] = theTransform.rotation;
+            state["clientId"] = entity.ClientId;
         }
 
         private static void PopulateEverythingStateForEntity(IRGStateEntity state, RGEntity entity)
