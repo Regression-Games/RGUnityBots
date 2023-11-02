@@ -90,10 +90,61 @@ namespace RegressionGames.DataCollection
                     });
             }
 
-            // TODO write tik information to file
+            // Saves all the tick info in our session to disk
+            WriteTickInfoToDisk();
             
             RGDebug.LogVerbose("Data uploaded to Regression Games");
             
+        }
+
+        private void WriteTickInfoToDisk()
+        {
+            // Construct the base replay directory path relative to Application.dataPath
+            string parentPath = Directory.GetParent(Application.dataPath).FullName;
+            string replayDirectory = Path.Combine(parentPath, "RegressionGamesReplayData");
+
+            // Ensure the replay directory exists
+            if (!Directory.Exists(replayDirectory))
+            {
+                Directory.CreateDirectory(replayDirectory);
+            }
+
+            // Iterate over each clientId and their corresponding tick info data list
+            foreach (var kvp in _sessionTickInfo)
+            {
+                long clientId = kvp.Key;
+                List<RGTickInfoData> tickInfoList = kvp.Value;
+
+                // Process each tickInfoData item
+                foreach (RGTickInfoData tickInfoData in tickInfoList)
+                {
+                    // Prepare the content to write
+                    var content = new
+                    {
+                        tickInfo = tickInfoData,
+                        clientId = clientId != 0 ? clientId : -1,
+                        actions = string.Empty,
+                        validationResults = string.Empty
+                    };
+
+                    // Serialize content to JSON
+                    string jsonContent = JsonUtility.ToJson(content);
+
+                    // Define the file name based on the tick number
+                    string fileName = $"rgbot_replay_data_{tickInfoData.tick}.txt";
+                    string filePath = Path.Combine(replayDirectory, fileName);
+
+                    // Write to the file
+                    try
+                    {
+                        File.WriteAllText(filePath, jsonContent);
+                    }
+                    catch (IOException e)
+                    {
+                        RGDebug.LogError($"ERROR: Failed to write replay data to file at {filePath}: {e}");
+                    }
+                }
+            }
         }
 
         private string GetSessionDirectory(string path = "")
