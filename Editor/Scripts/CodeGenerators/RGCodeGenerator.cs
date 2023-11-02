@@ -180,7 +180,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 File.Delete(directoryToDelete + ".meta");
                 AssetDatabase.Refresh();
             }
-            
+
             // NOTE: We may have trouble here with serialization or actionMap with sample projects
             // Much testing needed
             GenerateRGSerializationClass.Generate(actionInfos);
