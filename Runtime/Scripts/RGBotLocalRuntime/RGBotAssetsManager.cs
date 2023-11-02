@@ -12,9 +12,6 @@ namespace RegressionGames.RGBotLocalRuntime
         private static RGBotAssetsManager _this;
         
         private readonly Dictionary<long, RGBotAssetRecord> _botAssets = new();
-        
-        // This must match RGBotSynchronizer.cs
-        public static readonly string BOTS_PATH = "Assets/RegressionGames/Runtime/Bots";
 
         public static RGBotAssetsManager GetInstance()
         {
@@ -56,7 +53,7 @@ namespace RegressionGames.RGBotLocalRuntime
             _botAssets.Clear();
             
             // Load up the listing of available local bots
-            string[] botGuids = AssetDatabase.FindAssets("BotRecord", new string[] {BOTS_PATH});
+            string[] botGuids = AssetDatabase.FindAssets("BotRecord", new string[] {"Assets"});
             foreach (var botGuid in botGuids)
             {
                 var botAssetPath = AssetDatabase.GUIDToAssetPath(botGuid);
