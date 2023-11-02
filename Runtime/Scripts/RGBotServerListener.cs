@@ -540,11 +540,11 @@ namespace RegressionGames
          * Gets the entire game state by searching for all RGState game objects and gather their
          * states.
          */
-        private Dictionary<string, RGStateEntity> GetGameState()
+        private Dictionary<string, IRGStateEntity> GetGameState()
         {
             var overlayAgent = this.gameObject.GetComponent<RGEntity>();
             var statefulObjects = FindObjectsOfType<MonoBehaviour>(true).OfType<IRGState>();
-            var fullGameState = new Dictionary<string, RGStateEntity>();
+            var fullGameState = new Dictionary<string, IRGStateEntity>();
 
             // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
             // thus, this code cannot really be run in parallel, causing a major object count scaling issue....
