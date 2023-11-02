@@ -119,7 +119,7 @@ namespace RegressionGames.Editor.CodeGenerators
         }
 
         [MenuItem("Regression Games/Agent Builder/Extract Game Context")]
-        private static void ExtractData()
+        private static void ExtractGameContext()
         {
             try
             {
