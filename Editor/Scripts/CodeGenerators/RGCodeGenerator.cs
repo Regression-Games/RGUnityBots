@@ -118,8 +118,8 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
 
-        [MenuItem("Regression Games/Agent Builder/Extract Data")]
-        private static void ExtractData()
+        [MenuItem("Regression Games/Agent Builder/Extract Game Context")]
+        private static void ExtractGameContext()
         {
             try
             {
