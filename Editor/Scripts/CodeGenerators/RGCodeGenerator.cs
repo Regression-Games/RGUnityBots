@@ -36,7 +36,7 @@ namespace RegressionGames.Editor.CodeGenerators
         // so that we don't duplicate .cs files that are already included in the sample projects.
         // But while still scanning them so that we can include their States/Actions in the json.
         private static HashSet<string> _excludeDirectories = new() {
-            "ThirdPersonDemoURP"
+            //"VONTELL"
         };
 
         // Cache all 'asmdef' files in the project
@@ -183,6 +183,8 @@ namespace RegressionGames.Editor.CodeGenerators
             
             //NOTE: We may have trouble here with serialization or actionMap with sample projects
             // Much testing needed
+            
+            Debug.Log("CALL GENERATE ACTIONS");
             GenerateRGSerializationClass.Generate(actionInfos);
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
@@ -380,7 +382,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                 .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
                             : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
                                 .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-
+                        
                         stateList.Add(new RGStateAttributeInfo
                         {
                             FieldType = fieldType,
@@ -389,6 +391,8 @@ namespace RegressionGames.Editor.CodeGenerators
                             Type = type
                         });
                     }
+                    
+                    Debug.Log($"GENERATING STATE {className}");
 
                     if (stateList.Any())
                     {
