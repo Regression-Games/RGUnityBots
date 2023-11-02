@@ -148,7 +148,7 @@ namespace RGThirdPersonDemo
         [RGState]
         public bool IsAttacking()
         {
-            return _animator.GetBool(_attackAnimation);   
+            return !string.IsNullOrEmpty(_attackAnimation) && _animator.GetBool(_attackAnimation);
         }
         
     }
