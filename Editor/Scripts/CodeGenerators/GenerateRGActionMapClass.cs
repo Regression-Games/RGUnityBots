@@ -29,7 +29,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
-                .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
+                .NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
                 .AddUsings(
                     usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                 )

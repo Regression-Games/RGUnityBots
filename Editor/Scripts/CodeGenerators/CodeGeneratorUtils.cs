@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using UnityEditor;
+using UnityEngine;
 
 namespace RegressionGames
 {
@@ -9,6 +11,14 @@ namespace RegressionGames
         public static string SanitizeActionName(string name)
         {
             return Regex.Replace(name.Replace(" ", "_"), "[^0-9a-zA-Z_]", "_");
+        }
+
+        /**
+         * Returns a sanitized name to use as a namespace for generated code in this project
+         */
+        public static string GetNamespaceForProject()
+        {
+            return Regex.Replace("RG" + PlayerSettings.productName.Replace(" ", "_"), "[^0-9a-zA-Z_]", "_");
         }
     }
 }

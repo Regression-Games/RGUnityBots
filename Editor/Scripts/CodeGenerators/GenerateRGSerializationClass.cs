@@ -15,7 +15,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
-                .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
+                .NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
                 .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine")))
                 .AddMembers(GenerateClass(botActions));
 
