@@ -6,9 +6,9 @@ using UnityEngine;
 namespace RegressionGames.RGBotConfigs
 {
     [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
+    [DisallowMultipleComponent]
     public class RGEntity : MonoBehaviour
     {
-      
         [Tooltip("A type name for associating like objects in the state")]
         public string objectType;
         
@@ -32,16 +32,49 @@ namespace RegressionGames.RGBotConfigs
         // The client Id that owns this entity
         // Used as a performance optimization for mapping the ClientId into the state payloads
         public long? ClientId = null;
+
+        internal UnityEngine.UI.Button Button = null;
         
         /**
          * Updates the registry with a game object that has RGAction scripts attached to it
          */
         void Start()
         {
-            var actions = GetComponents<RGAction>();
-            foreach (var action in actions)
+            Button = gameObject.GetComponent<UnityEngine.UI.Button>();
+            if (Button != null)
             {
-                actionMap[action.GetActionName()] = action;
+                // get the action from the overlay button click action, should be the only one in the scene.. but ignores others if it isn't
+                var overlayMenu = GameObject.FindObjectOfType<RGOverlayMenu>();
+                if (overlayMenu != null)
+                {
+                    var clickButtonAction = overlayMenu.GetComponent<RGAction_ClickButton>();
+                    if (clickButtonAction != null)
+                    {
+                        actionMap[clickButtonAction.GetActionName()] = clickButtonAction;
+                    }
+                }
+            }
+            else
+            {
+                var overlayMenu = this.GetComponent<RGOverlayMenu>();
+                
+                var actions = this.GetComponents<RGAction>();
+                foreach (var action in actions)
+                {
+                    // ignore button actions on anything but the OverlayMenu
+                    if (action is RGAction_ClickButton)
+                    {
+                        if (overlayMenu != null)
+                        {
+                            actionMap[action.GetActionName()] = action;
+                        }
+                        // else ignore it
+                    }
+                    else
+                    {
+                        actionMap[action.GetActionName()] = action;
+                    }
+                }
             }
 
             if (actionMap.Count > 0)

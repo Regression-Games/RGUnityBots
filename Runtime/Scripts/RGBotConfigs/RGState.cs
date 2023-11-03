@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
+using UnityEngine.UI;
 
 /*
  * A component that can be inherited to relay game state information to
@@ -19,8 +20,7 @@ namespace RegressionGames.RGBotConfigs
         // ReSharper disable once InconsistentNaming
         // we require each state to have an 'RGEntity' component
         protected RGEntity rgEntity => GetComponent<RGEntity>();
-
-
+        
         /**
          * <summary>A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
@@ -64,28 +64,38 @@ namespace RegressionGames.RGBotConfigs
         // RGState implementation on its game object
         public static IRGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
         {
-            var state = new RGStateEntity<RGState>();
-            PopulateCoreStateForEntity(state, rgEntity);
+            IRGStateEntity state;
+
+            
+            // if button.. include whether it is interactable
+            var button = rgEntity.Button;
+            if (button is not null)
+            {
+                state = new RGStateEntity_Button();
+                CanvasGroup cg = rgEntity.gameObject.GetComponentInParent<CanvasGroup>();
+                state["interactable"] = (cg == null || cg.interactable) && button.enabled && button.interactable;
+            }
+            else
+            {
+                state = new RGStateEntity<RGState>();
+            }
+            var theTransform = rgEntity.transform;
+            
+            state["id"] = theTransform.GetInstanceID();
+            state["type"] = rgEntity.objectType;
+            state["isPlayer"] = rgEntity.isPlayer;
+            state["isRuntimeObject"] = rgEntity.isRuntimeObject;
+            state["position"] = theTransform.position;
+            state["rotation"] = theTransform.rotation;
+            state["clientId"] = rgEntity.ClientId;
+
             if (rgEntity.includeStateForAllBehaviours)
             {
                 PopulateEverythingStateForEntity(state, rgEntity);
             }
             return state;
         }
-
-        private static void PopulateCoreStateForEntity(IRGStateEntity state, RGEntity entity)
-        {
-            var theTransform = entity.transform;
-            
-            state["id"] = theTransform.GetInstanceID();
-            state["type"] = entity.objectType;
-            state["isPlayer"] = entity.isPlayer;
-            state["isRuntimeObject"] = entity.isRuntimeObject;
-            state["position"] = theTransform.position;
-            state["rotation"] = theTransform.rotation;
-            state["clientId"] = entity.ClientId;
-        }
-
+        
         private static void PopulateEverythingStateForEntity(IRGStateEntity state, RGEntity entity)
         {
             var obsoleteAttributeType = typeof(ObsoleteAttribute);
