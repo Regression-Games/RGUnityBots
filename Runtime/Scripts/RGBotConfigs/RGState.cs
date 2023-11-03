@@ -69,11 +69,11 @@ namespace RegressionGames.RGBotConfigs
             
             // if button.. include whether it is interactable
             var button = rgEntity.Button;
-            if (button is not null)
+            if (button != null)
             {
                 state = new RGStateEntity_Button();
                 CanvasGroup cg = rgEntity.gameObject.GetComponentInParent<CanvasGroup>();
-                state["interactable"] = (cg == null || cg.interactable) && button.enabled && button.interactable;
+                state["interactable"] = (cg == null || cg.enabled && cg.interactable) && button.enabled && button.interactable;
             }
             else
             {
