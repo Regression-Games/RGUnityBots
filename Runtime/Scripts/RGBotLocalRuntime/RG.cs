@@ -220,11 +220,6 @@ namespace RegressionGames.RGBotLocalRuntime
             _validationResults.Enqueue(rgValidation);
         }
 
-        internal void SetCharacterConfig(Dictionary<string, object> characterConfig)
-        {
-            this.CharacterConfig = characterConfig;
-        }
-
         /**
          * <summary>Sets the <see cref="CharacterConfig"/> field by parsing the provided JSON string.</summary>
          * <param name="characterConfigJson">A JSON string representing the character config.</param>
