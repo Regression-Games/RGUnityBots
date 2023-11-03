@@ -36,7 +36,7 @@ namespace RegressionGames.Editor.CodeGenerators
         // so that we don't duplicate .cs files that are already included in the sample projects.
         // But while still scanning them so that we can include their States/Actions in the json.
         private static HashSet<string> _excludeDirectories = new() {
-           //"ThirdPersonDemoURP"
+           "ThirdPersonDemoURP"
         };
 
         // Cache all 'asmdef' files in the project
@@ -183,7 +183,6 @@ namespace RegressionGames.Editor.CodeGenerators
 
             // NOTE: We may have trouble here with serialization or actionMap with sample projects
             // Much testing needed
-            Debug.Log(PlayerSettings.productName);
             GenerateRGSerializationClass.Generate(actionInfos);
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
