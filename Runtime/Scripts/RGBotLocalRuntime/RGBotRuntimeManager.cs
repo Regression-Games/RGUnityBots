@@ -66,10 +66,9 @@ namespace RegressionGames.RGBotLocalRuntime
             var botAssetRecord = RGBotAssetsManager.GetInstance().GetBotAssetRecord(botId);
             if (botAssetRecord != null)
             {
-                var botFolderNamespace =
-                    botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                var botNameSpace = botAssetRecord.BotAsset.Bot.name + "_" + botAssetRecord.BotAsset.Bot.id; 
                 
-                RGUserBot userBotCode = (RGUserBot) ScriptableObject.CreateInstance($"{botFolderNamespace}.BotEntryPoint");
+                RGUserBot userBotCode = (RGUserBot) ScriptableObject.CreateInstance($"{botNameSpace}.BotEntryPoint");
                 userBotCode.Init(botId, botAssetRecord.BotAsset.Bot.name);
                 
                 botInstance.bot = botAssetRecord.BotAsset.Bot;
