@@ -447,6 +447,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     foreach (var member in publicMembersAndDelegates)
                     {
+
                         if (member is FieldDeclarationSyntax fieldDeclaration)
                         {
                             if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
@@ -462,6 +463,11 @@ namespace RegressionGames.Editor.CodeGenerators
                                 RGDebug.LogWarning($"Warning: Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
                                 continue;
                             }
+                        }
+                        else
+                        {
+                            // no methods
+                            continue;
                         }
                         
                         string fieldName = member is PropertyDeclarationSyntax
