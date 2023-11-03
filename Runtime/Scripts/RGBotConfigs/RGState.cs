@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
+using UnityEngine.UI;
 
 /*
  * A component that can be inherited to relay game state information to
@@ -10,15 +12,15 @@ using UnityEngine;
  */
 namespace RegressionGames.RGBotConfigs
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     [RequireComponent(typeof(RGEntity))]
     // ReSharper disable once InconsistentNaming
-    public class RGState : MonoBehaviour, IRGState
+    public abstract class RGState : MonoBehaviour, IRGState
     {
-        
         // ReSharper disable once InconsistentNaming
         // we require each state to have an 'RGEntity' component
         protected RGEntity rgEntity => GetComponent<RGEntity>();
-
+        
         /**
          * <summary>A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
@@ -35,20 +37,12 @@ namespace RegressionGames.RGBotConfigs
          */
         public IRGStateEntity GetGameObjectState()
         {
-            var theTransform = rgEntity.transform;
-            
             var state = CreateStateEntityClassInstance();
-            state["id"] = theTransform.GetInstanceID();
-            state["type"] = rgEntity.objectType;
-            state["isPlayer"] = rgEntity.isPlayer;
-            state["isRuntimeObject"] = rgEntity.isRuntimeObject;
-            state["position"] = theTransform.position;
-            state["rotation"] = theTransform.rotation;
-            
+
             var dict = GetState();
             foreach (var entry in dict)
             {
-                // allow overriding default state fields like position
+                // allow overriding default or everything state fields like position, etc
                 state[entry.Key] = entry.Value;
             }
 
@@ -63,6 +57,84 @@ namespace RegressionGames.RGBotConfigs
         protected virtual IRGStateEntity CreateStateEntityClassInstance()
         {
             return new RGStateEntity<RGState>();
+        }
+        
+        
+        // Used to fill in the core state for any RGEntity that does NOT have an
+        // RGState implementation on its game object
+        public static IRGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
+        {
+            IRGStateEntity state;
+
+            
+            // if button.. include whether it is interactable
+            var button = rgEntity.Button;
+            if (button != null)
+            {
+                state = new RGStateEntity_Button();
+                CanvasGroup cg = rgEntity.gameObject.GetComponentInParent<CanvasGroup>();
+                state["interactable"] = (cg == null || cg.enabled && cg.interactable) && button.enabled && button.interactable;
+            }
+            else
+            {
+                state = new RGStateEntity<RGState>();
+            }
+            var theTransform = rgEntity.transform;
+            
+            state["id"] = theTransform.GetInstanceID();
+            state["type"] = rgEntity.objectType;
+            state["isPlayer"] = rgEntity.isPlayer;
+            state["isRuntimeObject"] = rgEntity.isRuntimeObject;
+            state["position"] = theTransform.position;
+            state["rotation"] = theTransform.rotation;
+            state["clientId"] = rgEntity.ClientId;
+
+            if (rgEntity.includeStateForAllBehaviours)
+            {
+                PopulateEverythingStateForEntity(state, rgEntity);
+            }
+            return state;
+        }
+        
+        private static void PopulateEverythingStateForEntity(IRGStateEntity state, RGEntity entity)
+        {
+            var obsoleteAttributeType = typeof(ObsoleteAttribute);
+            // find all Components and get their values
+            var components = entity.gameObject.GetComponents<Component>();
+            foreach (var component in components)
+            {
+                // skip 'expensive' components, only get colliders and MonoBehaviours
+                if (component is Collider or Collider2D or MonoBehaviour and not RGState and not RGAction and not RGEntity and not RGAgent)
+                {
+                    var type = component.GetType();
+                    var dictionary = new Dictionary<string, object>();
+                    foreach (PropertyInfo prop in type.GetProperties())
+                    {
+                        try
+                        {
+                            if (prop.CanRead &&
+                                (prop.PropertyType.IsPublic || prop.PropertyType.IsSerializable) &&
+                                !prop.IsDefined(obsoleteAttributeType, false)) ;
+                            {
+                                if (prop.PropertyType.IsPrimitive ||
+                                    prop.PropertyType == typeof(Vector3) ||
+                                    prop.PropertyType == typeof(Vector2) ||
+                                    prop.PropertyType == typeof(Vector4) ||
+                                    prop.PropertyType == typeof(Quaternion))
+                                {
+                                    dictionary[prop.Name] = prop.GetValue(component);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // some properties' values aren't accessible
+                        }
+                    }
+
+                    state[type.Name] = dictionary;
+                }
+            }
         }
     }
 

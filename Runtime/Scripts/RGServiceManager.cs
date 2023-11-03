@@ -11,6 +11,7 @@ using UnityEngine.Networking;
 
 namespace RegressionGames
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGServiceManager : MonoBehaviour
     { // not really a monobehaviour.. but we make one of these on an object
 

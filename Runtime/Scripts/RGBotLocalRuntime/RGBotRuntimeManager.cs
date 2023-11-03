@@ -9,6 +9,7 @@ using Random = System.Random;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGBotRuntimeManager: MonoBehaviour
     {
         private static RGBotRuntimeManager _this = null;
