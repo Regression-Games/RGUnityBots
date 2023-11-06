@@ -340,7 +340,7 @@ public class RegressionPackagePopup : EditorWindow
         GUI.enabled = IsURPEnabled();
         if (GUI.Button(new Rect(20, 390, 100, 30), "Open Sample"))
         {
-            ImportSample();
+            ImportSample("ThirdPersonDemoURP");
             Close();
         }
         GUI.enabled = true;
@@ -360,15 +360,14 @@ public class RegressionPackagePopup : EditorWindow
         return false;
     }
     
-    private void ImportSample()
+    private void ImportSample(string sampleName)
     {
         string packageName = "gg.regression.unity.bots";
-        string samplePath = "Samples~" + Path.DirectorySeparatorChar + "ThirdPersonDemoURP";
-        string destinationPath = "Assets" + Path.DirectorySeparatorChar + "ThirdPersonDemoURP";
+        string samplePath = "Samples~/" + sampleName;
+        string destinationPath = "Assets/" + sampleName;
 
         // Construct the path to the sample within the package
-        string packagePath = Path.Combine("Packages", packageName, samplePath);
-
+        string packagePath = "Packages/" + packageName + '/' + samplePath;
         // Check if the package is an embedded or local package
         if (Directory.Exists(packagePath))
         {
@@ -377,7 +376,7 @@ public class RegressionPackagePopup : EditorWindow
             {
                 FileUtil.CopyFileOrDirectory(packagePath, destinationPath);
                 AssetDatabase.Refresh();
-                string scenePath = Path.Combine(destinationPath, "Demo", "Scenes", "Playground.unity");
+                string scenePath = destinationPath + "/Demo/Scenes/Playground.unity";
                 EditorSceneManager.OpenScene(scenePath);
             }
             catch (System.Exception e)
@@ -391,7 +390,6 @@ public class RegressionPackagePopup : EditorWindow
             RGDebug.LogError("The sample could not be found or is not in an embedded or local package.");
         }
     }
-
     
     [InitializeOnLoadMethod]
     private static void InitializeOnLoadMethod()
