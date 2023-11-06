@@ -355,6 +355,38 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * Create a new record in the Bot Instance History table, which then allows us to upload results related
+         * to a bot run.
+         */
+        public async Task CreateBotInstanceHistory(long botInstanceId, Action<RGBotInstanceHistory> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}",
+                    method: "POST",
+                    payload: null,
+                    onSuccess: async (s) =>
+                    {
+                        RGBotInstanceHistory response = JsonUtility.FromJson<RGBotInstanceHistory>(s);
+                        RGDebug.LogDebug(
+                            $"RGService CreateBotInstanceHistory response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to create bot instance history record: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())

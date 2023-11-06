@@ -492,10 +492,7 @@ namespace RegressionGames
                     var sceneName = SceneManager.GetActiveScene().name;
                     var tickInfoData = new RGTickInfoData(tick, sceneName, state);
                     var sentTo = new List<long>();
-                    
-                    // Also take a screenshot at this point
-                    _dataCollection.CaptureScreenshot(tick);
-                    
+
                     // we tried to send these out in parallel on thread pool,
                     // but scheduling the tasks on the thread took longer than
                     // doing it sequentially... by a Lot, even with 200+ bots
@@ -732,6 +729,9 @@ namespace RegressionGames
         {
             enqueueTaskForClient(clientId,() =>
             {
+                // Also save a screenshot at this time
+                _dataCollection.CaptureScreenshot(validationResult);
+                
                 if (!validationResult.passed)
                 {
                     RGDebug.LogDebug($"Save Failed Validation Result for clientId: {clientId}, data: {validationResult}");

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
@@ -12,23 +11,48 @@ namespace RegressionGames.DataCollection
 {
     
     /**
-     * An RGDataCollection instance is responsible for coordinating all data collection features on behalf
-     * of Regression Games. It will collect the replay data, logs, screenshots, and then upload these items
-     * to Regression Games. Currently only supports screenshots, with more to come in an upcoming PR.
+     * The RGDataCollection class is responsible for collecting all of the data that is generated over multiple bot
+     * instance runs. More specifically, this means collecting screenshots and replay data (which includes state,
+     * action, and validation information).
+     * 
+     * In order to be efficient, this class does the following:
+     *  - Maintains a mapping from clientIds to botInstanceIds - this allows saving the data later
+     *  - Maintains a mapping from clientIds to replay data - this allows us to do a few things:
+     *      - The replay data stores the validations that occurred in that tick, allowing us to save validation data later
+     *      - The replay data stores... the replay data, so it can be saved as a zip replay file
+     *      - The validation ticks tell us which screenshots are relevant to each bot
+     *  - Takes a screenshot whenever a new validation result comes in, so later that screenshot can be uploaded, and
+     *    tracks the ticks that were screenshotted
+     *
+     * Once all clients have been disconnected, this class can be reset and all data left over (i.e. screenshots) can
+     * be deleted from the system.
+     * 
      */
     public class RGDataCollection
     {
 
         private readonly string _sessionName;
-        private Dictionary<long, List<RGTickInfoData>> _sessionTickInfo;
+        private Dictionary<long, long> _clientIdToBotInstanceId;
+        private Dictionary<long, List<RGStateActionReplayData>> _clientIdToReplayData;
+        private HashSet<long> _screenshottedTicks;
 
         public RGDataCollection()
         {
             // Name the session, and setup a temporary directory for all data
             _sessionName = Guid.NewGuid().ToString();
             
-            // Current tick info for the running instance
-            _sessionTickInfo = new Dictionary<long, List<RGTickInfoData>>();
+            // Instantiate the dictionaries
+            _clientIdToBotInstanceId = new();
+            _clientIdToReplayData = new();
+            _screenshottedTicks = new();
+        }
+
+        /**
+         * Registers a bot instance under a specific client id
+         */
+        public void RegisterBotInstance(long clientId, long botInstanceId)
+        {
+            _clientIdToBotInstanceId[clientId] = botInstanceId;
         }
 
         public void CaptureScreenshot(long tick)
@@ -53,26 +77,56 @@ namespace RegressionGames.DataCollection
             
         }
 
-        public void SaveReplayTickInfo(long clientId, RGTickInfoData tickInfoData)
+        public void SaveReplayDataInfo(long clientId, RGStateActionReplayData replayData)
         {
             // Check if the dictionary already has the clientId key
-            if (_sessionTickInfo.TryGetValue(clientId, out List<RGTickInfoData> existingList))
+            if (_clientIdToReplayData.TryGetValue(clientId, out List<RGStateActionReplayData> existingList))
             {
-                // Key exists, so add the tickInfoData to the existing list
-                existingList.Add(tickInfoData);
+                // Key exists, so add the replayData to the existing list
+                existingList.Add(replayData);
             }
             else
             {
                 // Key does not exist, so create a new list and add it to the dictionary
-                _sessionTickInfo[clientId] = new List<RGTickInfoData> { tickInfoData };
+                _clientIdToReplayData[clientId] = new List<RGStateActionReplayData> { replayData };
+            }
+            
+            // If the replay data has a validation, also take a screenshot if not already taken
+            if (replayData.validationResults?.Length > 0 && !_screenshottedTicks.Contains(replayData.tickInfo.tick))
+            {
+                var validationTick = replayData.tickInfo.tick;
+                _screenshottedTicks.Add(validationTick);
+                CaptureScreenshot(validationTick);
             }
         }
 
-        public void RecordSession(long botInstanceId, RGClientConnectionType rgClientConnectionType)
+        public void SaveBotInstanceHistory(long clientId, RGClientConnectionType rgClientConnectionType)
         {
-            RGDebug.LogVerbose("Ending data collection, uploading data to Regression Games...");
+            RGDebug.LogVerbose("Ending data collection for clientId " + clientId);
+            
+            var botInstanceId = _clientIdToBotInstanceId[clientId];
 
-            // First, upload all of the screenshots
+            // First, create a bot history record for this bot
+            RGServiceManager.GetInstance()?.CreateBotInstanceHistory(botInstanceId,
+                (botInstanceHistoryRecord) =>
+                {
+                    RGDebug.LogVerbose($"Successfully created bot instance history for bot instance {botInstanceId}");
+                },
+                () =>
+                {
+
+                });
+            
+            // Next, save text files for each replay tick, zip it up, and then upload
+            foreach (var replayData in _clientIdToReplayData[clientId])
+            {
+                var filePath = GetSessionDirectory($"replayData/{clientId}/rg_bot_replay_data_{replayData.tickInfo.tick}.txt");
+                File.WriteAllText(JsonUtility.ToJson(replayData), filePath);
+            }
+            
+            
+
+            // Then, upload all of the screenshots
             var screenshotFiles = Directory.GetFiles(GetSessionDirectory($"screenshots"));
             foreach (var screenshotFilePath in screenshotFiles)
             {

@@ -7,5 +7,6 @@ namespace RegressionGames.StateActionTypes
     {
         public string message;
         public bool passed;
+        
     }
 }
