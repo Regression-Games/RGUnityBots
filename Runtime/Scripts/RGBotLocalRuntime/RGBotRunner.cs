@@ -58,10 +58,10 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             if (handshake.characterConfig != null)
             {
-                _rgObject.SetCharacterConfig(handshake.characterConfig);
+                _rgObject.CharacterConfig = handshake.characterConfig;
             }
         }
-        
+
         public void QueueTickInfo(RGTickInfoData tickInfo)
         {
             if (_running)
@@ -71,12 +71,12 @@ namespace RegressionGames.RGBotLocalRuntime
                 _tickInfoQueue.Enqueue(tickInfo);
             }
         }
-        
+
         private void RunBotLoop()
         {
             // configure bot from user code
             _userBotCode.ConfigureBot(_rgObject);
-            
+
             // before we get into the loop, handle handshakes and such
             RGClientHandshake handshakeMessage = new RGClientHandshake();
             handshakeMessage.unityToken = RGServiceManager.RG_UNITY_AUTH_TOKEN;
@@ -85,10 +85,10 @@ namespace RegressionGames.RGBotLocalRuntime
             handshakeMessage.characterConfig = _rgObject.CharacterConfig;
             handshakeMessage.lifecycle = _userBotCode.lifecycle.ToString();
             handshakeMessage.botName = BotInstance.bot.name;
-                
+
             // do the 'handshake'  In remote bots they send a message to cause this, but we'll call it directly just after starting
             RGBotServerListener.GetInstance().HandleClientHandshakeMessage(BotInstance.id, handshakeMessage);
-            
+
             while (_running)
             {
                 if (_rgObject.Completed)
@@ -158,7 +158,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.STOPPED);
             }
         }
-        
+
         public void OnDrawGizmos()
         {
             if (_running)
