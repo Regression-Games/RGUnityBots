@@ -42,14 +42,6 @@ namespace RegressionGames.RGBotLocalRuntime
             return _botRunners.Values.Select(v => v.BotInstance).ToList();
         }
 
-        private long LongRandom(long min, long max, Random rand) {
-            byte[] buf = new byte[8];
-            rand.NextBytes(buf);
-            long longRand = BitConverter.ToInt64(buf, 0);
-
-            return (Math.Abs(longRand % (max - min)) + min);
-        }
-
         public long StartBot(long botId)
         {
             var botInstance = new RGBotInstance
@@ -66,9 +58,28 @@ namespace RegressionGames.RGBotLocalRuntime
             var botAssetRecord = RGBotAssetsManager.GetInstance().GetBotAssetRecord(botId);
             if (botAssetRecord != null)
             {
-                var botNameSpace = botAssetRecord.BotAsset.Bot.name + "_" + botAssetRecord.BotAsset.Bot.id; 
-                
-                RGUserBot userBotCode = (RGUserBot) ScriptableObject.CreateInstance($"{botNameSpace}.BotEntryPoint");
+ 
+                // Handle bot namespace with priority being botName_botId
+                // but fall back to botDirectoryName as that is the namespace before bots are synced
+                // to RG as we don't know the real botId yet                
+                RGUserBot userBotCode;
+                // if negative, replace the minus sign with an 'n'
+                var botIdKey = (botAssetRecord.BotAsset.Bot.id < 0)
+                    ? $"_n{-1 * botAssetRecord.BotAsset.Bot.id}"
+                    : $"_{botAssetRecord.BotAsset.Bot.id}";
+                var botNameSpace = botAssetRecord.BotAsset.Bot.name + botIdKey;
+                var botFolderNamespace =
+                    botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                try
+                {
+                    userBotCode = (RGUserBot)ScriptableObject.CreateInstance($"{botNameSpace}.BotEntryPoint");
+                }
+                catch (Exception e)
+                {
+                    RGDebug.LogInfo($"Namespace botName_botId not found for {botNameSpace}, using directory name as namespace instead {botFolderNamespace}");
+                    userBotCode = (RGUserBot)ScriptableObject.CreateInstance($"{botFolderNamespace}.BotEntryPoint");
+                }
+
                 userBotCode.Init(botId, botAssetRecord.BotAsset.Bot.name);
                 
                 botInstance.bot = botAssetRecord.BotAsset.Bot;
