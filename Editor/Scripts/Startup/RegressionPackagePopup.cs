@@ -297,7 +297,7 @@ public class RegressionPackagePopup : EditorWindow
         // Draw the docs button
         if (GUI.Button(new Rect(20, 250, 100, 30), "View Docs"))
         {
-            Application.OpenURL("https://docs.regression.gg/studios/unity/unity-sdk/csharp/configuration");
+            Application.OpenURL("https://docs.regression.gg/studios/unity/unity-sdk/creating-bots/csharp/configuration");
         }
     }
     
@@ -363,8 +363,8 @@ public class RegressionPackagePopup : EditorWindow
     private void ImportSample()
     {
         string packageName = "gg.regression.unity.bots";
-        string samplePath = "Samples~/ThirdPersonDemoURP";
-        string destinationPath = "Assets/ThirdPersonDemoURP";
+        string samplePath = "Samples~" + Path.DirectorySeparatorChar + "ThirdPersonDemoURP";
+        string destinationPath = "Assets" + Path.DirectorySeparatorChar + "ThirdPersonDemoURP";
 
         // Construct the path to the sample within the package
         string packagePath = Path.Combine("Packages", packageName, samplePath);
@@ -373,20 +373,25 @@ public class RegressionPackagePopup : EditorWindow
         if (Directory.Exists(packagePath))
         {
             // The package is local or embedded, copy the sample to the project's Assets folder
-            FileUtil.CopyFileOrDirectory(packagePath, destinationPath);
-            AssetDatabase.Refresh();
-
-            // Open the specific scene from the sample
-            EditorSceneManager.OpenScene(Path.Combine(destinationPath, "Demo/Scenes/Playground.unity"));
+            try
+            {
+                FileUtil.CopyFileOrDirectory(packagePath, destinationPath);
+                AssetDatabase.Refresh();
+                string scenePath = Path.Combine(destinationPath, "Demo", "Scenes", "Playground.unity");
+                EditorSceneManager.OpenScene(scenePath);
+            }
+            catch (System.Exception e)
+            {
+                RGDebug.LogError("Failed to import sample: " + e.Message);
+            }
         }
         else
         {
             // Handle the case where the package might be installed from the Unity Package Manager registry
-            // This part is more complex and depends on how Unity packages and caches downloaded packages
-            // For now we're assuming samples are embedded
             RGDebug.LogError("The sample could not be found or is not in an embedded or local package.");
         }
     }
+
     
     [InitializeOnLoadMethod]
     private static void InitializeOnLoadMethod()
