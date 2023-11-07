@@ -363,20 +363,29 @@ public class RegressionPackagePopup : EditorWindow
     private void ImportSample(string sampleName)
     {
         string packageName = "gg.regression.unity.bots";
-        string samplePath = "Samples~/" + sampleName;
-        string destinationPath = "Assets/" + sampleName;
+        string sampleDirectoryName = "Samples~";
+        string assetsDirectoryName = "Assets";
+        string destinationDirectoryName = sampleName;
 
         // Construct the path to the sample within the package
-        string packagePath = "Packages/" + packageName + '/' + samplePath;
+        string packagePath = Path.Combine("Packages", packageName, sampleDirectoryName, sampleName).Replace("\\", "/");
+        string destinationPath = Path.Combine(assetsDirectoryName, destinationDirectoryName).Replace("\\", "/");
+
         // Check if the package is an embedded or local package
         if (Directory.Exists(packagePath))
         {
             // The package is local or embedded, copy the sample to the project's Assets folder
             try
             {
+                // Replaces sample during reimports
+                if (Directory.Exists(destinationPath))
+                {
+                    FileUtil.DeleteFileOrDirectory(destinationPath);
+                }
+
                 FileUtil.CopyFileOrDirectory(packagePath, destinationPath);
                 AssetDatabase.Refresh();
-                string scenePath = destinationPath + "/Demo/Scenes/Playground.unity";
+                string scenePath = Path.Combine(destinationPath, "Demo", "Scenes", "Playground.unity").Replace("\\", "/");
                 EditorSceneManager.OpenScene(scenePath);
             }
             catch (System.Exception e)
