@@ -153,11 +153,8 @@ namespace RegressionGames.Editor.CodeGenerators
                             "Cancel"
                         ))
                     {
-                        foreach (var dirtyScene in dirtyScenes)
-                        {
-                            EditorSceneManager.SaveScenes(dirtyScenes.ToArray());
-                            ExtractGameContextHelper();
-                        }
+                        EditorSceneManager.SaveScenes(dirtyScenes.ToArray());
+                        ExtractGameContextHelper();
                     }
                 }
                 else
