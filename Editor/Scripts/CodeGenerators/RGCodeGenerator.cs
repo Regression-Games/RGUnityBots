@@ -11,7 +11,9 @@ using Newtonsoft.Json.Linq;
 using RegressionGames.RGBotConfigs;
 using RegressionGames.StateActionTypes;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.Editor.CodeGenerators
@@ -118,8 +120,76 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
 
+        private static List<Scene> GetDirtyScenes()
+        {
+            var result = new List<Scene>();
+            for (int j = 0; j < SceneManager.sceneCount; j++)
+            {
+                var scene = SceneManager.GetSceneAt(j);
+                if (scene.isDirty)
+                {
+                    result.Add(scene);
+                }
+            }
+
+            return result;
+        }
+
         [MenuItem("Regression Games/Agent Builder/Extract Game Context")]
         private static void ExtractGameContext()
+        {
+            if (EditorUtility.DisplayDialog(
+                    "Extract Game Context",
+                    "Warning: This operation will load and unload every scene in your project's build configuration while gathering data.  This operation can take a long time to complete depending on the size of your project.",
+                    "Continue",
+                    "Cancel"))
+            {
+                var dirtyScenes = GetDirtyScenes();
+                if (dirtyScenes.Count > 0)
+                {
+                    if (EditorUtility.DisplayDialog(
+                            "Unsaved Changes Detected",
+                            "One or more open Scenes have unsaved changes.",
+                            "Save Scenes and Continue Extract",
+                            "Cancel"
+                        ))
+                    {
+                        foreach (var dirtyScene in dirtyScenes)
+                        {
+                            EditorSceneManager.SaveScenes(dirtyScenes.ToArray());
+                            ExtractGameContextHelper();
+                        }
+                    }
+                }
+                else
+                {
+                    ExtractGameContextHelper();
+                }
+            }
+
+        }
+        
+        private static void GenerateActionClasses(List<RGActionAttributeInfo> actionInfos)
+        {
+            // remove previous RGActions
+            string dataPath = Application.dataPath;
+            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGActions").Replace("\\", "/");
+
+            if (Directory.Exists(directoryToDelete))
+            {
+                Directory.Delete(directoryToDelete, true);
+                File.Delete(directoryToDelete + ".meta");
+                AssetDatabase.Refresh();
+            }
+            
+            //NOTE: We may have trouble here with serialization or actionMap with sample projects
+            // Much testing needed
+            GenerateRGSerializationClass.Generate(actionInfos);
+            GenerateRGActionClasses.Generate(actionInfos);
+            GenerateRGActionMapClass.Generate(actionInfos);
+        }
+
+        private static void ExtractGameContextHelper()
         {
             try
             {
@@ -166,26 +236,6 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 EditorUtility.ClearProgressBar();
             }
-        }
-        
-        private static void GenerateActionClasses(List<RGActionAttributeInfo> actionInfos)
-        {
-            // remove previous RGActions
-            string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGActions").Replace("\\", "/");
-
-            if (Directory.Exists(directoryToDelete))
-            {
-                Directory.Delete(directoryToDelete, true);
-                File.Delete(directoryToDelete + ".meta");
-                AssetDatabase.Refresh();
-            }
-            
-            //NOTE: We may have trouble here with serialization or actionMap with sample projects
-            // Much testing needed
-            GenerateRGSerializationClass.Generate(actionInfos);
-            GenerateRGActionClasses.Generate(actionInfos);
-            GenerateRGActionMapClass.Generate(actionInfos);
         }
         
         private static List<RGActionAttributeInfo> SearchForBotActionAttributes()
@@ -544,6 +594,10 @@ namespace RegressionGames.Editor.CodeGenerators
             return namespacePrefix + typeSymbol.Name;
         }
 
+        /**
+         * WARNING/NOTE: This should be used after checking for changes in the editor or other prompting
+         * to prevent users from losing their unsaved work.
+         */
         private static void PopulateObjectTypes(List<RGStatesInfo> statesInfos, List<RGActionInfo> actionInfos)
         {
             
@@ -577,22 +631,51 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
             }
             
-            // TODO (REG-1373) iterate through all scenes rather than only the current one in the editor
-            // For objects in the scene
-            RGEntity[] allEntities = Object.FindObjectsOfType<RGEntity>();
-            for (int i = 0; i < allEntities.Length; i++)
+            // iterate through all scenes rather than only the current ones in the editor
+            var startingActiveScenePath = SceneManager.GetActiveScene().path;
+            HashSet<string> allActiveScenePaths = new ();
+            for (int j = 0; j < SceneManager.sceneCount; j++)
             {
-                RGEntity entity = allEntities[i];
-                var entityMap = entity.MapObjectType(objectTypeMap);
-                foreach (var kvp in entityMap)
+                allActiveScenePaths.Add(SceneManager.GetSceneAt(j).path);
+            }
+            // get all the objects in the currently open scenes.. this minimizes the amount of scene loading we have to do
+            LookupEntitiesForCurrentScenes(objectTypeMap);
+            
+            // Get for all the other scenes in the build 
+            EditorBuildSettingsScene[] scenesInBuild = EditorBuildSettings.scenes;
+            foreach (var editorScene in scenesInBuild)
+            {
+                // include currently enabled scenes for the build
+                if (editorScene.enabled && !allActiveScenePaths.Contains(editorScene.path))
                 {
-                    if (kvp.Value != null)
-                    {
-                        objectTypeMap[kvp.Key] = kvp.Value;
-                    }
+                    // Open the scene 
+                    EditorSceneManager.OpenScene(editorScene.path, OpenSceneMode.Single);
+
+                    // For objects in the scene
+                    LookupEntitiesForCurrentScenes(objectTypeMap);
                 }
             }
-            
+
+            var firstReloadScene = true;
+            // get the editor back to the scenes they had open before we started
+            Scene? goBackToStartingActiveScene = null;
+            foreach (var activeScenePath in allActiveScenePaths)
+            {
+                // open the first in singular to clear editor, then rest additive
+                var newScene = EditorSceneManager.OpenScene(activeScenePath, firstReloadScene ? OpenSceneMode.Single : OpenSceneMode.Additive);
+                if (newScene.path == startingActiveScenePath)
+                {
+                    goBackToStartingActiveScene = newScene;
+                }
+                firstReloadScene = false;
+            }
+
+            if (goBackToStartingActiveScene != null)
+            {
+                // Return back to their active starting scene
+                SceneManager.SetActiveScene((Scene)goBackToStartingActiveScene);
+            }
+
             // For prefabs
             string[] allPrefabs = AssetDatabase.FindAssets("t:Prefab");
             foreach (string prefabGuid in allPrefabs)
@@ -642,20 +725,53 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
 
+        private static void LookupEntitiesForCurrentScenes(Dictionary<Type, string> objectTypeMap)
+        {
+            RGEntity[] allEntities = Object.FindObjectsOfType<RGEntity>();
+            for (int i = 0; i < allEntities.Length; i++)
+            {
+                RGEntity entity = allEntities[i];
+                var entityMap = entity.MapObjectType(objectTypeMap);
+                foreach (var kvp in entityMap)
+                {
+                    if (kvp.Value != null)
+                    {
+                        objectTypeMap[kvp.Key] = kvp.Value;
+                    }
+                }
+            }
+        }
+
         private static void WriteJsonFiles(List<RGStatesInfo> statesInfos, List<RGActionInfo> actionInfos)
         {
             // Write values to JSON files
             string updatedActionJson = 
-                JsonConvert.SerializeObject(new RGActionsInfo() {BotActions = actionInfos}, Formatting.Indented, new JsonSerializerSettings
-                {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                });
+                JsonConvert.SerializeObject(
+                    new 
+                    {
+                        BotActions = actionInfos
+                    }, 
+                    Formatting.Indented,
+                    new JsonSerializerSettings
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                    }
+                );
             
             string updatedStateJson = 
-                JsonConvert.SerializeObject(new { RGStateInfo = statesInfos }, Formatting.Indented, new JsonSerializerSettings
-                {
-                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                });
+                JsonConvert.SerializeObject(
+                    new
+                    {
+                        //Maybe in future leave out those without an object type ??
+                        //RGStateInfo = statesInfos.Where(v => !string.IsNullOrEmpty(v.ObjectType))
+                        RGStateInfo = statesInfos
+                    },
+                    Formatting.Indented,
+                    new JsonSerializerSettings
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                    }
+                );
             
             WriteJsonToFile("RGActions", updatedActionJson);
             WriteJsonToFile("RGStates", updatedStateJson);
