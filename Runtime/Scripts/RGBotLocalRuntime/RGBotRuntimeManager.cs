@@ -62,7 +62,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 // Handle bot namespace with priority being botName_botId
                 // but fall back to botDirectoryName as that is the namespace before bots are synced
                 // to RG as we don't know the real botId yet                
-                RGUserBot userBotCode;
+                RGUserBot userBotCode = null;
                 // if negative, replace the minus sign with an 'n'
                 var botIdKey = (botAssetRecord.BotAsset.Bot.id < 0)
                     ? $"_n{-1 * botAssetRecord.BotAsset.Bot.id}"
@@ -76,7 +76,12 @@ namespace RegressionGames.RGBotLocalRuntime
                 }
                 catch (Exception e)
                 {
-                    RGDebug.LogInfo($"Namespace botName_botId not found for {botNameSpace}, using directory name as namespace instead {botFolderNamespace}");
+                    // nothing to see here, unity already logs the failure above in the log despite usually not throwing an exception
+                }
+
+                if (userBotCode == null)
+                {
+                    RGDebug.LogWarning($"Namespace botName_botId not found for {botNameSpace}, using directory name as namespace instead {botFolderNamespace}");
                     userBotCode = (RGUserBot)ScriptableObject.CreateInstance($"{botFolderNamespace}.BotEntryPoint");
                 }
 
