@@ -1,7 +1,11 @@
+using System;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 
 namespace RegressionGames.StateActionTypes
 {
+    
+    [Serializable]
     public class RGStateActionReplayData
     {
         [CanBeNull] public RGActionRequest[] actions;
@@ -15,6 +19,14 @@ namespace RegressionGames.StateActionTypes
         [CanBeNull] public long? sceneId;
 
         public RGTickInfoData tickInfo;
+        
+        public string ToSerialized()
+        {
+            return JsonConvert.SerializeObject(this, Formatting.None, new JsonSerializerSettings
+                    {
+                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                    });
+        }
 
         /**
          * This is the server tick rate based on the physics timer

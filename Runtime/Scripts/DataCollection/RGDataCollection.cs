@@ -37,11 +37,11 @@ namespace RegressionGames.DataCollection
     {
 
         private readonly string _sessionName;
-        private Dictionary<long, RGBot> _clientIdToBots;
-        private Dictionary<long, List<RGStateActionReplayData>> _clientIdToReplayData;
-        private HashSet<long> _screenshottedTicks;
-        private string rootPath;
-        private ConcurrentBag<long> _screenshotTicksRequested;
+        private readonly Dictionary<long, RGBot> _clientIdToBots;
+        private readonly ConcurrentDictionary<long, List<RGStateActionReplayData>> _clientIdToReplayData;
+        private readonly HashSet<long> _screenshottedTicks;
+        private readonly string rootPath;
+        private readonly ConcurrentBag<long> _screenshotTicksRequested;
 
         public RGDataCollection()
         {
@@ -60,6 +60,7 @@ namespace RegressionGames.DataCollection
 
         /**
          * Registers a bot instance under a specific client id
+         * Called on the main thread.
          */
         public void RegisterBot(long clientId, RGBot bot)
         {
@@ -69,12 +70,22 @@ namespace RegressionGames.DataCollection
 
         /**
          * Screenshots are requested from a non-main thread, so we need to queue them up and process them on the main
-         * thread only
+         * thread only.
+         * Called on the main thread.
          */
         public void ProcessScreenshotRequests()
         {
-            var ticks = _screenshotTicksRequested.Distinct().ToArray();
+            long[] ticks;
             
+            // Copy the ticks, but with a lock so we can clear it right away as well
+            // TODO(REG-1413): Yes, some ticks may be screenshotted at the same time... Made a ticket to address this
+            lock (_screenshotTicksRequested)
+            {
+                ticks = _screenshotTicksRequested.Distinct().ToArray();
+                _screenshottedTicks.RemoveWhere(t => _screenshottedTicks.Contains(t));
+                _screenshotTicksRequested.Clear();
+            }
+
             if (ticks.Length > 0)
             {
                 RGDebug.LogVerbose($"Capturing screenshot for ticks {string.Join(", ", ticks)}");
@@ -97,126 +108,139 @@ namespace RegressionGames.DataCollection
                     }
                 }
             }
-
-            _screenshotTicksRequested.Clear();
+            
         }
 
+        /**
+         * Saves the state, action, and validation information for a given tick
+         */
         public void SaveReplayDataInfo(long clientId, RGStateActionReplayData replayData)
         {
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Saving replay data for tick {replayData.tickInfo.tick}");
-            // Check if the dictionary already has the clientId key
-            if (_clientIdToReplayData.TryGetValue(clientId, out List<RGStateActionReplayData> existingList))
-            {
-                // Key exists, so add the replayData to the existing list
-                existingList.Add(replayData);
-            }
-            else
-            {
-                // Key does not exist, so create a new list and add it to the dictionary
-                _clientIdToReplayData[clientId] = new List<RGStateActionReplayData> { replayData };
-            }
             
-            // If the replay data has a validation, also take a screenshot if not already taken
-            if (replayData.validationResults?.Length > 0 && !_screenshottedTicks.Contains(replayData.tickInfo.tick))
+            // Add the new replay data to a new or existing mapping in our client replay data dictionary
+            var replayDatas = _clientIdToReplayData.GetOrAdd(clientId, new List<RGStateActionReplayData>());
+            replayDatas.Add(replayData); // We only add during concurrent times, so no locking needed
+
+            // If the replay data has a validation, queue up a screenshot
+            // Lock here since we don't want to add a new tick while the dequeue is processing
+            lock (_screenshotTicksRequested)
             {
-                RGDebug.LogVerbose($"DataCollection[{clientId}] - Also saving a screenshot for tick {replayData.tickInfo.tick}");
-                var validationTick = replayData.tickInfo.tick;
-                _screenshotTicksRequested.Add(validationTick);
+                if (replayData.validationResults?.Length > 0 && !_screenshottedTicks.Contains(replayData.tickInfo.tick))
+                {
+                    RGDebug.LogVerbose($"DataCollection[{clientId}] - Also saving a screenshot for tick {replayData.tickInfo.tick}");
+                    var validationTick = replayData.tickInfo.tick;
+                    _screenshottedTicks.Add(validationTick);
+                }
             }
         }
 
         public async Task SaveBotInstanceHistory(long clientId)
         {
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Starting to save bot instance history");
-            
-            var bot = _clientIdToBots[clientId];
-
-            // Before we do anything, we need to verify that this bot actually exists in Regression Games
-            await RGServiceManager.GetInstance()?.GetBotCodeDetails(bot.id, 
-                rgBot =>
+            try
             {
-                RGDebug.LogVerbose($"DataCollection[{clientId}] - Found a bot on Regression Games with this ID");
-            }, () => throw new Exception("This bot does not exist on the server. Please use the Regression Games > Synchronize Bots with RG menu option to register your bot."))!;
-            
-            // Next, always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
-            var botInstance = await RGServiceManager.GetInstance()?.CreateBotInstance(bot.id)!;
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance, with id {botInstance.id}");
-            var botInstanceId = botInstance.id;
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Starting to save bot instance history");
 
-            // First, create a bot history record for this bot
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance history...");
-            await RGServiceManager.GetInstance()?.CreateBotInstanceHistory(botInstanceId)!;
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Created the record for bot instance history");
-            
-            // Next, save text files for each replay tick, zip it up, and then upload
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Zipping the replay data (total of {_clientIdToReplayData[clientId].Count} files)...");
-            foreach (var replayData in _clientIdToReplayData[clientId])
-            {
-                var filePath = GetSessionDirectory($"replayData/{clientId}/rg_bot_replay_data_{replayData.tickInfo.tick}.txt");
-                RGDebug.LogVerbose(JsonUtility.ToJson(replayData));
-                RGDebug.LogVerbose(filePath);
-                await File.WriteAllTextAsync(filePath, JsonUtility.ToJson(replayData));
-            }
-            ZipHelper.CreateFromDirectory(
-                GetSessionDirectory($"replayData/{clientId}/"),
-                GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip")
-            );
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Zipped data, now uploading...");
-            await RGServiceManager.GetInstance()?.UploadReplayData(
-                botInstanceId, GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip"),
-                () => { }, () => { })!;
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Successfully uploaded replay data");
-            
-            // Now save all of the validation data (i.e. the validation summary and validations file overall)
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading validation data...");
-            var validations = _clientIdToReplayData[clientId]
-                .Where(rd => rd.validationResults?.Length > 0)
-                .SelectMany(rd => rd.validationResults)
-                .ToArray();
-            var passed = validations.Count(rd => rd.result == RGValidationResultType.PASS);
-            var failed = validations.Count(rd => rd.result == RGValidationResultType.FAIL);
-            var warnings = validations.Count(rd => rd.result == RGValidationResultType.WARNING);
-            var validationSummary = new RGValidationSummary(passed, failed, warnings);
-            await RGServiceManager.GetInstance()?.UploadValidations(botInstanceId, validations, () => { }, () => { })!;
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Saved validations, now uploading validation summary...");
-            await RGServiceManager.GetInstance()?.UploadValidationSummary(botInstanceId, validationSummary, _ => { }, () => { })!;
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Validation summary uploaded successfully");
+                var bot = _clientIdToBots[clientId];
 
-            // Then, upload all of the screenshots for this client. Only upload the screenshots for ticks that had
-            // validation results. Also, only upload 5 at a time.
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading screenshots...");
-            var uploadSemaphore = new SemaphoreSlim(5);
-            var validationTicks = validations.Select(rd => rd.tick).Distinct().ToArray();
-            List<Task> uploadScreenshotTasks = new ();
-            foreach (var tick in validationTicks)
-            {
-                var screenshotFilePath = GetSessionDirectory($"screenshots/{tick}.jpg");
-                if (File.Exists(screenshotFilePath))
-                {
-                    var task = RGServiceManager.GetInstance()?.UploadScreenshot(
-                        botInstanceId, tick, screenshotFilePath, 
-                        () =>
+                // Before we do anything, we need to verify that this bot actually exists in Regression Games
+                await RGServiceManager.GetInstance()?.GetBotCodeDetails(bot.id,
+                        rgBot =>
                         {
-                            RGDebug.LogVerbose($"DataCollection[{clientId}] - Successfully uploaded screenshot {tick}");
+                            RGDebug.LogVerbose(
+                                $"DataCollection[{clientId}] - Found a bot on Regression Games with this ID");
                         },
-                        () =>
-                        {
-                        
-                        }, uploadSemaphore)!;
-                    uploadScreenshotTasks.Add(task);
-                }
-                else
+                        () => throw new Exception(
+                            "This bot does not exist on the server. Please use the Regression Games > Synchronize Bots with RG menu option to register your bot."))
+                    !;
+
+                // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
+                var botInstance = await RGServiceManager.GetInstance()?.CreateBotInstance(bot.id)!;
+                RGDebug.LogVerbose(
+                    $"DataCollection[{clientId}] - Creating the record for bot instance, with id {botInstance.id}");
+                var botInstanceId = botInstance.id;
+
+                // Create a bot history record for this bot
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance history...");
+                await RGServiceManager.GetInstance()?.CreateBotInstanceHistory(botInstanceId)!;
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Created the record for bot instance history");
+
+                // Save text files for each replay tick, zip it up, and then upload
+                RGDebug.LogVerbose(
+                    $"DataCollection[{clientId}] - Zipping the replay data (total of {_clientIdToReplayData[clientId].Count} files)...");
+                foreach (var replayData in _clientIdToReplayData[clientId])
                 {
-                    RGDebug.LogWarning($"Expected to find screenshot for tick {tick}, but it was not found");
+                    var filePath =
+                        GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.txt");
+                    await File.WriteAllTextAsync(filePath, replayData.ToSerialized());
                 }
+
+                ZipHelper.CreateFromDirectory(
+                    GetSessionDirectory($"replayData/{clientId}/"),
+                    GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip")
+                );
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Zipped data, now uploading...");
+                await RGServiceManager.GetInstance()?.UploadReplayData(
+                    botInstanceId, GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip"),
+                    () => { }, () => { })!;
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Successfully uploaded replay data");
+
+                // Save all of the validation data (i.e. the validation summary and validations file overall)
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading validation data...");
+                var validations = _clientIdToReplayData[clientId]
+                    .Where(rd => rd.validationResults?.Length > 0)
+                    .SelectMany(rd => rd.validationResults)
+                    .ToArray();
+                var passed = validations.Count(rd => rd.result == RGValidationResultType.PASS);
+                var failed = validations.Count(rd => rd.result == RGValidationResultType.FAIL);
+                var warnings = validations.Count(rd => rd.result == RGValidationResultType.WARNING);
+                var validationSummary = new RGValidationSummary(passed, failed, warnings);
+                await RGServiceManager.GetInstance()
+                    ?.UploadValidations(botInstanceId, validations, () => { }, () => { })!;
+                RGDebug.LogVerbose(
+                    $"DataCollection[{clientId}] - Saved validations, now uploading validation summary...");
+                await RGServiceManager.GetInstance()
+                    ?.UploadValidationSummary(botInstanceId, validationSummary, _ => { }, () => { })!;
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Validation summary uploaded successfully");
+
+                // Upload all of the screenshots for this client. Only upload the screenshots for ticks that had
+                // validation results. Also, only upload 5 at a time.
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading screenshots...");
+                var uploadSemaphore = new SemaphoreSlim(5);
+                var validationTicks = validations.Select(rd => rd.tick).Distinct().ToArray();
+                List<Task> uploadScreenshotTasks = new();
+                foreach (var tick in validationTicks)
+                {
+                    var screenshotFilePath = GetSessionDirectory($"screenshots/{tick}.jpg");
+                    if (File.Exists(screenshotFilePath))
+                    {
+                        var task = RGServiceManager.GetInstance()?.UploadScreenshot(
+                            botInstanceId, tick, screenshotFilePath,
+                            () =>
+                            {
+                                RGDebug.LogVerbose(
+                                    $"DataCollection[{clientId}] - Successfully uploaded screenshot {tick}");
+                            },
+                            () => { }, uploadSemaphore)!;
+                        uploadScreenshotTasks.Add(task);
+                    }
+                    else
+                    {
+                        RGDebug.LogWarning(
+                            $"DataCollection[{clientId}] - Expected to find screenshot for tick {tick}, but it was not found");
+                    }
+                }
+
+                // Wait for all screenshots to upload
+                await Task.WhenAll(uploadScreenshotTasks);
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Finished uploading screenshots");
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Data uploaded to Regression Games");
             }
-
-            // Wait for all screenshots to upload
-            await Task.WhenAll(uploadScreenshotTasks);
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Successfully finished uploading screenshots");
-
-            RGDebug.LogVerbose("Data uploaded to Regression Games");
+            catch (Exception e)
+            {
+                RGDebug.LogWarning($"DataCollection[{clientId}] - Error uploading data, {e.StackTrace}");
+            }
             
         }
 
@@ -236,7 +260,7 @@ namespace RegressionGames.DataCollection
             // Delete everything in the session folder
             var sessionPath = GetSessionDirectory();
             Directory.Delete(sessionPath, true);
-            Debug.Log("Deleted all local temp data collected for RG bots");
+            RGDebug.LogVerbose("Deleted all local temp data collected for RG bots");
         }
 
     }
@@ -246,7 +270,7 @@ namespace RegressionGames.DataCollection
     public static class ZipHelper {
         public static void CreateFromDirectory(string sourceDirectoryName,
             string destinationArchiveFileName,
-            System.IO.Compression.CompressionLevel compressionLevel = CompressionLevel.Fastest,
+            CompressionLevel compressionLevel = CompressionLevel.Fastest,
             bool includeBaseDirectory = false,
             Predicate<string> exclusionFilter = null
         )
