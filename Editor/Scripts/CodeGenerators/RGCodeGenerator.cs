@@ -9,7 +9,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.RGBotConfigs;
-using RegressionGames.StateActionTypes;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
