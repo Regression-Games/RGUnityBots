@@ -9,6 +9,7 @@ using Random = System.Random;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGBotRuntimeManager: MonoBehaviour
     {
         private static RGBotRuntimeManager _this = null;
@@ -75,6 +76,9 @@ namespace RegressionGames.RGBotLocalRuntime
 
                 RGClientConnection connection = RGBotServerListener.GetInstance()
                     .AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
+                
+                // Also attack the bot so we can upload later
+                RGBotServerListener.GetInstance().MapClientToLocalBot(botInstance.id, botAssetRecord.BotAsset.Bot);
 
                 var botRunner = new RGBotRunner(botInstance, userBotCode,
                     () => { _botRunners.TryRemove(botInstance.id, out _); });

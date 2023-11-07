@@ -1,17 +1,20 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
+using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.Windows;
 
 namespace RegressionGames
 {
+    [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGServiceManager : MonoBehaviour
     { // not really a monobehaviour.. but we make one of these on an object
 
@@ -329,38 +332,81 @@ namespace RegressionGames
             }
         }
         
-        public async Task UploadScreenshot(long botInstanceId, long tick, string filePath, Action onSuccess, Action onFailure)
+        public async Task UploadScreenshot(long botInstanceId, long tick, string filePath, Action onSuccess, Action onFailure, [CanBeNull] SemaphoreSlim sem = null)
         {
+            
+            await sem?.WaitAsync()!;
+
+            try
+            {
+                if (await EnsureAuthed())
+                {
+                    await SendWebFileUploadRequest(
+                        uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/screenshots/{tick}",
+                        method: "POST",
+                        filePath: filePath,
+                        contentType: "image/jpeg",
+                        onSuccess: async (s) => { onSuccess.Invoke(); },
+                        onFailure: async (f) =>
+                        {
+                            RGDebug.LogWarning($"Failed to upload screenshot for bot instance: {botInstanceId} - {f}");
+                            onFailure.Invoke();
+                        }
+                    );
+                }
+                else
+                {
+                    onFailure();
+                }
+            }
+            finally
+            {
+                sem?.Release();
+            }
+            
+        }
+        
+        /**
+         * Create a new record in the Bot Instance table, which then allows us to upload results related
+         * to a bot run through a Bot Instance History later on.
+         */
+        public async Task<RGBotInstance> CreateBotInstance(long botId)
+        {
+            var tcs = new TaskCompletionSource<RGBotInstance>();
             if (await EnsureAuthed())
             {
-                await SendWebFileUploadRequest(
-                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/screenshots/{tick}",
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot/{botId}/bot-instance",
                     method: "POST",
-                    filePath: filePath,
-                    contentType: "image/jpeg",
+                    payload: null,
                     onSuccess: async (s) =>
                     {
-                        onSuccess.Invoke();
+                        RGBotInstance response = JsonUtility.FromJson<RGBotInstance>(s);
+                        RGDebug.LogDebug(
+                            $"RGService CreateBotInstance response received: {response}");
+                        tcs.SetResult(response);
                     },
                     onFailure: async (f) =>
                     {
-                        RGDebug.LogWarning($"Failed to upload screenshot for bot instance: {botInstanceId} - {f}");
-                        onFailure.Invoke();
+                        RGDebug.LogWarning($"Failed to create bot instance record: {f}");
+                        tcs.SetException(new Exception($"Failed to create bot instance record: {f}"));
                     }
                 );
             }
             else
             {
-                onFailure();
+                tcs.SetException(new Exception($"Failed to create bot instance history record: not logged in"));
             }
+            return await tcs.Task;
         }
 
         /**
          * Create a new record in the Bot Instance History table, which then allows us to upload results related
          * to a bot run.
          */
-        public async Task CreateBotInstanceHistory(long botInstanceId, Action<RGBotInstanceHistory> onSuccess, Action onFailure)
+        public async Task<RGBotInstanceHistory> CreateBotInstanceHistory(long botInstanceId)
         {
+            var tcs = new TaskCompletionSource<RGBotInstanceHistory>();
             if (await EnsureAuthed())
             {
                 await SendWebRequest(
@@ -372,11 +418,119 @@ namespace RegressionGames
                         RGBotInstanceHistory response = JsonUtility.FromJson<RGBotInstanceHistory>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBotInstanceHistory response received: {response}");
-                        onSuccess.Invoke(response);
+                        tcs.SetResult(response);
                     },
                     onFailure: async (f) =>
                     {
                         RGDebug.LogWarning($"Failed to create bot instance history record: {f}");
+                        tcs.SetException(new Exception($"Failed to create bot instance history record: {f}"));
+                    }
+                );
+            }
+            else
+            {
+                tcs.SetException(new Exception($"Failed to create bot instance history record: not logged in"));
+            }
+            return await tcs.Task;
+        }
+        
+        /**
+         * Uploads the zip with bot replay data for a given bot instance
+         */
+        public async Task UploadReplayData(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/replay-data",
+                    method: "POST",
+                    filePath: filePath,
+                    contentType: "application/zip",
+                    onSuccess: async (s) =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService UploadReplayData response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload bot instance history replay data for bot instance id: {botInstanceId} - {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+        
+        /**
+         * Uploads a validation summary for a given bot instance
+         */
+        public async Task UploadValidationSummary(long botInstanceId, RGValidationSummary request, Action<RGBotInstanceHistory> onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/validation-summary",
+                    method: "POST",
+                    payload: JsonUtility.ToJson(request),
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGBotInstanceHistory response = JsonUtility.FromJson<RGBotInstanceHistory>(s);
+                        RGDebug.LogDebug(
+                            $"RGService UploadValidationSummary response received: {response}");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload a validation summary for bot instance {botInstanceId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+        
+        /**
+         * Uploads all validations for the bot instance to Regression Games in JSONL format
+         */
+        public async Task UploadValidations(long botInstanceId, RGValidationResult[] request, Action onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                
+                // Convert the list into JSONL format
+                List<string> jsonLines = new List<string>();
+                foreach (var validation in request)
+                {
+                    string jsonString = JsonUtility.ToJson(validation);
+                    jsonLines.Add(jsonString);
+                }
+
+                // Combine the JSON strings with newline characters
+                string jsonLinesString = string.Join("\n", jsonLines);
+                
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/validations",
+                    method: "POST",
+                    payload: jsonLinesString,
+                    contentType: "application/jsonl",
+                    onSuccess: async (s) =>
+                    {
+                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
+                        RGDebug.LogDebug(
+                            $"RGService UploadValidations response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload validations for bot instance {botInstanceId}: {f}");
                         onFailure.Invoke();
                     }
                 );
@@ -487,7 +641,7 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
-        private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false)
+        private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false, string contentType="application/json")
         {
             var messageId = ++correlationId;
             // don't log the details of auth requests :)
@@ -503,7 +657,7 @@ namespace RegressionGames
                 uh.contentType = "application/json";
                 request.uploadHandler = uh;
                 request.downloadHandler = new DownloadHandlerBuffer();
-                request.SetRequestHeader("Content-Type", "application/json");
+                request.SetRequestHeader("Content-Type", contentType);
                 request.SetRequestHeader("Accept", "application/json");
                 if (rgAuthToken != null && !isAuth)
                 {

@@ -1,23 +1,24 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using RegressionGames.StateActionTypes;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace RegressionGames.RGBotConfigs
 {
-    public class RGClickButtonAction : RGAction
+    // Only allow one of these on the Overlay game object
+    // RGEntity does the enforcement of only looking for this on the RGOverlayMenu
+    [DisallowMultipleComponent]
+    public class RGAction_ClickButton : RGAction
     {
-        private ConcurrentQueue<Button> buttonsToClick = new ConcurrentQueue<Button>();
+        private ConcurrentQueue<Button> _buttonsToClick = new();
         
-
         public void Update()
         {
-            if (buttonsToClick.IsEmpty) return;
-
-            while (buttonsToClick.TryDequeue(out Button button))
+            // one button click per frame update
+            if (_buttonsToClick.TryDequeue(out Button button))
             {
-
                 // this would work, but only fires the action
                 // doesn't actually 'click' the button
                 // button.onClick.Invoke();
@@ -43,10 +44,10 @@ namespace RegressionGames.RGBotConfigs
             if (input["targetId"] != null)
             {
                 var targetId = int.Parse(input["targetId"].ToString());
-                var target = RGFindUtils.Instance.FindOneByInstanceId<RGState_Button>(targetId);
+                var target = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(targetId);
                 if (target != null) // this is the unity overloaded != checking for destroyed
                 {
-                    buttonsToClick.Enqueue(target.gameObject.GetComponent<Button>());
+                    _buttonsToClick.Enqueue(target.gameObject.GetComponent<Button>());
                 }
             }
         }

@@ -56,13 +56,16 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     // Create the Start method
                     var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
+                    
+                    // Create the SEInstance method
+                    var seInstanceMethod = GenerateCreateSEClassInstanceMethod(componentType);
 
                     // Create the GetState method
                     var getStateMethod = GenerateGetStateMethod(componentType, rgStateAttributeInfo.State);
 
                     // Add the members to the class declaration
                     classDeclaration = classDeclaration
-                        .AddMembers(fieldDeclaration, startMethod, getStateMethod);
+                        .AddMembers(fieldDeclaration, startMethod, seInstanceMethod, getStateMethod);
 
                     // Create namespace
                     var namespaceDeclaration = NamespaceDeclaration(ParseName("RegressionGames.RGBotConfigs"))
@@ -177,6 +180,26 @@ namespace RegressionGames.Editor.CodeGenerators
             );
 
             return startMethod;
+        }
+
+        private static MethodDeclarationSyntax GenerateCreateSEClassInstanceMethod(string componentType)
+        {
+            return MethodDeclaration(
+                    IdentifierName("IRGStateEntity"),
+                    Identifier("CreateStateEntityClassInstance"))
+                .WithModifiers(
+                    TokenList(
+                        new []{
+                            Token(SyntaxKind.ProtectedKeyword),
+                            Token(SyntaxKind.OverrideKeyword)}))
+                .WithBody(
+                    Block(
+                        SingletonList<StatementSyntax>(
+                            ReturnStatement(
+                                ObjectCreationExpression(
+                                        IdentifierName($"RGStateEntity_{componentType}"))
+                                    .WithArgumentList(
+                                        ArgumentList())))));
         }
 
         private static MethodDeclarationSyntax GenerateGetStateMethod(string componentType, List<RGStateAttributeInfo> memberInfos)
