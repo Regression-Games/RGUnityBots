@@ -632,11 +632,29 @@ namespace RegressionGames.Editor.CodeGenerators
             
             // iterate through all scenes rather than only the current ones in the editor
             var startingActiveScenePath = SceneManager.GetActiveScene().path;
-            HashSet<string> allActiveScenePaths = new ();
+            List<string> allActiveScenePaths = new ();
+            HashSet<string> allLoadedScenePaths = new ();
             for (int j = 0; j < SceneManager.sceneCount; j++)
             {
-                allActiveScenePaths.Add(SceneManager.GetSceneAt(j).path);
+                var scene = SceneManager.GetSceneAt(j);
+                allActiveScenePaths.Add(scene.path);
+                if (scene.isLoaded)
+                {
+                    allLoadedScenePaths.Add(scene.path);
+                }
             }
+            
+            //sort the activeScenePaths so that the unloaded ones are at the end
+            // this matters later when we reload them
+            allActiveScenePaths.Sort((a, b) =>
+            {
+                if (allLoadedScenePaths.Contains(a))
+                {
+                    return -1;
+                }
+                return allLoadedScenePaths.Contains(b) ? 1 : 0;
+            });
+            
             // get all the objects in the currently open scenes.. this minimizes the amount of scene loading we have to do
             LookupEntitiesForCurrentScenes(objectTypeMap);
             
@@ -645,7 +663,7 @@ namespace RegressionGames.Editor.CodeGenerators
             foreach (var editorScene in scenesInBuild)
             {
                 // include currently enabled scenes for the build
-                if (editorScene.enabled && !allActiveScenePaths.Contains(editorScene.path))
+                if (editorScene.enabled && !allLoadedScenePaths.Contains(editorScene.path))
                 {
                     // Open the scene 
                     EditorSceneManager.OpenScene(editorScene.path, OpenSceneMode.Single);
@@ -658,10 +676,12 @@ namespace RegressionGames.Editor.CodeGenerators
             var firstReloadScene = true;
             // get the editor back to the scenes they had open before we started
             Scene? goBackToStartingActiveScene = null;
+            
             foreach (var activeScenePath in allActiveScenePaths)
             {
                 // open the first in singular to clear editor, then rest additive
-                var newScene = EditorSceneManager.OpenScene(activeScenePath, firstReloadScene ? OpenSceneMode.Single : OpenSceneMode.Additive);
+                var mode = firstReloadScene ? OpenSceneMode.Single : (allLoadedScenePaths.Contains(activeScenePath) ? OpenSceneMode.Additive : OpenSceneMode.AdditiveWithoutLoading);
+                var newScene = EditorSceneManager.OpenScene(activeScenePath, mode);
                 if (newScene.path == startingActiveScenePath)
                 {
                     goBackToStartingActiveScene = newScene;
