@@ -138,8 +138,10 @@ namespace RegressionGames.Editor.CodeGenerators
         private static void ExtractGameContext()
         {
             if (EditorUtility.DisplayDialog(
-                    "Extract Game Context",
-                    "Warning: This operation will load and unload every scene in your project's build configuration while gathering data.  This operation can take a long time to complete depending on the size of your project.",
+                    "Extract Game Context\r\nWarning",
+                    "This operation will load and unload every scene in your project's build configuration while gathering data." +
+                    "\r\n\r\nOnly Scenes that are enabled in your build configuration will be evaluated." +
+                    "\r\n\r\nThis operation can take a long time to complete depending on the size of your project.",
                     "Continue",
                     "Cancel"))
             {
