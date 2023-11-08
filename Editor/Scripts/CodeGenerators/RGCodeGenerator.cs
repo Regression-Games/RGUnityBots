@@ -186,7 +186,7 @@ namespace RegressionGames.Editor.CodeGenerators
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
         }
-
+        
         private static void ExtractGameContextHelper()
         {
             try
@@ -236,26 +236,6 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
         
-        private static void GenerateActionClasses(List<RGActionAttributeInfo> actionInfos)
-        {
-            // remove previous RGActions
-            string dataPath = Application.dataPath;
-            string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGActions").Replace("\\", "/");
-
-            if (Directory.Exists(directoryToDelete))
-            {
-                Directory.Delete(directoryToDelete, true);
-                File.Delete(directoryToDelete + ".meta");
-                AssetDatabase.Refresh();
-            }
-
-            // NOTE: We may have trouble here with serialization or actionMap with sample projects
-            // Much testing needed
-            GenerateRGSerializationClass.Generate(actionInfos);
-            GenerateRGActionClasses.Generate(actionInfos);
-            GenerateRGActionMapClass.Generate(actionInfos);
-        }
-
         private static List<RGActionAttributeInfo> SearchForBotActionAttributes()
         {
             // make sure to exclude any sample project directories from generation
