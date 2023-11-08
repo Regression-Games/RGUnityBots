@@ -364,7 +364,7 @@ public class RegressionPackagePopup : EditorWindow
     {
         string packageName = "gg.regression.unity.bots";
         string sampleDirectoryName = "Samples~";
-        string assetsDirectoryName = "Assets";
+        string assetsDirectoryName = Application.dataPath;
         string destinationDirectoryName = sampleName;
 
         // Construct the path to the sample within the package
