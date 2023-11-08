@@ -370,15 +370,16 @@ namespace RegressionGames
          * Create a new record in the Bot Instance table, which then allows us to upload results related
          * to a bot run through a Bot Instance History later on.
          */
-        public async Task<RGBotInstance> CreateBotInstance(long botId)
+        public async Task<RGBotInstance> CreateBotInstance(long botId, DateTime startDate)
         {
             var tcs = new TaskCompletionSource<RGBotInstance>();
+            Debug.Log("AMBER: " + JsonConvert.SerializeObject(new RGCreateBotInstanceRequest(startDate)));
             if (await EnsureAuthed())
             {
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/bot-instance",
                     method: "POST",
-                    payload: null,
+                    payload: JsonConvert.SerializeObject(new RGCreateBotInstanceRequest(startDate)),
                     onSuccess: async (s) =>
                     {
                         RGBotInstance response = JsonUtility.FromJson<RGBotInstance>(s);

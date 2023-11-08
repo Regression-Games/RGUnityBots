@@ -257,6 +257,8 @@ namespace RegressionGames
                 // Upload the replay data for this bot
                 if (clientConnection.Type == RGClientConnectionType.LOCAL)
                 {
+                    // Kick off saving the bot work
+                    // TODO for reviewers - can we await this somehow in the case of when we stop the program suddenly?
                     _dataCollection.SaveBotInstanceHistory(clientId);
                 }
                 
@@ -287,13 +289,6 @@ namespace RegressionGames
             botStateListeners.TryRemove(clientId, out _);
             botStates.TryRemove(clientId, out _);
             mainThreadTaskQueue.TryRemove(clientId, out _);
-            
-            // If there are no more bots, we can clear all of the data used so far
-            if (clientConnectionMap.IsEmpty)
-            {
-                // TODO: This seems to call early due to the recording being a task?
-                //_dataCollection.Cleanup();
-            }
 
         }
 
@@ -761,7 +756,7 @@ namespace RegressionGames
             {
                 if (!validationResult.passed)
                 {
-                    RGDebug.LogDebug($"Save Failed Validation Result for clientId: {clientId}, data: {validationResult}");
+                    RGDebug.LogDebug($"Save Validation Result for clientId: {clientId}, data: {validationResult.name}");
                     clientValidationMap[clientId]?.Enqueue(validationResult);
                 }
             });

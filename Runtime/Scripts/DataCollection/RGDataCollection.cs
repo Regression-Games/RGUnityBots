@@ -38,9 +38,10 @@ namespace RegressionGames.DataCollection
 
         private readonly string _sessionName;
         private readonly Dictionary<long, RGBot> _clientIdToBots;
+        private readonly Dictionary<long, DateTime> _clientIdStartTimes;
         private readonly ConcurrentDictionary<long, List<RGStateActionReplayData>> _clientIdToReplayData;
         private readonly HashSet<long> _screenshottedTicks;
-        private readonly string rootPath;
+        private readonly string _rootPath;
         private readonly ConcurrentBag<long> _screenshotTicksRequested;
 
         public RGDataCollection()
@@ -50,12 +51,13 @@ namespace RegressionGames.DataCollection
             
             // Instantiate the dictionaries
             _clientIdToBots = new();
+            _clientIdStartTimes = new();
             _clientIdToReplayData = new();
             _screenshottedTicks = new();
             _screenshotTicksRequested = new();
             
             // We instantiate this here because it cannot be accessed in real time by non-main threads
-            rootPath = Application.persistentDataPath;
+            _rootPath = Application.persistentDataPath;
         }
 
         /**
@@ -66,6 +68,7 @@ namespace RegressionGames.DataCollection
         {
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Registering client for bot {bot.id}");
             _clientIdToBots[clientId] = bot;
+            _clientIdStartTimes[clientId] = DateTime.Now;
         }
 
         /**
@@ -81,9 +84,12 @@ namespace RegressionGames.DataCollection
             // TODO(REG-1413): Yes, some ticks may be screenshotted at the same time... Made a ticket to address this
             lock (_screenshotTicksRequested)
             {
-                ticks = _screenshotTicksRequested.Distinct().ToArray();
-                _screenshottedTicks.RemoveWhere(t => _screenshottedTicks.Contains(t));
+                ticks = _screenshotTicksRequested
+                    .Distinct()
+                    .Where(t => !_screenshottedTicks.Contains(t))
+                    .ToArray();
                 _screenshotTicksRequested.Clear();
+                _screenshottedTicks.UnionWith(ticks);
             }
 
             if (ticks.Length > 0)
@@ -130,7 +136,7 @@ namespace RegressionGames.DataCollection
                 {
                     RGDebug.LogVerbose($"DataCollection[{clientId}] - Also saving a screenshot for tick {replayData.tickInfo.tick}");
                     var validationTick = replayData.tickInfo.tick;
-                    _screenshottedTicks.Add(validationTick);
+                    _screenshotTicksRequested.Add(validationTick);
                 }
             }
         }
@@ -156,7 +162,7 @@ namespace RegressionGames.DataCollection
 
                 // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
-                var botInstance = await RGServiceManager.GetInstance()?.CreateBotInstance(bot.id)!;
+                var botInstance = await RGServiceManager.GetInstance()?.CreateBotInstance(bot.id, _clientIdStartTimes[clientId])!;
                 RGDebug.LogVerbose(
                     $"DataCollection[{clientId}] - Creating the record for bot instance, with id {botInstance.id}");
                 var botInstanceId = botInstance.id;
@@ -239,14 +245,24 @@ namespace RegressionGames.DataCollection
             }
             catch (Exception e)
             {
-                RGDebug.LogWarning($"DataCollection[{clientId}] - Error uploading data, {e.StackTrace}");
+                RGDebug.LogWarning($"DataCollection[{clientId}] - Error uploading data, {e.Message}");
+                throw;
             }
-            
+            finally
+            {
+                Cleanup(clientId);
+                // If there are no more bots, cleanup everything else
+                if (_clientIdToBots.Count == 0)
+                {
+                    Cleanup();
+                }
+            }
+
         }
 
         private string GetSessionDirectory(string path = "")
         {
-            var fullPath = Path.Combine(rootPath, "RGData",  _sessionName, path);
+            var fullPath = Path.Combine(_rootPath, "RGData",  _sessionName, path);
             var directory = Path.GetDirectoryName(fullPath);
             if (directory != null)
             {
@@ -254,13 +270,27 @@ namespace RegressionGames.DataCollection
             }
             return fullPath;
         }
-
+        
         public void Cleanup()
         {
             // Delete everything in the session folder
             var sessionPath = GetSessionDirectory();
             Directory.Delete(sessionPath, true);
-            RGDebug.LogVerbose("Deleted all local temp data collected for RG bots");
+            RGDebug.LogVerbose($"DataCollection - Cleaned up all data for session {_sessionName}");
+        }
+
+        /**
+         * Cleanup data for a single clientId. Note that this does not cleanup screenshot since other bots
+         * may rely on those screenshots.
+         */
+        private void Cleanup(long clientId)
+        {
+            _clientIdToReplayData.TryRemove(clientId, out _);
+            _clientIdToBots.Remove(clientId, out _);
+            _clientIdStartTimes.Remove(clientId, out _);
+            var replayPath = GetSessionDirectory("replayData/{clientId}");
+            Directory.Delete(replayPath, true);
+            RGDebug.LogVerbose($"DataCollection[{clientId}] - Cleaned up all data for client");
         }
 
     }
