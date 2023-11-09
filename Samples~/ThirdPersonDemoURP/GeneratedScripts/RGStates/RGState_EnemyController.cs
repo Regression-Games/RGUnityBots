@@ -14,8 +14,8 @@ namespace RGThirdPersonDemo
 {
     public class RGStateEntity_EnemyController : RGStateEntity<RGState_EnemyController>
     {
-        public int currentHealth => (int)int.Parse(this.GetValueOrDefault("currentHealth").ToString());
-        public int maxHealth => (int)int.Parse(this.GetValueOrDefault("maxHealth").ToString());
+        public int currentHealth => (int)int.Parse(this.GetValueOrDefault("CurrentHealth").ToString());
+        public int maxHealth => (int)int.Parse(this.GetValueOrDefault("MaxHealth").ToString());
     }
 
     public class RGState_EnemyController : RGState
@@ -33,8 +33,8 @@ namespace RGThirdPersonDemo
         protected override Dictionary<string, object> GetState()
         {
             var state = new Dictionary<string, object>();
-            state.Add("currentHealth", myComponent.GetCurrentHp());
-            state.Add("maxHealth", myComponent.GetTotalHp());
+            state.Add("CurrentHealth", myComponent.GetCurrentHp());
+            state.Add("MaxHealth", myComponent.GetTotalHp());
             return state;
         }
     }
