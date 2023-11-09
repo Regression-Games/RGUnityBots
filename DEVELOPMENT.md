@@ -2,12 +2,16 @@
 
 ## Saving a new sample from a development environment
 
-In order to make changes to the sample scenes within the SDK, you need to create a new Unity project and
-import the samples into your project. We provide a script that allows you to save your completed changes
-back into the SDK.
+### To make changes to the sample scenes within the SDK.
+1. Create a new Unity Project. Make sure the project's Render Pipeline matches the sample you are importing.
+2. Import the Regression SDK
+3. Import the sample into the project
+4. Make changes to sample
+5. Run the provided`.sh` script. This will copy the sample you've edited `Assets/{SampleName}` to the 
+SDK `UnityBots/Samples~/{SampleName}`.
+6. Commit and push changes
 
-Right now, we only support one sample (ThirdPersonDemoURP), but over time more will be added - right now,
-this code only supports this sample.
+Right now, we only support one sample: `ThirdPersonDemoURP`, but over time more will be added.
 
 Run the following command and follow the prompts to save your changes.
 
