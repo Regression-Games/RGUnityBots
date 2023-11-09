@@ -91,7 +91,7 @@ namespace RegressionGames.Editor.CodeGenerators
         }
         
         [MenuItem("Regression Games/Generate Scripts")]
-        private static void GenerateRGScripts()
+        public static void GenerateRGScripts()
         {
             try
             {

@@ -44,8 +44,13 @@ namespace RegressionGames.Editor.CodeGenerators
             List<MemberDeclarationSyntax> methodDeclarations = new List<MemberDeclarationSyntax>();
             HashSet<string> processedTypes = new HashSet<string>();
 
-            foreach (RGActionInfo botAction in botActions)
+            foreach (RGActionAttributeInfo botAction in botActions)
             {
+                if (!botAction.ShouldGenerateCSFile)
+                {
+                    continue;
+                }
+                
                 foreach (RGParameterInfo parameter in botAction.Parameters)
                 {
                     if (RGUtils.IsCSharpPrimitive(parameter.Type))
