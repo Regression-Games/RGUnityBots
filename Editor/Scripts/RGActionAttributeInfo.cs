@@ -24,9 +24,8 @@ namespace RegressionGames.Editor
             return new RGActionInfo()
             {
                 ActionName = _this.ActionName,
-                ObjectType = _this.ObjectType,
                 Parameters = _this.Parameters,
-                ClassName = _this.GeneratedClassName
+                ActionClassName = _this.GeneratedClassName
             };
         }
     }

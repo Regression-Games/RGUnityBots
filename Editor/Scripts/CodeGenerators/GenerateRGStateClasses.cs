@@ -58,7 +58,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
                     
                     // Create the SEInstance method
-                    var seInstanceMethod = GenerateCreateSEClassInstanceMethod(componentType);
+                    var seInstanceMethod = GenerateGetTypeForStateEntityMethod(componentType);
 
                     // Create the GetState method
                     var getStateMethod = GenerateGetStateMethod(componentType, rgStateAttributeInfo.State);
@@ -180,6 +180,30 @@ namespace RegressionGames.Editor.CodeGenerators
             );
 
             return startMethod;
+        }
+
+        private static MethodDeclarationSyntax GenerateGetTypeForStateEntityMethod(string componentType)
+        {
+            //protected override Type GetTypeForStateEntity()
+            //{
+            //return typeof(RGStateEntity_RGBreakableObjectState);
+            //}
+            
+            return MethodDeclaration(
+                    IdentifierName("Type"),
+                    Identifier("GetTypeForStateEntity"))
+                .WithModifiers(
+                    TokenList(
+                        new []{
+                            Token(SyntaxKind.ProtectedKeyword),
+                            Token(SyntaxKind.OverrideKeyword)}))
+                .WithBody(
+                    Block(
+                        SingletonList<StatementSyntax>(
+                            ReturnStatement(
+                                TypeOfExpression(
+                                        IdentifierName($"RGStateEntity_{componentType}"))
+                                    ))));
         }
 
         private static MethodDeclarationSyntax GenerateCreateSEClassInstanceMethod(string componentType)
