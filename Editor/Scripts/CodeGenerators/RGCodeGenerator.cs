@@ -816,8 +816,6 @@ namespace RegressionGames.Editor.CodeGenerators
                 JsonConvert.SerializeObject(
                     new
                     {
-                        //Maybe in future leave out those without an object type ??
-                        //RGStateInfo = statesInfos.Where(v => !string.IsNullOrEmpty(v.ObjectType))
                         RGStateInfo = statesInfos
                     },
                     Formatting.Indented,
