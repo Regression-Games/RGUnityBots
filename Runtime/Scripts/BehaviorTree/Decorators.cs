@@ -91,7 +91,7 @@ namespace RegressionGames.BehaviorTree
         protected override NodeStatus Execute(RG rgObject) =>
             Child?.Invoke(rgObject) switch
             {
-                null => NodeStatus.Success, // Just in case the child is null, we'll return success.
+                null => throw new InvalidOperationException("Invert node must have a child"),
                 NodeStatus.Success => NodeStatus.Failure,
                 NodeStatus.Failure => NodeStatus.Success,
                 NodeStatus.Running => NodeStatus.Running,
