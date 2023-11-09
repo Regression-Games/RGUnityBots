@@ -286,8 +286,6 @@ namespace RegressionGames.Editor.BotManagement
                 return false;
             }
 
-            // The ToString format specifier 'R' looks like 'Fri, 31 Oct 2008 17:04:32 TZ'
-            // (where "TZ" is replaced with the user's local timezone)
             var localTime = localLastUpdated is null
                 ? "<<unknown>>" // Very unlikely, indicates the local files don't exist.
                 : localLastUpdated.Value.ToLocalTime().ToString("ddd MMM d, yyyy HH:mm:ss tt");
