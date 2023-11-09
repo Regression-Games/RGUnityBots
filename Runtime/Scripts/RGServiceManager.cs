@@ -103,7 +103,7 @@ namespace RegressionGames
             if (!IsAuthed())
             {
                 while (!authLock.WaitOne(1_000));
-                
+
                 try
                 {
                     if (!IsAuthed())
@@ -126,7 +126,7 @@ namespace RegressionGames
                 {
                     authLock.ReleaseMutex();
                 }
-                
+
             }
             return true;
         }
@@ -136,7 +136,7 @@ namespace RegressionGames
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetRgHostAddress();
-            
+
             // If env var is set, use that instead
             string hostOverride = RGEnvConfigs.ReadHost();
             if (hostOverride != null && hostOverride.Trim() != "")
@@ -148,7 +148,7 @@ namespace RegressionGames
             {
                 host = host.Substring(0, host.Length - 1);
             }
-            
+
             Uri hostUri = new(host);
             if (hostUri.IsLoopback)
             {
@@ -183,7 +183,7 @@ namespace RegressionGames
             );
         }
 
-        public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
+        public async Task GetBotsForCurrentUser(Action<RGRemoteBot[]> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
             {
@@ -195,7 +195,7 @@ namespace RegressionGames
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         string theNewText = $"{{\"bots\":{s}}}";
-                        RGBotList response = JsonUtility.FromJson<RGBotList>(theNewText);
+                        RGRemoteBotList response = JsonConvert.DeserializeObject<RGRemoteBotList>(theNewText);
                         RGDebug.LogDebug(
                             $"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
                         onSuccess.Invoke(response.bots);
@@ -212,8 +212,8 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
-        public async Task CreateBot(RGCreateBotRequest request, Action<RGBot> onSuccess, Action onFailure)
+
+        public async Task CreateBot(RGCreateBotRequest request, Action<RGRemoteBot> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
             {
@@ -224,7 +224,7 @@ namespace RegressionGames
                     onSuccess: async (s) =>
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
-                        RGBot response = JsonUtility.FromJson<RGBot>(s);
+                        var response = JsonConvert.DeserializeObject<RGRemoteBot>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBot response received: {response}");
                         onSuccess.Invoke(response);
@@ -252,8 +252,7 @@ namespace RegressionGames
                     payload: null,
                     onSuccess: async (s) =>
                     {
-                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
-                        RGBotCodeDetails response = JsonUtility.FromJson<RGBotCodeDetails>(s);
+                        RGBotCodeDetails response = JsonConvert.DeserializeObject<RGBotCodeDetails>(s);
                         RGDebug.LogDebug(
                             $"RGService GetBotCodeDetails response received: {response}");
                         onSuccess.Invoke(response);
@@ -270,7 +269,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         public async Task DownloadBotCode(long botId, string destinationFilePath, Action onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
@@ -279,7 +278,7 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/download-code",
                     method: "GET",
                     payload: null,
-                    destinationFilePath: destinationFilePath, 
+                    destinationFilePath: destinationFilePath,
                     onSuccess: async () =>
                     {
                         RGDebug.LogDebug(
@@ -298,7 +297,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         public async Task UpdateBotCode(long botId, string filePath, Action<RGBotCodeDetails> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
@@ -371,7 +370,7 @@ namespace RegressionGames
                     },
                     onFailure: async (f) => { onFailure.Invoke(); }
                 );
-            }    
+            }
             else
             {
                 onFailure();
@@ -459,10 +458,10 @@ namespace RegressionGames
                 RGDebug.LogVerbose($"<{messageId}> API request sent ...");
                 await new UnityWebRequestAwaiter(task);
                 RGDebug.LogVerbose($"<{messageId}> API request complete ...");
-                
+
                 string resultText = request.downloadHandler?.text;
                 string resultToLog = isAuth ? "{***:***, ...}" : resultText;
-                
+
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     // pretty print
@@ -492,7 +491,7 @@ namespace RegressionGames
             }
 
         }
-        
+
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
@@ -525,10 +524,10 @@ namespace RegressionGames
                 RGDebug.LogVerbose($"<{messageId}> API file request sent ...");
                 await new UnityWebRequestAwaiter(task);
                 RGDebug.LogVerbose($"<{messageId}> API file request complete ...");
-                
+
                 string resultText = request.downloadHandler?.text;
                 string resultToLog = resultText;
-                
+
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     // pretty print
@@ -558,7 +557,7 @@ namespace RegressionGames
             }
 
         }
-                
+
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
@@ -627,19 +626,19 @@ namespace RegressionGames
     public readonly struct UnityWebRequestAwaiter : INotifyCompletion
     {
         private readonly UnityWebRequestAsyncOperation _asyncOperation;
-        
-        
+
+
         public UnityWebRequestAwaiter( UnityWebRequestAsyncOperation asyncOperation ) => _asyncOperation = asyncOperation;
 
         public UnityWebRequestAwaiter GetAwaiter()
         {
             return this;
         }
-        
+
         public UnityWebRequest GetResult() => _asyncOperation.webRequest;
-        
+
         public void OnCompleted( Action continuation ) => _asyncOperation.completed += _ => continuation();
-        
+
         public bool IsCompleted => _asyncOperation.isDone;
     }
 }
