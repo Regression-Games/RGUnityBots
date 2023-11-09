@@ -9,6 +9,7 @@ using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
 using UnityEditor.SceneManagement;
 using UnityEngine.Rendering;
+using RegressionGames.Editor.CodeGenerators;
 
 public class RegressionPackagePopup : EditorWindow
 {
@@ -383,8 +384,11 @@ public class RegressionPackagePopup : EditorWindow
                     FileUtil.DeleteFileOrDirectory(destinationPath);
                 }
 
+                // Copy Sample into Assets
                 FileUtil.CopyFileOrDirectory(packagePath, destinationPath);
                 AssetDatabase.Refresh();
+
+                // Open Sample
                 string scenePath = Path.Combine(destinationPath, "Demo", "Scenes", "Playground.unity").Replace("\\", "/");
                 EditorSceneManager.OpenScene(scenePath);
             }
