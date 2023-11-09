@@ -290,10 +290,10 @@ namespace RegressionGames.Editor.BotManagement
             // (where "TZ" is replaced with the user's local timezone)
             var localTime = localLastUpdated is null
                 ? "<<unknown>>" // Very unlikely, indicates the local files don't exist.
-                : localLastUpdated.Value.ToLocalTime().ToString("R");
+                : localLastUpdated.Value.ToLocalTime().ToString("ddd MMM d, yyyy HH:mm:ss tt");
             var remoteTime = botCodeDetails.modifiedDate is null
                 ? "<<unknown>>" // Very unlikely, indicates the server is misbehaving.
-                : botCodeDetails.modifiedDate.Value.ToLocalTime().ToString("R");
+                : botCodeDetails.modifiedDate.Value.ToLocalTime().ToString("ddd MMM d, yyyy HH:mm:ss tt");
 
             // If the checksums don't match, we need to decide which to treat as the source of truth.
             // For now, we prompt the user to decide.
