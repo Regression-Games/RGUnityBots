@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using RegressionGames.DataCollection;
@@ -258,8 +259,9 @@ namespace RegressionGames
                 if (clientConnection.Type == RGClientConnectionType.LOCAL)
                 {
                     // Kick off saving the bot work
-                    // TODO for reviewers - can we await this somehow in the case of when we stop the program suddenly?
-                    _dataCollection.SaveBotInstanceHistory(clientId);
+                    // TODO: (REG-1422) we DO NOT wait for this.. we will deal with interrupted during shutdown later
+                    _ = _dataCollection.SaveBotInstanceHistory(clientId);
+ 
                 }
                 
                 // we originally didn't call RGService StopBotInstance here
@@ -475,6 +477,9 @@ namespace RegressionGames
                     }
                 }
             }
+            
+            // Take any requested screenshots
+            _dataCollection.ProcessScreenshotRequests();
         }
 
         /**
@@ -523,8 +528,6 @@ namespace RegressionGames
                         //Debug.Log($"Skipping RG state data update, no clients connected");
                     }
                     
-                    // Take any requested screenshots
-                    _dataCollection.ProcessScreenshotRequests();
                     
                 }
                 else

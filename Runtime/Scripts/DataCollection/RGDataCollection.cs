@@ -35,30 +35,15 @@ namespace RegressionGames.DataCollection
      */
     public class RGDataCollection
     {
-
-        private readonly string _sessionName;
-        private readonly Dictionary<long, RGBot> _clientIdToBots;
-        private readonly Dictionary<long, DateTime> _clientIdStartTimes;
-        private readonly ConcurrentDictionary<long, List<RGStateActionReplayData>> _clientIdToReplayData;
-        private readonly HashSet<long> _screenshottedTicks;
-        private readonly string _rootPath;
-        private readonly ConcurrentBag<long> _screenshotTicksRequested;
-
-        public RGDataCollection()
-        {
-            // Name the session, and setup a temporary directory for all data
-            _sessionName = Guid.NewGuid().ToString();
-            
-            // Instantiate the dictionaries
-            _clientIdToBots = new();
-            _clientIdStartTimes = new();
-            _clientIdToReplayData = new();
-            _screenshottedTicks = new();
-            _screenshotTicksRequested = new();
-            
-            // We instantiate this here because it cannot be accessed in real time by non-main threads
-            _rootPath = Application.persistentDataPath;
-        }
+        
+        private readonly string _sessionName = Guid.NewGuid().ToString();
+        private readonly Dictionary<long, RGBot> _clientIdToBots = new();
+        private readonly Dictionary<long, DateTime> _clientIdStartTimes = new();
+        private readonly ConcurrentDictionary<long, List<RGStateActionReplayData>> _clientIdToReplayData = new();
+        private readonly string _rootPath = Application.persistentDataPath;
+        private readonly ConcurrentQueue<long> _screenshotTicksRequested = new();
+        private readonly ConcurrentDictionary<long, long> _screenshotTicksCaptured = new();
+        
 
         /**
          * Registers a bot instance under a specific client id
@@ -74,35 +59,25 @@ namespace RegressionGames.DataCollection
         /**
          * Screenshots are requested from a non-main thread, so we need to queue them up and process them on the main
          * thread only.
-         * Called on the main thread.
+         * Called on the main thread once per Update (frame).
          */
         public void ProcessScreenshotRequests()
         {
-            long[] ticks;
-            
-            // Copy the ticks, but with a lock so we can clear it right away as well
-            // TODO(REG-1413): Yes, some ticks may be screenshotted at the same time... Made a ticket to address this
-            lock (_screenshotTicksRequested)
+            var done = false;
+            while(!done && _screenshotTicksRequested.TryDequeue(out long tick) )
             {
-                ticks = _screenshotTicksRequested
-                    .Distinct()
-                    .Where(t => !_screenshottedTicks.Contains(t))
-                    .ToArray();
-                _screenshotTicksRequested.Clear();
-                _screenshottedTicks.UnionWith(ticks);
-            }
-
-            if (ticks.Length > 0)
-            {
-                RGDebug.LogVerbose($"Capturing screenshot for ticks {string.Join(", ", ticks)}");
-                var texture = ScreenCapture.CaptureScreenshotAsTexture(1);
-                foreach (var tick in ticks)
+                // only allow one screenshot per tick #
+                // if many bots are running locally, they may all ask for the same tick
+                if (_screenshotTicksCaptured.TryAdd(tick, tick))
                 {
-                    string path = GetSessionDirectory($"screenshots/{tick}.jpg");
+                    RGDebug.LogVerbose($"Capturing screenshot for tick: {tick}");
+                    var texture = ScreenCapture.CaptureScreenshotAsTexture(1);
                     try
                     {
                         // Encode the texture into a jpg byte array
                         byte[] bytes = texture.EncodeToJPG(100);
+
+                        string path = GetSessionDirectory($"screenshots/{tick}.jpg");
 
                         // Save the byte array as a jpg file
                         File.WriteAllBytes(path, bytes);
@@ -112,9 +87,15 @@ namespace RegressionGames.DataCollection
                         // Destroy the texture to free up memory
                         Object.Destroy(texture);
                     }
+                    done = true;
+                }
+                else
+                {
+                    // if we already took that screen shot, grad the next number from the queue
+                    // until its empty or we find one we can screenshot for this frame
+                    done = false;
                 }
             }
-            
         }
 
         /**
@@ -129,16 +110,12 @@ namespace RegressionGames.DataCollection
             replayDatas.Add(replayData); // We only add during concurrent times, so no locking needed
 
             // If the replay data has a validation, queue up a screenshot
-            // Lock here since we don't want to add a new tick while the dequeue is processing
-            lock (_screenshotTicksRequested)
+            if (replayData.validationResults?.Length > 0)
             {
-                if (replayData.validationResults?.Length > 0 && !_screenshottedTicks.Contains(replayData.tickInfo.tick))
-                {
-                    RGDebug.LogVerbose($"DataCollection[{clientId}] - Also saving a screenshot for tick {replayData.tickInfo.tick}");
-                    var validationTick = replayData.tickInfo.tick;
-                    _screenshotTicksRequested.Add(validationTick);
-                }
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Also saving a screenshot for tick {replayData.tickInfo.tick}");
+                _screenshotTicksRequested.Enqueue(replayData.tickInfo.tick);
             }
+            
         }
 
         public async Task SaveBotInstanceHistory(long clientId)
@@ -162,14 +139,24 @@ namespace RegressionGames.DataCollection
 
                 // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
-                var botInstance = await RGServiceManager.GetInstance()?.CreateBotInstance(bot.id, _clientIdStartTimes[clientId])!;
+                var botInstanceId = 0l;
+                await RGServiceManager.GetInstance()?.CreateBotInstance(
+                    bot.id,
+                    _clientIdStartTimes[clientId],
+                    (result) =>
+                    {
+                        botInstanceId = result.id;
+                    },
+                    () => { })!;
                 RGDebug.LogVerbose(
-                    $"DataCollection[{clientId}] - Creating the record for bot instance, with id {botInstance.id}");
-                var botInstanceId = botInstance.id;
+                    $"DataCollection[{clientId}] - Creating the record for bot instance, with id {botInstanceId}");
 
                 // Create a bot history record for this bot
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance history...");
-                await RGServiceManager.GetInstance()?.CreateBotInstanceHistory(botInstanceId)!;
+                await RGServiceManager.GetInstance()?.CreateBotInstanceHistory(
+                    botInstanceId,
+                    (result) => { },
+                    () => { })!;
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Created the record for bot instance history");
 
                 // Save text files for each replay tick, zip it up, and then upload
@@ -221,14 +208,19 @@ namespace RegressionGames.DataCollection
                     var screenshotFilePath = GetSessionDirectory($"screenshots/{tick}.jpg");
                     if (File.Exists(screenshotFilePath))
                     {
+                        await uploadSemaphore.WaitAsync();
                         var task = RGServiceManager.GetInstance()?.UploadScreenshot(
                             botInstanceId, tick, screenshotFilePath,
                             () =>
                             {
+                                uploadSemaphore.Release();
                                 RGDebug.LogVerbose(
                                     $"DataCollection[{clientId}] - Successfully uploaded screenshot {tick}");
                             },
-                            () => { }, uploadSemaphore)!;
+                            () =>
+                            {
+                                uploadSemaphore.Release();
+                            })!;
                         uploadScreenshotTasks.Add(task);
                     }
                     else
@@ -245,7 +237,7 @@ namespace RegressionGames.DataCollection
             }
             catch (Exception e)
             {
-                RGDebug.LogWarning($"DataCollection[{clientId}] - Error uploading data, {e.Message}");
+                RGDebug.LogError($"DataCollection[{clientId}] - Error uploading data: {e}");
                 throw;
             }
             finally
@@ -262,6 +254,7 @@ namespace RegressionGames.DataCollection
 
         private string GetSessionDirectory(string path = "")
         {
+            //TODO: (REG-1422) Make this deterministic in a way that we can sync data later if the connection was down
             var fullPath = Path.Combine(_rootPath, "RGData",  _sessionName, path);
             var directory = Path.GetDirectoryName(fullPath);
             if (directory != null)
@@ -288,7 +281,7 @@ namespace RegressionGames.DataCollection
             _clientIdToReplayData.TryRemove(clientId, out _);
             _clientIdToBots.Remove(clientId, out _);
             _clientIdStartTimes.Remove(clientId, out _);
-            var replayPath = GetSessionDirectory("replayData/{clientId}");
+            var replayPath = GetSessionDirectory($"replayData/{clientId}");
             Directory.Delete(replayPath, true);
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Cleaned up all data for client");
         }

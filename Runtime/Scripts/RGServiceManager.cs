@@ -332,48 +332,36 @@ namespace RegressionGames
             }
         }
         
-        public async Task UploadScreenshot(long botInstanceId, long tick, string filePath, Action onSuccess, Action onFailure, [CanBeNull] SemaphoreSlim sem = null)
+        public async Task UploadScreenshot(long botInstanceId, long tick, string filePath, Action onSuccess, Action onFailure)
         {
-            
-            await sem?.WaitAsync()!;
+            if (await EnsureAuthed())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/screenshots/{tick}",
+                    method: "POST",
+                    filePath: filePath,
+                    contentType: "image/jpeg",
+                    onSuccess: async (s) => { onSuccess.Invoke(); },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload screenshot for bot instance: {botInstanceId} - {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
 
-            try
-            {
-                if (await EnsureAuthed())
-                {
-                    await SendWebFileUploadRequest(
-                        uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/screenshots/{tick}",
-                        method: "POST",
-                        filePath: filePath,
-                        contentType: "image/jpeg",
-                        onSuccess: async (s) => { onSuccess.Invoke(); },
-                        onFailure: async (f) =>
-                        {
-                            RGDebug.LogWarning($"Failed to upload screenshot for bot instance: {botInstanceId} - {f}");
-                            onFailure.Invoke();
-                        }
-                    );
-                }
-                else
-                {
-                    onFailure();
-                }
-            }
-            finally
-            {
-                sem?.Release();
-            }
-            
         }
         
         /**
          * Create a new record in the Bot Instance table, which then allows us to upload results related
          * to a bot run through a Bot Instance History later on.
          */
-        public async Task<RGBotInstance> CreateBotInstance(long botId, DateTime startDate)
+        public async Task CreateBotInstance(long botId, DateTime startDate, Action<RGBotInstance> onSuccess, Action onFailure)
         {
-            var tcs = new TaskCompletionSource<RGBotInstance>();
-            Debug.Log("AMBER: " + JsonConvert.SerializeObject(new RGCreateBotInstanceRequest(startDate)));
             if (await EnsureAuthed())
             {
                 await SendWebRequest(
@@ -385,29 +373,27 @@ namespace RegressionGames
                         RGBotInstance response = JsonUtility.FromJson<RGBotInstance>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBotInstance response received: {response}");
-                        tcs.SetResult(response);
+                        onSuccess.Invoke(response);
                     },
                     onFailure: async (f) =>
                     {
                         RGDebug.LogWarning($"Failed to create bot instance record: {f}");
-                        tcs.SetException(new Exception($"Failed to create bot instance record: {f}"));
+                        onFailure.Invoke();
                     }
                 );
             }
             else
             {
-                tcs.SetException(new Exception($"Failed to create bot instance history record: not logged in"));
+                onFailure.Invoke();
             }
-            return await tcs.Task;
         }
 
         /**
          * Create a new record in the Bot Instance History table, which then allows us to upload results related
          * to a bot run.
          */
-        public async Task<RGBotInstanceHistory> CreateBotInstanceHistory(long botInstanceId)
+        public async Task CreateBotInstanceHistory(long botInstanceId, Action<RGBotInstanceHistory> onSuccess, Action onFailure)
         {
-            var tcs = new TaskCompletionSource<RGBotInstanceHistory>();
             if (await EnsureAuthed())
             {
                 await SendWebRequest(
@@ -419,20 +405,19 @@ namespace RegressionGames
                         RGBotInstanceHistory response = JsonUtility.FromJson<RGBotInstanceHistory>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBotInstanceHistory response received: {response}");
-                        tcs.SetResult(response);
+                        onSuccess.Invoke(response);
                     },
                     onFailure: async (f) =>
                     {
                         RGDebug.LogWarning($"Failed to create bot instance history record: {f}");
-                        tcs.SetException(new Exception($"Failed to create bot instance history record: {f}"));
+                        onFailure.Invoke();
                     }
                 );
             }
             else
             {
-                tcs.SetException(new Exception($"Failed to create bot instance history record: not logged in"));
+                onFailure.Invoke();
             }
-            return await tcs.Task;
         }
         
         /**
