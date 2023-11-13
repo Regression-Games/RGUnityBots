@@ -133,7 +133,7 @@ public class RegressionPackagePopup : EditorWindow
         GUILayout.FlexibleSpace();
         if (GUILayout.Button("Login", GUILayout.Width(550), GUILayout.Height(30)))
         {
-            Login();
+            _ = Login();
         }
         GUILayout.FlexibleSpace();
         GUILayout.EndHorizontal();

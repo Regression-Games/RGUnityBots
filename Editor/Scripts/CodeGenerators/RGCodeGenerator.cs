@@ -3,13 +3,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Newtonsoft.Json;
 using RegressionGames.RGBotConfigs;
+
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
+#endif
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
@@ -32,12 +37,21 @@ namespace RegressionGames.Editor.CodeGenerators
      */
     public class RGCodeGenerator
     {
+#if UNITY_EDITOR
         // Used to exclude sample projects' directories from generation
         // so that we don't duplicate .cs files that are already included in the sample projects.
         // But while still scanning them so that we can include their States/Actions in the json.
         private static HashSet<string> _excludeDirectories = new() {
             "ThirdPersonDemoURP"
         };
+
+        private static bool _hasError = false;
+        
+        private static void RecordError(string warning)
+        {
+            _hasError = true;
+            RGDebug.LogWarning($"WARNING: {warning}");
+        }
         
 
         [MenuItem("Regression Games/Generate Scripts")]
@@ -45,6 +59,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             try
             {
+                _hasError = false;
                 // find and extract RGState data
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Searching for RGState attributes", 0.2f);
@@ -67,6 +82,7 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 EditorUtility.ClearProgressBar();
             }
+            
         }
 
         private static List<Scene> GetDirtyScenes()
@@ -88,13 +104,14 @@ namespace RegressionGames.Editor.CodeGenerators
         private static void ExtractGameContext()
         {
             if (EditorUtility.DisplayDialog(
-                    "Extract Game Context\r\nWarning",
+                    "Extract Game Context",
                     "This operation will load and unload every Scene in your project's build configuration while gathering data." +
                     "\r\n\r\nOnly Scenes that are enabled in your build configuration will be evaluated." +
                     "\r\n\r\nThis operation can take a long time to complete depending on the size of your project.",
                     "Continue",
                     "Cancel"))
             {
+                _hasError = false;
                 var dirtyScenes = GetDirtyScenes();
                 if (dirtyScenes.Count > 0)
                 {
@@ -112,6 +129,24 @@ namespace RegressionGames.Editor.CodeGenerators
                 else
                 {
                     ExtractGameContextHelper();
+                }
+                if (_hasError)
+                {
+                    EditorUtility.DisplayDialog(
+                        "Extract Game Context\r\nError", 
+                        "One or more warnings or errors occurred during the extract." +
+                        "\r\n\r\nCheck the Console logs for more information.",
+                        "OK");
+                    _hasError = false;
+                }
+                else
+                {
+                    string zipPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames.zip");
+                    EditorUtility.DisplayDialog(
+                        "Extract Game Context\r\nComplete", 
+                        "Game context extracted to .zip file:" +
+                        $"\r\n\r\n{zipPath}",
+                        "OK");
                 }
             }
 
@@ -409,94 +444,117 @@ namespace RegressionGames.Editor.CodeGenerators
             return rgStateInfoList;
         }
         
+        
         private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
-            var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToList();
+            var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToHashSet();
             
-            // this will find results even when the package is a local filesystem reference in the manifest.. sometimes unity does good stuff :D
-            var sdkPackageCsFiles = Directory.GetFiles(Path.GetFullPath("Packages/gg.regression.unity.bots"), "*.cs", SearchOption.AllDirectories);
-            
-            // add files from the sdk for evaluation
-            csFiles.AddRange(sdkPackageCsFiles);
+            // look through all packages that are part of this project
+            var listRequest = UnityEditor.PackageManager.Client.List(true, false);
+
+            while (!listRequest.IsCompleted)
+            {
+                Thread.Sleep(100);
+            }
+
+            // add the package files to the search
+            var packageCollection = listRequest.Result;
+            foreach (var packageInfo in packageCollection)
+            {
+                var packagePath = packageInfo.resolvedPath;
+                var packageFiles = Directory.GetFiles(packagePath, "*.cs", SearchOption.AllDirectories);
+                    
+                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", $"Extracting state info from package {packageInfo.displayName}", 0.53f);
+                foreach (var packageFile in packageFiles)
+                {
+                    csFiles.Add(packageFile);
+                }
+            }
             
             List<RGStatesInfo> rgStateInfoList = new List<RGStatesInfo>();
 
             foreach (string csFilePath in csFiles)
             {
                 string scriptText = File.ReadAllText(csFilePath);
-
-                SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(scriptText);
-
-                var compilation = CSharpCompilation.Create("RGCompilation")
-                    .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
-                    .AddSyntaxTrees(syntaxTree);
-
-                CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
-                var semanticModel = compilation.GetSemanticModel(syntaxTree);
-
-                var rgStateEntityClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>().Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "RGStateEntity");
-
-                foreach (var classDeclaration in rgStateEntityClassDeclarations)
+                // optimization because compiling 100s or 1000s of cs files to check type hierarchies takes too long
+                if (scriptText.Contains("RGStateEntity"))
                 {
-                    string className = classDeclaration.Identifier.ValueText;
-                    List<RGStateInfo> stateList = new List<RGStateInfo>();
+                    SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(scriptText);
 
-                    var classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as ITypeSymbol;
-                    var rgStateClassName = classSymbol.BaseType.TypeArguments[0].ToDisplayString();
+                    var compilation = CSharpCompilation.Create("RGCompilation")
+                        .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+                        .AddSyntaxTrees(syntaxTree);
 
-                    // for now we assume RGStateEntity is directly subclassed; if we allow nesting.. then we'll need to get the members from the parent type as well
-                    var publicMembersAndDelegates = classDeclaration.Members
-                        .Where(m => m.Modifiers.Any());
+                    CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
+                    var semanticModel = compilation.GetSemanticModel(syntaxTree);
 
-                    foreach (var member in publicMembersAndDelegates)
+                    var rgStateEntityClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                        .Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "RGStateEntity");
+
+                    EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", $"Extracting state info from RGStateEntity classes in file {csFilePath}", 0.57f);
+                    foreach (var classDeclaration in rgStateEntityClassDeclarations)
                     {
+                        string className = classDeclaration.Identifier.ValueText;
+                        List<RGStateInfo> stateList = new List<RGStateInfo>();
 
-                        if (member is FieldDeclarationSyntax fieldDeclaration)
+                        var classSymbol = semanticModel.GetDeclaredSymbol(classDeclaration) as ITypeSymbol;
+                        var rgStateClassName = classSymbol.BaseType.TypeArguments[0].ToDisplayString();
+
+                        // for now we assume RGStateEntity is directly subclassed; if we allow nesting.. then we'll need to get the members from the parent type as well
+                        var publicMembersAndDelegates = classDeclaration.Members
+                            .Where(m => m.Modifiers.Any());
+
+                        foreach (var member in publicMembersAndDelegates)
                         {
-                            if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+
+                            if (member is FieldDeclarationSyntax fieldDeclaration)
                             {
-                                RGDebug.LogWarning($"Warning: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
+                                if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                {
+                                    RecordError($"Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
+                                    continue;
+                                }
+                            }
+                            else if (member is PropertyDeclarationSyntax propertyDeclaration)
+                            {
+                                if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                {
+                                    RecordError($"Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                // no methods
                                 continue;
                             }
-                        }
-                        else if (member is PropertyDeclarationSyntax propertyDeclaration)
-                        {
-                            if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+
+                            string fieldName = member is PropertyDeclarationSyntax
+                                ? ((PropertyDeclarationSyntax)member).Identifier.ValueText
+                                : ((FieldDeclarationSyntax)member).Declaration.Variables.First().Identifier.ValueText;
+
+                            string type = member is PropertyDeclarationSyntax
+                                ? RemoveGlobalPrefix(semanticModel.GetTypeInfo(((PropertyDeclarationSyntax)member).Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                                : RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(((FieldDeclarationSyntax)member).Declaration.Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+
+                            stateList.Add(new RGStateInfo
                             {
-                                RGDebug.LogWarning($"Warning: Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
-                                continue;
-                            }
+                                StateName = fieldName,
+                                Type = type
+                            });
                         }
-                        else
+
+                        if (stateList.Any())
                         {
-                            // no methods
-                            continue;
+                            rgStateInfoList.Add(new RGStatesInfo
+                            {
+                                ClassName = rgStateClassName,
+                                States = stateList
+                            });
                         }
-                        
-                        string fieldName = member is PropertyDeclarationSyntax
-                            ? ((PropertyDeclarationSyntax) member).Identifier.ValueText
-                            : ((FieldDeclarationSyntax) member).Declaration.Variables.First().Identifier.ValueText;
-
-                        string type = member is PropertyDeclarationSyntax
-                            ? RemoveGlobalPrefix(semanticModel.GetTypeInfo(((PropertyDeclarationSyntax) member).Type)
-                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-                            : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
-                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-
-                        stateList.Add(new RGStateInfo
-                        {
-                            StateName = fieldName,
-                            Type = type
-                        });
-                    }
-
-                    if (stateList.Any())
-                    {
-                        rgStateInfoList.Add(new RGStatesInfo
-                        {
-                            ClassName = rgStateClassName,
-                            States = stateList
-                        });
                     }
                 }
             }
@@ -669,8 +727,9 @@ namespace RegressionGames.Editor.CodeGenerators
             return listResult;
         }
 
-        private static void CheckForMisMatchedStateOrActionsOnEntity(RGEntity entity, (RGEntityStatesJson, RGEntityActionsJson) entityStateActionJson, (HashSet<RGEntityStatesJson>, HashSet<RGEntityActionsJson>)result)
+        private static bool CheckForMisMatchedStateOrActionsOnEntity(RGEntity entity, (RGEntityStatesJson, RGEntityActionsJson) entityStateActionJson, (HashSet<RGEntityStatesJson>, HashSet<RGEntityActionsJson>)result)
         {
+            var hasError = false;
             if(result.Item1.TryGetValue(entityStateActionJson.Item1, out var existingItem1))
             {
                 // this is a bit expensive, but necessary to ensure all RGStateEntities of the same objectType expose the same state/actions
@@ -687,8 +746,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         return true;
                     }))
                 {
-                    RGDebug.LogWarning(
-                        $"WARNING: RGEntity of objectType: {entity.objectType} has conflicting state definitions on different game objects or prefabs;  state lists: [{string.Join(", ", entityStateActionJson.Item1.states)}] <-> [{string.Join(", ", existingItem1.states)}]");
+                    RecordError($"RGEntity of objectType: {entity.objectType} has conflicting state definitions on different game objects or prefabs;  state lists: [{string.Join(", ", entityStateActionJson.Item1.states)}] <-> [{string.Join(", ", existingItem1.states)}]");
                 }
             }
             if(result.Item2.TryGetValue(entityStateActionJson.Item2, out var existingItem2))
@@ -716,10 +774,11 @@ namespace RegressionGames.Editor.CodeGenerators
                         return true;
                     }))
                 {
-                    RGDebug.LogWarning(
-                        $"WARNING: RGEntity of objectType: {entity.objectType} has conflicting action definitions on different game objects or prefabs;  action lists: [{string.Join(", ", entityStateActionJson.Item2.actions)}] <-> [{string.Join(", ", existingItem2.actions)}]");
+                    RecordError($"RGEntity of objectType: {entity.objectType} has conflicting action definitions on different game objects or prefabs;  action lists: [{string.Join(", ", entityStateActionJson.Item2.actions)}] <-> [{string.Join(", ", existingItem2.actions)}]");
                 }
             }
+
+            return hasError;
         }
 
         private static (RGEntityStatesJson, RGEntityActionsJson) DeriveStateAndActionJsonForEntity(string objectType, HashSet<string> stateClassNames, HashSet<string> actionClassNames, List<RGStatesInfo> statesInfos, List<RGActionInfo> actionInfos)
@@ -739,8 +798,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             if (stateInfoState.Type != existingState.Type)
                             {
-                                RGDebug.LogWarning(
-                                    $"WARNING: RGEntity of objectType: {objectType} has multiple definitions of state: {existingState.StateName} with conflicting types: {existingState.Type} <-> {stateInfoState.Type}");
+                                RecordError($"RGEntity of objectType: {objectType} has multiple definitions of state: {existingState.StateName} with conflicting types: {existingState.Type} <-> {stateInfoState.Type}");
                             }
                         }
                         states.Add(stateInfoState);
@@ -748,8 +806,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RGDebug.LogError(
-                        $"Information not found for State: {statesInfos} on RGEntity with objectType: {objectType}");
+                    RecordError($"Information not found for State: {statesInfos} on RGEntity with objectType: {objectType}");
                 }
                 
             }
@@ -772,8 +829,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         if (actionInfo.Parameters.Count != existingAction.Parameters.Count &&
                             !actionInfo.Parameters.TrueForAll(v => existingAction.Parameters.Contains(v)))
                         {
-                            RGDebug.LogWarning(
-                                $"WARNING: RGEntity of objectType: {objectType} has multiple definitions of action: {existingAction.ActionName} with conflicting parameter lists: [{string.Join(", ", existingAction.Parameters)}] <-> [{string.Join(", ", actionInfo.Parameters)}]");
+                            RecordError($"RGEntity of objectType: {objectType} has multiple definitions of action: {existingAction.ActionName} with conflicting parameter lists: [{string.Join(", ", existingAction.Parameters)}] <-> [{string.Join(", ", actionInfo.Parameters)}]");
                         }
                     }
 
@@ -781,8 +837,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RGDebug.LogError(
-                        $"Information not found for Action: {actionClassName} on RGEntity with objectType: {objectType}");
+                    RecordError($"Information not found for Action: {actionClassName} on RGEntity with objectType: {objectType}");
                 }
 
             }
@@ -858,5 +913,5 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
     }
-    
+#endif
 }
