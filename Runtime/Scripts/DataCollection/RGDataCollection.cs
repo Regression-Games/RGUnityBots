@@ -91,7 +91,7 @@ namespace RegressionGames.DataCollection
                 }
                 else
                 {
-                    // if we already took that screen shot, grad the next number from the queue
+                    // if we already took that screen shot, grab the next number from the queue
                     // until its empty or we find one we can screenshot for this frame
                     done = false;
                 }
