@@ -22,9 +22,9 @@ using Object = UnityEngine.Object;
 namespace RegressionGames.Editor.CodeGenerators
 {
     /**
-     * This class takes a multi pass approach for states, but a single pass approach for actions.
-     * This may change for actions in the future if we see more prevalence of writing custom action classes,
-     * but for now assumes that actions are only done with [RGAction] attributes.
+     * This class takes a multi pass approach for States, but a single pass approach for Actions.
+     * This may change for Actions in the future if we see more prevalence of writing custom action classes,
+     * but for now assumes that Actions are only done with [RGAction] attributes.
      *
      * State
      * 1. Find [RGState] attributes and generate classes for them
@@ -33,7 +33,7 @@ namespace RegressionGames.Editor.CodeGenerators
      *
      * Actions
      * 1. Find [RGAction] attributes and generate classes for them; captures the generated class name
-     * 2. /\ This same information is used as the available actions for AgentBuilder json.
+     * 2. /\ This same information is used as the available Actions for AgentBuilder json.
      */
     public class RGCodeGenerator
     {
@@ -642,7 +642,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     // Open the scene 
                     EditorSceneManager.OpenScene(editorScene.path, OpenSceneMode.Single);
 
-                    // For objects in the scene.. we let this re-process duplicate objectTypes to make sure there isn't any inconsistency between game objects of the same objectType
+                    // For objects in the scene.. we let this re-process duplicate objectTypes to make sure there isn't any inconsistency between game objects of the same ObjectType
                     var allEntities = Object.FindObjectsOfType<RGEntity>().Where(v => !string.IsNullOrEmpty(v.objectType));
                     foreach (var entity in allEntities)
                     {
@@ -652,7 +652,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                         CheckForMisMatchedStateOrActionsOnEntity(entity, entityStateActionJson, result);
                         result.Item1.Add(entityStateActionJson.Item1);
-                        if (entityStateActionJson.Item2.actions.Count > 0)
+                        if (entityStateActionJson.Item2.Actions.Count > 0)
                         {
                             result.Item2.Add(entityStateActionJson.Item2);
                         }
@@ -708,7 +708,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         CheckForMisMatchedStateOrActionsOnEntity(prefabComponent, prefabStateActionJson, result);
                         
                         result.Item1.Add(prefabStateActionJson.Item1);
-                        if (prefabStateActionJson.Item2.actions.Count > 0)
+                        if (prefabStateActionJson.Item2.Actions.Count > 0)
                         {
                             result.Item2.Add(prefabStateActionJson.Item2);
                         }
@@ -722,8 +722,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 Item2 = result.Item2.ToList()
             };
 
-            listResult.Item1.Sort((a,b) => a.objectType.CompareTo(b.objectType));
-            listResult.Item2.Sort((a,b) => a.objectType.CompareTo(b.objectType));
+            listResult.Item1.Sort((a,b) => a.ObjectType.CompareTo(b.ObjectType));
+            listResult.Item2.Sort((a,b) => a.ObjectType.CompareTo(b.ObjectType));
             return listResult;
         }
 
@@ -732,11 +732,11 @@ namespace RegressionGames.Editor.CodeGenerators
             var hasError = false;
             if(result.Item1.TryGetValue(entityStateActionJson.Item1, out var existingItem1))
             {
-                // this is a bit expensive, but necessary to ensure all RGStateEntities of the same objectType expose the same state/actions
-                if (existingItem1.states.Count != entityStateActionJson.Item1.states.Count ||
-                    !entityStateActionJson.Item1.states.ToList().TrueForAll(newVal =>
+                // this is a bit expensive, but necessary to ensure all RGStateEntities of the same ObjectType expose the same state/Actions
+                if (existingItem1.States.Count != entityStateActionJson.Item1.States.Count ||
+                    !entityStateActionJson.Item1.States.ToList().TrueForAll(newVal =>
                     {
-                        if (existingItem1.states.TryGetValue(newVal, out var existingVal))
+                        if (existingItem1.States.TryGetValue(newVal, out var existingVal))
                         {
                             if (existingVal.Type != newVal.Type)
                             {
@@ -746,16 +746,16 @@ namespace RegressionGames.Editor.CodeGenerators
                         return true;
                     }))
                 {
-                    RecordError($"RGEntity of objectType: {entity.objectType} has conflicting state definitions on different game objects or prefabs;  state lists: [{string.Join(", ", entityStateActionJson.Item1.states)}] <-> [{string.Join(", ", existingItem1.states)}]");
+                    RecordError($"RGEntity of ObjectType: {entity.objectType} has conflicting state definitions on different game objects or prefabs;  state lists: [{string.Join(", ", entityStateActionJson.Item1.States)}] <-> [{string.Join(", ", existingItem1.States)}]");
                 }
             }
             if(result.Item2.TryGetValue(entityStateActionJson.Item2, out var existingItem2))
             {
-                // this is a bit expensive, but necessary to ensure all RGStateEntities of the same objectType expose the same state/actions
-                if (existingItem2.actions.Count != entityStateActionJson.Item2.actions.Count ||
-                    !entityStateActionJson.Item2.actions.ToList().TrueForAll(newVal =>
+                // this is a bit expensive, but necessary to ensure all RGStateEntities of the same ObjectType expose the same state/Actions
+                if (existingItem2.Actions.Count != entityStateActionJson.Item2.Actions.Count ||
+                    !entityStateActionJson.Item2.Actions.ToList().TrueForAll(newVal =>
                     {
-                        if (existingItem2.actions.TryGetValue(newVal, out var existingVal))
+                        if (existingItem2.Actions.TryGetValue(newVal, out var existingVal))
                         {
                             if (existingVal.Parameters.Count != newVal.Parameters.Count ||
                                 !newVal.Parameters.TrueForAll(newParam =>
@@ -774,7 +774,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         return true;
                     }))
                 {
-                    RecordError($"RGEntity of objectType: {entity.objectType} has conflicting action definitions on different game objects or prefabs;  action lists: [{string.Join(", ", entityStateActionJson.Item2.actions)}] <-> [{string.Join(", ", existingItem2.actions)}]");
+                    RecordError($"RGEntity of ObjectType: {entity.objectType} has conflicting action definitions on different game objects or prefabs;  action lists: [{string.Join(", ", entityStateActionJson.Item2.Actions)}] <-> [{string.Join(", ", existingItem2.Actions)}]");
                 }
             }
 
@@ -788,7 +788,7 @@ namespace RegressionGames.Editor.CodeGenerators
             var states = new HashSet<RGStateInfo>();
             foreach (var stateClassName in stateClassNames)
             {
-                // handle states
+                // handle States
                 var stateInfo = statesInfos.FirstOrDefault(v => v.ClassName == stateClassName);
                 if (stateInfo != null)
                 {
@@ -798,7 +798,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             if (stateInfoState.Type != existingState.Type)
                             {
-                                RecordError($"RGEntity of objectType: {objectType} has multiple definitions of state: {existingState.StateName} with conflicting types: {existingState.Type} <-> {stateInfoState.Type}");
+                                RecordError($"RGEntity of ObjectType: {objectType} has multiple definitions of state: {existingState.StateName} with conflicting types: {existingState.Type} <-> {stateInfoState.Type}");
                             }
                         }
                         states.Add(stateInfoState);
@@ -806,18 +806,18 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RecordError($"Information not found for State: {statesInfos} on RGEntity with objectType: {objectType}");
+                    RecordError($"Information not found for State: {statesInfos} on RGEntity with ObjectType: {objectType}");
                 }
                 
             }
             var entityStateJson = new RGEntityStatesJson()
             {
-                objectType = objectType,
-                states = states
+                ObjectType = objectType,
+                States = states
             };
             result.Item1 = entityStateJson;
 
-            // handle actions
+            // handle Actions
             var actions = new HashSet<RGActionInfo>();
             foreach (var actionClassName in actionClassNames)
             {
@@ -829,7 +829,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         if (actionInfo.Parameters.Count != existingAction.Parameters.Count &&
                             !actionInfo.Parameters.TrueForAll(v => existingAction.Parameters.Contains(v)))
                         {
-                            RecordError($"RGEntity of objectType: {objectType} has multiple definitions of action: {existingAction.ActionName} with conflicting parameter lists: [{string.Join(", ", existingAction.Parameters)}] <-> [{string.Join(", ", actionInfo.Parameters)}]");
+                            RecordError($"RGEntity of ObjectType: {objectType} has multiple definitions of action: {existingAction.ActionName} with conflicting parameter lists: [{string.Join(", ", existingAction.Parameters)}] <-> [{string.Join(", ", actionInfo.Parameters)}]");
                         }
                     }
 
@@ -837,14 +837,14 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RecordError($"Information not found for Action: {actionClassName} on RGEntity with objectType: {objectType}");
+                    RecordError($"Information not found for Action: {actionClassName} on RGEntity with ObjectType: {objectType}");
                 }
 
             }
             var entityActionJson = new RGEntityActionsJson()
             {
-                objectType = objectType,
-                actions = actions
+                ObjectType = objectType,
+                Actions = actions
             };
             result.Item2 = entityActionJson;
 

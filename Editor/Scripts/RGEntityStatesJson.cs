@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 namespace RegressionGames.Editor
 {
@@ -8,14 +9,14 @@ namespace RegressionGames.Editor
     // ReSharper disable InconsistentNaming
     public class RGEntityStatesJson
     {
-        public string objectType;
-        public HashSet<RGStateInfo> states;
+        public string ObjectType;
+        public HashSet<RGStateInfo> States;
 
         public override bool Equals(object obj)
         {
             if (obj is RGEntityStatesJson val)
             {
-                return val.objectType == objectType;
+                return val.ObjectType == ObjectType;
             }
 
             return false;
@@ -24,12 +25,12 @@ namespace RegressionGames.Editor
         public override int GetHashCode()
         {
             // ReSharper disable once NonReadonlyMemberInGetHashCode
-            return objectType.GetHashCode();
+            return ObjectType.GetHashCode();
         }
 
         public override string ToString()
         {
-            return $"{{objectType: {objectType}, states: [{string.Join(",", states)}]}}";
+            return $"{{ObjectType: {ObjectType}, States: [{string.Join(",", States)}]}}";
         }
     }
 }

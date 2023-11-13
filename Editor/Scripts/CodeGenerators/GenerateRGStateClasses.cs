@@ -184,11 +184,6 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static MethodDeclarationSyntax GenerateGetTypeForStateEntityMethod(string componentType)
         {
-            //protected override Type GetTypeForStateEntity()
-            //{
-            //return typeof(RGStateEntity_RGBreakableObjectState);
-            //}
-            
             return MethodDeclaration(
                     IdentifierName("Type"),
                     Identifier("GetTypeForStateEntity"))
@@ -204,26 +199,6 @@ namespace RegressionGames.Editor.CodeGenerators
                                 TypeOfExpression(
                                         IdentifierName($"RGStateEntity_{componentType}"))
                                     ))));
-        }
-
-        private static MethodDeclarationSyntax GenerateCreateSEClassInstanceMethod(string componentType)
-        {
-            return MethodDeclaration(
-                    IdentifierName("IRGStateEntity"),
-                    Identifier("CreateStateEntityClassInstance"))
-                .WithModifiers(
-                    TokenList(
-                        new []{
-                            Token(SyntaxKind.ProtectedKeyword),
-                            Token(SyntaxKind.OverrideKeyword)}))
-                .WithBody(
-                    Block(
-                        SingletonList<StatementSyntax>(
-                            ReturnStatement(
-                                ObjectCreationExpression(
-                                        IdentifierName($"RGStateEntity_{componentType}"))
-                                    .WithArgumentList(
-                                        ArgumentList())))));
         }
 
         private static MethodDeclarationSyntax GenerateGetStateMethod(string componentType, List<RGStateAttributeInfo> memberInfos)
