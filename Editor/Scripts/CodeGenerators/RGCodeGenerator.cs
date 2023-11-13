@@ -42,7 +42,7 @@ namespace RegressionGames.Editor.CodeGenerators
         // so that we don't duplicate .cs files that are already included in the sample projects.
         // But while still scanning them so that we can include their States/Actions in the json.
         private static HashSet<string> _excludeDirectories = new() {
-            "ThirdPersonDemoURP"
+           "ThirdPersonDemoURP"
         };
 
         private static bool _hasError = false;
@@ -55,7 +55,7 @@ namespace RegressionGames.Editor.CodeGenerators
         
 
         [MenuItem("Regression Games/Generate Scripts")]
-        private static void GenerateRGScripts()
+        public static void GenerateRGScripts()
         {
             try
             {
@@ -171,7 +171,7 @@ namespace RegressionGames.Editor.CodeGenerators
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
         }
-
+        
         private static void ExtractGameContextHelper()
         {
             try
@@ -418,7 +418,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                 .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
                             : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
                                 .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-
+                        
                         stateList.Add(new RGStateAttributeInfo
                         {
                             FieldType = fieldType,

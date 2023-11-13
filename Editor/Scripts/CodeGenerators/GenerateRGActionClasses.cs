@@ -45,7 +45,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         )
                         .AddMembers(
                             // Namespace
-                            SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
+                            SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
                                 .AddMembers(
                                     // Class declaration
                                     SyntaxFactory
