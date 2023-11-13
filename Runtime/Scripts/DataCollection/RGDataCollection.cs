@@ -107,7 +107,7 @@ namespace RegressionGames.DataCollection
             
             // Add the new replay data to a new or existing mapping in our client replay data dictionary
             var replayDatas = _clientIdToReplayData.GetOrAdd(clientId, new List<RGStateActionReplayData>());
-            replayDatas.Add(replayData); // We only add during concurrent times, so no locking needed
+            replayDatas.Add(replayData);
 
             // If the replay data has a validation, queue up a screenshot
             if (replayData.validationResults?.Length > 0)
