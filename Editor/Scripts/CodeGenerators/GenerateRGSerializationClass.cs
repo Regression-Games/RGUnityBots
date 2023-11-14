@@ -1,13 +1,16 @@
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
+#if UNITY_EDITOR
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using UnityEditor;
-using UnityEngine;
+#endif
 
 namespace RegressionGames.Editor.CodeGenerators
 {
+#if UNITY_EDITOR
     // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGSerializationClass
     {
@@ -111,4 +114,5 @@ namespace RegressionGames.Editor.CodeGenerators
             return result;
         }
     }
+#endif
 }

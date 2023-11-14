@@ -1,17 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
 using UnityEngine;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
-using File = UnityEngine.Windows.File;
 #if UNITY_EDITOR
-using System;
-using System.IO.Compression;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.Compilation;
 #endif
@@ -332,7 +331,7 @@ namespace RegressionGames.Editor.BotManagement
         static string CalculateMD5(string filename)
         {
             using var md5 = MD5.Create();
-            using var stream = System.IO.File.OpenRead(filename);
+            using var stream = File.OpenRead(filename);
             
             var hash = md5.ComputeHash(stream);
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
@@ -469,6 +468,6 @@ namespace RegressionGames.Editor.BotManagement
 
             return result;
         }
-    }
 #endif
+    }
 }

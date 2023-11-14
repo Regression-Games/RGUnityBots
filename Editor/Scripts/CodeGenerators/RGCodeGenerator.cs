@@ -4,20 +4,19 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Newtonsoft.Json;
 using RegressionGames.RGBotConfigs;
-
-#if UNITY_EDITOR
-using UnityEditor;
-using UnityEditor.SceneManagement;
-#endif
-
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEditor.PackageManager;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+#endif
 
 namespace RegressionGames.Editor.CodeGenerators
 {
@@ -450,7 +449,7 @@ namespace RegressionGames.Editor.CodeGenerators
             var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToHashSet();
             
             // look through all packages that are part of this project
-            var listRequest = UnityEditor.PackageManager.Client.List(true, false);
+            var listRequest = Client.List(true, false);
 
             while (!listRequest.IsCompleted)
             {
@@ -896,6 +895,7 @@ namespace RegressionGames.Editor.CodeGenerators
             string filePath = Path.Combine(folderPath, $"{fileName}.json");
             File.WriteAllText(filePath, json);
         }
+#endif
     }
 
     static class EnumerableExtensions
@@ -913,5 +913,4 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
     }
-#endif
 }

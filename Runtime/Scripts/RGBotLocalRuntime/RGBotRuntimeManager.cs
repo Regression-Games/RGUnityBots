@@ -47,7 +47,7 @@ namespace RegressionGames.RGBotLocalRuntime
             var botInstance = new RGBotInstance
             {
                 // without a live connection to RG, we can't get a DB unique instance Id.. make this a negative random long for now
-                id = RGSettings.GetOrCreateSettings().GetNextBotInstanceId(),
+                id = RGRuntimeProperties.GetNextBotInstanceId(),
                 bot = null, // filled in below
                 lobby = null,
                 createdDate = DateTimeOffset.Now
