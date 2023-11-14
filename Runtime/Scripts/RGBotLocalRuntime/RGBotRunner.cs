@@ -135,6 +135,10 @@ namespace RegressionGames.RGBotLocalRuntime
                                 RGBotServerListener.GetInstance()
                                     .HandleClientValidationResult(BotInstance.id, rgValidationResult);
                             }
+                            
+                            // Save all information from this tick for local bots
+                            RGBotServerListener.GetInstance()?.SaveDataForTick(BotInstance.id, tickInfo, actions, validations);
+                            
                         }
                         catch (Exception ex)
                         {
