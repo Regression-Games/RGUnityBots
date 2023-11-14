@@ -1,8 +1,4 @@
-using System.Linq;
-using JetBrains.Annotations;
-using RegressionGames;
 using RegressionGames.RGBotLocalRuntime;
-using TreeEditor;
 
 namespace RegressionGames.BehaviorTree
 {

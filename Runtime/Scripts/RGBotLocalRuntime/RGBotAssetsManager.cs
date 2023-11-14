@@ -52,6 +52,7 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             _botAssets.Clear();
             
+#if UNITY_EDITOR
             // Load up the listing of available local bots
             string[] botGuids = AssetDatabase.FindAssets("BotRecord", new string[] {"Assets"});
             foreach (var botGuid in botGuids)
@@ -71,6 +72,9 @@ namespace RegressionGames.RGBotLocalRuntime
                     RGDebug.LogWarning($"Bot at path `{botDirectory}` could not be loaded: {ex}");
                 }
             }
+#else
+            //TODO (REG-1424): can't use asset database in real runtime
+#endif
         }
     }
 }
