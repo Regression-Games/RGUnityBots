@@ -15,7 +15,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
-                .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
+                .NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
                 .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("UnityEngine")))
                 .AddMembers(GenerateClass(botActions));
 
@@ -44,8 +44,13 @@ namespace RegressionGames.Editor.CodeGenerators
             List<MemberDeclarationSyntax> methodDeclarations = new List<MemberDeclarationSyntax>();
             HashSet<string> processedTypes = new HashSet<string>();
 
-            foreach (RGActionInfo botAction in botActions)
+            foreach (RGActionAttributeInfo botAction in botActions)
             {
+                if (!botAction.ShouldGenerateCSFile)
+                {
+                    continue;
+                }
+                
                 foreach (RGParameterInfo parameter in botAction.Parameters)
                 {
                     if (RGUtils.IsCSharpPrimitive(parameter.Type))
@@ -104,13 +109,6 @@ namespace RegressionGames.Editor.CodeGenerators
                 result += "_Nullable";
             }
             return result;
-        }
-        
-        // Convert jsonData to RGActionsInfo
-        private static List<RGActionInfo> ParseJson(string jsonData)
-        {
-            var parsedData = JsonUtility.FromJson<RGActionsInfo>(jsonData);
-            return parsedData.BotActions;
         }
     }
 }

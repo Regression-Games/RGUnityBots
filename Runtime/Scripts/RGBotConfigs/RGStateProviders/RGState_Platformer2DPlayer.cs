@@ -82,9 +82,9 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             };
         }
 
-        protected override IRGStateEntity CreateStateEntityClassInstance()
+        protected override Type GetTypeForStateEntity()
         {
-            return new RGStateEntity_Platformer2DPlayer();
+            return typeof(RGStateEntity_Platformer2DPlayer);
         }
 
         // ReSharper disable once InconsistentNaming

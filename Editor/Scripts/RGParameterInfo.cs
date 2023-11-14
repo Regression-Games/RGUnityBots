@@ -8,5 +8,10 @@ namespace RegressionGames.Editor
         public string Name;
         public string Type;
         public bool Nullable;
+
+        public override string ToString()
+        {
+            return $"{{Name: {Name}, Type: {Type}}}";
+        }
     }
 }

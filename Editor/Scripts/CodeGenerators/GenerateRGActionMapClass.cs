@@ -29,7 +29,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             // Create a namespace and class declaration
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
-                .NamespaceDeclaration(SyntaxFactory.ParseName("RegressionGames"))
+                .NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
                 .AddUsings(
                     usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                 )
@@ -53,14 +53,15 @@ namespace RegressionGames.Editor.CodeGenerators
             RGDebug.Log($"Successfully Generated {filePath}");
             AssetDatabase.Refresh();
         }
-
         private static ClassDeclarationSyntax GenerateClass(List<RGActionAttributeInfo> botActions)
         {
             var methodsList = new List<MethodDeclarationSyntax>();
 
+            var filteredActions = botActions.Where(b => b.ShouldGenerateCSFile).ToList();
+
             var startMethod = SyntaxFactory.MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Awake")
                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword))
-                .WithBody(SyntaxFactory.Block(botActions
+                .WithBody(SyntaxFactory.Block(filteredActions
                     .GroupBy(b => b.Object)
                     .SelectMany(g => 
                         {
@@ -119,11 +120,5 @@ namespace RegressionGames.Editor.CodeGenerators
             return classDeclaration;
         }
 
-        // Convert jsonData to RGActionsInfo
-        private static List<RGActionInfo> ParseJson(string jsonData)
-        {
-            var parsedData = JsonUtility.FromJson<RGActionsInfo>(jsonData);
-            return parsedData.BotActions;
-        }
     }
 }

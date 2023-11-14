@@ -2,8 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using RegressionGames.DataCollection;
 using RegressionGames.RGBotConfigs;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
@@ -26,6 +28,15 @@ namespace RegressionGames
 
         private static RGBotServerListener _this = null;
 
+        private RGDataCollection _dataCollection = null;
+
+        /**
+         * Names of fields that are allowed to appear in multiple state scripts for the same GameObject.
+         * These are typically fields whose values are inherited from the GameObject's RGEntity component,
+         * and are expected to have the same value for each IRGState script attached to the GameObject.
+         */
+        private List<string> _duplicatedStateFields = new();
+
         // of the core state fields, only position and rotation can be overridden by custom state classes
         // an example of this being useful is remapping position for a platformer character to better align with
         // their collider's bottom edge instead of the center of the character
@@ -38,6 +49,11 @@ namespace RegressionGames
         public static RGBotServerListener GetInstance()
         {
             return _this;
+        }
+
+        public void Start()
+        {
+            _dataCollection = new RGDataCollection();
         }
 
         public void Awake()
@@ -238,6 +254,15 @@ namespace RegressionGames
                 clientConnection.SendTeardown();
                 
                 clientConnection.Close();
+                
+                // Upload the replay data for this bot
+                if (clientConnection.Type == RGClientConnectionType.LOCAL)
+                {
+                    // Kick off saving the bot work
+                    // TODO: (REG-1422) we DO NOT wait for this.. we will deal with interrupted during shutdown later
+                    _ = _dataCollection.SaveBotInstanceHistory(clientId);
+ 
+                }
                 
                 // we originally didn't call RGService StopBotInstance here
                 // But.. leaving the bot running was annoying in the editor to have to stop it
@@ -452,6 +477,9 @@ namespace RegressionGames
                     }
                 }
             }
+            
+            // Take any requested screenshots
+            _dataCollection.ProcessScreenshotRequests();
         }
 
         /**
@@ -468,7 +496,7 @@ namespace RegressionGames
                     var sceneName = SceneManager.GetActiveScene().name;
                     var tickInfoData = new RGTickInfoData(tick, sceneName, state);
                     var sentTo = new List<long>();
-                    
+
                     // we tried to send these out in parallel on thread pool,
                     // but scheduling the tasks on the thread took longer than
                     // doing it sequentially... by a Lot, even with 200+ bots
@@ -499,6 +527,8 @@ namespace RegressionGames
                         // Useful for debugging threading / callstack issues
                         //Debug.Log($"Skipping RG state data update, no clients connected");
                     }
+                    
+                    
                 }
                 else
                 {
@@ -729,7 +759,7 @@ namespace RegressionGames
             {
                 if (!validationResult.passed)
                 {
-                    RGDebug.LogDebug($"Save Failed Validation Result for clientId: {clientId}, data: {validationResult}");
+                    RGDebug.LogDebug($"Save Validation Result for clientId: {clientId}, data: {validationResult.name}");
                     clientValidationMap[clientId]?.Enqueue(validationResult);
                 }
             });
@@ -742,6 +772,31 @@ namespace RegressionGames
                 RGDebug.LogDebug($"QUEUE TASK for clientId: {clientId}, data: {actionRequest}");
                 HandleAction(clientId, actionRequest);
             });
+        }
+
+        public void SaveDataForTick(long clientId, RGTickInfoData tickInfoData, List<RGActionRequest> actions,
+            List<RGValidationResult> validations)
+        {
+            _dataCollection.SaveReplayDataInfo(clientId, new RGStateActionReplayData(
+                actions: actions.ToArray(),
+                validationResults: validations.ToArray(),
+                tickInfo: tickInfoData,
+                playerId: clientId,
+                
+                // These three seem unused and unset in the JS version?
+                sceneId: null,
+                error: null,
+                tickRate: null
+            ));
+        }
+
+        /**
+         * Maps a clientId to a specific bot for local bots. This helps with verifying that during data collection,
+         * the bot and bot instance actually exists.
+         */
+        public void MapClientToLocalBot(long clientId, RGBot bot)
+        {
+            _dataCollection.RegisterBot(clientId, bot);
         }
         
         // call me on the main thread only

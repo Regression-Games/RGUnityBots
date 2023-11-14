@@ -14,8 +14,6 @@ namespace RegressionGames.Editor
     public class RGStatesInfo
     {
         public string ClassName;
-        // the object type, given by the developer
-        public string ObjectType;
-        public List<RGStateInfo> State;
+        public List<RGStateInfo> States;
     }
 }

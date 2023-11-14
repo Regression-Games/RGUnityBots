@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 
 namespace RegressionGames
 {
@@ -17,7 +16,7 @@ namespace RegressionGames
 
             return primitiveTypes.Contains(typeName);
         }
-
+        
         /// <summary>
         /// Gets the latest write date for any file at the specified path OR any file in the specified directory.
         /// </summary>
