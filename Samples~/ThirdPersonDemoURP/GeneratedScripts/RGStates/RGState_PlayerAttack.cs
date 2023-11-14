@@ -29,6 +29,11 @@ namespace RGThirdPersonDemo
             }
         }
 
+        protected override Type GetTypeForStateEntity()
+        {
+            return typeof(RGStateEntity_PlayerAttack);
+        }
+
         protected override Dictionary<string, object> GetState()
         {
             var state = new Dictionary<string, object>();

@@ -8,13 +8,16 @@ namespace RegressionGames.Editor
     public class RGActionInfo
     {
         // the name of the RGAction class
-        public string ClassName;
-        // the object type, given by the developer
-        public string ObjectType;
+        public string ActionClassName;
         // the identifier of the action. Default is the method name, but it can be overriden.
-        // ex [RGAction("Action Name"]
+        // ex [RGAction("Action Name")]
         public string ActionName;
         // the parameters of the method
         public List<RGParameterInfo> Parameters;
+
+        public override string ToString()
+        {
+            return $"{{ActionName: {ActionName}, ActionClassName: {ActionClassName}, Parameters: [{string.Join(",", Parameters)}]}}";
+        }
     }
 }

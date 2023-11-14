@@ -83,7 +83,7 @@ namespace RegressionGames.Editor
                         {
                             foreach (var rgBot in botList)
                             {
-                                if (rgBot is { IsUnityBot: true })
+                                if (rgBot is { IsUnityBot: true , IsLocal: false})
                                 {
                                     listOfBots.Add(rgBot);
                                 }

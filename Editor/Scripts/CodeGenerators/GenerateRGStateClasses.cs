@@ -58,7 +58,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
                     
                     // Create the SEInstance method
-                    var seInstanceMethod = GenerateCreateSEClassInstanceMethod(componentType);
+                    var seInstanceMethod = GenerateGetTypeForStateEntityMethod(componentType);
 
                     // Create the GetState method
                     var getStateMethod = GenerateGetStateMethod(componentType, rgStateAttributeInfo.State);
@@ -182,11 +182,11 @@ namespace RegressionGames.Editor.CodeGenerators
             return startMethod;
         }
 
-        private static MethodDeclarationSyntax GenerateCreateSEClassInstanceMethod(string componentType)
+        private static MethodDeclarationSyntax GenerateGetTypeForStateEntityMethod(string componentType)
         {
             return MethodDeclaration(
-                    IdentifierName("IRGStateEntity"),
-                    Identifier("CreateStateEntityClassInstance"))
+                    IdentifierName("Type"),
+                    Identifier("GetTypeForStateEntity"))
                 .WithModifiers(
                     TokenList(
                         new []{
@@ -196,10 +196,9 @@ namespace RegressionGames.Editor.CodeGenerators
                     Block(
                         SingletonList<StatementSyntax>(
                             ReturnStatement(
-                                ObjectCreationExpression(
+                                TypeOfExpression(
                                         IdentifierName($"RGStateEntity_{componentType}"))
-                                    .WithArgumentList(
-                                        ArgumentList())))));
+                                    ))));
         }
 
         private static MethodDeclarationSyntax GenerateGetStateMethod(string componentType, List<RGStateAttributeInfo> memberInfos)
