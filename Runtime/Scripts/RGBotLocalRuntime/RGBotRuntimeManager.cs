@@ -91,6 +91,9 @@ namespace RegressionGames.RGBotLocalRuntime
 
                 RGClientConnection connection = RGBotServerListener.GetInstance()
                     .AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
+                
+                // Also attack the bot so we can upload later
+                RGBotServerListener.GetInstance().MapClientToLocalBot(botInstance.id, botAssetRecord.BotAsset.Bot);
 
                 var botRunner = new RGBotRunner(botInstance, userBotCode,
                     () => { _botRunners.TryRemove(botInstance.id, out _); });

@@ -23,8 +23,8 @@ namespace RegressionGames.StateActionTypes
 
         public bool isRuntimeObject => (bool)this.GetValueOrDefault("isRuntimeObject", false);
 
-        public Vector3 position => (Vector3)this.GetValueOrDefault("position");
-        public Quaternion rotation => (Quaternion)this.GetValueOrDefault("rotation");
+        public Vector3 position => (Vector3)(this.GetValueOrDefault("position") ?? Vector3.zero);
+        public Quaternion rotation => (Quaternion)(this.GetValueOrDefault("rotation") ?? Quaternion.identity);
 
         public long? clientId => (long?)this.GetValueOrDefault("clientId", null);
         

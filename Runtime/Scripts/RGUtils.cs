@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace RegressionGames
 {
@@ -14,6 +15,6 @@ namespace RegressionGames
 
             return primitiveTypes.Contains(typeName);
         }
-        
+
     }
 }

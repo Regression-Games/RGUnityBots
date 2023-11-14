@@ -220,6 +220,11 @@ namespace RegressionGames.RGBotLocalRuntime
             _validationResults.Enqueue(rgValidation);
         }
 
+        public void RecordValidation(string name, RGValidationResultType resultType, [CanBeNull] string icon = null)
+        {
+            _validationResults.Enqueue(new RGValidationResult(name, resultType, _tickInfo.tick, icon));
+        }
+
         /**
          * <summary>Sets the <see cref="CharacterConfig"/> field by parsing the provided JSON string.</summary>
          * <param name="characterConfigJson">A JSON string representing the character config.</param>
