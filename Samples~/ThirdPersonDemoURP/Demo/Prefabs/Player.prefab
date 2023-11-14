@@ -3299,7 +3299,6 @@ GameObject:
   - component: {fileID: 2467076824808934980}
   - component: {fileID: 2467076824808934981}
   - component: {fileID: -2334250053151119227}
-  - component: {fileID: 8502949761152696875}
   - component: {fileID: 562488805635780274}
   - component: {fileID: 987260643419159851}
   - component: {fileID: 8820082880938648358}
@@ -3574,21 +3573,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12949602f31a04a319b1d6154c6a036e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isPlayer: 1
   objectType: Player
+  isPlayer: 1
   isRuntimeObject: 1
---- !u!114 &8502949761152696875
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5844894253718882472}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1975d5c35537c49bf9ae205667ef248f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  includeStateForAllBehaviours: 0
 --- !u!114 &562488805635780274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3601,9 +3589,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12949602f31a04a319b1d6154c6a036e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isPlayer: 1
   objectType: Player
+  isPlayer: 1
   isRuntimeObject: 1
+  includeStateForAllBehaviours: 0
 --- !u!114 &987260643419159851
 MonoBehaviour:
   m_ObjectHideFlags: 0

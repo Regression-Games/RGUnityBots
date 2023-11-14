@@ -165,10 +165,10 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                     cellSize.x/2);
             }
         }
-        
-        protected override IRGStateEntity CreateStateEntityClassInstance()
+
+        protected override Type GetTypeForStateEntity()
         {
-            return new RGStateEntity_Platformer2DLevel();
+            return typeof(RGStateEntity_Platformer2DLevel);
         }
     }
     

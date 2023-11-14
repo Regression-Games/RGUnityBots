@@ -2176,7 +2176,6 @@ GameObject:
   - component: {fileID: 6830097131033124378}
   - component: {fileID: 6830097131033124383}
   - component: {fileID: 6830097131033124382}
-  - component: {fileID: 5762870522208728887}
   - component: {fileID: 6153279934475968107}
   - component: {fileID: 4499955754935215128}
   m_Layer: 0
@@ -2302,18 +2301,6 @@ MonoBehaviour:
   onBecameInvisible:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &5762870522208728887
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6830097131033124356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1975d5c35537c49bf9ae205667ef248f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &6153279934475968107
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2326,9 +2313,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12949602f31a04a319b1d6154c6a036e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isPlayer: 0
   objectType: Enemy
+  isPlayer: 0
   isRuntimeObject: 1
+  includeStateForAllBehaviours: 0
 --- !u!114 &4499955754935215128
 MonoBehaviour:
   m_ObjectHideFlags: 0

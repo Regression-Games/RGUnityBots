@@ -120,11 +120,5 @@ namespace RegressionGames.Editor.CodeGenerators
             return classDeclaration;
         }
 
-        // Convert jsonData to RGActionsInfo
-        private static List<RGActionInfo> ParseJson(string jsonData)
-        {
-            var parsedData = JsonUtility.FromJson<RGActionsInfo>(jsonData);
-            return parsedData.BotActions;
-        }
     }
 }

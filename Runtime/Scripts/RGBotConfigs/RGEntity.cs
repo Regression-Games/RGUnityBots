@@ -94,31 +94,50 @@ namespace RegressionGames.RGBotConfigs
 
         /*
          * RGEntity holds an 'ObjectType' that is provided by the developer. We map this object type
-         * to its actions and states
+         * to its states and actions
          */
-        public Dictionary<Type, string> MapObjectType(Dictionary<Type, string> objectTypeMap)
+        public (HashSet<string>, HashSet<string>) LookupStatesAndActions()
         {
-            Dictionary<Type, string> cloneDict = new Dictionary<Type, string>(objectTypeMap);
-            KeyValuePair<Type, string>[] keyValuePairs = objectTypeMap.ToArray();
+            (HashSet<string>, HashSet<string>) result = new ();
 
-            for(int i= 0; i < keyValuePairs.Length; i++)
+            // don't use the class level one, because it is only populated on start
+            var button = gameObject.GetComponent<UnityEngine.UI.Button>();
+            
+            result.Item1 = new HashSet<string>();
+            result.Item2 = new HashSet<string>();
+            // lookup states
+            var stateComponents = gameObject.GetComponents<IRGState>();
+            if (stateComponents.Length < 1)
             {
-                Type componentType = keyValuePairs[i].Key;
-                
-                // skip previously assigned object types
-                if (!string.IsNullOrEmpty(keyValuePairs[i].Value))
+                // if none and is button, give default state
+                if (button != null)
                 {
-                    continue;
-                }
-                
-                // map object type to components with 'objectName'
-                var component = gameObject.GetComponent(componentType);
-                if (component != null)
-                {
-                    cloneDict[componentType] = objectType;
+                    result.Item1.Add(typeof(RGState_Button).FullName);
                 }
             }
-            return cloneDict;
+            else
+            {
+                foreach (var stateComponent in stateComponents)
+                {
+                    result.Item1.Add(stateComponent.GetType().FullName);
+                }
+            }
+            
+            // lookup actions
+            var actionComponents = gameObject.GetComponents<RGAction>();
+            foreach (var actionComponent in actionComponents)
+            {
+                result.Item2.Add(actionComponent.GetType().FullName);
+            }
+            
+            // if button.. make sure it has click button action
+            if (button != null)
+            {
+                var clickButtonAction = typeof(RGAction_ClickButton).FullName;
+                result.Item2.Add(clickButtonAction);
+            }
+            
+            return result;
         }
     }
 }

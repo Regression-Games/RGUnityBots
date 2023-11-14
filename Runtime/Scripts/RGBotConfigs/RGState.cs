@@ -48,15 +48,26 @@ namespace RegressionGames.RGBotConfigs
 
             return state;
         }
+        
+        protected virtual Type GetTypeForStateEntity()
+        {
+            return typeof(RGStateEntity<RGState>);
+        }
 
         /**
          * <summary>A function that is overridden to supply a custom implementation of RGStateEntity.
          * This allows more natural coding when working with the state for local C# Unity bots vs accessing entries in a Dictionary.</summary>
          * <example>RGStateEntity_Platformer2DPlayer</example>
          */
-        protected virtual IRGStateEntity CreateStateEntityClassInstance()
+        private IRGStateEntity CreateStateEntityClassInstance()
         {
-            return new RGStateEntity<RGState>();
+            var type = GetTypeForStateEntity();
+            if (!typeof(IRGStateEntity).IsAssignableFrom(type))
+            {
+                throw new Exception(
+                    $"Invalid Type returned from GetTypeForStateEntity() in class {this.GetType().FullName}.  Type must implement IRGStateEntity.");
+            }
+            return (IRGStateEntity)Activator.CreateInstance(type);
         }
         
         
