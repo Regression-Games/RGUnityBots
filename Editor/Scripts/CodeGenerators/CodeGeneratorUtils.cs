@@ -1,9 +1,11 @@
 using System.Text.RegularExpressions;
+#if UNITY_EDITOR
 using UnityEditor;
-using UnityEngine;
+#endif
 
 namespace RegressionGames
 {
+#if UNITY_EDITOR
     public class CodeGeneratorUtils
     {
         public static readonly string HeaderComment = $"/*\r\n* This file has been automatically generated. Do not modify.\r\n*/\r\n\r\n";
@@ -21,4 +23,5 @@ namespace RegressionGames
             return Regex.Replace("RG" + PlayerSettings.productName.Replace(" ", "_"), "[^0-9a-zA-Z_]", "_");
         }
     }
+#endif
 }

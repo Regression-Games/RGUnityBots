@@ -102,7 +102,7 @@ namespace RegressionGames
         }
 #endif
 
-        private long GetSystemId()
+        public static long GetSystemId()
         {
             // a machine unique system id shifted into the left side of the long as a human would see it
             return SystemInfo.deviceUniqueIdentifier.GetHashCode() * 1_000_000_000L;
@@ -112,24 +112,9 @@ namespace RegressionGames
         {
             var systemId = GetSystemId();
             var nextId = nextBotId++;
+#if UNITY_EDITOR
             AssetDatabase.SaveAssets();
-            // this is so that 'to a human' these ids look sequential
-            if (systemId < 0)
-            {
-                systemId -= nextId;
-            }
-            else
-            {
-                systemId += nextId;
-            }
-            return systemId;
-        }
-        
-        public long GetNextBotInstanceId()
-        {
-            var systemId = GetSystemId();
-            var nextId = nextBotInstanceId++;
-            AssetDatabase.SaveAssets();
+#endif
             // this is so that 'to a human' these ids look sequential
             if (systemId < 0)
             {
