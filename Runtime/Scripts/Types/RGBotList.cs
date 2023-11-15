@@ -8,3 +8,4 @@ namespace RegressionGames.Types
         public RGBot[] bots;
     }
 }
+
