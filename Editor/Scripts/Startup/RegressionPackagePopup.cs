@@ -1,18 +1,20 @@
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using RegressionGames;
-using RegressionGames.Editor;
-using RegressionGames.RGBotLocalRuntime;
 using UnityEngine;
+using UnityEngine.Rendering;
+#if UNITY_EDITOR
+using RegressionGames.Editor;
 using UnityEditor;
-using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
 using UnityEditor.SceneManagement;
-using UnityEngine.Rendering;
-using RegressionGames.Editor.CodeGenerators;
+#endif
 
+#if UNITY_EDITOR
 public class RegressionPackagePopup : EditorWindow
 {
+
     private const string RGUnityCheck = "rgunitycheck";
     private const string RGWindowCheck = "rgwindowcheck";
     private const string RGGuestCheck = "rgguest";
@@ -55,7 +57,7 @@ public class RegressionPackagePopup : EditorWindow
         if (window == null)
         {
             Rect windowRect = new Rect(100, 100, 600, 600);
-            window = (RegressionPackagePopup)EditorWindow.GetWindowWithRect(typeof(RegressionPackagePopup), windowRect, true, "Welcome to Regression Games!");
+            window = (RegressionPackagePopup)GetWindowWithRect(typeof(RegressionPackagePopup), windowRect, true, "Welcome to Regression Games!");
         }
         else
         {
@@ -392,7 +394,7 @@ public class RegressionPackagePopup : EditorWindow
                 string scenePath = Path.Combine(destinationPath, "Demo", "Scenes", "Playground.unity").Replace("\\", "/");
                 EditorSceneManager.OpenScene(scenePath);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 RGDebug.LogError("Failed to import sample: " + e.Message);
             }
@@ -463,4 +465,6 @@ public class RegressionPackagePopup : EditorWindow
             window.Repaint();
         }
     }
+
 }
+#endif
