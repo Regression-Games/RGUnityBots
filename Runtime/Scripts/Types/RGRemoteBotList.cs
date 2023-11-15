@@ -3,8 +3,8 @@ using System;
 namespace RegressionGames.Types
 {
     [Serializable]
-    public class RGRemoteBotList
+    public class RGBotList
     {
-        public RGRemoteBot[] bots;
+        public RGBot[] bots;
     }
 }

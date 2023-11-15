@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
@@ -186,7 +185,7 @@ namespace RegressionGames
             );
         }
 
-        public async Task GetBotsForCurrentUser(Action<RGRemoteBot[]> onSuccess, Action onFailure)
+        public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
             {
@@ -198,7 +197,7 @@ namespace RegressionGames
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         string theNewText = $"{{\"bots\":{s}}}";
-                        RGRemoteBotList response = JsonConvert.DeserializeObject<RGRemoteBotList>(theNewText);
+                        var response = JsonConvert.DeserializeObject<RGBotList>(theNewText);
                         RGDebug.LogDebug(
                             $"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
                         onSuccess.Invoke(response.bots);
@@ -216,7 +215,7 @@ namespace RegressionGames
             }
         }
 
-        public async Task CreateBot(RGCreateBotRequest request, Action<RGRemoteBot> onSuccess, Action onFailure)
+        public async Task CreateBot(RGCreateBotRequest request, Action<RGBot> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
             {
@@ -226,8 +225,7 @@ namespace RegressionGames
                     payload: JsonUtility.ToJson(request),
                     onSuccess: async (s) =>
                     {
-                        // wrapper this as C#/Unity json can't handle top level arrays /yuck
-                        var response = JsonConvert.DeserializeObject<RGRemoteBot>(s);
+                        var response = JsonConvert.DeserializeObject<RGBot>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBot response received: {response}");
                         onSuccess.Invoke(response);
@@ -272,7 +270,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         public async Task UpdateBotCode(long botId, string filePath, Action<RGBotCodeDetails> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
@@ -354,7 +352,7 @@ namespace RegressionGames
             }
 
         }
-        
+
         /**
          * Create a new record in the Bot Instance table, which then allows us to upload results related
          * to a bot run through a Bot Instance History later on.
@@ -418,7 +416,7 @@ namespace RegressionGames
                 onFailure.Invoke();
             }
         }
-        
+
         /**
          * Uploads the zip with bot replay data for a given bot instance
          */
@@ -449,7 +447,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         /**
          * Uploads a validation summary for a given bot instance
          */
@@ -481,7 +479,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         /**
          * Uploads all validations for the bot instance to Regression Games in JSONL format
          */
@@ -489,7 +487,7 @@ namespace RegressionGames
         {
             if (await EnsureAuthed())
             {
-                
+
                 // Convert the list into JSONL format
                 List<string> jsonLines = new List<string>();
                 foreach (var validation in request)
@@ -500,7 +498,7 @@ namespace RegressionGames
 
                 // Combine the JSON strings with newline characters
                 string jsonLinesString = string.Join("\n", jsonLines);
-                
+
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/validations",
                     method: "POST",
