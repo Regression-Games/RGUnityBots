@@ -37,8 +37,10 @@ namespace RegressionGames.Editor.CodeGenerators
                         usings.Add(botAction.Namespace);
                     }
 
+                    var projectNamespace = CodeGeneratorUtils.GetNamespaceForProject();
+                    
                     botAction.GeneratedClassName =
-                        $"RegressionGames.RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
+                        $"{projectNamespace}.RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
 
                     // Create a new compilation unit
                     CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
@@ -47,7 +49,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         )
                         .AddMembers(
                             // Namespace
-                            SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
+                            SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(projectNamespace))
                                 .AddMembers(
                                     // Class declaration
                                     SyntaxFactory
