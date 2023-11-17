@@ -1,5 +1,7 @@
 using System;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace RegressionGames.StateActionTypes
 {
@@ -8,6 +10,7 @@ namespace RegressionGames.StateActionTypes
     {
         
         public string name;
+        [JsonConverter(typeof(StringEnumConverter))]
         public RGValidationResultType result;
         public string icon;
         public string id;
