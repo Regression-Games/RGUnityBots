@@ -58,7 +58,13 @@ namespace RegressionGames.RGBotLocalRuntime
             foreach (var botGuid in botGuids)
             {
                 var botAssetPath = AssetDatabase.GUIDToAssetPath(botGuid);
-                var botDirectory = botAssetPath.Substring(0, botAssetPath.LastIndexOf(Path.DirectorySeparatorChar));
+                var botDirectory = botAssetPath;
+                var lastIndex = botAssetPath.LastIndexOf(Path.DirectorySeparatorChar);
+                
+                if (lastIndex != -1) 
+                {
+                    botDirectory = botAssetPath.Substring(0, lastIndex);        
+                }
 
                 try
                 {
