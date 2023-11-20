@@ -9,6 +9,7 @@ namespace RegressionGames.Types
         public long botId;
         public long fileSize;
         public string md5;
+        public DateTimeOffset? modifiedDate;
         // ReSharper enable InconsistentNaming
     }
 }
