@@ -122,6 +122,11 @@ namespace RegressionGames.DataCollection
         {
             try
             {
+                
+                // Sometimes a client will update the replay data even after the run is finished - copy the replay
+                // data so this doesn't affect our for loops.
+                var replayDatas = _clientIdToReplayData[clientId].ToArray();
+                
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Starting to save bot instance history");
 
                 var bot = _clientIdToBots[clientId];
@@ -161,8 +166,8 @@ namespace RegressionGames.DataCollection
 
                 // Save text files for each replay tick, zip it up, and then upload
                 RGDebug.LogVerbose(
-                    $"DataCollection[{clientId}] - Zipping the replay data (total of {_clientIdToReplayData[clientId].Count} files)...");
-                foreach (var replayData in _clientIdToReplayData[clientId])
+                    $"DataCollection[{clientId}] - Zipping the replay data (total of {replayDatas.Length} files)...");
+                foreach (var replayData in replayDatas)
                 {
                     var filePath =
                         GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.txt");
@@ -181,7 +186,7 @@ namespace RegressionGames.DataCollection
 
                 // Save all of the validation data (i.e. the validation summary and validations file overall)
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading validation data...");
-                var validations = _clientIdToReplayData[clientId]
+                var validations = replayDatas
                     .Where(rd => rd.validationResults?.Length > 0)
                     .SelectMany(rd => rd.validationResults)
                     .ToArray();

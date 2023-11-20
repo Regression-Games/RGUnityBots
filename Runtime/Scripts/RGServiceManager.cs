@@ -495,7 +495,7 @@ namespace RegressionGames
                 List<string> jsonLines = new List<string>();
                 foreach (var validation in request)
                 {
-                    string jsonString = JsonUtility.ToJson(validation);
+                    string jsonString = JsonConvert.SerializeObject(validation);
                     jsonLines.Add(jsonString);
                 }
 
