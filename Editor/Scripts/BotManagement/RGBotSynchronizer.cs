@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using RegressionGames.RGBotLocalRuntime;
@@ -21,7 +20,7 @@ namespace RegressionGames.Editor.BotManagement
     {
 #if UNITY_EDITOR
         private static readonly RGBotSynchronizer _this = new ();
-        
+
         private static RGServiceManager _rgServiceManager = new (); // editor, not game/scene so don't look for one, make one
 
         // This must match RGBotRuntimeManagement.cs
@@ -35,14 +34,14 @@ namespace RegressionGames.Editor.BotManagement
         {
             return Path.Combine(PARENT_DIRECTORY_PATH, ZIP_TEMP_FOLDER_NAME, $"Bot_{botId}.zip");
         }
-        
+
         [MenuItem("Regression Games/Create New Bot")]
         private static void CreateNewBot()
         {
             var botId = RGSettings.GetOrCreateSettings().GetNextBotId();
-            
+
             // create a new bot folder
-            var folderName = _this.CreateBotFolder("NewRGBot", botId);
+            var folderName = _this.CreateBotFolder("NewRGBot", botId, replace: false);
 
             // create the assets
             _this.CreateNewBotAssets(folderName, "NewRGBot", botId);
@@ -52,14 +51,14 @@ namespace RegressionGames.Editor.BotManagement
          * Synchronizes local bots with RG remote server if connected.
          * This is a long one, it...
          * - Discovers all local bots
-         * - Gets the local Unity bot records that exist on RG 
+         * - Gets the local Unity bot records that exist on RG
          * - Creates any bots on RG that don't already exist
          * - Creates a zip file of local bots (excluding some key files)
-         * - Gets and compares the MD5 of the local bots to those on RG 
+         * - Gets and compares the MD5 of the local bots to those on RG
          *   - Uploads any zips that need updating
          *   - NOTE: Currently this always pushes from local to remote assuming the local is the preferred record for bots that you already have.
          *   -       if you want the new remote bot, you should delete your local bot before syncing.
-         * - Creates new local bot records and downloads the files for any bots on RG that are missing locally  
+         * - Creates new local bot records and downloads the files for any bots on RG that are missing locally
          */
         [MenuItem("Regression Games/Synchronize Bots with RG")]
         private static async void SynchronizeBots()
@@ -71,14 +70,14 @@ namespace RegressionGames.Editor.BotManagement
                     RGDebug.LogWarning("Unable to synchronize bots with Regression Games.  Check your configuration and ensure that your network connection can reach the configured Regression Games server.");
                     return;
                 }
-                
+
                 RGDebug.LogInfo("Synchronizing Bots with Regression Games Server...");
-                
+
                 EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots", "Refreshing Assets", 0.1f);
 
                 // force asset refresh
                 AssetDatabase.Refresh();
-                
+
                 // refresh the local bot asset records
                 RGBotAssetsManager.GetInstance()?.RefreshAvailableBots();
 
@@ -86,14 +85,14 @@ namespace RegressionGames.Editor.BotManagement
                     "Retrieving current bots from Regression Games", 0.2f);
 
                 var localBots = RGBotAssetsManager.GetInstance()?.GetAvailableBots() ?? new List<RGBot>();
-                
+
                 var remoteBots = await _this.GetBotsFromRG();
 
                 EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots",
                     "Creating new bots in Regression Games", 0.3f);
 
+                // create remote bot records for any local bots that don't exist on RG
                 var countCreatedRemote = 0;
-                
                 var botsNeedingCreation =
                     localBots.Where(lb => remoteBots.FirstOrDefault(rb => rb.id == lb.id) == null);
                 foreach (var rgBot in botsNeedingCreation)
@@ -105,13 +104,14 @@ namespace RegressionGames.Editor.BotManagement
                             // update the id of the local bot
                             rgBot.id = botResult.id;
                             ++countCreatedRemote;
+                            remoteBots.Add(botResult);
                         }, () => { }
                     )!;
                 }
 
                 // save updated ids
                 AssetDatabase.SaveAssets();
-                
+
                 // refresh the local bot asset records to match the new Ids
                 RGBotAssetsManager.GetInstance()?.RefreshAvailableBots();
 
@@ -121,17 +121,23 @@ namespace RegressionGames.Editor.BotManagement
                 _this.RemoveZipTempDirectory();
                 _this.CreateZipTempDirectory();
 
-                var localMD5 = _this.CreateLocalBotZipFiles(localBots);
-                
+                var localBotZips = _this.CreateLocalBotZipFiles(localBots);
+
                 EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots",
                     "Uploading local bot zip files to Regression Games", 0.5f);
 
                 var countUpdated = 0;
-                foreach (var (botId, md5) in localMD5)
+                foreach (var (botId, (localBot, md5, localLastUpdated)) in localBotZips)
                 {
+                    if(remoteBots.FirstOrDefault(b => b.id == botId) is not {} remoteBot)
+                    {
+                        RGDebug.LogError($"Unable to find remote bot with id {botId} to update.");
+                        continue;
+                    }
+
                     EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots",
                         $"Updating remote code for Bot id: {botId}", 0.55f);
-                    if (await _this.UpdateBotZipOnRG(botId, md5))
+                    if (await _this.SyncBotCode(remoteBot, localBot, md5, localLastUpdated))
                     {
                         ++countUpdated;
                     }
@@ -147,16 +153,18 @@ namespace RegressionGames.Editor.BotManagement
                 {
                     EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots",
                         $"Downloading zip for Bot id: {newRemoteBot.id}", 0.75f);
-                    await _this.CreateLocalBotRecordFromRG(newRemoteBot);
+
+                    // We set 'replace' to false so we don't replace existing files at this path, if any.
+                    await _this.CreateLocalBotRecordFromRG(newRemoteBot, replace: false);
                 }
 
                 _this.RemoveZipTempDirectory();
 
                 EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots", "Refreshing Assets", 0.9f);
-                
+
                 // force asset refresh for any new bots
                 AssetDatabase.Refresh();
-                
+
                 RGBotAssetsManager.GetInstance()?.RefreshAvailableBots();
 
                 var endingLocalBots = RGBotAssetsManager.GetInstance()?.GetAvailableBotAssets();
@@ -167,7 +175,7 @@ namespace RegressionGames.Editor.BotManagement
                                 $"Created {endingLocalBots.Count - localBots.Count} new local bot entries\r\n" +
                                 $"Created {countCreatedRemote} new remote bot entries\r\n" +
                                 $"Updated {countUpdated} remote bot entries\r\n");
-                                
+
 
                 if (endingLocalBots.Count != localBots.Count)
                 {
@@ -185,10 +193,18 @@ namespace RegressionGames.Editor.BotManagement
             }
         }
 
-        private async Task CreateLocalBotRecordFromRG(RGBot newRemoteBot)
+        /// <summary>
+        /// Creates, or recreates, the local bot asset for the given remote bot.
+        /// </summary>
+        /// <remarks>
+        /// If the bot already exists locally, it will be deleted and recreated.
+        /// </remarks>
+        /// <param name="newRemoteBot">The remote bot to fetch.</param>
+        /// <param name="replace">If <c>true</c>, any existing content in the bot's target directory will be replaced.</param>
+        private async Task CreateLocalBotRecordFromRG(RGBot newRemoteBot, bool replace)
         {
             //Create directory
-            string botFolderPath = _this.CreateBotFolder(newRemoteBot.name, newRemoteBot.id);
+            string botFolderPath = _this.CreateBotFolder(newRemoteBot.name, newRemoteBot.id, replace);
 
             string zipDownloadPath = ZipPathForBot(newRemoteBot.id);
 
@@ -198,22 +214,24 @@ namespace RegressionGames.Editor.BotManagement
                 // if someone happened to have a file open in the temp directory and blocked it from cleaning up properly
                 File.Delete(zipDownloadPath);
             }
-                    
+
             //download and extract zip
+            string botChecksum = null;
             await _rgServiceManager.DownloadBotCode(newRemoteBot.id,
                 zipDownloadPath,
                 () =>
                 {
+                    botChecksum = RGUtils.CalculateMD5(zipDownloadPath);
                     // unpack the zip to the bot folder - overwrite existing files
                     ZipFile.ExtractToDirectory(zipDownloadPath, botFolderPath, true);
                 },
                 () => { }
             );
-            
+
             //write asset record
-            _this.CreateBotAssetFile(botFolderPath, newRemoteBot.name, newRemoteBot.id);
+            _this.CreateBotAssetFile(botFolderPath, newRemoteBot.name, newRemoteBot.id, botChecksum);
         }
-        
+
         private async Task<List<RGBot>> GetBotsFromRG()
         {
             var remoteBots = new List<RGBot>();
@@ -229,61 +247,107 @@ namespace RegressionGames.Editor.BotManagement
             return remoteBots;
         }
 
-        private Dictionary<long, string> CreateLocalBotZipFiles(IEnumerable<RGBot> localBots)
-        {
-            var localMD5 = new Dictionary<long, string>();
-
+        private Dictionary<long, (RGBot Bot, string Checksum, DateTimeOffset? LastUpdatedDate)> CreateLocalBotZipFiles(IEnumerable<RGBot> localBots) =>
             // create zip files for all the bots I have locally
-            foreach (var rgBot in localBots)
-            {
-                var botId = rgBot.id;
-                var localBot = RGBotAssetsManager.GetInstance()?.GetBotAssetRecord(botId);
-                var md5 = ZipLocalBot(botId, localBot.Path);
-                localMD5[botId] = md5;
-            }
+            localBots.ToDictionary(
+                rgBot => rgBot.id,
+                rgBot =>
+                {
+                    var botId = rgBot.id;
+                    var localBot = RGBotAssetsManager.GetInstance()?.GetBotAssetRecord(botId);
+                    var md5 = ZipLocalBot(botId, localBot.Path);
+                    var lastUpdated = RGUtils.GetLatestWriteDate(localBot.Path);
+                    return (rgBot, md5, lastUpdated);
+                });
 
-            return localMD5;
-        }
-
-        private async Task<bool> UpdateBotZipOnRG(long botId, string md5)
+        private async Task<bool> SyncBotCode(RGBot remoteBot, RGBot localBot, string localMd5, DateTimeOffset? localLastUpdated)
         {
-            var didUpdate = false;
-            // if zip checksums don't match.. push new zip files
-            // Get remote zip details, check md5sum, decide if need to push
-            var needsToUpload = false;
-
-            await _rgServiceManager.GetBotCodeDetails(
-                botId,
-                (botCodeDetails) =>
-                {
-                    if (md5 != botCodeDetails.md5)
-                    {
-                        RGDebug.LogDebug(
-                            $"RG Bot Id: {botId} needs to update remote zip; local md5: {md5} != remote md5: {botCodeDetails.md5}");
-                        needsToUpload = true;
-                    }
-                },
-                () =>
-                {
-                    // not found.. need to push for first time
-                    needsToUpload = true;
-                }
-            )!;
-
-            if (needsToUpload)
+            bool ShouldUpload(RGBotCodeDetails rgBotCodeDetails)
             {
-                string zipFilePath = ZipPathForBot(botId);
-                await _rgServiceManager.UpdateBotCode(
-                    botId,
-                    zipFilePath,
-                    (botCodeDetails) =>
-                    {
-                        didUpdate = true;
-                    },
-                    () => { }
+                // Server-owned code should always be downloaded.
+                if (remoteBot.CodeIsServerOwned)
+                {
+                    RGDebug.LogVerbose($"Bot {remoteBot.name} ({remoteBot.id}) is server-owned. Downloading code and overwriting local changes.");
+                    return false;
+                }
+
+                // Otherwise, we compare timestamps.
+                var localTime = localLastUpdated is null
+                    ? "<<unknown>>" // Very unlikely, indicates the local files don't exist.
+                    : localLastUpdated.Value.ToLocalTime().ToString("ddd MMM d, yyyy HH:mm:ss tt");
+                var remoteTime = rgBotCodeDetails.modifiedDate is null
+                    ? "<<unknown>>" // Very unlikely, indicates the server is misbehaving.
+                    : rgBotCodeDetails.modifiedDate.Value.ToLocalTime().ToString("ddd MMM d, yyyy HH:mm:ss tt");
+
+                // If the checksums don't match, we need to decide which to treat as the source of truth.
+                // For now, we prompt the user to decide.
+                // We can iterate and add more detailed conflict resolution later.
+                var conflictMessage =
+                    $"Bot '{localBot.name}' has changed from the last time it was synchronized with the server.  Which version should be used?" +
+                    Environment.NewLine +
+                    $"The local bot was last updated: {localTime}" + Environment.NewLine +
+                    $"The remote bot was last updated: {remoteTime}";
+                return EditorUtility.DisplayDialog(
+                    "Bot Code Conflict",
+                    conflictMessage,
+                    "Local",
+                    "Remote"
                 );
             }
 
+            // Fetch code details from the server.
+            RGBotCodeDetails botCodeDetails = null;
+            await _rgServiceManager.GetBotCodeDetails(
+                remoteBot.id,
+                (details) =>
+                {
+                    botCodeDetails = details;
+                },
+                () => { }
+            );
+
+            if (botCodeDetails is null)
+            {
+                // Unlikely unless the server is having a problem, but we should handle it.
+                // Just don't sync this bot
+                RGDebug.LogWarning($"Server reported no code for bot {remoteBot.id}. Skipping sync.");
+                return false;
+            }
+
+            // If the checksums match, we're done
+            if (localMd5 == botCodeDetails.md5)
+            {
+                RGDebug.LogDebug(
+                    $"RG Bot Id: {remoteBot.id} is up to date; local md5: {localMd5} == remote md5: {botCodeDetails.md5}");
+                return false;
+            }
+
+            var didUpdate = false;
+            if (ShouldUpload(botCodeDetails))
+            {
+                // Upload bot code
+                string zipFilePath = ZipPathForBot(remoteBot.id);
+                await _rgServiceManager.UpdateBotCode(
+                    remoteBot.id,
+                    zipFilePath,
+                    (_) =>
+                    {
+                        didUpdate = true;
+                    },
+                    () =>
+                    {
+                        RGDebug.LogError("Error updating bot code");
+                    }
+                );
+            }
+            else
+            {
+                // Download bot code!
+                // We can replace the local bot folder with newer content because we know the local bot folder _is_
+                // actually a Bot, with a BotRecord.asset and all.
+                await CreateLocalBotRecordFromRG(remoteBot, replace: true);
+                didUpdate = true;
+            }
             return didUpdate;
         }
 
@@ -314,7 +378,7 @@ namespace RegressionGames.Editor.BotManagement
             {
                 File.Delete(zipPath);
             }
-            
+
             // Exclude `BotRecord.asset` and `*.meta` files from zip so md5s will match
             ZipHelper.CreateFromDirectory(
                 sourcePath,
@@ -322,21 +386,12 @@ namespace RegressionGames.Editor.BotManagement
                 exclusionFilter: (t) => t.EndsWith("BotRecord.asset") || t.EndsWith(".meta")
             );
 
-            var md5 = CalculateMD5(zipPath);
-            
+            var md5 = RGUtils.CalculateMD5(zipPath);
+
             RGDebug.LogDebug($"Successfully Generated {zipPath} - md5: {md5}");
             return md5;
         }
 
-        static string CalculateMD5(string filename)
-        {
-            using var md5 = MD5.Create();
-            using var stream = File.OpenRead(filename);
-            
-            var hash = md5.ComputeHash(stream);
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-        }
-        
         private void CreateParentFolders()
         {
             if (!AssetDatabase.IsValidFolder("Assets/RegressionGames"))
@@ -348,7 +403,7 @@ namespace RegressionGames.Editor.BotManagement
             {
                 AssetDatabase.CreateFolder("Assets/RegressionGames", "Runtime");
             }
-            
+
             if (!AssetDatabase.IsValidFolder(BOTS_PATH))
             {
                 AssetDatabase.CreateFolder("Assets/RegressionGames/Runtime", "Bots");
@@ -357,13 +412,23 @@ namespace RegressionGames.Editor.BotManagement
 
         /**
          * <summary>Creates a folder and any needed parent folders for the given botname/botId pair.</summary>
+         * <param name="replace">If <c>true</c>, any existing content in this directory will be replaced.</param>
          * <returns>String path of the folder</returns>
          */
-        private string CreateBotFolder(string botName, long botId)
+        private string CreateBotFolder(string botName, long botId, bool replace)
         {
             CreateParentFolders();
-            var folderString = $"{BOTS_PATH}/{botName}_{botId}".Replace('-','n');
-            AssetDatabase.CreateFolder(BOTS_PATH, $"{botName}_{botId}".Replace('-','n'));
+            var botFolderName = $"{botName}_{botId}".Replace('-', 'n');
+            var folderString = $"{BOTS_PATH}/{botFolderName}";
+
+            // If we're explicitly being told to replace the folder, and it exists, delete it first.
+            if (replace && AssetDatabase.IsValidFolder(folderString))
+            {
+                // Clean the old folder out, if it exists
+                AssetDatabase.DeleteAsset(folderString);
+            }
+
+            AssetDatabase.CreateFolder(BOTS_PATH, botFolderName);
             return folderString;
         }
 
@@ -371,17 +436,17 @@ namespace RegressionGames.Editor.BotManagement
         {
             RGDebug.LogInfo($"Creating new Regression Games Unity bot at path {folderName}");
             var botFolderShortName = folderName.Substring(folderName.LastIndexOf(Path.DirectorySeparatorChar)+1);
-            
+
             // create `Bot` record asset
-            CreateBotAssetFile(folderName, botName, botId);
-            
+            CreateBotAssetFile(folderName, botName, botId, null);
+
             var entryPointPath = $"{folderName}/BotEntryPoint.cs";
             RGDebug.LogDebug($"Writing {entryPointPath}");
             // create bot starter script (copy the entry point script and fix the namespace in the file)
             var bytes = File.ReadAllBytes("Packages/gg.regression.unity.bots/Runtime/Scripts/RGBotLocalRuntime/Template/BotEntryPoint.cs.template");
             var utfString = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
             utfString = utfString.Replace("<TEMPLATE_NAMESPACE>", botFolderShortName);
-            
+
             File.WriteAllBytes(entryPointPath, Encoding.UTF8.GetBytes(utfString, 0, utfString.Length));
             RGDebug.LogInfo($"Regression Games Unity bot successfully created at path {folderName}");
 
@@ -389,7 +454,7 @@ namespace RegressionGames.Editor.BotManagement
             AssetDatabase.Refresh();
         }
 
-        private void CreateBotAssetFile(string folderName, string botName, long botId)
+        private void CreateBotAssetFile(string folderName, string botName, long botId, string botChecksum)
         {
             var botRecordAssetPath = $"{folderName}/BotRecord.asset";
             if ( AssetDatabase.GetMainAssetTypeAtPath( botRecordAssetPath ) == null)
@@ -405,12 +470,13 @@ namespace RegressionGames.Editor.BotManagement
                 };
                 RGBotAsset botRecordAsset = ScriptableObject.CreateInstance<RGBotAsset>();
                 botRecordAsset.Bot = botRecord;
+                botRecordAsset.ChecksumAtLastSync = botChecksum;
                 AssetDatabase.CreateAsset(botRecordAsset, botRecordAssetPath );
                 AssetDatabase.SaveAssets();
             }
         }
     }
-    
+
     // Extension code borrowed from StackOverflow to allow creating a zip of directory
     // while filtering out certain contents
     public static class ZipHelper {
@@ -440,7 +506,7 @@ namespace RegressionGames.Editor.BotManagement
                 }
             }
         }
-        
+
         private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)
         {
             if (names == null || names.Length == 0)
