@@ -264,6 +264,12 @@ namespace RegressionGames.Editor.BotManagement
         {
             bool ShouldUpload(RGBotCodeDetails rgBotCodeDetails)
             {
+                if (rgBotCodeDetails == null)
+                {
+                    // No code on the server? Definitely upload.
+                    return true;
+                }
+
                 // Server-owned code should always be downloaded.
                 if (remoteBot.CodeIsServerOwned)
                 {
@@ -306,16 +312,8 @@ namespace RegressionGames.Editor.BotManagement
                 () => { }
             );
 
-            if (botCodeDetails is null)
-            {
-                // Unlikely unless the server is having a problem, but we should handle it.
-                // Just don't sync this bot
-                RGDebug.LogWarning($"Server reported no code for bot {remoteBot.id}. Skipping sync.");
-                return false;
-            }
-
-            // If the checksums match, we're done
-            if (localMd5 == botCodeDetails.md5)
+            // If the checksums match, no sync is required at all
+            if (botCodeDetails != null && localMd5 == botCodeDetails.md5)
             {
                 RGDebug.LogDebug(
                     $"RG Bot Id: {remoteBot.id} is up to date; local md5: {localMd5} == remote md5: {botCodeDetails.md5}");
