@@ -433,7 +433,8 @@ namespace RegressionGames.Editor.BotManagement
         private void CreateNewBotAssets(string folderName, string botName, long botId)
         {
             RGDebug.LogInfo($"Creating new Regression Games Unity bot at path {folderName}");
-            var botFolderShortName = folderName.Substring(folderName.LastIndexOf(Path.DirectorySeparatorChar)+1);
+            // unity assets always use '/' regardless of Operating System
+            var botFolderShortName = folderName.Substring(folderName.LastIndexOf('/')+1);
 
             // create `Bot` record asset
             CreateBotAssetFile(folderName, botName, botId, null);
