@@ -34,7 +34,7 @@ namespace RegressionGames.Editor.CodeGenerators
      * 1. Find [RGAction] attributes and generate classes for them; captures the generated class name
      * 2. /\ This same information is used as the available Actions for AgentBuilder json.
      */
-    
+
     public class RGCodeGenerator
     {
 #if UNITY_EDITOR
@@ -44,22 +44,23 @@ namespace RegressionGames.Editor.CodeGenerators
         private static HashSet<string> _excludeDirectories = new() {
            "ThirdPersonDemoURP"
         };
-        
+
 
         private static bool _hasExtractProblem = false;
-        
+
         private static void RecordError(string error)
         {
             _hasExtractProblem = true;
             RGDebug.LogError($"ERROR: {error}");
         }
-        
+
         private static void RecordWarning(string warning)
         {
             _hasExtractProblem = true;
             RGDebug.LogWarning($"WARNING: {warning}");
         }
-        
+
+        [MenuItem("Regression Games/Generate Scripts")]
         public static void GenerateRGScripts()
         {
             try
@@ -86,13 +87,13 @@ namespace RegressionGames.Editor.CodeGenerators
             finally
             {
                 EditorUtility.ClearProgressBar();
-            } 
-            
+            }
+
             if (_hasExtractProblem)
             {
                 RGDebug.LogWarning($"Completed generating Regression Games scripts - Errors occurred, check logs above...");
                 EditorUtility.DisplayDialog(
-                    "Generate Scripts\r\nError", 
+                    "Generate Scripts\r\nError",
                     "One or more warnings or errors occurred while generating Regression Games scripts." +
                     "\r\n\r\nCheck the Console logs for more information.",
                     "OK");
@@ -100,7 +101,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
             else
             {
-                RGDebug.LogInfo($"Completed generating Regression Games scripts"); 
+                RGDebug.LogInfo($"Completed generating Regression Games scripts");
             }
 
         }
@@ -154,7 +155,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     RGDebug.LogWarning($"Completed extracting Regression Games context - Errors occurred, check logs above...");
                     EditorUtility.DisplayDialog(
-                        "Extract Game Context\r\nError", 
+                        "Extract Game Context\r\nError",
                         "One or more warnings or errors occurred during the extract." +
                         "\r\n\r\nCheck the Console logs for more information.",
                         "OK");
@@ -165,7 +166,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     string zipPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames.zip");
                     RGDebug.LogInfo($"Completed extracting Regression Games context - filePath: {zipPath}");
                     EditorUtility.DisplayDialog(
-                        "Extract Game Context\r\nComplete", 
+                        "Extract Game Context\r\nComplete",
                         "Game context extracted to .zip file:" +
                         $"\r\n\r\n{zipPath}",
                         "OK");
@@ -173,7 +174,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
 
         }
-        
+
         private static void GenerateActionClasses(List<RGActionAttributeInfo> actionInfos)
         {
             // remove previous RGActions
@@ -186,19 +187,19 @@ namespace RegressionGames.Editor.CodeGenerators
                 File.Delete(directoryToDelete + ".meta");
                 AssetDatabase.Refresh();
             }
-            
+
             //NOTE: We may have trouble here with serialization or actionMap with sample projects
             // Much testing needed
             GenerateRGSerializationClass.Generate(actionInfos);
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
         }
-        
+
         private static void ExtractGameContextHelper()
         {
             try
             {
-                
+
                 // just in case they haven't done this recently or ever...
                 // find and extract RGState data
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", "Searching for RGState attributes", 0.1f);
@@ -227,7 +228,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 var statesInfos = CreateStateInfoFromRGStateEntities();
 
                 var actionInfos = actionAttributeInfos.Select(v => v.toRGActionInfo()).ToList();
-                                
+
                 // add global click button action
                 actionInfos.Add(new RGActionInfo()
                 {
@@ -235,10 +236,10 @@ namespace RegressionGames.Editor.CodeGenerators
                     ActionName = "ClickButton",
                     Parameters = new List<RGParameterInfo>()
                 });
-                
+
                 /* TODO (REG-1476): Solve how to add hand written actions automatically
                    this will help us avoid weird assembly references also.
-                
+
                 // add key press action
                 actionInfos.Add(new RGActionInfo()
                 {
@@ -278,13 +279,13 @@ namespace RegressionGames.Editor.CodeGenerators
                 EditorUtility.ClearProgressBar();
             }
         }
-        
+
         private static List<RGActionAttributeInfo> SearchForBotActionAttributes()
         {
             // make sure to exclude any sample project directories from generation
             var excludedPaths =
                 _excludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
-            
+
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToArray();
 
             List<RGActionAttributeInfo> botActionList = new List<RGActionAttributeInfo>();
@@ -301,76 +302,88 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
 
-                var botActionMethods = root.DescendantNodes()
-                    .OfType<MethodDeclarationSyntax>()
-                    .Where(method =>
-                        method.AttributeLists.Any(attrList =>
-                            attrList.Attributes.Any(attr =>
-                                attr.Name.ToString() == "RGAction")))
-                    .ToList();
-
-                foreach (var method in botActionMethods)
+                var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+                foreach (var classDeclaration in classDeclarations)
                 {
-                    string nameSpace = method.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
-                    string className = method.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText;
-                    string methodName = method.Identifier.ValueText;
-
-                    string actionName = methodName;
-                    var actionAttribute = method.AttributeLists.SelectMany(attrList => attrList.Attributes)
-                        .FirstOrDefault(attr => attr.Name.ToString() == "RGAction");
-
-                    if (actionAttribute != null)
+                    var className = classDeclaration.Identifier.ValueText;
+                    var nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()
+                        ?.Name.ToString();
+                    var botActionMethods = classDeclaration.Members
+                        .OfType<MethodDeclarationSyntax>()
+                        .Where(method =>
+                            method.AttributeLists.Any(attrList =>
+                                attrList.Attributes.Any(attr =>
+                                    attr.Name.ToString() == "RGAction")))
+                        .ToList();
+                    var isPartial = classDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+                    if (botActionMethods.Count > 0 && !isPartial)
                     {
-                        var attributeArgument = actionAttribute.ArgumentList?.Arguments.FirstOrDefault();
-                        if (attributeArgument != null &&
-                            attributeArgument.Expression is LiteralExpressionSyntax literal)
-                        {
-                            actionName = literal.Token.ValueText;
-                        }
+                        RecordError(
+                            $"Error: Class '{className}' must be marked with the 'partial' keyword (for example 'public partial class {className}') to use the [RGAction] attribute.");
+                        continue;
                     }
 
-                    var semanticModel = compilation.GetSemanticModel(syntaxTree);
-                    var parameterList = method.ParameterList.Parameters.Select(parameter =>
-                        new RGParameterInfo
-                        {
-                            Name = parameter.Identifier.ValueText,
-                            Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
-                                .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
-                            Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
-                                       (parameter.Type is GenericNameSyntax && // ex. Nullable<float>
-                                        ((GenericNameSyntax) parameter.Type).Identifier.ValueText == "Nullable")
-                        }).ToList();
-
-                    botActionList.Add(new RGActionAttributeInfo
+                    foreach (var method in botActionMethods)
                     {
-                        // if this wasn't in a sample project folder, we need to generate CS for it
-                        ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
-                        Namespace = nameSpace,
-                        Object = className,
-                        MethodName = methodName,
-                        ActionName = actionName,
-                        Parameters = parameterList
-                    });
+                        string methodName = method.Identifier.ValueText;
+
+                        string actionName = methodName;
+                        var actionAttribute = method.AttributeLists.SelectMany(attrList => attrList.Attributes)
+                            .FirstOrDefault(attr => attr.Name.ToString() == "RGAction");
+
+                        if (actionAttribute != null)
+                        {
+                            var attributeArgument = actionAttribute.ArgumentList?.Arguments.FirstOrDefault();
+                            if (attributeArgument != null &&
+                                attributeArgument.Expression is LiteralExpressionSyntax literal)
+                            {
+                                actionName = literal.Token.ValueText;
+                            }
+                        }
+
+                        var semanticModel = compilation.GetSemanticModel(syntaxTree);
+                        var parameterList = method.ParameterList.Parameters.Select(parameter =>
+                            new RGParameterInfo
+                            {
+                                Name = parameter.Identifier.ValueText,
+                                Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
+                                    .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
+                                Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
+                                           (parameter.Type is GenericNameSyntax && // ex. Nullable<float>
+                                            ((GenericNameSyntax) parameter.Type).Identifier.ValueText == "Nullable")
+                            }).ToList();
+
+                        botActionList.Add(new RGActionAttributeInfo
+                        {
+                            // if this wasn't in a sample project folder, we need to generate CS for it
+                            ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
+                            Namespace = nameSpace,
+                            Object = className,
+                            MethodName = methodName,
+                            ActionName = actionName,
+                            Parameters = parameterList
+                        });
+                    }
                 }
             }
 
             return botActionList;
 
         }
-        
+
         private static void GenerateStateClasses(List<RGStateAttributesInfo> rgStateAttributesInfos)
         {
             // remove previous RGStates
             string dataPath = Application.dataPath;
             string directoryToDelete = Path.Combine(dataPath, "RegressionGames/Runtime/GeneratedScripts/RGStates").Replace("\\", "/");
-            
+
             if (Directory.Exists(directoryToDelete))
             {
                 Directory.Delete(directoryToDelete, true);
                 File.Delete(directoryToDelete + ".meta");
                 AssetDatabase.Refresh();
             }
-            
+
             GenerateRGStateClasses.Generate(rgStateAttributesInfos);
         }
 
@@ -379,7 +392,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // make sure to exclude any sample project directories from the search
             var excludedPaths =
                 _excludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
-            
+
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .ToArray();
 
@@ -402,19 +415,26 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 foreach (var classDeclaration in classDeclarations)
                 {
-                   
                     string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
 
                     string className = classDeclaration.Identifier.ValueText;
                     List<RGStateAttributeInfo> stateList = new List<RGStateAttributeInfo>();
-                    
+
                     var membersWithRGState = classDeclaration.Members
-                        .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")));
+                        .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")))
+                        .ToList();
+                    var isPartial = classDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+                    if (membersWithRGState.Count > 0 && !isPartial)
+                    {
+                        // The class isn't partial
+                        RecordError($"Error: Class '{className}' must be marked with the 'partial' keyword (for example 'public partial class {className}') to use the [RGState] attribute.");
+                        continue;
+                    }
 
                     foreach (var member in membersWithRGState)
                     {
                         bool hasError = false;
-                        
+
                         if (member is FieldDeclarationSyntax fieldDeclaration)
                         {
                             if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
@@ -446,7 +466,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             continue;
                         }
-                        
+
                         string fieldType = member is MethodDeclarationSyntax ? "method" : "variable";
                         string fieldName = member is MethodDeclarationSyntax
                             ? ((MethodDeclarationSyntax) member).Identifier.ValueText
@@ -471,7 +491,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                 .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
                             : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
                                 .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                        
+
                         stateList.Add(new RGStateAttributeInfo
                         {
                             FieldType = fieldType,
@@ -496,12 +516,12 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return rgStateInfoList;
         }
-        
-        
+
+
         private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
             var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToHashSet();
-            
+
             // look through all packages that are part of this project
             var listRequest = Client.List(true, false);
 
@@ -516,14 +536,14 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 var packagePath = packageInfo.resolvedPath;
                 var packageFiles = Directory.GetFiles(packagePath, "*.cs", SearchOption.AllDirectories);
-                    
+
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", $"Extracting state info from package {packageInfo.displayName}", 0.53f);
                 foreach (var packageFile in packageFiles)
                 {
                     csFiles.Add(packageFile);
                 }
             }
-            
+
             List<RGStatesInfo> rgStateInfoList = new List<RGStatesInfo>();
 
             foreach (string csFilePath in csFiles)
@@ -638,7 +658,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 Debug.LogWarning("The 'RegressionGamesZipTemp' folder does not exist.");
             }
         }
-        
+
         private static string RemoveGlobalPrefix(string typeName)
         {
             return typeName.Replace("global::", string.Empty);
@@ -685,14 +705,14 @@ namespace RegressionGames.Editor.CodeGenerators
                 return allLoadedScenePaths.Contains(b) ? 1 : 0;
             });
 
-            // Get for all the scenes in the build 
+            // Get for all the scenes in the build
             EditorBuildSettingsScene[] scenesInBuild = EditorBuildSettings.scenes;
             foreach (var editorScene in scenesInBuild)
             {
                 // include currently enabled scenes for the build
                 if (editorScene.enabled)
                 {
-                    // Open the scene 
+                    // Open the scene
                     EditorSceneManager.OpenScene(editorScene.path, OpenSceneMode.Single);
 
                     // For objects in the scene.. we let this re-process duplicate objectTypes to make sure there isn't any inconsistency between game objects of the same ObjectType
@@ -710,7 +730,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             result.Item2.Add(entityStateActionJson.Item2);
                         }
                     }
-                    
+
                 }
             }
 
@@ -759,7 +779,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                         var prefabStateActionJson = DeriveStateAndActionJsonForEntity(prefabComponent.objectType, stateClassNames, actionClassNames, statesInfos, actionInfos);
                         CheckForMisMatchedStateOrActionsOnEntity(prefabComponent, prefabStateActionJson, result);
-                        
+
                         result.Item1.Add(prefabStateActionJson.Item1);
                         if (prefabStateActionJson.Item2.Actions.Count > 0)
                         {
@@ -861,7 +881,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     RecordError($"Information not found for State: {stateClassName} on RGEntity with ObjectType: {objectType}.  Please contact Regression Games for support with this issue.");
                 }
-                
+
             }
             var entityStateJson = new RGEntityStatesJson()
             {
@@ -907,20 +927,20 @@ namespace RegressionGames.Editor.CodeGenerators
         private static void WriteJsonFiles(List<RGEntityStatesJson> statesInfos, List<RGEntityActionsJson> actionInfos)
         {
             // Write values to JSON files
-            var updatedActionJson = 
+            var updatedActionJson =
                 JsonConvert.SerializeObject(
-                    new 
+                    new
                     {
                         BotActions = actionInfos
-                    }, 
+                    },
                     Formatting.Indented,
                     new JsonSerializerSettings
                     {
                         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                     }
                 );
-            
-            var updatedStateJson = 
+
+            var updatedStateJson =
                 JsonConvert.SerializeObject(
                     new
                     {
@@ -932,11 +952,11 @@ namespace RegressionGames.Editor.CodeGenerators
                         ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                     }
                 );
-            
+
             WriteJsonToFile("RGActions", updatedActionJson);
             WriteJsonToFile("RGStates", updatedStateJson);
         }
-        
+
         private static void WriteJsonToFile(string fileName, string json)
         {
             string folderPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGamesZipTemp");

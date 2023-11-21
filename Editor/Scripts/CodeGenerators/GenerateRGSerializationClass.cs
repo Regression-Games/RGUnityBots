@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 #if UNITY_EDITOR
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -29,7 +30,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 .AddMembers(namespaceDeclaration);
 
             // Format the generated code
-            string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
+            string formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();
 
             // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGSerialization.cs'
             string fileName = "RGSerialization.cs";
@@ -53,14 +54,14 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     continue;
                 }
-                
+
                 foreach (RGParameterInfo parameter in botAction.Parameters)
                 {
                     if (RGUtils.IsCSharpPrimitive(parameter.Type))
                     {
                         continue;
                     }
-                    
+
                     if (!processedTypes.Contains(parameter.Type))
                     {
                         processedTypes.Add(parameter.Type);

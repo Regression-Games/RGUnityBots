@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 #if UNITY_EDITOR
+using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -11,7 +12,7 @@ using UnityEditor;
 
 namespace RegressionGames.Editor.CodeGenerators
 {
-#if UNITY_EDITOR    
+#if UNITY_EDITOR
     // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGActionMapClass
     {
@@ -37,22 +38,22 @@ namespace RegressionGames.Editor.CodeGenerators
                     usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                 )
                 .AddMembers(GenerateClass(botActions));
-            
-            
+
+
             // Create a compilation unit and add the namespace declaration
             CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                 .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")))
                 .AddMembers(namespaceDeclaration);
 
             // Format the generated code
-            string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
+            string formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();
 
             // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActionMap.cs'
             string fileName = "RGActionMap.cs";
             string filePath = Path.Combine(Application.dataPath, "RegressionGames", "Runtime", "GeneratedScripts", fileName);
             string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-            File.WriteAllText(filePath, fileContents);            
+            File.WriteAllText(filePath, fileContents);
             RGDebug.Log($"Successfully Generated {filePath}");
             AssetDatabase.Refresh();
         }
@@ -66,27 +67,27 @@ namespace RegressionGames.Editor.CodeGenerators
                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword))
                 .WithBody(SyntaxFactory.Block(filteredActions
                     .GroupBy(b => b.Object)
-                    .SelectMany(g => 
+                    .SelectMany(g =>
                         {
-                            var innerIfStatements = g.Select(b => 
+                            var innerIfStatements = g.Select(b =>
                                 SyntaxFactory.ExpressionStatement(
                                     SyntaxFactory.InvocationExpression(
                                         SyntaxFactory.MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression, 
-                                            SyntaxFactory.IdentifierName("gameObject"), 
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            SyntaxFactory.IdentifierName("gameObject"),
                                             SyntaxFactory.IdentifierName($"AddComponent<RGAction_{CodeGeneratorUtils.SanitizeActionName(b.ActionName)}>")
                                         )
                                     )
                                 )
                             ).ToArray();
-                            
-                            return new StatementSyntax[] 
+
+                            return new StatementSyntax[]
                             {
                                 SyntaxFactory.IfStatement(
                                     SyntaxFactory.InvocationExpression(
                                         SyntaxFactory.MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression, 
-                                            SyntaxFactory.ThisExpression(), 
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            SyntaxFactory.ThisExpression(),
                                             SyntaxFactory.GenericName("TryGetComponent")
                                                 .WithTypeArgumentList(
                                                     SyntaxFactory.TypeArgumentList(
@@ -98,8 +99,8 @@ namespace RegressionGames.Editor.CodeGenerators
                                         ),
                                         SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
                                             SyntaxFactory.Argument(
-                                                null, 
-                                                SyntaxFactory.Token(SyntaxKind.OutKeyword), 
+                                                null,
+                                                SyntaxFactory.Token(SyntaxKind.OutKeyword),
                                                 SyntaxFactory.DeclarationExpression(
                                                     SyntaxFactory.IdentifierName("var"),
                                                     SyntaxFactory.DiscardDesignation(SyntaxFactory.Token(SyntaxKind.UnderscoreToken))
