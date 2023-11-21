@@ -58,7 +58,8 @@ namespace RegressionGames.RGBotLocalRuntime
             foreach (var botGuid in botGuids)
             {
                 var botAssetPath = AssetDatabase.GUIDToAssetPath(botGuid);
-                var botDirectory = botAssetPath.Substring(0, botAssetPath.LastIndexOf(Path.DirectorySeparatorChar));
+                // unity assets always use '/' regardless of Operating System
+                var botDirectory = botAssetPath.Substring(0, botAssetPath.LastIndexOf('/'));
 
                 try
                 {

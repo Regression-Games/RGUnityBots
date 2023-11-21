@@ -68,8 +68,9 @@ namespace RegressionGames.RGBotLocalRuntime
                     ? $"_n{-1 * botAssetRecord.BotAsset.Bot.id}"
                     : $"_{botAssetRecord.BotAsset.Bot.id}";
                 var botNameSpace = botAssetRecord.BotAsset.Bot.name + botIdKey;
+                // unity assets always use '/' regardless of Operating System
                 var botFolderNamespace =
-                    botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf(Path.DirectorySeparatorChar) + 1);
+                    botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf('/') + 1);
                 try
                 {
                     userBotCode = (RGUserBot)ScriptableObject.CreateInstance($"{botNameSpace}.BotEntryPoint");
