@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.RGBotConfigs;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.DebugUtils
 {
@@ -251,10 +250,7 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyText"/>
          * <seealso cref="DestroyAllTexts"/>
          */
-        public void CreateText(int entityId, string content, Vector3? offset = null)
-        {
-            _billboardsToDraw[entityId] = (content, offset ?? new Vector3(0f, 2f, 0f));
-        }
+        public void CreateText(int entityId, string content, Vector3? offset = null) => _billboardsToDraw[entityId] = (content, offset ?? new Vector3(0f, 2f, 0f));
 
         /**
          * <summary>
