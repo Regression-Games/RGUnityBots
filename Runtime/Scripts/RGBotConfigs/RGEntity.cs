@@ -9,7 +9,7 @@ namespace RegressionGames.RGBotConfigs
     [DisallowMultipleComponent]
     public class RGEntity : MonoBehaviour
     {
-        [Tooltip("A type name for associating like objects in the state")]
+        [Tooltip("A type name for associating like objects in the state.  If this is not specified, the system will use the name of the GameObject up to the first '(' as the objectType.  This default attempts to group similar objects into the same objectType.")]
         public string objectType;
         
         [Tooltip("Does this object represent a human/bot player ?")]
