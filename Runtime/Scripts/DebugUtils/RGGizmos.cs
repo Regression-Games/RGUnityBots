@@ -7,24 +7,24 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.DebugUtils
 {
-    
+
     /**
      * A set of debug utilities for drawing gizmos and text on top of entities in your scene.
      */
     // ReSharper disable once InconsistentNaming
     public class RGGizmos
     {
-        
+
         const string BillboardTextAsset = "AgentBillboardText";
-        
+
         private readonly ConcurrentDictionary<string, (int, Vector3, Color)> _linesFromEntityToPosition = new();
         private readonly ConcurrentDictionary<string, (int, int, Color)> _linesFromEntityToEntity = new();
         private readonly ConcurrentDictionary<string, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
         private readonly ConcurrentDictionary<string, (Vector3, Color, float, bool)> _spheresAtPosition = new();
         private readonly ConcurrentDictionary<string, (int, Color, float, bool)> _spheresAtEntity = new();
-        private readonly ConcurrentDictionary<int, (string, float)> _billboardsToDraw = new();
+        private readonly ConcurrentDictionary<int, (string, Vector3)> _billboardsToDraw = new();
         private readonly ConcurrentDictionary<int, GameObject> _drawnBillboards = new();
-        
+
         // Billboard text objects
         private readonly GameObject _billboardAsset;
 
@@ -69,7 +69,7 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(Vector3 startPosition, int endEntityId, Color color, string name) => 
+        public void CreateLine(Vector3 startPosition, int endEntityId, Color color, string name) =>
             CreateLine(endEntityId, startPosition, color, name);
 
         /**
@@ -90,7 +90,7 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(int startEntityId, int endEntityId, Color color, string name) => 
+        public void CreateLine(int startEntityId, int endEntityId, Color color, string name) =>
             _linesFromEntityToEntity[name] = (startEntityId, endEntityId, color);
 
         /**
@@ -111,7 +111,7 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(Vector3 startPosition, Vector3 endPosition, Color color, string name) => 
+        public void CreateLine(Vector3 startPosition, Vector3 endPosition, Color color, string name) =>
             _linesFromPositionToPosition[name] = (startPosition, endPosition, color);
 
         /**
@@ -149,7 +149,7 @@ namespace RegressionGames.DebugUtils
             _linesFromEntityToEntity.Clear();
             _linesFromPositionToPosition.Clear();
         }
-        
+
         /**
          * <summary>
          * Creates a sphere at the given position. The sphere will persist until removed using
@@ -169,7 +169,7 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroySphere"/>
          * <seealso cref="DestroyAllSpheres"/>
          */
-        public void CreateSphere(Vector3 position, Color color, float size, bool isWireframe, string name) => 
+        public void CreateSphere(Vector3 position, Color color, float size, bool isWireframe, string name) =>
             _spheresAtPosition[name] = (position, color, size, isWireframe);
 
         /**
@@ -191,7 +191,7 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroySphere"/>
          * <seealso cref="DestroyAllSpheres"/>
          */
-        public void CreateSphere(int entityId, Color color, float size, bool isWireframe, string name) => 
+        public void CreateSphere(int entityId, Color color, float size, bool isWireframe, string name) =>
             _spheresAtEntity[name] = (entityId, color, size, isWireframe);
 
         /**
@@ -227,7 +227,7 @@ namespace RegressionGames.DebugUtils
             _spheresAtPosition.Clear();
             _spheresAtEntity.Clear();
         }
-        
+
         /**
          * <summary>
          * Creates a text billboard on an entity with the given id. The text will persist until removed using
@@ -241,7 +241,7 @@ namespace RegressionGames.DebugUtils
          * </remarks>
          * <param name="entityId">The entity of the id to place this text billboard.</param>
          * <param name="content">The content of the text billboard.</param>
-         * <param name="yOffset">The y offset of the text billboard (defaults to 2.0).</param>
+         * <param name="offset">The Vector3 offset of the text billboard (defaults to 0f,2.0f,0f).</param>
          * <example>
          * <code>
          * // Create a text billboard on an entity with id 1 with the content "Hello World!".
@@ -251,8 +251,10 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyText"/>
          * <seealso cref="DestroyAllTexts"/>
          */
-        public void CreateText(int entityId, string content, float yOffset = 2.0f) => 
-            _billboardsToDraw[entityId] = (content, yOffset);
+        public void CreateText(int entityId, string content, Vector3? offset = null)
+        {
+            _billboardsToDraw[entityId] = (content, offset ?? new Vector3(0f, 2f, 0f));
+        }
 
         /**
          * <summary>
@@ -289,7 +291,7 @@ namespace RegressionGames.DebugUtils
          * Draws all Gizmos that have been set.
          * </summary>
          */
-        protected internal void OnDrawGizmos()
+        public void OnDrawGizmos()
         {
 
             var gizmosContainer = GameObject.Find("RGGizmosContainer");
@@ -389,7 +391,7 @@ namespace RegressionGames.DebugUtils
                     // Then set the parameters
                     var billboardText = billboard.GetComponent<BillboardText>();
                     billboardText.content = billboardParams.Value.Item1;
-                    billboardText.yOffset = billboardParams.Value.Item2;
+                    billboardText.offset = billboardParams.Value.Item2;
                     billboardText.target = entityGameObject.gameObject;
                 }
                 catch (MissingReferenceException e)
