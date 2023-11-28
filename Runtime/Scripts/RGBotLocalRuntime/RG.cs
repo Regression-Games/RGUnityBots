@@ -32,6 +32,11 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>{string} The current game scene name.</summary>
          */
         public string SceneName => _tickInfo.sceneName;
+        
+        /**
+         * <summary>{long} The current tick since the start of the first bot that was run this session.</summary>
+         */
+        public long Tick => _tickInfo.tick;
 
         /**
          * <summary>Mark this bot complete and ready for teardown.</summary>
