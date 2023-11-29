@@ -69,8 +69,7 @@ namespace RegressionGames.RGBotConfigs
             }
             return (IRGStateEntity)Activator.CreateInstance(type);
         }
-        
-        
+
         // Used to fill in the core state for any RGEntity that does NOT have an
         // RGState implementation on its game object
         public static IRGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
@@ -93,7 +92,19 @@ namespace RegressionGames.RGBotConfigs
             var theTransform = rgEntity.transform;
             
             state["id"] = theTransform.GetInstanceID();
-            state["type"] = rgEntity.objectType;
+            // default to the gameObject name without uniqueness numbers
+            var otName = rgEntity.objectType.Trim();
+            if (string.IsNullOrEmpty(otName))
+            {
+                var goName = rgEntity.gameObject.name;
+                var index = goName.IndexOf('(');
+                if (index > 0)
+                {
+                    goName = goName.Substring(0, index);
+                }
+                otName = goName.Trim();
+            }
+            state["type"] = otName;
             state["isPlayer"] = rgEntity.isPlayer;
             state["isRuntimeObject"] = rgEntity.isRuntimeObject;
             state["position"] = theTransform.position;

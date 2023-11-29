@@ -22,7 +22,7 @@ namespace RegressionGames.DebugUtils
         private readonly ConcurrentDictionary<string, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
         private readonly ConcurrentDictionary<string, (Vector3, Color, float, bool)> _spheresAtPosition = new();
         private readonly ConcurrentDictionary<string, (int, Color, float, bool)> _spheresAtEntity = new();
-        private readonly ConcurrentDictionary<int, (string, float)> _billboardsToDraw = new();
+        private readonly ConcurrentDictionary<int, (string, Vector3)> _billboardsToDraw = new();
         private readonly ConcurrentDictionary<int, GameObject> _drawnBillboards = new();
         
         // Billboard text objects
@@ -241,7 +241,7 @@ namespace RegressionGames.DebugUtils
          * </remarks>
          * <param name="entityId">The entity of the id to place this text billboard.</param>
          * <param name="content">The content of the text billboard.</param>
-         * <param name="yOffset">The y offset of the text billboard (defaults to 2.0).</param>
+         * <param name="offset">The Vector3 offset of the text billboard (defaults to 0f,2f,0f).</param>
          * <example>
          * <code>
          * // Create a text billboard on an entity with id 1 with the content "Hello World!".
@@ -251,8 +251,8 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyText"/>
          * <seealso cref="DestroyAllTexts"/>
          */
-        public void CreateText(int entityId, string content, float yOffset = 2.0f) => 
-            _billboardsToDraw[entityId] = (content, yOffset);
+        public void CreateText(int entityId, string content, Vector3? offset = null) => 
+            _billboardsToDraw[entityId] = (content, offset ?? new Vector3(0f,2f,0f));
 
         /**
          * <summary>
@@ -375,7 +375,7 @@ namespace RegressionGames.DebugUtils
                     // If the billboard game object does not exist, create it
                     var billboard = _drawnBillboards.GetOrAdd(billboardParams.Key, (key) => {
                         var billboardObject = Object.Instantiate(_billboardAsset, Vector3.zero, Quaternion.identity);
-                        billboardObject.transform.parent = gizmosContainer.transform;
+                        billboardObject.transform.SetParent(gizmosContainer.transform);
                         return billboardObject;
                     });
 
@@ -389,7 +389,7 @@ namespace RegressionGames.DebugUtils
                     // Then set the parameters
                     var billboardText = billboard.GetComponent<BillboardText>();
                     billboardText.content = billboardParams.Value.Item1;
-                    billboardText.yOffset = billboardParams.Value.Item2;
+                    billboardText.offset = billboardParams.Value.Item2;
                     billboardText.target = entityGameObject.gameObject;
                 }
                 catch (MissingReferenceException e)

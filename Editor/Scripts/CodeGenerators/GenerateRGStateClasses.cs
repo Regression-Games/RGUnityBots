@@ -102,6 +102,44 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     // Add the namespace declaration to the compilation unit
                     compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
+                    
+                    // NEW CODE HERE - add partial class with requirecomponent pieces
+                    compilationUnit = compilationUnit.AddMembers(
+                        NamespaceDeclaration(ParseName($"{rgStateAttributeInfo.NameSpace}"))
+                            .AddMembers(
+                        ClassDeclaration($"{rgStateAttributeInfo.ClassName}")
+                            .AddModifiers(
+                                Token(SyntaxKind.PartialKeyword)
+                            )
+                            .WithAttributeLists(
+                                SingletonList<AttributeListSyntax>(
+                                    AttributeList(
+                                        SeparatedList<AttributeSyntax>(
+                                            new SyntaxNodeOrToken[]{
+                                                Attribute(
+                                                        ParseName("UnityEngine.RequireComponent"))
+                                                .WithArgumentList(
+                                                    AttributeArgumentList(
+                                                        SingletonSeparatedList<AttributeArgumentSyntax>(
+                                                            AttributeArgument(
+                                                                TypeOfExpression(
+                                                                    ParseName($"RegressionGames.RGBotConfigs.RGState_{rgStateAttributeInfo.ClassName}")))))),
+                                                Token(SyntaxKind.CommaToken),
+                                                Attribute(
+                                                    ParseName("UnityEngine.RequireComponent"))
+                                                .WithArgumentList(
+                                                    AttributeArgumentList(
+                                                        SingletonSeparatedList<AttributeArgumentSyntax>(
+                                                            AttributeArgument(
+                                                                TypeOfExpression(
+                                                                    ParseName($"RegressionGames.RGBotConfigs.RGEntity"))))))
+                                            }
+                                            )
+                                    )
+                                    )
+                                )
+                        )
+                    );
 
                     // Get the full code text
                     var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();

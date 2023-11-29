@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using RegressionGames.RGBotConfigs;
+using UnityEngine;
 
 namespace RegressionGames.StateActionTypes
 {
@@ -44,10 +46,18 @@ namespace RegressionGames.StateActionTypes
             {
                 lock (this)
                 {
-                    _serializedForm ??= JsonConvert.SerializeObject(this, Formatting.Indented, new JsonSerializerSettings
+                    try
                     {
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                    });
+                        _serializedForm ??= JsonConvert.SerializeObject(this, Formatting.Indented,
+                            new JsonSerializerSettings
+                            {
+                                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                            });
+                    }
+                    catch (Exception ex)
+                    {
+                        RGDebug.LogError($"ERROR: Failed to Serialize RGTickInfoData - {ex}");
+                    }
                 }
             }
             return _serializedForm;
