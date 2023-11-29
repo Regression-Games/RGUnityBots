@@ -41,7 +41,7 @@ namespace RegressionGames.DataCollection
         private readonly Dictionary<long, RGBot> _clientIdToBots = new();
         private readonly Dictionary<long, DateTime> _clientIdStartTimes = new();
         private readonly ConcurrentDictionary<long, List<Task>> _clientIdToReplayDataTasks = new();
-        private readonly ConcurrentDictionary<long, List<Task>> _clientIdToValidationDataTasks = new();
+        private readonly ConcurrentDictionary<long, Task> _clientIdToValidationDataTask = new();
         private readonly string _rootPath = Application.persistentDataPath;
         private readonly ConcurrentQueue<long> _screenshotTicksRequested = new();
         private readonly ConcurrentDictionary<long, long> _screenshotTicksCaptured = new();
@@ -103,14 +103,13 @@ namespace RegressionGames.DataCollection
         /**
          * Saves the state, action, and validation information for a given tick
          */
-        public void SaveReplayDataInfo(long clientId, RGStateActionReplayData replayData)
+        public async Task SaveReplayDataInfo(long clientId, RGStateActionReplayData replayData)
         {
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Saving replay data for tick {replayData.tickInfo.tick}");
             
             // Add the new replay data to a new or existing mapping in our client replay data dictionary
             var replayDataTasks = _clientIdToReplayDataTasks.GetOrAdd(clientId, v => new List<Task>());
-            var validationDataTasks = _clientIdToValidationDataTasks.GetOrAdd(clientId, v => new List<Task>());
-            
+
             var filePath =
                 GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.txt");
             var task = File.WriteAllTextAsync(filePath, replayData.ToSerialized());
@@ -141,17 +140,23 @@ namespace RegressionGames.DataCollection
                 // Combine the JSON strings with newline characters
                 string jsonLinesString = string.Join("\n", jsonLines) + "\n";
                 
-                //Write out the validations to the JSONL file
+                // Wait for any prior validation write task to finish
+                if (_clientIdToValidationDataTask.TryRemove(clientId, out var validationDataTask))
+                {
+                    await validationDataTask;
+                }
+
+                // Write out the validations to the JSONL file; note.. the prior write mush finish before the next tick
+                // otherwise we can't write to the file safely
                 var validationFilePath =
                     GetSessionDirectory($"validationData/{clientId}/rgbot_validations.jsonl");
                 var validationTask = File.AppendAllTextAsync(validationFilePath, jsonLinesString);
-                validationDataTasks.Add(validationTask);
+                _clientIdToValidationDataTask[clientId] = validationTask;
             }
             
             // remove any already completed tasks from the tracker
             replayDataTasks.RemoveAll(v => v.IsCompleted);
-            validationDataTasks.RemoveAll(v => v.IsCompleted);
-            
+
         }
 
         public async Task SaveBotInstanceHistory(long clientId)
@@ -161,8 +166,7 @@ namespace RegressionGames.DataCollection
                 // Sometimes a client will update the replay data even after the run is finished - copy the replay
                 // data so this doesn't affect our for loops.
                 var replayDataTasks = _clientIdToReplayDataTasks[clientId].ToArray();
-                var validationDataTasks = _clientIdToValidationDataTasks[clientId].ToArray();
-                
+
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Starting to save bot instance history");
 
                 var bot = _clientIdToBots[clientId];
@@ -220,10 +224,11 @@ namespace RegressionGames.DataCollection
                 // Save all of the validation data (i.e. the validation summary and validations file overall)
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading validation data...");
                 
-
-               
-                //Wait for any outstanding file write tasks to finish
-                await Task.WhenAll(validationDataTasks);
+                // Wait for any prior validation write task to finish
+                if (_clientIdToValidationDataTask.TryRemove(clientId, out var validationDataTask))
+                {
+                    await validationDataTask;
+                }
                 
                 var validationFilePath =
                     GetSessionDirectory($"validationData/{clientId}/rgbot_validations.jsonl");
@@ -328,7 +333,7 @@ namespace RegressionGames.DataCollection
         private void Cleanup(long clientId)
         {
             _clientIdToValidationSummaries.TryRemove(clientId, out _);
-            _clientIdToValidationDataTasks.TryRemove(clientId, out _);
+            _clientIdToValidationDataTask.TryRemove(clientId, out _);
             _clientIdToReplayDataTasks.TryRemove(clientId, out _);
             _clientIdToBots.Remove(clientId, out _);
             _clientIdStartTimes.Remove(clientId, out _);
