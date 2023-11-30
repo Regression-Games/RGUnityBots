@@ -483,26 +483,14 @@ namespace RegressionGames
         /**
          * Uploads all validations for the bot instance to Regression Games in JSONL format
          */
-        public async Task UploadValidations(long botInstanceId, RGValidationResult[] request, Action onSuccess, Action onFailure)
+        public async Task UploadValidations(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
             {
-
-                // Convert the list into JSONL format
-                List<string> jsonLines = new List<string>();
-                foreach (var validation in request)
-                {
-                    string jsonString = JsonConvert.SerializeObject(validation);
-                    jsonLines.Add(jsonString);
-                }
-
-                // Combine the JSON strings with newline characters
-                string jsonLinesString = string.Join("\n", jsonLines);
-
-                await SendWebRequest(
+                await SendWebFileUploadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/validations",
                     method: "POST",
-                    payload: jsonLinesString,
+                    filePath: filePath,
                     contentType: "application/jsonl",
                     onSuccess: async (s) =>
                     {
