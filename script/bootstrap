@@ -1,0 +1,63 @@
+#!/bin/bash
+#/ Usage: scripts/bootstrap [-u|--unity-path <path>]
+#/ Bootstraps this repo for development, installing dependencies and setting up the environment.
+#/
+#/ Options:
+#/   -u|--unity-path <path>   Path to the Unity executable to use for building. If not specified, the script will show available Unity versions and prompt the user to select one.
+source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+repo_root="$(dirname "$source_dir")"
+
+set -euo pipefail
+
+# Parse arguments
+unity_path=
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    shift
+    case "$key" in
+        -u|--unity-path)
+            unity_path="$1"
+            shift
+            ;;
+        --help)
+            grep '^#/' "$0" | cut -c4-
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $key"
+            exit 1
+            ;;
+        *)
+            echo "Unknown argument: $key"
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$unity_path" ]; then
+    if [ "$(uname)" != "Darwin" ]; then
+        echo "Auto-detecting unity path is only supported on macOS"
+        exit 1
+    fi
+
+    # List available unity versions with numbers so they can be selected
+    echo "Available Unity versions:"
+    find "/Applications/Unity/Hub/Editor" -maxdepth 1 -type d -name "20*" -exec basename {} \; | cat -n
+
+    # Prompt the user to choose one
+    read -p "Select the Unity version to use: " unity_version_index
+
+    # Get the path to the selected version
+    unity_path="$(find "/Applications/Unity/Hub/Editor" -maxdepth 1 -type d -name "20*" | sed -n "${unity_version_index}p")/Unity.app"
+fi
+
+unity_exec_path="$unity_path/Contents/MacOS/Unity"
+if [ ! -d "$unity_path" ] || [ ! -f "$unity_exec_path" ]; then
+    echo "Invalid Unity path: $unity_path"
+    exit 1
+fi
+
+[ -d "$repo_root/.local" ] || mkdir "$repo_root/.local"
+
+# Store the unity path in a file so it can be used by other scripts
+echo "$unity_path" > "$repo_root/.local/unity_path"

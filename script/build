@@ -1,0 +1,61 @@
+#!/bin/bash
+#/ Usage: scripts/build [-u|--unity-path <path>]
+#/ Builds the RegressionGames package projects, producing build errors and documentation files.
+#/
+#/ Options:
+#/   -u|--unity-path <path>   Path to the Unity executable to use for building, defaults to the value stored in `.local/unity_path`.
+source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+repo_root="$(dirname "$source_dir")"
+
+set -euo pipefail
+
+# Parse arguments
+unity_path=
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    shift
+    case "$key" in
+        -u|--unity-path)
+            unity_path="$1"
+            shift
+            ;;
+        --help)
+            grep '^#/' "$0" | cut -c4-
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $key"
+            exit 1
+            ;;
+        *)
+            echo "Unknown argument: $key"
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$unity_path" ]; then
+    if [ ! -f "$repo_root/.local/unity_path" ]; then
+        echo "No Unity path specified and no .local/unity_path file found."
+        echo "Run 'script/bootstrap' to set up the repo, or specify a Unity path with the -u option."
+        exit 1
+    fi
+    unity_path="$(cat "$repo_root/.local/unity_path")"
+fi
+
+unity_exec_path="$unity_path/Contents/MacOS/Unity"
+if [ ! -d "$unity_path" ] || [ ! -f "$unity_exec_path" ]; then
+    echo "Invalid Unity path: $unity_path"
+    exit 1
+fi
+
+# Generate CSProj files
+echo "Generating CSProj files..."
+"$unity_exec_path" -batchmode -quit -projectPath "$repo_root/src/BuildProject" -executeMethod UnityEditor.SyncVS.SyncSolution -logFile -
+
+# Build the RegressionGames projects
+rg_projects=("RegressionGames.csproj" "RegressionGames.Editor.csproj")
+for project in "${rg_projects[@]}"; do
+    echo "Building $project..."
+    dotnet build "$repo_root/src/BuildProject/$project"
+done

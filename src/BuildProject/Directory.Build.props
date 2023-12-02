@@ -1,0 +1,9 @@
+<!-- 
+    This file is automatically imported in to csproj files within this directory.
+    This allows us to "hack" our way in to the C# build process and inject other settings, like generating documentation files.
+-->
+<Project>
+    <PropertyGroup>
+        <DocumentationFile>$(MSBuildThisFileDirectory)\..\..\artifacts\xml\$(AssemblyName).xml</DocumentationFile>
+    </PropertyGroup>
+</Project>
