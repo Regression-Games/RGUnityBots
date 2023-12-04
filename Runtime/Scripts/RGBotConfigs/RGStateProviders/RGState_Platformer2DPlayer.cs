@@ -94,16 +94,10 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         // ReSharper disable once InconsistentNaming
         private Vector2 GetTruePosition()
         {
-            var thePosition = transform.position;
             var theCollider = gameObject.GetComponent<BoxCollider2D>();
-            var colliderOffset = theCollider.offset;
-            var colliderSize = theCollider.size;
             
             // bottom of the feet centered horizontally
-            var actualPosition = new Vector2(
-                thePosition.x - colliderOffset.x - colliderSize.x/2,
-                thePosition.y - colliderOffset.y - colliderSize.y
-            );
+            var actualPosition = new Vector2(theCollider.bounds.center.x, theCollider.bounds.min.y);
 
             return actualPosition;
 
