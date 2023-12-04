@@ -142,7 +142,8 @@ namespace RegressionGames.RGBotLocalRuntime
                         }
                         catch (Exception ex)
                         {
-                            RGDebug.LogError($"ERROR: Bot instanceId: {BotInstance.id}, botName: {BotInstance.bot.name}, botId: {BotInstance.bot.id} crashed due to an uncaught exception. - {ex}");
+                            RGDebug.LogError($"ERROR: Bot instanceId: {BotInstance.id}, botName: {BotInstance.bot.name}, botId: {BotInstance.bot.id} crashed due to an uncaught exception.");
+                            RGDebug.LogException(ex);
                             _running = false;
                             RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.ERRORED);
                         }

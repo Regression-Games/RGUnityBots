@@ -69,7 +69,8 @@ namespace <TEMPLATE_NAMESPACE>
             }
             catch (Exception ex)
             {
-                RGDebug.LogError($"Error getting target position: {ex}");
+                RGDebug.LogError($"Error getting target position.");
+                RGDebug.LogException(ex);
             }
         }
     }

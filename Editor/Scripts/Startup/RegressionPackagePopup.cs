@@ -396,7 +396,8 @@ public class RegressionPackagePopup : EditorWindow
             }
             catch (Exception e)
             {
-                RGDebug.LogError("Failed to import sample: " + e.Message);
+                RGDebug.LogError("Failed to import sample");
+                RGDebug.LogException(e);
             }
         }
         else
