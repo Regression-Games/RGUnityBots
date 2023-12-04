@@ -515,14 +515,14 @@ namespace RegressionGames
         /**
          * Uploads all log messages for the bot instance to Regression Games in JSONL format
          */
-        public async Task UploadLogs(long botInstanceId, string logLines, Action onSuccess, Action onFailure)
+        public async Task UploadLogs(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
             {
-                await SendWebRequest(
+                await SendWebFileUploadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/logs",
                     method: "POST",
-                    payload: logLines,
+                    filePath: filePath,
                     contentType: "application/jsonl",
                     onSuccess: async (s) =>
                     {

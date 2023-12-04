@@ -7,12 +7,14 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
 using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace RegressionGames.DataCollection
 {
@@ -39,16 +41,28 @@ namespace RegressionGames.DataCollection
     {
 
         private readonly string _sessionName = Guid.NewGuid().ToString();
-        private readonly Dictionary<long, RGBot> _clientIdToBots = new();
-        private readonly Dictionary<long, DateTime> _clientIdStartTimes = new();
-        private readonly ConcurrentDictionary<long, List<Task>> _clientIdToReplayDataTasks = new();
-        private readonly ConcurrentDictionary<long, Task> _clientIdToValidationDataTask = new();
-        private readonly ConcurrentDictionary<long, Task> _clientIdToLogDataTask = new();
+        private readonly ConcurrentDictionary<long, BotInstanceState> _clientIdToState = new();
         private readonly string _rootPath = Application.persistentDataPath;
         private readonly ConcurrentQueue<long> _screenshotTicksRequested = new();
         private readonly ConcurrentDictionary<long, long> _screenshotTicksCaptured = new();
-        private readonly ConcurrentDictionary<long, RGValidationSummary> _clientIdToValidationSummaries = new();
-        private readonly ConcurrentDictionary<long, ConcurrentQueue<LogDataPoint>> _clientIdToLogs = new();
+
+        private class BotInstanceState
+        {
+            public long clientId;
+            public RGBot bot;
+            public ConcurrentQueue<LogDataPoint> logs = new();
+            public DateTime startTime;
+            public List<Task> replayDataTasks = new();
+            public Task validationDataTask;
+            public Task logFlushTask;
+            public RGValidationSummary validationSummary = new(0,0,0);
+
+            public BotInstanceState(RGBot bot, DateTime startTime)
+            {
+                this.bot = bot;
+                this.startTime = startTime;
+            }
+        }
 
         public RGDataCollection()
         {
@@ -63,9 +77,7 @@ namespace RegressionGames.DataCollection
         public void RegisterBot(long clientId, RGBot bot)
         {
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Registering client for bot {bot.id}");
-            _clientIdToBots[clientId] = bot;
-            _clientIdStartTimes[clientId] = DateTime.Now;
-            _clientIdToLogs[clientId] = new();
+            _clientIdToState[clientId] = new(bot, DateTime.Now);
         }
 
         /**
@@ -117,13 +129,19 @@ namespace RegressionGames.DataCollection
         {
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Saving replay data for tick {replayData.tickInfo.tick}");
 
-            // Add the new replay data to a new or existing mapping in our client replay data dictionary
-            var replayDataTasks = _clientIdToReplayDataTasks.GetOrAdd(clientId, v => new List<Task>());
+            var state = _clientIdToState.TryGetValue(clientId, out var s) ? s : null;
+            if (state == null)
+            {
+                // Shouldn't really happen
+                RGDebug.LogError("Attempted to save replay data for a stopped bot");
+                return;
+            }
 
+            // Add the new replay data to a new or existing mapping in our client replay data dictionary
             var filePath =
                 GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.txt");
             var task = File.WriteAllTextAsync(filePath, replayData.ToSerialized());
-            replayDataTasks.Add(task);
+            state.replayDataTasks.Add(task);
 
             // If the replay data has a validation, queue up a screenshot
             if (replayData.validationResults?.Length > 0)
@@ -134,17 +152,17 @@ namespace RegressionGames.DataCollection
                 var validations = replayData.validationResults;
 
                 // update the validation summary data
-                var validationSummary = _clientIdToValidationSummaries.GetOrAdd(clientId, v => new RGValidationSummary(0,0,0));
-                validationSummary.passed += validations.Count(rd => rd.result == RGValidationResultType.PASS);
-                validationSummary.failed += validations.Count(rd => rd.result == RGValidationResultType.FAIL);
-                validationSummary.warnings += validations.Count(rd => rd.result == RGValidationResultType.WARNING);
+                state.validationSummary.passed += validations.Count(rd => rd.result == RGValidationResultType.PASS);
+                state.validationSummary.failed += validations.Count(rd => rd.result == RGValidationResultType.FAIL);
+                state.validationSummary.warnings += validations.Count(rd => rd.result == RGValidationResultType.WARNING);
 
                 var validationsLinesString = SerializeJsonLines(validations);
 
                 // Wait for any prior validation write task to finish
-                if (_clientIdToValidationDataTask.TryRemove(clientId, out var validationDataTask))
+                if (state.validationDataTask != null)
                 {
-                    await validationDataTask;
+                    await state.validationDataTask;
+                    state.validationDataTask = null;
                 }
 
                 // Write out the validations to the JSONL file; note.. the prior write mush finish before the next tick
@@ -152,35 +170,35 @@ namespace RegressionGames.DataCollection
                 var validationFilePath =
                     GetSessionDirectory($"validationData/{clientId}/rgbot_validations.jsonl");
                 var validationTask = File.AppendAllTextAsync(validationFilePath, validationsLinesString);
-                _clientIdToValidationDataTask[clientId] = validationTask;
+                state.validationDataTask = validationTask;
+            }
+
+            // Atomically swap the logs queue with an empty queue.
+            // Then the log collector can upload this queue's logs while logs continue to accumulate in the new queue
+            var logs = Interlocked.Exchange(ref state.logs, new());
+            if (!logs.IsEmpty)
+            {
+                state.logFlushTask = FlushLogs(clientId, logs);
             }
 
             // remove any already completed tasks from the tracker
-            replayDataTasks.RemoveAll(v => v.IsCompleted);
+            state.replayDataTasks.RemoveAll(v => v.IsCompleted);
 
-        }
-
-        private static string SerializeJsonLines(IEnumerable<object> items)
-        {
-            // Convert the list into JSONL format
-            var builder = new StringBuilder();
-            foreach (var item in items)
-            {
-                builder.AppendLine(JsonConvert.SerializeObject(item));
-            }
-
-            // Combine the JSON strings with newline characters
-            return builder.ToString();
         }
 
         public async Task SaveBotInstanceHistory(long clientId)
         {
+            // Removing the state from the dictionary will prevent any further data from being saved
+            var state = _clientIdToState.TryRemove(clientId, out var s) ? s : null;
+            if (state == null)
+            {
+                // Shouldn't really happen
+                RGDebug.LogError("Attempted to save replay data for a stopped bot");
+                return;
+            }
+
             try
             {
-                // Sometimes a client will update the replay data even after the run is finished - copy the replay
-                // data so this doesn't affect our for loops.
-                var replayDataTasks = _clientIdToReplayDataTasks[clientId].ToArray();
-
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Starting to save bot instance history");
 
                 var serviceManager = RGServiceManager.GetInstance();
@@ -190,10 +208,8 @@ namespace RegressionGames.DataCollection
                     return;
                 }
 
-                var bot = _clientIdToBots[clientId];
-
                 // Before we do anything, we need to verify that this bot actually exists in Regression Games
-                await serviceManager.GetBotCodeDetails(bot.id,
+                await serviceManager.GetBotCodeDetails(state.bot.id,
                         rgBot =>
                         {
                             RGDebug.LogVerbose(
@@ -204,10 +220,10 @@ namespace RegressionGames.DataCollection
 
                 // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
-                var botInstanceId = 0l;
+                var botInstanceId = 0L;
                 await serviceManager.CreateBotInstance(
-                    bot.id,
-                    _clientIdStartTimes[clientId],
+                    state.bot.id,
+                    state.startTime,
                     (result) =>
                     {
                         botInstanceId = result.id;
@@ -229,7 +245,7 @@ namespace RegressionGames.DataCollection
                     $"DataCollection[{clientId}] - Zipping the replay data for botInstanceId: {botInstanceId}...");
 
                 //Wait for any outstanding file write tasks to finish
-                await Task.WhenAll(replayDataTasks);
+                await Task.WhenAll(state.replayDataTasks);
 
                 ZipHelper.CreateFromDirectory(
                     GetSessionDirectory($"replayData/{clientId}/"),
@@ -245,9 +261,9 @@ namespace RegressionGames.DataCollection
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading validation data...");
 
                 // Wait for any prior validation write task to finish
-                if (_clientIdToValidationDataTask.TryRemove(clientId, out var validationDataTask))
+                if (state.validationDataTask != null)
                 {
-                    await validationDataTask;
+                    await state.validationDataTask;
                 }
 
                 var validationFilePath =
@@ -255,23 +271,22 @@ namespace RegressionGames.DataCollection
                 await serviceManager
                     .UploadValidations(botInstanceId, validationFilePath, () => { }, () => { });
 
-                if (_clientIdToValidationSummaries.TryRemove(clientId, out var validationSummary))
-                {
-                    RGDebug.LogVerbose(
-                        $"DataCollection[{clientId}] - Saved validations, now uploading validation summary...");
-                    await serviceManager
-                        .UploadValidationSummary(botInstanceId, validationSummary, _ => { }, () => { });
-                    RGDebug.LogVerbose($"DataCollection[{clientId}] - Validation summary uploaded successfully");
-                }
+                RGDebug.LogVerbose(
+                     $"DataCollection[{clientId}] - Saved validations, now uploading validation summary...");
+                await serviceManager
+                    .UploadValidationSummary(botInstanceId, state.validationSummary, _ => { }, () => { });
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Validation summary uploaded successfully");
 
-                if (_clientIdToLogs.TryRemove(clientId, out var logs))
-                {
-                    RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading logs...");
-                    var logLines = SerializeJsonLines(logs);
-                    await serviceManager
-                        .UploadLogs(botInstanceId, logLines, () => { }, () => { });
-                    RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploaded logs");
-                }
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading logs...");
+                // Flush any outstanding logs.
+                // We don't need to do the atomic-swap trick here
+                // because we've been removed from the state dictionary so no more logs will be written to this queue.
+                await FlushLogs(clientId, state.logs);
+                var logsFilePath =
+                    GetSessionDirectory($"validationData/{clientId}/rgbot_logs.jsonl");
+                await serviceManager
+                    .UploadLogs(botInstanceId, logsFilePath, () => { }, () => { });
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploaded logs");
 
                 // Upload all of the screenshots for this client. Only upload the screenshots for ticks that had
                 // validation results. Also, only upload 5 at a time.
@@ -326,12 +341,20 @@ namespace RegressionGames.DataCollection
             {
                 Cleanup(clientId);
                 // If there are no more bots, cleanup everything else
-                if (_clientIdToBots.Count == 0)
+                if (_clientIdToState.IsEmpty)
                 {
                     Cleanup();
                 }
             }
 
+        }
+
+        private Task FlushLogs(long clientId, ConcurrentQueue<LogDataPoint> logs)
+        {
+            var lines = SerializeJsonLines(logs);
+            var logsFilePath =
+                GetSessionDirectory($"validationData/{clientId}/rgbot_logs.jsonl");
+            return File.AppendAllTextAsync(logsFilePath, lines);
         }
 
         private string GetSessionDirectory(string path = "")
@@ -360,18 +383,32 @@ namespace RegressionGames.DataCollection
          */
         private void Cleanup(long clientId)
         {
-            _clientIdToValidationSummaries.TryRemove(clientId, out _);
-            _clientIdToValidationDataTask.TryRemove(clientId, out _);
-            _clientIdToReplayDataTasks.TryRemove(clientId, out _);
-            _clientIdToBots.Remove(clientId, out _);
-            _clientIdStartTimes.Remove(clientId, out _);
             var replayPath = GetSessionDirectory($"replayData/{clientId}");
             Directory.Delete(replayPath, true);
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Cleaned up all data for client");
         }
 
+        private static string SerializeJsonLines(IEnumerable<object> items)
+        {
+            // Convert the list into JSONL format
+            var builder = new StringBuilder();
+            foreach (var item in items)
+            {
+                builder.AppendLine(JsonConvert.SerializeObject(item));
+            }
+
+            // Combine the JSON strings with newline characters
+            return builder.ToString();
+        }
+
         private void LogMessageReceived(string message, string stacktrace, LogType type)
         {
+            if (_clientIdToState.IsEmpty)
+            {
+                // Avoid allocating a LogDataPoint if nobody is listening.
+                return;
+            }
+
             var dataPoint = new LogDataPoint(DateTimeOffset.Now, type, message, stacktrace);
 
             // Note: Enumerating a concurrent dictionary is _safe_ in that it won't fail,
@@ -380,9 +417,9 @@ namespace RegressionGames.DataCollection
             // The main edge case here is a bot stopping _during_ this enumeration,
             // which would cause us to add a log entry to the queue after it's been flushed to the server.
             // That's fine, it just means we'll miss that log entry. The queue will still get garbage collected.
-            foreach (var (_, queue) in _clientIdToLogs)
+            foreach (var (_, state) in _clientIdToState)
             {
-                queue.Enqueue(dataPoint);
+                state.logs.Enqueue(dataPoint);
             }
         }
     }
