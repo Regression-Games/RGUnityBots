@@ -17,12 +17,12 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public float maxVelocity => (float)this.GetValueOrDefault("maxVelocity", 0f);
         public float safeFallHeight => (float)this.GetValueOrDefault("safeFallHeight", -1f);
         public float nonFatalFallHeight => (float)this.GetValueOrDefault("nonFatalFallHeight", -1f);
+        public bool isOnGround => (bool)this.GetValueOrDefault("isOnGround", false);
     }
     
     [Serializable]
     public class RGState_Platformer2DPlayer : RGState
     {
-        [NonSerialized]
         [Tooltip("Draw debug gizmos for player locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
@@ -46,6 +46,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip(
             "The current max non fatal fall height of the player.  From this height the player may take damage, but will not die from the fall. <0 means infinite. >=0 is treated as the actual value  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float nonFatalFallHeight = -1f;
+
+        private bool isOnGround = false;
         
         private Vector2? _truePosition = null;
 
@@ -67,6 +69,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 maxVelocity = _statsProvider.MaxVelocity();
                 safeFallHeight = _statsProvider.SafeFallHeight();
                 nonFatalFallHeight = _statsProvider.NonFatalFallHeight();
+                isOnGround = _statsProvider.IsOnGround();
             }
             _truePosition = GetTruePosition();
             return new()
@@ -78,7 +81,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 {"velocity", velocity},
                 {"maxVelocity", maxVelocity},
                 {"safeFallHeight", safeFallHeight},
-                {"nonFatalFallHeight", nonFatalFallHeight}
+                {"nonFatalFallHeight", nonFatalFallHeight},
+                {"isOnGround", isOnGround}
             };
         }
 
@@ -96,11 +100,13 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             var colliderSize = theCollider.size;
             
             // bottom of the feet centered horizontally
-            return new Vector2(
+            var actualPosition = new Vector2(
                 thePosition.x - colliderOffset.x - colliderSize.x/2,
                 thePosition.y - colliderOffset.y - colliderSize.y
             );
-            
+
+            return actualPosition;
+
         }
 
         private void OnDrawGizmos()
