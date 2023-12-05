@@ -32,6 +32,14 @@ namespace RGBotConfigs.RGStateProviders
          */
         public float NonFatalFallHeight();
 
+        /**
+         * <summary>Is the player on the ground and not in a state of jumping </summary>
+         */
         public bool IsOnGround();
+
+        /**
+         * <summary>Gravity unit to use for calculations</summary>
+         */
+        public float Gravity();
     }
 }

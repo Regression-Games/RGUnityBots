@@ -18,6 +18,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public float safeFallHeight => (float)this.GetValueOrDefault("safeFallHeight", -1f);
         public float nonFatalFallHeight => (float)this.GetValueOrDefault("nonFatalFallHeight", -1f);
         public bool isOnGround => (bool)this.GetValueOrDefault("isOnGround", false);
+        public float gravity => (float)this.GetValueOrDefault("gravity", -9.81f);
     }
     
     [Serializable]
@@ -47,6 +48,10 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             "The current max non fatal fall height of the player.  From this height the player may take damage, but will not die from the fall. <0 means infinite. >=0 is treated as the actual value  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float nonFatalFallHeight = -1f;
 
+        [Tooltip(
+            "The gravity value (negative) to use in fall and jump calculations.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
+        public float gravity = -9.81f;
+        
         private bool isOnGround = false;
         
         private Vector2? _truePosition = null;
@@ -70,6 +75,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 safeFallHeight = _statsProvider.SafeFallHeight();
                 nonFatalFallHeight = _statsProvider.NonFatalFallHeight();
                 isOnGround = _statsProvider.IsOnGround();
+                gravity = _statsProvider.Gravity();
             }
             _truePosition = GetTruePosition();
             return new()
@@ -82,7 +88,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 {"maxVelocity", maxVelocity},
                 {"safeFallHeight", safeFallHeight},
                 {"nonFatalFallHeight", nonFatalFallHeight},
-                {"isOnGround", isOnGround}
+                {"isOnGround", isOnGround},
+                {"gravity", gravity}
             };
         }
 
