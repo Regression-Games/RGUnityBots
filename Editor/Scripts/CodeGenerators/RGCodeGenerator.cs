@@ -34,6 +34,7 @@ namespace RegressionGames.Editor.CodeGenerators
      * 1. Find [RGAction] attributes and generate classes for them; captures the generated class name
      * 2. /\ This same information is used as the available Actions for AgentBuilder json.
      */
+    
     public class RGCodeGenerator
     {
 #if UNITY_EDITOR
@@ -43,16 +44,15 @@ namespace RegressionGames.Editor.CodeGenerators
         private static HashSet<string> _excludeDirectories = new() {
            "ThirdPersonDemoURP"
         };
-
-        private static bool _hasError = false;
         
+        private static bool _hasError = false;
+
         private static void RecordError(string warning)
         {
             _hasError = true;
             RGDebug.LogWarning($"WARNING: {warning}");
         }
         
-
         [MenuItem("Regression Games/Generate Scripts")]
         public static void GenerateRGScripts()
         {
@@ -206,7 +206,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     ActionName = "ClickButton",
                     Parameters = new List<RGParameterInfo>()
                 });
-                
+
                 // if these have been associated to gameObjects with RGEntities, fill in their objectTypes
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", "Populating Object types", 0.6f);
                 var stateAndActionJsonStructure = CreateStateAndActionJsonWithObjectTypes(statesInfos, actionInfos);
@@ -394,9 +394,30 @@ namespace RegressionGames.Editor.CodeGenerators
                         }
                         
                         string fieldType = member is MethodDeclarationSyntax ? "method" : "variable";
-                        string fieldName = member is MethodDeclarationSyntax
-                            ? ((MethodDeclarationSyntax) member).Identifier.ValueText
-                            : ((FieldDeclarationSyntax) member).Declaration.Variables.First().Identifier.ValueText;
+                        
+                        string fieldName;
+                        string type;
+                        switch (member)
+                        {
+                            default:
+                            case MethodDeclarationSyntax:
+                                fieldName = ((MethodDeclarationSyntax)member).Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(((MethodDeclarationSyntax)member).ReturnType)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case FieldDeclarationSyntax:
+                                fieldName = ((FieldDeclarationSyntax)member).Declaration.Variables.First().Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case PropertyDeclarationSyntax:
+                                fieldName = ((PropertyDeclarationSyntax)member).Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(((PropertyDeclarationSyntax)member).Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                        }
 
                         string stateName = fieldName;
                         var attribute = member.AttributeLists.SelectMany(attrList => attrList.Attributes)
@@ -412,12 +433,6 @@ namespace RegressionGames.Editor.CodeGenerators
                             }
                         }
 
-                        string type = member is MethodDeclarationSyntax
-                            ? RemoveGlobalPrefix(semanticModel.GetTypeInfo(((MethodDeclarationSyntax) member).ReturnType)
-                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-                            : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
-                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                        
                         stateList.Add(new RGStateAttributeInfo
                         {
                             FieldType = fieldType,
@@ -805,7 +820,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RecordError($"Information not found for State: {statesInfos} on RGEntity with ObjectType: {objectType}");
+                    RecordError($"Information not found for State: {stateClassName} on RGEntity with ObjectType: {objectType}.  Please contact Regression Games for support with this issue.");
                 }
                 
             }
@@ -836,7 +851,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RecordError($"Information not found for Action: {actionClassName} on RGEntity with ObjectType: {objectType}");
+                    RecordError($"Information not found for Action: {actionClassName} on RGEntity with ObjectType: {objectType}.  Please contact Regression Games for support with this issue.");
                 }
 
             }
