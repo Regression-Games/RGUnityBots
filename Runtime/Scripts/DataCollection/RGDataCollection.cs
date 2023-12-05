@@ -291,7 +291,7 @@ namespace RegressionGames.DataCollection
             }
             catch (Exception e)
             {
-                RGDebug.LogError($"DataCollection[{clientId}] - Error uploading data: {e}");
+                RGDebug.LogException(e, $"DataCollection[{clientId}] - Error uploading data");
                 throw;
             }
             finally
