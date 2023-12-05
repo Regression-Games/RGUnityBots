@@ -26,7 +26,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // domain reload after build resets enabled to true
             // and this gets called once with the original script changes, once with the generated changes, and then one more time with an empty list
-            if (_enabled && importedAssets.FirstOrDefault(ia => ia.EndsWith(".cs")) != null)
+            if (_enabled && importedAssets.FirstOrDefault(ia => ia.EndsWith(".cs") && !ia.StartsWith("Packages/gg.regression.unity.bots") && !ia.Contains("RegressionGames/Runtime/GeneratedScripts")) != null)
             {
                 TriggerGeneration();
             }
@@ -38,9 +38,8 @@ namespace RegressionGames.Editor.CodeGenerators
             if (_enabled)
             {
                 _enabled = false;
-                RGDebug.LogInfo("! Generating RG code due to asset change or build");
-                RGCodeGenerator.GenerateRGScripts();
-                
+                RGDebug.LogInfo("Generating Regression Games scripts automatically due to asset change or build.");
+                RGCodeGenerator.GenerateRGScripts(); 
             }
         }
     }

@@ -86,8 +86,23 @@ namespace RegressionGames.Editor.CodeGenerators
             finally
             {
                 EditorUtility.ClearProgressBar();
-            }
+            } 
             
+            if (_hasExtractProblem)
+            {
+                RGDebug.LogWarning($"Completed generating Regression Games scripts - Errors occurred, check logs above...");
+                EditorUtility.DisplayDialog(
+                    "Generate Scripts\r\nError", 
+                    "One or more warnings or errors occurred while generating Regression Games scripts." +
+                    "\r\n\r\nCheck the Console logs for more information.",
+                    "OK");
+                _hasExtractProblem = false;
+            }
+            else
+            {
+                RGDebug.LogInfo($"Completed generating Regression Games scripts"); 
+            }
+
         }
 
         private static List<Scene> GetDirtyScenes()
@@ -137,6 +152,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 if (_hasExtractProblem)
                 {
+                    RGDebug.LogWarning($"Completed extracting Regression Games context - Errors occurred, check logs above...");
                     EditorUtility.DisplayDialog(
                         "Extract Game Context\r\nError", 
                         "One or more warnings or errors occurred during the extract." +
@@ -147,6 +163,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 else
                 {
                     string zipPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames.zip");
+                    RGDebug.LogInfo($"Completed extracting Regression Games context - filePath: {zipPath}");
                     EditorUtility.DisplayDialog(
                         "Extract Game Context\r\nComplete", 
                         "Game context extracted to .zip file:" +
@@ -196,6 +213,12 @@ namespace RegressionGames.Editor.CodeGenerators
                 // generate classes
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", "Generating classes for RGAction attributes", 0.4f);
                 GenerateActionClasses(actionAttributeInfos);
+
+                if (_hasExtractProblem)
+                {
+                    // if the code generation phase failed.. don't waste any more time
+                    return;
+                }
 
                 // Find RGStateEntity scripts and generate state info from them
                 // Do NOT include the previous state infos.. so we don't have dupes
@@ -396,7 +419,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                             {
-                                RGDebug.LogError($"Error: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public.");
+                                RecordError($"Error: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public.");
                                 hasError = true;
                             }
                         }
@@ -404,17 +427,17 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             if (!methodDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                             {
-                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                                RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
                                 hasError = true;
                             }
                             else if (methodDeclaration.ParameterList.Parameters.Count > 0)
                             {
-                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
+                                RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
                                 hasError = true;
                             }
                             else if (methodDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
                             {
-                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
+                                RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
                                 hasError = true;
                             }
                         }
