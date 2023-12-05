@@ -11,7 +11,9 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
+using Unity.Profiling;
 using UnityEngine;
+using UnityEngine.Profiling;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
@@ -39,14 +41,16 @@ namespace RegressionGames.DataCollection
      */
     public class RGDataCollection
     {
+        private static readonly ProfilerMarker LogCollectionMarker = new(ProfilerCategory.Ai, "RegressionGames.DataCollection.LogCollector");
+        private static readonly ProfilerMarker SaveTickDataMarker = new(ProfilerCategory.Ai, "RegressionGames.DataCollection.SaveTickData");
 
         private readonly string _sessionName = Guid.NewGuid().ToString();
-        private readonly ConcurrentDictionary<long, BotInstanceState> _clientIdToState = new();
+        private readonly ConcurrentDictionary<long, BotInstanceDataCollectionState> _clientIdToState = new();
         private readonly string _rootPath = Application.persistentDataPath;
         private readonly ConcurrentQueue<long> _screenshotTicksRequested = new();
         private readonly ConcurrentDictionary<long, long> _screenshotTicksCaptured = new();
 
-        private class BotInstanceState
+        private class BotInstanceDataCollectionState
         {
             public long clientId;
             public RGBot bot;
@@ -57,17 +61,31 @@ namespace RegressionGames.DataCollection
             public Task logFlushTask;
             public RGValidationSummary validationSummary = new(0,0,0);
 
-            public BotInstanceState(RGBot bot, DateTime startTime)
+            public BotInstanceDataCollectionState(RGBot bot, DateTime startTime)
             {
                 this.bot = bot;
                 this.startTime = startTime;
             }
-        }
 
-        public RGDataCollection()
-        {
-            // Start collecting logs
-            Application.logMessageReceivedThreaded += LogMessageReceived;
+            public void StartCapturingLogs()
+            {
+                Application.logMessageReceivedThreaded += LogMessageReceived;
+            }
+
+            public void StopCapturingLogs()
+            {
+                Application.logMessageReceivedThreaded -= LogMessageReceived;
+            }
+
+            private void LogMessageReceived(string message, string stacktrace, LogType type)
+            {
+                Profiler.BeginSample("RegressionGames.DataCollection.LogCollector");
+                // PERF: DateTimeOffset.Now is suprisingly costly, use DateTimeOffset.UtcNow unless we have to know the local timezone.
+                // It's still good to use a DateTimeOffset here though because it ensures that when we serialize the data, it is clearly marked as a UTC time (with the `Z` suffix)
+                var dataPoint = new LogDataPoint(DateTimeOffset.UtcNow, type, message, stacktrace);
+                logs.Enqueue(dataPoint);
+                Profiler.EndSample();
+            }
         }
 
         /**
@@ -77,7 +95,9 @@ namespace RegressionGames.DataCollection
         public void RegisterBot(long clientId, RGBot bot)
         {
             RGDebug.LogVerbose($"DataCollection[{clientId}] - Registering client for bot {bot.id}");
-            _clientIdToState[clientId] = new(bot, DateTime.Now);
+            var state = new BotInstanceDataCollectionState(bot, DateTime.Now);
+            _clientIdToState[clientId] = state;
+            state.StartCapturingLogs();
         }
 
         /**
@@ -136,6 +156,8 @@ namespace RegressionGames.DataCollection
                 RGDebug.LogError("Attempted to save replay data for a stopped bot");
                 return;
             }
+
+            using var _ = SaveTickDataMarker.Auto();
 
             // Add the new replay data to a new or existing mapping in our client replay data dictionary
             var filePath =
@@ -196,6 +218,7 @@ namespace RegressionGames.DataCollection
                 RGDebug.LogError("Attempted to save replay data for a stopped bot");
                 return;
             }
+            state.StopCapturingLogs();
 
             try
             {
@@ -394,33 +417,11 @@ namespace RegressionGames.DataCollection
             var builder = new StringBuilder();
             foreach (var item in items)
             {
-                builder.AppendLine(JsonConvert.SerializeObject(item));
+                builder.AppendLine(RGSerializer.Serialize(item));
             }
 
             // Combine the JSON strings with newline characters
             return builder.ToString();
-        }
-
-        private void LogMessageReceived(string message, string stacktrace, LogType type)
-        {
-            if (_clientIdToState.IsEmpty)
-            {
-                // Avoid allocating a LogDataPoint if nobody is listening.
-                return;
-            }
-
-            var dataPoint = new LogDataPoint(DateTimeOffset.Now, type, message, stacktrace);
-
-            // Note: Enumerating a concurrent dictionary is _safe_ in that it won't fail,
-            // but it doesn't take a snapshot of the dictionary, so entries may be added/removed _during_ enumeration.
-            // That should be fine for us.
-            // The main edge case here is a bot stopping _during_ this enumeration,
-            // which would cause us to add a log entry to the queue after it's been flushed to the server.
-            // That's fine, it just means we'll miss that log entry. The queue will still get garbage collected.
-            foreach (var (_, state) in _clientIdToState)
-            {
-                state.logs.Enqueue(dataPoint);
-            }
         }
     }
 
