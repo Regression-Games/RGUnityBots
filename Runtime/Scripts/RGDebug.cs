@@ -67,11 +67,16 @@ namespace RegressionGames
          * Logging of 'Exception' logs. Only visible if Log Level is set to 'Error' or
          * lower in the Regression Project Settings
          */
-        public static void LogException(Exception exception)
+        public static void LogException(Exception exception, string message = default)
         {
             if (!CheckLogLevel(RGLogLevel.Error))
             {
                 return;
+            }
+
+            if (!string.IsNullOrEmpty(message))
+            {
+                Debug.LogWarning(message);
             }
             Debug.LogException(exception);
         }
