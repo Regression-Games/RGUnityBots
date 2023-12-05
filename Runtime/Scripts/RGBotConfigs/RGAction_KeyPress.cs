@@ -132,20 +132,21 @@ namespace RegressionGames.RGBotConfigs
                 {
                     RgGizmos.CreateText(id, debugText, debugGizmosOffset);
                 }
-
-                // force updating these now
-                RgGizmos.OnDrawGizmos();
             }
             else
             {
                 RgGizmos.DestroyText(id);
-                // force updating these now
-                RgGizmos.OnDrawGizmos();
             }
             
             // Update Input System
             InputSystem.Update();
 #endif
+        }
+
+        private void OnDrawGizmos()
+        {
+            // force updating these now
+            RgGizmos.OnDrawGizmos();
         }
 
         private void DrawDebugText()
