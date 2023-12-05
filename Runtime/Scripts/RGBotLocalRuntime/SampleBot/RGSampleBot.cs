@@ -68,8 +68,7 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
             }
             catch (Exception ex)
             {
-                RGDebug.LogError($"Error getting target position.");
-                RGDebug.LogException(ex);
+                RGDebug.LogException(ex, $"Error getting target position.");
             }
         }
     }
