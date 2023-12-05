@@ -84,7 +84,8 @@ namespace RegressionGames.Editor.BotManagement
                 EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots",
                     "Retrieving current bots from Regression Games", 0.2f);
 
-                var localBots = RGBotAssetsManager.GetInstance()?.GetAvailableBots() ?? new List<RGBot>();
+                var localBotAssets = RGBotAssetsManager.GetInstance()?.GetAvailableBotAssets() ?? new List<RGBotAsset>();
+                var localBots = localBotAssets.Select(b => b.Bot).ToList();
 
                 var remoteBots = await _this.GetBotsFromRG();
 
@@ -94,7 +95,7 @@ namespace RegressionGames.Editor.BotManagement
                 // create remote bot records for any local bots that don't exist on RG
                 var countCreatedRemote = 0;
                 var botsNeedingCreation =
-                    localBots.Where(lb => remoteBots.FirstOrDefault(rb => rb.id == lb.id) == null);
+                    localBotAssets.Where(lb => remoteBots.FirstOrDefault(rb => rb.id == lb.id) == null);
                 foreach (var rgBot in botsNeedingCreation)
                 {
                     await _rgServiceManager.CreateBot(
@@ -102,7 +103,8 @@ namespace RegressionGames.Editor.BotManagement
                         (botResult) =>
                         {
                             // update the id of the local bot
-                            rgBot.id = botResult.id;
+                            rgBot.Bot.id = botResult.id;
+                            EditorUtility.SetDirty(rgBot);
                             ++countCreatedRemote;
                             remoteBots.Add(botResult);
                         }, () => { }
