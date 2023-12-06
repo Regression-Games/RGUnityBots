@@ -38,6 +38,9 @@ namespace RegressionGames.Editor.BotManagement
         [MenuItem("Regression Games/Create New Bot")]
         private static void CreateNewBot()
         {
+            // Create our bot folder if it doesn't exist
+            RGEditorUtils.CreateAllAssetFolders(BOTS_PATH);
+
             // prompt the user to choose a folder
             var newBotPath = EditorUtility.SaveFilePanelInProject(
                 "Create a new RegressionGames Bot",
