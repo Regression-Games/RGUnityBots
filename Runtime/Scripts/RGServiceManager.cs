@@ -512,6 +512,37 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * Uploads all log messages for the bot instance to Regression Games in JSONL format
+         */
+        public async Task UploadLogs(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
+        {
+            if (await EnsureAuthed())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/logs",
+                    method: "POST",
+                    filePath: filePath,
+                    contentType: "application/jsonl",
+                    onSuccess: async (s) =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService UploadLogs response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: async (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload logs for bot instance {botInstanceId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+
         public async Task GetExternalConnectionInformationForBotInstance(long botInstanceId, Action<RGBotInstanceExternalConnectionInfo> onSuccess, Action onFailure)
         {
             if (await EnsureAuthed())
