@@ -1,13 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using RegressionGames.DataCollection;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
+using Unity.Profiling;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
- public class RGBotRunner
+    public class RGBotRunner
     {
+        // A marker used to measure the total time spent processing the bot tick, including flushing all actions and validations
+        private static readonly ProfilerMarker FullBotTickMarker = new(ProfilerCategory.Ai, "RegressionGames.BotTick.Full");
+
+        // A marker used to measure the time taken within the user's bot for each tick.
+        private static readonly ProfilerMarker UserBotTickMarker = new(ProfilerCategory.Ai, "RegressionGames.BotTick.User");
+
         public readonly RGBotInstance BotInstance;
 
         private Thread _thread;
@@ -116,10 +124,16 @@ namespace RegressionGames.RGBotLocalRuntime
                     {
                         _rgObject.SetTickInfo(tickInfo);
 
+                        // Start a profiler marker, which will be automatically ended when it goes out of scope.
+                        using var _ = FullBotTickMarker.Auto();
+
                         // Run User Code
                         try
                         {
-                            _userBotCode.ProcessTick(_rgObject);
+                            using(UserBotTickMarker.Auto())
+                            {
+                                _userBotCode.ProcessTick(_rgObject);
+                            }
 
                             // Flush Actions / Validations
                             List<RGActionRequest> actions = _rgObject.FlushActions();
@@ -135,14 +149,14 @@ namespace RegressionGames.RGBotLocalRuntime
                                 RGBotServerListener.GetInstance()
                                     .HandleClientValidationResult(BotInstance.id, rgValidationResult);
                             }
-                            
+
                             // Save all information from this tick for local bots
-                            RGBotServerListener.GetInstance()?.SaveDataForTick(BotInstance.id, tickInfo, actions, validations);
-                            
+                            RGBotServerListener.GetInstance()
+                                ?.SaveDataForTick(BotInstance.id, tickInfo, actions, validations);
                         }
                         catch (Exception ex)
                         {
-                            RGDebug.LogException(ex, 
+                            RGDebug.LogException(ex,
                                 $"ERROR: Bot instanceId: {BotInstance.id}, botName: {BotInstance.bot.name}, botId: {BotInstance.bot.id} crashed due to an uncaught exception.");
                             _running = false;
                             RGBotServerListener.GetInstance().SetUnityBotState(BotInstance.id, RGUnityBotState.ERRORED);
@@ -171,6 +185,5 @@ namespace RegressionGames.RGBotLocalRuntime
                 _userBotCode.OnDrawGizmos();
             }
         }
-
     }
 }
