@@ -10,7 +10,7 @@ namespace RegressionGames.RGBotLocalRuntime
     public class RGBotAssetsManager
     {
         private static RGBotAssetsManager _this;
-        
+
         private readonly Dictionary<long, RGBotAssetRecord> _botAssets = new();
 
         public static RGBotAssetsManager GetInstance()
@@ -37,7 +37,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return null;
         }
-        
+
         public List<RGBotAsset> GetAvailableBotAssets()
         {
             return _botAssets.Values.Select(v => v.BotAsset).ToList();
@@ -47,14 +47,14 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             return _botAssets.Values.Select(v => v.BotAsset.Bot).ToList();
         }
-        
+
         public void RefreshAvailableBots()
         {
             _botAssets.Clear();
-            
+
 #if UNITY_EDITOR
             // Load up the listing of available local bots
-            string[] botGuids = AssetDatabase.FindAssets("BotRecord", new string[] {"Assets"});
+            string[] botGuids = AssetDatabase.FindAssets($"t:{typeof(RGBotAsset).FullName}", new string[] {"Assets"});
             foreach (var botGuid in botGuids)
             {
                 var botAssetPath = AssetDatabase.GUIDToAssetPath(botGuid);

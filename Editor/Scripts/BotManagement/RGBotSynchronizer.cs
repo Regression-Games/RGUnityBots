@@ -428,8 +428,7 @@ namespace RegressionGames.Editor.BotManagement
                 AssetDatabase.DeleteAsset(folderString);
             }
 
-            AssetDatabase.CreateFolder(BOTS_PATH, botFolderName);
-            return folderString;
+            return AssetDatabase.CreateFolder(BOTS_PATH, botFolderName);
         }
 
         private void CreateNewBotAssets(string folderName, string botName, long botId)
