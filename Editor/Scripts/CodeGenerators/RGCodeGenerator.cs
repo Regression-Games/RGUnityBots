@@ -34,6 +34,7 @@ namespace RegressionGames.Editor.CodeGenerators
      * 1. Find [RGAction] attributes and generate classes for them; captures the generated class name
      * 2. /\ This same information is used as the available Actions for AgentBuilder json.
      */
+    
     public class RGCodeGenerator
     {
 #if UNITY_EDITOR
@@ -43,22 +44,27 @@ namespace RegressionGames.Editor.CodeGenerators
         private static HashSet<string> _excludeDirectories = new() {
            "ThirdPersonDemoURP"
         };
-
-        private static bool _hasError = false;
         
-        private static void RecordError(string warning)
+
+        private static bool _hasExtractProblem = false;
+        
+        private static void RecordError(string error)
         {
-            _hasError = true;
+            _hasExtractProblem = true;
+            RGDebug.LogError($"ERROR: {error}");
+        }
+        
+        private static void RecordWarning(string warning)
+        {
+            _hasExtractProblem = true;
             RGDebug.LogWarning($"WARNING: {warning}");
         }
         
-
-        [MenuItem("Regression Games/Generate Scripts")]
         public static void GenerateRGScripts()
         {
             try
             {
-                _hasError = false;
+                _hasExtractProblem = false;
                 // find and extract RGState data
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Searching for RGState attributes", 0.2f);
@@ -80,8 +86,23 @@ namespace RegressionGames.Editor.CodeGenerators
             finally
             {
                 EditorUtility.ClearProgressBar();
-            }
+            } 
             
+            if (_hasExtractProblem)
+            {
+                RGDebug.LogWarning($"Completed generating Regression Games scripts - Errors occurred, check logs above...");
+                EditorUtility.DisplayDialog(
+                    "Generate Scripts\r\nError", 
+                    "One or more warnings or errors occurred while generating Regression Games scripts." +
+                    "\r\n\r\nCheck the Console logs for more information.",
+                    "OK");
+                _hasExtractProblem = false;
+            }
+            else
+            {
+                RGDebug.LogInfo($"Completed generating Regression Games scripts"); 
+            }
+
         }
 
         private static List<Scene> GetDirtyScenes()
@@ -110,7 +131,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     "Continue",
                     "Cancel"))
             {
-                _hasError = false;
+                _hasExtractProblem = false;
                 var dirtyScenes = GetDirtyScenes();
                 if (dirtyScenes.Count > 0)
                 {
@@ -129,18 +150,20 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     ExtractGameContextHelper();
                 }
-                if (_hasError)
+                if (_hasExtractProblem)
                 {
+                    RGDebug.LogWarning($"Completed extracting Regression Games context - Errors occurred, check logs above...");
                     EditorUtility.DisplayDialog(
                         "Extract Game Context\r\nError", 
                         "One or more warnings or errors occurred during the extract." +
                         "\r\n\r\nCheck the Console logs for more information.",
                         "OK");
-                    _hasError = false;
+                    _hasExtractProblem = false;
                 }
                 else
                 {
                     string zipPath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "RegressionGames.zip");
+                    RGDebug.LogInfo($"Completed extracting Regression Games context - filePath: {zipPath}");
                     EditorUtility.DisplayDialog(
                         "Extract Game Context\r\nComplete", 
                         "Game context extracted to .zip file:" +
@@ -191,6 +214,12 @@ namespace RegressionGames.Editor.CodeGenerators
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", "Generating classes for RGAction attributes", 0.4f);
                 GenerateActionClasses(actionAttributeInfos);
 
+                if (_hasExtractProblem)
+                {
+                    // if the code generation phase failed.. don't waste any more time
+                    return;
+                }
+
                 // Find RGStateEntity scripts and generate state info from them
                 // Do NOT include the previous state infos.. so we don't have dupes
                 // This gives us a consistent view across both generated and hand written state class entities
@@ -207,6 +236,31 @@ namespace RegressionGames.Editor.CodeGenerators
                     Parameters = new List<RGParameterInfo>()
                 });
                 
+                /* TODO (REG-1476): Solve how to add hand written actions automatically
+                   this will help us avoid weird assembly references also.
+                
+                // add key press action
+                actionInfos.Add(new RGActionInfo()
+                {
+                    ActionClassName = typeof(RGAction_KeyPress).FullName,
+                    ActionName = "KeyPress",
+                    Parameters = new List<RGParameterInfo>()
+                    {
+                        new ()
+                        {
+                            Name = "keyId",
+                            Type = "string",
+                            Nullable = false
+                        },
+                        new ()
+                        {
+                            Name = "holdTime",
+                            Type = "double",
+                            Nullable = true
+                        }
+                    }
+                });*/
+
                 // if these have been associated to gameObjects with RGEntities, fill in their objectTypes
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data", "Populating Object types", 0.6f);
                 var stateAndActionJsonStructure = CreateStateAndActionJsonWithObjectTypes(statesInfos, actionInfos);
@@ -365,7 +419,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                             {
-                                RGDebug.LogError($"Error: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public.");
+                                RecordError($"Error: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public.");
                                 hasError = true;
                             }
                         }
@@ -373,17 +427,17 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             if (!methodDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                             {
-                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                                RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
                                 hasError = true;
                             }
                             else if (methodDeclaration.ParameterList.Parameters.Count > 0)
                             {
-                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
+                                RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
                                 hasError = true;
                             }
                             else if (methodDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
                             {
-                                RGDebug.LogError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
+                                RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
                                 hasError = true;
                             }
                         }
@@ -510,7 +564,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             {
                                 if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                                 {
-                                    RecordError($"Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
+                                    RecordWarning($"Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
                                     continue;
                                 }
                             }
@@ -518,7 +572,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             {
                                 if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                                 {
-                                    RecordError($"Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
+                                    RecordWarning($"Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
                                     continue;
                                 }
                             }
@@ -745,7 +799,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         return true;
                     }))
                 {
-                    RecordError($"RGEntity of ObjectType: {entity.objectType} has conflicting state definitions on different game objects or prefabs;  state lists: [{string.Join(", ", entityStateActionJson.Item1.States)}] <-> [{string.Join(", ", existingItem1.States)}]");
+                    RecordWarning($"RGEntity of ObjectType: {entity.objectType} has conflicting state definitions on different game objects or prefabs;  state lists: [{string.Join(", ", entityStateActionJson.Item1.States)}] <-> [{string.Join(", ", existingItem1.States)}]");
                 }
             }
             if(result.Item2.TryGetValue(entityStateActionJson.Item2, out var existingItem2))
@@ -773,7 +827,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         return true;
                     }))
                 {
-                    RecordError($"RGEntity of ObjectType: {entity.objectType} has conflicting action definitions on different game objects or prefabs;  action lists: [{string.Join(", ", entityStateActionJson.Item2.Actions)}] <-> [{string.Join(", ", existingItem2.Actions)}]");
+                    RecordWarning($"RGEntity of ObjectType: {entity.objectType} has conflicting action definitions on different game objects or prefabs;  action lists: [{string.Join(", ", entityStateActionJson.Item2.Actions)}] <-> [{string.Join(", ", existingItem2.Actions)}]");
                 }
             }
 
@@ -797,7 +851,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         {
                             if (stateInfoState.Type != existingState.Type)
                             {
-                                RecordError($"RGEntity of ObjectType: {objectType} has multiple definitions of state: {existingState.StateName} with conflicting types: {existingState.Type} <-> {stateInfoState.Type}");
+                                RecordWarning($"RGEntity of ObjectType: {objectType} has multiple definitions of state: {existingState.StateName} with conflicting types: {existingState.Type} <-> {stateInfoState.Type}");
                             }
                         }
                         states.Add(stateInfoState);
@@ -805,7 +859,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RecordError($"Information not found for State: {statesInfos} on RGEntity with ObjectType: {objectType}");
+                    RecordError($"Information not found for State: {stateClassName} on RGEntity with ObjectType: {objectType}.  Please contact Regression Games for support with this issue.");
                 }
                 
             }
@@ -828,7 +882,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         if (actionInfo.Parameters.Count != existingAction.Parameters.Count &&
                             !actionInfo.Parameters.TrueForAll(v => existingAction.Parameters.Contains(v)))
                         {
-                            RecordError($"RGEntity of ObjectType: {objectType} has multiple definitions of action: {existingAction.ActionName} with conflicting parameter lists: [{string.Join(", ", existingAction.Parameters)}] <-> [{string.Join(", ", actionInfo.Parameters)}]");
+                            RecordWarning($"RGEntity of ObjectType: {objectType} has multiple definitions of action: {existingAction.ActionName} with conflicting parameter lists: [{string.Join(", ", existingAction.Parameters)}] <-> [{string.Join(", ", actionInfo.Parameters)}]");
                         }
                     }
 
@@ -836,7 +890,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 else
                 {
-                    RecordError($"Information not found for Action: {actionClassName} on RGEntity with ObjectType: {objectType}");
+                    RecordError($"Information not found for Action: {actionClassName} on RGEntity with ObjectType: {objectType}.  Please contact Regression Games for support with this issue.");
                 }
 
             }
