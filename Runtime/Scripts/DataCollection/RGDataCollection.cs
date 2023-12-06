@@ -417,7 +417,7 @@ namespace RegressionGames.DataCollection
             var builder = new StringBuilder();
             foreach (var item in items)
             {
-                builder.AppendLine(RGSerializer.Serialize(item));
+                builder.AppendLine(JsonConvert.SerializeObject(item));
             }
 
             // Combine the JSON strings with newline characters
