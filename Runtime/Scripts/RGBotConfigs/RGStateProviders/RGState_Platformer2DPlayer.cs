@@ -53,7 +53,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public float gravity = -9.81f;
         
         private bool isOnGround = false;
-        
+
         private Vector2? _truePosition = null;
 
         [NonSerialized]

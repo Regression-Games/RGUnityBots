@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 using UnityEngine.Tilemaps;
 
 namespace RegressionGames.RGBotConfigs.RGStateProviders
@@ -12,20 +11,14 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     {
         public Vector2 position;
         
-        // number of grid tiles tall this position is (computed up to the configured max on RGState_Platformer2DLevel)
-        public int tilesHeight;
-
+        //TODO: Remove these concepts as this only accounts for the tileMap, not other objects
         // used by pathfinding to know if this has a wall adjoining it
         public bool blockedRight = false;
         // used by pathfinding to know if this has a wall adjoining it
         public bool blockedLeft = false;
-        
-        //worldspace Height
-        public float Height(float tileHeight) => tileHeight * tileHeight;
-        
         public override string ToString()
         {
-            return $"Position: ({position.x}, {position.y}) , TileHeight: {tilesHeight}";
+            return $"Position: ({position.x}, {position.y})";
         }
     }
 
@@ -55,10 +48,6 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     [Serializable]
     public class RGState_Platformer2DLevel: RGState
     {
-        [Tooltip("How many tile spaces above a platform to consider when determining the height available on top of a platform.  This should match the height of the largest character model navigating the scene in tile units.")]
-        [Min(1)]
-        public int tileSpaceAbove = 2;
-        
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
@@ -66,11 +55,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         {
             if (renderDebugGizmos)
             {
-                DrawDebugPositions(_lastPositions, _lastCellSize);
+                foreach (var platformPosition in _lastPositions)
+                {
+                    Gizmos.DrawWireSphere(new Vector3(platformPosition.position.x + _lastCellSize.x / 2, platformPosition.position.y + _lastCellSize.y / 2, 0),
+                        _lastCellSize.x/2);
+                }
             }
         }
 
-        private Vector3 _lastCellSize = Vector3.one;
+        internal Vector3 _lastCellSize = Vector3.one;
         private List<RGPlatformer2DPosition> _lastPositions = new();
 
         protected override Dictionary<string, object> GetState()
@@ -79,7 +72,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 
             var currentCamera = Camera.main;
 
-            var cellBounds = tileMap.cellBounds;
+            var currentBounds = tileMap.cellBounds;
+            var cellBounds = currentBounds;
             
             // limit the conveyed state to the current camera space
             if (currentCamera != null)
@@ -91,9 +85,9 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 var topRight = currentCamera.ScreenToWorldPoint(new Vector3(screenWidth, screenHeight, 0));
 
                 var tileBottomLeft = tileMap.WorldToCell(bottomLeft);
-                tileBottomLeft.z = cellBounds.zMin;
+                tileBottomLeft.z = currentBounds.zMin;
                 var tileTopRight = tileMap.WorldToCell(topRight);
-                tileTopRight.z = cellBounds.zMax;
+                tileTopRight.z = currentBounds.zMax;
 
                 // ?? * the max size of the screen size in either dimension
                 // this needs to be big enough to avoid getting 'stuck' without a path nearer to the goal
@@ -106,6 +100,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 
                 tileBottomLeft.y -= fraction;
                 tileTopRight.y += fraction;
+
+                currentBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
+                
+                // limit this to the edges of the tilemap itself
+                tileBottomLeft.x = Math.Max(currentBounds.xMin, tileBottomLeft.x);
+                tileBottomLeft.y = Math.Max(currentBounds.yMin, tileBottomLeft.y);
+                
+                tileTopRight.x = Math.Min(currentBounds.xMax, tileTopRight.x);
+                tileTopRight.y = Math.Min(currentBounds.yMax, tileTopRight.y);
                 
                 cellBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
             }
@@ -115,9 +118,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             {
                 cellBounds.xMin, cellBounds.xMax, cellBounds.yMin, cellBounds.yMax, cellBounds.zMin, cellBounds.zMax
             };
-
-
-
+            
             var safePositions = new List<RGPlatformer2DPosition>();
             for (int x = minMax[0]; x <= minMax[1]; x++)
             {
@@ -131,7 +132,6 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                         var tileCollider = tileMap.GetColliderType(cellPlace);
                         if (tileCollider != Tile.ColliderType.None)
                         {
-                            var heightAvailable = 0;
                             Vector3Int? finalSpotAbove = null;
                             
                             ++cellY;
@@ -142,27 +142,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                             if (tileCollider == Tile.ColliderType.None)
                             {
                                 finalSpotAbove = cellPlace;
-                                heightAvailable = 1;
                             }
-                            
-                            // check up to the tileSpaceAbove
-                            for (int i = 2; i <= tileSpaceAbove; i++)
-                            {
-                                ++cellY;
-                                // faster than += on Vectors
-                                cellPlace = new Vector3Int(x, cellY, z);
-                                tileCollider = tileMap.GetColliderType(cellPlace);
-                                //see if there is a tile above it or not
-                                if (tileCollider == Tile.ColliderType.None)
-                                {
-                                    ++heightAvailable;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-
+  
                             if (finalSpotAbove is not null)
                             {
                                 Vector3 place = tileMap.CellToWorld((Vector3Int)finalSpotAbove);
@@ -170,7 +151,6 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                                 var blockedLeft = tileMap.GetColliderType(new Vector3Int(x-1,y+1, z)) != Tile.ColliderType.None;
                                 var spot = new RGPlatformer2DPosition
                                 {
-                                    tilesHeight = heightAvailable,
                                     position = place,
                                     blockedLeft = blockedLeft,
                                     blockedRight = blockedRight
@@ -192,19 +172,10 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             return new Dictionary<string, object>()
             {
                 { "tileMapBounds", tileMap.cellBounds},
-                { "currentBounds", cellBounds},
+                { "currentBounds", currentBounds},
                 { "tileCellSize", _lastCellSize },
                 { "platformPositions", _lastPositions.ToArray() }
             };
-        }
-
-        private void DrawDebugPositions(List<RGPlatformer2DPosition> platformPositions, Vector3 cellSize)
-        {
-            foreach (var platformPosition in platformPositions)
-            {
-                Gizmos.DrawWireSphere(new Vector3(platformPosition.position.x + cellSize.x / 2, platformPosition.position.y + cellSize.y / 2, 0),
-                    cellSize.x/2);
-            }
         }
 
         protected override Type GetTypeForStateEntity()
@@ -212,7 +183,5 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             return typeof(RGStateEntity_Platformer2DLevel);
         }
     }
-    
 
-    
 }
