@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 #if UNITY_EDITOR
+using System;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -17,6 +19,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
         public static void Generate(List<RGActionAttributeInfo> actionInfos)
         {
+            Dictionary<string, Task> fileWriteTasks = new(); 
             // Iterate through BotActions
             foreach (var botAction in actionInfos)
             {
@@ -96,10 +99,15 @@ namespace RegressionGames.Editor.CodeGenerators
                     string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
 
                     Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    File.WriteAllText(filePath, fileContents);
-                    RGDebug.Log($"Successfully Generated {filePath}");
-                    AssetDatabase.Refresh();
+                    var task= File.WriteAllTextAsync(filePath, fileContents);
+                    fileWriteTasks[filePath] = task;
                 }
+            }
+
+            Task.WaitAll(fileWriteTasks.Values.ToArray());
+            foreach (var filename in fileWriteTasks.Keys)
+            {
+                RGDebug.Log($"Successfully Generated {filename}");
             }
         }
 
