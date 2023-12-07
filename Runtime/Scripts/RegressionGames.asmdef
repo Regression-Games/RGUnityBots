@@ -2,6 +2,7 @@
     "name": "RegressionGames",
     "rootNamespace": "",
     "references": [
+        "Unity.InputSystem",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
