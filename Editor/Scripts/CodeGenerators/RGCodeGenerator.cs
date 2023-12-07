@@ -82,6 +82,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Generating classes for RGAction attributes", 0.8f);
                 GenerateActionClasses(actionAttributeInfos);
+                
+                AssetDatabase.Refresh();
             }
             finally
             {
@@ -184,11 +186,8 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 Directory.Delete(directoryToDelete, true);
                 File.Delete(directoryToDelete + ".meta");
-                AssetDatabase.Refresh();
             }
             
-            //NOTE: We may have trouble here with serialization or actionMap with sample projects
-            // Much testing needed
             GenerateRGSerializationClass.Generate(actionInfos);
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
@@ -368,7 +367,6 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 Directory.Delete(directoryToDelete, true);
                 File.Delete(directoryToDelete + ".meta");
-                AssetDatabase.Refresh();
             }
             
             GenerateRGStateClasses.Generate(rgStateAttributesInfos);
