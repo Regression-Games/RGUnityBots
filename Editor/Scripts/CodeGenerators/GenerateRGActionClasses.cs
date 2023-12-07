@@ -93,7 +93,11 @@ namespace RegressionGames.Editor.CodeGenerators
                                         )
                                 )
                         )
-                        .AddMembers(CodeGeneratorUtils.CreatePartialAttacherClass(botAction.Namespace, botAction.Object, $"{projectNamespace}.{actionClassName}"));
+                        .AddMembers(CodeGeneratorUtils.CreatePartialAttacherClass(
+                            botAction.Namespace,
+                            botAction.Object,
+                            typeof(RGEntity).FullName,
+                            $"{projectNamespace}.{actionClassName}"));
 
                     // Format the generated code
                     string formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();

@@ -108,7 +108,11 @@ namespace RegressionGames.Editor.CodeGenerators
                     // Add the namespace declaration to the compilation unit
                     compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
 
-                    compilationUnit = compilationUnit.AddMembers(CodeGeneratorUtils.CreatePartialAttacherClass(rgStateAttributeInfo.NameSpace, componentType, $"RegressionGames.RGBotConfigs.{className}"));
+                    compilationUnit = compilationUnit.AddMembers(CodeGeneratorUtils.CreatePartialAttacherClass(
+                        rgStateAttributeInfo.NameSpace,
+                        componentType,
+                        typeof(RGEntity).FullName,
+                        $"RegressionGames.RGBotConfigs.{className}"));
 
                     // Get the full code text
                     var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
