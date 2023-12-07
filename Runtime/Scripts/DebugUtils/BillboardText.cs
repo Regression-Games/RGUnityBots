@@ -6,7 +6,7 @@ public class BillboardText : MonoBehaviour
 {
     private TextMeshProUGUI _text;
     public string content = "";
-    public float yOffset = 2f;
+    public Vector3 offset = new Vector3(0f, 2f, 0f);
     public GameObject target;
     
     void Awake()
@@ -25,7 +25,7 @@ public class BillboardText : MonoBehaviour
         }
         
         // Now update our position to be the same as the target
-        transform.position = target.transform.position + new Vector3(0, yOffset, 0);
+        transform.position = target.transform.position + offset;
         
         // Then rotate to face the camera
         Transform camTransform = Camera.main != null ? Camera.main.transform : null;
