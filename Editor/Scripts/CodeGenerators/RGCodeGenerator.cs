@@ -387,36 +387,78 @@ namespace RegressionGames.Editor.CodeGenerators
                                 hasError = true;
                             }
                         }
+                        else if (member is DelegateDeclarationSyntax delegateDeclaration)
+                        {
+                            if (!delegateDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RGDebug.LogError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                                hasError = true;
+                            }
+                            else if (delegateDeclaration.ParameterList.Parameters.Count > 0)
+                            {
+                                RGDebug.LogError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
+                                hasError = true;
+                            }
+                            else if (delegateDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
+                            {
+                                RGDebug.LogError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
+                                hasError = true;
+                            }
+                        }
+                        else if (member is PropertyDeclarationSyntax propertyDeclaration)
+                        {
+                            if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RGDebug.LogError(
+                                    $"Error: Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                                hasError = true;
+                            }
+                        }
 
                         if (hasError)
                         {
                             continue;
                         }
                         
-                        string fieldType = member is MethodDeclarationSyntax ? "method" : "variable";
+                        string fieldType = member is MethodDeclarationSyntax or DelegateDeclarationSyntax ? "method" : "variable";
                         
-                        string fieldName;
-                        string type;
+                        string fieldName = null;
+                        string type = null;
                         switch (member)
                         {
+                            case FieldDeclarationSyntax field:
+                                fieldName = field.Declaration.Variables.First().Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(field.Declaration.Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case PropertyDeclarationSyntax property:
+                                fieldName = property.Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(property.Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case DelegateDeclarationSyntax del:
+                                fieldName = del.Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(del.ReturnType)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case MethodDeclarationSyntax method:
+                                fieldName = method.Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(method.ReturnType)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
                             default:
-                            case MethodDeclarationSyntax:
-                                fieldName = ((MethodDeclarationSyntax)member).Identifier.ValueText;
-                                type = RemoveGlobalPrefix(semanticModel
-                                    .GetTypeInfo(((MethodDeclarationSyntax)member).ReturnType)
-                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                RGDebug.LogError(
+                                    $"Error: [RGState] attribute in class '{className}' is applied to an invalid declaration: {member}.");
+                                hasError = true;
                                 break;
-                            case FieldDeclarationSyntax:
-                                fieldName = ((FieldDeclarationSyntax)member).Declaration.Variables.First().Identifier.ValueText;
-                                type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
-                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                                break;
-                            case PropertyDeclarationSyntax:
-                                fieldName = ((PropertyDeclarationSyntax)member).Identifier.ValueText;
-                                type = RemoveGlobalPrefix(semanticModel
-                                    .GetTypeInfo(((PropertyDeclarationSyntax)member).Type)
-                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                                break;
+                        }
+
+                        if (hasError)
+                        {
+                            continue;
                         }
 
                         string stateName = fieldName;
