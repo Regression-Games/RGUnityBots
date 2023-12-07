@@ -5,11 +5,9 @@ using System.Linq;
 using RegressionGames.StateActionTypes;
 using RegressionGames.DebugUtils;
 using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
-#endif
 
 // ReSharper disable InconsistentNaming
 namespace RegressionGames.RGBotConfigs
@@ -25,11 +23,9 @@ namespace RegressionGames.RGBotConfigs
 
         public Vector3 debugGizmosOffset = new Vector3(0f,-1f,2f);
         
-#if ENABLE_INPUT_SYSTEM
         // Allow this on any RGEntity that has an InputActionAsset
         public InputActionAsset InputAction;
-#endif   
-        
+
         private ConcurrentQueue<RG_KeyPress_Data> _keysToPress = new();
 
         private Dictionary<Key, InputControl> _inputActions = new();
@@ -41,7 +37,6 @@ namespace RegressionGames.RGBotConfigs
 
         private void Start()
         {
-#if ENABLE_INPUT_SYSTEM
             this.RgGizmos = new();
             if (InputAction == null)
             {
@@ -65,12 +60,10 @@ namespace RegressionGames.RGBotConfigs
                     }
                 }
             }
-#endif
         }
 
         public void Update()
         {
-#if ENABLE_INPUT_SYSTEM
             // one button click per frame update
             if (_keysToPress.TryDequeue(out RG_KeyPress_Data keyToPress))
             {
@@ -140,18 +133,19 @@ namespace RegressionGames.RGBotConfigs
             
             // Update Input System
             InputSystem.Update();
-#endif
         }
 
         private void OnDrawGizmos()
         {
-            // force updating these now
-            RgGizmos.OnDrawGizmos();
+            if (this.RgGizmos != null)
+            {
+                // force updating these now
+                RgGizmos.OnDrawGizmos();
+            }
         }
 
         private void DrawDebugText()
         {
-#if ENABLE_INPUT_SYSTEM
             // render debug text
             if (renderDebugGizmos)
             {
@@ -176,7 +170,6 @@ namespace RegressionGames.RGBotConfigs
                 // force drawing these now
                 RgGizmos.OnDrawGizmos();
             }
-#endif
         }
 
         private void UnPressKey(Key? key, InputControl control)
