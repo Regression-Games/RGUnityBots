@@ -145,8 +145,11 @@ namespace RegressionGames.RGBotConfigs
 
         private void OnDrawGizmos()
         {
-            // force updating these now
-            RgGizmos.OnDrawGizmos();
+            if (this.RgGizmos != null)
+            {
+                // force updating these now
+                RgGizmos.OnDrawGizmos();
+            }
         }
 
         private void DrawDebugText()
