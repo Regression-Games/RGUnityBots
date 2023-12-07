@@ -216,7 +216,19 @@ namespace RegressionGames.RGBotConfigs
                 var hasKeyDown = keysDown.ContainsKey(key);
                 // set or update the un-press time tracker
                 var timeToUnPress = Time.unscaledTime + (holdTime > 0f ? holdTime : 0f);
-                keysDown[key] = timeToUnPress;
+                if (hasKeyDown)
+                {
+                    // make sure new value is after the existing value
+                    if (timeToUnPress > keysDown[key])
+                    {
+                        keysDown[key] = timeToUnPress;        
+                    }
+                }
+                else
+                {
+                    keysDown[key] = timeToUnPress;
+                }
+                
                 if (!hasKeyDown)
                 {
                     SetUpAndQueueEvent(eventPtr, 1f);
