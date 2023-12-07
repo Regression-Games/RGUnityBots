@@ -19,7 +19,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
         public static void Generate(List<RGActionAttributeInfo> actionInfos)
         {
-            Dictionary<Task, Action> fileWriteTasks = new(); 
+            Dictionary<string, Task> fileWriteTasks = new(); 
             // Iterate through BotActions
             foreach (var botAction in actionInfos)
             {
@@ -100,14 +100,14 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     Directory.CreateDirectory(Path.GetDirectoryName(filePath));
                     var task= File.WriteAllTextAsync(filePath, fileContents);
-                    fileWriteTasks[task] = () => RGDebug.Log($"Successfully Generated {filePath}");
+                    fileWriteTasks[filePath] = task;
                 }
             }
 
-            Task.WaitAll(fileWriteTasks.Keys.ToArray());
-            foreach (var action in fileWriteTasks.Values)
+            Task.WaitAll(fileWriteTasks.Values.ToArray());
+            foreach (var filename in fileWriteTasks.Keys)
             {
-                action.Invoke();
+                RGDebug.Log($"Successfully Generated {filename}");
             }
         }
 
