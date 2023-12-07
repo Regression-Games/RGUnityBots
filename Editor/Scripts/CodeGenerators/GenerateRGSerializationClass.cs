@@ -38,7 +38,6 @@ namespace RegressionGames.Editor.CodeGenerators
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
             File.WriteAllText(filePath, fileContents);
             RGDebug.Log($"Successfully Generated {filePath}");
-            AssetDatabase.Refresh();
         }
 
         private static ClassDeclarationSyntax GenerateClass(List<RGActionAttributeInfo> botActions)

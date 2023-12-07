@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 #if UNITY_EDITOR
+using System;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -18,6 +20,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
         public static void Generate(List<RGStateAttributesInfo> rgStateAttributesInfos)
         {
+            Dictionary<Task, Action> fileWriteTasks = new(); 
             foreach (var rgStateAttributeInfo in rgStateAttributesInfos)
             {
                 if (rgStateAttributeInfo.ShouldGenerateCSFile)
@@ -113,10 +116,16 @@ namespace RegressionGames.Editor.CodeGenerators
                     string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                     string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
                     Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    File.WriteAllText(filePath, fileContents);
-                    RGDebug.Log($"Successfully Generated {filePath}");
-                    AssetDatabase.Refresh();
+                    
+                    var task= File.WriteAllTextAsync(filePath, fileContents);
+                    fileWriteTasks[task] = () => RGDebug.Log($"Successfully Generated {filePath}");
                 }
+            }
+
+            Task.WaitAll(fileWriteTasks.Keys.ToArray());
+            foreach (var action in fileWriteTasks.Values)
+            {
+                action.Invoke();
             }
         }
 
