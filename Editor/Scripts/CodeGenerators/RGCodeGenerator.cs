@@ -41,10 +41,9 @@ namespace RegressionGames.Editor.CodeGenerators
         // Used to exclude sample projects' directories from generation
         // so that we don't duplicate .cs files that are already included in the sample projects.
         // But while still scanning them so that we can include their States/Actions in the json.
-        private static HashSet<string> _excludeDirectories = new() {
+        private static readonly HashSet<string> ExcludeDirectories = new() {
            "ThirdPersonDemoURP"
         };
-        
 
         private static bool _hasExtractProblem = false;
         
@@ -282,7 +281,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // make sure to exclude any sample project directories from generation
             var excludedPaths =
-                _excludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
+                ExcludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
             
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToArray();
 
@@ -318,14 +317,10 @@ namespace RegressionGames.Editor.CodeGenerators
                     var actionAttribute = method.AttributeLists.SelectMany(attrList => attrList.Attributes)
                         .FirstOrDefault(attr => attr.Name.ToString() == "RGAction");
 
-                    if (actionAttribute != null)
+                    var attributeArgument = actionAttribute?.ArgumentList?.Arguments.FirstOrDefault();
+                    if (attributeArgument is { Expression: LiteralExpressionSyntax literal })
                     {
-                        var attributeArgument = actionAttribute.ArgumentList?.Arguments.FirstOrDefault();
-                        if (attributeArgument != null &&
-                            attributeArgument.Expression is LiteralExpressionSyntax literal)
-                        {
-                            actionName = literal.Token.ValueText;
-                        }
+                        actionName = literal.Token.ValueText;
                     }
 
                     var semanticModel = compilation.GetSemanticModel(syntaxTree);
@@ -336,8 +331,8 @@ namespace RegressionGames.Editor.CodeGenerators
                             Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
                                 .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
                             Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
-                                       (parameter.Type is GenericNameSyntax && // ex. Nullable<float>
-                                        ((GenericNameSyntax) parameter.Type).Identifier.ValueText == "Nullable")
+                                       (parameter.Type is GenericNameSyntax syntax && // ex. Nullable<float>
+                                        syntax.Identifier.ValueText == "Nullable")
                         }).ToList();
 
                     botActionList.Add(new RGActionAttributeInfo
@@ -376,7 +371,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // make sure to exclude any sample project directories from the search
             var excludedPaths =
-                _excludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
+                ExcludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
             
             string[] csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories)
                 .ToArray();
@@ -439,37 +434,84 @@ namespace RegressionGames.Editor.CodeGenerators
                                 hasError = true;
                             }
                         }
+                        else if (member is DelegateDeclarationSyntax delegateDeclaration)
+                        {
+                            if (!delegateDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RecordError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                                hasError = true;
+                            }
+                            else if (delegateDeclaration.ParameterList.Parameters.Count > 0)
+                            {
+                                RecordError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
+                                hasError = true;
+                            }
+                            else if (delegateDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
+                            {
+                                RecordError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
+                                hasError = true;
+                            }
+                        }
+                        else if (member is PropertyDeclarationSyntax propertyDeclaration)
+                        {
+                            if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                            {
+                                RecordError(
+                                    $"Error: Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                                hasError = true;
+                            }
+                        }
 
                         if (hasError)
                         {
                             continue;
                         }
                         
-                        string fieldType = member is MethodDeclarationSyntax ? "method" : "variable";
-                        string fieldName = member is MethodDeclarationSyntax
-                            ? ((MethodDeclarationSyntax) member).Identifier.ValueText
-                            : ((FieldDeclarationSyntax) member).Declaration.Variables.First().Identifier.ValueText;
+                        string fieldType = member is MethodDeclarationSyntax or DelegateDeclarationSyntax ? "method" : "variable";
+                        
+                        string fieldName = null;
+                        string type = null;
+                        switch (member)
+                        {
+                            case FieldDeclarationSyntax field:
+                                fieldName = field.Declaration.Variables.First().Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(field.Declaration.Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case PropertyDeclarationSyntax property:
+                                fieldName = property.Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(property.Type)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case DelegateDeclarationSyntax del:
+                                fieldName = del.Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(del.ReturnType)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            case MethodDeclarationSyntax method:
+                                fieldName = method.Identifier.ValueText;
+                                type = RemoveGlobalPrefix(semanticModel
+                                    .GetTypeInfo(method.ReturnType)
+                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                break;
+                            default:
+                                RecordError(
+                                    $"Error: [RGState] attribute in class '{className}' is applied to an invalid declaration: {member}.");
+                                continue;
+                        }
 
                         string stateName = fieldName;
                         var attribute = member.AttributeLists.SelectMany(attrList => attrList.Attributes)
                             .FirstOrDefault(attr => attr.Name.ToString() == "RGState");
 
-                        if (attribute != null)
+                        var attributeArgument = attribute?.ArgumentList?.Arguments.FirstOrDefault();
+                        if (attributeArgument is { Expression: LiteralExpressionSyntax literal })
                         {
-                            var attributeArgument = attribute.ArgumentList?.Arguments.FirstOrDefault();
-                            if (attributeArgument != null &&
-                                attributeArgument.Expression is LiteralExpressionSyntax literal)
-                            {
-                                stateName = literal.Token.ValueText;
-                            }
+                            stateName = literal.Token.ValueText;
                         }
 
-                        string type = member is MethodDeclarationSyntax
-                            ? RemoveGlobalPrefix(semanticModel.GetTypeInfo(((MethodDeclarationSyntax) member).ReturnType)
-                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-                            : RemoveGlobalPrefix(semanticModel.GetTypeInfo(((FieldDeclarationSyntax) member).Declaration.Type)
-                                .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                        
                         stateList.Add(new RGStateAttributeInfo
                         {
                             FieldType = fieldType,
@@ -557,39 +599,42 @@ namespace RegressionGames.Editor.CodeGenerators
 
                         foreach (var member in publicMembersAndDelegates)
                         {
-
-                            if (member is FieldDeclarationSyntax fieldDeclaration)
+                            string fieldName;
+                            string type;
+                            switch (member)
                             {
-                                if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                case FieldDeclarationSyntax fieldDeclaration:
                                 {
-                                    RecordWarning($"Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
-                                    continue;
+                                    fieldName = fieldDeclaration.Declaration.Variables.First().Identifier.ValueText;
+                                    type = RemoveGlobalPrefix(semanticModel
+                                        .GetTypeInfo(fieldDeclaration.Declaration.Type)
+                                        .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                    if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                    {
+                                        RecordWarning($"Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
+                                        continue;
+                                    }
+
+                                    break;
                                 }
-                            }
-                            else if (member is PropertyDeclarationSyntax propertyDeclaration)
-                            {
-                                if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                case PropertyDeclarationSyntax propertyDeclaration:
                                 {
-                                    RecordWarning($"Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
-                                    continue;
+                                    fieldName = propertyDeclaration.Identifier.ValueText;
+                                    type = RemoveGlobalPrefix(semanticModel
+                                        .GetTypeInfo(propertyDeclaration.Type)
+                                        .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                    if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                    {
+                                        RecordWarning($"Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
+                                        continue;
+                                    }
+
+                                    break;
                                 }
+                                default:
+                                    // no methods
+                                    continue;
                             }
-                            else
-                            {
-                                // no methods
-                                continue;
-                            }
-
-                            string fieldName = member is PropertyDeclarationSyntax
-                                ? ((PropertyDeclarationSyntax)member).Identifier.ValueText
-                                : ((FieldDeclarationSyntax)member).Declaration.Variables.First().Identifier.ValueText;
-
-                            string type = member is PropertyDeclarationSyntax
-                                ? RemoveGlobalPrefix(semanticModel.GetTypeInfo(((PropertyDeclarationSyntax)member).Type)
-                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-                                : RemoveGlobalPrefix(semanticModel
-                                    .GetTypeInfo(((FieldDeclarationSyntax)member).Declaration.Type)
-                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
                             stateList.Add(new RGStateInfo
                             {
@@ -778,9 +823,8 @@ namespace RegressionGames.Editor.CodeGenerators
             return listResult;
         }
 
-        private static bool CheckForMisMatchedStateOrActionsOnEntity(RGEntity entity, (RGEntityStatesJson, RGEntityActionsJson) entityStateActionJson, (HashSet<RGEntityStatesJson>, HashSet<RGEntityActionsJson>)result)
+        private static void CheckForMisMatchedStateOrActionsOnEntity(RGEntity entity, (RGEntityStatesJson, RGEntityActionsJson) entityStateActionJson, (HashSet<RGEntityStatesJson>, HashSet<RGEntityActionsJson>)result)
         {
-            var hasError = false;
             if(result.Item1.TryGetValue(entityStateActionJson.Item1, out var existingItem1))
             {
                 // this is a bit expensive, but necessary to ensure all RGStateEntities of the same ObjectType expose the same state/Actions
@@ -828,8 +872,6 @@ namespace RegressionGames.Editor.CodeGenerators
                     RecordWarning($"RGEntity of ObjectType: {entity.objectType} has conflicting action definitions on different game objects or prefabs;  action lists: [{string.Join(", ", entityStateActionJson.Item2.Actions)}] <-> [{string.Join(", ", existingItem2.Actions)}]");
                 }
             }
-
-            return hasError;
         }
 
         private static (RGEntityStatesJson, RGEntityActionsJson) DeriveStateAndActionJsonForEntity(string objectType, HashSet<string> stateClassNames, HashSet<string> actionClassNames, List<RGStatesInfo> statesInfos, List<RGActionInfo> actionInfos)
@@ -949,20 +991,5 @@ namespace RegressionGames.Editor.CodeGenerators
         }
 #endif
     }
-
-    static class EnumerableExtensions
-    {
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>
-            (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            HashSet<TKey> seenKeys = new HashSet<TKey>();
-            foreach (TSource element in source)
-            {
-                if (seenKeys.Add(keySelector(element)))
-                {
-                    yield return element;
-                }
-            }
-        }
-    }
+    
 }
