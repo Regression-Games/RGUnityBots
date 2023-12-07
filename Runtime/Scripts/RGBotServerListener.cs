@@ -473,7 +473,7 @@ namespace RegressionGames
                     }
                     catch (Exception ex)
                     {
-                        RGDebug.LogError($"Exception during main thread action processing: {ex.ToString()}");
+                        RGDebug.LogException(ex, "Exception during main thread action processing");
                     }
                 }
             }
@@ -732,7 +732,7 @@ namespace RegressionGames
                         }
                         catch (Exception e)
                         {
-                            RGDebug.LogError($"ERROR seating player - {e}");
+                            RGDebug.LogException(e, "ERROR seating player");
                         }
                     }
                     else
