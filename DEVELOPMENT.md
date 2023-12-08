@@ -1,8 +1,65 @@
 # Dev Tooling
 
+## Repo Layout
+
+This repository contains the following folders:
+
+* `src/gg.regression.unity.bots` - The RegressionGames Unity SDK package.
+* `src/RGUnityBots` - A barebones 3D Unity game that is used to build and test the Unity SDK package.
+* `samples/` - Additional sample games that use the RegressionGames Unity SDK package.
+* `script/` - Scripts used to build and test the SDK. Based off the [Scripts To Rule Them All](https://github.com/github/scripts-to-rule-them-all) pattern.
+
+## Building and testing the SDK
+
+To build and test the SDK, open the `src/RGUnityBots` Unity project.
+Building that project should build and validate all the code in the SDK.
+Any tests for the SDK should be added to that project, and can be run from the Unity Test Runner.
+
+## Useful Scripts:
+
+### `script/bootstrap`
+
+Validates that you have the required Unity version installed and installs any other dependencies.
+
+```
+Usage: scripts/bootstrap
+Configures the repo for building and testing.
+```
+
+### `script/build`
+
+Builds the `src/RGUnityBots` package, to check for compilation errors in our package.
+
+```
+Usage: scripts/build [-u|--unity-path <path>] [-b|--build-type <type>]
+Builds the Unity project.
+
+Options:
+  -u, --unity-path <path>    Path to the Unity installation to use. Defaults to an autodetected path based on the version of RGUnityBots.
+  -b, --build-type <type>    Type of build to perform. Defaults to the current platform.
+     -b "Linux"              Builds a Linux standalone player.
+     -b "macOS"              Builds a macOS standalone player.
+     -b "Windows"            Builds a Windows standalone player.
+```
+
+### `script/test`
+
+```
+Usage: scripts/build [--unity-path <path>] [--skip-edit-mode] [--skip-play-mode] [--category <category>] [--out <output_path>]
+Builds the Unity project.
+
+Options:
+  -u, --unity-path <path>    Path to the Unity installation to use. Defaults to an autodetected path based on the version of RGUnityBots.
+  --skip-edit-mode           Skip running the Edit mode tests.
+  --skip-play-mode           Skip running the Play mode tests.
+  --category <category>      Run only tests in the given category. Defaults to all categories.
+  --out <output_path>        Path to write the test results to. Defaults to "artifacts/test-results.xml".
+```
+
 ## Saving a new sample from a development environment
 
 ### To make changes to the sample scenes within the SDK.
+
 1. Create a new Unity Project. Make sure the project's Render Pipeline matches the sample you are importing.
 2. Import the Regression SDK
 3. Import the sample into the project
