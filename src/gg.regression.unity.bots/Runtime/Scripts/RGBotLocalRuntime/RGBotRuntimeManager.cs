@@ -6,6 +6,7 @@ using System.Linq;
 using RegressionGames.Types;
 using UnityEditor;
 using UnityEngine;
+using Object = System.Object;
 using Random = System.Random;
 
 namespace RegressionGames.RGBotLocalRuntime
@@ -13,7 +14,7 @@ namespace RegressionGames.RGBotLocalRuntime
     [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGBotRuntimeManager: MonoBehaviour
     {
-        private static RGBotRuntimeManager _this = null;
+        private static RGBotRuntimGManager _this = null;
 
         private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
 
@@ -91,8 +92,10 @@ namespace RegressionGames.RGBotLocalRuntime
 
                 botInstance.bot = botAssetRecord.BotAsset.Bot;
 
+                // Spawn the delegate, if there is one, and attach it to the client.
+                var botDelegate = botAssetRecord.BotAsset.botDelegate != null ? Instantiate(botAssetRecord.BotAsset.botDelegate) : null;
                 RGClientConnection connection = RGBotServerListener.GetInstance()
-                    .AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
+                    .AddClientConnectionForBotInstance(botInstance.id, botDelegate, RGClientConnectionType.LOCAL);
 
                 // Also attach the bot so we can upload later
                 RGBotServerListener.GetInstance().MapClientToLocalBot(botInstance.id, botAssetRecord.BotAsset.Bot);

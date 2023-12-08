@@ -1,5 +1,6 @@
 using RegressionGames.Types;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
@@ -20,5 +21,11 @@ namespace RegressionGames.RGBotLocalRuntime
         /// It may later use that to make conflict resolution decisions.
         /// </remarks>
         public string ChecksumAtLastSync;
+
+        /// <summary>
+        /// An object that will be spawned in the scene when this bot is spawned. This object can be used to retrieve state and trigger dynamic ticks.
+        /// </summary>
+        [Tooltip("An object that will be spawned in the scene when this bot is spawned. This object can be used to retrieve state and trigger dynamic ticks.")]
+        public RGBotDelegate botDelegate;
     }
 }

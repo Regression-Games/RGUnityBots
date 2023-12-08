@@ -1,6 +1,7 @@
 
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
+using UnityEngine;
 
 namespace RegressionGames.Types
 {
@@ -8,9 +9,12 @@ namespace RegressionGames.Types
     {
 
         private RGBotRunner _runner = null;
-        
-        public RGClientConnection_Local(long clientId, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
+        private RGBotDelegate _botDelegate = null;
+
+        public RGClientConnection_Local(long clientId, RGBotDelegate botDelegate, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
         {
+            _botDelegate = botDelegate;
+            _botDelegate.clientId = clientId;
         }
 
         public void SetBotRunner(RGBotRunner runner)
@@ -25,6 +29,12 @@ namespace RegressionGames.Types
 
         public override bool SendTeardown()
         {
+            if (_botDelegate != null)
+            {
+                Object.Destroy(_botDelegate);
+                _botDelegate = null;
+            }
+
             if (Connected())
             {
                 _runner.TeardownBot();
@@ -61,7 +71,7 @@ namespace RegressionGames.Types
         {
             return this._runner != null;
         }
-        
+
     }
-    
+
 }

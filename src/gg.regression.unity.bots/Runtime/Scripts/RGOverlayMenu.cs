@@ -13,7 +13,7 @@ namespace RegressionGames
     [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGOverlayMenu : MonoBehaviour
     {
-        
+
         public Image launcherIcon;
         public RGIconPulse launcherPulse;
 
@@ -28,7 +28,7 @@ namespace RegressionGames
         public GameObject botEntryPrefab;
 
         public TMP_Dropdown nextBotDropdown;
-        
+
         private static List<RGBotInstance> _activeBots = new ();
 
         private int lastCount = -1;
@@ -52,7 +52,7 @@ namespace RegressionGames
             rgServiceManager = GetComponent<RGServiceManager>();
             _this = this;
             DontDestroyOnLoad(_this.gameObject);
-            
+
             UpdateBots();
 
         }
@@ -93,17 +93,17 @@ namespace RegressionGames
                 for (int i =0; i< _activeBots.Count; i++)
                 {
                     RGBotInstance botEntry = _activeBots[i];
-                    
+
                     RectTransform rt = botEntryPrefab.GetComponent<RectTransform>();
                     Vector3 position = new Vector3(0f, rt.rect.height * -i, 0f);
-                    
+
                     GameObject newEntry = Instantiate(
                         original: botEntryPrefab,
                         parent: botListingRoot.transform
                         );
 
                     newEntry.transform.localPosition = position;
-                    
+
                     ActiveRGBotUIElement uiElement = newEntry.GetComponent<ActiveRGBotUIElement>();
                     uiElement.PopulateBotEntry(botEntry);
                 }
@@ -168,7 +168,7 @@ namespace RegressionGames
                                     // close the overlay so it doesn't hide components the bot needs to click
                                     OnOverlayClosed();
                                     RGBotServerListener.GetInstance()
-                                        ?.AddClientConnectionForBotInstance(botInstance.id,
+                                        ?.AddClientConnectionForBotInstance(botInstance.id, null,
                                             RGClientConnectionType.REMOTE);
                                 },
                                 () => { RGDebug.LogWarning("WARNING: Failed to start new Remote bot"); });
@@ -185,7 +185,7 @@ namespace RegressionGames
                 }
             }
         }
-        
+
         public void StopBotInstance(long id)
         {
             RGBotServerListener.GetInstance()?.HandleClientTeardown(id);
@@ -198,7 +198,7 @@ namespace RegressionGames
         {
             RGBotServerListener.GetInstance()?.TeardownAllClients();
         }
-        
+
         public void UpdateBots()
         {
             ConcurrentBag<RGBot> botBag = new ConcurrentBag<RGBot>();
@@ -210,13 +210,13 @@ namespace RegressionGames
             {
                 instances.Add(localBotInstance);
             }
-            
+
             var localBotDefinitions = RGBotAssetsManager.GetInstance()?.GetAvailableBots();
             foreach (var localBotDefinition in localBotDefinitions)
             {
-                botBag.Add(localBotDefinition);    
+                botBag.Add(localBotDefinition);
             }
-            
+
             // update the latest bot list from RGService
             _ = rgServiceManager.GetBotsForCurrentUser(
                 bots =>
@@ -270,7 +270,7 @@ namespace RegressionGames
                     else
                     {
                         ProcessBotUpdateList(instances);
-                        ProcessDropdownOptions(botBag); 
+                        ProcessDropdownOptions(botBag);
                     }
                 },
                 () =>
@@ -278,7 +278,7 @@ namespace RegressionGames
                     ProcessBotUpdateList(instances);
                     ProcessDropdownOptions(botBag);
                 });
-            
+
         }
 
         private void ProcessDropdownOptions(ConcurrentBag<RGBot> botBag)
@@ -286,13 +286,13 @@ namespace RegressionGames
             List<string> botStrings = botBag.Distinct().Select(bot => bot.UIString).ToList();
             // sort alpha
             botStrings.Sort();
-            
+
             List<TMP_Dropdown.OptionData> dropOptions = new ();
             foreach (var optionString in botStrings)
             {
                 dropOptions.Add(new TMP_Dropdown.OptionData(optionString));
             }
-            nextBotDropdown.options = dropOptions; 
+            nextBotDropdown.options = dropOptions;
         }
 
         private void ProcessBotUpdateList(ConcurrentBag<RGBotInstance> instances)
