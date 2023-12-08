@@ -13,7 +13,12 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public Vector3 size => (Vector3)this.GetValueOrDefault("size", Vector3.zero);
         public new Vector3 position => (Vector3)this.GetValueOrDefault("position", Vector3.zero);
         public bool breakable => (bool)this.GetValueOrDefault("breakable", false);
+        
+        public bool dropthroughAble => (bool)this.GetValueOrDefault("dropthroughAble", false);
+        
+        public bool jumpthroughAble => (bool)this.GetValueOrDefault("jumpthroughAble", false);
     }
+    
     
     /**
      * Provides state information about the tile grid in the current visible screen space.
@@ -23,7 +28,11 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     {
         
         public bool breakable = false;
-        
+
+        public bool dropthroughAble = false;
+
+        public bool jumpthroughAble = false;
+
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
@@ -50,16 +59,32 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                         var xPosition = lp.x + cellWidth / 2;
                         while (xPosition < lp.x + width)
                         {
-                            Gizmos.DrawWireSphere(new Vector3(xPosition, lp.y + cellHeight / 2, lp.z),
-                                cellWidth / 2);
+                            if (dropthroughAble || jumpthroughAble)
+                            {
+                                Gizmos.DrawWireCube(new Vector3(xPosition, lp.y + cellHeight / 2, lp.z),
+                                    new Vector3(cellWidth, cellHeight, 1));   
+                            }
+                            else
+                            {
+                                Gizmos.DrawWireSphere(new Vector3(xPosition, lp.y + cellHeight / 2, lp.z),
+                                    cellWidth / 2);
+                            }
                             xPosition += cellWidth;
                         }
                     }
                     else
                     {
-                        // just draw one big guess circle
-                        Gizmos.DrawWireSphere(new Vector3(lp.x + _lastSize.x / 2, lp.y + _lastSize.y / 2, lp.z),
-                            _lastSize.x / 2);
+                        if (dropthroughAble || jumpthroughAble)
+                        {
+                            Gizmos.DrawWireCube(new Vector3(lp.x + _lastSize.x / 2, lp.y + _lastSize.y / 2, lp.z),
+                                new Vector3(_lastSize.x, _lastSize.y, 1));
+                        }
+                        else
+                        {
+                            // just draw one big guess circle
+                            Gizmos.DrawWireSphere(new Vector3(lp.x + _lastSize.x / 2, lp.y + _lastSize.y / 2, lp.z),
+                                _lastSize.x / 2);
+                        }
                     }
                 }
             }
@@ -87,6 +112,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 
             return new Dictionary<string, object>()
             {
+                { "jumpthroughAble", jumpthroughAble},
+                { "dropthroughAble", dropthroughAble},
                 { "breakable", breakable},
                 { "size", _lastSize },
                 { "position", _lastPosition }

@@ -14,7 +14,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
         private long _botId;
         private string _botName;
-        private RGGizmos _rgGizmos;
+        private RGGizmos _rgGizmos = null;
 
         /**
          * <summary>
@@ -31,7 +31,10 @@ namespace RegressionGames.RGBotLocalRuntime
 
         public void OnEnable()
         {
-            _rgGizmos = new RGGizmos();
+            if (_rgGizmos == null)
+            {
+                _rgGizmos = new RGGizmos();
+            }
         }
 
         protected abstract bool GetIsSpawnable();

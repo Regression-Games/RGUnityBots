@@ -209,16 +209,15 @@ namespace RegressionGames.DebugUtils
         {
             lock (_lock)
             {
-                if (_lineGroups.Remove(groupId, out var lineNames))
+                if (_lineGroups.TryGetValue(groupId, out var lineNames))
                 {
-                    using var enumerator = lineNames.GetEnumerator();
-                    while (enumerator.MoveNext())
+                    foreach (object lineName in lineNames)
                     {
-                        var current = enumerator.Current;
-                        _linesFromEntityToPosition.Remove(current, out _);
-                        _linesFromEntityToEntity.Remove(current, out _);
-                        _linesFromPositionToPosition.Remove(current, out _);
+                        _linesFromEntityToPosition.Remove(lineName, out _);
+                        _linesFromEntityToEntity.Remove(lineName, out _);
+                        _linesFromPositionToPosition.Remove(lineName, out _);
                     }
+                    lineNames.Clear();
                 }
             }
         }
@@ -412,7 +411,10 @@ namespace RegressionGames.DebugUtils
                     var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item1);
                     if (originInstance != null)
                     {
-                        Debug.DrawLine(originInstance.transform.position, lineParams.Item2, lineParams.Item3);
+                        var color = Gizmos.color;
+                        Gizmos.color = lineParams.Item3;
+                        Gizmos.DrawLine(originInstance.transform.position, lineParams.Item2);
+                        Gizmos.color = color;
                     }
                 }
 
@@ -422,14 +424,19 @@ namespace RegressionGames.DebugUtils
                     var endInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item2);
                     if (originInstance != null && endInstance != null)
                     {
-                        Debug.DrawLine(originInstance.transform.position, endInstance.transform.position,
-                            lineParams.Item3);
+                        var color = Gizmos.color;
+                        Gizmos.color = lineParams.Item3;
+                        Gizmos.DrawLine(originInstance.transform.position, endInstance.transform.position);
+                        Gizmos.color = color;
                     }
                 }
 
                 foreach (var lineParams in _linesFromPositionToPosition.Values)
                 {
-                    Debug.DrawLine(lineParams.Item1, lineParams.Item2, lineParams.Item3);
+                    var color = Gizmos.color;
+                    Gizmos.color = lineParams.Item3;
+                    Gizmos.DrawLine(lineParams.Item1, lineParams.Item2);
+                    Gizmos.color = color;
                 }
 
                 // Draw spheres
