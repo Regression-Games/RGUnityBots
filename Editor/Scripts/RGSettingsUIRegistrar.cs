@@ -42,14 +42,15 @@ namespace RegressionGames.Editor
                 guiHandler = async (searchContext) =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
+                    SerializedObject userSettings = RGUserSettings.GetSerializedUserSettings();
                     EditorGUI.BeginChangeCheck();
                     
                     SerializedProperty hostField = settings.FindProperty("rgHostAddress");
                     hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
                     
-                    SerializedProperty emailField = settings.FindProperty("email");
+                    SerializedProperty emailField = userSettings.FindProperty("email");
                     emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
-                    SerializedProperty passwordField = settings.FindProperty("password");
+                    SerializedProperty passwordField = userSettings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
                     
                     SerializedProperty logLevel = settings.FindProperty("logLevel");

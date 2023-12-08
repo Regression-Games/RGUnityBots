@@ -70,7 +70,7 @@ namespace RegressionGames
                 else
                 {
                     RGDebug.LogDebug("Using username/password rather than env var for auth");
-                    RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+                    RGUserSettings rgSettings = RGUserSettings.GetOrCreateUserSettings();
                     string email = rgSettings.GetEmail();
                     string password = rgSettings.GetPassword();
 
