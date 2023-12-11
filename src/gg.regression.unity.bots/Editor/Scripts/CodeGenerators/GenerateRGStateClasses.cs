@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using RegressionGames.RGBotConfigs;
 using UnityEditor;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 #endif
@@ -20,7 +21,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
         public static void Generate(List<RGStateAttributesInfo> rgStateAttributesInfos)
         {
-            Dictionary<string, Task> fileWriteTasks = new(); 
+            Dictionary<string, Task> fileWriteTasks = new();
             foreach (var rgStateAttributeInfo in rgStateAttributesInfos)
             {
                 if (rgStateAttributeInfo.ShouldGenerateCSFile)
@@ -62,7 +63,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     // Create the Start method
                     var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
-                    
+
                     // Create the SEInstance method
                     var seInstanceMethod = GenerateGetTypeForStateEntityMethod(componentType);
 
@@ -71,6 +72,10 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     // Add the members to the class declaration
                     classDeclaration = classDeclaration
+                        .AddAttributeLists(AttributeList(SeparatedList(new [] {
+                            CodeGeneratorUtils.Attribute(typeof(DisallowMultipleComponent)),
+                            CodeGeneratorUtils.Attribute(typeof(RequireComponent), CodeGeneratorUtils.TypeOf(typeof(RGEntity)))
+                        })))
                         .AddMembers(fieldDeclaration, startMethod, seInstanceMethod, getStateMethod);
 
                     // Create namespace
@@ -100,11 +105,16 @@ namespace RegressionGames.Editor.CodeGenerators
                                     GenerateStateEntityFields(rgStateAttributeInfo.State)
                                 ),
                             classDeclaration
-
                         );
 
                     // Add the namespace declaration to the compilation unit
                     compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
+
+                    compilationUnit = compilationUnit.AddMembers(CodeGeneratorUtils.CreatePartialAttacherClass(
+                        rgStateAttributeInfo.NameSpace,
+                        componentType,
+                        typeof(RGEntity).FullName,
+                        $"RegressionGames.RGBotConfigs.{className}"));
 
                     // Get the full code text
                     var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
@@ -116,7 +126,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                     string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
                     Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    
+
                     var task= File.WriteAllTextAsync(filePath, fileContents);
                     fileWriteTasks[filePath] = task;
                 }
@@ -229,7 +239,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Add statements to add each state variable to the dictionary
             statements.AddRange(memberInfos.Select(mi =>
             {
-                ExpressionSyntax valueExpression = mi.FieldType == "method" 
+                ExpressionSyntax valueExpression = mi.FieldType == "method"
                     ? InvocationExpression(
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
@@ -276,9 +286,9 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return getStateMethod;
         }
-        
-        
-        
+
+
+
         private static MemberDeclarationSyntax[] GenerateStateEntityFields(List<RGStateAttributeInfo> memberInfos)
         {
             var fields = new List<MemberDeclarationSyntax>();
@@ -286,7 +296,7 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 fields.Add(GeneratePropertyDeclaration(memberInfo));
             }
-            
+
             return fields.ToArray();
         }
 
@@ -298,7 +308,7 @@ namespace RegressionGames.Editor.CodeGenerators
             if (specialNumberTypes.Contains(memberInfo.Type.ToLowerInvariant()))
             {
                 return GeneratePropertyDeclarationForNumbers(memberInfo);
-            } 
+            }
             // else generate regular format
             return GeneratePropertyDeclarationForNormalTypes(memberInfo);
         }
