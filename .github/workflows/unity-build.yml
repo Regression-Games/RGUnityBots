@@ -32,4 +32,5 @@ jobs:
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         with:
+          projectPath: src/RGUnityBots
           githubToken: ${{ secrets.GITHUB_TOKEN }}
