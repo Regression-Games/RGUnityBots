@@ -435,8 +435,7 @@ namespace RegressionGames.Editor.BotManagement
         {
             RGEditorUtils.CreateAllAssetFolders(BOTS_PATH);
 
-            var botFolderName = $"{botName}".Replace('-', 'n');
-            var folderString = $"{BOTS_PATH}/{botFolderName}";
+            var folderString = $"{BOTS_PATH}/{botName}";
 
             // If we're explicitly being told to replace the folder, and it exists, delete it first.
             if (replace && AssetDatabase.IsValidFolder(folderString))
@@ -445,7 +444,7 @@ namespace RegressionGames.Editor.BotManagement
                 AssetDatabase.DeleteAsset(folderString);
             }
 
-            var createdFolderGuid = AssetDatabase.CreateFolder(BOTS_PATH, botFolderName);
+            var createdFolderGuid = AssetDatabase.CreateFolder(BOTS_PATH, botName);
 
             // If there's already a folder named 'botFolderName', Unity will deduplicate the name and append a number.
             // It then returns the GUID of the created asset folder (which may have a different name).
