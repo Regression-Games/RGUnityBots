@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.RGBotConfigs;
@@ -15,6 +13,7 @@ namespace RegressionGames.DebugUtils
     // ReSharper disable once InconsistentNaming
     public class RGGizmos
     {
+
         private readonly object _lock = new object();
         
         const string BillboardTextAsset = "AgentBillboardText";
@@ -24,6 +23,8 @@ namespace RegressionGames.DebugUtils
         private readonly Dictionary<object, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
         private readonly Dictionary<object, (Vector3, Color, float, bool)> _spheresAtPosition = new();
         private readonly Dictionary<object, (int, Color, float, bool)> _spheresAtEntity = new();
+        private readonly Dictionary<object, (Vector3, Color, Vector3, bool)> _cubesAtPosition = new();
+        private readonly Dictionary<object, (int, Color, Vector3, bool)> _cubesAtEntity = new();
         private readonly Dictionary<int, (string, float)> _billboardsToDraw = new();
         private readonly Dictionary<int, GameObject> _drawnBillboards = new();
         private readonly Dictionary<object, List<object>> _lineGroups = new();
@@ -165,7 +166,6 @@ namespace RegressionGames.DebugUtils
         {
             lock (_lock)
             {
-
                 _linesFromEntityToPosition.Remove(name, out _);
                 _linesFromEntityToEntity.Remove(name, out _);
                 _linesFromPositionToPosition.Remove(name, out _);
@@ -209,16 +209,18 @@ namespace RegressionGames.DebugUtils
         {
             lock (_lock)
             {
-                if (_lineGroups.TryGetValue(groupId, out var lineNames))
+                if (!_lineGroups.TryGetValue(groupId, out var lineNames))
                 {
-                    foreach (object lineName in lineNames)
-                    {
-                        _linesFromEntityToPosition.Remove(lineName, out _);
-                        _linesFromEntityToEntity.Remove(lineName, out _);
-                        _linesFromPositionToPosition.Remove(lineName, out _);
-                    }
-                    lineNames.Clear();
+                    return;
                 }
+
+                foreach (var lineName in lineNames)
+                {
+                    _linesFromEntityToPosition.Remove(lineName, out _);
+                    _linesFromEntityToEntity.Remove(lineName, out _);
+                    _linesFromPositionToPosition.Remove(lineName, out _);
+                }
+                lineNames.Clear();
             }
         }
 
@@ -313,6 +315,100 @@ namespace RegressionGames.DebugUtils
             {
                 _spheresAtPosition.Clear();
                 _spheresAtEntity.Clear();
+            }
+        }
+        
+        /**
+         * <summary>
+         * Creates a cube at the given position. The cube will persist until removed using
+         * `DestroyCube(name)` or `DestroyAllCubes()`.
+         * </summary>
+         * <param name="position">The position of the cube.</param>
+         * <param name="color">The color of the cube.</param>
+         * <param name="size">The size of the cube.</param>
+         * <param name="isWireframe">Whether the cube should be rendered as a wireframe (true) or solid (false).</param>
+         * <param name="name">The name of the cube. Used to remove the cube later.</param>
+         * <example>
+         * <code>
+         * // Create a cube at the position (0, 0, 0) with the color red and a size of 0.4.
+         * RGGizmos.CreateCube(new Vector3(0, 0, 0), Color.red, 0.4f, false, "myCube");
+         * </code>
+         * </example>
+         * <seealso cref="DestroyCube"/>
+         * <seealso cref="DestroyAllCubes"/>
+         */
+        public void CreateCube(Vector3 position, Color color, Vector3 size, bool isWireframe, object name)
+        {
+            lock (_lock)
+            {
+                _cubesAtPosition[name] = (position, color, size, isWireframe);
+            }
+        }
+
+        /**
+             * <summary>
+             * Creates a cube at the origin of the entity with the given id. The cube will persist until removed using
+             * `DestroyCube(name)` or `DestroyAllCubes()`.
+             * </summary>
+             * <param name="entityId">The entity of the id to place this cube.</param>
+             * <param name="color">The color of the cube.</param>
+             * <param name="size">The size of the cube.</param>
+             * <param name="isWireframe">Whether the cube should be rendered as a wireframe (true) or solid (false).</param>
+             * <param name="name">The name of the cube. Used to remove the cube later.</param>
+             * <example>
+             * <code>
+             * // Create a cube at the origin of an entity with id 1 with the color red and a size of 0.4.
+             * RGGizmos.CreateCube(1, Color.red, 0.4f, false, "myCube");
+             * </code>
+             * </example>
+             * <seealso cref="DestroyCube"/>
+             * <seealso cref="DestroyAllCubes"/>
+             */
+        public void CreateCube(int entityId, Color color, Vector3 size, bool isWireframe, object name)
+        {
+            lock (_lock)
+            {
+                _cubesAtEntity[name] = (entityId, color, size, isWireframe);
+            }
+        }
+
+        /**
+             * <summary>
+             * Destroys a cube with the given name. If no cube with the given name exists, nothing happens.
+             * </summary>
+             * <param name="name">The name of the cube to destroy.</param>
+             * <example>
+             * <code>
+             * RGGizmos.DestroyCube("myCube");
+             * </code>
+             * </example>
+             */
+        public void DestroyCube(object name)
+        {
+            lock (_lock)
+            {
+                _cubesAtPosition.Remove(name, out _);
+                _cubesAtEntity.Remove(name, out _);
+            }
+        }
+
+        /**
+         * <summary>
+         * Destroys all cubes created.
+         * </summary>
+         * <example>
+         * <code>
+         * RGGizmos.DestroyAllCubes();
+         * </code>
+         * </example>
+         * <seealso cref="DestroyCube"/>
+         */
+        public void DestroyAllCubes()
+        {
+            lock (_lock)
+            {
+                _cubesAtPosition.Clear();
+                _cubesAtEntity.Clear();
             }
         }
 
@@ -438,6 +534,37 @@ namespace RegressionGames.DebugUtils
                     Gizmos.DrawLine(lineParams.Item1, lineParams.Item2);
                     Gizmos.color = color;
                 }
+                
+                // Draw cubes
+                foreach (var cubeParams in _cubesAtPosition.Values)
+                {
+                    if (cubeParams.Item4)
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawWireCube(cubeParams.Item1, cubeParams.Item3);
+                    }
+                    else
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawCube(cubeParams.Item1, cubeParams.Item3);
+                    }
+                }
+
+                foreach (var cubeParams in _cubesAtEntity.Values)
+                {
+                    var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(cubeParams.Item1);
+                    if (originInstance == null) continue;
+                    if (cubeParams.Item4)
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawWireCube(originInstance.transform.position, cubeParams.Item3);
+                    }
+                    else
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawCube(originInstance.transform.position, cubeParams.Item3);
+                    }
+                }
 
                 // Draw spheres
                 foreach (var sphereParams in _spheresAtPosition.Values)
@@ -484,7 +611,8 @@ namespace RegressionGames.DebugUtils
                     try
                     {
                         // First, skip this billboard if the entity does not exist anymore
-                        var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
+                        var entityGameObject =
+                            RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
                         if (entityGameObject == null)
                         {
                             _drawnBillboards.Remove(billboardParams.Key, out _);
@@ -506,15 +634,13 @@ namespace RegressionGames.DebugUtils
                             continue;
                         }
 
-                        ;
-
                         // Then set the parameters
                         var billboardText = billboard.GetComponent<BillboardText>();
                         billboardText.content = billboardParams.Value.Item1;
                         billboardText.yOffset = billboardParams.Value.Item2;
                         billboardText.target = entityGameObject.gameObject;
                     }
-                    catch (MissingReferenceException e)
+                    catch (MissingReferenceException)
                     {
                         // If an exception occurred, it's likely that the existing entity was destroyed.
                         // In that case, just remove the billboard from the list of drawn billboards.
@@ -523,8 +649,7 @@ namespace RegressionGames.DebugUtils
 
                 }
             }
-
         }
-        
+
     }
 }

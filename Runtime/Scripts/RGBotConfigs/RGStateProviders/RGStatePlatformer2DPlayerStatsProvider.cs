@@ -13,11 +13,6 @@ namespace RGBotConfigs.RGStateProviders
         public float MaxVelocity();
         
         /**
-         * <summary> Get the current height that the player can jump </summary>
-         */
-        public float JumpHeight();
-        
-        /**
          * <summary> Get the max height that the player can jump</summary>
          */
         public float MaxJumpHeight();
@@ -31,11 +26,6 @@ namespace RGBotConfigs.RGStateProviders
          * <summary> Get the current max non fatal fall height for the player.  From this height the player will take damage, but will not die from the fall. &lt;0 means they can fall any height without damage </summary>
          */
         public float NonFatalFallHeight();
-
-        /**
-         * <summary>Is the player on the ground and not in a state of jumping </summary>
-         */
-        public bool IsOnGround();
 
         /**
          * <summary>Gravity unit to use for calculations</summary>

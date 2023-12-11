@@ -27,10 +27,6 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip("Draw debug gizmos for player locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
-        [Tooltip("The current height that the player can jump.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
-        [Min(0f)]
-        public float jumpHeight;
-
         [Tooltip(
             "The max height that the player can jump.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float maxJumpHeight;
@@ -51,8 +47,6 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip(
             "The gravity value (negative) to use in fall and jump calculations.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float gravity = -9.81f;
-        
-        private bool isOnGround = false;
 
         private Vector2? _truePosition = null;
 
@@ -68,13 +62,11 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         {
             if (_statsProvider is not null)
             {
-                jumpHeight = _statsProvider.JumpHeight();
                 maxJumpHeight = _statsProvider.MaxJumpHeight();
                 velocity = _statsProvider.Velocity();
                 maxVelocity = _statsProvider.MaxVelocity();
                 safeFallHeight = _statsProvider.SafeFallHeight();
                 nonFatalFallHeight = _statsProvider.NonFatalFallHeight();
-                isOnGround = _statsProvider.IsOnGround();
                 gravity = _statsProvider.Gravity();
             }
             _truePosition = GetTruePosition();
@@ -82,13 +74,11 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             {
                 // override the meaning of position to be centered at player collider feet
                 {"position", (Vector3)(Vector2)_truePosition},
-                {"jumpHeight", jumpHeight},
                 {"maxJumpHeight", maxJumpHeight},
                 {"velocity", velocity},
                 {"maxVelocity", maxVelocity},
                 {"safeFallHeight", safeFallHeight},
                 {"nonFatalFallHeight", nonFatalFallHeight},
-                {"isOnGround", isOnGround},
                 {"gravity", gravity}
             };
         }

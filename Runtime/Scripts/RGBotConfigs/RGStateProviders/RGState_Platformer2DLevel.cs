@@ -11,7 +11,6 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     {
         public Vector2 position;
         
-        //TODO: Remove these concepts as this only accounts for the tileMap, not other objects
         // used by pathfinding to know if this has a wall adjoining it
         public bool blockedRight = false;
         // used by pathfinding to know if this has a wall adjoining it
@@ -75,7 +74,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             var currentBounds = tileMap.cellBounds;
             var cellBounds = currentBounds;
             
-            // limit the conveyed state to the current camera space
+            // limit the conveyed state to the current camera space plus some overrun
             if (currentCamera != null)
             {
                 var screenHeight = currentCamera.pixelHeight;
@@ -89,8 +88,9 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 var tileTopRight = tileMap.WorldToCell(topRight);
                 tileTopRight.z = currentBounds.zMax;
 
-                // ?? * the max size of the screen size in either dimension
+                // some amount bigger than the max size of the screen size in either dimension
                 // this needs to be big enough to avoid getting 'stuck' without a path nearer to the goal
+                // but not so huge that we destroy the framerate considering irrelevant information
                 var fractionOfX = (tileTopRight.x - tileBottomLeft.x) / 2;
                 var fractionOfY = (tileTopRight.y - tileBottomLeft.y) / 2;
 
@@ -98,19 +98,21 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 tileBottomLeft.x -= fraction;
                 tileTopRight.x += fraction;
                 
-                tileBottomLeft.y -= fraction;
+                // limit y to the bottom of the tilemap
+                tileBottomLeft.y = Math.Max(tileBottomLeft.y-fraction, cellBounds.yMin);
+                
                 tileTopRight.y += fraction;
 
                 currentBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
-                
+
                 // limit this to the edges of the tilemap itself
-                tileBottomLeft.x = Math.Max(currentBounds.xMin, tileBottomLeft.x);
-                tileBottomLeft.y = Math.Max(currentBounds.yMin, tileBottomLeft.y);
+                var cellBoundsBottomLeft = new Vector3Int(Math.Max(currentBounds.xMin, cellBounds.xMin),
+                    Math.Max(currentBounds.yMin, cellBounds.yMin), cellBounds.zMin);
                 
-                tileTopRight.x = Math.Min(currentBounds.xMax, tileTopRight.x);
-                tileTopRight.y = Math.Min(currentBounds.yMax, tileTopRight.y);
-                
-                cellBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
+                var cellBoundsTopRight = new Vector3Int( Math.Min(currentBounds.xMax, cellBounds.xMax),
+                    Math.Min(currentBounds.yMax, cellBounds.yMax), cellBounds.zMax);
+
+                cellBounds = new BoundsInt(cellBoundsBottomLeft, cellBoundsTopRight - cellBoundsBottomLeft);
             }
 
             //performance optimization to avoid computing these over and over in the loops
@@ -120,6 +122,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             };
             
             var safePositions = new List<RGPlatformer2DPosition>();
+            // avoid re-constructing many Vector3s for perf and GC
+            var cellPlace = Vector3Int.zero; 
             for (int x = minMax[0]; x <= minMax[1]; x++)
             {
                 for (int y = minMax[2]; y <= minMax[3]; y++)
@@ -128,15 +132,17 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                     {
                         var cellY = y;
                         // checks for colliders to avoid decoration sprites being considered
-                        var cellPlace = new Vector3Int(x, y, z);
+
+                        cellPlace.Set(x,y,z);
+                        
                         var tileCollider = tileMap.GetColliderType(cellPlace);
                         if (tileCollider != Tile.ColliderType.None)
                         {
                             Vector3Int? finalSpotAbove = null;
                             
                             ++cellY;
-                            // faster than += on Vectors
-                            cellPlace = new Vector3Int(x, cellY, z);
+                            
+                            cellPlace.y = cellY;
                             tileCollider = tileMap.GetColliderType(cellPlace);
                             //see if there is a tile above it or not
                             if (tileCollider == Tile.ColliderType.None)
@@ -144,11 +150,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                                 finalSpotAbove = cellPlace;
                             }
   
-                            if (finalSpotAbove is not null)
+                            if (finalSpotAbove != null)
                             {
                                 Vector3 place = tileMap.CellToWorld((Vector3Int)finalSpotAbove);
-                                var blockedRight = tileMap.GetColliderType(new Vector3Int(x+1,y+1, z)) != Tile.ColliderType.None;
-                                var blockedLeft = tileMap.GetColliderType(new Vector3Int(x-1,y+1, z)) != Tile.ColliderType.None;
+                                // avoid constructing or adding vectors if we can... performance reasons
+                                cellPlace.Set(x+1,y+1,z);
+                                var blockedRight = tileMap.GetColliderType(cellPlace) != Tile.ColliderType.None;
+                                // avoid constructing or adding vectors if we can... performance reasons
+                                cellPlace.x = x - 1;
+                                var blockedLeft = tileMap.GetColliderType(cellPlace) != Tile.ColliderType.None;
                                 var spot = new RGPlatformer2DPosition
                                 {
                                     position = place,

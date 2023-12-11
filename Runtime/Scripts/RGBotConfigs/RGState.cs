@@ -20,15 +20,31 @@ namespace RegressionGames.RGBotConfigs
         // ReSharper disable once InconsistentNaming
         // we require each state to have an 'RGEntity' component
         protected RGEntity rgEntity => GetComponent<RGEntity>();
+
+        private readonly Dictionary<string, object> _emptyDictionary = new();
+        private IRGStateEntity _myStateEntity = null;
         
         /**
          * <summary>A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
          * object, or their inventory information</summary>
          */
+        [Obsolete("Use PopulateRGEntityState(IRGStateEntity}")]
         protected virtual Dictionary<string, object> GetState()
         {
-            return new Dictionary<string, object>();
+            return null;
+        }
+
+        // ReSharper disable once InconsistentNaming
+        /**
+         * <summary>A function that is overriden to provide the custom state of this specific GameObject.
+         * For example, you may want to retrieve and set the health of a player on the returned
+         * object, or their inventory information.
+         * This implementation passes in the created IRGStateEntity to be populated.</summary>
+         */
+        protected virtual void PopulateRGEntityState(IRGStateEntity stateEntity)
+        {
+            // do nothing... override me
         }
 
         /**
@@ -38,14 +54,17 @@ namespace RegressionGames.RGBotConfigs
         public IRGStateEntity GetGameObjectState()
         {
             var state = CreateStateEntityClassInstance();
-
-            var dict = GetState();
-            foreach (var entry in dict)
+            PopulateRGEntityState(state);
+            
+            // support deprecated/obsolete way of populating state that caused too many GC allocations
+            var oldWayToDoState = GetState();
+            if (oldWayToDoState != null)
             {
-                // allow overriding default or everything state fields like position, etc
-                state[entry.Key] = entry.Value;
+                foreach (var (key,value) in oldWayToDoState)
+                {
+                    state[key] = value;
+                }
             }
-
             return state;
         }
         
@@ -53,7 +72,7 @@ namespace RegressionGames.RGBotConfigs
         {
             return typeof(RGStateEntity<RGState>);
         }
-
+        
         /**
          * <summary>A function that is overridden to supply a custom implementation of RGStateEntity.
          * This allows more natural coding when working with the state for local C# Unity bots vs accessing entries in a Dictionary.</summary>
@@ -61,23 +80,26 @@ namespace RegressionGames.RGBotConfigs
          */
         private IRGStateEntity CreateStateEntityClassInstance()
         {
-            var type = GetTypeForStateEntity();
-            if (!typeof(IRGStateEntity).IsAssignableFrom(type))
+            if (_myStateEntity == null)
             {
-                throw new Exception(
-                    $"Invalid Type returned from GetTypeForStateEntity() in class {this.GetType().FullName}.  Type must implement IRGStateEntity.");
+                var type = GetTypeForStateEntity();
+                if (!typeof(IRGStateEntity).IsAssignableFrom(type))
+                {
+                    throw new Exception(
+                        $"Invalid Type returned from GetTypeForStateEntity() in class {this.GetType().FullName}.  Type must implement IRGStateEntity.");
+                }
+
+                _myStateEntity = (IRGStateEntity)Activator.CreateInstance(type);
             }
-            return (IRGStateEntity)Activator.CreateInstance(type);
+
+            return _myStateEntity;
         }
-        
-        
+
         // Used to fill in the core state for any RGEntity that does NOT have an
         // RGState implementation on its game object
         public static IRGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
         {
             IRGStateEntity state;
-
-            
             // if button.. include whether it is interactable
             var button = rgEntity.Button;
             if (button != null)

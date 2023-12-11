@@ -10,22 +10,21 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     [Serializable]
     public class RGStateEntity_Platformer2DPlatformOrBlock : RGStateEntity<RGState_Platformer2DPlatformOrBlock>
     {
-        public Vector3 size => (Vector3)this.GetValueOrDefault("size", Vector3.zero);
-        public new Vector3 position => (Vector3)this.GetValueOrDefault("position", Vector3.zero);
-        public bool breakable => (bool)this.GetValueOrDefault("breakable", false);
-        
-        public bool dropthroughAble => (bool)this.GetValueOrDefault("dropthroughAble", false);
-        
-        public bool jumpthroughAble => (bool)this.GetValueOrDefault("jumpthroughAble", false);
+        public Vector3 size => (Vector3)this["size"];
+        public new Vector3 position => (Vector3)this["position"];
+        public bool breakable => (bool)this["breakable"];
+        public bool movable => (bool)this["movable"];
+        public bool dropthroughAble => (bool)this["dropthroughAble"];
+        public bool jumpthroughAble => (bool)this["jumpthroughAble"];
     }
-    
-    
+
     /**
      * Provides state information about the tile grid in the current visible screen space.
      */
     [Serializable]
     public class RGState_Platformer2DPlatformOrBlock: RGState
     {
+        public bool movable = false;
         
         public bool breakable = false;
 
@@ -37,10 +36,13 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public bool renderDebugGizmos = true;
 
         private RGState_Platformer2DLevel levelState;
+
+        private Collider2D colliderThing;
         
         private void OnEnable()
         {
             levelState = FindObjectOfType<RGState_Platformer2DLevel>();
+            colliderThing = GetComponentInChildren<Collider2D>();
         }
 
         private void OnDrawGizmos()
@@ -91,12 +93,11 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         }
 
         private Vector3 _lastSize = Vector3.one;
-        private Vector3? _lastPosition = null;
+        private Vector3 _lastPosition = Vector3.zero;
 
-        protected override Dictionary<string, object> GetState()
+
+        protected override void PopulateRGEntityState(IRGStateEntity stateEntity)
         {
-
-            var colliderThing = GetComponentInChildren<Collider2D>();
             if (colliderThing == null)
             {
                 throw new Exception(
@@ -105,19 +106,33 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 
             var bounds = colliderThing.bounds;
             var minBounds = bounds.min;
-            var size = bounds.size;
+            _lastSize = bounds.size;
+            
             // faster than adding vector3s
-            _lastPosition = new Vector3(minBounds.x, minBounds.y + size.y, minBounds.z);
-            _lastSize = size;
+            _lastPosition = new Vector3(minBounds.x, minBounds.y + _lastSize.y, minBounds.z);
 
-            return new Dictionary<string, object>()
+            // avoid all this allocation and set after first call
+            if (!stateEntity.ContainsKey("jumpthroughAble"))
             {
-                { "jumpthroughAble", jumpthroughAble},
-                { "dropthroughAble", dropthroughAble},
-                { "breakable", breakable},
-                { "size", _lastSize },
-                { "position", _lastPosition }
-            };
+                stateEntity["jumpthroughAble"] = jumpthroughAble;
+                stateEntity["dropthroughAble"] = dropthroughAble;
+                stateEntity["breakable"] = breakable;
+                stateEntity["movable"] = movable;
+                stateEntity["size"] = _lastSize;
+                stateEntity["position"] = _lastPosition;
+            }
+            // set every time if movable
+            if (movable)
+            {
+                stateEntity["position"] = _lastPosition;
+            }
+        }
+
+        protected override Dictionary<string, object> GetState()
+        {
+            // obsolete
+            return null;
+
         }
 
         protected override Type GetTypeForStateEntity()
