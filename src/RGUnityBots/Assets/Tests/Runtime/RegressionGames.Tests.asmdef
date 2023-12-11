@@ -1,0 +1,9 @@
+{
+    "name": "RegressionGames.Tests",
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "references": [
+        "RegressionGames"
+    ]
+}
