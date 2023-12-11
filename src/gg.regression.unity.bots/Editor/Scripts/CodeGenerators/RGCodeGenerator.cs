@@ -187,6 +187,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 Directory.Delete(directoryToDelete, true);
                 File.Delete(directoryToDelete + ".meta");
             }
+
             GenerateRGSerializationClass.Generate(actionInfos);
             GenerateRGActionClasses.Generate(actionInfos);
             GenerateRGActionMapClass.Generate(actionInfos);
@@ -457,24 +458,6 @@ namespace RegressionGames.Editor.CodeGenerators
                                 hasError = true;
                             }
                         }
-                        else if (member is DelegateDeclarationSyntax delegateDeclaration)
-                        {
-                            if (!delegateDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
-                            {
-                                RecordError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
-                                hasError = true;
-                            }
-                            else if (delegateDeclaration.ParameterList.Parameters.Count > 0)
-                            {
-                                RecordError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
-                                hasError = true;
-                            }
-                            else if (delegateDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
-                            {
-                                RecordError($"Error: Delegate '{delegateDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
-                                hasError = true;
-                            }
-                        }
                         else if (member is PropertyDeclarationSyntax propertyDeclaration)
                         {
                             if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
@@ -490,8 +473,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             continue;
                         }
 
-                        string fieldType = member is MethodDeclarationSyntax or DelegateDeclarationSyntax ? "method" : "variable";
-
+                        string fieldType = member is MethodDeclarationSyntax ? "method" : "variable";
                         string fieldName = null;
                         string type = null;
                         switch (member)
@@ -505,12 +487,6 @@ namespace RegressionGames.Editor.CodeGenerators
                                 fieldName = property.Identifier.ValueText;
                                 type = RemoveGlobalPrefix(semanticModel
                                     .GetTypeInfo(property.Type)
-                                    .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                                break;
-                            case DelegateDeclarationSyntax del:
-                                fieldName = del.Identifier.ValueText;
-                                type = RemoveGlobalPrefix(semanticModel
-                                    .GetTypeInfo(del.ReturnType)
                                     .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                                 break;
                             case MethodDeclarationSyntax method:
@@ -617,10 +593,10 @@ namespace RegressionGames.Editor.CodeGenerators
                         var rgStateClassName = classSymbol.BaseType.TypeArguments[0].ToDisplayString();
 
                         // for now we assume RGStateEntity is directly subclassed; if we allow nesting.. then we'll need to get the members from the parent type as well
-                        var publicMembersAndDelegates = classDeclaration.Members
+                        var publicMembers = classDeclaration.Members
                             .Where(m => m.Modifiers.Any());
 
-                        foreach (var member in publicMembersAndDelegates)
+                        foreach (var member in publicMembers)
                         {
                             string fieldName;
                             string type;
