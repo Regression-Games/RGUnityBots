@@ -1,0 +1,13 @@
+{
+    "name": "RegressionGames.Editor.Tests",
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "references": [
+        "RegressionGames",
+        "RegressionGames.Editor"
+    ]
+}
