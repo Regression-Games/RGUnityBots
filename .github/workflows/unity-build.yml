@@ -32,9 +32,18 @@ jobs:
             Library-
 
       - name: Run Unity Tests
+        id: run-unity-tests
         uses: game-ci/unity-test-runner@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         with:
           projectPath: src/RGUnityBots
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: Test results
+          path: ${{ steps.run-unity-tests.outputs.artifactsPath }}
+              
