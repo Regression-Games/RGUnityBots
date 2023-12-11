@@ -8,13 +8,11 @@ namespace RegressionGames
     
     public class RGSettings: ScriptableObject
     {
-        public const string SETTINGS_PATH = "Assets/RGSettings.asset";
+        private const string SETTINGS_PATH = "Assets/RGSettings.asset";
 
         [SerializeField] private bool useSystemSettings;
         [SerializeField] private bool enableOverlay;
         [SerializeField] private int numBots;
-        [SerializeField] private string email;
-        [SerializeField] private string password;
         [SerializeField] private long[] botsSelected;
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
@@ -51,8 +49,6 @@ namespace RegressionGames
                 _settings.useSystemSettings = true;
                 _settings.enableOverlay = true;
                 _settings.numBots = 0;
-                _settings.email = "";
-                _settings.password = "";
                 _settings.botsSelected = Array.Empty<long>();
                 _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
@@ -142,26 +138,6 @@ namespace RegressionGames
             return numBots;
         }
 
-        public string GetEmail()
-        {
-            return email;
-        }
-
-        public void SetEmail(string newEmail)
-        {
-            email = newEmail;
-        }
-        
-        public string GetPassword()
-        {
-            return password;
-        }
-
-        public void SetPassword(string newPassword)
-        {
-            password = newPassword;
-        }
-        
         public long[] GetBotsSelected()
         {
             return botsSelected;

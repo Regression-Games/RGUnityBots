@@ -50,8 +50,8 @@ public class RegressionPackagePopup : EditorWindow
     public static async void ShowWindow()
     {
         // attempt a login with saved credentials
-        email = RGSettings.GetOrCreateSettings().GetEmail();
-        password = RGSettings.GetOrCreateSettings().GetPassword();
+        email = RGUserSettings.GetOrCreateUserSettings().GetEmail();
+        password = RGUserSettings.GetOrCreateUserSettings().GetPassword();
         await Login();
         
         if (window == null)
@@ -437,7 +437,7 @@ public class RegressionPackagePopup : EditorWindow
             return;
         }
 
-        var settings = RGSettings.GetOrCreateSettings();
+        var settings = RGUserSettings.GetOrCreateUserSettings();
         settings.SetEmail(email);
         settings.SetPassword(password);
         RGSettings.OptionsUpdated();
