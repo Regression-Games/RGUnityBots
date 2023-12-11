@@ -38,13 +38,47 @@ namespace RegressionGames.Editor.BotManagement
         [MenuItem("Regression Games/Create New Bot")]
         private static void CreateNewBot()
         {
+            // Create our bot folder if it doesn't exist
+            RGEditorUtils.CreateAllAssetFolders(BOTS_PATH);
+
+            // prompt the user to choose a folder
+            var newBotPath = EditorUtility.SaveFilePanelInProject(
+                "Create a new RegressionGames Bot",
+                "NewRGBot",
+                "",
+                "Enter the name of the new bot.",
+                BOTS_PATH);
+            if (string.IsNullOrEmpty(newBotPath))
+            {
+                // The user cancelled
+                return;
+            }
+
+            var botName = RGEditorUtils.GetAssetPathLeaf(newBotPath);
+            var botParentPath = RGEditorUtils.GetAssetPathParent(newBotPath);
+            RGEditorUtils.CreateAllAssetFolders(botParentPath);
+            var botFolderGuid = AssetDatabase.CreateFolder(botParentPath, botName);
+            var botFolder = AssetDatabase.GUIDToAssetPath(botFolderGuid);
+
+            // Create the bot assets
             var botId = RGSettings.GetOrCreateSettings().GetNextBotId();
+            _this.CreateNewBotAssets(botFolder, botName, botId);
 
-            // create a new bot folder
-            var folderName = _this.CreateBotFolder("NewRGBot", botId, replace: false);
-
-            // create the assets
-            _this.CreateNewBotAssets(folderName, "NewRGBot", botId);
+            // Make sure we can find the entry point.
+            var entryPointPath = $"{botFolder}/BotEntryPoint.cs";
+            var entryPointScript = AssetDatabase.LoadAssetAtPath<MonoScript>(entryPointPath);
+            if (entryPointScript != null)
+            {
+                // If we can, ask the user if they want to open it.
+                var openNow = EditorUtility.DisplayDialog("Bot Created",
+                    $"Created a new RegressionGames bot at {newBotPath}. Would you like to open the entrypoint script now?",
+                    "Yes",
+                    "No");
+                if (openNow)
+                {
+                    AssetDatabase.OpenAsset(entryPointScript);
+                }
+            }
         }
 
         /**
@@ -84,7 +118,8 @@ namespace RegressionGames.Editor.BotManagement
                 EditorUtility.DisplayProgressBar("Synchronizing Regression Games Bots",
                     "Retrieving current bots from Regression Games", 0.2f);
 
-                var localBots = RGBotAssetsManager.GetInstance()?.GetAvailableBots() ?? new List<RGBot>();
+                var localBotAssets = RGBotAssetsManager.GetInstance()?.GetAvailableBotAssets() ?? new List<RGBotAsset>();
+                var localBots = localBotAssets.Select(b => b.Bot).ToList();
 
                 var remoteBots = await _this.GetBotsFromRG();
 
@@ -94,15 +129,16 @@ namespace RegressionGames.Editor.BotManagement
                 // create remote bot records for any local bots that don't exist on RG
                 var countCreatedRemote = 0;
                 var botsNeedingCreation =
-                    localBots.Where(lb => remoteBots.FirstOrDefault(rb => rb.id == lb.id) == null);
-                foreach (var rgBot in botsNeedingCreation)
+                    localBotAssets.Where(lb => remoteBots.FirstOrDefault(rb => rb.id == lb.Bot.id) == null);
+                foreach (var botAsset in botsNeedingCreation)
                 {
                     await _rgServiceManager.CreateBot(
-                        new RGCreateBotRequest(rgBot.name),
+                        new RGCreateBotRequest(botAsset.Bot.name),
                         (botResult) =>
                         {
                             // update the id of the local bot
-                            rgBot.id = botResult.id;
+                            botAsset.Bot.id = botResult.id;
+                            EditorUtility.SetDirty(botAsset);
                             ++countCreatedRemote;
                             remoteBots.Add(botResult);
                         }, () => { }
@@ -204,7 +240,7 @@ namespace RegressionGames.Editor.BotManagement
         private async Task CreateLocalBotRecordFromRG(RGBot newRemoteBot, bool replace)
         {
             //Create directory
-            string botFolderPath = _this.CreateBotFolder(newRemoteBot.name, newRemoteBot.id, replace);
+            string botFolderPath = _this.CreateDefaultBotFolder(newRemoteBot.name, replace);
 
             string zipDownloadPath = ZipPathForBot(newRemoteBot.id);
 
@@ -390,34 +426,16 @@ namespace RegressionGames.Editor.BotManagement
             return md5;
         }
 
-        private void CreateParentFolders()
-        {
-            if (!AssetDatabase.IsValidFolder("Assets/RegressionGames"))
-            {
-                AssetDatabase.CreateFolder("Assets", "RegressionGames");
-            }
-
-            if (!AssetDatabase.IsValidFolder("Assets/RegressionGames/Runtime"))
-            {
-                AssetDatabase.CreateFolder("Assets/RegressionGames", "Runtime");
-            }
-
-            if (!AssetDatabase.IsValidFolder(BOTS_PATH))
-            {
-                AssetDatabase.CreateFolder("Assets/RegressionGames/Runtime", "Bots");
-            }
-        }
-
         /**
-         * <summary>Creates a folder and any needed parent folders for the given botname/botId pair.</summary>
+         * <summary>Creates a folder and any needed parent folders for the given botname in the default bot path.</summary>
          * <param name="replace">If <c>true</c>, any existing content in this directory will be replaced.</param>
          * <returns>String path of the folder</returns>
          */
-        private string CreateBotFolder(string botName, long botId, bool replace)
+        private string CreateDefaultBotFolder(string botName, bool replace)
         {
-            CreateParentFolders();
-            var botFolderName = $"{botName}_{botId}".Replace('-', 'n');
-            var folderString = $"{BOTS_PATH}/{botFolderName}";
+            RGEditorUtils.CreateAllAssetFolders(BOTS_PATH);
+
+            var folderString = $"{BOTS_PATH}/{botName}";
 
             // If we're explicitly being told to replace the folder, and it exists, delete it first.
             if (replace && AssetDatabase.IsValidFolder(folderString))
@@ -426,15 +444,22 @@ namespace RegressionGames.Editor.BotManagement
                 AssetDatabase.DeleteAsset(folderString);
             }
 
-            AssetDatabase.CreateFolder(BOTS_PATH, botFolderName);
-            return folderString;
+            var createdFolderGuid = AssetDatabase.CreateFolder(BOTS_PATH, botName);
+
+            // If there's already a folder named 'botFolderName', Unity will deduplicate the name and append a number.
+            // It then returns the GUID of the created asset folder (which may have a different name).
+            return AssetDatabase.GUIDToAssetPath(createdFolderGuid);
         }
 
         private void CreateNewBotAssets(string folderName, string botName, long botId)
         {
             RGDebug.LogInfo($"Creating new Regression Games Unity bot at path {folderName}");
-            // unity assets always use '/' regardless of Operating System
-            var botFolderShortName = folderName.Substring(folderName.LastIndexOf('/')+1);
+
+            if (!AssetDatabase.IsValidFolder(folderName))
+            {
+                // This is a precondition the caller should check.
+                throw new InvalidOperationException($"Bot folder {folderName} should already exist.");
+            }
 
             // create `Bot` record asset
             CreateBotAssetFile(folderName, botName, botId, null);
@@ -444,7 +469,7 @@ namespace RegressionGames.Editor.BotManagement
             // create bot starter script (copy the entry point script and fix the namespace in the file)
             var bytes = File.ReadAllBytes("Packages/gg.regression.unity.bots/Runtime/Scripts/RGBotLocalRuntime/Template/BotEntryPoint.cs.template");
             var utfString = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
-            utfString = utfString.Replace("<TEMPLATE_NAMESPACE>", botFolderShortName);
+            utfString = utfString.Replace("<TEMPLATE_NAMESPACE>", botName);
 
             File.WriteAllBytes(entryPointPath, Encoding.UTF8.GetBytes(utfString, 0, utfString.Length));
             RGDebug.LogInfo($"Regression Games Unity bot successfully created at path {folderName}");

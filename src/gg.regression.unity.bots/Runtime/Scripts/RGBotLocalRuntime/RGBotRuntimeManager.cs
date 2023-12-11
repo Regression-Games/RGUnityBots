@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using RegressionGames.Types;
+using UnityEditor;
 using UnityEngine;
 using Random = System.Random;
 
@@ -13,7 +14,7 @@ namespace RegressionGames.RGBotLocalRuntime
     public class RGBotRuntimeManager: MonoBehaviour
     {
         private static RGBotRuntimeManager _this = null;
-        
+
         private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
 
         public static RGBotRuntimeManager GetInstance()
@@ -58,22 +59,22 @@ namespace RegressionGames.RGBotLocalRuntime
             var botAssetRecord = RGBotAssetsManager.GetInstance().GetBotAssetRecord(botId);
             if (botAssetRecord != null)
             {
- 
-                // Handle bot namespace with priority being botName_botId
-                // but fall back to botDirectoryName as that is the namespace before bots are synced
-                // to RG as we don't know the real botId yet                
+                // Find the bot entry point script
+                var entryPointPath = $"{botAssetRecord.Path}/BotEntryPoint.cs";
+                var entryPointScript = AssetDatabase.LoadAssetAtPath<MonoScript>(entryPointPath);
+                if (entryPointScript == null)
+                {
+                    RGDebug.LogError($"Could not find bot entry point script at {entryPointPath}.");
+                    return 0;
+                }
+
+                var entryPointType = entryPointScript.GetClass();
+                RGDebug.LogVerbose($"Bot Entry Point {entryPointType.FullName} located at {entryPointPath}");
+
                 RGUserBot userBotCode = null;
-                // if negative, replace the minus sign with an 'n'
-                var botIdKey = (botAssetRecord.BotAsset.Bot.id < 0)
-                    ? $"_n{-1 * botAssetRecord.BotAsset.Bot.id}"
-                    : $"_{botAssetRecord.BotAsset.Bot.id}";
-                var botNameSpace = botAssetRecord.BotAsset.Bot.name + botIdKey;
-                // unity assets always use '/' regardless of Operating System
-                var botFolderNamespace =
-                    botAssetRecord.Path.Substring(botAssetRecord.Path.LastIndexOf('/') + 1);
                 try
                 {
-                    userBotCode = (RGUserBot)ScriptableObject.CreateInstance($"{botNameSpace}.BotEntryPoint");
+                    userBotCode = (RGUserBot)ScriptableObject.CreateInstance(entryPointType);
                 }
                 catch (Exception e)
                 {
@@ -82,17 +83,17 @@ namespace RegressionGames.RGBotLocalRuntime
 
                 if (userBotCode == null)
                 {
-                    RGDebug.LogWarning($"Namespace botName_botId not found for {botNameSpace}, using directory name as namespace instead {botFolderNamespace}");
-                    userBotCode = (RGUserBot)ScriptableObject.CreateInstance($"{botFolderNamespace}.BotEntryPoint");
+                    RGDebug.LogError($"Failed to create instance of bot entry point '{entryPointType.FullName}'.");
+                    return 0;
                 }
 
                 userBotCode.Init(botId, botAssetRecord.BotAsset.Bot.name);
-                
+
                 botInstance.bot = botAssetRecord.BotAsset.Bot;
 
                 RGClientConnection connection = RGBotServerListener.GetInstance()
                     .AddClientConnectionForBotInstance(botInstance.id, RGClientConnectionType.LOCAL);
-                
+
                 // Also attach the bot so we can upload later
                 RGBotServerListener.GetInstance().MapClientToLocalBot(botInstance.id, botAssetRecord.BotAsset.Bot);
 
@@ -112,7 +113,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return 0;
         }
-        
+
         private void OnDrawGizmos()
         {
             foreach (var botRunner in _botRunners.Values)
@@ -120,6 +121,6 @@ namespace RegressionGames.RGBotLocalRuntime
                 botRunner.OnDrawGizmos();
             }
         }
-        
+
     }
 }
