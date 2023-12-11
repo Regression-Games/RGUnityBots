@@ -14,7 +14,6 @@ namespace RegressionGames
 
         public void Awake()
         {
-            An Intentional Compilation Error!!!
             if (_entry != null)
             {
                 var state = RGBotServerListener.GetInstance()?.GetUnityBotState(_entry.id);
