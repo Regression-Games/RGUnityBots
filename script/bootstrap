@@ -1,0 +1,40 @@
+#!/bin/bash
+#/ Usage: scripts/bootstrap
+#/ Configures the repo for building and testing.
+source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+repo_root="$(dirname "$source_dir")"
+source "$repo_root/script/_utils.sh"
+
+set -euo pipefail
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    shift
+    case "$key" in
+        --help)
+            grep '^#/' "$0" | cut -c4-
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $key"
+            exit 1
+            ;;
+        *)
+            echo "Unknown argument: $key"
+            exit 1
+            ;;
+    esac
+done
+
+# Check that we have the right version of Unity
+unity_version=$(get_unity_version "$repo_root/src/RGUnityBots")
+echo "Checking for Unity version $unity_version"
+
+unity_path=$(get_unity_path "$unity_version")
+if [ ! -d "$unity_path" ]; then
+    echo "Unity $unity_version not found. Please install it from the Unity Hub."
+    exit 1
+fi
+
+echo "Found Unity $unity_version at $unity_path"
