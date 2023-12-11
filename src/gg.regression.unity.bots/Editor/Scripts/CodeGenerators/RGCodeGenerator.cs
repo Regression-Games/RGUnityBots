@@ -59,6 +59,7 @@ namespace RegressionGames.Editor.CodeGenerators
             RGDebug.LogWarning($"WARNING: {warning}");
         }
 
+        [MenuItem("Regression Games/Generate Scripts")]
         public static void GenerateRGScripts()
         {
             try
@@ -299,52 +300,68 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
 
-                var botActionMethods = root.DescendantNodes()
-                    .OfType<MethodDeclarationSyntax>()
-                    .Where(method =>
-                        method.AttributeLists.Any(attrList =>
-                            attrList.Attributes.Any(attr =>
-                                attr.Name.ToString() == "RGAction")))
-                    .ToList();
-
-                foreach (var method in botActionMethods)
+                var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+                foreach (var classDeclaration in classDeclarations)
                 {
-                    string nameSpace = method.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
-                    string className = method.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText;
-                    string methodName = method.Identifier.ValueText;
-
-                    string actionName = methodName;
-                    var actionAttribute = method.AttributeLists.SelectMany(attrList => attrList.Attributes)
-                        .FirstOrDefault(attr => attr.Name.ToString() == "RGAction");
-
-                    var attributeArgument = actionAttribute?.ArgumentList?.Arguments.FirstOrDefault();
-                    if (attributeArgument is { Expression: LiteralExpressionSyntax literal })
+                    var className = classDeclaration.Identifier.ValueText;
+                    var nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()
+                        ?.Name.ToString();
+                    var botActionMethods = classDeclaration.Members
+                        .OfType<MethodDeclarationSyntax>()
+                        .Where(method =>
+                            method.AttributeLists.Any(attrList =>
+                                attrList.Attributes.Any(attr =>
+                                    attr.Name.ToString() == "RGAction")))
+                        .ToList();
+                    var isPartial = classDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+                    if (botActionMethods.Count > 0 && !isPartial)
                     {
-                        actionName = literal.Token.ValueText;
+                        RecordError(
+                            $"Error: Class '{className}' must be marked with the 'partial' keyword (for example 'public partial class {className}') to use the [RGAction] attribute.");
+                        continue;
                     }
 
-                    var semanticModel = compilation.GetSemanticModel(syntaxTree);
-                    var parameterList = method.ParameterList.Parameters.Select(parameter =>
-                        new RGParameterInfo
-                        {
-                            Name = parameter.Identifier.ValueText,
-                            Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
-                                .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
-                            Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
-                                       (parameter.Type is GenericNameSyntax syntax && // ex. Nullable<float>
-                                        syntax.Identifier.ValueText == "Nullable")
-                        }).ToList();
-
-                    botActionList.Add(new RGActionAttributeInfo
+                    foreach (var method in botActionMethods)
                     {
-                        // if this wasn't in a sample project folder, we need to generate CS for it
-                        ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
-                        Namespace = nameSpace,
-                        Object = className,
-                        MethodName = methodName,
-                        ActionName = actionName,
-                        Parameters = parameterList
-                    });
+                        string methodName = method.Identifier.ValueText;
+
+                        string actionName = methodName;
+                        var actionAttribute = method.AttributeLists.SelectMany(attrList => attrList.Attributes)
+                            .FirstOrDefault(attr => attr.Name.ToString() == "RGAction");
+
+                        if (actionAttribute != null)
+                        {
+                            var attributeArgument = actionAttribute.ArgumentList?.Arguments.FirstOrDefault();
+                            if (attributeArgument != null &&
+                                attributeArgument.Expression is LiteralExpressionSyntax literal)
+                            {
+                                actionName = literal.Token.ValueText;
+                            }
+                        }
+
+                        var semanticModel = compilation.GetSemanticModel(syntaxTree);
+                        var parameterList = method.ParameterList.Parameters.Select(parameter =>
+                            new RGParameterInfo
+                            {
+                                Name = parameter.Identifier.ValueText,
+                                Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
+                                    .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
+                                Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
+                                           (parameter.Type is GenericNameSyntax syntax && // ex. Nullable<float>
+                                            syntax.Identifier.ValueText == "Nullable")
+                            }).ToList();
+
+                        botActionList.Add(new RGActionAttributeInfo
+                        {
+                            // if this wasn't in a sample project folder, we need to generate CS for it
+                            ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
+                            Namespace = nameSpace,
+                            Object = className,
+                            MethodName = methodName,
+                            ActionName = actionName,
+                            Parameters = parameterList
+                        });
+                    }
                 }
             }
 
@@ -395,14 +412,21 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 foreach (var classDeclaration in classDeclarations)
                 {
-
                     string nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
 
                     string className = classDeclaration.Identifier.ValueText;
                     List<RGStateAttributeInfo> stateList = new List<RGStateAttributeInfo>();
 
                     var membersWithRGState = classDeclaration.Members
-                        .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")));
+                        .Where(m => m.AttributeLists.Any(a => a.Attributes.Any(attr => attr.Name.ToString() == "RGState")))
+                        .ToList();
+                    var isPartial = classDeclaration.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+                    if (membersWithRGState.Count > 0 && !isPartial)
+                    {
+                        // The class isn't partial
+                        RecordError($"Error: Class '{className}' must be marked with the 'partial' keyword (for example 'public partial class {className}') to use the [RGState] attribute.");
+                        continue;
+                    }
 
                     foreach (var member in membersWithRGState)
                     {
@@ -450,7 +474,6 @@ namespace RegressionGames.Editor.CodeGenerators
                         }
 
                         string fieldType = member is MethodDeclarationSyntax ? "method" : "variable";
-
                         string fieldName = null;
                         string type = null;
                         switch (member)
