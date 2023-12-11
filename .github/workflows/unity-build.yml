@@ -19,6 +19,10 @@ jobs:
         with:
           lfs: true
 
+      - name: Activate Problem Matchers
+        run:
+          echo "::add-matcher::$GITHUB_WORKSPACE/.github/problemMatchers/unity-compile.json"
+
       - name: Retrieve Cached Library
         uses: actions/cache@v3
         with:
