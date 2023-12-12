@@ -156,6 +156,7 @@ namespace RegressionGames.Editor
                     }
 
                     settings.ApplyModifiedProperties();
+                    userSettings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
                     {
                         timeOfLastEdit = EditorApplication.timeSinceStartup;
@@ -168,6 +169,7 @@ namespace RegressionGames.Editor
                         }
                         AssetDatabase.SaveAssets();
                         RGSettings.OptionsUpdated();
+                        RGUserSettings.OptionsUpdated();
                         RGSettingsDynamicEnabler[] objects = GameObject.FindObjectsOfType<RGSettingsDynamicEnabler>(true);
                         foreach (RGSettingsDynamicEnabler rgSettingsDynamicEnabler in objects)
                         {
