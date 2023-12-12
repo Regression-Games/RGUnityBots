@@ -57,6 +57,25 @@ namespace RegressionGames
         }
 #endif
         
+        public static void OptionsUpdated()
+        {
+            //mark dirty
+            dirty = true;
+            try
+            {
+                // try to update and mark clean, but if failed
+                // will keep trying to update until clean
+#if UNITY_EDITOR
+                _userSettings = AssetDatabase.LoadAssetAtPath<RGUserSettings>(USER_SETTINGS_PATH);
+#endif
+                dirty = false;
+            }
+            catch (Exception ex)
+            {
+                // if not called on main thread this will exception
+            }
+        }
+        
         public string GetEmail()
         {
             return email;
