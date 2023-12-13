@@ -18,8 +18,8 @@ namespace RegressionGames.BehaviorTree
 
         protected override NodeStatus Execute(RG rgObject)
         {
-            return Children.Count > 0 
-                ? Children.First().Invoke(rgObject) 
+            return Children.Count > 0
+                ? Children.First().Invoke(rgObject)
                 : NodeStatus.Failure;
         }
     }

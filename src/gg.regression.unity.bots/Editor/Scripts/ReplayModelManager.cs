@@ -11,17 +11,18 @@ namespace RegressionGames.Editor
 #if UNITY_EDITOR
     public class ReplayModelManager : ScriptableObject
     {
-        
+
         public readonly static string ASSET_PATH = "Assets/RegressionGames/Editor/CustomReplayModels.asset";
-        
-        
+
+
         [SerializeField] private NamedModel[] models = Array.Empty<NamedModel>();
 
 
         public void OnEnable()
         {
-            
-            if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) != null) {
+
+            if (AssetDatabase.GetMainAssetTypeAtPath(ASSET_PATH) != null)
+            {
                 _this = AssetDatabase.LoadAssetAtPath<ReplayModelManager>(ASSET_PATH);
             }
         }
@@ -45,11 +46,12 @@ namespace RegressionGames.Editor
                 _this = CreateInstance<ReplayModelManager>();
             }
 
-            if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) == null) {
-                AssetDatabase.CreateAsset(_this, ASSET_PATH );
+            if (AssetDatabase.GetMainAssetTypeAtPath(ASSET_PATH) == null)
+            {
+                AssetDatabase.CreateAsset(_this, ASSET_PATH);
                 AssetDatabase.SaveAssets();
             }
-            
+
             return _this;
         }
 
@@ -60,7 +62,7 @@ namespace RegressionGames.Editor
                 AssetDatabase.OpenAsset(_this);
             }
         }
-        
+
         public bool HasEntries()
         {
             return models.Length > 0;
@@ -80,7 +82,7 @@ namespace RegressionGames.Editor
 
             return false;
         }
-        
+
         [CanBeNull]
         public GameObject getModelPrefabForType(string type, string charType)
         {
@@ -95,13 +97,13 @@ namespace RegressionGames.Editor
 
             nm = models.FirstOrDefault(model => model.objectType == type);
             if (nm.objectType != null && nm.modelPrefab != null) return nm.modelPrefab;
-                
+
             GameObject defaultPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 $"{RGBotReplayWindow.PREFAB_PATH}/DefaultModel.prefab");
 
             // could be null
             return defaultPrefab;
-            
+
         }
 
         [Serializable]
@@ -112,7 +114,7 @@ namespace RegressionGames.Editor
                 this.objectType = objectType;
                 this.modelPrefab = modelPrefab;
             }
-            
+
             [CanBeNull] public string objectType;
             [CanBeNull] public GameObject modelPrefab;
         }

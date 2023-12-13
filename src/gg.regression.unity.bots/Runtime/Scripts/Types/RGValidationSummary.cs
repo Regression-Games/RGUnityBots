@@ -2,7 +2,7 @@ using System;
 
 namespace RegressionGames.Types
 {
-    
+
     [Serializable]
     public class RGValidationSummary
     {

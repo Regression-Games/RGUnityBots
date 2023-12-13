@@ -54,7 +54,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
 #if UNITY_EDITOR
             // Load up the listing of available local bots
-            string[] botGuids = AssetDatabase.FindAssets($"t:{typeof(RGBotAsset).FullName}", new string[] {"Assets"});
+            string[] botGuids = AssetDatabase.FindAssets($"t:{typeof(RGBotAsset).FullName}", new string[] { "Assets" });
             foreach (var botGuid in botGuids)
             {
                 var botAssetPath = AssetDatabase.GUIDToAssetPath(botGuid);

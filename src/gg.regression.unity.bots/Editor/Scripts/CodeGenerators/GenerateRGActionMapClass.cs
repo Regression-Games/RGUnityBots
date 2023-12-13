@@ -34,11 +34,11 @@ namespace RegressionGames.Editor.CodeGenerators
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
                 .NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
                 .AddUsings(
-                    usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
+                    usings.Select(v => SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                 )
                 .AddMembers(GenerateClass(botActions));
-            
-            
+
+
             // Create a compilation unit and add the namespace declaration
             CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                 .AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")))
@@ -52,10 +52,10 @@ namespace RegressionGames.Editor.CodeGenerators
             string filePath = Path.Combine(Application.dataPath, "RegressionGames", "Runtime", "GeneratedScripts", fileName);
             string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-            File.WriteAllText(filePath, fileContents);            
+            File.WriteAllText(filePath, fileContents);
             RGDebug.Log($"Successfully Generated {filePath}");
         }
-        
+
         private static ClassDeclarationSyntax GenerateClass(List<RGActionAttributeInfo> botActions)
         {
             var methodsList = new List<MethodDeclarationSyntax>();
@@ -66,27 +66,27 @@ namespace RegressionGames.Editor.CodeGenerators
                 .AddModifiers(SyntaxFactory.Token(SyntaxKind.PrivateKeyword))
                 .WithBody(SyntaxFactory.Block(filteredActions
                     .GroupBy(b => b.Object)
-                    .SelectMany(g => 
+                    .SelectMany(g =>
                         {
-                            var innerIfStatements = g.Select(b => 
+                            var innerIfStatements = g.Select(b =>
                                 SyntaxFactory.ExpressionStatement(
                                     SyntaxFactory.InvocationExpression(
                                         SyntaxFactory.MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression, 
-                                            SyntaxFactory.IdentifierName("gameObject"), 
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            SyntaxFactory.IdentifierName("gameObject"),
                                             SyntaxFactory.IdentifierName($"AddComponent<RGAction_{CodeGeneratorUtils.SanitizeActionName(b.ActionName)}>")
                                         )
                                     )
                                 )
                             ).ToArray();
-                            
-                            return new StatementSyntax[] 
+
+                            return new StatementSyntax[]
                             {
                                 SyntaxFactory.IfStatement(
                                     SyntaxFactory.InvocationExpression(
                                         SyntaxFactory.MemberAccessExpression(
-                                            SyntaxKind.SimpleMemberAccessExpression, 
-                                            SyntaxFactory.ThisExpression(), 
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            SyntaxFactory.ThisExpression(),
                                             SyntaxFactory.GenericName("TryGetComponent")
                                                 .WithTypeArgumentList(
                                                     SyntaxFactory.TypeArgumentList(
@@ -98,8 +98,8 @@ namespace RegressionGames.Editor.CodeGenerators
                                         ),
                                         SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
                                             SyntaxFactory.Argument(
-                                                null, 
-                                                SyntaxFactory.Token(SyntaxKind.OutKeyword), 
+                                                null,
+                                                SyntaxFactory.Token(SyntaxKind.OutKeyword),
                                                 SyntaxFactory.DeclarationExpression(
                                                     SyntaxFactory.IdentifierName("var"),
                                                     SyntaxFactory.DiscardDesignation(SyntaxFactory.Token(SyntaxKind.UnderscoreToken))

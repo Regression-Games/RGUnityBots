@@ -8,7 +8,7 @@ namespace RegressionGames.StateActionTypes
     [Serializable]
     public class RGValidationResult
     {
-        
+
         public string name;
         [JsonConverter(typeof(StringEnumConverter))]
         public RGValidationResultType result;
@@ -16,7 +16,7 @@ namespace RegressionGames.StateActionTypes
         public string id;
         public DateTime timestamp;
         public long tick;
-        
+
         // These are kept for backwards compatibility
         public string message;
         public bool passed;
@@ -31,7 +31,7 @@ namespace RegressionGames.StateActionTypes
             this.tick = tick;
             this.id = Guid.NewGuid().ToString();
             this.timestamp = DateTime.Now;
-            
+
             // For backwards compatibility
             this.message = name;
             this.passed = result == RGValidationResultType.PASS;

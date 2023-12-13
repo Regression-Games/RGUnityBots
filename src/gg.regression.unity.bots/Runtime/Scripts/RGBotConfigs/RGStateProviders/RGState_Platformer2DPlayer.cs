@@ -18,7 +18,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public float safeFallHeight => (float)this.GetValueOrDefault("safeFallHeight", -1f);
         public float nonFatalFallHeight => (float)this.GetValueOrDefault("nonFatalFallHeight", -1f);
     }
-    
+
     [Serializable]
     public class RGState_Platformer2DPlayer : RGState
     {
@@ -33,20 +33,20 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip(
             "The max height that the player can jump.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float maxJumpHeight;
-        
+
         [Tooltip("The current horizontal velocity of the player.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float velocity;
-        
+
         [Tooltip("The current max horizontal velocity of the player.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float maxVelocity;
-        
+
         [Tooltip("The current max safe fall height of the player.  From this height the player will take zero damage. <0 means infinite. >=0 is treated as the actual value  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float safeFallHeight = -1f;
 
         [Tooltip(
             "The current max non fatal fall height of the player.  From this height the player may take damage, but will not die from the fall. <0 means infinite. >=0 is treated as the actual value  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float nonFatalFallHeight = -1f;
-        
+
         private Vector2? _truePosition = null;
 
         [NonSerialized]
@@ -72,13 +72,13 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             return new()
             {
                 // override the meaning of position to be centered at player collider feet
-                {"position", (Vector3)(Vector2)_truePosition},
-                {"jumpHeight", jumpHeight},
-                {"maxJumpHeight", maxJumpHeight},
-                {"velocity", velocity},
-                {"maxVelocity", maxVelocity},
-                {"safeFallHeight", safeFallHeight},
-                {"nonFatalFallHeight", nonFatalFallHeight}
+                { "position", (Vector3)(Vector2)_truePosition },
+                { "jumpHeight", jumpHeight },
+                { "maxJumpHeight", maxJumpHeight },
+                { "velocity", velocity },
+                { "maxVelocity", maxVelocity },
+                { "safeFallHeight", safeFallHeight },
+                { "nonFatalFallHeight", nonFatalFallHeight }
             };
         }
 
@@ -94,13 +94,13 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             var theCollider = gameObject.GetComponent<BoxCollider2D>();
             var colliderOffset = theCollider.offset;
             var colliderSize = theCollider.size;
-            
+
             // bottom of the feet centered horizontally
             return new Vector2(
-                thePosition.x - colliderOffset.x - colliderSize.x/2,
+                thePosition.x - colliderOffset.x - colliderSize.x / 2,
                 thePosition.y - colliderOffset.y - colliderSize.y
             );
-            
+
         }
 
         private void OnDrawGizmos()
@@ -111,7 +111,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 Gizmos.DrawWireSphere((Vector2)_truePosition, 0.125f);
             }
         }
-        
+
     }
-    
+
 }

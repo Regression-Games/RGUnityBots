@@ -59,7 +59,7 @@ namespace RegressionGames.DataCollection
             public List<Task> replayDataTasks = new();
             public Task validationDataTask;
             public Task logFlushTask;
-            public RGValidationSummary validationSummary = new(0,0,0);
+            public RGValidationSummary validationSummary = new(0, 0, 0);
 
             public BotInstanceDataCollectionState(RGBot bot, DateTime startTime)
             {
@@ -108,7 +108,7 @@ namespace RegressionGames.DataCollection
         public void ProcessScreenshotRequests()
         {
             var done = false;
-            while(!done && _screenshotTicksRequested.TryDequeue(out long tick) )
+            while (!done && _screenshotTicksRequested.TryDequeue(out long tick))
             {
                 // only allow one screenshot per tick #
                 // if many bots are running locally, they may all ask for the same tick
@@ -383,7 +383,7 @@ namespace RegressionGames.DataCollection
         private string GetSessionDirectory(string path = "")
         {
             //TODO: (REG-1422) Make this deterministic in a way that we can sync data later if the connection was down
-            var fullPath = Path.Combine(_rootPath, "RGData",  _sessionName, path);
+            var fullPath = Path.Combine(_rootPath, "RGData", _sessionName, path);
             var directory = Path.GetDirectoryName(fullPath);
             if (directory != null)
             {
@@ -427,7 +427,8 @@ namespace RegressionGames.DataCollection
 
     // Extension code borrowed from StackOverflow to allow creating a zip of directory
     // while filtering out certain contents
-    public static class ZipHelper {
+    public static class ZipHelper
+    {
         public static void CreateFromDirectory(string sourceDirectoryName,
             string destinationArchiveFileName,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,
@@ -435,10 +436,12 @@ namespace RegressionGames.DataCollection
             Predicate<string> exclusionFilter = null
         )
         {
-            if (string.IsNullOrEmpty(sourceDirectoryName)) {
+            if (string.IsNullOrEmpty(sourceDirectoryName))
+            {
                 throw new ArgumentNullException("sourceDirectoryName");
             }
-            if (string.IsNullOrEmpty(destinationArchiveFileName)) {
+            if (string.IsNullOrEmpty(destinationArchiveFileName))
+            {
                 throw new ArgumentNullException("destinationArchiveFileName");
             }
             var filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
