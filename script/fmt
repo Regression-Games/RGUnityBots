@@ -1,0 +1,61 @@
+#!/bin/bash
+#/ Usage: scripts/fmt [-u|--unity-path <path>] [--check]
+#/ Syncs Visual Studio/Rider solution and project files and then reformats the code using 'dotnet-format'.
+#/
+#/ Options:
+#/   -u, --unity-path <path>   Path to the Unity installation to use. Defaults to an autodetected path based on the version of RGUnityBots.
+#/  --check                    Checks if the code is formatted correctly, but does not modify it. For CI builds.
+source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+repo_root="$(dirname "$source_dir")"
+source "$repo_root/script/_utils.sh"
+
+set -euo pipefail
+
+# Parse arguments
+check=false
+sync_vs_args=()
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    shift
+    case "$key" in
+        -u|--unity-path)
+            sync_vs_args=(--unity-path "$1")
+            shift
+            ;;
+        --check)
+            check=true
+            ;;
+        --help)
+            grep '^#/' "$0" | cut -c4-
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $key"
+            exit 1
+            ;;
+        *)
+            echo "Unknown argument: $key"
+            exit 1
+            ;;
+    esac
+done
+
+script/sync-vs ${sync_vs_args[@]:-}
+
+if $check; then
+    echo "Validating code formatting..."
+    if dotnet tool run dotnet-format -- --check "$repo_root/src/RGUnityBots/RGUnityBots.sln"; then
+        echo "Formatting is good!"
+    else
+        echo "Formatting is bad!"
+        exit 1
+    fi
+else
+    echo "Reformatting code..."
+    if dotnet tool run dotnet-format -- "$repo_root/src/RGUnityBots/RGUnityBots.sln"; then
+        echo "Formatting is good!"
+    else
+        echo "Formatting is bad!"
+        exit 1
+    fi
+fi
