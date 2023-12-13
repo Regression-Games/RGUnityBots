@@ -2,7 +2,7 @@ using RegressionGames.RGBotLocalRuntime;
 
 namespace RegressionGames.BehaviorTree
 {
-    public abstract class RGBehaviorTreeBot: RGUserBot
+    public abstract class RGBehaviorTreeBot : RGUserBot
     {
         private BehaviorTreeNode _rootNode;
 

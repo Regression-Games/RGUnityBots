@@ -50,7 +50,7 @@ namespace RegressionGames
             foreach (var entry in Directory.GetFileSystemEntries(path))
             {
                 var entryDate = GetLatestWriteDate(entry);
-                if(entryDate > currentDate)
+                if (entryDate > currentDate)
                 {
                     currentDate = entryDate.Value;
                 }

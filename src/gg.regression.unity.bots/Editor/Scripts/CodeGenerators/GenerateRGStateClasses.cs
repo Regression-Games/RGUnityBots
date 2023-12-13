@@ -81,7 +81,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             ClassDeclaration($"RGStateEntity_{rgStateAttributeInfo.ClassName}")
                                 .AddModifiers(
                                     Token(SyntaxKind.PublicKeyword)
-                                    // Only add one of the "class" keywords here
+                                // Only add one of the "class" keywords here
                                 )
                                 .AddBaseListTypes(
                                     SimpleBaseType(
@@ -116,8 +116,8 @@ namespace RegressionGames.Editor.CodeGenerators
                     string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
                     string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
                     Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    
-                    var task= File.WriteAllTextAsync(filePath, fileContents);
+
+                    var task = File.WriteAllTextAsync(filePath, fileContents);
                     fileWriteTasks[filePath] = task;
                 }
             }
@@ -201,7 +201,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     Identifier("GetTypeForStateEntity"))
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.ProtectedKeyword),
                             Token(SyntaxKind.OverrideKeyword)}))
                 .WithBody(
@@ -292,7 +292,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static PropertyDeclarationSyntax GeneratePropertyDeclaration(RGStateAttributeInfo memberInfo)
         {
-            var specialNumberTypes = new [] {
+            var specialNumberTypes = new[] {
                 "float","double","decimal","sbyte","byte","short","ushort","int","uint","long","ulong"
             };
             if (specialNumberTypes.Contains(memberInfo.Type.ToLowerInvariant()))

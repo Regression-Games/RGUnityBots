@@ -34,7 +34,7 @@ namespace RegressionGames.Editor.CodeGenerators
             NamespaceDeclarationSyntax namespaceDeclaration = SyntaxFactory
                 .NamespaceDeclaration(SyntaxFactory.ParseName(CodeGeneratorUtils.GetNamespaceForProject()))
                 .AddUsings(
-                    usings.Select(v=>SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
+                    usings.Select(v => SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
                 )
                 .AddMembers(GenerateClass(botActions));
             
@@ -55,7 +55,7 @@ namespace RegressionGames.Editor.CodeGenerators
             File.WriteAllText(filePath, fileContents);            
             RGDebug.Log($"Successfully Generated {filePath}");
         }
-        
+
         private static ClassDeclarationSyntax GenerateClass(List<RGActionAttributeInfo> botActions)
         {
             var methodsList = new List<MethodDeclarationSyntax>();

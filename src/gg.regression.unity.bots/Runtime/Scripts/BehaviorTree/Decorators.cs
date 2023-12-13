@@ -32,7 +32,7 @@ namespace RegressionGames.BehaviorTree
     /// <summary>
     /// A node that executes it's child, but ignores the result and always returns <see cref="NodeStatus.Success"/>.
     /// </summary>
-    public class AlwaysSucceed: DecoratorNode
+    public class AlwaysSucceed : DecoratorNode
     {
         public AlwaysSucceed() : base("Always Succeed")
         {
@@ -52,7 +52,7 @@ namespace RegressionGames.BehaviorTree
     /// <summary>
     /// A node that executes it's child, but ignores the result and always returns <see cref="NodeStatus.Failure"/>.
     /// </summary>
-    public class AlwaysFail: DecoratorNode
+    public class AlwaysFail : DecoratorNode
     {
         public AlwaysFail() : base("Always Fail")
         {
@@ -77,7 +77,7 @@ namespace RegressionGames.BehaviorTree
     /// If the child node returns <see cref="NodeStatus.Failure"/>, this node returns <see cref="NodeStatus.Success"/>.
     /// If the child node returns <see cref="NodeStatus.Success"/>, this node returns <see cref="NodeStatus.Failure"/>.
     /// </remarks>
-    public class Invert: DecoratorNode
+    public class Invert : DecoratorNode
     {
         public Invert() : base("Invert")
         {

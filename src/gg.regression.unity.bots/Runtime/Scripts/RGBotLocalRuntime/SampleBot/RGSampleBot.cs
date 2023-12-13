@@ -34,7 +34,7 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
             var myPlayers = rgObject.GetMyPlayers();
             if (myPlayers.Count == 0) return;
             var thisEntity = myPlayers[0];
-            
+
             //Temporary test code
             try
             {
@@ -42,7 +42,7 @@ namespace RegressionGames.RGBotLocalRuntime.SampleBot
                 if (entities.Count > 0)
                 {
                     var target = entities[new Random().Next(entities.Count)];
-                    
+
                     RGGizmos.CreateLine(thisEntity.id, target.position, Color.red, "TargetEnemy");
                     RGGizmos.CreateSphere(target.id, Color.blue, 0.7f, false, "TargetEnemy");
 

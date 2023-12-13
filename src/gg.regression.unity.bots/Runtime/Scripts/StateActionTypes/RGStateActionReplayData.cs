@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace RegressionGames.StateActionTypes
 {
-    
+
     [Serializable]
     public class RGStateActionReplayData
     {
@@ -19,13 +19,13 @@ namespace RegressionGames.StateActionTypes
         [CanBeNull] public long? sceneId;
 
         public RGTickInfoData tickInfo;
-        
+
         public string ToSerialized()
         {
             return JsonConvert.SerializeObject(this, Formatting.None, new JsonSerializerSettings
-                    {
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                    });
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            });
         }
 
         /**

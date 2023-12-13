@@ -12,7 +12,7 @@ namespace RegressionGames
         public float ogPulseInterval = 3f;
 
         public float pulseDuration = 1f;
-        
+
         public int maxAlpha = 120;
 
         private float lastPulse = -1f;
@@ -43,7 +43,7 @@ namespace RegressionGames
             image = GetComponent<Image>();
             ogPulseInterval = pulseInterval;
         }
-        
+
         void LateUpdate()
         {
             float time = Time.time;
@@ -57,7 +57,7 @@ namespace RegressionGames
             // -1 -> 1
             float rangeVal = (timeSinceLast / pulseDuration) * 2 - 1;
 
-            float alphaValue = ( Mathf.Abs(rangeVal) * -1 * maxAlpha + maxAlpha)/255f;
+            float alphaValue = (Mathf.Abs(rangeVal) * -1 * maxAlpha + maxAlpha) / 255f;
 
             image.color = new Color(image.color.r, image.color.g, image.color.b, alphaValue);
         }

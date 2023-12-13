@@ -8,7 +8,7 @@ namespace RegressionGames.Types
         // send the client their player object's Id
         public int playerId;
 
-        public RGServerPlayerId( int playerId)
+        public RGServerPlayerId(int playerId)
         {
             this.playerId = playerId;
         }

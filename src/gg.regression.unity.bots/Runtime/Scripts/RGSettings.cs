@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace RegressionGames
 {
-    public enum DebugLogLevel {Off, Verbose, Debug, Info, Warning, Error}
-    
-    public class RGSettings: ScriptableObject
+    public enum DebugLogLevel { Off, Verbose, Debug, Info, Warning, Error }
+
+    public class RGSettings : ScriptableObject
     {
         private const string SETTINGS_PATH = "Assets/RGSettings.asset";
 
@@ -25,7 +25,7 @@ namespace RegressionGames
          */
         private static RGSettings _settings = null;
         private static bool dirty = true;
-        
+
         public static RGSettings GetOrCreateSettings()
         {
             if (_settings == null || dirty)
@@ -59,7 +59,7 @@ namespace RegressionGames
                 AssetDatabase.SaveAssets();
 #endif
             }
-            
+
             // backwards compat for migrating RG devs before we had a single host address field
             if (string.IsNullOrEmpty(_settings.rgHostAddress))
             {
@@ -122,7 +122,7 @@ namespace RegressionGames
             }
             return systemId;
         }
-        
+
         public bool GetUseSystemSettings()
         {
             return useSystemSettings;
@@ -153,5 +153,5 @@ namespace RegressionGames
             return rgHostAddress;
         }
     }
-    
+
 }

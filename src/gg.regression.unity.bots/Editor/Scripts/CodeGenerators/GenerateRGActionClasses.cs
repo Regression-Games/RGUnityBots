@@ -60,7 +60,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                             $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                                         .AddModifiers(
                                             SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                            // Only add one of the "class" keywords here
+                                        // Only add one of the "class" keywords here
                                         )
                                         .AddBaseListTypes(
                                             SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGAction"))
@@ -78,7 +78,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                             $"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                                         .AddModifiers(
                                             SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                            // Only add one of the "class" keywords here
+                                        // Only add one of the "class" keywords here
                                         )
                                         .AddBaseListTypes(
                                             SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGActionRequest"))
@@ -99,7 +99,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
 
                     Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    var task= File.WriteAllTextAsync(filePath, fileContents);
+                    var task = File.WriteAllTextAsync(filePath, fileContents);
                     fileWriteTasks[filePath] = task;
                 }
             }

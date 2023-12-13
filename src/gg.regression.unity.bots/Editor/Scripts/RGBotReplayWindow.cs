@@ -22,7 +22,7 @@ namespace RegressionGames.Editor
     public class RGBotReplayWindow : EditorWindow
     {
         public const string PREFAB_PATH = "Packages/gg.regression.unity.bots/Editor/Prefabs";
-       
+
         //TODO: Get this from game engine
         private const int PHYSICS_TICK_RATE = 20; // 0.02 sec or 20 ms per physics tick
         private readonly Color _darkerColor = Color.white * 0.1f;
@@ -89,21 +89,21 @@ namespace RegressionGames.Editor
             EditorGUI.BeginDisabledGroup(fileName == null || fileName.Length < 1);
             if (GUILayout.Button("Reload ...", GUILayout.ExpandWidth(false))) Reload();
             EditorGUI.EndDisabledGroup();
-            
+
             GUILayout.FlexibleSpace();
-                        
+
 
             EditorGUILayout.EndHorizontal();
-            
+
             GUILayout.Space(5);
-            
+
             if (!ReplayModelManager.GetInstance().HasEntries())
             {
                 EditorGUILayout.HelpBox("Custom Replay Models have not been configured for this project.\nLoad your first replay zip to auto populate the entity types, then configure their model associations using the `Configure Custom Replay Models` button.\n(You can also manually add, edit, or remove associations at any time.)", MessageType.Warning, true);
             }
-            
+
             // Button for registering custom replay models
-            if (GUILayout.Button("Configure Custom Replay Models", new GUILayoutOption[] {GUILayout.ExpandWidth(false)}))
+            if (GUILayout.Button("Configure Custom Replay Models", new GUILayoutOption[] { GUILayout.ExpandWidth(false) }))
             {
                 // create or load the prefabs list
                 ShowReplayModelsInspector();
@@ -257,7 +257,7 @@ namespace RegressionGames.Editor
                 headerContent = new GUIContent("Actions", "Actions entity took in the current tick."),
                 headerTextAlignment = TextAlignment.Center
             });
-            
+
             _columns.Add(new MultiColumnHeaderState.Column
             {
                 allowToggleVisibility = false,
@@ -504,43 +504,43 @@ namespace RegressionGames.Editor
                         if (isSpawned)
                         {
                             var actions = dataTickInfo.actions;
-                       
+
                             // Fit each action equally into the space with text hover help
                             for (var j = 0; j < actions.Length; j++)
                             {
                                 // draw a colored rect
                                 var actionRect = CreateInfoRect(columnIndex, rowRect.y, actions.Length, j);
                                 EditorGUI.DrawRect(actionRect, Color.gray * Color.yellow);
-                                
+
                                 // then put a label in it
                                 var label = new GUIContent($"{actions[j].action}", $"{textForAction(j + 1, actions[j])}");
                                 EditorGUI.DropShadowLabel(actionRect, label, actionLabelGUIStyle);
                             }
                         }
-                    
-                        // Validations column
-                        ++columnIndex;
-                        if (_multiColumnHeader.IsColumnVisible(columnIndex))
-                            if (isSpawned)
-                            {
-                                var validationResults = dataTickInfo.validationResults;
-                                
-                                // Fit each validation equally into the space with text hover help
-                                for (var j = 0; j < validationResults.Length; j++)
-                                {
-                                    var currentValidation = validationResults[j];
 
-                                    // draw a colored rect
-                                    var validationRect = CreateInfoRect(columnIndex, rowRect.y, validationResults.Length, j);
-                                    var color = currentValidation.passed ? Color.green : Color.red;
-                                    EditorGUI.DrawRect(validationRect, Color.gray * color);
-                                    
-                                    // then put a label in it
-                                    var tooltip = (currentValidation.passed ? "[PASSED] " : "[FAILED] ") + currentValidation.message;
-                                    var label = new GUIContent(currentValidation.message, tooltip);
-                                    EditorGUI.DropShadowLabel(validationRect, label, validationLabelGUIStyle);
-                                }
+                    // Validations column
+                    ++columnIndex;
+                    if (_multiColumnHeader.IsColumnVisible(columnIndex))
+                        if (isSpawned)
+                        {
+                            var validationResults = dataTickInfo.validationResults;
+
+                            // Fit each validation equally into the space with text hover help
+                            for (var j = 0; j < validationResults.Length; j++)
+                            {
+                                var currentValidation = validationResults[j];
+
+                                // draw a colored rect
+                                var validationRect = CreateInfoRect(columnIndex, rowRect.y, validationResults.Length, j);
+                                var color = currentValidation.passed ? Color.green : Color.red;
+                                EditorGUI.DrawRect(validationRect, Color.gray * color);
+
+                                // then put a label in it
+                                var tooltip = (currentValidation.passed ? "[PASSED] " : "[FAILED] ") + currentValidation.message;
+                                var label = new GUIContent(currentValidation.message, tooltip);
+                                EditorGUI.DropShadowLabel(validationRect, label, validationLabelGUIStyle);
                             }
+                        }
 
                     ++a;
                 }
@@ -569,7 +569,7 @@ namespace RegressionGames.Editor
                 insetRect.y += padding.Value.y;
                 insetRect.height -= padding.Value.y * 2;
             }
-            
+
             return insetRect;
         }
 
@@ -580,12 +580,12 @@ namespace RegressionGames.Editor
         private Rect CreateInfoRect(int columnIndex, float height, int componentsPerRow, int xOffset)
         {
             var insetRect = CreateInsetRect(columnIndex, height, null);
-            
+
             const float minWidth = 5f;
             const float maxWidth = 150f;
             var width = insetRect.width / Math.Max(1, componentsPerRow);
             width = Math.Min(Math.Max(width, minWidth), maxWidth);
-            
+
             // leave a 1 pixel gap .. this keeps many actions from flowing together
             insetRect.width = width - 1;
             insetRect.x += width * xOffset;
@@ -597,7 +597,7 @@ namespace RegressionGames.Editor
         {
             GetWindow(typeof(RGBotReplayWindow), false, "RG Bot Replay");
         }
-        
+
         // Did not add to the top menu yet, but might in the future
         //[MenuItem("Regression Games/Configure Custom Replay Models")]
         public static void ShowReplayModelsInspector()
@@ -706,12 +706,12 @@ namespace RegressionGames.Editor
                     {
                         position = ti.state.position;
                     }
-                    
+
                     if (ti?.state?.rotation != null)
                     {
                         rotation = ti.state.rotation;
                     }
-                    
+
                     var typeRootName = $"{tickData.data.type}s";
                     var typeRoot = findChildByName(rootObject.transform, typeRootName);
                     if (typeRoot == null)
@@ -1011,7 +1011,7 @@ namespace RegressionGames.Editor
                                 tickInfoManager.processTick(tickIndexNumber, rData.tickInfo);
                                 if (rData.playerId != null && rData.playerId != -1)
                                     tickInfoManager.processReplayData(tickIndexNumber, (long)rData.playerId, rData);
-                                    
+
                                 if (rData.tickRate != null)
                                     // get the right tickRate
                                     tickRate = (int)rData.tickRate;
@@ -1019,7 +1019,7 @@ namespace RegressionGames.Editor
                                 ++tickIndexNumber;
                             }
                     }
-                    
+
                     // save any assets we created, like replay model associations
                     // we do this once here instead of internally when adding the asset for
                     // performance reasons.. this is expensive
@@ -1089,5 +1089,5 @@ namespace RegressionGames.Editor
             if (currentTick == priorTick) playing = false;
         }
     }
-    #endif
+#endif
 }

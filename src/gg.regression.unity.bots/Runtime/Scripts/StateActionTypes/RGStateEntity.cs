@@ -27,7 +27,7 @@ namespace RegressionGames.StateActionTypes
         public Quaternion rotation => (Quaternion)(this.GetValueOrDefault("rotation") ?? Quaternion.identity);
 
         public long? clientId => (long?)this.GetValueOrDefault("clientId", null);
-        
+
         // This is mostly implemented to make visibility in the debugger much easier... especially when finding the right object in the overall state
         public override string ToString()
         {

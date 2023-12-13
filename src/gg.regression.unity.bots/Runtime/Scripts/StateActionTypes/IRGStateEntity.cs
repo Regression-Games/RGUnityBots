@@ -12,7 +12,7 @@ namespace RegressionGames.StateActionTypes
         public Vector3 position => Vector3.zero;
         public Quaternion rotation => Quaternion.identity;
         public long? clientId => null;
-        
+
         /**
          * <summary>Retrieve the value of the named field as the specified type or default value
          * Note, some types in Unity can only be constructed on the Main thread.
@@ -34,7 +34,7 @@ namespace RegressionGames.StateActionTypes
         {
             return DictionaryExtensions.GetField<T>(this, fieldName);
         }
-        
+
         /**
          * <summary>Retrieve the value of the named field or null if the field does not exist.</summary>
          */

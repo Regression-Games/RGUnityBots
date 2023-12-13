@@ -11,7 +11,7 @@ using Random = System.Random;
 namespace RegressionGames.RGBotLocalRuntime
 {
     [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
-    public class RGBotRuntimeManager: MonoBehaviour
+    public class RGBotRuntimeManager : MonoBehaviour
     {
         private static RGBotRuntimeManager _this = null;
 
@@ -25,7 +25,7 @@ namespace RegressionGames.RGBotLocalRuntime
         public void Awake()
         {
             // only allow 1 of these to be alive
-            if( _this != null && _this.gameObject != this.gameObject)
+            if (_this != null && _this.gameObject != this.gameObject)
             {
                 Destroy(this.gameObject);
                 return;

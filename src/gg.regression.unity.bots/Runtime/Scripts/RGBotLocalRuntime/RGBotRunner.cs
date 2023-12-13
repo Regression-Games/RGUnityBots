@@ -130,7 +130,7 @@ namespace RegressionGames.RGBotLocalRuntime
                         // Run User Code
                         try
                         {
-                            using(UserBotTickMarker.Auto())
+                            using (UserBotTickMarker.Auto())
                             {
                                 _userBotCode.ProcessTick(_rgObject);
                             }
