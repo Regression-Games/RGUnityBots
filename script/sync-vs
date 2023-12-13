@@ -45,4 +45,10 @@ echo "Syncing Visual Studio/Rider solution and project files..."
 unity "$unity_path" \
  -projectPath "$repo_root/src/RGUnityBots" \
  -executeMethod "UnityEditor.SyncVS.SyncSolution" \
- -batchmode -nographics -quit
+ -logFile /dev/stdout \
+ -batchmode -nographics
+
+echo "Finding all .csproj and .sln files..."
+find . -name '*.csproj'
+find . -name '*.sln'
+echo "---"
