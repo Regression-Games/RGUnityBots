@@ -1,0 +1,36 @@
+name: Validate C# Code Formatting
+
+on:
+  # Build every PR
+  pull_request:
+
+jobs:
+  fmt:
+    name: Validate C# Code Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Activate Problem Matchers
+        run:
+          echo "::add-matcher::$GITHUB_WORKSPACE/.github/problemMatchers/unity-compile.json"
+
+      - name: Retrieve Cached Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Validate formatting
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run:
+          script/fmt --docker --check
+              
