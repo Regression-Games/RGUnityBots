@@ -67,11 +67,6 @@ fi
 
 script/sync-vs ${sync_vs_args[@]:-}
 
-echo "Finding all .csproj and .sln files..."
-find . -name '*.csproj'
-find . -name '*.sln'
-echo "---"
-
 dotnet tool restore
 
 if $check; then
