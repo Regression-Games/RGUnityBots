@@ -16,7 +16,7 @@ jobs:
 
       - name: Activate Problem Matchers
         run:
-          echo "::add-matcher::$GITHUB_WORKSPACE/.github/problemMatchers/unity-compile.json"
+          echo "::add-matcher::$GITHUB_WORKSPACE/.github/problemMatchers/dotnet-format.json"
 
       - name: Retrieve Cached Library
         uses: actions/cache@v3
