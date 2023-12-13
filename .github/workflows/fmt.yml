@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: Library
-          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-${{ hashFiles('src/RGUnityBots/Assets/**', 'src/RGUnityBots/Packages/**', 'src/RGUnityBots/ProjectSettings/**') }}
           restore-keys: |
             Library-
 
@@ -33,4 +33,3 @@ jobs:
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run:
           script/fmt --docker --check
-              
