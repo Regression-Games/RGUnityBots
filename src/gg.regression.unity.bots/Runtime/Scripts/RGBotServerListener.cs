@@ -45,7 +45,7 @@ namespace RegressionGames
             "position",
             "rotation"
         };
-        
+
         public static RGBotServerListener GetInstance()
         {
             return _this;
@@ -99,7 +99,7 @@ namespace RegressionGames
             }
             return RGUnityBotState.UNKNOWN;
         }
-        
+
         public void SetUnityBotState(long id, RGUnityBotState state)
         {
             if (botStates.TryGetValue(id, out var oldValue))
@@ -137,7 +137,7 @@ namespace RegressionGames
 
         /*
          * Tracking Maps
-         * 
+         *
          * clientConnectionMap - Clients that have connected and/or done their handshake will be populated here.
          *    Clients waiting on a connection will have a null value.
          *    (key is the botInstanceId as a long)
@@ -150,7 +150,7 @@ namespace RegressionGames
          *
          * 2. On Success of RGServiceManager.QueueInstantBot, that botInstanceId is added to a connections
          *    list in RGBotServerListener (this class).
-         * 
+         *
          *    On Unity Update, we evaluate the set of botInstanceIds that don't have a connection yet.
          *    For each of these, we attempt to use RGServiceManager.GetExternalConnectionInformationForBotInstance
          *    to call RGService to get the external connection information for the bot address:port.
@@ -160,9 +160,9 @@ namespace RegressionGames
          *    that the bot code was reloaded/restarted.
          */
         [ItemCanBeNull] private readonly ConcurrentDictionary<long, RGClientConnection> clientConnectionMap = new ();
-        
+
         [ItemCanBeNull] private readonly ConcurrentDictionary<long?, ConcurrentQueue<RGValidationResult>> clientValidationMap = new ();
- 
+
         // keep these in a map by clientId so that we can do 1 action per client per update call
         private readonly ConcurrentDictionary<long, ConcurrentQueue<Action>> mainThreadTaskQueue = new ();
 
@@ -188,12 +188,12 @@ namespace RegressionGames
             {
                 connection = new RGClientConnection_Local(clientId: botInstanceId);
             }
-            
+
             clientConnectionMap.AddOrUpdate(botInstanceId, connection, (k,v) =>
             {
                 return v;
             });
-            clientValidationMap.AddOrUpdate(botInstanceId, new ConcurrentQueue<RGValidationResult>(), (k, v) => 
+            clientValidationMap.AddOrUpdate(botInstanceId, new ConcurrentQueue<RGValidationResult>(), (k, v) =>
             {
                 return v;
             });
@@ -234,7 +234,7 @@ namespace RegressionGames
             botStateListeners.Clear();
             botStates.Clear();
             mainThreadTaskQueue.Clear();
-            
+
             UnitySideToken = Guid.NewGuid().ToString();
         }
 
@@ -252,18 +252,18 @@ namespace RegressionGames
             if (clientConnectionMap.TryRemove(clientId, out var clientConnection))
             {
                 clientConnection.SendTeardown();
-                
+
                 clientConnection.Close();
-                
+
                 // Upload the replay data for this bot
                 if (clientConnection.Type == RGClientConnectionType.LOCAL)
                 {
                     // Kick off saving the bot work
                     // TODO: (REG-1422) we DO NOT wait for this.. we will deal with interrupted during shutdown later
                     _ = _dataCollection.SaveBotInstanceHistory(clientId);
- 
+
                 }
-                
+
                 // we originally didn't call RGService StopBotInstance here
                 // But.. leaving the bot running was annoying in the editor to have to stop it
                 // every time.  In the future, we need to solve how to easily get to the bot replay
@@ -283,10 +283,10 @@ namespace RegressionGames
                 // we didn't have this bot... its not ours to know about
                 SetUnityBotState(clientId, RGUnityBotState.UNKNOWN);
             }
-            
+
             // Don't do this here, we only remove the validation on StopGame so the results are available to test cases
             //clientValidationMap.TryRemove(clientId, out _);
-            
+
             agentMap.TryRemove(clientId, out _);
             botStateListeners.TryRemove(clientId, out _);
             botStates.TryRemove(clientId, out _);
@@ -334,10 +334,10 @@ namespace RegressionGames
                 // do this once after all the teardowns
                 RGOverlayMenu.GetInstance()?.UpdateBots();
             });
-            
+
         }
 
-        
+
         /**
          * Only call me on main thread
          */
@@ -345,7 +345,7 @@ namespace RegressionGames
         {
             RGDebug.LogInfo($"Stopping Spawnable Bots");
             gameStarted = false;
-            
+
             foreach (var keyvalue in clientConnectionMap)
             {
                 string lifecycle = keyvalue.Value.Lifecycle;
@@ -354,7 +354,7 @@ namespace RegressionGames
                     TeardownClient(keyvalue.Key, false);
                 }
             }
-            
+
             // update the bot list one time after tearing them down instead of on every one
             if (updateBotsList)
             {
@@ -404,7 +404,7 @@ namespace RegressionGames
                                 // handle remote bot
                                 return RGServiceManager.GetInstance()?.QueueInstantBot(
                                     (long)botId,
-                                    async (botInstance) =>
+                                    (botInstance) =>
                                     {
                                         AddClientConnectionForBotInstance(botInstance.id,
                                             RGClientConnectionType.REMOTE);
@@ -429,12 +429,13 @@ namespace RegressionGames
         {
             enqueueTaskForClient(long.MaxValue, StartGameHelper);
         }
-        
-        private async Task SetupClientConnection(RGClientConnection clientConnection)
+
+        private Task SetupClientConnection(RGClientConnection clientConnection)
         {
             // MUST do this on the main thread
             // update to the latest connection info from RGService
             clientConnection.Connect();
+            return Task.CompletedTask;
         }
 
         private float lastClientConnectTime = -1f;
@@ -477,7 +478,7 @@ namespace RegressionGames
                     }
                 }
             }
-            
+
             // Take any requested screenshots
             _dataCollection.ProcessScreenshotRequests();
         }
@@ -527,8 +528,8 @@ namespace RegressionGames
                         // Useful for debugging threading / callstack issues
                         //Debug.Log($"Skipping RG state data update, no clients connected");
                     }
-                    
-                    
+
+
                 }
                 else
                 {
@@ -545,7 +546,7 @@ namespace RegressionGames
         private Dictionary<string, IRGStateEntity> GetGameState()
         {
             var overlayAgent = this.gameObject.GetComponent<RGEntity>();
-            
+
             var rgEntities = FindObjectsOfType<MonoBehaviour>(true).OfType<RGEntity>();
             var fullGameState = new Dictionary<string, IRGStateEntity>();
 
@@ -556,7 +557,7 @@ namespace RegressionGames
                 // Give the Entity its 'core' state fields whether their are custom RGstates on the object or not
                 // Custom states can then override these values
                 var coreEntityState = RGState.GenerateCoreStateForRGEntity(rgEntity);
-                
+
                 if (true.Equals(rgEntity.isPlayer))
                 {
                     if (!coreEntityState.ContainsKey("clientId") || coreEntityState["clientId"] == null)
@@ -570,8 +571,8 @@ namespace RegressionGames
                         if (clientId != null)
                         {
                             coreEntityState["clientId"] = clientId;
-                            // add the agent from the player's object to the agentMap now that 
-                            // we have detected that they are here 
+                            // add the agent from the player's object to the agentMap now that
+                            // we have detected that they are here
                             // this happens for menu bots that spawn human players to control
                             // doing this allows actions from the bot code to process to the human player agent
                             // set this to avoid expensive lookups next time
@@ -580,9 +581,9 @@ namespace RegressionGames
                         }
                     }
                 }
-                
+
                 IRGStateEntity currentEntityState = null;
-                
+
                 // get the state behaviors on this game object
                 var rgStates = rgEntity.gameObject.GetComponents<IRGState>();
 
@@ -662,7 +663,7 @@ namespace RegressionGames
             mainThreadTaskQueue.TryAdd(clientId, new ConcurrentQueue<Action>());
             mainThreadTaskQueue[clientId].Enqueue(task);
         }
-        
+
         public void HandleClientTeardown(long clientId, bool doUpdateBots = true)
         {
             // Handle when the client tells us to teardown because the instant bot instance was stopped
@@ -688,14 +689,14 @@ namespace RegressionGames
                             $"WARNING: A client tried to connect/handshake with an invalid external auth token");
                         return;
                     }
-                    
+
                     //Handle spawning player and recording lifecycle for de-spawn
                     bool spawnable = handshakeMessage.spawnable;
 
                     string lifecycle = string.IsNullOrEmpty(handshakeMessage.lifecycle)
                         ? "MANAGED"
                         : handshakeMessage.lifecycle;
-                    
+
                     clientConnectionMap[clientId].Lifecycle = lifecycle;
 
                     // if the bot coming in already put its unique client Id on the end.. ignore
@@ -741,7 +742,7 @@ namespace RegressionGames
                         //send the client a handshake response so they can start processing
                         clientConnectionMap[clientId].SendHandshakeResponse( new RGServerHandshake(UnitySideToken, characterConfig, null));
                     }
-                    
+
                     // we used to do this in the connection on each send, but that was too many updates.. now we do it after sending handshake response
                     SetUnityBotState(clientId, RGUnityBotState.RUNNING);
                 }
@@ -777,12 +778,14 @@ namespace RegressionGames
         public void SaveDataForTick(long clientId, RGTickInfoData tickInfoData, List<RGActionRequest> actions,
             List<RGValidationResult> validations)
         {
-            _dataCollection.SaveReplayDataInfo(clientId, new RGStateActionReplayData(
+            // The "_ =" syntax tells the compiler we know SaveReplayDataInfo returns a Task
+            // and are _intentionally_ not awaiting it, by instead "saving" it in a "discard" variable.
+            _ = _dataCollection.SaveReplayDataInfo(clientId, new RGStateActionReplayData(
                 actions: actions.ToArray(),
                 validationResults: validations.ToArray(),
                 tickInfo: tickInfoData,
                 playerId: clientId,
-                
+
                 // These three seem unused and unset in the JS version?
                 sceneId: null,
                 error: null,
@@ -798,7 +801,7 @@ namespace RegressionGames
         {
             _dataCollection.RegisterBot(clientId, bot);
         }
-        
+
         // call me on the main thread only
         private void HandleAction(long clientId, RGActionRequest actionRequest)
         {
@@ -816,7 +819,7 @@ namespace RegressionGames
                 }
             }
         }
-        
+
     }
 
 }

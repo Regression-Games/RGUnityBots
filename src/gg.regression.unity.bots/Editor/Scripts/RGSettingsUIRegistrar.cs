@@ -44,26 +44,26 @@ namespace RegressionGames.Editor
                     SerializedObject settings = RGSettings.GetSerializedSettings();
                     SerializedObject userSettings = RGUserSettings.GetSerializedUserSettings();
                     EditorGUI.BeginChangeCheck();
-                    
+
                     SerializedProperty hostField = settings.FindProperty("rgHostAddress");
                     hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
-                    
+
                     SerializedProperty emailField = userSettings.FindProperty("email");
                     emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
                     SerializedProperty passwordField = userSettings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
-                    
+
                     SerializedProperty logLevel = settings.FindProperty("logLevel");
                     logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
 
                     SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
                     enableOverlay.boolValue =
                         EditorGUILayout.Toggle("Enable Screen Overlay ?", enableOverlay.boolValue);
-                    
+
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
                         EditorGUILayout.Toggle("Use Global Bot Settings ?", useSystemSettings.boolValue);
-                    
+
                     EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
                     SerializedProperty numBotsProp = settings.FindProperty("numBots");
                     numBotsProp.intValue = EditorGUILayout.IntSlider("Number Of Bots", numBotsProp.intValue, 0, 7, new GUILayoutOption[] { });
@@ -91,7 +91,7 @@ namespace RegressionGames.Editor
                             }
                         }, () =>
                         {
-                            
+
                         });
                         // get Local bots
                         RGBotAssetsManager.GetInstance()?.RefreshAvailableBots();
@@ -117,7 +117,7 @@ namespace RegressionGames.Editor
                             botIndexMap[bot.id] = index;
                             return index++;
                         });
-                        
+
                         for (int i = 1; i <= numBotsProp.intValue; i++)
                         {
                             try
@@ -141,7 +141,7 @@ namespace RegressionGames.Editor
                                 }
                                 botSelected.longValue = bots[indexSelected].id;
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
                                 // Solve why on first rendering after get this blows up but still renders fine
                                 // the answer is that OnGUI calls this multiple times per frame :(
@@ -194,14 +194,14 @@ namespace RegressionGames.Editor
 
             var tcs = new TaskCompletionSource<bool>();
 
-            await rgServiceManager.Auth(priorUser, priorPassword, 
-                responseToken => 
+            await rgServiceManager.Auth(priorUser, priorPassword,
+                responseToken =>
                 {
                     token = responseToken;
                     bots = null;
                     tcs.SetResult(true);
-                }, 
-                f => 
+                },
+                f =>
                 {
                     token = null;
                     bots = null;

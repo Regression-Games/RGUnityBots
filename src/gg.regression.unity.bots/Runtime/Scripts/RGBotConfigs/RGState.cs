@@ -20,7 +20,7 @@ namespace RegressionGames.RGBotConfigs
         // ReSharper disable once InconsistentNaming
         // we require each state to have an 'RGEntity' component
         protected RGEntity rgEntity => GetComponent<RGEntity>();
-        
+
         /**
          * <summary>A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
@@ -48,7 +48,7 @@ namespace RegressionGames.RGBotConfigs
 
             return state;
         }
-        
+
         protected virtual Type GetTypeForStateEntity()
         {
             return typeof(RGStateEntity<RGState>);
@@ -69,15 +69,15 @@ namespace RegressionGames.RGBotConfigs
             }
             return (IRGStateEntity)Activator.CreateInstance(type);
         }
-        
-        
+
+
         // Used to fill in the core state for any RGEntity that does NOT have an
         // RGState implementation on its game object
         public static IRGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
         {
             IRGStateEntity state;
 
-            
+
             // if button.. include whether it is interactable
             var button = rgEntity.Button;
             if (button != null)
@@ -91,7 +91,7 @@ namespace RegressionGames.RGBotConfigs
                 state = new RGStateEntity<RGState>();
             }
             var theTransform = rgEntity.transform;
-            
+
             state["id"] = theTransform.GetInstanceID();
             // default to the gameObject name without uniqueness numbers
             var otName = rgEntity.objectType.Trim();
@@ -119,7 +119,7 @@ namespace RegressionGames.RGBotConfigs
             }
             return state;
         }
-        
+
         private static void PopulateEverythingStateForEntity(IRGStateEntity state, RGEntity entity)
         {
             var obsoleteAttributeType = typeof(ObsoleteAttribute);
@@ -128,7 +128,9 @@ namespace RegressionGames.RGBotConfigs
             foreach (var component in components)
             {
                 // skip 'expensive' components, only get colliders and MonoBehaviours
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (component is Collider or Collider2D or MonoBehaviour and not RGState and not RGAction and not RGEntity and not RGAgent)
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     var type = component.GetType();
                     var dictionary = new Dictionary<string, object>();
@@ -138,7 +140,7 @@ namespace RegressionGames.RGBotConfigs
                         {
                             if (prop.CanRead &&
                                 (prop.PropertyType.IsPublic || prop.PropertyType.IsSerializable) &&
-                                !prop.IsDefined(obsoleteAttributeType, false)) ;
+                                !prop.IsDefined(obsoleteAttributeType, false))
                             {
                                 if (prop.PropertyType.IsPrimitive ||
                                     prop.PropertyType == typeof(Vector3) ||
@@ -150,7 +152,7 @@ namespace RegressionGames.RGBotConfigs
                                 }
                             }
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             // some properties' values aren't accessible
                         }
