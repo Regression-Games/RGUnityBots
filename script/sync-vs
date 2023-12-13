@@ -3,7 +3,7 @@
 #/ Synchronizes Visual Studio/Rider solution and project files with the Unity project.
 #/
 #/ Options:
-#/   -u, --unity-path <path>    Path to the Unity installation to use. Defaults to an autodetected path based on the version of RGUnityBots.
+#/   -u, --unity-path <path>   Path to the Unity installation to use. Defaults to an autodetected path based on the version of RGUnityBots.
 source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 repo_root="$(dirname "$source_dir")"
 source "$repo_root/script/_utils.sh"
@@ -12,6 +12,7 @@ set -euo pipefail
 
 # Parse arguments
 unity_path=
+docker=false
 while [[ $# -gt 0 ]]; do
     key="$1"
     shift
