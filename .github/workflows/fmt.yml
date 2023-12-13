@@ -32,4 +32,4 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run:
-          script/fmt --docker --check
+          script/fmt --docker --check --resync
