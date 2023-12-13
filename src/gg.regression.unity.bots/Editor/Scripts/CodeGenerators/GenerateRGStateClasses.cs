@@ -20,7 +20,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
         public static void Generate(List<RGStateAttributesInfo> rgStateAttributesInfos)
         {
-            Dictionary<string, Task> fileWriteTasks = new(); 
+            Dictionary<string, Task> fileWriteTasks = new();
             foreach (var rgStateAttributeInfo in rgStateAttributesInfos)
             {
                 if (rgStateAttributeInfo.ShouldGenerateCSFile)
@@ -62,7 +62,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     // Create the Start method
                     var startMethod = GenerateStartMethod(componentType, rgStateAttributeInfo.State);
-                    
+
                     // Create the SEInstance method
                     var seInstanceMethod = GenerateGetTypeForStateEntityMethod(componentType);
 
@@ -229,7 +229,7 @@ namespace RegressionGames.Editor.CodeGenerators
             // Add statements to add each state variable to the dictionary
             statements.AddRange(memberInfos.Select(mi =>
             {
-                ExpressionSyntax valueExpression = mi.FieldType == "method" 
+                ExpressionSyntax valueExpression = mi.FieldType == "method"
                     ? InvocationExpression(
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
@@ -276,9 +276,9 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return getStateMethod;
         }
-        
-        
-        
+
+
+
         private static MemberDeclarationSyntax[] GenerateStateEntityFields(List<RGStateAttributeInfo> memberInfos)
         {
             var fields = new List<MemberDeclarationSyntax>();
@@ -286,7 +286,7 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 fields.Add(GeneratePropertyDeclaration(memberInfo));
             }
-            
+
             return fields.ToArray();
         }
 
@@ -298,7 +298,7 @@ namespace RegressionGames.Editor.CodeGenerators
             if (specialNumberTypes.Contains(memberInfo.Type.ToLowerInvariant()))
             {
                 return GeneratePropertyDeclarationForNumbers(memberInfo);
-            } 
+            }
             // else generate regular format
             return GeneratePropertyDeclarationForNormalTypes(memberInfo);
         }

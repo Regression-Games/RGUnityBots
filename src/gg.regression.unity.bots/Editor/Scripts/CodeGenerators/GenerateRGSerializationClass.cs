@@ -52,14 +52,14 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     continue;
                 }
-                
+
                 foreach (RGParameterInfo parameter in botAction.Parameters)
                 {
                     if (RGUtils.IsCSharpPrimitive(parameter.Type))
                     {
                         continue;
                     }
-                    
+
                     if (!processedTypes.Contains(parameter.Type))
                     {
                         processedTypes.Add(parameter.Type);

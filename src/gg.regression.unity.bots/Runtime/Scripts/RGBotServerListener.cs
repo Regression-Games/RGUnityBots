@@ -689,8 +689,8 @@ namespace RegressionGames
                          return;
                      }
 
-                    //Handle spawning player and recording lifecycle for de-spawn
-                    bool spawnable = handshakeMessage.spawnable;
+                     //Handle spawning player and recording lifecycle for de-spawn
+                     bool spawnable = handshakeMessage.spawnable;
 
                      string lifecycle = string.IsNullOrEmpty(handshakeMessage.lifecycle)
                          ? "MANAGED"
@@ -698,9 +698,9 @@ namespace RegressionGames
 
                      clientConnectionMap[clientId].Lifecycle = lifecycle;
 
-                    // if the bot coming in already put its unique client Id on the end.. ignore
-                    // else make sure the name is unique by appending the id
-                    string botName = $"{handshakeMessage.botName}";
+                     // if the bot coming in already put its unique client Id on the end.. ignore
+                     // else make sure the name is unique by appending the id
+                     string botName = $"{handshakeMessage.botName}";
                      string clientIdStringSuffix = $"-{clientId}";
                      if (!botName.EndsWith(clientIdStringSuffix))
                      {
@@ -708,13 +708,13 @@ namespace RegressionGames
                      }
                      Dictionary<string, object> characterConfig = handshakeMessage.characterConfig;
 
-                    // save the token the client gave us for talking to them
-                    clientConnectionMap[clientId].Token = handshakeMessage.rgToken;
+                     // save the token the client gave us for talking to them
+                     clientConnectionMap[clientId].Token = handshakeMessage.rgToken;
 
                      if (!spawnable && "PERSISTENT".Equals(lifecycle))
                      {
-                        // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
-                        RGEntity theAgent = this.gameObject.GetComponent<RGEntity>();
+                         // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
+                         RGEntity theAgent = this.gameObject.GetComponent<RGEntity>();
                          agentMap[clientId] = new HashSet<RGEntity> { theAgent };
                      }
                      else
@@ -722,8 +722,8 @@ namespace RegressionGames
                          agentMap[clientId] = new HashSet<RGEntity>();
                      }
 
-                    // set this BEFORE sending the response of handshake to the client so it actually sends
-                    SetUnityBotState(clientId, RGUnityBotState.CONNECTED);
+                     // set this BEFORE sending the response of handshake to the client so it actually sends
+                     SetUnityBotState(clientId, RGUnityBotState.CONNECTED);
                      if (spawnable)
                      {
                          try
@@ -738,12 +738,12 @@ namespace RegressionGames
                      else
                      {
                          RGDebug.LogDebug($"Sending socket handshake response to client id: {clientId}");
-                        //send the client a handshake response so they can start processing
-                        clientConnectionMap[clientId].SendHandshakeResponse(new RGServerHandshake(UnitySideToken, characterConfig, null));
+                         //send the client a handshake response so they can start processing
+                         clientConnectionMap[clientId].SendHandshakeResponse(new RGServerHandshake(UnitySideToken, characterConfig, null));
                      }
 
-                    // we used to do this in the connection on each send, but that was too many updates.. now we do it after sending handshake response
-                    SetUnityBotState(clientId, RGUnityBotState.RUNNING);
+                     // we used to do this in the connection on each send, but that was too many updates.. now we do it after sending handshake response
+                     SetUnityBotState(clientId, RGUnityBotState.RUNNING);
                  }
                  catch (Exception ex)
                  {
