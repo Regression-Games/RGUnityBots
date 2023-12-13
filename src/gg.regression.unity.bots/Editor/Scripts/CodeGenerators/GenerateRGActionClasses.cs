@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using RegressionGames.RGBotConfigs;
 using UnityEditor;
 #endif
 
@@ -20,7 +19,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
         public static void Generate(List<RGActionAttributeInfo> actionInfos)
         {
-            Dictionary<string, Task> fileWriteTasks = new();
+            Dictionary<string, Task> fileWriteTasks = new(); 
             // Iterate through BotActions
             foreach (var botAction in actionInfos)
             {
@@ -42,12 +41,11 @@ namespace RegressionGames.Editor.CodeGenerators
                     }
 
                     var projectNamespace = CodeGeneratorUtils.GetNamespaceForProject();
-
+                    
                     botAction.GeneratedClassName =
                         $"{projectNamespace}.RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
 
                     // Create a new compilation unit
-                    var actionClassName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
                     CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
                         .AddUsings(
                             usings.Select(v => SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
@@ -58,13 +56,8 @@ namespace RegressionGames.Editor.CodeGenerators
                                 .AddMembers(
                                     // Class declaration
                                     SyntaxFactory
-                                        .ClassDeclaration(actionClassName)
-                                        .AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList(new[]
-                                        {
-                                            CodeGeneratorUtils.Attribute(typeof(DisallowMultipleComponent)),
-                                            CodeGeneratorUtils.Attribute(typeof(RequireComponent),
-                                                CodeGeneratorUtils.TypeOf(typeof(RGEntity)))
-                                        })))
+                                        .ClassDeclaration(
+                                            $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                                         .AddModifiers(
                                             SyntaxFactory.Token(SyntaxKind.PublicKeyword)
                                             // Only add one of the "class" keywords here
@@ -94,15 +87,10 @@ namespace RegressionGames.Editor.CodeGenerators
                                             GenerateActionRequestConstructor(botAction)
                                         )
                                 )
-                        )
-                        .AddMembers(CodeGeneratorUtils.CreatePartialAttacherClass(
-                            botAction.Namespace,
-                            botAction.Object,
-                            typeof(RGEntity).FullName,
-                            $"{projectNamespace}.{actionClassName}"));
+                        );
 
                     // Format the generated code
-                    string formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();
+                    string formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
 
                     // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
                     string fileName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}.cs";
@@ -179,7 +167,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return getActionNameMethod;
         }
-
+        
         private static ArgumentSyntax GenerateActionDelegate(RGActionAttributeInfo action)
         {
             // Generate the GetComponent<Object>().MethodName piece for both cases (0 and non-0 parameters)
@@ -248,14 +236,14 @@ namespace RegressionGames.Editor.CodeGenerators
             foreach (var parameter in action.Parameters)
             {
                 string paramName = parameter.Name;
-
+                
                 methodInvocationArguments.Add(paramName);
                 parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"{parameter.Type} {paramName} = default;"));
                 parameterParsingStatements.Add(SyntaxFactory.IfStatement(IfCondition(parameter), IfBody(parameter), ElseBody(parameter)));
             }
 
-            string methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ?
-                                                     ", " + string.Join(", ", methodInvocationArguments) :
+            string methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ? 
+                                                     ", " + string.Join(", ", methodInvocationArguments) : 
                                                      string.Empty;
 
             parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"Invoke(\"{action.ActionName}\"{methodInvocationArgumentsString});"));
@@ -276,16 +264,16 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             return SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    SyntaxFactory.IdentifierName("input"),
+                    SyntaxKind.SimpleMemberAccessExpression, 
+                    SyntaxFactory.IdentifierName("input"), 
                     SyntaxFactory.IdentifierName("TryGetValue")
                     )).WithArgumentList(
                 SyntaxFactory.ArgumentList(
-                    SyntaxFactory.SeparatedList(new List<ArgumentSyntax>
-                    {
+                    SyntaxFactory.SeparatedList(new List<ArgumentSyntax> 
+                    { 
                         SyntaxFactory.Argument(
                             SyntaxFactory.LiteralExpression(
-                                SyntaxKind.StringLiteralExpression,
+                                SyntaxKind.StringLiteralExpression, 
                                 SyntaxFactory.Literal(param.Name)
                             )
                         ),
@@ -303,13 +291,13 @@ namespace RegressionGames.Editor.CodeGenerators
          * {
          *      string:
          *      key = keyInput.ToString();
-         *
+         * 
          *      primitive:
          *      KeyType.TryParse(keyInput.ToString(), out key);
          *
          *      nonprimitive:
          *      key = RGSerialization.Deserialize_KeyType(key.ToString());
-         *
+         * 
          * }
          * catch (Exception ex)
          * {
@@ -321,7 +309,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             var paramType = param.Type;
             var paramName = param.Name;
-
+            
             string tryParseStatement;
             if (paramType.ToLower() == "string" || paramType.ToLower() == "system.string")
             {
@@ -333,7 +321,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
             else
             {
-                // Do direct type cast whenever possible, taking into account nullable types
+                // Do direct type cast whenever possible, taking into account nullable types 
                 tryParseStatement = $"if ({paramName}Input is {paramType.Replace("?", "")}";
                 if (param.Nullable)
                 {
@@ -380,15 +368,15 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 return default(ElseClauseSyntax);
             }
-
+            
             // Validation check for key existence if param must be non-null
-            return SyntaxFactory.ElseClause(SyntaxFactory.Block(new StatementSyntax[]
+            return SyntaxFactory.ElseClause(SyntaxFactory.Block(new StatementSyntax[] 
                     {
                         SyntaxFactory.ExpressionStatement(
                             SyntaxFactory.InvocationExpression(
                                     SyntaxFactory.MemberAccessExpression(
-                                        SyntaxKind.SimpleMemberAccessExpression,
-                                        SyntaxFactory.IdentifierName("RGDebug"),
+                                        SyntaxKind.SimpleMemberAccessExpression, 
+                                        SyntaxFactory.IdentifierName("RGDebug"), 
                                         SyntaxFactory.IdentifierName("LogError")
                                 )
                             ).WithArgumentList(
@@ -396,14 +384,14 @@ namespace RegressionGames.Editor.CodeGenerators
                                     SyntaxFactory.SingletonSeparatedList(
                                         SyntaxFactory.Argument(
                                             SyntaxFactory.LiteralExpression(
-                                                SyntaxKind.StringLiteralExpression,
+                                                SyntaxKind.StringLiteralExpression, 
                                                 SyntaxFactory.Literal($"No parameter '{param.Name}' found")
                                                 )
                                             )
                                         )
                                     )
                                 )
-                            ), SyntaxFactory.ReturnStatement()
+                            ), SyntaxFactory.ReturnStatement() 
                     }
                 ));
         }
@@ -412,7 +400,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             var methodParameters = new List<ParameterSyntax>();
             var parameterParsingStatements = new List<StatementSyntax>();
-
+            
             foreach (var rgParameterInfo in action.Parameters)
             {
                 methodParameters.Add(SyntaxFactory.Parameter(SyntaxFactory.Identifier(rgParameterInfo.Name))
@@ -428,7 +416,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
 
             inputString += "\r\n};";
-
+            
             parameterParsingStatements.Add(
                 SyntaxFactory.ParseStatement(inputString)
             );
