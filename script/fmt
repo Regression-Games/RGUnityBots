@@ -59,7 +59,7 @@ if ${docker:-false}; then
     exit 0
 fi
 
-if [ "$UNITY_DOCKER" = "1" ]; then
+if [ "${UNITY_DOCKER:-}" = "1" ]; then
     # For now, we need to install and prep 'dotnet'
     # We can remove this if we want to create images with dotnet already installed
     curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --install-dir /usr/local/bin

@@ -50,7 +50,7 @@ unity() {
     local unity_path="$1"
     shift
 
-    if [ "$UNITY_DOCKER" = "1" ]; then
+    if [ "${UNITY_DOCKER:-}" = "1" ]; then
         # Activate Unity First
         activation_args=()
         [ -n "${UNITY_SERIAL:-}" ] && activation_args+=(-serial "${UNITY_SERIAL}")
