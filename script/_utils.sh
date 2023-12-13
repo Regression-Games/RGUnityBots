@@ -31,7 +31,7 @@ unity_docker() {
     docker_image="unityci/editor:ubuntu-${unity_version}-linux-il2cpp-3"
     echo "Using docker Unity $docker_image ..."
     docker run \
-        -it --rm \
+        --rm \
         -v "${repo_root}:/project" \
         -w /project \
         --platform linux/amd64 \
