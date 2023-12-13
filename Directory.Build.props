@@ -1,0 +1,11 @@
+<!--
+    This file is automatically imported in to every 'csproj' in this directory.
+    This allows us to set settings that apply _when building in Rider_.
+    NOTE: These settings do NOT apply when building in Unity!
+    The src/RGUnityBots/Assets/csc.rsp file applies in Unity.
+-->
+<Project>
+    <PropertyGroup>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+</Project>
