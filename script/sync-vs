@@ -41,4 +41,7 @@ fi
 
 echo "Using Unity at $unity_path"
 echo "Syncing Visual Studio/Rider solution and project files..."
-unity "$unity_path" -projectPath "$repo_root/src/RGUnityBots" -executeMethod "UnityEditor.SyncVS.SyncSolution"
+unity "$unity_path" \
+ -projectPath "$repo_root/src/RGUnityBots" \
+ -executeMethod "UnityEditor.SyncVS.SyncSolution" \
+ -batchmode -nographics -quit
