@@ -1,10 +1,12 @@
 #!/bin/bash
-#/ Usage: scripts/fmt [-u|--unity-path <path>] [--check] [--docker]
+#/ Usage: scripts/fmt [--resync] [-u|--unity-path <path>] [--check] [--docker]
 #/ Syncs Visual Studio/Rider solution and project files and then reformats the code using 'dotnet-format'.
 #/
 #/ Options:
 #/   -u, --unity-path <path>   Path to the Unity installation to use. Defaults to an autodetected path based on the version of RGUnityBots.
 #/      If --docker is specified, this is the version number of Unity to use.
+#/      Not needed if --resync is not specified.
+#/  --resync                   Resyncs the Visual Studio/Rider solution and project files. Requires a valid Unity installation.
 #/  --check                    Checks if the code is formatted correctly, but does not modify it. For CI builds.
 #/  --docker                   Use the dockerized version of Unity from game-ci.
 source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -17,6 +19,7 @@ set -euo pipefail
 check=false
 sync_vs_args=()
 relaunch_args=()
+resync=false
 while [[ $# -gt 0 ]]; do
     key="$1"
     shift
@@ -31,6 +34,10 @@ while [[ $# -gt 0 ]]; do
         --check)
             check=true
             relaunch_args+=(--check)
+            ;;
+        --resync)
+            resync=true
+            relaunch_args+=(--resync)
             ;;
         --help)
             grep '^#/' "$0" | cut -c4-
@@ -65,7 +72,14 @@ if [ "${UNITY_DOCKER:-}" = "1" ]; then
     curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --install-dir /usr/local/bin
 fi
 
-script/sync-vs ${sync_vs_args[@]:-}
+if $resync; then
+    script/sync-vs ${sync_vs_args[@]:-}
+fi
+
+if [ ! -f "$repo_root/src/RGUnityBots/RGUnityBots.sln" ]; then
+    echo "No solution file found. You need to run with '--resync' if you don't already have the solution files in sync."
+    exit 1
+fi
 
 dotnet tool restore
 
