@@ -14,9 +14,13 @@ namespace RegressionGames
         /// </summary>
         internal long clientId;
 
-        public virtual bool MustActivateThisFrame()
+        /// <summary>
+        /// Called in the main loop to determine if this bot should trigger dynamic ticks.
+        /// If this returns a non-zero value, then the bot will be ticked that many times.
+        /// </summary>
+        public virtual int GetDynamicTickCount()
         {
-            return false;
+            return 0;
         }
 
         public virtual void UpdateState(Dictionary<string, IRGStateEntity> state)

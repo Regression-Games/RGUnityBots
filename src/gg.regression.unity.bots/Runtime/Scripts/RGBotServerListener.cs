@@ -25,6 +25,7 @@ namespace RegressionGames
         public readonly ConcurrentDictionary<long?, HashSet<RGEntity>> agentMap = new ();
 
         private long tick = 0;
+        private long remainingDynamicTicks = 0;
 
         private static RGBotServerListener _this = null;
 
@@ -491,52 +492,50 @@ namespace RegressionGames
 
             // Check if a dynamic tick is needed.
             var botDelegates = FindObjectsOfType<RGBotDelegate>();
-            IReadOnlyList<RGBotDelegate> activeDelegates = tick % tickRate == 0
-                ? Array.Empty<RGBotDelegate>() // If this is a static tick, there's no need to ask the delegates if they should run.
-                : botDelegates.Where(d => d.MustActivateThisFrame()).ToList();
-
-            if (activeDelegates.Count > 0 || tick % tickRate == 0)
+            var additionalDynamicTicks = 0;
+            foreach (var botDelegate in botDelegates)
             {
+                var requiredTicks = botDelegate.GetDynamicTickCount();
+                RGDebug.LogVerbose($"Delegate {botDelegate.name}({botDelegate.clientId}) requested {requiredTicks} dynamic ticks.");
+                additionalDynamicTicks = Math.Max(additionalDynamicTicks, requiredTicks);
+            }
+
+            if (additionalDynamicTicks > 0)
+            {
+                remainingDynamicTicks += additionalDynamicTicks;
+            }
+
+            if (remainingDynamicTicks > 0 || tick % tickRate == 0)
+            {
+                if (remainingDynamicTicks > 0)
+                {
+                    // Even if a static tick triggered, we still count it as decreasing the dynamic tick count.
+                    remainingDynamicTicks -= 1;
+                }
+
                 if (clientConnectionMap.Count > 0)
                 {
                     var state = GetGameState();
 
-                    // Give any active bot delegates a chance to update the state, even if this is a static tick.
+                    // Give any bot delegates a chance to update the state, even if this is a static tick.
                     foreach (var botDelegate in botDelegates)
                     {
                         botDelegate.UpdateState(state);
                     }
 
                     var sceneName = SceneManager.GetActiveScene().name;
-                    var tickInfoData = new RGTickInfoData(tick, sceneName, state);
+                    var tickInfoData = new RGTickInfoData(tick, Time.time, Time.frameCount, sceneName, state);
                     var sentTo = new List<long>();
 
                     // we tried to send these out in parallel on thread pool,
                     // but scheduling the tasks on the thread took longer than
                     // doing it sequentially... by a Lot, even with 200+ bots
-                    if (tick % tickRate == 0)
+                    // if this is a static tick (at the tick rate) then send to all clients
+                    foreach (var (clientId, client) in clientConnectionMap)
                     {
-                        RGDebug.LogInfo($"Running static tick on frame {Time.frameCount}");
-                        // if this is a static tick (at the tick rate) then send to all clients
-                        foreach (var (clientId, client) in clientConnectionMap)
+                        if (client.SendTickInfo(tickInfoData))
                         {
-                            if (client.SendTickInfo(tickInfoData))
-                            {
-                                sentTo.Add(clientId);
-                            }
-                        }
-                    }
-                    else if (activeDelegates.Count > 0)
-                    {
-                        RGDebug.LogInfo($"Running dynamic tick on frame {Time.frameCount}");
-                        // otherwise, this is a dynamic tick, only send to the clients that have active delegates
-                        foreach (var activeDelegate in activeDelegates)
-                        {
-                            if (clientConnectionMap.TryGetValue(activeDelegate.clientId, out var clientConnection) &&
-                                clientConnection.SendTickInfo(tickInfoData))
-                            {
-                                sentTo.Add(activeDelegate.clientId);
-                            }
+                            sentTo.Add(clientId);
                         }
                     }
 

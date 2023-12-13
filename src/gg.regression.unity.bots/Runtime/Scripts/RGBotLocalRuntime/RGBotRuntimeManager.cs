@@ -14,7 +14,7 @@ namespace RegressionGames.RGBotLocalRuntime
     [HelpURL("https://docs.regression.gg/studios/unity/unity-sdk/overview")]
     public class RGBotRuntimeManager: MonoBehaviour
     {
-        private static RGBotRuntimGManager _this = null;
+        private static RGBotRuntimeManager _this = null;
 
         private readonly ConcurrentDictionary<long, RGBotRunner> _botRunners = new();
 
