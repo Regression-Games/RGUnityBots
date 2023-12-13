@@ -54,6 +54,9 @@ if ${docker:-false}; then
 
     # We need to relaunch ourselves inside docker
     unity_docker "${unity_path:-}" "script/fmt" --unity-path "/opt/unity/Editor" ${relaunch_args[@]:-}
+
+    # If we get here, we succeeded in docker and don't need to continue.
+    exit 0
 fi
 
 if [ "$UNITY_DOCKER" = "1" ]; then
@@ -63,6 +66,11 @@ if [ "$UNITY_DOCKER" = "1" ]; then
 fi
 
 script/sync-vs ${sync_vs_args[@]:-}
+
+echo "Finding all .csproj and .sln files..."
+find . -name '*.csproj'
+find . -name '*.sln'
+echo "---"
 
 dotnet tool restore
 
