@@ -778,8 +778,6 @@ namespace RegressionGames
         public void SaveDataForTick(long clientId, RGTickInfoData tickInfoData, List<RGActionRequest> actions,
             List<RGValidationResult> validations)
         {
-            // The "_ =" syntax tells the compiler we know SaveReplayDataInfo returns a Task
-            // and are _intentionally_ not awaiting it, by instead "saving" it in a "discard" variable.
             _ = _dataCollection.SaveReplayDataInfo(clientId, new RGStateActionReplayData(
                 actions: actions.ToArray(),
                 validationResults: validations.ToArray(),
