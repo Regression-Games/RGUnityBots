@@ -25,7 +25,6 @@ namespace RegressionGames
         public readonly ConcurrentDictionary<long?, HashSet<RGEntity>> agentMap = new ();
 
         private long tick = 0;
-        private long remainingDynamicTicks = 0;
 
         private static RGBotServerListener _this = null;
 
@@ -176,7 +175,7 @@ namespace RegressionGames
             return null;
         }
 
-        public RGClientConnection AddClientConnectionForBotInstance(long botInstanceId, RGBotDelegate botDelegate, RGClientConnectionType type)
+        public RGClientConnection AddClientConnectionForBotInstance(long botInstanceId, RGBotController botController, RGClientConnectionType type)
         {
             RGDebug.LogDebug($"Adding Client Connection Entry from botInstanceId: {botInstanceId}");
             // set or update the connection info for this botInstanceId
@@ -187,7 +186,7 @@ namespace RegressionGames
             }
             else
             {
-                connection = new RGClientConnection_Local(clientId: botInstanceId, botDelegate);
+                connection = new RGClientConnection_Local(clientId: botInstanceId, botController);
             }
 
             clientConnectionMap.AddOrUpdate(botInstanceId, connection, (k,v) =>
@@ -486,42 +485,15 @@ namespace RegressionGames
         /**
          * When all game actions occur, finally decide whether or not to send the game state
          */
-        private void LateUpdate()
+        private void FixedUpdate()
         {
             tick++;
 
-            // Check if a dynamic tick is needed.
-            var botDelegates = FindObjectsOfType<RGBotDelegate>();
-            var additionalDynamicTicks = 0;
-            foreach (var botDelegate in botDelegates)
+            if (tick % tickRate == 0)
             {
-                var requiredTicks = botDelegate.GetDynamicTickCount();
-                RGDebug.LogVerbose($"Delegate {botDelegate.name}({botDelegate.clientId}) requested {requiredTicks} dynamic ticks.");
-                additionalDynamicTicks = Math.Max(additionalDynamicTicks, requiredTicks);
-            }
-
-            if (additionalDynamicTicks > 0)
-            {
-                remainingDynamicTicks += additionalDynamicTicks;
-            }
-
-            if (remainingDynamicTicks > 0 || tick % tickRate == 0)
-            {
-                if (remainingDynamicTicks > 0)
-                {
-                    // Even if a static tick triggered, we still count it as decreasing the dynamic tick count.
-                    remainingDynamicTicks -= 1;
-                }
-
                 if (clientConnectionMap.Count > 0)
                 {
                     var state = GetGameState();
-
-                    // Give any bot delegates a chance to update the state, even if this is a static tick.
-                    foreach (var botDelegate in botDelegates)
-                    {
-                        botDelegate.UpdateState(state);
-                    }
 
                     var sceneName = SceneManager.GetActiveScene().name;
                     var tickInfoData = new RGTickInfoData(tick, Time.time, Time.frameCount, sceneName, state);

@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using RegressionGames.Types;
 using UnityEditor;
 using UnityEngine;
-using Object = System.Object;
-using Random = System.Random;
 
 namespace RegressionGames.RGBotLocalRuntime
 {
@@ -60,61 +57,79 @@ namespace RegressionGames.RGBotLocalRuntime
             var botAssetRecord = RGBotAssetsManager.GetInstance().GetBotAssetRecord(botId);
             if (botAssetRecord != null)
             {
-                // Find the bot entry point script
-                var entryPointPath = $"{botAssetRecord.Path}/BotEntryPoint.cs";
-                var entryPointScript = AssetDatabase.LoadAssetAtPath<MonoScript>(entryPointPath);
-                if (entryPointScript == null)
+                // Check if the bot has a controller. If it does, it will be handling all this logic
+                if (botAssetRecord.BotAsset.botController != null)
                 {
-                    RGDebug.LogError($"Could not find bot entry point script at {entryPointPath}.");
-                    return 0;
+                    StartControlledBot(botId, botInstance, botAssetRecord);
                 }
+                else {
+                    // TODO: The rest of this code could be bundled up into a "default" Bot Controller we use if the user doesn't specify one
 
-                var entryPointType = entryPointScript.GetClass();
-                RGDebug.LogVerbose($"Bot Entry Point {entryPointType.FullName} located at {entryPointPath}");
+                    // Find the bot entry point script
+                    var entryPointPath = $"{botAssetRecord.Path}/BotEntryPoint.cs";
+                    var entryPointScript = AssetDatabase.LoadAssetAtPath<MonoScript>(entryPointPath);
+                    if (entryPointScript == null)
+                    {
+                        RGDebug.LogError($"Could not find bot entry point script at {entryPointPath}.");
+                        return 0;
+                    }
 
-                RGUserBot userBotCode = null;
-                try
-                {
-                    userBotCode = (RGUserBot)ScriptableObject.CreateInstance(entryPointType);
+                    var entryPointType = entryPointScript.GetClass();
+                    RGDebug.LogVerbose($"Bot Entry Point {entryPointType.FullName} located at {entryPointPath}");
+
+                    RGUserBot userBotCode = null;
+                    try
+                    {
+                        userBotCode = (RGUserBot)ScriptableObject.CreateInstance(entryPointType);
+                    }
+                    catch (Exception e)
+                    {
+                        // nothing to see here, unity already logs the failure above in the log despite usually not throwing an exception
+                    }
+
+                    if (userBotCode == null)
+                    {
+                        RGDebug.LogError($"Failed to create instance of bot entry point '{entryPointType.FullName}'.");
+                        return 0;
+                    }
+
+                    userBotCode.Init(botId, botAssetRecord.BotAsset.Bot.name);
+
+                    botInstance.bot = botAssetRecord.BotAsset.Bot;
+
+
+                    RGClientConnection connection = RGBotServerListener.GetInstance()
+                        .AddClientConnectionForBotInstance(botInstance.id, null, RGClientConnectionType.LOCAL);
+
+                    // Also attach the bot so we can upload later
+                    RGBotServerListener.GetInstance().MapClientToLocalBot(botInstance.id, botAssetRecord.BotAsset.Bot);
+
+                    var botRunner = new RGBotRunner(botInstance, userBotCode,
+                        () => { _botRunners.TryRemove(botInstance.id, out _); });
+                    (connection as RGClientConnection_Local)?.SetBotRunner(botRunner);
+
+                    _botRunners.TryAdd(botInstance.id, botRunner);
+                    botRunner.StartBot();
                 }
-                catch (Exception e)
-                {
-                    // nothing to see here, unity already logs the failure above in the log despite usually not throwing an exception
-                }
-
-                if (userBotCode == null)
-                {
-                    RGDebug.LogError($"Failed to create instance of bot entry point '{entryPointType.FullName}'.");
-                    return 0;
-                }
-
-                userBotCode.Init(botId, botAssetRecord.BotAsset.Bot.name);
-
-                botInstance.bot = botAssetRecord.BotAsset.Bot;
-
-                // Spawn the delegate, if there is one, and attach it to the client.
-                var botDelegate = botAssetRecord.BotAsset.botDelegate != null ? Instantiate(botAssetRecord.BotAsset.botDelegate) : null;
-                RGClientConnection connection = RGBotServerListener.GetInstance()
-                    .AddClientConnectionForBotInstance(botInstance.id, botDelegate, RGClientConnectionType.LOCAL);
-
-                // Also attach the bot so we can upload later
-                RGBotServerListener.GetInstance().MapClientToLocalBot(botInstance.id, botAssetRecord.BotAsset.Bot);
-
-                var botRunner = new RGBotRunner(botInstance, userBotCode,
-                    () => { _botRunners.TryRemove(botInstance.id, out _); });
-                (connection as RGClientConnection_Local)?.SetBotRunner(botRunner);
-
-                _botRunners.TryAdd(botInstance.id, botRunner);
-                botRunner.StartBot();
 
                 return botInstance.id;
             }
-            else
-            {
-                RGDebug.LogWarning($"Unable to start Bot Id: {botId}.  Local definition for bot not found");
-            }
+
+            RGDebug.LogWarning($"Unable to start Bot Id: {botId}.  Local definition for bot not found");
 
             return 0;
+        }
+
+        private void StartControlledBot(long botId, RGBotInstance botInstance, RGBotAssetRecord botAssetRecord)
+        {
+            var botController = Instantiate(botAssetRecord.BotAsset.botController);
+            botController.SetBotInstance(botInstance);
+
+            RGBotServerListener.GetInstance()
+                .AddClientConnectionForBotInstance(botInstance.id, botController, RGClientConnectionType.LOCAL);
+
+            // Also attach the bot so we can upload later
+            RGBotServerListener.GetInstance().MapClientToLocalBot(botInstance.id, botAssetRecord.BotAsset.Bot);
         }
 
         private void OnDrawGizmos()

@@ -25,7 +25,8 @@ namespace RegressionGames.RGBotLocalRuntime
         /// <summary>
         /// An object that will be spawned in the scene when this bot is spawned. This object can be used to retrieve state and trigger dynamic ticks.
         /// </summary>
+        [FormerlySerializedAs("botDelegate")]
         [Tooltip("An object that will be spawned in the scene when this bot is spawned. This object can be used to retrieve state and trigger dynamic ticks.")]
-        public RGBotDelegate botDelegate;
+        public RGBotController botController;
     }
 }

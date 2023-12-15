@@ -9,12 +9,17 @@ namespace RegressionGames.Types
     {
 
         private RGBotRunner _runner = null;
-        private RGBotDelegate _botDelegate = null;
+        private RGBotController botController = null;
+        private readonly bool hasBotController;
 
-        public RGClientConnection_Local(long clientId, RGBotDelegate botDelegate, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
+        public RGClientConnection_Local(long clientId, RGBotController botController, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
         {
-            _botDelegate = botDelegate;
-            _botDelegate.clientId = clientId;
+            if (botController != null)
+            {
+                this.hasBotController = true;
+                this.botController = botController;
+                this.botController.clientId = clientId;
+            }
         }
 
         public void SetBotRunner(RGBotRunner runner)
@@ -29,10 +34,14 @@ namespace RegressionGames.Types
 
         public override bool SendTeardown()
         {
-            if (_botDelegate != null)
+            if (hasBotController)
             {
-                Object.Destroy(_botDelegate);
-                _botDelegate = null;
+                Object.Destroy(botController);
+                botController = null;
+
+                // Nothing else to tear down.
+
+                return true;
             }
 
             if (Connected())
@@ -47,6 +56,12 @@ namespace RegressionGames.Types
 
         public override bool SendTickInfo(RGTickInfoData tickInfo)
         {
+            if (hasBotController)
+            {
+                // The controller will handle ticking
+                return false;
+            }
+
             if (Connected())
             {
                 _runner.QueueTickInfo(tickInfo);
@@ -69,7 +84,7 @@ namespace RegressionGames.Types
 
         public override bool Connected()
         {
-            return this._runner != null;
+            return hasBotController || _runner != null;
         }
 
     }
