@@ -142,52 +142,16 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             _hasExtractProblem = false;
                 
+            // don't need to generate scripts here because we auto do that on any code change
             try
             {
-                RGDebug.LogInfo($"Generating Regression Games scripts...");
+                RGDebug.LogInfo($"Extracting Regression Games context...");
                 
-                // just in case they haven't done this recently or ever...
-                // find and extract RGState data
-                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Cleaning up previously generated RGStateEntity classes", 0.1f);
-                RGDebug.LogDebug($"Cleaning up previously generated RGStateEntity classes...");
-                
-                CleanupPreviousRGStateEntityClasses();
-                
-                // generate new RGStateEntity classes
-                EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
-                    "Generating new RGStateEntity classes", 0.2f);
-                RGDebug.LogDebug($"Generating new RGStateEntity classes...");
-                GenerateRGStateEntityClasses();
-                
-                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Cleaning up previously generated RGActions classes", 0.4f);
-                RGDebug.LogDebug($"Cleaning up previously generated RGActions classes...");
-                CleanupPreviousRGActionsClasses();
-                
-                                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Searching for [RGAction] attributes", 0.3f);
-                RGDebug.LogDebug($"Searching for [RGAction] attributes...");
-                var actionAttributeInfos = SearchForBotActionAttributes();
-                
-                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Generating new RGActions classes", 0.5f);
-                RGDebug.LogDebug($"Generating new RGActions classes...");
-                GenerateActionClasses(actionAttributeInfos);
-
-                RGDebug.LogInfo($"Completed generating Regression Games scripts.. Extracting Regression Games context");
-                
-                if (_hasExtractProblem)
-                {
-                    // if the code generation phase failed.. don't waste any more time
-                    return;
-                }
-
                 // Find RGStateEntity scripts and generate state info from them
                 // Do NOT include the previous state infos.. so we don't have dupes
                 // This gives us a consistent view across both generated and hand written state class entities
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Extracting state info rom RGStateEntity classes", 0.6f);
+                    "Extracting state info from RGStateEntity classes", 0.2f);
                 var statesInfos = CreateStateInfoFromRGStateEntities();
                 
                 // Do the same for generate RGActionRequest scripts
@@ -200,17 +164,17 @@ namespace RegressionGames.Editor.CodeGenerators
 
                 // if these have been associated to gameObjects with RGEntities, fill in their objectTypes
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Populating Object types", 0.7f);
+                    "Creating JSON structures", 0.4f);
                 var stateAndActionJsonStructure = CreateStateAndActionJson(statesInfos, actionInfos);
 
                 // update/write the json
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Writing JSON files", 0.8f);
+                    "Writing JSON files", 0.6f);
                 WriteJsonFiles(stateAndActionJsonStructure.Item1.ToList(), stateAndActionJsonStructure.Item2.ToList());
 
                 // create 'RegressionGames.zip' in project folder
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Creating .zip file", 0.9f);
+                    "Creating .zip file", 0.8f);
                 CreateJsonZip();
             }
             finally
@@ -277,7 +241,18 @@ namespace RegressionGames.Editor.CodeGenerators
             // Use the Unityeditor assembly as our root     
             // this will get literally everything referenced by this project
             // unity, rg, microsoft, 3rd party, etc
-            stack.Push(Assembly.GetExecutingAssembly());
+            var exAssembly = Assembly.GetExecutingAssembly();
+            stack.Push(exAssembly);
+            list.Add(exAssembly.FullName);
+            // include the currently loaded assemblies
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (!list.Contains(assembly.FullName))
+                {
+                    stack.Push(assembly);
+                    list.Add(assembly.FullName);
+                }
+            }
 
             do
             {
@@ -288,8 +263,15 @@ namespace RegressionGames.Editor.CodeGenerators
                 foreach (var reference in asm.GetReferencedAssemblies())
                     if (!list.Contains(reference.FullName))
                     {
-                        stack.Push(Assembly.Load(reference));
-                        list.Add(reference.FullName);
+                        try
+                        {
+                            stack.Push(Assembly.Load(reference));
+                            list.Add(reference.FullName);
+                        }
+                        catch (Exception)
+                        {
+                            // somme assemblies can't be loaded (Like mac os code signing)
+                        }
                     }
 
             }
@@ -844,8 +826,12 @@ namespace RegressionGames.Editor.CodeGenerators
             var loadedAndReferencedAssemblies = GetAssemblies();
             var rgStateEntityTypes = loadedAndReferencedAssemblies
                 .SelectMany(a => a.GetTypes())
-                .Where(t => !t.IsAbstract && !t.IsInterface && typeof(IRGStateEntity).IsAssignableFrom(t) && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core)));
-            foreach (var rgStateEntityType in rgStateEntityTypes)
+                .Where(t => typeof(IRGStateEntity).IsAssignableFrom(t) || t.IsSubclassOf(typeof(RGStateEntityBase)));
+            
+            var specificTypes = rgStateEntityTypes
+                .Where(t => !t.IsAbstract && !t.IsInterface && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core)));
+
+            foreach (var rgStateEntityType in specificTypes)
             {
                 var entityTypeNameField = rgStateEntityType.GetField("EntityTypeName");
                 var entityTypeName = entityTypeNameField?.GetValue(null)?.ToString();
