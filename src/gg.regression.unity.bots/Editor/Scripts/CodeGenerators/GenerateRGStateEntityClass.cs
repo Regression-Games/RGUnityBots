@@ -42,35 +42,39 @@ namespace RegressionGames.Editor.CodeGenerators
                     usingList.Select(v => UsingDirective(ParseName(v))).ToArray()
                 );
 
+            var properties = attributeInfos.Select(a => GeneratePropertyDeclaration(a.Type, a.StateName)).ToArray();
+
             // Create a new class declaration with the desired name
             var classDeclaration = ClassDeclaration(className)
                 .AddModifiers(Token(SyntaxKind.PublicKeyword))
-                .AddBaseListTypes(SimpleBaseType(ParseTypeName("RGStateEntity")));
-
+                .AddBaseListTypes(SimpleBaseType(ParseTypeName("RGStateEntityBase")))
+                .AddMembers(
+                    GenerateBehaviourType(behaviourName),
+                    GenerateEntityType(entityTypeName),
+                    GenerateIsPlayer(isPlayer),
+                    GenerateEntityTypeMethod(),
+                    GenerateIsPlayerMethod(),
+                    GeneratePopulateMethod(behaviourName, attributeInfos)
+                ).AddMembers(
+                    properties
+                );
+            
+            
+            var compilationUnitMembers = new List<MemberDeclarationSyntax>();
             // Create namespace
-            var namespaceDeclaration = NamespaceDeclaration(ParseName(behaviourNamespace))
-                .AddMembers(classDeclaration);
-            
-            
-            //Create the static methods
-            classDeclaration.AddMembers(
-                GenerateBehaviourTypeField(behaviourName),
-                GenerateEntityTypeNameMethod(entityTypeName),
-                GenerateBehaviourTypeMethod(),
-                GenerateIsPlayerMethod(isPlayer)
-            );
-            
-            //Create the populate method
-            classDeclaration.AddMembers(
-                GeneratePopulateMethod(behaviourName, attributeInfos)
-            );
-            
-            //Generate the property accessors
-            var properties = attributeInfos.Select(a => GeneratePropertyDeclaration(a.Type, a.StateName)).ToArray();
-            classDeclaration.AddMembers(properties);
-            
+            if (string.IsNullOrEmpty(behaviourNamespace))
+            {
+                compilationUnitMembers.Add(classDeclaration);
+            }
+            else
+            {
+                compilationUnitMembers.Add(
+                    NamespaceDeclaration(ParseName(behaviourNamespace))
+                    .AddMembers(classDeclaration));
+            }
+
             // Add it all to the compilation unit
-            compilationUnit = compilationUnit.AddMembers(namespaceDeclaration);
+            compilationUnit = compilationUnit.AddMembers(compilationUnitMembers.ToArray());
             
             // Get the full code text
             var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
@@ -82,7 +86,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static MethodDeclarationSyntax GeneratePopulateMethod(string behaviourName, List<RGCodeGenerator.StateBehaviourPropertyInfo> attributeInfos)
         {
-            var body = new SyntaxList<StatementSyntax>
+            var body = new List<StatementSyntax>
             {
                 LocalDeclarationStatement(
                     VariableDeclaration(
@@ -92,45 +96,55 @@ namespace RegressionGames.Editor.CodeGenerators
                                     SyntaxKind.VarKeyword,
                                     "var",
                                     "var",
-                                    TriviaList())))
+                                    TriviaList()
+                                )
+                            )
+                        )
                         .WithVariables(
-                            SingletonSeparatedList(
+                            SingletonSeparatedList<VariableDeclaratorSyntax>(
                                 VariableDeclarator(
-                                        Identifier("behaviour"))
+                                        Identifier("behaviour")
+                                    )
                                     .WithInitializer(
                                         EqualsValueClause(
                                             CastExpression(
                                                 IdentifierName(behaviourName),
-                                                IdentifierName("monoBehaviour")))))))
+                                                IdentifierName("monoBehaviour")
+                                            )
+                                        )
+                                    )
+                            )
+                        )
+                )
             };
-            
 
             foreach (var attributeInfo in attributeInfos)
             {
-                body.Add(ExpressionStatement(
-                    AssignmentExpression(
-                        SyntaxKind.SimpleAssignmentExpression,
-                        ElementAccessExpression(
-                                ThisExpression())
-                            .WithArgumentList(
-                                BracketedArgumentList(
-                                    SingletonSeparatedList(
-                                        Argument(
-                                            LiteralExpression(
-                                                SyntaxKind.StringLiteralExpression,
-                                                Literal(attributeInfo.StateName)))))),
-                        attributeInfo.IsMethod ?
-                        InvocationExpression(
-                            MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                IdentifierName("behaviour"),
-                                IdentifierName(attributeInfo.FieldName)
+                body.Add(
+                    ExpressionStatement(
+                        AssignmentExpression(
+                            SyntaxKind.SimpleAssignmentExpression,
+                            ElementAccessExpression(
+                                    ThisExpression())
+                                .WithArgumentList(
+                                    BracketedArgumentList(
+                                        SingletonSeparatedList(
+                                            Argument(
+                                                LiteralExpression(
+                                                    SyntaxKind.StringLiteralExpression,
+                                                    Literal(attributeInfo.StateName)))))),
+                            attributeInfo.IsMethod
+                                ? InvocationExpression(
+                                    MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        IdentifierName("behaviour"),
+                                        IdentifierName(attributeInfo.FieldName)
+                                    )
                                 )
-                            )
-                            : MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                IdentifierName("behaviour"),
-                                IdentifierName(attributeInfo.FieldName)
+                                : MemberAccessExpression(
+                                    SyntaxKind.SimpleMemberAccessExpression,
+                                    IdentifierName("behaviour"),
+                                    IdentifierName(attributeInfo.FieldName)
                                 )
                         )
                     )
@@ -139,107 +153,195 @@ namespace RegressionGames.Editor.CodeGenerators
 
             var method = MethodDeclaration(
                     PredefinedType(
-                        Token(SyntaxKind.VoidKeyword)),
-                    Identifier("PopulateFromMonoBehaviour"))
+                        Token(SyntaxKind.VoidKeyword)
+                    ),
+                    Identifier("PopulateFromMonoBehaviour")
+                )
                 .WithModifiers(
                     TokenList(
                         new []{
                             Token(SyntaxKind.PublicKeyword),
-                            Token(SyntaxKind.OverrideKeyword)}))
+                            Token(SyntaxKind.OverrideKeyword)
+                        }
+                    )
+                )
                 .WithParameterList(
                     ParameterList(
-                        SingletonSeparatedList(
+                        SingletonSeparatedList<ParameterSyntax>(
                             Parameter(
-                                    Identifier("monoBehaviour"))
+                                    Identifier("monoBehaviour")
+                                )
                                 .WithType(
-                                    IdentifierName("MonoBehaviour")))))
+                                    IdentifierName("MonoBehaviour")
+                                )
+                        )
+                    )
+                )
                 .WithBody(
                     Block(body));
 
             return method;
         }
 
-        private static FieldDeclarationSyntax GenerateBehaviourTypeField(string behaviourName)
+        private static MethodDeclarationSyntax GenerateEntityTypeMethod()
+        {
+            return MethodDeclaration(
+                    PredefinedType(
+                        Token(SyntaxKind.StringKeyword)
+                    ),
+                    Identifier("GetEntityType")
+                )
+                .WithModifiers(
+                    TokenList(
+                        new []{
+                            Token(SyntaxKind.PublicKeyword),
+                            Token(SyntaxKind.OverrideKeyword)
+                        }
+                    )
+                )
+                .WithBody(
+                    Block(
+                        SingletonList<StatementSyntax>(
+                            ReturnStatement(
+                                IdentifierName("EntityTypeName")
+                            )
+                        )
+                    )
+                );
+        }
+        
+        private static MethodDeclarationSyntax GenerateIsPlayerMethod()
+        {
+            return MethodDeclaration(
+                    PredefinedType(
+                        Token(SyntaxKind.BoolKeyword)
+                    ),
+                    Identifier("GetIsPlayer")
+                )
+                .WithModifiers(
+                    TokenList(
+                        new []{
+                            Token(SyntaxKind.PublicKeyword),
+                            Token(SyntaxKind.OverrideKeyword)
+                        }
+                    )
+                )
+                .WithBody(
+                    Block(
+                        SingletonList<StatementSyntax>(
+                            ReturnStatement(
+                                IdentifierName("IsPlayer")
+                            )
+                        )
+                    )
+                );
+        }
+
+        private static FieldDeclarationSyntax GenerateEntityType(string entityTypeName)
         {
             return FieldDeclaration(
                     VariableDeclaration(
-                            IdentifierName("Type"))
+                            PredefinedType(
+                                Token(SyntaxKind.StringKeyword)
+                            )
+                        )
                         .WithVariables(
                             SingletonSeparatedList(
                                 VariableDeclarator(
-                                        Identifier("BehaviourType"))
+                                        Identifier("EntityTypeName")
+                                    )
+                                    .WithInitializer(
+                                        EqualsValueClause(
+                                            LiteralExpression(
+                                                SyntaxKind.StringLiteralExpression,
+                                                Literal(entityTypeName)
+                                            )
+                                        )
+                                    )
+                            )
+                        )
+                )
+                .WithModifiers(
+                    TokenList(
+                        new[]
+                        {
+                            Token(SyntaxKind.PublicKeyword),
+                            Token(SyntaxKind.StaticKeyword),
+                            Token(SyntaxKind.ReadOnlyKeyword)
+                        }
+                    )
+                );
+        }
+
+        private static FieldDeclarationSyntax GenerateBehaviourType(string behaviourName)
+        {
+            return FieldDeclaration(
+                    VariableDeclaration(
+                            IdentifierName("Type")
+                        )
+                        .WithVariables(
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                        Identifier("BehaviourType")
+                                    )
                                     .WithInitializer(
                                         EqualsValueClause(
                                             TypeOfExpression(
-                                                IdentifierName(behaviourName)))))))
+                                                IdentifierName(behaviourName)
+                                            )
+                                        )
+                                    )
+                            )
+                        )
+                )
                 .WithModifiers(
                     TokenList(
                         new []{
-                            Token(SyntaxKind.PrivateKeyword),
+                            Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.StaticKeyword),
-                            Token(SyntaxKind.ReadOnlyKeyword)}));
+                            Token(SyntaxKind.ReadOnlyKeyword)
+                        }
+                    )
+                );
         }
 
-        private static MethodDeclarationSyntax GenerateEntityTypeNameMethod(string entityTypeName)
+        private static FieldDeclarationSyntax GenerateIsPlayer(bool isPlayer)
         {
-            return MethodDeclaration(
-                    PredefinedType(
-                        Token(SyntaxKind.StringKeyword)),
-                    Identifier("GetEntityTypeName"))
+            return FieldDeclaration(
+                    VariableDeclaration(
+                            PredefinedType(
+                                Token(SyntaxKind.BoolKeyword)
+                            )
+                        )
+                        .WithVariables(
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                        Identifier("IsPlayer")
+                                    )
+                                    .WithInitializer(
+                                        EqualsValueClause(
+                                            LiteralExpression(
+                                                isPlayer ?
+                                                SyntaxKind.TrueLiteralExpression :
+                                                SyntaxKind.FalseLiteralExpression
+                                            )
+                                        )
+                                    )
+                            )
+                        )
+                )
                 .WithModifiers(
                     TokenList(
                         new []{
                             Token(SyntaxKind.PublicKeyword),
-                            Token(SyntaxKind.NewKeyword),
-                            Token(SyntaxKind.StaticKeyword)}))
-                .WithBody(
-                    Block(
-                        SingletonList<StatementSyntax>(
-                            ReturnStatement(
-                                LiteralExpression(
-                                    SyntaxKind.StringLiteralExpression,
-                                    Literal(entityTypeName))))));
-        }
-        
-        private static MethodDeclarationSyntax GenerateBehaviourTypeMethod()
-        {
-            return MethodDeclaration(
-                    PredefinedType(
-                        Token(SyntaxKind.TypeKeyword)),
-                    Identifier("GetBehaviourType"))
-                .WithModifiers(
-                    TokenList(
-                        new []{
-                            Token(SyntaxKind.PublicKeyword),
-                            Token(SyntaxKind.NewKeyword),
-                            Token(SyntaxKind.StaticKeyword)}))
-                .WithBody(
-                    Block(
-                        SingletonList<StatementSyntax>(
-                            ReturnStatement(
-                                IdentifierName("BehaviourType")))));
+                            Token(SyntaxKind.StaticKeyword),
+                            Token(SyntaxKind.ReadOnlyKeyword)
+                        }
+                    )
+                );
         }
 
-        private static MethodDeclarationSyntax GenerateIsPlayerMethod(bool isPlayer)
-        {
-            return MethodDeclaration(
-                    PredefinedType(
-                        Token(SyntaxKind.BoolKeyword)),
-                    Identifier("GetIsPlayer"))
-                .WithModifiers(
-                    TokenList(
-                        new []{
-                            Token(SyntaxKind.PublicKeyword),
-                            Token(SyntaxKind.NewKeyword),
-                            Token(SyntaxKind.StaticKeyword)}))
-                .WithBody(
-                    Block(
-                        SingletonList<StatementSyntax>(
-                            ReturnStatement(
-                                IdentifierName($"{isPlayer}")))));
-        }
-
-        private static MemberDeclarationSyntax GeneratePropertyDeclaration(string propertyType, string propertyName)
+        private static PropertyDeclarationSyntax GeneratePropertyDeclaration(string propertyType, string propertyName)
         {
             var specialNumberTypes = new [] {
                 "float","double","decimal","sbyte","byte","short","ushort","int","uint","long","ulong"
@@ -282,20 +384,20 @@ namespace RegressionGames.Editor.CodeGenerators
          * json deserializer picked for the dictionary when handling remote bot action requests from javascript</summary>
          *
          * Example outputs for each primitive type...
-         * public float f1 => (float)float.Parse(this.GetValueOrDefault("f1").ToString());
-         * public double dd1 => (double)double.Parse(this.GetValueOrDefault("dd1").ToString());
-         * public decimal d1 => (decimal)decimal.Parse(this.GetValueOrDefault("d1").ToString());
-         * public sbyte sb1 => (sbyte)sbyte.Parse(this.GetValueOrDefault("sb1").ToString());
-         * public byte b1 => (byte)byte.Parse(this.GetValueOrDefault("b1").ToString());
-         * public short s1 => (short)short.Parse(this.GetValueOrDefault("s1").ToString());
-         * public ushort us1 => (ushort)ushort.Parse(this.GetValueOrDefault("us1").ToString());
-         * public int i1 => (int)int.Parse(this.GetValueOrDefault("i1").ToString());
-         * public uint ui1 => (uint)uint.Parse(this.GetValueOrDefault("ui1").ToString());
-         * public long l1 => (long)long.Parse(this.GetValueOrDefault("l1").ToString());
-         * public ulong ul1 => (ulong)ulong.Parse(this.GetValueOrDefault("ul1").ToString());
-         * public nint ni1 => (nint)this.GetValueOrDefault("ni1");
-         * public nuint nui1 => (nuint)this.GetValueOrDefault("nui1");
-         * public bool isAlive => (bool)this.GetValueOrDefault("isAlive");
+         * public float f1 => (float)float.Parse(this.GetField("f1").ToString());
+         * public double dd1 => (double)double.Parse(this.GetField("dd1").ToString());
+         * public decimal d1 => (decimal)decimal.Parse(this.GetField("d1").ToString());
+         * public sbyte sb1 => (sbyte)sbyte.Parse(this.GetField("sb1").ToString());
+         * public byte b1 => (byte)byte.Parse(this.GetField("b1").ToString());
+         * public short s1 => (short)short.Parse(this.GetField("s1").ToString());
+         * public ushort us1 => (ushort)ushort.Parse(this.GetField("us1").ToString());
+         * public int i1 => (int)int.Parse(this.GetField("i1").ToString());
+         * public uint ui1 => (uint)uint.Parse(this.GetField("ui1").ToString());
+         * public long l1 => (long)long.Parse(this.GetField("l1").ToString());
+         * public ulong ul1 => (ulong)ulong.Parse(this.GetField("ul1").ToString());
+         * public nint ni1 => (nint)this.GetField("ni1");
+         * public nuint nui1 => (nuint)this.GetField("nui1");
+         * public bool isAlive => (bool)this.GetField("isAlive");
          */
         private static PropertyDeclarationSyntax GeneratePropertyDeclarationForNumbers(string propertyType, string propertyName)
         {
@@ -330,7 +432,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                                         MemberAccessExpression(
                                                             SyntaxKind.SimpleMemberAccessExpression,
                                                             ThisExpression(),
-                                                            IdentifierName("GetValueOrDefault")
+                                                            IdentifierName("GetField")
                                                         )
                                                     )
                                                     .WithArgumentList(

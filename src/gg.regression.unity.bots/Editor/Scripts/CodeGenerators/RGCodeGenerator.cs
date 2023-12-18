@@ -67,30 +67,36 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             try
             {
+                RGDebug.LogInfo($"Generating Regression Games scripts...");
                 _hasExtractProblem = false;
 
                 // cleanup old RGStateEntity classes wherever they live
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Cleaning up previously generated RGStateEntity classes", 0.1f);
+                RGDebug.LogDebug($"Cleaning up previously generated RGStateEntity classes...");
                 CleanupPreviousRGStateEntityClasses();
                 
                 // generate new RGStateEntity classes
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Generating new RGStateEntity classes", 0.3f);
+                RGDebug.LogDebug($"Generating new RGStateEntity classes...");
                 GenerateRGStateEntityClasses();
 
+                EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
+                    "Cleaning up previously generated RGActions classes", 0.5f);
+                RGDebug.LogDebug($"Cleaning up previously generated RGActions classes...");
+                CleanupPreviousRGActionsClasses();
+                
                 // find and extract RGAction data
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
-                    "Searching for [RGAction] attributes", 0.5f);
+                    "Searching for [RGAction] attributes", 0.7f);
+                RGDebug.LogDebug($"Searching for [RGAction] attributes...");
                 var actionAttributeInfos = SearchForBotActionAttributes();
-                
-                EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
-                    "Cleaning up previously generated RGActions classes", 0.7f);
-                CleanupPreviousRGStateEntityClasses();
                 
                 // generate classes
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Generating new RGActions classes", 0.9f);
+                RGDebug.LogDebug($"Generating new RGActions classes...");
                 GenerateActionClasses(actionAttributeInfos);
 
                 AssetDatabase.Refresh();
@@ -135,113 +141,43 @@ namespace RegressionGames.Editor.CodeGenerators
         [MenuItem("Regression Games/Agent Builder/Extract Game Context")]
         private static void ExtractGameContext()
         {
-            if (EditorUtility.DisplayDialog(
-                    "Extract Game Context",
-                    "This operation will load and unload every Scene in your project's build configuration while gathering data." +
-                    "\r\n\r\nOnly Scenes that are enabled in your build configuration will be evaluated." +
-                    "\r\n\r\nThis operation can take a long time to complete depending on the size of your project.",
-                    "Continue",
-                    "Cancel"))
-            {
-                _hasExtractProblem = false;
-                var dirtyScenes = GetDirtyScenes();
-                if (dirtyScenes.Count > 0)
-                {
-                    if (EditorUtility.DisplayDialog(
-                            "Unsaved Changes Detected",
-                            "One or more open Scenes have unsaved changes.",
-                            "Save Scenes and Continue Extract",
-                            "Cancel"
-                        ))
-                    {
-                        EditorSceneManager.SaveScenes(dirtyScenes.ToArray());
-                        ExtractGameContextHelper();
-                    }
-                }
-                else
-                {
-                    ExtractGameContextHelper();
-                }
-                if (_hasExtractProblem)
-                {
-                    RGDebug.LogWarning($"Completed extracting Regression Games context - Errors occurred, check logs above...");
-                    EditorUtility.DisplayDialog(
-                        "Extract Game Context\r\nError",
-                        "One or more warnings or errors occurred during the extract." +
-                        "\r\n\r\nCheck the Console logs for more information.",
-                        "OK");
-                    _hasExtractProblem = false;
-                }
-                else
-                {
-                    var zipPath = Path.Combine(ParentDirectory.FullName,  "RegressionGames.zip");
-                        RGDebug.LogInfo($"Completed extracting Regression Games context - filePath: {zipPath}");
-                        EditorUtility.DisplayDialog(
-                            "Extract Game Context\r\nComplete",
-                            "Game context extracted to .zip file:" +
-                            $"\r\n\r\n{zipPath}",
-                            "OK");
-                }
-            }
-
-        }
-
-        private static void GenerateActionClasses(List<RGActionAttributeInfo> actionInfos)
-        {
-            var fileWriteTasks = new List<(string,Task)>();
-            var actionInfosByBehaviour = actionInfos
-                .GroupBy(v => (v.BehaviourNamespace, v.BehaviourName, v.BehaviourFileDirectory))
-                .ToDictionary(v => v.Key, v => v.ToList());
-            foreach (var (behaviourDetails,actionInfoList) in actionInfosByBehaviour)
-            {
-                var newFileName = $"Generated_RGActions_{behaviourDetails.BehaviourName}.cs";
-                fileWriteTasks.Add((newFileName,
-                        GenerateRGActionsClass.Generate(
-                            behaviourDetails.BehaviourFileDirectory+Path.DirectorySeparatorChar+newFileName,
-                            behaviourDetails.BehaviourName,
-                            behaviourDetails.BehaviourNamespace,
-                            actionInfoList
-                            )
-                        )
-                    );
-            }
-
-            Task.WaitAll(fileWriteTasks.Select(v => v.Item2).ToArray());
-            foreach (var (filename, _) in fileWriteTasks)
-            {
-                RGDebug.Log($"Successfully created: {filename}");
-            }
+            _hasExtractProblem = false;
                 
-        }
-
-        private static void ExtractGameContextHelper()
-        {
             try
             {
+                RGDebug.LogInfo($"Generating Regression Games scripts...");
+                
                 // just in case they haven't done this recently or ever...
                 // find and extract RGState data
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
                     "Cleaning up previously generated RGStateEntity classes", 0.1f);
+                RGDebug.LogDebug($"Cleaning up previously generated RGStateEntity classes...");
+                
                 CleanupPreviousRGStateEntityClasses();
                 
                 // generate new RGStateEntity classes
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Generating new RGStateEntity classes", 0.2f);
+                RGDebug.LogDebug($"Generating new RGStateEntity classes...");
                 GenerateRGStateEntityClasses();
                 
-                // find and extract RGAction data
-                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Searching for RGAction attributes", 0.3f);
-                var actionAttributeInfos = SearchForBotActionAttributes();
-                
-                // generate classes
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
                     "Cleaning up previously generated RGActions classes", 0.4f);
+                RGDebug.LogDebug($"Cleaning up previously generated RGActions classes...");
                 CleanupPreviousRGActionsClasses();
+                
+                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
+                    "Searching for [RGAction] attributes", 0.4f);
+                RGDebug.LogDebug($"Searching for [RGAction] attributes...");
+                var actionAttributeInfos = SearchForBotActionAttributes();
+                
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
                     "Generating new RGActions classes", 0.5f);
+                RGDebug.LogDebug($"Generating new RGActions classes...");
                 GenerateActionClasses(actionAttributeInfos);
 
+                RGDebug.LogInfo($"Completed generating Regression Games scripts.. Extracting Regression Games context");
+                
                 if (_hasExtractProblem)
                 {
                     // if the code generation phase failed.. don't waste any more time
@@ -282,8 +218,58 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 EditorUtility.ClearProgressBar();
             }
+            
+            if (_hasExtractProblem)
+            {
+                RGDebug.LogWarning($"Completed extracting Regression Games context - Errors occurred, check logs above...");
+                EditorUtility.DisplayDialog(
+                    "Extract Game Context\r\nError",
+                    "One or more warnings or errors occurred during the extract." +
+                    "\r\n\r\nCheck the Console logs for more information.",
+                    "OK");
+                _hasExtractProblem = false;
+            }
+            else
+            {
+                var zipPath = Path.Combine(ParentDirectory.FullName,  "RegressionGames.zip");
+                    RGDebug.LogInfo($"Completed extracting Regression Games context - filePath: {zipPath}");
+                    EditorUtility.DisplayDialog(
+                        "Extract Game Context\r\nComplete",
+                        "Game context extracted to .zip file:" +
+                        $"\r\n\r\n{zipPath}",
+                        "OK");
+            }
+
         }
-        
+
+        private static void GenerateActionClasses(List<RGActionAttributeInfo> actionInfos)
+        {
+            var fileWriteTasks = new List<(string,Task)>();
+            var actionInfosByBehaviour = actionInfos
+                .GroupBy(v => (v.BehaviourNamespace, v.BehaviourName, v.BehaviourFileDirectory))
+                .ToDictionary(v => v.Key, v => v.ToList());
+            foreach (var (behaviourDetails,actionInfoList) in actionInfosByBehaviour)
+            {
+                var newFileName = $"{behaviourDetails.BehaviourFileDirectory}{Path.DirectorySeparatorChar}Generated_RGActions_{behaviourDetails.BehaviourName}.cs";
+                fileWriteTasks.Add((newFileName,
+                        GenerateRGActionsClass.Generate(
+                            newFileName,
+                            behaviourDetails.BehaviourName,
+                            behaviourDetails.BehaviourNamespace,
+                            actionInfoList
+                            )
+                        )
+                    );
+            }
+
+            Task.WaitAll(fileWriteTasks.Select(v => v.Item2).ToArray());
+            foreach (var (filename, _) in fileWriteTasks)
+            {
+                RGDebug.Log($"Successfully created: {filename}");
+            }
+                
+        }
+
         private static IEnumerable<Assembly> GetAssemblies()
         {
             var list = new List<string>();
@@ -397,7 +383,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                         botActionList.Add(new RGActionAttributeInfo
                         {
-                            BehaviourFileDirectory = csFilePath.Substring(0, csFilePath.LastIndexOf(Path.PathSeparator)),
+                            BehaviourFileDirectory = csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar)),
                             // if this wasn't in a sample project folder, we need to generate CS for it
                             ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
                             BehaviourNamespace = nameSpace,
@@ -689,9 +675,9 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     if (stateMetadata.Count > 0)
                     {
-                        var fileDirectory = csFilePath.Substring(0, csFilePath.LastIndexOf(Path.PathSeparator));
-                        var newFileName = $"Generated_RGStateEntity_{behaviourName}.cs";
-                        fileWriteTasks.Add((newFileName, GenerateRGStateEntityClass.Generate(fileDirectory + Path.PathSeparator + newFileName, entityTypeName, isPlayer, behaviourName, nameSpace, stateMetadata)));
+                        var fileDirectory = csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar));
+                        var newFileName = $"{fileDirectory}{Path.DirectorySeparatorChar}Generated_RGStateEntity_{behaviourName}.cs";
+                        fileWriteTasks.Add((newFileName, GenerateRGStateEntityClass.Generate(newFileName, entityTypeName, isPlayer, behaviourName, nameSpace, stateMetadata)));
                     }
                 }
             }

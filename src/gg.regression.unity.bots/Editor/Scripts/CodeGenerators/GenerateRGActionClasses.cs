@@ -154,18 +154,29 @@ namespace RegressionGames.Editor.CodeGenerators
                 );
 
             var serializationClassDeclaration = GenerateSerializationClass(behaviourName, botActions);
-            
-            var namespaceDeclaration = NamespaceDeclaration(ParseName(behaviourNamespace))
-                .AddMembers(mainClassDeclaration)
-                .AddMembers(actionClassDeclarations.ToArray())
-                .AddMembers(serializationClassDeclaration);
+
+            var compilationUnitMembers = new List<MemberDeclarationSyntax>();
+            // Create namespace
+            if (string.IsNullOrEmpty(behaviourNamespace))
+            {
+                compilationUnitMembers.Add(mainClassDeclaration);
+                compilationUnitMembers.AddRange(actionClassDeclarations);
+                compilationUnitMembers.Add(serializationClassDeclaration);
+            }
+            else
+            {
+                compilationUnitMembers.Add(NamespaceDeclaration(ParseName(behaviourNamespace))
+                    .AddMembers(mainClassDeclaration)
+                    .AddMembers(actionClassDeclarations.ToArray())
+                    .AddMembers(serializationClassDeclaration));
+            }
             
             // Create a new compilation unit
             var compilationUnit = CompilationUnit()
                 .AddUsings(
                     usingSet.Select(v => UsingDirective(ParseName(v))).ToArray()
                 )
-                .AddMembers(namespaceDeclaration);
+                .AddMembers(compilationUnitMembers.ToArray());
 
             // Format the generated code
             var formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();
@@ -273,8 +284,9 @@ namespace RegressionGames.Editor.CodeGenerators
                 Token(SyntaxKind.CommaToken)
             };
 
-            foreach (var rgParameterInfo in action.Parameters)
+            for (var index = 0; index < action.Parameters.Count; index++)
             {
+                var rgParameterInfo = action.Parameters[index];
                 argumentList.Add(Argument(
                         MemberAccessExpression(
                             SyntaxKind.SimpleMemberAccessExpression,
@@ -283,7 +295,10 @@ namespace RegressionGames.Editor.CodeGenerators
                         )
                     )
                 );
-                argumentList.Add(Token(SyntaxKind.CommaToken));
+                if (index + 1 < action.Parameters.Count)
+                {
+                    argumentList.Add(Token(SyntaxKind.CommaToken));
+                }
             }
 
             return MethodDeclaration(
@@ -469,12 +484,10 @@ namespace RegressionGames.Editor.CodeGenerators
             for (var index = 0; index < action.Parameters.Count; index++)
             {
                 var rgParameterInfo = action.Parameters[index];
-                var parameterType = rgParameterInfo.Type + (rgParameterInfo.Nullable ? "?" : "");
                 methodArguments.Add(
                     Argument(
                         CastExpression(
-                            NullableType(
-                                IdentifierName(parameterType)),
+                            IdentifierName(rgParameterInfo.Type),
                             ElementAccessExpression(
                                     IdentifierName("args"))
                                 .WithArgumentList(
@@ -485,6 +498,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                                     SyntaxKind.NumericLiteralExpression,
                                                     Literal(index))))))))
                 );
+                if (index+1 < action.Parameters.Count)
                 methodArguments.Add(Token(SyntaxKind.CommaToken));
             }
 
@@ -550,7 +564,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                                                 .WithTypeArgumentList(
                                                                     TypeArgumentList(
                                                                         SingletonSeparatedList<TypeSyntax>(
-                                                                            IdentifierName("BehaviourName"))))))))))),
+                                                                            IdentifierName(action.BehaviourName))))))))))),
                         IfStatement(
                             BinaryExpression(
                                 SyntaxKind.EqualsExpression,
@@ -586,19 +600,8 @@ namespace RegressionGames.Editor.CodeGenerators
                                                                                     TriviaList(),
                                                                                     SyntaxKind
                                                                                         .InterpolatedStringTextToken,
-                                                                                    "Error: Regression Games internal error... Somehow RGAction: ",
-                                                                                    "Error: Regression Games internal error... Somehow RGAction: ",
-                                                                                    TriviaList())),
-                                                                        Interpolation(
-                                                                            IdentifierName("ActionName")),
-                                                                        InterpolatedStringText()
-                                                                            .WithTextToken(
-                                                                                Token(
-                                                                                    TriviaList(),
-                                                                                    SyntaxKind
-                                                                                        .InterpolatedStringTextToken,
-                                                                                    " got registered on a GameObject where MonoBehaviour: BehaviourName does not exist.",
-                                                                                    " got registered on a GameObject where MonoBehaviour: BehaviourName does not exist.",
+                                                                                    $"Error: Regression Games internal error... Somehow RGAction: {action.ActionName} got registered on a GameObject where MonoBehaviour: {action.BehaviourName} does not exist.",
+                                                                                    $"Error: Regression Games internal error... Somehow RGAction: {action.ActionName} got registered on a GameObject where MonoBehaviour: {action.BehaviourName} does not exist.",
                                                                                     TriviaList()))
                                                                     })
                                                             )
@@ -641,7 +644,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
 
             var methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ?
-                                                     ", " + string.Join(", ", methodInvocationArguments) :
+                                                     string.Join(", ", methodInvocationArguments) :
                                                      string.Empty;
 
             parameterParsingStatements.Add(ParseStatement($"InvokeOnGameObject(gameObject, {methodInvocationArgumentsString});"));
@@ -798,7 +801,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     .WithType(ParseTypeName(rgParameterInfo.Type)));
             
                 parameterParsingStatements.Add(
-                    ParseStatement($"Input[{rgParameterInfo.Name}] = {rgParameterInfo.Name};"));
+                    ParseStatement($"Input[\"{rgParameterInfo.Name}\"] = {rgParameterInfo.Name};"));
             }
             
             var methodBody = Block(parameterParsingStatements);
@@ -859,11 +862,9 @@ namespace RegressionGames.Editor.CodeGenerators
             var fieldStatements = new List<MemberDeclarationSyntax>();
             foreach (var rgParameterInfo in action.Parameters)
             {
-                var parameterType = rgParameterInfo.Type + (rgParameterInfo.Nullable ? "?" : "");
                 fieldStatements.Add(
                     PropertyDeclaration(
-                            NullableType(
-                                IdentifierName(parameterType)),
+                            IdentifierName(rgParameterInfo.Type),
                             Identifier(rgParameterInfo.Name))
                         .WithModifiers(
                             TokenList(
@@ -871,8 +872,7 @@ namespace RegressionGames.Editor.CodeGenerators
                         .WithExpressionBody(
                             ArrowExpressionClause(
                                 CastExpression(
-                                    NullableType(
-                                        IdentifierName(parameterType)),
+                                    IdentifierName(rgParameterInfo.Type),
                                     ElementAccessExpression(
                                             PostfixUnaryExpression(
                                                 SyntaxKind.SuppressNullableWarningExpression,
