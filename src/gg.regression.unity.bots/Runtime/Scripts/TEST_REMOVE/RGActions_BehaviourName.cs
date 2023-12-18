@@ -99,9 +99,7 @@ namespace RegressionGames.TEST_REMOVE
             Input["newOrientation"] = newOrientation;
         }
 
-        public override string GetEntityType()
-        {
-            return "BehaviourName";
-        }
+        public static readonly string EntityTypeName = "BehaviourNameTypeTest";
+        public static readonly string ActionName = "moveInSpace";
     }
 }

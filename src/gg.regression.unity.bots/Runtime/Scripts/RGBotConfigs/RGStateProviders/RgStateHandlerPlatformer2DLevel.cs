@@ -32,13 +32,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         
         public string GetEntityType()
         {
-            return "platformer2DLevel";
+            return EntityTypeName;
         }
 
         public bool GetIsPlayer()
         {
             return false;
         }
+        
+        public static readonly string EntityTypeName = "platformer2DLevel";
     }
     
     /**

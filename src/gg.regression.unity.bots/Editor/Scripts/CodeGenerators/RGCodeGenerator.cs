@@ -10,7 +10,6 @@ using UnityEngine.SceneManagement;
 using System.Reflection;
 using System.Threading.Tasks;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -202,7 +201,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 // if these have been associated to gameObjects with RGEntities, fill in their objectTypes
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
                     "Populating Object types", 0.7f);
-                var stateAndActionJsonStructure = CreateStateAndActionJsonWithObjectTypes(statesInfos, actionInfos);
+                var stateAndActionJsonStructure = CreateStateAndActionJson(statesInfos, actionInfos);
 
                 // update/write the json
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
@@ -275,7 +274,10 @@ namespace RegressionGames.Editor.CodeGenerators
             var list = new List<string>();
             var stack = new Stack<Assembly>();
 
-            stack.Push(Assembly.GetEntryAssembly());
+            // Use the Unityeditor assembly as our root     
+            // this will get literally everything referenced by this project
+            // unity, rg, microsoft, 3rd party, etc
+            stack.Push(Assembly.GetExecutingAssembly());
 
             do
             {
@@ -716,51 +718,70 @@ namespace RegressionGames.Editor.CodeGenerators
             // get all classes of type RGActionRequest and add them
             var loadedAndReferencedAssemblies = GetAssemblies();
             var rgActionRequestTypes = loadedAndReferencedAssemblies.SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(RGActionRequest)));
+                .Where(t => !t.IsAbstract && t.IsSubclassOf(typeof(RGActionRequest)));
             foreach (var rgActionRequestType in rgActionRequestTypes)
             {
-                var actionRequest = (RGActionRequest)Activator.CreateInstance(rgActionRequestType);
-                var entityTypeName = actionRequest.GetEntityType();
-                if (!actionInfos.TryGetValue(entityTypeName, out var theList))
+                var entityTypeNameField = rgActionRequestType.GetField("EntityTypeName");
+                var entityTypeName = entityTypeNameField?.GetValue(null)?.ToString();
+                if (string.IsNullOrEmpty(entityTypeName))
                 {
-                    theList = new List<RGActionInfo>();
-                    actionInfos[entityTypeName] = theList;
+                    entityTypeName = null;
+                }
+                if (entityTypeNameField == null)
+                {
+                    RecordError($"{rgActionRequestType.FullName} must define field 'public static readonly string EntityTypeName = \"<EntityTypeName>\";' where '<EntityTypeName>' is either the RG State type this action is callable for or is the name of the MonoBehaviour with which this action is related.  If this is defined as null, then the action should be globally usable like ClickButton or KeyPress.");
+                }
+                
+                var actionName = rgActionRequestType.GetField("ActionName")?.GetValue(null)?.ToString();
+                if (string.IsNullOrEmpty(actionName))
+                {
+                    RecordError($"{rgActionRequestType.FullName} must define field 'public static readonly string ActionName = \"<ActionName>\";' where '<ActionName>' is the ActionCommand this RGActionRequest represents.");
                 }
 
-                var inList = theList.FirstOrDefault(v => v.ActionName == actionRequest.Action) != null;
+                if (_hasExtractProblem)
+                {
+                    break;
+                }
+                
+                if (!actionInfos.TryGetValue(entityTypeName ?? "NULL", out var theList))
+                {
+                    theList = new List<RGActionInfo>();
+                    actionInfos[entityTypeName ?? "NULL"] = theList;
+                }
+
+                var inList = theList.FirstOrDefault(v => v.ActionName == actionName) != null;
                 if (!inList)
                 {
                     // get the parameters by interrogating the constructor args
                     // this assumes that there is only one named constructor for these custom RGActionRequest classes
-                    var namedConstructors = actionRequest.GetType().GetConstructors()
-                        .Where(v => v.Name == actionRequest.GetType().Name).ToList();
+                    var allConstructors = rgActionRequestType.GetConstructors();
 
-                    if (namedConstructors.Count < 1)
+                    if (allConstructors.Length < 1)
                     {
                         RecordError(
-                            $"RGActionRequest class: {actionRequest.GetType().FullName} does not define the required single named constructor with arguments");
+                            $"RGActionRequest class: {rgActionRequestType.FullName} does not define the required single named constructor with arguments");
                         break;
                     }
 
-                    if (namedConstructors.Count > 1)
+                    if (allConstructors.Length > 1)
                     {
                         RecordError(
-                            $"RGActionRequest class: {actionRequest.GetType().FullName} defines multiple named constructors with arguments, but only a single constructor is allowed");
+                            $"RGActionRequest class: {rgActionRequestType.FullName} defines multiple named constructors with arguments, but only a single constructor is allowed");
                         break;
                     }
 
-                    var constructorArgs = namedConstructors[0].GetParameters();
+                    var constructorArgs = allConstructors[0].GetParameters();
 
                     // add an entry for this hand written rgActionRequest
                     theList.Add(new RGActionInfo()
                         {
-                            GeneratedRGActionRequestName = actionRequest.GetType().FullName,
-                            ActionName = actionRequest.Action,
+                            ClassName = rgActionRequestType.FullName,
+                            ActionName = actionName,
                             Parameters = constructorArgs.Select(v => new RGParameterInfo()
                             {
                                 Name = v.Name,
-                                Type = v.ParameterType.FullName,
-                                Nullable = Nullable.GetUnderlyingType(v.ParameterType) != null
+                                Type = GetTypeString(v.ParameterType, out var isNullable),
+                                Nullable = isNullable
                             }).ToList()
                         }
                     );
@@ -768,7 +789,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 else
                 {
                     RecordError(
-                        $"Multiple RGActionRequest classes specify action: {actionRequest.Action} on the same entityType: {entityTypeName}");
+                        $"Multiple RGActionRequest classes specify action: {actionName} on the same entityType: {entityTypeName}");
                     break;
                 }
             }
@@ -776,27 +797,83 @@ namespace RegressionGames.Editor.CodeGenerators
             return actionInfos;
         }
 
+        private static string GetTypeString(Type type, out bool isNullable)
+        {
+            var result = "";
+            var underlyingType = Nullable.GetUnderlyingType(type);
+            isNullable = underlyingType != null;
+            type = underlyingType ?? type;
+            
+            if (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType))
+            {
+                result = primitiveType;
+            }
+            else
+            {
+                result = type.FullName;
+            }
+
+            return result;
+        }
+        
+        private static readonly Dictionary<Type, string> PrimitiveTypeAliases =
+            new()
+            {
+                { typeof(byte), "byte" },
+                { typeof(sbyte), "sbyte" },
+                { typeof(short), "short" },
+                { typeof(ushort), "ushort" },
+                { typeof(int), "int" },
+                { typeof(uint), "uint" },
+                { typeof(long), "long" },
+                { typeof(ulong), "ulong" },
+                { typeof(float), "float" },
+                { typeof(double), "double" },
+                { typeof(decimal), "decimal" },
+                { typeof(object), "object" },
+                { typeof(bool), "bool" },
+                { typeof(char), "char" },
+                { typeof(string), "string" },
+                { typeof(void), "void" }
+            };
+
 
         private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
             var result = new List<RGStatesInfo>(); 
             var loadedAndReferencedAssemblies = GetAssemblies();
-            var rgStateEntityTypes = loadedAndReferencedAssemblies.SelectMany(a => a.GetTypes())
-                .Where(t => t.IsSubclassOf(typeof(IRGStateEntity)));
+            var rgStateEntityTypes = loadedAndReferencedAssemblies
+                .SelectMany(a => a.GetTypes())
+                .Where(t => !t.IsAbstract && !t.IsInterface && typeof(IRGStateEntity).IsAssignableFrom(t) && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core)));
             foreach (var rgStateEntityType in rgStateEntityTypes)
             {
-                var stateEntity = (RGActionRequest)Activator.CreateInstance(rgStateEntityType);
-                var entityTypeName = stateEntity.GetEntityType();
-                // all RGStateEntity accessors are public properties (=> impls)
+                var entityTypeNameField = rgStateEntityType.GetField("EntityTypeName");
+                var entityTypeName = entityTypeNameField?.GetValue(null)?.ToString();
+                if (string.IsNullOrEmpty(entityTypeName))
+                {
+                    entityTypeName = null;
+                }
+                if (entityTypeNameField == null)
+                {
+                    RecordError($"{rgStateEntityType.FullName} must define field 'public static readonly string EntityTypeName = \"<EntityTypeName>\";' where '<EntityTypeName>' is either the RG State type this action is callable for or is the name of the MonoBehaviour with which this action is related.  If this is defined as null, then the action should be globally usable like ClickButton or KeyPress.");
+                }
+                // all RGStateEntity accessors are public properties (=> impls).. don't get properties from classes in the heirarchy
                 var className = rgStateEntityType.FullName;
-                var properties = rgStateEntityType.GetMembers(BindingFlags.Public).Where(v => v.MemberType == MemberTypes.Property);
-                var stateList = (
-                    from memberInfo
-                    in properties
-                    where memberInfo.DeclaringType != null
-                    select new RGStateInfo { StateName = memberInfo.Name, Type = memberInfo.DeclaringType.FullName }
-                    ).ToList();
-                
+                var properties = rgStateEntityType.GetMembers()
+                    .Where(v => v.MemberType == MemberTypes.Property && typeof(IRGStateEntity).IsAssignableFrom(v.DeclaringType));
+
+                var stateList = new List<RGStateInfo>();
+                foreach (var memberInfo in properties)
+                {
+                     var typeString = GetTypeString(((PropertyInfo)memberInfo).PropertyType, out var isNullable);
+
+                    stateList.Add(new RGStateInfo
+                    {
+                        StateName = memberInfo.Name,
+                        Type = typeString + (isNullable ? "?" : "")
+                    });
+                }
+
                 if (stateList.Any())
                 {
                     result.Add(new RGStatesInfo
@@ -840,7 +917,7 @@ namespace RegressionGames.Editor.CodeGenerators
             return typeName.Replace("global::", string.Empty);
         }
         
-        private static (List<RGEntityStatesJson>, List<RGEntityActionsJson>) CreateStateAndActionJsonWithObjectTypes(
+        private static (List<RGEntityStatesJson>, List<RGEntityActionsJson>) CreateStateAndActionJson(
             List<RGStatesInfo> statesInfos, Dictionary<string, List<RGActionInfo>> actionInfos)
         {
 
@@ -852,7 +929,8 @@ namespace RegressionGames.Editor.CodeGenerators
 
             var actionsJson = actionInfos.Select(v => new RGEntityActionsJson()
             {
-                ObjectType = v.Key,
+                // handle no type keys
+                ObjectType = v.Key == "NULL" ? null : v.Key,
                 Actions =  v.Value.ToHashSet()
             }).ToList();
             

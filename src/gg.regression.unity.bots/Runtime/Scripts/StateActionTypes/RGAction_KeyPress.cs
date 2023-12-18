@@ -272,5 +272,8 @@ namespace RegressionGames.StateActionTypes
         public RGActionRequest_KeyPress(Key keyId, double holdTime = -1f) : base("KeyPress", new() { { "keyId", keyId }, {"holdTime", holdTime} })
         {
         }
+        
+        public static readonly string EntityTypeName = null;
+        public static readonly string ActionName = "KeyPress";
     }
 }

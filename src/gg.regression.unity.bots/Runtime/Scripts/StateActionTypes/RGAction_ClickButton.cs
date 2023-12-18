@@ -58,5 +58,8 @@ namespace RegressionGames.StateActionTypes
         public RGActionRequest_ClickButton(int targetId) : base("ClickButton",  new Dictionary<string, object> { { "targetId", targetId } })
         {
         }
+
+        public static readonly string EntityTypeName = null;
+        public static readonly string ActionName = "ClickButton";
     }
 }

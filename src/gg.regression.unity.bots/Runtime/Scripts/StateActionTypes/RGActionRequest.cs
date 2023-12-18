@@ -27,14 +27,6 @@ namespace RegressionGames.StateActionTypes
             this.Input = input;
         }
 
-        /**
-         * <summary>Child classes should override and set this when possible</summary>
-         */
-        public virtual string GetEntityType()
-        {
-            return null;
-        }
-
         public override string ToString()
         {
             var inputString = Input?.Select(kv => kv.Key + ": " + kv.Value).ToArray();

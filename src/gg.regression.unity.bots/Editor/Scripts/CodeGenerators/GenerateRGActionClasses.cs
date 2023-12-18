@@ -83,7 +83,8 @@ namespace RegressionGames.Editor.CodeGenerators
                             SimpleBaseType(ParseTypeName("RGActionRequest"))
                         ).AddMembers(
                             GenerateActionRequestConstructor(botAction),
-                            GenerateActionRequestGetEntityType(botAction)
+                            GenerateActionRequestEntityType(botAction),
+                            GenerateActionRequestActionName(botAction)
                         ).AddMembers(
                             GenerateActionRequestFields(botAction).ToArray()
                         )
@@ -825,34 +826,73 @@ namespace RegressionGames.Editor.CodeGenerators
             return constructor;
         }
         
-        private static MemberDeclarationSyntax GenerateActionRequestGetEntityType(RGActionAttributeInfo action)
+        private static MemberDeclarationSyntax GenerateActionRequestEntityType(RGActionAttributeInfo action)
         {
             var entitytTypeName = action.EntityTypeName ?? action.BehaviourName;
-            return MethodDeclaration(
-                    PredefinedType(
-                        Token(SyntaxKind.StringKeyword)
-                    ),
-                    Identifier("GetEntityType")
+            return FieldDeclaration(
+                    VariableDeclaration(
+                            PredefinedType(
+                                Token(SyntaxKind.StringKeyword)
+                            )
+                        )
+                        .WithVariables(
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                        Identifier("EntityTypeName")
+                                    )
+                                    .WithInitializer(
+                                        EqualsValueClause(
+                                            LiteralExpression(
+                                                SyntaxKind.StringLiteralExpression,
+                                                Literal(entitytTypeName)
+                                            )
+                                        )
+                                    )
+                            )
+                        )
                 )
                 .WithModifiers(
                     TokenList(
-                        new[]
-                        {
+                        new []{
                             Token(SyntaxKind.PublicKeyword),
-                            Token(SyntaxKind.OverrideKeyword)
+                            Token(SyntaxKind.StaticKeyword),
+                            Token(SyntaxKind.ReadOnlyKeyword)
                         }
                     )
-                )
-                .WithBody(
-                    Block(
-                        SingletonList<StatementSyntax>(
-                            ReturnStatement(
-                                LiteralExpression(
-                                    SyntaxKind.StringLiteralExpression, 
-                                    Literal(entitytTypeName)
-                                    )
-                                )
+                );
+        }
+        
+        private static MemberDeclarationSyntax GenerateActionRequestActionName(RGActionAttributeInfo action)
+        {
+            return FieldDeclaration(
+                    VariableDeclaration(
+                            PredefinedType(
+                                Token(SyntaxKind.StringKeyword)
                             )
+                        )
+                        .WithVariables(
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                        Identifier("ActionName")
+                                    )
+                                    .WithInitializer(
+                                        EqualsValueClause(
+                                            LiteralExpression(
+                                                SyntaxKind.StringLiteralExpression,
+                                                Literal(action.ActionName)
+                                            )
+                                        )
+                                    )
+                            )
+                        )
+                )
+                .WithModifiers(
+                    TokenList(
+                        new []{
+                            Token(SyntaxKind.PublicKeyword),
+                            Token(SyntaxKind.StaticKeyword),
+                            Token(SyntaxKind.ReadOnlyKeyword)
+                        }
                     )
                 );
         }

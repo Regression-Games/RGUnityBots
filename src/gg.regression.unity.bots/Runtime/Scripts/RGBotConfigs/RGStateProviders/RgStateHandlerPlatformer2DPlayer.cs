@@ -18,13 +18,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public float nonFatalFallHeight => (float)this["nonFatalFallHeight"];
         public string GetEntityType()
         {
-            return "platformer2DPlayer";
+            return EntityTypeName;
         }
 
         public bool GetIsPlayer()
         {
             return true;
         }
+
+        public static readonly string EntityTypeName = "platformer2DPlayer";
     }
     
     [Serializable]
