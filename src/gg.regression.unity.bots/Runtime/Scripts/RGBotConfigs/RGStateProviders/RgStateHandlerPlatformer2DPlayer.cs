@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using RegressionGames.RGBotConfigs;
 using RegressionGames.StateActionTypes;
 using RGBotConfigs.RGStateProviders;
 using UnityEngine;
@@ -9,18 +8,27 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 {
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RGStateEntity_Platformer2DPlayer : RGStateEntity<RGState_Platformer2DPlayer>
+    public class RgStateEntityBasePlatformer2DPlayer : Dictionary<string,object>, IRGStateEntity
     {
-        public float jumpHeight => (float)this.GetValueOrDefault("jumpHeight", 0);
-        public float maxJumpHeight => (float)this.GetValueOrDefault("maxJumpHeight", 0);
-        public float velocity => (float)this.GetValueOrDefault("velocity", 0f);
-        public float maxVelocity => (float)this.GetValueOrDefault("maxVelocity", 0f);
-        public float safeFallHeight => (float)this.GetValueOrDefault("safeFallHeight", -1f);
-        public float nonFatalFallHeight => (float)this.GetValueOrDefault("nonFatalFallHeight", -1f);
+        public float jumpHeight => (float)this["jumpHeight"];
+        public float maxJumpHeight => (float)this["maxJumpHeight"];
+        public float velocity => (float)this["velocity"];
+        public float maxVelocity => (float)this["maxVelocity"];
+        public float safeFallHeight => (float)this["safeFallHeight"];
+        public float nonFatalFallHeight => (float)this["nonFatalFallHeight"];
+        public string GetEntityType()
+        {
+            return "platformer2DPlayer";
+        }
+
+        public bool GetIsPlayer()
+        {
+            return true;
+        }
     }
     
     [Serializable]
-    public class RGState_Platformer2DPlayer : RGState
+    public class RgStateHandlerPlatformer2DPlayer : RGStateBehaviour<RgStateEntityBasePlatformer2DPlayer>
     {
         [NonSerialized]
         [Tooltip("Draw debug gizmos for player locations in editor runtime ?")]
@@ -56,10 +64,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         {
             _statsProvider = gameObject.GetComponent<RGStatePlatformer2DPlayerStatsProvider>();
         }
-
-        protected override Dictionary<string, object> GetState()
+        
+        protected override RgStateEntityBasePlatformer2DPlayer CreateStateEntityInstance()
         {
-            if (_statsProvider is not null)
+            return new RgStateEntityBasePlatformer2DPlayer();
+        }
+
+        protected override void PopulateStateEntity(RgStateEntityBasePlatformer2DPlayer stateEntity)
+        {
+            if (_statsProvider != null)
             {
                 jumpHeight = _statsProvider.JumpHeight();
                 maxJumpHeight = _statsProvider.MaxJumpHeight();
@@ -69,22 +82,13 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 nonFatalFallHeight = _statsProvider.NonFatalFallHeight();
             }
             _truePosition = GetTruePosition();
-            return new()
-            {
-                // override the meaning of position to be centered at player collider feet
-                {"position", (Vector3)(Vector2)_truePosition},
-                {"jumpHeight", jumpHeight},
-                {"maxJumpHeight", maxJumpHeight},
-                {"velocity", velocity},
-                {"maxVelocity", maxVelocity},
-                {"safeFallHeight", safeFallHeight},
-                {"nonFatalFallHeight", nonFatalFallHeight}
-            };
-        }
-
-        protected override Type GetTypeForStateEntity()
-        {
-            return typeof(RGStateEntity_Platformer2DPlayer);
+            stateEntity["position"] = (Vector3)(Vector2)_truePosition;
+            stateEntity["jumpHeight"] = jumpHeight;
+            stateEntity["maxJumpHeight"] = maxJumpHeight;
+            stateEntity["velocity"] = velocity;
+            stateEntity["maxVelocity"] = maxVelocity;
+            stateEntity["safeFallHeight"] = safeFallHeight;
+            stateEntity["nonFatalFallHeight"] = nonFatalFallHeight;
         }
 
         // ReSharper disable once InconsistentNaming
@@ -100,12 +104,11 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 thePosition.x - colliderOffset.x - colliderSize.x/2,
                 thePosition.y - colliderOffset.y - colliderSize.y
             );
-            
         }
 
         private void OnDrawGizmos()
         {
-            if (_truePosition is not null)
+            if (_truePosition != null)
             {
                 Gizmos.color = Color.green;
                 Gizmos.DrawWireSphere((Vector2)_truePosition, 0.125f);

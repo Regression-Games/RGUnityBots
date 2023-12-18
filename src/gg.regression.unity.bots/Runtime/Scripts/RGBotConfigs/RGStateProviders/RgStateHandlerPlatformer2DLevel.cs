@@ -25,17 +25,27 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RGStateEntity_Platformer2DLevel : RGStateEntity<RGState_Platformer2DLevel>
+    public class RgStateEntityBasePlatformer2DLevel : Dictionary<string,object>, IRGStateEntity
     {
-        public Vector3 tileCellSize => (Vector3)this.GetValueOrDefault("tileCellSize", Vector3.one);
-        public RGPlatformer2DPosition[] platformPositions => (RGPlatformer2DPosition[])this.GetValueOrDefault("platformPositions", Array.Empty<RGPlatformer2DPosition>());
+        public Vector3 tileCellSize => (Vector3)this["tileCellSize"];
+        public RGPlatformer2DPosition[] platformPositions => (RGPlatformer2DPosition[])this["platformPositions"];
+        
+        public string GetEntityType()
+        {
+            return "platformer2DLevel";
+        }
+
+        public bool GetIsPlayer()
+        {
+            return false;
+        }
     }
     
     /**
      * Provides state information about the tile grid in the current visible screen space.
      */
     [Serializable]
-    public class RGState_Platformer2DLevel: RGState
+    public class RgStateHandlerPlatformer2DLevel: RGStateBehaviour<RgStateEntityBasePlatformer2DLevel>
     {
         [Tooltip("How many tile spaces above a platform to consider when determining the height available on top of a platform.  This should match the height of the largest character model navigating the scene in tile units.")]
         [Min(1)]
@@ -45,25 +55,22 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
-        private void OnDrawGizmos()
-        {
-            if (renderDebugGizmos)
-            {
-                DrawDebugPositions(_lastPositions, _lastCellSize);
-            }
-        }
-
         private Vector3 _lastCellSize = Vector3.one;
         private List<RGPlatformer2DPosition> _lastPositions = new();
 
-        protected override Dictionary<string, object> GetState()
+        protected override RgStateEntityBasePlatformer2DLevel CreateStateEntityInstance()
+        {
+            return new RgStateEntityBasePlatformer2DLevel();
+        }
+
+        protected override void PopulateStateEntity(RgStateEntityBasePlatformer2DLevel stateEntity)
         {
             var tileMap = gameObject.GetComponent<Tilemap>();
 
             var mainCamera = Camera.main;
 
             var cellBounds = tileMap.cellBounds;
-            
+
             if (mainCamera != null)
             {
                 var screenHeight = mainCamera.pixelHeight;
@@ -76,8 +83,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 tileBottomLeft.z = cellBounds.zMin;
                 var tileTopRight = tileMap.WorldToCell(topRight);
                 tileTopRight.z = cellBounds.zMax;
-                
-                
+
+
                 cellBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
             }
 
@@ -110,7 +117,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                                 finalSpotAbove = cellPlace;
                                 heightAvailable = 1;
                             }
-                            
+
                             // check up to the tileSpaceAbove
                             for (int i = 2; i <= tileSpaceAbove; i++)
                             {
@@ -146,15 +153,20 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                     }
                 }
             }
-            
+
             _lastPositions = safePositions;
             _lastCellSize = tileMap.cellSize;
 
-            return new Dictionary<string, object>()
+            stateEntity["tileCellSize"] = _lastCellSize;
+            stateEntity["platformPositions"] = _lastPositions.ToArray();
+        }
+        
+        private void OnDrawGizmos()
+        {
+            if (renderDebugGizmos)
             {
-                { "tileCellSize", _lastCellSize },
-                { "platformPositions", _lastPositions.ToArray() }
-            };
+                DrawDebugPositions(_lastPositions, _lastCellSize);
+            }
         }
 
         private void DrawDebugPositions(List<RGPlatformer2DPosition> platformPositions, Vector3 cellSize)
@@ -166,10 +178,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             }
         }
 
-        protected override Type GetTypeForStateEntity()
-        {
-            return typeof(RGStateEntity_Platformer2DLevel);
-        }
+
     }
     
 

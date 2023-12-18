@@ -1,7 +1,5 @@
 using System.Linq;
-using RegressionGames;
 #if UNITY_EDITOR
-using RegressionGames.Editor.CodeGenerators;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 namespace RegressionGames.Editor.CodeGenerators

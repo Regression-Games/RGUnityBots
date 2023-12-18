@@ -1,272 +1,652 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using UnityEngine;
 #if UNITY_EDITOR
 using System;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using RegressionGames.RGBotConfigs;
-using UnityEditor;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 #endif
 
 namespace RegressionGames.Editor.CodeGenerators
 {
 #if UNITY_EDITOR
     // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
-    public static class GenerateRGActionClasses
+    public static class GenerateRGActionsClass
     {
-        public static void Generate(List<RGActionAttributeInfo> actionInfos)
+        public static Task Generate(
+            string filePath,
+            string behaviourName,
+            string behaviourNamespace,
+            List<RGActionAttributeInfo> botActions)
         {
-            Dictionary<string, Task> fileWriteTasks = new();
-            // Iterate through BotActions
-            foreach (var botAction in actionInfos)
+
+            HashSet<string> usingSet = new()
             {
-                if (botAction.ShouldGenerateCSFile)
-                {
-                    HashSet<string> usings = new()
-                    {
-                        "System",
-                        "System.Collections.Generic",
-                        "RegressionGames",
-                        "RegressionGames.RGBotConfigs",
-                        "RegressionGames.StateActionTypes",
-                        "UnityEngine"
-                    };
-
-                    if (!string.IsNullOrEmpty(botAction.Namespace))
-                    {
-                        usings.Add(botAction.Namespace);
-                    }
-
-                    var projectNamespace = CodeGeneratorUtils.GetNamespaceForProject();
-
-                    botAction.GeneratedClassName =
-                        $"{projectNamespace}.RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
-
-                    // Create a new compilation unit
-                    var actionClassName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
-                    CompilationUnitSyntax compilationUnit = SyntaxFactory.CompilationUnit()
-                        .AddUsings(
-                            usings.Select(v => SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(v))).ToArray()
-                        )
-                        .AddMembers(
-                            // Namespace
-                            SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(projectNamespace))
-                                .AddMembers(
-                                    // Class declaration
-                                    SyntaxFactory
-                                        .ClassDeclaration(actionClassName)
-                                        .AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList(new[]
-                                        {
-                                            CodeGeneratorUtils.Attribute(typeof(DisallowMultipleComponent)),
-                                            CodeGeneratorUtils.Attribute(typeof(RequireComponent),
-                                                CodeGeneratorUtils.TypeOf(typeof(RGEntity)))
-                                        })))
-                                        .AddModifiers(
-                                            SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                            // Only add one of the "class" keywords here
-                                        )
-                                        .AddBaseListTypes(
-                                            SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGAction"))
-                                        )
-                                        .AddMembers(
-                                            // Start method
-                                            GenerateStartMethod(botAction),
-                                            // GetActionName method
-                                            GenerateGetActionNameMethod(botAction),
-                                            // StartAction method
-                                            GenerateStartActionMethod(botAction)
-                                        ),
-                                    SyntaxFactory
-                                        .ClassDeclaration(
-                                            $"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
-                                        .AddModifiers(
-                                            SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                            // Only add one of the "class" keywords here
-                                        )
-                                        .AddBaseListTypes(
-                                            SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGActionRequest"))
-                                        ).AddMembers(
-                                            // Action Request method
-                                            GenerateActionRequestConstructor(botAction)
-                                        )
-                                )
-                        )
-                        .AddMembers(CodeGeneratorUtils.CreatePartialAttacherClass(
-                            botAction.Namespace,
-                            botAction.Object,
-                            typeof(RGEntity).FullName,
-                            $"{projectNamespace}.{actionClassName}"));
-
-                    // Format the generated code
-                    string formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();
-
-                    // Save to 'Assets/RegressionGames/Runtime/GeneratedScripts/RGActions,RGSerialization.cs'
-                    string fileName = $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}.cs";
-                    string subfolderName = Path.Combine("RegressionGames", "Runtime", "GeneratedScripts", "RGActions");
-                    string filePath = Path.Combine(Application.dataPath, subfolderName, fileName);
-                    string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    var task= File.WriteAllTextAsync(filePath, fileContents);
-                    fileWriteTasks[filePath] = task;
-                }
-            }
-
-            Task.WaitAll(fileWriteTasks.Values.ToArray());
-            foreach (var filename in fileWriteTasks.Keys)
-            {
-                RGDebug.Log($"Successfully Generated {filename}");
-            }
-        }
-
-        private static MemberDeclarationSyntax GenerateStartMethod(RGActionAttributeInfo action)
-        {
-            var methodBody = SyntaxFactory.Block(
-                SyntaxFactory.ExpressionStatement(
-                    SyntaxFactory.InvocationExpression(
-                            SyntaxFactory.IdentifierName("AddMethod")
-                        )
-                        .WithArgumentList(
-                            SyntaxFactory.ArgumentList(
-                                SyntaxFactory.SeparatedList<ArgumentSyntax>(
-                                    new SyntaxNodeOrToken[]
-                                    {
-                                        SyntaxFactory.Argument(
-                                            SyntaxFactory.LiteralExpression(
-                                                SyntaxKind.StringLiteralExpression,
-                                                SyntaxFactory.Literal(action.ActionName)
-                                            )
-                                        ),
-                                        SyntaxFactory.Token(SyntaxKind.CommaToken),
-                                        GenerateActionDelegate(action)
-                                    }
-                                )
-                            )
-                        )
-                )
-            );
-
-            var startMethod = SyntaxFactory.MethodDeclaration(
-                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                    "Start"
-                )
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
-                .WithBody(methodBody);
-
-            return startMethod;
-        }
-
-        private static MemberDeclarationSyntax GenerateGetActionNameMethod(RGActionAttributeInfo action)
-        {
-            // Create a method body with return statement
-            BlockSyntax methodBody = SyntaxFactory.Block(
-                SyntaxFactory.ReturnStatement(
-                    SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(action.ActionName))
-                )
-            );
-
-            // Create the GetActionName method
-            MethodDeclarationSyntax getActionNameMethod = SyntaxFactory.MethodDeclaration(
-                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
-                    "GetActionName"
-                )
-                .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.OverrideKeyword))
-                .WithBody(methodBody);
-
-            return getActionNameMethod;
-        }
-
-        private static ArgumentSyntax GenerateActionDelegate(RGActionAttributeInfo action)
-        {
-            // Generate the GetComponent<Object>().MethodName piece for both cases (0 and non-0 parameters)
-            var methodExpression = SyntaxFactory.MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                SyntaxFactory.ParseExpression($"GetComponent<{action.Object}>()"),
-                SyntaxFactory.IdentifierName(action.MethodName)
-            );
-
-            if (action.Parameters.Count == 0)
-            {
-                // When there are no parameters, use a simple Action delegate
-                var actionType = SyntaxFactory.IdentifierName("Action");
-
-                // Create the delegate creation expression
-                var delegateCreationExpression = SyntaxFactory.ObjectCreationExpression(actionType)
-                    .WithArgumentList(
-                        SyntaxFactory.ArgumentList(
-                            SyntaxFactory.SingletonSeparatedList(
-                                SyntaxFactory.Argument(methodExpression)
-                            )
-                        )
-                    );
-
-                return SyntaxFactory.Argument(delegateCreationExpression);
-            }
-            else
-            {
-                // When there are parameters, create the Action delegate type with type arguments
-                var actionType = SyntaxFactory.GenericName(
-                        SyntaxFactory.Identifier("Action")
-                    )
-                    .WithTypeArgumentList(
-                        SyntaxFactory.TypeArgumentList(
-                            SyntaxFactory.SeparatedList(
-                                action.Parameters.Select(param => SyntaxFactory.ParseTypeName(param.Type))
-                            )
-                        )
-                    );
-
-                // Create the delegate creation expression
-                var delegateCreationExpression = SyntaxFactory.ObjectCreationExpression(actionType)
-                    .WithArgumentList(
-                        SyntaxFactory.ArgumentList(
-                            SyntaxFactory.SingletonSeparatedList(
-                                SyntaxFactory.Argument(methodExpression)
-                            )
-                        )
-                    );
-
-                return SyntaxFactory.Argument(delegateCreationExpression);
-            }
-        }
-
-        private static MemberDeclarationSyntax GenerateStartActionMethod(RGActionInfo action)
-        {
-            var methodParameters = new List<ParameterSyntax>
-            {
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("input"))
-                             .WithType(SyntaxFactory.ParseTypeName("Dictionary<string, object>"))
+                "System",
+                "System.Collections.Generic",
+                "Newtonsoft.Json",
+                "RegressionGames",
+                "RegressionGames.StateActionTypes",
+                "UnityEngine"
             };
 
+            var className = $"RGActions_{behaviourName}";
+            
+            var mainClassDeclaration = ClassDeclaration(className)
+                .AddModifiers(Token(SyntaxKind.PublicKeyword))
+                .AddBaseListTypes(SimpleBaseType(ParseTypeName("IRGActions")))
+                // BehaviourTypeField
+                .AddMembers(FieldDeclaration(
+                        VariableDeclaration(
+                                IdentifierName("Type"))
+                            .WithVariables(
+                                SingletonSeparatedList(
+                                    VariableDeclarator(
+                                            Identifier("BehaviourType"))
+                                        .WithInitializer(
+                                            EqualsValueClause(
+                                                TypeOfExpression(
+                                                    IdentifierName(behaviourName)))))))
+                    .WithModifiers(
+                        TokenList(
+                            new []{
+                                Token(SyntaxKind.PublicKeyword),
+                                Token(SyntaxKind.StaticKeyword),
+                                Token(SyntaxKind.ReadOnlyKeyword)}
+                            )
+                        )
+                );
+
+            List<SyntaxNodeOrToken> delegateList = new();
+            
+            List<MemberDeclarationSyntax> actionClassDeclarations = new();
+            // process each action
+            foreach (var botAction in botActions)
+            {
+                if (!botAction.ShouldGenerateCSFile)
+                {
+                    continue;
+                }
+                
+                // Add RGActionRequest class
+                actionClassDeclarations.Add(
+                    ClassDeclaration(
+                            $"RGActionRequest_{botAction.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
+                        .AddModifiers(
+                            Token(SyntaxKind.PublicKeyword)
+                            // Only add one of the "class" keywords here
+                        )
+                        .AddBaseListTypes(
+                            SimpleBaseType(ParseTypeName("RGActionRequest"))
+                        ).AddMembers(
+                            GenerateActionRequestConstructor(botAction),
+                            GenerateActionRequestGetEntityType(botAction)
+                        ).AddMembers(
+                            GenerateActionRequestFields(botAction).ToArray()
+                        )
+                    );
+                
+                // Add RGAction class
+                actionClassDeclarations.Add(
+                    ClassDeclaration(
+                            $"RGAction_{botAction.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
+                        .AddModifiers(
+                            Token(SyntaxKind.PublicKeyword)
+                        ).AddBaseListTypes(
+                            SimpleBaseType(ParseTypeName("IRGAction"))
+                        ).AddMembers(
+                            GenerateInvokeOnGameObjectWithActionRequest(botAction),
+                            GenerateInvokeOnGameObjectWithInput(botAction),
+                            GenerateInvokeOnGameObjectWithArgs(botAction)
+                        )
+                );
+
+                //Add the stuff to populate main class delegate list
+                delegateList.Add(
+                    InitializerExpression(
+                        SyntaxKind.ComplexElementInitializerExpression,
+                        SeparatedList<ExpressionSyntax>(
+                            new SyntaxNodeOrToken[]{
+                                MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                    IdentifierName($"RGAction_{botAction.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}"),
+                                    IdentifierName("ActionName")),
+                                Token(SyntaxKind.CommaToken),
+                                ObjectCreationExpression(
+                                    GenericName(
+                                        Identifier("Action"))
+                                    .WithTypeArgumentList(
+                                        TypeArgumentList(
+                                            SeparatedList<TypeSyntax>(
+                                        new SyntaxNodeOrToken[]{
+                                            IdentifierName("GameObject"),
+                                            Token(SyntaxKind.CommaToken),
+                                            IdentifierName("RGActionRequest")})
+                                            )
+                                        )
+                                    )
+                                .WithArgumentList(
+                                    ArgumentList(
+                                        SingletonSeparatedList(
+                                            Argument(
+                                                MemberAccessExpression(
+                                                    SyntaxKind.SimpleMemberAccessExpression,
+                                                    IdentifierName($"RGAction_{botAction.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}"),
+                                                    IdentifierName("InvokeOnGameObject"))
+                                                )
+                                            )
+                                        )
+                                    )
+                                
+                            })
+                        )
+                    );
+                delegateList.Add(Token(SyntaxKind.CommaToken));
+            }
+            
+            
+            //Add the main class ActionRequestDelegates impls
+            mainClassDeclaration.AddMembers(
+                GenerateMainClassDelegateDictionary(delegateList)
+                );
+
+            var serializationClassDeclaration = GenerateSerializationClass(behaviourName, botActions);
+            
+            var namespaceDeclaration = NamespaceDeclaration(ParseName(behaviourNamespace))
+                .AddMembers(mainClassDeclaration)
+                .AddMembers(actionClassDeclarations.ToArray())
+                .AddMembers(serializationClassDeclaration);
+            
+            // Create a new compilation unit
+            var compilationUnit = CompilationUnit()
+                .AddUsings(
+                    usingSet.Select(v => UsingDirective(ParseName(v))).ToArray()
+                )
+                .AddMembers(namespaceDeclaration);
+
+            // Format the generated code
+            var formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();
+            
+            var fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
+
+            return File.WriteAllTextAsync(filePath, fileContents);
+        }
+
+        private static MemberDeclarationSyntax GenerateMainClassDelegateDictionary(List<SyntaxNodeOrToken> delegateList)
+        {
+            return FieldDeclaration(
+                VariableDeclaration(
+                        GenericName(
+                                Identifier("IDictionary"))
+                            .WithTypeArgumentList(
+                                TypeArgumentList(
+                                    SeparatedList<TypeSyntax>(
+                                        new SyntaxNodeOrToken[]
+                                        {
+                                            PredefinedType(
+                                                Token(SyntaxKind.StringKeyword)),
+                                            Token(SyntaxKind.CommaToken),
+                                            IdentifierName("Delegate")
+                                        }))))
+                    .WithVariables(
+                        SingletonSeparatedList(
+                            VariableDeclarator(
+                                    Identifier("ActionRequestDelegates"))
+                                .WithInitializer(
+                                    EqualsValueClause(
+                                        ObjectCreationExpression(
+                                                GenericName(
+                                                        Identifier("ReadOnlyDictionary"))
+                                                    .WithTypeArgumentList(
+                                                        TypeArgumentList(
+                                                            SeparatedList<TypeSyntax>(
+                                                                new SyntaxNodeOrToken[]
+                                                                {
+                                                                    PredefinedType(
+                                                                        Token(SyntaxKind.StringKeyword)),
+                                                                    Token(SyntaxKind.CommaToken),
+                                                                    IdentifierName("Delegate")
+                                                                })
+                                                        )
+                                                    )
+                                            )
+                                            .WithArgumentList(
+                                                ArgumentList(
+                                                    SingletonSeparatedList(
+                                                        Argument(
+                                                            ObjectCreationExpression(
+                                                                    GenericName(
+                                                                            Identifier("Dictionary"))
+                                                                        .WithTypeArgumentList(
+                                                                            TypeArgumentList(
+                                                                                SeparatedList<TypeSyntax>(
+                                                                                    new SyntaxNodeOrToken[]
+                                                                                    {
+                                                                                        PredefinedType(
+                                                                                            Token(SyntaxKind
+                                                                                                .StringKeyword)),
+                                                                                        Token(SyntaxKind.CommaToken),
+                                                                                        IdentifierName("Delegate")
+                                                                                    })
+                                                                            )
+                                                                        )
+                                                                )
+                                                                .WithArgumentList(
+                                                                    ArgumentList())
+                                                                .WithInitializer(
+                                                                    InitializerExpression(
+                                                                        SyntaxKind.CollectionInitializerExpression,
+                                                                        SeparatedList<ExpressionSyntax>(
+                                                                            delegateList.ToArray()
+                                                                        )
+                                                                    )
+                                                                )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                    )
+                                )
+                        )
+                    )
+            ).WithModifiers(
+                TokenList(
+                    new[]
+                    {
+                        Token(SyntaxKind.PublicKeyword),
+                        Token(SyntaxKind.StaticKeyword),
+                        Token(SyntaxKind.ReadOnlyKeyword)
+                    })
+            );
+        }
+
+        private static MemberDeclarationSyntax GenerateInvokeOnGameObjectWithActionRequest(RGActionAttributeInfo action)
+        {
+            var argumentList = new List<SyntaxNodeOrToken>()
+            {
+                Argument(
+                    IdentifierName("gameObject")
+                ),
+                Token(SyntaxKind.CommaToken)
+            };
+
+            foreach (var rgParameterInfo in action.Parameters)
+            {
+                argumentList.Add(Argument(
+                        MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            IdentifierName("myActionRequest"),
+                            IdentifierName(rgParameterInfo.Name)
+                        )
+                    )
+                );
+                argumentList.Add(Token(SyntaxKind.CommaToken));
+            }
+
+            return MethodDeclaration(
+                    PredefinedType(
+                        Token(SyntaxKind.VoidKeyword)
+                    ),
+                    Identifier("InvokeOnGameObject")
+                )
+                .WithModifiers(
+                    TokenList(
+                        new[]
+                        {
+                            Token(SyntaxKind.PublicKeyword),
+                            Token(SyntaxKind.StaticKeyword)
+                        }
+                    )
+                )
+                .WithParameterList(
+                    ParameterList(
+                        SeparatedList<ParameterSyntax>(
+                            new SyntaxNodeOrToken[]
+                            {
+                                Parameter(
+                                        Identifier("gameObject")
+                                    )
+                                    .WithType(
+                                        IdentifierName("GameObject")
+                                    ),
+                                Token(SyntaxKind.CommaToken),
+                                Parameter(
+                                        Identifier("actionRequest")
+                                    )
+                                    .WithType(
+                                        IdentifierName("RGActionRequest")
+                                    )
+                            }
+                        )
+                    )
+                )
+                .WithBody(
+                    Block(
+                        SingletonList<StatementSyntax>(
+                            IfStatement(
+                                    IsPatternExpression(
+                                        IdentifierName("actionRequest"),
+                                        DeclarationPattern(
+                                            IdentifierName(
+                                                $"RGActionRequest_{action.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(action.ActionName)}"),
+                                            SingleVariableDesignation(
+                                                Identifier("myActionRequest")
+                                            )
+                                        )
+                                    ),
+                                    Block(
+                                        SingletonList<StatementSyntax>(
+                                            ExpressionStatement(
+                                                InvocationExpression(
+                                                        IdentifierName("InvokeOnGameObject")
+                                                    )
+                                                    .WithArgumentList(
+                                                        ArgumentList(
+                                                            SeparatedList<ArgumentSyntax>(argumentList.ToArray())
+                                                        )
+                                                    )
+                                            )
+                                        )
+                                    )
+                                )
+                                .WithIfKeyword(
+                                    Token(
+                                        TriviaList(
+                                            Comment(
+                                                "// optimize this for local C# bots to avoid all the conversions/etc")
+                                        ),
+                                        SyntaxKind.IfKeyword,
+                                        TriviaList()
+                                    )
+                                )
+                                .WithElse(
+                                    ElseClause(
+                                        Block(
+                                            SingletonList<StatementSyntax>(
+                                                ExpressionStatement(
+                                                    InvocationExpression(
+                                                            IdentifierName("InvokeOnGameObject")
+                                                        )
+                                                        .WithArgumentList(
+                                                            ArgumentList(
+                                                                SeparatedList<ArgumentSyntax>(
+                                                                    new SyntaxNodeOrToken[]
+                                                                    {
+                                                                        Argument(
+                                                                            IdentifierName("gameObject")
+                                                                        ),
+                                                                        Token(SyntaxKind.CommaToken),
+                                                                        Argument(
+                                                                            MemberAccessExpression(
+                                                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                                                IdentifierName("actionRequest"),
+                                                                                IdentifierName("Input")
+                                                                            )
+                                                                        )
+                                                                    }
+                                                                )
+                                                            )
+                                                        )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                        )
+                    )
+                );
+        }
+
+        private static MemberDeclarationSyntax GenerateInvokeOnGameObjectWithInput(RGActionAttributeInfo action)
+        {
+            return MethodDeclaration(
+                    PredefinedType(
+                        Token(SyntaxKind.VoidKeyword)
+                    ),
+                    Identifier("InvokeOnGameObject")
+                )
+                .WithModifiers(
+                    TokenList(
+                        new[]
+                        {
+                            Token(SyntaxKind.PrivateKeyword),
+                            Token(SyntaxKind.StaticKeyword)
+                        }
+                    )
+                )
+                .WithParameterList(
+                    ParameterList(
+                        SeparatedList<ParameterSyntax>(
+                            new SyntaxNodeOrToken[]
+                            {
+                                Parameter(
+                                        Identifier("gameObject")
+                                    )
+                                    .WithType(
+                                        IdentifierName("GameObject")
+                                    ),
+                                Token(SyntaxKind.CommaToken),
+                                Parameter(
+                                        Identifier("input")
+                                    )
+                                    .WithType(
+                                        GenericName(
+                                                Identifier("Dictionary")
+                                            )
+                                            .WithTypeArgumentList(
+                                                TypeArgumentList(
+                                                    SeparatedList<TypeSyntax>(
+                                                        new SyntaxNodeOrToken[]
+                                                        {
+                                                            PredefinedType(
+                                                                Token(SyntaxKind.StringKeyword)
+                                                            ),
+                                                            Token(SyntaxKind.CommaToken),
+                                                            PredefinedType(
+                                                                Token(SyntaxKind.ObjectKeyword)
+                                                            )
+                                                        }
+                                                    )
+                                                )
+                                            )
+                                    )
+                            }
+                        )
+                    )
+                )
+                .WithBody(
+                    GenerateWithInputMethodBody(action)
+                );
+        }
+
+        private static MemberDeclarationSyntax GenerateInvokeOnGameObjectWithArgs(RGActionAttributeInfo action)
+        {
+            var methodArguments = new List<SyntaxNodeOrToken>();
+
+            for (var index = 0; index < action.Parameters.Count; index++)
+            {
+                var rgParameterInfo = action.Parameters[index];
+                var parameterType = rgParameterInfo.Type + (rgParameterInfo.Nullable ? "?" : "");
+                methodArguments.Add(
+                    Argument(
+                        CastExpression(
+                            NullableType(
+                                IdentifierName(parameterType)),
+                            ElementAccessExpression(
+                                    IdentifierName("args"))
+                                .WithArgumentList(
+                                    BracketedArgumentList(
+                                        SingletonSeparatedList(
+                                            Argument(
+                                                LiteralExpression(
+                                                    SyntaxKind.NumericLiteralExpression,
+                                                    Literal(index))))))))
+                );
+                methodArguments.Add(Token(SyntaxKind.CommaToken));
+            }
+
+            return MethodDeclaration(
+                    PredefinedType(
+                        Token(SyntaxKind.VoidKeyword)),
+                    Identifier("InvokeOnGameObject"))
+                .WithModifiers(
+                    TokenList(
+                        new[]
+                        {
+                            Token(SyntaxKind.PrivateKeyword),
+                            Token(SyntaxKind.StaticKeyword)
+                        }))
+                .WithParameterList(
+                    ParameterList(
+                        SeparatedList<ParameterSyntax>(
+                            new SyntaxNodeOrToken[]
+                            {
+                                Parameter(
+                                        Identifier("gameObject"))
+                                    .WithType(
+                                        IdentifierName("GameObject")),
+                                Token(SyntaxKind.CommaToken),
+                                Parameter(
+                                        Identifier("args"))
+                                    .WithModifiers(
+                                        TokenList(
+                                            Token(SyntaxKind.ParamsKeyword)))
+                                    .WithType(
+                                        ArrayType(
+                                                PredefinedType(
+                                                    Token(SyntaxKind.ObjectKeyword)))
+                                            .WithRankSpecifiers(
+                                                SingletonList(
+                                                    ArrayRankSpecifier(
+                                                        SingletonSeparatedList<ExpressionSyntax>(
+                                                            OmittedArraySizeExpression())))))
+                            })))
+                .WithBody(
+                    Block(
+                        LocalDeclarationStatement(
+                            VariableDeclaration(
+                                    IdentifierName(
+                                        Identifier(
+                                            TriviaList(),
+                                            SyntaxKind.VarKeyword,
+                                            "var",
+                                            "var",
+                                            TriviaList())))
+                                .WithVariables(
+                                    SingletonSeparatedList(
+                                        VariableDeclarator(
+                                                Identifier("monoBehaviour"))
+                                            .WithInitializer(
+                                                EqualsValueClause(
+                                                    InvocationExpression(
+                                                        MemberAccessExpression(
+                                                            SyntaxKind.SimpleMemberAccessExpression,
+                                                            IdentifierName("gameObject"),
+                                                            GenericName(
+                                                                    Identifier("GetComponent"))
+                                                                .WithTypeArgumentList(
+                                                                    TypeArgumentList(
+                                                                        SingletonSeparatedList<TypeSyntax>(
+                                                                            IdentifierName("BehaviourName"))))))))))),
+                        IfStatement(
+                            BinaryExpression(
+                                SyntaxKind.EqualsExpression,
+                                IdentifierName("monoBehaviour"),
+                                LiteralExpression(
+                                    SyntaxKind.NullLiteralExpression)),
+                            Block(
+                                ExpressionStatement(
+                                    InvocationExpression(
+                                            MemberAccessExpression(
+                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                IdentifierName(
+                                                    Identifier(
+                                                        TriviaList(
+                                                            Comment(
+                                                                "//TODO (REG-1420): It would be nice if we could link them to the exact game object in the scene quickly.")),
+                                                        "RGDebug",
+                                                        TriviaList())),
+                                                IdentifierName("LogError")))
+                                        .WithArgumentList(
+                                            ArgumentList(
+                                                SingletonSeparatedList(
+                                                    Argument(
+                                                        InterpolatedStringExpression(
+                                                                Token(SyntaxKind.InterpolatedStringStartToken))
+                                                            .WithContents(
+                                                                List(
+                                                                    new InterpolatedStringContentSyntax[]
+                                                                    {
+                                                                        InterpolatedStringText()
+                                                                            .WithTextToken(
+                                                                                Token(
+                                                                                    TriviaList(),
+                                                                                    SyntaxKind
+                                                                                        .InterpolatedStringTextToken,
+                                                                                    "Error: Regression Games internal error... Somehow RGAction: ",
+                                                                                    "Error: Regression Games internal error... Somehow RGAction: ",
+                                                                                    TriviaList())),
+                                                                        Interpolation(
+                                                                            IdentifierName("ActionName")),
+                                                                        InterpolatedStringText()
+                                                                            .WithTextToken(
+                                                                                Token(
+                                                                                    TriviaList(),
+                                                                                    SyntaxKind
+                                                                                        .InterpolatedStringTextToken,
+                                                                                    " got registered on a GameObject where MonoBehaviour: BehaviourName does not exist.",
+                                                                                    " got registered on a GameObject where MonoBehaviour: BehaviourName does not exist.",
+                                                                                    TriviaList()))
+                                                                    })
+                                                            )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                ),
+                                ReturnStatement())),
+                        ExpressionStatement(
+                            InvocationExpression(
+                                    MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        IdentifierName("monoBehaviour"),
+                                        IdentifierName(action.MethodName)))
+                                .WithArgumentList(
+                                    ArgumentList(
+                                        SeparatedList<ArgumentSyntax>(
+                                            methodArguments.ToArray()
+                                        )
+                                    )
+                                )
+                        )
+                    )
+                );
+        }
+
+        private static BlockSyntax GenerateWithInputMethodBody(RGActionAttributeInfo action)
+        {
             var parameterParsingStatements = new List<StatementSyntax>();
             var methodInvocationArguments = new List<string>();
 
             foreach (var parameter in action.Parameters)
             {
-                string paramName = parameter.Name;
+                var paramName = parameter.Name;
 
                 methodInvocationArguments.Add(paramName);
-                parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"{parameter.Type} {paramName} = default;"));
-                parameterParsingStatements.Add(SyntaxFactory.IfStatement(IfCondition(parameter), IfBody(parameter), ElseBody(parameter)));
+                parameterParsingStatements.Add(ParseStatement($"{parameter.Type} {paramName} = default;"));
+                parameterParsingStatements.Add(IfStatement(IfCondition(parameter), IfBody(action.BehaviourName, parameter), ElseBody(parameter)));
             }
 
-            string methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ?
+            var methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ?
                                                      ", " + string.Join(", ", methodInvocationArguments) :
                                                      string.Empty;
 
-            parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"Invoke(\"{action.ActionName}\"{methodInvocationArgumentsString});"));
+            parameterParsingStatements.Add(ParseStatement($"InvokeOnGameObject(gameObject, {methodInvocationArgumentsString});"));
 
-            return SyntaxFactory.MethodDeclaration(
-                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                "StartAction"
-            )
-            .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.OverrideKeyword))
-            .AddParameterListParameters(methodParameters.ToArray())
-            .WithBody(SyntaxFactory.Block(parameterParsingStatements));
+            return Block(parameterParsingStatements);
         }
 
         /**
@@ -274,26 +654,26 @@ namespace RegressionGames.Editor.CodeGenerators
          */
         private static InvocationExpressionSyntax IfCondition(RGParameterInfo param)
         {
-            return SyntaxFactory.InvocationExpression(
-                SyntaxFactory.MemberAccessExpression(
+            return InvocationExpression(
+                MemberAccessExpression(
                     SyntaxKind.SimpleMemberAccessExpression,
-                    SyntaxFactory.IdentifierName("input"),
-                    SyntaxFactory.IdentifierName("TryGetValue")
+                    IdentifierName("input"),
+                    IdentifierName("TryGetValue")
                     )).WithArgumentList(
-                SyntaxFactory.ArgumentList(
-                    SyntaxFactory.SeparatedList(new List<ArgumentSyntax>
+                ArgumentList(
+                    SeparatedList(new List<ArgumentSyntax>
                     {
-                        SyntaxFactory.Argument(
-                            SyntaxFactory.LiteralExpression(
+                        Argument(
+                            LiteralExpression(
                                 SyntaxKind.StringLiteralExpression,
-                                SyntaxFactory.Literal(param.Name)
+                                Literal(param.Name)
                             )
                         ),
-                        SyntaxFactory.Argument(
-                            SyntaxFactory.DeclarationExpression(
-                                    SyntaxFactory.IdentifierName("var"),
-                                    SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier($"{param.Name}Input")))
-                            ).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.OutKeyword))
+                        Argument(
+                            DeclarationExpression(
+                                    IdentifierName("var"),
+                                    SingleVariableDesignation(Identifier($"{param.Name}Input")))
+                            ).WithRefKindKeyword(Token(SyntaxKind.OutKeyword))
                     })
                 ));
         }
@@ -308,7 +688,7 @@ namespace RegressionGames.Editor.CodeGenerators
          *      KeyType.TryParse(keyInput.ToString(), out key);
          *
          *      nonprimitive:
-         *      key = RGSerialization.Deserialize_KeyType(key.ToString());
+         *      key = RGSerialization_${behaviourName}.Deserialize_KeyType(key.ToString());
          *
          * }
          * catch (Exception ex)
@@ -317,7 +697,7 @@ namespace RegressionGames.Editor.CodeGenerators
          *      RGDebug.LogError(ex.Message);
          * }
          */
-        private static StatementSyntax IfBody(RGParameterInfo param)
+        private static StatementSyntax IfBody(string behaviourName, RGParameterInfo param)
         {
             var paramType = param.Type;
             var paramName = param.Name;
@@ -341,7 +721,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
                 tryParseStatement += ")";
                 tryParseStatement += $"{{ {paramName} = ({paramType}){paramName}Input; }}";
-                tryParseStatement += $"else {{ {paramName} = RGSerialization.Deserialize_{paramType.Replace(".", "_").Replace("?", "")}";
+                tryParseStatement += $"else {{ {paramName} = RGSerialization_{behaviourName}.Deserialize_{paramType.Replace(".", "_").Replace("?", "")}";
 
                 if (param.Nullable)
                 {
@@ -352,21 +732,21 @@ namespace RegressionGames.Editor.CodeGenerators
                 tryParseStatement += "}";
             }
 
-            var tryBlock = SyntaxFactory.Block(SyntaxFactory.SingletonList(
-                SyntaxFactory.ParseStatement(tryParseStatement)
+            var tryBlock = Block(SingletonList(
+                ParseStatement(tryParseStatement)
             ));
 
-            var catchBlock = SyntaxFactory.CatchClause()
-                .WithDeclaration(SyntaxFactory.CatchDeclaration(SyntaxFactory.ParseTypeName("Exception"), SyntaxFactory.Identifier("ex")))
-                .WithBlock(SyntaxFactory.Block(new StatementSyntax[]
+            var catchBlock = CatchClause()
+                .WithDeclaration(CatchDeclaration(ParseTypeName("Exception"), Identifier("ex")))
+                .WithBlock(Block(new StatementSyntax[]
                 {
-                    SyntaxFactory.ParseStatement($"RGDebug.LogError($\"Failed to parse '{paramName}' - {{ex}}\");"),
+                    ParseStatement($"RGDebug.LogError($\"Failed to parse '{paramName}' - {{ex}}\");"),
                 }));
 
-            return SyntaxFactory.Block(
-                SyntaxFactory.TryStatement()
+            return Block(
+                TryStatement()
                     .WithBlock(tryBlock)
-                    .WithCatches(SyntaxFactory.SingletonList(catchBlock))
+                    .WithCatches(SingletonList(catchBlock))
             );
         }
 
@@ -382,67 +762,206 @@ namespace RegressionGames.Editor.CodeGenerators
             }
 
             // Validation check for key existence if param must be non-null
-            return SyntaxFactory.ElseClause(SyntaxFactory.Block(new StatementSyntax[]
+            return ElseClause(Block(new StatementSyntax[]
                     {
-                        SyntaxFactory.ExpressionStatement(
-                            SyntaxFactory.InvocationExpression(
-                                    SyntaxFactory.MemberAccessExpression(
+                        ExpressionStatement(
+                            InvocationExpression(
+                                    MemberAccessExpression(
                                         SyntaxKind.SimpleMemberAccessExpression,
-                                        SyntaxFactory.IdentifierName("RGDebug"),
-                                        SyntaxFactory.IdentifierName("LogError")
+                                        IdentifierName("RGDebug"),
+                                        IdentifierName("LogError")
                                 )
                             ).WithArgumentList(
-                                SyntaxFactory.ArgumentList(
-                                    SyntaxFactory.SingletonSeparatedList(
-                                        SyntaxFactory.Argument(
-                                            SyntaxFactory.LiteralExpression(
+                                ArgumentList(
+                                    SingletonSeparatedList(
+                                        Argument(
+                                            LiteralExpression(
                                                 SyntaxKind.StringLiteralExpression,
-                                                SyntaxFactory.Literal($"No parameter '{param.Name}' found")
+                                                Literal($"No parameter '{param.Name}' found")
                                                 )
                                             )
                                         )
                                     )
                                 )
-                            ), SyntaxFactory.ReturnStatement()
+                            ), ReturnStatement()
                     }
                 ));
         }
 
-        private static MemberDeclarationSyntax GenerateActionRequestConstructor(RGActionInfo action)
+        private static MemberDeclarationSyntax GenerateActionRequestConstructor(RGActionAttributeInfo action)
         {
             var methodParameters = new List<ParameterSyntax>();
             var parameterParsingStatements = new List<StatementSyntax>();
-
             foreach (var rgParameterInfo in action.Parameters)
             {
-                methodParameters.Add(SyntaxFactory.Parameter(SyntaxFactory.Identifier(rgParameterInfo.Name))
-                    .WithType(SyntaxFactory.ParseTypeName(rgParameterInfo.Type)));
+                methodParameters.Add(Parameter(Identifier(rgParameterInfo.Name))
+                    .WithType(ParseTypeName(rgParameterInfo.Type)));
+            
+                parameterParsingStatements.Add(
+                    ParseStatement($"Input[{rgParameterInfo.Name}] = {rgParameterInfo.Name};"));
             }
+            
+            var methodBody = Block(parameterParsingStatements);
 
-            parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"action = \"{action.ActionName}\";"));
-
-            var inputString = "Input = new () {";
-            foreach (var rgParameterInfo in action.Parameters)
-            {
-                inputString += $"\r\n {{ \"{rgParameterInfo.Name}\", {rgParameterInfo.Name} }},";
-            }
-
-            inputString += "\r\n};";
-
-            parameterParsingStatements.Add(
-                SyntaxFactory.ParseStatement(inputString)
-            );
-
-            var methodBody = SyntaxFactory.Block(parameterParsingStatements);
-
-            var constructor = SyntaxFactory.ConstructorDeclaration(
-                $"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(action.ActionName)}"
+            var constructor = ConstructorDeclaration(
+                $"RGActionRequest_{action.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(action.ActionName)}"
             )
-            .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
+            .WithInitializer(
+                ConstructorInitializer(
+                    SyntaxKind.BaseConstructorInitializer,
+                    ArgumentList(
+                        SingletonSeparatedList(
+                            Argument(
+                                LiteralExpression(
+                                    SyntaxKind.StringLiteralExpression,
+                                    Literal(action.ActionName)))))))
+            .AddModifiers(Token(SyntaxKind.PublicKeyword))
             .AddParameterListParameters(methodParameters.ToArray())
             .WithBody(methodBody);
 
             return constructor;
+        }
+        
+        private static MemberDeclarationSyntax GenerateActionRequestGetEntityType(RGActionAttributeInfo action)
+        {
+            var entitytTypeName = action.EntityTypeName ?? action.BehaviourName;
+            return MethodDeclaration(
+                    PredefinedType(
+                        Token(SyntaxKind.StringKeyword)
+                    ),
+                    Identifier("GetEntityType")
+                )
+                .WithModifiers(
+                    TokenList(
+                        new[]
+                        {
+                            Token(SyntaxKind.PublicKeyword),
+                            Token(SyntaxKind.OverrideKeyword)
+                        }
+                    )
+                )
+                .WithBody(
+                    Block(
+                        SingletonList<StatementSyntax>(
+                            ReturnStatement(
+                                LiteralExpression(
+                                    SyntaxKind.StringLiteralExpression, 
+                                    Literal(entitytTypeName)
+                                    )
+                                )
+                            )
+                    )
+                );
+        }
+
+        private static List<MemberDeclarationSyntax> GenerateActionRequestFields(RGActionAttributeInfo action)
+        {
+            var fieldStatements = new List<MemberDeclarationSyntax>();
+            foreach (var rgParameterInfo in action.Parameters)
+            {
+                var parameterType = rgParameterInfo.Type + (rgParameterInfo.Nullable ? "?" : "");
+                fieldStatements.Add(
+                    PropertyDeclaration(
+                            NullableType(
+                                IdentifierName(parameterType)),
+                            Identifier(rgParameterInfo.Name))
+                        .WithModifiers(
+                            TokenList(
+                                Token(SyntaxKind.PublicKeyword)))
+                        .WithExpressionBody(
+                            ArrowExpressionClause(
+                                CastExpression(
+                                    NullableType(
+                                        IdentifierName(parameterType)),
+                                    ElementAccessExpression(
+                                            PostfixUnaryExpression(
+                                                SyntaxKind.SuppressNullableWarningExpression,
+                                                IdentifierName("Input")))
+                                        .WithArgumentList(
+                                            BracketedArgumentList(
+                                                SingletonSeparatedList(
+                                                    Argument(
+                                                        LiteralExpression(
+                                                            SyntaxKind.StringLiteralExpression,
+                                                            Literal(rgParameterInfo.Name)))))))))
+                        .WithSemicolonToken(
+                            Token(SyntaxKind.SemicolonToken))
+                    );
+            }
+
+            return fieldStatements;
+        }
+        
+        private static MemberDeclarationSyntax GenerateSerializationClass(string behaviourName, List<RGActionAttributeInfo> botActions)
+        {
+            // Generate methods for deserialization based on parameter types
+            List<MemberDeclarationSyntax> methodDeclarations = new List<MemberDeclarationSyntax>();
+            HashSet<string> processedTypes = new HashSet<string>();
+
+            foreach (RGActionAttributeInfo botAction in botActions)
+            {
+                if (!botAction.ShouldGenerateCSFile)
+                {
+                    continue;
+                }
+
+                foreach (RGParameterInfo parameter in botAction.Parameters)
+                {
+                    if (RGUtils.IsCSharpPrimitive(parameter.Type))
+                    {
+                        continue;
+                    }
+
+                    if (!processedTypes.Contains(parameter.Type))
+                    {
+                        processedTypes.Add(parameter.Type);
+
+                        /*
+                         * Generates a method called Deserialize_{Type} for every non-primitive type
+                         * Ex: Vector3
+                         * public static Vector3 Deserialize_Vector3(string paramJson)
+                         *    return JsonConvert.DeserializeObject<Vector3>(paramJson);
+                         */
+                        MethodDeclarationSyntax method = MethodDeclaration(ParseTypeName(parameter.Type), GetDeserializerMethodName(parameter))
+                            .AddModifiers(Token(SyntaxKind.PublicKeyword),
+                                Token(SyntaxKind.StaticKeyword))
+                            .AddParameterListParameters(Parameter(Identifier("paramJson"))
+                                .WithType(ParseTypeName("string")))
+                            .WithBody(Block(ReturnStatement(
+                                InvocationExpression(
+                                    MemberAccessExpression(
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        ParseTypeName("JsonConvert"),
+                                        GenericName(Identifier("DeserializeObject"))
+                                            .WithTypeArgumentList(TypeArgumentList(
+                                                SingletonSeparatedList(
+                                                    ParseTypeName(parameter.Type))))),
+                                    ArgumentList(SingletonSeparatedList(
+                                        Argument(IdentifierName("paramJson"))))))));
+
+                        methodDeclarations.Add(method);
+                    }
+                }
+            }
+
+            // Create the class declaration
+            ClassDeclarationSyntax classDeclaration = ClassDeclaration($"RGSerialization_{behaviourName}")
+                .AddModifiers(Token(SyntaxKind.PublicKeyword),
+                    Token(SyntaxKind.StaticKeyword))
+                .AddMembers(methodDeclarations.ToArray());
+
+            return classDeclaration;
+        }
+
+        private static string GetDeserializerMethodName(RGParameterInfo parameter)
+        {
+            var result = $"Deserialize_{parameter.Type.Replace(".", "_")}";
+            if (parameter.Nullable)
+            {
+                result = result.Replace("?", "");
+                result += "_Nullable";
+            }
+            return result;
         }
 
     }

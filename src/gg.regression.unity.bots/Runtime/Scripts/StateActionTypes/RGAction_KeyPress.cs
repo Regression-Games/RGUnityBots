@@ -2,42 +2,39 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames.StateActionTypes;
-using RegressionGames.DebugUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
 
 // ReSharper disable InconsistentNaming
-namespace RegressionGames.RGBotConfigs
+namespace RegressionGames.StateActionTypes
 {
  
-    [RequireComponent(typeof(RGEntity))]
-    [DisallowMultipleComponent]
-    
-    public class RGAction_KeyPress: RGAction
+    public class RGAction_KeyPress: RGActionBehaviour
     {
+        /*
         [Tooltip("Draw debug gizmos for current key inputs in editor runtime ?")]
         public bool renderDebugGizmos = false;
 
         public Vector3 debugGizmosOffset = new Vector3(0f,-1f,2f);
         
+        private RGGizmos RgGizmos;
+        */
+
         // Allow this on any RGEntity that has an InputActionAsset
         public InputActionAsset InputAction;
 
-        private ConcurrentQueue<RG_KeyPress_Data> _keysToPress = new();
+        private readonly ConcurrentQueue<RG_KeyPress_Data> _keysToPress = new();
 
-        private Dictionary<Key, InputControl> _inputActions = new();
-        private InputControl _anyKey = null;
+        private readonly Dictionary<Key, InputControl> _inputActions = new();
+        private InputControl _anyKey;
         
-        private Dictionary<Key, double> keysDown = new();
-
-        private RGGizmos RgGizmos;
+        private readonly Dictionary<Key, double> keysDown = new();
 
         private void Start()
         {
-            this.RgGizmos = new();
+            //this.RgGizmos = new();
             if (InputAction == null)
             {
                 throw new Exception("RGAction_KeyPress requires an InputActionAsset to be specified");
@@ -104,6 +101,7 @@ namespace RegressionGames.RGBotConfigs
                 UnPressKey(null, _anyKey);
             }
             
+            /* TODO Someday.. re-implement this as text on the overlay
             int id = gameObject.transform.GetInstanceID();
             // render debug text
             if (renderDebugGizmos)
@@ -130,11 +128,14 @@ namespace RegressionGames.RGBotConfigs
             {
                 RgGizmos.DestroyText(id);
             }
-            
+            */
+    
             // Update Input System
             InputSystem.Update();
         }
 
+
+        /* TODO Someday.. re-implement this as text on the overlay
         private void OnDrawGizmos()
         {
             if (this.RgGizmos != null)
@@ -143,35 +144,8 @@ namespace RegressionGames.RGBotConfigs
                 RgGizmos.OnDrawGizmos();
             }
         }
-
-        private void DrawDebugText()
-        {
-            // render debug text
-            if (renderDebugGizmos)
-            {
-                var debugText = "";
-                var keysList = keysDown.ToList();
-                keysList.Sort((a,b) => (int)Math.Round(a.Value-b.Value, 0));
-                foreach (var (key,value) in keysList)
-                {
-                    debugText += $"{key.ToString()} : {Math.Truncate((value-Time.unscaledTime) * 100) / 100}\r\n";
-                }
-
-                int id = gameObject.transform.GetInstanceID();
-                if (string.IsNullOrEmpty(debugText))
-                {
-                    RgGizmos.DestroyText(id);
-                }
-                else
-                {
-                    RgGizmos.CreateText(id, debugText, debugGizmosOffset);
-                }
-
-                // force drawing these now
-                RgGizmos.OnDrawGizmos();
-            }
-        }
-
+        */
+        
         private void UnPressKey(Key? key, InputControl control)
         {
             // 1 == pressed state
@@ -234,10 +208,10 @@ namespace RegressionGames.RGBotConfigs
             return "KeyPress";
         }
 
-        public override void StartAction(Dictionary<string, object> input)
+        public override void Invoke(RGActionRequest actionRequest)
         {
-            object keyId = input.GetValueOrDefault("keyId", null);
-            object holdTime = input.GetValueOrDefault("holdTime", null);
+            object keyId = actionRequest.Input.GetValueOrDefault("keyId", null);
+            object holdTime = actionRequest.Input.GetValueOrDefault("holdTime", null);
 
             try
             {
@@ -268,10 +242,10 @@ namespace RegressionGames.RGBotConfigs
                 else
                 {
                     RGDebug.LogWarning(
-                        $"WARNING: Ignoring RGAction_KeyPress with missing/invalid input for keyId: {keyId} or holdTime: {holdTime}");
+                        $"WARNING: Ignoring RGAction_KeyPress with missing/invalid input for keyId: null or holdTime: {holdTime}");
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 RGDebug.LogWarning($"WARNING: Ignoring RGAction_KeyPress with missing/invalid input for keyId: {keyId} or holdTime: {holdTime}");
             }
@@ -295,10 +269,8 @@ namespace RegressionGames.RGBotConfigs
 
     public class RGActionRequest_KeyPress : RGActionRequest
     {
-        public RGActionRequest_KeyPress(Key keyId, double holdTime = -1f)
+        public RGActionRequest_KeyPress(Key keyId, double holdTime = -1f) : base("KeyPress", new() { { "keyId", keyId }, {"holdTime", holdTime} })
         {
-            action = "KeyPress";
-            Input = new() { { "keyId", keyId }, {"holdTime", holdTime} };
         }
     }
 }

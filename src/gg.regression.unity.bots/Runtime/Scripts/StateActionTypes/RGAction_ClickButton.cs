@@ -5,14 +5,12 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace RegressionGames.RGBotConfigs
+namespace RegressionGames.StateActionTypes
 {
-    // Only allow one of these on the Overlay game object
-    // RGEntity does the enforcement of only looking for this on the RGOverlayMenu
-    [DisallowMultipleComponent]
-    public class RGAction_ClickButton : RGAction
+
+    public class RGAction_ClickButton : RGActionBehaviour
     {
-        private ConcurrentQueue<Button> _buttonsToClick = new();
+        private readonly ConcurrentQueue<Button> _buttonsToClick = new();
         
         public void Update()
         {
@@ -39,26 +37,26 @@ namespace RegressionGames.RGBotConfigs
             return "ClickButton";
         }
 
-        public override void StartAction(Dictionary<string, object> input)
+        public override void Invoke(RGActionRequest actionRequest)
         {
-            if (input["targetId"] != null)
+            if (actionRequest.Input["targetId"] == null)
             {
-                var targetId = int.Parse(input["targetId"].ToString());
-                var target = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(targetId);
-                if (target != null) // this is the unity overloaded != checking for destroyed
-                {
-                    _buttonsToClick.Enqueue(target.gameObject.GetComponent<Button>());
-                }
+                return;
+            }
+
+            var targetId = int.Parse(actionRequest.Input["targetId"].ToString());
+            var target = RGFindUtils.Instance.FindOneByInstanceId(targetId);
+            if (target != null) // this is the unity overloaded != checking for destroyed
+            {
+                _buttonsToClick.Enqueue(target.GetComponent<Button>());
             }
         }
     }
 
     public class RGActionRequest_ClickButton : RGActionRequest
     {
-        public RGActionRequest_ClickButton(int targetId)
+        public RGActionRequest_ClickButton(int targetId) : base("ClickButton",  new Dictionary<string, object> { { "targetId", targetId } })
         {
-            action = "ClickButton";
-            Input = new() { { "targetId", targetId } };
         }
     }
 }

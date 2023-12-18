@@ -299,7 +299,7 @@ namespace RegressionGames.DebugUtils
             // Draw lines
             foreach (var lineParams in _linesFromEntityToPosition.Values)
             {
-                var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item1);
+                var originInstance = RGFindUtils.Instance.FindOneByInstanceId(lineParams.Item1);
                 if (originInstance != null)
                 {
                     Debug.DrawLine(originInstance.transform.position, lineParams.Item2, lineParams.Item3);
@@ -307,8 +307,8 @@ namespace RegressionGames.DebugUtils
             }
             foreach (var lineParams in _linesFromEntityToEntity.Values)
             {
-                var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item1);
-                var endInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item2);
+                var originInstance = RGFindUtils.Instance.FindOneByInstanceId(lineParams.Item1);
+                var endInstance = RGFindUtils.Instance.FindOneByInstanceId(lineParams.Item2);
                 if (originInstance != null && endInstance != null)
                 {
                     Debug.DrawLine(originInstance.transform.position, endInstance.transform.position, lineParams.Item3);
@@ -335,7 +335,7 @@ namespace RegressionGames.DebugUtils
             }
             foreach (var sphereParams in _spheresAtEntity.Values)
             {
-                var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(sphereParams.Item1);
+                var originInstance = RGFindUtils.Instance.FindOneByInstanceId(sphereParams.Item1);
                 if (originInstance == null) continue;
                 if (sphereParams.Item4)
                 {
@@ -363,7 +363,7 @@ namespace RegressionGames.DebugUtils
                 try
                 {
                     // First, skip this billboard if the entity does not exist anymore
-                    var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
+                    var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId(billboardParams.Key);
                     if (entityGameObject == null)
                     {
                         _drawnBillboards.Remove(billboardParams.Key, out _);

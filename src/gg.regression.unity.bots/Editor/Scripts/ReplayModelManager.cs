@@ -3,6 +3,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using UnityEngine;
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using UnityEditor;
 #endif
 
@@ -11,22 +12,18 @@ namespace RegressionGames.Editor
 #if UNITY_EDITOR
     public class ReplayModelManager : ScriptableObject
     {
-        
-        public readonly static string ASSET_PATH = "Assets/RegressionGames/Editor/CustomReplayModels.asset";
-        
-        
-        [SerializeField] private NamedModel[] models = Array.Empty<NamedModel>();
+        private const string AssetPath = "Assets/RegressionGames/Editor/CustomReplayModels.asset";
 
+        [SerializeField] private NamedModel[] models = Array.Empty<NamedModel>();
 
         public void OnEnable()
         {
-            
-            if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) != null) {
-                _this = AssetDatabase.LoadAssetAtPath<ReplayModelManager>(ASSET_PATH);
+            if ( AssetDatabase.GetMainAssetTypeAtPath( AssetPath ) != null) {
+                _this = AssetDatabase.LoadAssetAtPath<ReplayModelManager>(AssetPath);
             }
         }
 
-        [CanBeNull] private static ReplayModelManager _this = null;
+        [CanBeNull] private static ReplayModelManager _this;
 
         public static ReplayModelManager GetInstance()
         {
@@ -45,8 +42,8 @@ namespace RegressionGames.Editor
                 _this = CreateInstance<ReplayModelManager>();
             }
 
-            if ( AssetDatabase.GetMainAssetTypeAtPath( ASSET_PATH ) == null) {
-                AssetDatabase.CreateAsset(_this, ASSET_PATH );
+            if ( AssetDatabase.GetMainAssetTypeAtPath( AssetPath ) == null) {
+                AssetDatabase.CreateAsset(_this, AssetPath );
                 AssetDatabase.SaveAssets();
             }
             
@@ -82,9 +79,8 @@ namespace RegressionGames.Editor
         }
         
         [CanBeNull]
-        public GameObject getModelPrefabForType(string type, string charType)
+        public GameObject GetModelPrefabForType(List<string> types, string charType)
         {
-
             NamedModel nm;
 
             if (!string.IsNullOrEmpty(charType))
@@ -93,7 +89,8 @@ namespace RegressionGames.Editor
                 if (nm.objectType != null && nm.modelPrefab != null) return nm.modelPrefab;
             }
 
-            nm = models.FirstOrDefault(model => model.objectType == type);
+            // TODO: This picks the first matching one today
+            nm = models.FirstOrDefault(model => types.Contains(model.objectType));
             if (nm.objectType != null && nm.modelPrefab != null) return nm.modelPrefab;
                 
             GameObject defaultPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(

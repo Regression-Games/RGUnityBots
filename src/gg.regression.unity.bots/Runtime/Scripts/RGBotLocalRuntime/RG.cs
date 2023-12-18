@@ -11,7 +11,7 @@ namespace RegressionGames.RGBotLocalRuntime
 {
     public class RG
     {
-        public bool Completed { get; private set; } = false;
+        public bool Completed { get; private set; }
 
         private RGTickInfoData _tickInfo;
 
@@ -50,7 +50,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>Retrieve the current game state.</summary>
          * <returns>{RGStateEntity} The current game state.</returns>
          */
-        public Dictionary<string, IRGStateEntity> GetState()
+        public Dictionary<string, RGStateEntity_Core> GetState()
         {
             return _tickInfo.gameState;
         }
@@ -74,7 +74,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>Retrieve list of all player/bot entities controlled by this clientId.</summary>
          * <returns>{List&lt;RGStateEntity&gt;} List of the entities from the state.</returns>
          */
-        public List<IRGStateEntity> GetMyPlayers()
+        public List<RGStateEntity_Core> GetMyPlayers()
         {
             return FindPlayers(ClientId);
         }
@@ -90,8 +90,8 @@ namespace RegressionGames.RGBotLocalRuntime
          * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
-        public IRGStateEntity FindNearestEntity(string objectType = null, Vector3? position = null,
-            Func<IRGStateEntity, bool> filterFunction = null)
+        public RGStateEntity_Core FindNearestEntity(string objectType = null, Vector3? position = null,
+            Func<RGStateEntity_Core, bool> filterFunction = null)
         {
             var result = FindEntities(objectType);
 
@@ -124,12 +124,12 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="buttonName">{string | null} Search for button entities with a specific type name.</param>
          * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
          */
-        public IRGStateEntity GetInteractableButton(string buttonName)
+        public RGStateEntity_Button GetInteractableButton(string buttonName)
         {
-            IRGStateEntity button = FindEntities(buttonName).FirstOrDefault();
+            RGStateEntity_Core button = FindEntities(buttonName).FirstOrDefault();
             if (button != null && EntityHasAttribute(button, "interactable", true))
             {
-                return button;
+                return (RGStateEntity_Button)button;
             }
             return null;
         }
@@ -139,20 +139,20 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="objectType">{string | null} Search for entities of a specific type</param>
          * <returns>{List&lt;RGStateEntity&gt;} All entities with the given objectType, or all entities in the state if objectType is null.</returns>
          */
-        public List<IRGStateEntity> FindEntities(string objectType = null)
+        public List<RGStateEntity_Core> FindEntities(string objectType = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
             {
-                return new List<IRGStateEntity>();
+                return new List<RGStateEntity_Core>();
             }
 
             // filter down to objectType Matches
             var result = gameState.Values.Where(value =>
             {
-                if (objectType != null && value.type != null)
+                if (objectType != null && value.types != null)
                 {
-                    return objectType.Equals(value.type);
+                    return value.types.Contains(objectType);
                 }
                 return true;
             });
@@ -165,12 +165,12 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="clientId">{long | null} Search for players owned by a specific clientId</param>
          * <returns>{List&lt;RGStateEntity&gt;} All players owned by the given clientId, or all players in the state if client is null.</returns>
          */
-        public List<IRGStateEntity> FindPlayers(long? clientId = null)
+        public List<RGStateEntity_Core> FindPlayers(long? clientId = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
             {
-                return new List<IRGStateEntity>();
+                return new List<RGStateEntity_Core>();
             }
 
             // filter down to isPlayer
