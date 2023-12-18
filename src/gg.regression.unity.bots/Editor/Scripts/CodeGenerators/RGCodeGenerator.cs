@@ -166,8 +166,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 RGDebug.LogDebug($"Cleaning up previously generated RGActions classes...");
                 CleanupPreviousRGActionsClasses();
                 
-                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
-                    "Searching for [RGAction] attributes", 0.4f);
+                                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
+                    "Searching for [RGAction] attributes", 0.3f);
                 RGDebug.LogDebug($"Searching for [RGAction] attributes...");
                 var actionAttributeInfos = SearchForBotActionAttributes();
                 
@@ -308,91 +308,99 @@ namespace RegressionGames.Editor.CodeGenerators
             foreach (var csFilePath in csFiles)
             {
                 var scriptText = File.ReadAllText(csFilePath);
-
-                var syntaxTree = CSharpSyntaxTree.ParseText(scriptText);
-
-                var compilation = CSharpCompilation.Create("RGCompilation")
-                    .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
-                    .AddSyntaxTrees(syntaxTree);
-
-                var root = syntaxTree.GetCompilationUnitRoot();
-
-                var semanticModel = compilation.GetSemanticModel(syntaxTree);
                 
-                var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
-                    .Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "MonoBehaviour");
-                
-                foreach (var classDeclaration in monoBehaviourClassDeclarations)
+                // optimization... this slightly limits our inheritance cases by assuming the child has [RGAction]
+                // but for now its worth the tradeoff in time to avoid compiling all these files
+                if (scriptText.Contains("[RGAction"))
                 {
-                    var behaviourName
-                        = classDeclaration.Identifier.ValueText;
-                    var nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()
-                        ?.Name.ToString();
-                    var botActionMethods = classDeclaration.Members
-                        .OfType<MethodDeclarationSyntax>()
-                        .Where(method =>
-                            method.AttributeLists.Any(attrList =>
-                                attrList.Attributes.Any(attr =>
-                                    attr.Name.ToString() == "RGAction")))
-                        .ToList();
-                    
-                    var classModel = (ITypeSymbol)semanticModel.GetDeclaredSymbol(classDeclaration);
-                    var rgStateTypeAttribute = classModel.GetAttributes().FirstOrDefault(a => a.AttributeClass.Name == "RGStateTypeAttribute");
 
-                    var entityTypeName = behaviourName;
+                    var syntaxTree = CSharpSyntaxTree.ParseText(scriptText);
+
+                    var compilation = CSharpCompilation.Create("RGCompilation")
+                        .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+                        .AddSyntaxTrees(syntaxTree);
+
+                    var root = syntaxTree.GetCompilationUnitRoot();
+
+                    var semanticModel = compilation.GetSemanticModel(syntaxTree);
                     
-                    if (rgStateTypeAttribute != null)
+                    var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                        .Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "MonoBehaviour");
+
+                    foreach (var classDeclaration in monoBehaviourClassDeclarations)
                     {
+                        var behaviourName
+                            = classDeclaration.Identifier.ValueText;
+                        var nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()
+                            ?.Name.ToString();
+                        var botActionMethods = classDeclaration.Members
+                            .OfType<MethodDeclarationSyntax>()
+                            .Where(method =>
+                                method.AttributeLists.Any(attrList =>
+                                    attrList.Attributes.Any(attr =>
+                                        attr.Name.ToString() == "RGAction")))
+                            .ToList();
 
-                        // do logic for all the fields based on the type attribute settings
-                        foreach (var (key, value) in rgStateTypeAttribute.NamedArguments)
+                        var classModel = (ITypeSymbol)semanticModel.GetDeclaredSymbol(classDeclaration);
+                        var rgStateTypeAttribute = classModel.GetAttributes()
+                            .FirstOrDefault(a => a.AttributeClass.Name == "RGStateTypeAttribute");
+
+                        var entityTypeName = behaviourName;
+
+                        if (rgStateTypeAttribute != null)
                         {
-                            switch (key)
+
+                            // do logic for all the fields based on the type attribute settings
+                            foreach (var (key, value) in rgStateTypeAttribute.NamedArguments)
                             {
-                                case "typeName":
-                                    entityTypeName = value.ToString();
-                                    break;
+                                switch (key)
+                                {
+                                    case "typeName":
+                                        entityTypeName = value.ToString();
+                                        break;
+                                }
                             }
                         }
-                    }
-                    
-                    foreach (var method in botActionMethods)
-                    {
-                        var methodName = method.Identifier.ValueText;
 
-                        var actionName = methodName;
-                        var actionAttribute = method.AttributeLists.SelectMany(attrList => attrList.Attributes)
-                            .FirstOrDefault(attr => attr.Name.ToString() == "RGAction");
-
-                        var attributeArgument = actionAttribute?.ArgumentList?.Arguments.FirstOrDefault();
-                        if (attributeArgument is { Expression: LiteralExpressionSyntax literal })
+                        foreach (var method in botActionMethods)
                         {
-                            actionName = literal.Token.ValueText;
-                        }
-                        
-                        var parameterList = method.ParameterList.Parameters.Select(parameter =>
-                            new RGParameterInfo
+                            var methodName = method.Identifier.ValueText;
+
+                            var actionName = methodName;
+                            var actionAttribute = method.AttributeLists.SelectMany(attrList => attrList.Attributes)
+                                .FirstOrDefault(attr => attr.Name.ToString() == "RGAction");
+
+                            var attributeArgument = actionAttribute?.ArgumentList?.Arguments.FirstOrDefault();
+                            if (attributeArgument is { Expression: LiteralExpressionSyntax literal })
                             {
-                                Name = parameter.Identifier.ValueText,
-                                Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
-                                    .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
-                                Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
-                                           (parameter.Type is GenericNameSyntax syntax && // ex. Nullable<float>
-                                            syntax.Identifier.ValueText == "Nullable")
-                            }).ToList();
+                                actionName = literal.Token.ValueText;
+                            }
 
-                        botActionList.Add(new RGActionAttributeInfo
-                        {
-                            BehaviourFileDirectory = csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar)),
-                            // if this wasn't in a sample project folder, we need to generate CS for it
-                            ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
-                            BehaviourNamespace = nameSpace,
-                            BehaviourName = behaviourName,
-                            MethodName = methodName,
-                            ActionName = actionName,
-                            Parameters = parameterList,
-                            EntityTypeName = entityTypeName
-                        });
+                            var parameterList = method.ParameterList.Parameters.Select(parameter =>
+                                new RGParameterInfo
+                                {
+                                    Name = parameter.Identifier.ValueText,
+                                    Type = RemoveGlobalPrefix(semanticModel.GetTypeInfo(parameter.Type).Type
+                                        .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
+                                    Nullable = parameter.Type is NullableTypeSyntax || // ex. int?
+                                               (parameter.Type is GenericNameSyntax syntax && // ex. Nullable<float>
+                                                syntax.Identifier.ValueText == "Nullable")
+                                }).ToList();
+
+                            botActionList.Add(new RGActionAttributeInfo
+                            {
+                                BehaviourFileDirectory =
+                                    csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar)),
+                                // if this wasn't in a sample project folder, we need to generate CS for it
+                                ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
+                                BehaviourNamespace = nameSpace,
+                                BehaviourName = behaviourName,
+                                MethodName = methodName,
+                                ActionName = actionName,
+                                Parameters = parameterList,
+                                EntityTypeName = entityTypeName
+                            });
+                        }
                     }
                 }
             }
@@ -578,116 +586,128 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 var scriptText = File.ReadAllText(csFilePath);
 
-                var syntaxTree = CSharpSyntaxTree.ParseText(scriptText);
-
-                var compilation = CSharpCompilation.Create("RGCompilation")
-                    .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
-                    .AddSyntaxTrees(syntaxTree);
-
-                var root = syntaxTree.GetCompilationUnitRoot();
-                var semanticModel = compilation.GetSemanticModel(syntaxTree);
-
-                var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
-                    .Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "MonoBehaviour");
-                
-                // for each class declared in this .cs file
-                foreach (var classDeclaration in monoBehaviourClassDeclarations)
+                // optimization... this slightly limits our inheritance cases by assuming the child has [RGState..]
+                // but for now its worth the tradeoff in time to avoid compiling all these files
+                if (scriptText.Contains("[RGState"))
                 {
-                    var nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
-                    var behaviourName = classDeclaration.Identifier.ValueText;
+                    var syntaxTree = CSharpSyntaxTree.ParseText(scriptText);
 
-                    var classModel = (ITypeSymbol)semanticModel.GetDeclaredSymbol(classDeclaration);
-                    var rgStateTypeAttribute = classModel.GetAttributes().FirstOrDefault(a => a.AttributeClass.Name == "RGStateTypeAttribute");
+                    var compilation = CSharpCompilation.Create("RGCompilation")
+                        .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+                        .AddSyntaxTrees(syntaxTree);
 
-                    var membersWithRGStateAttribute = classDeclaration.Members
-                        .Where(m =>
-                            m.AttributeLists.Any(a =>
-                                a.Attributes.Any(attr =>
-                                    attr.Name.ToString() == "RGState"
+                    var root = syntaxTree.GetCompilationUnitRoot();
+                    var semanticModel = compilation.GetSemanticModel(syntaxTree);
+
+                    var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
+                        .Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "MonoBehaviour");
+
+                    // for each class declared in this .cs file
+                    foreach (var classDeclaration in monoBehaviourClassDeclarations)
+                    {
+                        var nameSpace = classDeclaration.Ancestors().OfType<NamespaceDeclarationSyntax>()
+                            .FirstOrDefault()?.Name.ToString();
+                        var behaviourName = classDeclaration.Identifier.ValueText;
+
+                        var classModel = (ITypeSymbol)semanticModel.GetDeclaredSymbol(classDeclaration);
+                        var rgStateTypeAttribute = classModel.GetAttributes()
+                            .FirstOrDefault(a => a.AttributeClass.Name == "RGStateTypeAttribute");
+
+                        var membersWithRGStateAttribute = classDeclaration.Members
+                            .Where(m =>
+                                m.AttributeLists.Any(a =>
+                                    a.Attributes.Any(attr =>
+                                        attr.Name.ToString() == "RGState"
                                     )
                                 )
                             )
-                        .ToHashSet();
-                    
-                    var isPlayer = false;
-                    var entityTypeName = behaviourName;
-                    var includeFlags = RGStateTypeAttribute.DefaultFlags;
+                            .ToHashSet();
 
-                    if (rgStateTypeAttribute != null)
-                    {
+                        var isPlayer = false;
+                        var entityTypeName = behaviourName;
+                        var includeFlags = RGStateTypeAttribute.DefaultFlags;
 
-                        // do logic for all the fields based on the type attribute settings
-                        foreach (var (key, value) in rgStateTypeAttribute.NamedArguments)
+                        if (rgStateTypeAttribute != null)
                         {
-                            switch (key)
+
+                            // do logic for all the fields based on the type attribute settings
+                            foreach (var (key, value) in rgStateTypeAttribute.NamedArguments)
                             {
-                                case "typeName":
-                                    entityTypeName = value.ToString();
-                                    break;
-                                case "isPlayer":
-                                    isPlayer = bool.Parse(value.ToString());
-                                    break;
-                                case "includeFlags":
-                                    //TODO: Parse these correctly
-                                    break;
+                                switch (key)
+                                {
+                                    case "typeName":
+                                        entityTypeName = value.ToString();
+                                        break;
+                                    case "isPlayer":
+                                        isPlayer = bool.Parse(value.ToString());
+                                        break;
+                                    case "includeFlags":
+                                        //TODO: Parse these correctly
+                                        break;
+                                }
                             }
                         }
-                    }
 
-                    var hasRGStateAttributes = membersWithRGStateAttribute.Count > 0;
+                        var hasRGStateAttributes = membersWithRGStateAttribute.Count > 0;
 
-                    var stateMetadata = new List<StateBehaviourPropertyInfo>();
-                    if (hasRGStateAttributes)
-                    {
-                        // do logic for just those attributes
-                        foreach (var member in membersWithRGStateAttribute)
+                        var stateMetadata = new List<StateBehaviourPropertyInfo>();
+                        if (hasRGStateAttributes)
                         {
-                            var nextEntry = GetStateNameFieldNameAndTypeForMember(true, semanticModel, behaviourName, member, includeFlags);
-                            stateMetadata.Add(nextEntry);
+                            // do logic for just those attributes
+                            foreach (var member in membersWithRGStateAttribute)
+                            {
+                                var nextEntry = GetStateNameFieldNameAndTypeForMember(true, semanticModel,
+                                    behaviourName, member, includeFlags);
+                                stateMetadata.Add(nextEntry);
+                            }
                         }
-                    }
-                    else if (rgStateTypeAttribute != null)
-                    {
-                        // do logic for all the fields based on the type attribute settings
-                        var includeMembers = classDeclaration.Members
-                            .Where(m =>
-                                // if it has [RGState explicitly], or is NOT obsolete
-                                // iow.. obsolete members come through if annotated with [RGState]
-                                membersWithRGStateAttribute.Contains(m)
-                                || !m.AttributeLists.Any(a =>
-                                    a.Attributes.Any(attr =>
-                                        attr.Name.ToString() == "ObsoleteAttribute"
+                        else if (rgStateTypeAttribute != null)
+                        {
+                            // do logic for all the fields based on the type attribute settings
+                            var includeMembers = classDeclaration.Members
+                                .Where(m =>
+                                    // if it has [RGState explicitly], or is NOT obsolete
+                                    // iow.. obsolete members come through if annotated with [RGState]
+                                    membersWithRGStateAttribute.Contains(m)
+                                    || !m.AttributeLists.Any(a =>
+                                        a.Attributes.Any(attr =>
+                                            attr.Name.ToString() == "ObsoleteAttribute"
                                         )
                                     )
                                 );
-                        
-                        foreach (var member in includeMembers)
-                        {
-                            var hasRGState = membersWithRGStateAttribute.Contains(member);
-                            var nextEntry = GetStateNameFieldNameAndTypeForMember(hasRGState, semanticModel, behaviourName, member, includeFlags);
-                            stateMetadata.Add(nextEntry);
-                        }
-                    }
-                    else
-                    {
-                        // do nothing.. had no RGState related things
-                    }
 
-                    if (stateMetadata.Count > 0)
-                    {
-                        var fileDirectory = csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar));
-                        var newFileName = $"{fileDirectory}{Path.DirectorySeparatorChar}Generated_RGStateEntity_{behaviourName}.cs";
-                        fileWriteTasks.Add((newFileName, GenerateRGStateEntityClass.Generate(newFileName, entityTypeName, isPlayer, behaviourName, nameSpace, stateMetadata)));
+                            foreach (var member in includeMembers)
+                            {
+                                var hasRGState = membersWithRGStateAttribute.Contains(member);
+                                var nextEntry = GetStateNameFieldNameAndTypeForMember(hasRGState, semanticModel,
+                                    behaviourName, member, includeFlags);
+                                stateMetadata.Add(nextEntry);
+                            }
+                        }
+                        else
+                        {
+                            // do nothing.. had no RGState related things
+                        }
+
+                        if (stateMetadata.Count > 0)
+                        {
+                            var fileDirectory =
+                                csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar));
+                            var newFileName =
+                                $"{fileDirectory}{Path.DirectorySeparatorChar}Generated_RGStateEntity_{behaviourName}.cs";
+                            fileWriteTasks.Add((newFileName,
+                                GenerateRGStateEntityClass.Generate(newFileName, entityTypeName, isPlayer,
+                                    behaviourName, nameSpace, stateMetadata)));
+                        }
                     }
                 }
             }
-            
-            Task.WaitAll(fileWriteTasks.Select(v=>v.Item2).ToArray());
-            foreach (var (filename,_) in fileWriteTasks)
+
+            Task.WaitAll(fileWriteTasks.Select(v => v.Item2).ToArray());
+            foreach (var (filename, _) in fileWriteTasks)
             {
                 RGDebug.Log($"Successfully created: {filename}");
             }
-
         }
 
         private static Dictionary<string,List<RGActionInfo>> CreateActionInfoFromRGActionRequests()
