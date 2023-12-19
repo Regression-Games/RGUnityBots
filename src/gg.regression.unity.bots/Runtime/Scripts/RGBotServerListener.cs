@@ -10,6 +10,7 @@ using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -528,10 +529,27 @@ namespace RegressionGames
         private Dictionary<string, RGStateEntity_Core> GetGameState()
         {
             var overlayAgent = this.gameObject;
+            var fullGameState = new Dictionary<string, RGStateEntity_Core>();
+            
+            // find all Buttons
+            var allButtons = RGFindUtils.Instance.FindAllButtons();
+            
+            foreach (var button in allButtons)
+            {
+                var statefulGameObject = button.gameObject;
+                var gameObjectId = statefulGameObject.transform.GetInstanceID();
+                var gameObjectIdString = gameObjectId.ToString();
+                
+                // Give the GameObject its 'core' state fields
+                if (!fullGameState.TryGetValue(gameObjectIdString, out var coreEntityState))
+                {
+                    coreEntityState = RGStateHandler.GetCoreStateForGameObject(statefulGameObject, button);
+                    fullGameState[gameObjectIdString] = coreEntityState;
+                }
+            }
 
             // get behaviours with attributes or custom RGState classes
-            var statefulBehaviours = RGFindUtils.Instance.FindStatefulBehaviours();
-            var fullGameState = new Dictionary<string, RGStateEntity_Core>();
+            var statefulBehaviours = RGFindUtils.Instance.FindStatefulAndActionableBehaviours();
 
             // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
             // thus, this code cannot really be run in parallel, causing a potential state object count scaling performance issue....
@@ -556,9 +574,14 @@ namespace RegressionGames
                     // custom state class
                     stateBehaviour.PopulateStateEntity(coreEntityState, out isPlayerBehaviour);
                 }
+                else if (statefulBehaviour is RGActionBehaviour actionBehaviour)
+                {
+                    // custom action class.. just make sure my type is on the gameobject
+                    coreEntityState[actionBehaviour.GetEntityType()] = new RGStateEntity_Empty();
+                }
                 else
                 {
-                    // some other MonoBehaviour with [RGState] attributes in it
+                    // some other MonoBehaviour with [RGState] or [RGAction] attributes in it
                     RGStateHandler.PopulateStateEntityForStatefulObject(coreEntityState, statefulBehaviour,
                         out isPlayerBehaviour);
                 }
@@ -590,7 +613,7 @@ namespace RegressionGames
                             // this happens for menu bots that spawn human players to control
                             // doing this allows actions from the bot code to process to the human player agent
                             // set this to avoid expensive lookups next time
-                            RGStateHandler.EnsureCoreRGStateOnGameObject(statefulGameObject).ClientId = clientId;
+                            RGStateHandler.EnsureRGStateHandlerOnGameObject(statefulGameObject).ClientId = clientId;
                             AgentMap[clientId].Add(statefulGameObject);
                         }
                     }
@@ -762,13 +785,20 @@ namespace RegressionGames
              */
             foreach (var agent in agents)
             {
-                var actionHandler = agent.GetComponent<RGActionHandler>();
-                // make sure the gameObject has an ActionHandler ready to go
-                if (actionHandler == null)
+                //make sure this agent isn't being destroyed already
+                if (agent != null)
                 {
-                    actionHandler = agent.AddComponent<RGActionHandler>();
+                    var actionHandler = agent.GetComponent<RGActionHandler>();
+                    // make sure the gameObject has an ActionHandler ready to go
+                    if (actionHandler == null)
+                    {
+                        actionHandler = agent.AddComponent<RGActionHandler>();
+                        // call start right away so we don't have a race condition of the actions not loading in time
+                        actionHandler.Start();
+                    }
+
+                    actionHandler.Invoke(actionRequest);
                 }
-                actionHandler.Invoke(actionRequest);
             }
         }
         

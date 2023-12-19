@@ -23,10 +23,12 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 
         public bool GetIsPlayer()
         {
-            return true;
+            return IsPlayer;
         }
 
         public static readonly string EntityTypeName = "platformer2DPlayer";
+        public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DPlayer);
+        public static readonly bool IsPlayer = true;
     }
     
     [Serializable]

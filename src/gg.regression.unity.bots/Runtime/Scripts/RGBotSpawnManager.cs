@@ -191,7 +191,7 @@ namespace RegressionGames
             {
                 // Add the agent
                 var botGameObject = BotMap[botInformation.clientId];
-                var rgState = RGStateHandler.EnsureCoreRGStateOnGameObject(botGameObject);
+                var rgState = RGStateHandler.EnsureRGStateHandlerOnGameObject(botGameObject);
                 rgState.ClientId = botInformation.clientId;
                 rgBotServerListener.AgentMap[botInformation.clientId].Add(botGameObject);
             }
@@ -299,7 +299,7 @@ namespace RegressionGames
                 if (existingBot != null)
                 {
                     // get their agent re-mapped
-                    var rgState = RGStateHandler.EnsureCoreRGStateOnGameObject(existingBot);
+                    var rgState = RGStateHandler.EnsureRGStateHandlerOnGameObject(existingBot);
                     rgState.ClientId = botToSpawn.clientId;
                     rgBotServerListener.AgentMap[botToSpawn.clientId].Add(existingBot);
                 }

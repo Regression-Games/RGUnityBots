@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateActionTypes;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -31,20 +32,35 @@ namespace RegressionGames
 
         private void UpdateCache()
         {
-            var gameObjects = FindStatefulBehaviours().Select(v => v.gameObject).Distinct();
+            var gameObjects = FindStatefulAndActionableBehaviours().Select(v => v.gameObject).Distinct();
             foreach (var obj in gameObjects)
             {
                 _objectCache[obj.transform.GetInstanceID()] = obj;
             }
+
+            var buttons = FindAllButtons();
+            foreach (var button in buttons)
+            {
+                _objectCache[button.gameObject.transform.GetInstanceID()] = button.gameObject;
+            }
         }
-        
+
+        public Button[] FindAllButtons()
+        {
+            var buttons = Object.FindObjectsByType<Button>(FindObjectsSortMode.None);
+            return buttons;
+        }
+
         /**
          * <summary>WARNING:  Call this no more than once per tick, it evaluates every behaviour in the scene.  VERY EXPENSIVE</summary>
          */
-        public IEnumerable<MonoBehaviour> FindStatefulBehaviours()
+        public IEnumerable<MonoBehaviour> FindStatefulAndActionableBehaviours()
         {
             var statefulBehaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
-                .Where(v => BehavioursWithStateOrActions.GetRGStateEntityMappingForBehaviour(v) != null || v is IRGStateBehaviour);
+                .Where(v => BehavioursWithStateOrActions.GetRGStateEntityMappingForBehaviour(v) != null
+                            || BehavioursWithStateOrActions.GetRGActionsMappingForBehaviour(v) != null
+                            || v is IRGStateBehaviour
+                            || v is RGActionBehaviour);
             return statefulBehaviours;
         }
     }

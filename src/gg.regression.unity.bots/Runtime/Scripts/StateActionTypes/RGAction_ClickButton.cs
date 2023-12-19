@@ -48,7 +48,7 @@ namespace RegressionGames.StateActionTypes
             var target = RGFindUtils.Instance.FindOneByInstanceId(targetId);
             if (target != null) // this is the unity overloaded != checking for destroyed
             {
-                _buttonsToClick.Enqueue(target.GetComponent<Button>());
+                _buttonsToClick.Enqueue(target.GetComponentInChildren<Button>());
             }
         }
     }

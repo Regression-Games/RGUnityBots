@@ -27,6 +27,7 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 "System",
                 "System.Collections.Generic",
+                "System.Collections.ObjectModel",
                 "Newtonsoft.Json",
                 "RegressionGames",
                 "RegressionGames.StateActionTypes",
@@ -34,32 +35,9 @@ namespace RegressionGames.Editor.CodeGenerators
             };
 
             var className = $"RGActions_{behaviourName}";
-            
-            var mainClassDeclaration = ClassDeclaration(className)
-                .AddModifiers(Token(SyntaxKind.PublicKeyword))
-                .AddBaseListTypes(SimpleBaseType(ParseTypeName("IRGActions")))
-                // BehaviourTypeField
-                .AddMembers(FieldDeclaration(
-                        VariableDeclaration(
-                                IdentifierName("Type"))
-                            .WithVariables(
-                                SingletonSeparatedList(
-                                    VariableDeclarator(
-                                            Identifier("BehaviourType"))
-                                        .WithInitializer(
-                                            EqualsValueClause(
-                                                TypeOfExpression(
-                                                    IdentifierName(behaviourName)))))))
-                    .WithModifiers(
-                        TokenList(
-                            new []{
-                                Token(SyntaxKind.PublicKeyword),
-                                Token(SyntaxKind.StaticKeyword),
-                                Token(SyntaxKind.ReadOnlyKeyword)}
-                            )
-                        )
-                );
 
+            var entityTypeName = behaviourName;
+            
             List<SyntaxNodeOrToken> delegateList = new();
             
             List<MemberDeclarationSyntax> actionClassDeclarations = new();
@@ -70,6 +48,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     continue;
                 }
+                
+                entityTypeName = botAction.EntityTypeName ?? entityTypeName;
                 
                 // Add RGActionRequest class
                 actionClassDeclarations.Add(
@@ -83,7 +63,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             SimpleBaseType(ParseTypeName("RGActionRequest"))
                         ).AddMembers(
                             GenerateActionRequestConstructor(botAction),
-                            GenerateActionRequestEntityType(botAction),
+                            GenerateEntityTypeName(entityTypeName),
                             GenerateActionRequestActionName(botAction)
                         ).AddMembers(
                             GenerateActionRequestFields(botAction).ToArray()
@@ -113,7 +93,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             new SyntaxNodeOrToken[]{
                                 MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
-                                    IdentifierName($"RGAction_{botAction.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}"),
+                                    IdentifierName($"RGActionRequest_{botAction.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}"),
                                     IdentifierName("ActionName")),
                                 Token(SyntaxKind.CommaToken),
                                 ObjectCreationExpression(
@@ -148,10 +128,14 @@ namespace RegressionGames.Editor.CodeGenerators
                 delegateList.Add(Token(SyntaxKind.CommaToken));
             }
             
-            
-            //Add the main class ActionRequestDelegates impls
-            mainClassDeclaration.AddMembers(
-                GenerateMainClassDelegateDictionary(delegateList)
+            var mainClassDeclaration = ClassDeclaration(className)
+                .AddModifiers(Token(SyntaxKind.PublicKeyword))
+                .AddBaseListTypes(SimpleBaseType(ParseTypeName("IRGActions")))
+                // BehaviourTypeField
+                .AddMembers(                            
+                    GenerateBehaviourType(behaviourName), 
+                    GenerateEntityTypeName(entityTypeName),
+                    GenerateMainClassDelegateDictionary(delegateList)
                 );
 
             var serializationClassDeclaration = GenerateSerializationClass(behaviourName, botActions);
@@ -826,9 +810,40 @@ namespace RegressionGames.Editor.CodeGenerators
             return constructor;
         }
         
-        private static MemberDeclarationSyntax GenerateActionRequestEntityType(RGActionAttributeInfo action)
+        private static FieldDeclarationSyntax GenerateBehaviourType(string behaviourName)
         {
-            var entitytTypeName = action.EntityTypeName ?? action.BehaviourName;
+            return FieldDeclaration(
+                    VariableDeclaration(
+                            IdentifierName("Type")
+                        )
+                        .WithVariables(
+                            SingletonSeparatedList(
+                                VariableDeclarator(
+                                        Identifier("BehaviourType")
+                                    )
+                                    .WithInitializer(
+                                        EqualsValueClause(
+                                            TypeOfExpression(
+                                                IdentifierName(behaviourName)
+                                            )
+                                        )
+                                    )
+                            )
+                        )
+                )
+                .WithModifiers(
+                    TokenList(
+                        new []{
+                            Token(SyntaxKind.PublicKeyword),
+                            Token(SyntaxKind.StaticKeyword),
+                            Token(SyntaxKind.ReadOnlyKeyword)
+                        }
+                    )
+                );
+        }
+        
+        private static MemberDeclarationSyntax GenerateEntityTypeName(string entitytTypeName)
+        {
             return FieldDeclaration(
                     VariableDeclaration(
                             PredefinedType(

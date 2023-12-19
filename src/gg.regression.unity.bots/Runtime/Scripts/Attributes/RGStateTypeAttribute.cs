@@ -29,15 +29,16 @@ namespace RegressionGames
             IsPlayer = isPlayer;
         }
         
+        // ReSharper disable once InvalidXmlDocComment
         /**
          * <summary>This constructor allows the attribute to specify RGStateIncludeFlags, e.g., [RGStateType(RGStateIncludeFlags.Public | RGStateIncludeFlags.Serializable | RGStateIncludeFlags.Field)]
          * Optionally you can also specify whether a game object with this behaviour represents a player avatar object.</summary>
          */
-        public RGStateTypeAttribute(RGStateIncludeFlags includeFlags, bool isPlayer = false)
+        /*public RGStateTypeAttribute(RGStateIncludeFlags includeFlags, bool isPlayer = false)
         {
             MyFlags = includeFlags;
             IsPlayer = isPlayer;
-        }
+        }*/
 
         /**
          * <summary>
@@ -52,6 +53,7 @@ namespace RegressionGames
             IsPlayer = isPlayer;
         }
         
+        // ReSharper disable once InvalidXmlDocComment
         /**
          * <summary>
          * This constructor allows a type parameter and RGStateIncludeFlags to be specified, e.g., [RGStateType("SomeType", RGStateIncludeFlags.Public | RGStateIncludeFlags.Serializable | RGStateIncludeFlags.Field)].
@@ -59,12 +61,12 @@ namespace RegressionGames
          * Optionally you can also specify whether a game object with this behaviour represents a player avatar object.
          * </summary>
          */
-        public RGStateTypeAttribute(string typeName, RGStateIncludeFlags includeFlags, bool isPlayer = false)
+        /*public RGStateTypeAttribute(string typeName, RGStateIncludeFlags includeFlags, bool isPlayer = false)
         {
             TypeName = typeName;
             MyFlags = includeFlags;
             IsPlayer = isPlayer;
-        }
+        }*/
         
         [Flags]
         public enum RGStateIncludeFlags

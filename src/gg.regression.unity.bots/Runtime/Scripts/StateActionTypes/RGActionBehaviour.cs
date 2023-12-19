@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 // ReSharper disable InconsistentNaming
@@ -9,6 +7,11 @@ namespace RegressionGames.StateActionTypes
     public abstract class RGActionBehaviour : MonoBehaviour
     {
         public abstract string GetActionName();
+        
+        public virtual string GetEntityType()
+        {
+            return GetType().Name;
+        }
 
         public abstract void Invoke(RGActionRequest actionRequest);
 

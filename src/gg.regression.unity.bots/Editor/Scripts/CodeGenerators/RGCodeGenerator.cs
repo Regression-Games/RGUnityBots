@@ -325,25 +325,27 @@ namespace RegressionGames.Editor.CodeGenerators
                                         attr.Name.ToString() == "RGAction")))
                             .ToList();
 
-                        var classModel = (ITypeSymbol)semanticModel.GetDeclaredSymbol(classDeclaration);
-                        var rgStateTypeAttribute = classModel.GetAttributes()
-                            .FirstOrDefault(a => a.AttributeClass.Name == "RGStateTypeAttribute");
-
+                        var rgStateTypeAttribute = classDeclaration.AttributeLists.SelectMany(attrList => attrList.Attributes)
+                            .FirstOrDefault(attr => attr.Name.ToString() == "RGStateType");
+                        
                         var entityTypeName = behaviourName;
 
                         if (rgStateTypeAttribute != null)
                         {
-
-                            // do logic for all the fields based on the type attribute settings
-                            foreach (var (key, value) in rgStateTypeAttribute.NamedArguments)
+                            var args = rgStateTypeAttribute.ArgumentList.Arguments;
+                            if (args.Count >0 && args[0] is { Expression: LiteralExpressionSyntax literal })
                             {
-                                switch (key)
+                                if (bool.TryParse(literal.Token.ValueText, out var isPlayer))
                                 {
-                                    case "typeName":
-                                        entityTypeName = value.ToString();
-                                        break;
+                                    // not the type
+                                }
+                                else
+                                {
+                                    // is string
+                                    entityTypeName = literal.Token.ValueText;
                                 }
                             }
+                            
                         }
 
                         foreach (var method in botActionMethods)
@@ -593,9 +595,8 @@ namespace RegressionGames.Editor.CodeGenerators
                             .FirstOrDefault()?.Name.ToString();
                         var behaviourName = classDeclaration.Identifier.ValueText;
 
-                        var classModel = (ITypeSymbol)semanticModel.GetDeclaredSymbol(classDeclaration);
-                        var rgStateTypeAttribute = classModel.GetAttributes()
-                            .FirstOrDefault(a => a.AttributeClass.Name == "RGStateTypeAttribute");
+                        var rgStateTypeAttribute = classDeclaration.AttributeLists.SelectMany(attrList => attrList.Attributes)
+                            .FirstOrDefault(attr => attr.Name.ToString() == "RGStateType");
 
                         var membersWithRGStateAttribute = classDeclaration.Members
                             .Where(m =>
@@ -614,20 +615,29 @@ namespace RegressionGames.Editor.CodeGenerators
                         if (rgStateTypeAttribute != null)
                         {
 
-                            // do logic for all the fields based on the type attribute settings
-                            foreach (var (key, value) in rgStateTypeAttribute.NamedArguments)
+                            var args = rgStateTypeAttribute.ArgumentList.Arguments;
+                            if (args.Count > 0 && args[0] is { Expression: LiteralExpressionSyntax arg0 })
                             {
-                                switch (key)
+                                if (bool.TryParse(arg0.Token.ValueText, out isPlayer))
                                 {
-                                    case "typeName":
-                                        entityTypeName = value.ToString();
-                                        break;
-                                    case "isPlayer":
-                                        isPlayer = bool.Parse(value.ToString());
-                                        break;
-                                    case "includeFlags":
-                                        //TODO: Parse these correctly
-                                        break;
+                                    // not the type, but set our player flag :)
+                                }
+                                else
+                                {
+                                    // is string
+                                    entityTypeName = arg0.Token.ValueText;
+                                }
+                            }
+                            if (args.Count > 1 && args[1] is { Expression: LiteralExpressionSyntax arg1 })
+                            {
+                                if (bool.TryParse(arg1.Token.ValueText, out isPlayer))
+                                {
+                                    // not the type, but set our player flag :)
+                                }
+                                else
+                                {
+                                    // is string
+                                    entityTypeName = arg1.Token.ValueText;
                                 }
                             }
                         }
@@ -655,7 +665,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                     membersWithRGStateAttribute.Contains(m)
                                     || !m.AttributeLists.Any(a =>
                                         a.Attributes.Any(attr =>
-                                            attr.Name.ToString() == "ObsoleteAttribute"
+                                            attr.Name.ToString() == "Obsolete"
                                         )
                                     )
                                 );
@@ -781,21 +791,68 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static string GetTypeString(Type type, out bool isNullable)
         {
-            var result = "";
             var underlyingType = Nullable.GetUnderlyingType(type);
             isNullable = underlyingType != null;
             type = underlyingType ?? type;
             
-            if (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType))
+            var result = PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : GetCSharpRepresentation(type, true);
+            return result;
+        }
+        
+        private static string GetCSharpRepresentation( Type type, bool trimArgCount)
+        {
+            var underlyingType = Nullable.GetUnderlyingType(type);
+            var isNullable = (underlyingType != null);
+            type = underlyingType ?? type;
+
+            if (!type!.IsGenericType)
             {
-                result = primitiveType;
+                return (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : type.Namespace+"."+type.Name) + (isNullable ? "?" : "");
             }
-            else
+            
+            var genericArgs = type.GetGenericArguments().ToList();
+            return GetCSharpRepresentation( type, trimArgCount, genericArgs );
+        }
+
+        private static string GetCSharpRepresentation( Type type, bool trimArgCount, List<Type> availableArguments )
+        {
+            var underlyingType = Nullable.GetUnderlyingType(type);
+            var isNullable = (underlyingType != null);
+            type = underlyingType ?? type;
+
+            if (!type!.IsGenericType)
             {
-                result = type.FullName;
+                return (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : type.Namespace+"."+type.Name) + (isNullable ? "?" : "");
             }
 
-            return result;
+            var value = type.Namespace+"."+type.Name;
+            if( trimArgCount && value.IndexOf("`") > -1 ) {
+                value = value.Substring( 0, value.IndexOf( "`" ) );
+            }
+
+            if( type.DeclaringType != null ) {
+                // This is a nested type, build the nesting type first
+                value = GetCSharpRepresentation( type.DeclaringType, trimArgCount, availableArguments ) + "+" + value;
+            }
+
+            // Build the type arguments (if any)
+            var argString = "";
+            var thisTypeArgs = type.GetGenericArguments();
+            for( var i = 0; i < thisTypeArgs.Length && availableArguments.Count > 0; i++ ) {
+                if( i != 0 ) argString += ", ";
+
+                argString += GetCSharpRepresentation( availableArguments[0], trimArgCount );
+                availableArguments.RemoveAt( 0 );
+            }
+
+            // If there are type arguments, add them with < >
+            if( argString.Length > 0 ) {
+                value += "<" + argString + ">";
+            }
+
+            value += (isNullable ? "?" : "");
+
+            return value;
         }
         
         private static readonly Dictionary<Type, string> PrimitiveTypeAliases =
@@ -826,12 +883,10 @@ namespace RegressionGames.Editor.CodeGenerators
             var loadedAndReferencedAssemblies = GetAssemblies();
             var rgStateEntityTypes = loadedAndReferencedAssemblies
                 .SelectMany(a => a.GetTypes())
-                .Where(t => typeof(IRGStateEntity).IsAssignableFrom(t) || t.IsSubclassOf(typeof(RGStateEntityBase)));
-            
-            var specificTypes = rgStateEntityTypes
-                .Where(t => !t.IsAbstract && !t.IsInterface && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core)));
+                .Where(t => typeof(IRGStateEntity).IsAssignableFrom(t) || t.IsSubclassOf(typeof(RGStateEntityBase)))
+                .Where(t => !t.IsAbstract && !t.IsInterface &&t != typeof(RGStateEntity_Empty) && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core)));
 
-            foreach (var rgStateEntityType in specificTypes)
+            foreach (var rgStateEntityType in rgStateEntityTypes)
             {
                 var entityTypeNameField = rgStateEntityType.GetField("EntityTypeName");
                 var entityTypeName = entityTypeNameField?.GetValue(null)?.ToString();
@@ -851,12 +906,13 @@ namespace RegressionGames.Editor.CodeGenerators
                 var stateList = new List<RGStateInfo>();
                 foreach (var memberInfo in properties)
                 {
-                     var typeString = GetTypeString(((PropertyInfo)memberInfo).PropertyType, out var isNullable);
+                     var propertyType = ((PropertyInfo)memberInfo).PropertyType;
+                     
 
                     stateList.Add(new RGStateInfo
                     {
                         StateName = memberInfo.Name,
-                        Type = typeString + (isNullable ? "?" : "")
+                        Type = GetTypeString(propertyType, out var isNullable)
                     });
                 }
 
@@ -873,6 +929,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return result;
         }
+        
 
         private static void CreateJsonZip()
         {

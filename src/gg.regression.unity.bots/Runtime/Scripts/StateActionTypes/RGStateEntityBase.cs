@@ -16,4 +16,22 @@ namespace RegressionGames.StateActionTypes
         public abstract void PopulateFromMonoBehaviour(MonoBehaviour monoBehaviour);
 
     }
+
+    public sealed class RGStateEntity_Empty : RGStateEntityBase
+    {
+        public override bool GetIsPlayer()
+        {
+            return false;
+        }
+
+        public override string GetEntityType()
+        {
+            return null;
+        }
+
+        public override void PopulateFromMonoBehaviour(MonoBehaviour monoBehaviour)
+        {
+            // no op
+        }
+    }
 }

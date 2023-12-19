@@ -41,6 +41,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         }
         
         public static readonly string EntityTypeName = "platformer2DLevel";
+        public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DLevel);
+        public static readonly bool IsPlayer = false;
     }
     
     /**

@@ -80,8 +80,40 @@ namespace RegressionGames.RGBotLocalRuntime
         }
 
         /**
+         * <summary>Used to find a button Entity with the specific type name.</summary>
+         * <param name="scenePath">{string | null} Search for button entities with a specific scenePath.</param>
+         * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
+         */
+        public RGStateEntity_Button GetInteractableButtonByScenePath(string scenePath)
+        {
+            // prefer the button where the name is closest to the front
+            RGStateEntity_Core button = FindEntitiesByScenePath(scenePath).FirstOrDefault();
+            if (button != null && EntityHasAttribute(button, "interactable", true))
+            {
+                return (RGStateEntity_Button)button;
+            }
+            return null;
+        }
+
+        /**
+         * <summary>Used to find a button Entity with the specific type name.</summary>
+         * <param name="buttonName">{string | null} Search for button entities with a specific name.</param>
+         * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
+         */
+        public RGStateEntity_Button GetInteractableButtonByName(string buttonName)
+        {
+            RGStateEntity_Core button = FindEntitiesByName(buttonName, true).FirstOrDefault();
+            if (button != null && EntityHasAttribute(button, "interactable", true))
+            {
+                return (RGStateEntity_Button)button;
+            }
+            return null;
+        }
+        
+        /**
          * <summary>Used to find the closest Entity to the given position.</summary>
-         * <param name="objectType">{string | null} Search for entities of a specific type</param>
+         * <param name="name">{string | null} Search for entities with a specific name</param>
+         * <param name="partial">{bool} Search for entities partially matching a specific name</param>
          * <param name="position">
          *     {Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot
          *     position in index 0.
@@ -90,10 +122,10 @@ namespace RegressionGames.RGBotLocalRuntime
          * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
-        public RGStateEntity_Core FindNearestEntity(string objectType = null, Vector3? position = null,
+        public RGStateEntity_Core FindNearestEntityByName(string name = null, bool partial = true, Vector3? position = null,
             Func<RGStateEntity_Core, bool> filterFunction = null)
         {
-            var result = FindEntities(objectType);
+            var result = FindEntitiesByName(name, partial);
 
             if (filterFunction != null)
                 // filter entities
@@ -120,18 +152,124 @@ namespace RegressionGames.RGBotLocalRuntime
         }
 
         /**
-         * <summary>Used to find a button Entity with the specific type name.</summary>
-         * <param name="buttonName">{string | null} Search for button entities with a specific type name.</param>
-         * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
+         * <summary>Used to find the closest Entity to the given position.</summary>
+         * <param name="objectType">{string | null} Search for entities of a specific type</param>
+         * <param name="position">
+         *     {Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot
+         *     position in index 0.
+         * </param>
+         * <param name="filterFunction">{Func&lt;RGStateEntity, bool&gt; | null} Function to filter entities.</param>
+         * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
          */
-        public RGStateEntity_Button GetInteractableButton(string buttonName)
+        [CanBeNull]
+        public RGStateEntity_Core FindNearestEntityWithType(string objectType = null, Vector3? position = null,
+            Func<RGStateEntity_Core, bool> filterFunction = null)
         {
-            RGStateEntity_Core button = FindEntities(buttonName).FirstOrDefault();
-            if (button != null && EntityHasAttribute(button, "interactable", true))
+            var result = FindEntitiesWithType(objectType);
+
+            if (filterFunction != null)
+                // filter entities
+                result = result.Where(filterFunction).ToList();
+
+            if (result.Count > 1)
             {
-                return (RGStateEntity_Button)button;
+                var pos = position ?? GetMyPlayers()[0].position;
+
+                // sort by distance
+                result.Sort((e1, e2) =>
+                {
+                    var val = MathFunctions.DistanceSq(pos, e1.position) -
+                              MathFunctions.DistanceSq(pos, e2.position);
+                    if (val < 0)
+                        return -1;
+                    if (val > 0) return 1;
+
+                    return 0;
+                });
             }
-            return null;
+
+            return result.Count > 0 ? result[0] : null;
+        }
+
+        /**
+         * <summary>Returns all entities from the game state.</summary>
+         * <returns>{List&lt;RGStateEntity&gt;} All entities in the state.</returns>
+         */
+        public List<RGStateEntity_Core> AllEntities()
+        {
+            var gameState = _tickInfo.gameState;
+            return gameState.Values.ToList();
+        }
+        
+        /**
+         * <summary>Used to find a list of entities from the game state.</summary>
+         * <param name="scenePath">{string | null} Search for entities matching the given scenePath.  The path can be partial to match any gameObjects that start with the provided path. sorts those with the match closest to the front to the front</param>
+         * <returns>{List&lt;RGStateEntity&gt;} All entities with the given scenePath, or all entities in the state if name is null.</returns>
+         */
+        public List<RGStateEntity_Core> FindEntitiesByScenePath(string scenePath = null)
+        {
+            var gameState = _tickInfo.gameState;
+            if (gameState.Count == 0)
+            {
+                return new List<RGStateEntity_Core>();
+            }
+
+            // filter down to objectType Matches
+            var result = gameState.Values.Where(value =>
+            {
+                if (scenePath != null && value.pathInScene != null)
+                {
+                    return value.pathInScene.Contains(scenePath);
+                }
+                return true;
+            });
+
+            if (scenePath != null)
+            {
+                return result.OrderBy(v => v.pathInScene.IndexOf(scenePath, StringComparison.Ordinal)).ToList();
+            }
+
+            return result.ToList();
+        }
+        
+        
+        /**
+         * <summary>Used to find a list of entities from the game state.</summary>
+         * <param name="name">{string | null} Search for entities of a specific name</param>
+         * <param name="partial">{bool} Search for entities partially matching a specific name, sorts those with the match closest to the front to the front</param>
+         * <returns>{List&lt;RGStateEntity&gt;} All entities with the given name, or all entities in the state if name is null.</returns>
+         */
+        public List<RGStateEntity_Core> FindEntitiesByName(string name = null, bool partial = true)
+        {
+            var gameState = _tickInfo.gameState;
+            if (gameState.Count == 0)
+            {
+                return new List<RGStateEntity_Core>();
+            }
+
+            // filter down to objectType Matches
+            var result = gameState.Values.Where(value =>
+            {
+                if (name != null && value.name != null)
+                {
+                    if (partial)
+                    {
+                        return value.name.Contains(name);    
+                    }
+
+                    return value.name == name;
+
+                }
+                return true;
+            });
+
+            if (partial && name != null)
+            {
+                var orderedResult= result.OrderBy(v => v.name.IndexOf(name, StringComparison.Ordinal)).ToList();
+                return orderedResult;
+            }
+
+            return result.ToList();
         }
 
         /**
@@ -139,7 +277,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="objectType">{string | null} Search for entities of a specific type</param>
          * <returns>{List&lt;RGStateEntity&gt;} All entities with the given objectType, or all entities in the state if objectType is null.</returns>
          */
-        public List<RGStateEntity_Core> FindEntities(string objectType = null)
+        public List<RGStateEntity_Core> FindEntitiesWithType(string objectType = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
