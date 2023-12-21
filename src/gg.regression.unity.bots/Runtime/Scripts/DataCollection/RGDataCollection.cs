@@ -161,7 +161,7 @@ namespace RegressionGames.DataCollection
 
             // Add the new replay data to a new or existing mapping in our client replay data dictionary
             var filePath =
-                GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.txt");
+                GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.json");
             var task = File.WriteAllTextAsync(filePath, replayData.ToSerialized());
             state.replayDataTasks.Add(task);
 
@@ -362,11 +362,11 @@ namespace RegressionGames.DataCollection
             }
             finally
             {
-                Cleanup(clientId);
+                // Cleanup(clientId);
                 // If there are no more bots, cleanup everything else
                 if (_clientIdToState.IsEmpty)
                 {
-                    Cleanup();
+                    // Cleanup();
                 }
             }
 

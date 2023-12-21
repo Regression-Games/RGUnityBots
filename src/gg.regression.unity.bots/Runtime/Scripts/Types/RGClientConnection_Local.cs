@@ -1,6 +1,7 @@
 
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
+using UnityEngine;
 
 namespace RegressionGames.Types
 {
@@ -8,9 +9,17 @@ namespace RegressionGames.Types
     {
 
         private RGBotRunner _runner = null;
-        
-        public RGClientConnection_Local(long clientId, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
+        private RGBotController botController = null;
+        private readonly bool hasBotController;
+
+        public RGClientConnection_Local(long clientId, RGBotController botController, string lifecycle = "MANAGED") : base(clientId, RGClientConnectionType.LOCAL, lifecycle)
         {
+            if (botController != null)
+            {
+                this.hasBotController = true;
+                this.botController = botController;
+                this.botController.clientId = clientId;
+            }
         }
 
         public void SetBotRunner(RGBotRunner runner)
@@ -25,6 +34,16 @@ namespace RegressionGames.Types
 
         public override bool SendTeardown()
         {
+            if (hasBotController)
+            {
+                Object.Destroy(botController);
+                botController = null;
+
+                // Nothing else to tear down.
+
+                return true;
+            }
+
             if (Connected())
             {
                 _runner.TeardownBot();
@@ -37,6 +56,12 @@ namespace RegressionGames.Types
 
         public override bool SendTickInfo(RGTickInfoData tickInfo)
         {
+            if (hasBotController)
+            {
+                // The controller will handle ticking
+                return false;
+            }
+
             if (Connected())
             {
                 _runner.QueueTickInfo(tickInfo);
@@ -59,9 +84,9 @@ namespace RegressionGames.Types
 
         public override bool Connected()
         {
-            return this._runner != null;
+            return hasBotController || _runner != null;
         }
-        
+
     }
-    
+
 }

@@ -10,6 +10,8 @@ namespace RegressionGames.StateActionTypes
     public class RGTickInfoData
     {
         public long tick;
+        public float time;
+        public int frameCount;
         public string sceneName;
         // ReSharper disable once InconsistentNaming
         public Dictionary<string, IRGStateEntity> gameState;
@@ -18,18 +20,22 @@ namespace RegressionGames.StateActionTypes
         // cache this so no matter how many clients we send to, we only convert to string one time
         private string _serializedForm = null;
 
-        public RGTickInfoData(long tick, string sceneName, Dictionary<string, IRGStateEntity> gameState)
+        public RGTickInfoData(long tick, float time, int frameCount, string sceneName, Dictionary<string, IRGStateEntity> gameState)
         {
             this.tick = tick;
+            this.time = time;
+            this.frameCount = frameCount;
             this.sceneName = sceneName;
             this.gameState = gameState;
         }
-        
+
         [JsonConstructor]
         // this is strongly typed so that the json convertor uses it to populate the map correctly
-        public RGTickInfoData(long tick, string sceneName, Dictionary<string, RGStateEntity<RGState>> gameState)
+        public RGTickInfoData(long tick, float time, int frameCount, string sceneName, Dictionary<string, RGStateEntity<RGState>> gameState)
         {
             this.tick = tick;
+            this.time = time;
+            this.frameCount = frameCount;
             this.sceneName = sceneName;
             this.gameState = new();
             foreach (var (key,value) in gameState)
