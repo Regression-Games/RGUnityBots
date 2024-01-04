@@ -17,9 +17,10 @@ namespace RegressionGames.StateActionTypes
             var typeName = GetType().Name;
             _myStateEntity ??= CreateStateEntityInstance();
 
-            if (!string.IsNullOrEmpty(_myStateEntity.GetEntityType()))
+            var entityTypeName = _myStateEntity.GetEntityType();
+            if (!string.IsNullOrEmpty(entityTypeName))
             {
-                typeName = _myStateEntity.GetEntityType();
+                typeName = entityTypeName;
             }
 
             var state = _myStateEntity;

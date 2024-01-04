@@ -11,9 +11,9 @@ namespace RegressionGames.StateActionTypes
         private readonly Dictionary<string, Delegate> _actionRequestDelegateMap = new ();
         private readonly Dictionary<string, Delegate> _actionRequestGameObjectDelegateMap = new ();
 
-        private bool loaded = false;
+        private bool loaded;
 
-        private bool isOverlayComponent = false;
+        private bool isOverlayComponent;
         
         public void Start()
         {

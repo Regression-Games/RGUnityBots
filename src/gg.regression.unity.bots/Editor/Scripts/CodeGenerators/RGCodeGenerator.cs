@@ -61,7 +61,7 @@ namespace RegressionGames.Editor.CodeGenerators
             RGDebug.LogWarning($"WARNING: {warning}");
         }
 
-        [MenuItem("Regression Games/Generate Scripts")]
+        [MenuItem("Regression Games/Regenerate All Scripts")]
         public static void GenerateRGScripts()
         {
             try

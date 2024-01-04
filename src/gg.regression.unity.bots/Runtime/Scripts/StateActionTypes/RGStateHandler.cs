@@ -46,8 +46,9 @@ namespace RegressionGames.StateActionTypes
             return path;
         }
         
-        // Used to fill in the core state for any RGEntity that does NOT have an
-        // RGState implementation on its game object
+        /**
+         * <summary>Used to fill in the core state for any RGEntity that does NOT have an RGState implementation on its game object</summary>
+         */
         public static RGStateEntity_Core GetCoreStateForGameObject(GameObject gameObject, Button button = null)
         {
             var rgState = EnsureRGStateHandlerOnGameObject(gameObject);
@@ -88,6 +89,9 @@ namespace RegressionGames.StateActionTypes
             return state;
         }
 
+        /**
+         * <summary>Adds state to the core gameObject state for the specified monoBehaviour</summary>
+         */
         internal static void PopulateStateEntityForStatefulObject(RGStateEntity_Core gameObjectCoreState, MonoBehaviour monoBehaviour, out bool isPlayer)
         {
             var type = monoBehaviour.GetType();

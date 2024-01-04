@@ -551,8 +551,8 @@ namespace RegressionGames
             // get behaviours with attributes or custom RGState classes
             var statefulBehaviours = RGFindUtils.Instance.FindStatefulAndActionableBehaviours();
 
-            // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
-            // thus, this code cannot really be run in parallel, causing a potential state object count scaling performance issue....
+            // SADLY... Unity's threading model stinks and accessing the transform of an object must be done on the main thread only
+            // thus, this parts of this code cannot really be run in parallel, causing a potential state object count scaling performance issue....
             foreach (var statefulBehaviour in statefulBehaviours)
             {
                 var statefulGameObject = statefulBehaviour.gameObject;
