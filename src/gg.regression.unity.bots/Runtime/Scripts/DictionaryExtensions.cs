@@ -16,7 +16,7 @@ public static class DictionaryExtensions
         {
             return GetField<T>(dictionary, fieldName, default(T));
         }
-        
+
         /**
          * <summary>Retrieve the value of the named field as the specified type or null if it does not exist.
          * Note, some types in Unity can only be constructed on the Main thread.
@@ -40,17 +40,17 @@ public static class DictionaryExtensions
                         {
                             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                         }));
-                    
+
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // ignored
             }
 
             return defaultValue;
         }
-        
+
         /**
          * <summary>Retrieve the value of the named field or null if the field does not exist.</summary>
          */

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace RegressionGames
 {
     public enum DebugLogLevel {Off, Verbose, Debug, Info, Warning, Error}
-    
+
     public class RGSettings: ScriptableObject
     {
         private const string SETTINGS_PATH = "Assets/RGSettings.asset";
@@ -17,7 +17,10 @@ namespace RegressionGames
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
         [SerializeField] private uint nextBotId;
+
+#pragma warning disable CS0414 // suppress unused field warning
         [SerializeField] private uint nextBotInstanceId;
+#pragma warning restore CS0414
 
         /*
          * This is setup to be safely callable on the non-main thread.
@@ -25,7 +28,7 @@ namespace RegressionGames
          */
         private static RGSettings _settings = null;
         private static bool dirty = true;
-        
+
         public static RGSettings GetOrCreateSettings()
         {
             if (_settings == null || dirty)
@@ -37,7 +40,7 @@ namespace RegressionGames
 #endif
                     dirty = false;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // if not called on main thread this will exception
                 }
@@ -59,7 +62,7 @@ namespace RegressionGames
                 AssetDatabase.SaveAssets();
 #endif
             }
-            
+
             // backwards compat for migrating RG devs before we had a single host address field
             if (string.IsNullOrEmpty(_settings.rgHostAddress))
             {
@@ -85,7 +88,7 @@ namespace RegressionGames
 #endif
                 dirty = false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // if not called on main thread this will exception
             }
@@ -122,7 +125,7 @@ namespace RegressionGames
             }
             return systemId;
         }
-        
+
         public bool GetUseSystemSettings()
         {
             return useSystemSettings;
@@ -153,5 +156,5 @@ namespace RegressionGames
             return rgHostAddress;
         }
     }
-    
+
 }

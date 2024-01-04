@@ -23,10 +23,8 @@ public class RegressionPackagePopup : EditorWindow
     private static bool loggedIn = false;
     private static string email = "";
     private static string password = "";
-    private static bool isSampleImportInProgress = false;
     private static AddRequest addRequest;
     private static ListRequest listRequest;
-    private static string samplePath = "Samples~/ThirdPersonDemoURP";
 
     void OnEnable()
     {
@@ -34,7 +32,7 @@ public class RegressionPackagePopup : EditorWindow
         string assetsPath = "Assets/Editor/Images/banner.png";
 
         bannerImage = AssetDatabase.LoadAssetAtPath<Texture2D>(packagePath);
-    
+
         if (bannerImage == null)
         {
             bannerImage = AssetDatabase.LoadAssetAtPath<Texture2D>(assetsPath);
@@ -45,7 +43,7 @@ public class RegressionPackagePopup : EditorWindow
             Debug.LogWarning("Failed to load banner image");
         }
     }
-    
+
     [MenuItem("Regression Games/Getting Started")]
     public static async void ShowWindow()
     {
@@ -53,7 +51,7 @@ public class RegressionPackagePopup : EditorWindow
         email = RGUserSettings.GetOrCreateUserSettings().GetEmail();
         password = RGUserSettings.GetOrCreateUserSettings().GetPassword();
         await Login();
-        
+
         if (window == null)
         {
             Rect windowRect = new Rect(100, 100, 600, 600);
@@ -81,16 +79,16 @@ public class RegressionPackagePopup : EditorWindow
     private void RenderLoginScreen()
     {
         if (bannerImage != null)
-        { 
+        {
             GUILayout.Box(bannerImage, GUILayout.ExpandWidth(true), GUILayout.Height(200));
         }
-        
+
         // H1
         GUIStyle h1Style = new GUIStyle(EditorStyles.largeLabel);
         h1Style.fontSize = 20;
         h1Style.fontStyle = FontStyle.Bold;
         h1Style.normal.textColor = Color.white;
-        
+
         // P
         GUIStyle pStyle = new GUIStyle(EditorStyles.label);
         pStyle.fontSize = 12;
@@ -114,7 +112,7 @@ public class RegressionPackagePopup : EditorWindow
             "will help you get started quickly.", pStyle, GUILayout.Width(550));
         GUILayout.FlexibleSpace();
         GUILayout.EndHorizontal();
-        
+
         GUILayout.Space(20);
         // Email field
         GUILayout.BeginHorizontal();
@@ -155,7 +153,7 @@ public class RegressionPackagePopup : EditorWindow
         // Create Account and Forgot Password Links
         GUIStyle linkStyle = new GUIStyle(EditorStyles.label);
         linkStyle.fontSize = 12;
-        
+
         GUILayout.BeginHorizontal();
         GUILayout.FlexibleSpace();
         if (GUILayout.Button("Create Account", linkStyle))
@@ -164,7 +162,7 @@ public class RegressionPackagePopup : EditorWindow
         }
 
         GUILayout.Space(10);
-        
+
         // For mouse hover effect
         if (Event.current.type == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
         {
@@ -182,14 +180,14 @@ public class RegressionPackagePopup : EditorWindow
         if (Event.current.type == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
         {
             EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
-        } 
+        }
     }
 
     private void RenderWelcomeScreen()
     {
         // set flags on render as extra check against duplicated popups
         PlayerPrefs.SetInt(RGGuestCheck, 1);
-        
+
         // render window info
         RenderBanner();
         RenderAlwaysShowOnStartupCheckbox();
@@ -209,14 +207,14 @@ public class RegressionPackagePopup : EditorWindow
         GUI.color = new Color(0, 0, 0, 0.5f);
         GUI.DrawTexture(new Rect(0, 0, 600, 120), EditorGUIUtility.whiteTexture);
         GUI.color = prevColor;
-        
+
         // Define the text style
         GUIStyle h1Style = new GUIStyle(EditorStyles.largeLabel)
         {
             normal = { textColor = Color.white },
             alignment = TextAnchor.MiddleLeft,
             fontSize = 20,
-            fontStyle = FontStyle.Bold 
+            fontStyle = FontStyle.Bold
         };
 
         // Determine the position and size for the label
@@ -225,16 +223,16 @@ public class RegressionPackagePopup : EditorWindow
         // Draw the title text
         GUI.Label(textRect, "Regression Games Setup Guide", h1Style);
     }
-    
+
     private void RenderAlwaysShowOnStartupCheckbox()
     {
         GUILayout.Space(120);
-        
+
         // Get the current value from PlayerPrefs
         bool alwaysShowOnStartup = PlayerPrefs.GetInt(RGWindowCheck, 1) == 1;
 
         // Define the style for the label
-        GUIStyle labelStyle = new GUIStyle(GUI.skin.label) 
+        GUIStyle labelStyle = new GUIStyle(GUI.skin.label)
         {
             fontStyle = FontStyle.Bold,
             fontSize = 12
@@ -242,7 +240,7 @@ public class RegressionPackagePopup : EditorWindow
 
         // Define the position and size for the label
         Rect labelRect = new Rect(20, 130, 200, 20);
-    
+
         // Draw the label
         GUI.Label(labelRect, "Always Show On Startup", labelStyle);
 
@@ -303,7 +301,7 @@ public class RegressionPackagePopup : EditorWindow
             Application.OpenURL("https://docs.regression.gg/studios/unity/unity-sdk/creating-bots/csharp/configuration");
         }
     }
-    
+
     private void RenderSampleQuickstart()
     {
         // Define the styles for the sample section
@@ -317,7 +315,7 @@ public class RegressionPackagePopup : EditorWindow
         {
             wordWrap = true
         };
-        
+
         GUIStyle boldDescriptionStyle = new GUIStyle(EditorStyles.label)
         {
             wordWrap = true,
@@ -348,7 +346,7 @@ public class RegressionPackagePopup : EditorWindow
         }
         GUI.enabled = true;
     }
-    
+
     private bool IsURPEnabled()
     {
         var renderPipelineAsset = GraphicsSettings.currentRenderPipeline;
@@ -362,7 +360,7 @@ public class RegressionPackagePopup : EditorWindow
         }
         return false;
     }
-    
+
     private void ImportSample(string sampleName)
     {
         string packageName = "gg.regression.unity.bots";
@@ -405,7 +403,7 @@ public class RegressionPackagePopup : EditorWindow
             RGDebug.LogError("The sample could not be found or is not in an embedded or local package.");
         }
     }
-    
+
     [InitializeOnLoadMethod]
     private static void InitializeOnLoadMethod()
     {
@@ -414,7 +412,7 @@ public class RegressionPackagePopup : EditorWindow
             SessionState.SetBool(RGUnityCheck, true);
             bool showOnStartup = PlayerPrefs.GetInt(RGWindowCheck, 1) == 1;
             if (showOnStartup)
-            { 
+            {
                 EditorApplication.update += ShowOnStartup;
             }
         }
@@ -428,7 +426,7 @@ public class RegressionPackagePopup : EditorWindow
             ShowWindow();
         }
     }
-    
+
     private static async Task Login()
     {
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
@@ -456,8 +454,8 @@ public class RegressionPackagePopup : EditorWindow
         {
             window.Repaint();
             return;
-        } 
-        
+        }
+
         // continue without log in
         PlayerPrefs.SetInt(RGGuestCheck, 1);
         if (window != null)

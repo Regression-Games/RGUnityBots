@@ -12,17 +12,17 @@ using UnityEngine.InputSystem.LowLevel;
 // ReSharper disable InconsistentNaming
 namespace RegressionGames.RGBotConfigs
 {
- 
+
     [RequireComponent(typeof(RGEntity))]
     [DisallowMultipleComponent]
-    
+
     public class RGAction_KeyPress: RGAction
     {
         [Tooltip("Draw debug gizmos for current key inputs in editor runtime ?")]
         public bool renderDebugGizmos = false;
 
         public Vector3 debugGizmosOffset = new Vector3(0f,-1f,2f);
-        
+
         // Allow this on any RGEntity that has an InputActionAsset
         public InputActionAsset InputAction;
 
@@ -30,7 +30,7 @@ namespace RegressionGames.RGBotConfigs
 
         private Dictionary<Key, InputControl> _inputActions = new();
         private InputControl _anyKey = null;
-        
+
         private Dictionary<Key, double> keysDown = new();
 
         private RGGizmos RgGizmos;
@@ -51,7 +51,7 @@ namespace RegressionGames.RGBotConfigs
                     {
                         if (inputActionControl is KeyControl iac)
                         {
-                            _inputActions.Add(iac.keyCode, inputActionControl);    
+                            _inputActions.Add(iac.keyCode, inputActionControl);
                         }
                         else if (inputActionControl is AnyKeyControl)
                         {
@@ -68,7 +68,7 @@ namespace RegressionGames.RGBotConfigs
             if (_keysToPress.TryDequeue(out RG_KeyPress_Data keyToPress))
             {
                 List<InputControl> actionsToTake = new();
-                // check for any key 
+                // check for any key
                 if (_anyKey != null)
                 {
                     actionsToTake.Add(_anyKey);
@@ -85,7 +85,7 @@ namespace RegressionGames.RGBotConfigs
                     PressKey(keyToPress.keyId, control, keyToPress.holdTime);
                 }
             }
-            
+
             // handle un-pressing any keys that have expired their time
             var keys = keysDown.Keys.ToList();
             foreach (var key in keys)
@@ -103,7 +103,7 @@ namespace RegressionGames.RGBotConfigs
                 // un-press the 'any' key
                 UnPressKey(null, _anyKey);
             }
-            
+
             int id = gameObject.transform.GetInstanceID();
             // render debug text
             if (renderDebugGizmos)
@@ -116,7 +116,7 @@ namespace RegressionGames.RGBotConfigs
                     debugText += $"{key.ToString()} : {(value-Time.unscaledTime):F2}\r\n";
                 }
 
-                
+
                 if (string.IsNullOrEmpty(debugText))
                 {
                     RgGizmos.DestroyText(id);
@@ -130,7 +130,7 @@ namespace RegressionGames.RGBotConfigs
             {
                 RgGizmos.DestroyText(id);
             }
-            
+
             // Update Input System
             InputSystem.Update();
         }
@@ -182,7 +182,7 @@ namespace RegressionGames.RGBotConfigs
                 control.WriteValueIntoEvent(state, eventPtr);
                 InputSystem.QueueEvent(eventPtr);
             }
-            
+
             using (DeltaStateEvent.From(control, out var eventPtr))
             {
                 SetUpAndQueueEvent(eventPtr, 0f);
@@ -203,7 +203,7 @@ namespace RegressionGames.RGBotConfigs
                 control.WriteValueIntoEvent(state, eventPtr);
                 InputSystem.QueueEvent(eventPtr);
             }
-            
+
             using (DeltaStateEvent.From(control, out var eventPtr))
             {
                 var hasKeyDown = keysDown.ContainsKey(key);
@@ -214,14 +214,14 @@ namespace RegressionGames.RGBotConfigs
                     // make sure new value is after the existing value
                     if (timeToUnPress > keysDown[key])
                     {
-                        keysDown[key] = timeToUnPress;        
+                        keysDown[key] = timeToUnPress;
                     }
                 }
                 else
                 {
                     keysDown[key] = timeToUnPress;
                 }
-                
+
                 if (!hasKeyDown)
                 {
                     SetUpAndQueueEvent(eventPtr, 1f);
@@ -271,13 +271,13 @@ namespace RegressionGames.RGBotConfigs
                         $"WARNING: Ignoring RGAction_KeyPress with missing/invalid input for keyId: {keyId} or holdTime: {holdTime}");
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 RGDebug.LogWarning($"WARNING: Ignoring RGAction_KeyPress with missing/invalid input for keyId: {keyId} or holdTime: {holdTime}");
             }
         }
     }
-    
+
     internal class RG_KeyPress_Data
     {
         public readonly Key keyId;

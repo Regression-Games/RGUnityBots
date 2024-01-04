@@ -76,7 +76,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 {
                     userBotCode = (RGUserBot)ScriptableObject.CreateInstance(entryPointType);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     // nothing to see here, unity already logs the failure above in the log despite usually not throwing an exception
                 }

@@ -295,7 +295,7 @@ namespace RegressionGames.DebugUtils
             {
                 gizmosContainer = new GameObject("RGGizmosContainer");
             }
-            
+
             // Draw lines
             foreach (var lineParams in _linesFromEntityToPosition.Values)
             {
@@ -318,7 +318,7 @@ namespace RegressionGames.DebugUtils
             {
                 Debug.DrawLine(lineParams.Item1, lineParams.Item2, lineParams.Item3);
             }
-            
+
             // Draw spheres
             foreach (var sphereParams in _spheresAtPosition.Values)
             {
@@ -348,7 +348,7 @@ namespace RegressionGames.DebugUtils
                     Gizmos.DrawSphere(originInstance.transform.position, sphereParams.Item3);
                 }
             }
-            
+
             // Delete any billboards that are no longer being drawn
             var billboardsToRemove = _drawnBillboards.Where(b => !_billboardsToDraw.ContainsKey(b.Key));
             foreach (var billboard in billboardsToRemove)
@@ -356,7 +356,7 @@ namespace RegressionGames.DebugUtils
                 Object.Destroy(billboard.Value);
                 _drawnBillboards.Remove(billboard.Key, out _);
             }
-            
+
             // Now update or create any billboards that are being drawn
             foreach (var billboardParams in _billboardsToDraw)
             {
@@ -369,7 +369,7 @@ namespace RegressionGames.DebugUtils
                         _drawnBillboards.Remove(billboardParams.Key, out _);
                         continue;
                     }
-                    
+
                     // If the billboard game object does not exist, create it
                     var billboard = _drawnBillboards.GetOrAdd(billboardParams.Key, (key) => {
                         var billboardObject = Object.Instantiate(_billboardAsset, Vector3.zero, Quaternion.identity);
@@ -383,23 +383,23 @@ namespace RegressionGames.DebugUtils
                         _drawnBillboards.Remove(billboardParams.Key, out _);
                         continue;
                     };
-                        
+
                     // Then set the parameters
                     var billboardText = billboard.GetComponent<BillboardText>();
                     billboardText.content = billboardParams.Value.Item1;
                     billboardText.offset = billboardParams.Value.Item2;
                     billboardText.target = entityGameObject.gameObject;
                 }
-                catch (MissingReferenceException e)
+                catch (MissingReferenceException)
                 {
                     // If an exception occurred, it's likely that the existing entity was destroyed.
                     // In that case, just remove the billboard from the list of drawn billboards.
                     _drawnBillboards.Remove(billboardParams.Key, out _);
                 }
-                
+
             }
 
         }
-        
+
     }
 }
