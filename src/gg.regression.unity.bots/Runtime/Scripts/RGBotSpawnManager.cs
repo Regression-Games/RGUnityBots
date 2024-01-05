@@ -2,7 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
-using RegressionGames.RGBotConfigs;
+using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
 
@@ -17,13 +17,14 @@ namespace RegressionGames
      * `SpawnBot` method.
      * </summary>
      */
+    // ReSharper disable once InconsistentNaming
     public abstract class RGBotSpawnManager : MonoBehaviour
     {
 
         /**
          * Internal reference for this object, for use in singleton management.
          */
-        private static RGBotSpawnManager _this = null;
+        private static RGBotSpawnManager _this;
         
         /**
          * A mapping from client IDs (i.e. the IDs used to identify bots connected from the Regression Games
@@ -39,7 +40,7 @@ namespace RegressionGames
         /**
          * Tracks whether an initial set of bots have been spawned.
          */
-        private bool _initialSpawnDone = false;
+        private bool _initialSpawnDone;
         
         /**
          * <summary>
@@ -189,9 +190,10 @@ namespace RegressionGames
             if (rgBotServerListener != null)
             {
                 // Add the agent
-                var rgEntity = BotMap[botInformation.clientId].GetComponent<RGEntity>();
-                rgEntity.ClientId = botInformation.clientId;
-                rgBotServerListener.agentMap[botInformation.clientId].Add(rgEntity);
+                var botGameObject = BotMap[botInformation.clientId];
+                var rgState = RGStateHandler.EnsureRGStateHandlerOnGameObject(botGameObject);
+                rgState.ClientId = botInformation.clientId;
+                rgBotServerListener.AgentMap[botInformation.clientId].Add(botGameObject);
             }
         }
 
@@ -297,9 +299,9 @@ namespace RegressionGames
                 if (existingBot != null)
                 {
                     // get their agent re-mapped
-                    var rgEntity = existingBot.GetComponent<RGEntity>();
-                    rgEntity.ClientId = botToSpawn.clientId;
-                    rgBotServerListener.agentMap[botToSpawn.clientId].Add(rgEntity);
+                    var rgState = RGStateHandler.EnsureRGStateHandlerOnGameObject(existingBot);
+                    rgState.ClientId = botToSpawn.clientId;
+                    rgBotServerListener.AgentMap[botToSpawn.clientId].Add(existingBot);
                 }
                 else
                 {

@@ -13,6 +13,7 @@ namespace RegressionGames.Editor
     [Serializable]
     public class RGStatesInfo
     {
+        public string EntityTypeName;
         public string ClassName;
         public List<RGStateInfo> States;
     }

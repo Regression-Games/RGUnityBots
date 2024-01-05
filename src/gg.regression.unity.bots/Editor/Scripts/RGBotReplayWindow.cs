@@ -295,8 +295,8 @@ namespace RegressionGames.Editor
             if (aTi != null && bTi == null) return -1;
             if (bTi != null && aTi == null) return 1;
 
-            // if same type, sort by id
-            if (a.type == b.type)
+            // if same types, sort by id
+            if (a.types.All(b.types.Contains) && a.types.Count == b.types.Count)
             {
                 // group the positive ids and negative ids, but show them both ascending as though unsigned
                 if (a.id >= 0)
@@ -315,13 +315,13 @@ namespace RegressionGames.Editor
             if (a.isPlayer && !b.isPlayer) return -1;
             if (b.isPlayer && !a.isPlayer) return 1;
 
-            // else sort by type
-            if (a.type == null)
+            // else sort by name
+            if (a.name == null)
             {
                 return 1;
             }
 
-            return a.type.CompareTo(b.type);
+            return String.Compare(a.name, b.name, StringComparison.Ordinal);
         }
 
         private void RenderTimelineView()
@@ -403,7 +403,7 @@ namespace RegressionGames.Editor
                 var tickInfos = new Dictionary<long, RGEntityTickInfo>();
 
                 for (var i = 0; i < rData.Count; i++)
-                    tickInfos[rData[i].id] = RGEntityDataForTick.FromReplayData(rData[i], currentTick)?.tickInfo;
+                    tickInfos[rData[i].id] = RGEntityDataForTick.FromReplayData(rData[i], currentTick)?.TickInfo;
 
                 rData.Sort((a, b) => compareListElements(tickInfos[a.id], tickInfos[b.id], a, b));
 
@@ -513,7 +513,7 @@ namespace RegressionGames.Editor
                                 EditorGUI.DrawRect(actionRect, Color.gray * Color.yellow);
                                 
                                 // then put a label in it
-                                var label = new GUIContent($"{actions[j].action}", $"{textForAction(j + 1, actions[j])}");
+                                var label = new GUIContent($"{actions[j].Action}", $"{textForAction(j + 1, actions[j])}");
                                 EditorGUI.DropShadowLabel(actionRect, label, actionLabelGUIStyle);
                             }
                         }
@@ -653,10 +653,10 @@ namespace RegressionGames.Editor
                 foreach (var playerId in playerIds)
                 {
                     var tickData = tickInfoManager.GetEntityInfoForTick(currentTick, playerId);
-                    if (tickData != null && tickData.data.enabled)
+                    if (tickData != null && tickData.Data.enabled)
                     {
-                        var objectName = $"{tickData.data.type}_{tickData.data.id}";
-                        if (tickData.tickInfo != null) namesInState.Add(objectName);
+                        var objectName = $"{tickData.Data.name}_{tickData.Data.id}";
+                        if (tickData.TickInfo != null) namesInState.Add(objectName);
 
                         UpdatePlayerForGameState(tickData);
                         UpdatePlayerForActions(tickData);
@@ -692,9 +692,9 @@ namespace RegressionGames.Editor
             // populate the 'state' into our scene 
 
             // id, type, position, rotation
-            if (tickData.tickInfo != null)
+            if (tickData.TickInfo != null)
             {
-                var ti = tickData.tickInfo;
+                var ti = tickData.TickInfo;
 
                 if (ti.state != null)
                 {
@@ -712,7 +712,7 @@ namespace RegressionGames.Editor
                         rotation = ti.state.rotation;
                     }
                     
-                    var typeRootName = $"{tickData.data.type}s";
+                    var typeRootName = $"{string.Join('_',tickData.Data.types)}s";
                     var typeRoot = findChildByName(rootObject.transform, typeRootName);
                     if (typeRoot == null)
                     {
@@ -720,7 +720,7 @@ namespace RegressionGames.Editor
                         typeRoot.transform.parent = rootObject.transform;
                     }
 
-                    var objectName = tickData.data.objectName;
+                    var objectName = tickData.Data.objectName;
 
                     var obj = findChildByName(typeRoot.transform, objectName);
                     if (obj == null)
@@ -740,7 +740,7 @@ namespace RegressionGames.Editor
 
                         //SETUP THE MODEL
                         var rmm = ReplayModelManager.GetInstance();
-                        var modelPrefab = rmm.getModelPrefabForType(tickData.data.type, characterType);
+                        var modelPrefab = rmm.GetModelPrefabForType(tickData.Data.types, characterType);
                         if (modelPrefab != null)
                         {
                             var model = Instantiate(modelPrefab, Vector3.zero, Quaternion.identity,
@@ -754,7 +754,7 @@ namespace RegressionGames.Editor
                         }
                     }
 
-                    if (tickData.data.showHighlight)
+                    if (tickData.Data.showHighlight)
                         // enable the 'my bot' showHighlight circle
                         obj.transform.GetChild(0).GetChild(2).gameObject.SetActive(true);
                     else
@@ -765,7 +765,7 @@ namespace RegressionGames.Editor
                     if (position != null)
                     {
                         obj.transform.GetChild(0).position = (Vector3)position;
-                        if (tickData.justSpawned)
+                        if (tickData.JustSpawned)
                         {
                             // create 'spawn' effect
                             if (spawnPrefab == null)
@@ -781,9 +781,9 @@ namespace RegressionGames.Editor
                     if (rotation != null) obj.transform.GetChild(0).rotation = (Quaternion)rotation;
 
                     // setup pathing lines for bots
-                    if (tickData.data.showPath)
+                    if (tickData.Data.showPath)
                     {
-                        var points = tickInfoManager.GetPathForEntityId(currentTick, tickData.data.id);
+                        var points = tickInfoManager.GetPathForEntityId(currentTick, tickData.Data.id);
                         if (points.Length > 0)
                         {
                             obj.transform.GetChild(1).gameObject.SetActive(true);
@@ -804,9 +804,9 @@ namespace RegressionGames.Editor
             }
 
             // handle showing despawn indicator
-            if (tickData.justDespawned)
+            if (tickData.JustDespawned)
             {
-                var priorPosition = tickInfoManager.GetEntityInfoForTick(currentTick - 1, tickData.data.id)?.tickInfo
+                var priorPosition = tickInfoManager.GetEntityInfoForTick(currentTick - 1, tickData.Data.id)?.TickInfo
                     ?.state.position;
                 var pos = (priorPosition ?? Vector3.zero) + DESPAWN_TEXT_OFFSET;
                 // create 'de-spawn' effect
@@ -817,18 +817,18 @@ namespace RegressionGames.Editor
                 var despawn =
                     Instantiate(despawnPrefab, pos, Quaternion.identity,
                         spawnsObject.transform) as GameObject;
-                despawn.transform.GetChild(0).GetComponent<TextMeshPro>().text = tickData.data.objectName;
+                despawn.transform.GetChild(0).GetComponent<TextMeshPro>().text = tickData.Data.objectName;
             }
         }
 
         private void UpdatePlayerForActions(RGEntityDataForTick tickData)
         {
-            if (tickData.data.showActions && tickData.tickInfo != null && tickData.tickInfo.actions.Length > 0)
+            if (tickData.Data.showActions && tickData.TickInfo != null && tickData.TickInfo.actions.Length > 0)
             {
                 var actionNumber = 1;
-                foreach (var action in tickData.tickInfo.actions)
+                foreach (var action in tickData.TickInfo.actions)
                 {
-                    var actionType = action.action;
+                    var actionType = action.Action;
                     if (targetPrefab == null)
                         targetPrefab =
                             AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -866,14 +866,14 @@ namespace RegressionGames.Editor
                         if (targetId != null)
                         {
                             var ti = tickInfoManager.GetEntityInfoForTick(currentTick, targetId.Value)
-                                ?.tickInfo;
+                                ?.TickInfo;
                             if (ti?.state.position != null) position = ti.state.position;
                         }
 
                         // if still null
-                        if (position == null && tickData.tickInfo?.state.position != null)
+                        if (position == null && tickData.TickInfo?.state.position != null)
                             // targeting the bot's self
-                            position = tickData.tickInfo?.state.position;
+                            position = tickData.TickInfo?.state.position;
                     }
 
                     if (position == null) position = Vector3.zero;
@@ -890,7 +890,7 @@ namespace RegressionGames.Editor
 
         private string textForAction(int actionNumber, RGActionRequest action)
         {
-            var actionType = action.action;
+            var actionType = action.Action;
             var actionText = $"Action: {actionNumber}";
 
             Vector3? position = null;
@@ -1008,9 +1008,9 @@ namespace RegressionGames.Editor
                             {
                                 var rData = JsonConvert.DeserializeObject<RGStateActionReplayData>(sr.ReadToEnd(),
                                     _jsonSettings);
-                                tickInfoManager.processTick(tickIndexNumber, rData.tickInfo);
+                                tickInfoManager.ProcessTick(tickIndexNumber, rData.tickInfo);
                                 if (rData.playerId != null && rData.playerId != -1)
-                                    tickInfoManager.processReplayData(tickIndexNumber, (long)rData.playerId, rData);
+                                    tickInfoManager.ProcessReplayData(tickIndexNumber, (long)rData.playerId, rData);
                                     
                                 if (rData.tickRate != null)
                                     // get the right tickRate
