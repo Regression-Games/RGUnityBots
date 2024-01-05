@@ -5,7 +5,6 @@ using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
 using System.Reflection;
 using System.Threading.Tasks;
@@ -38,13 +37,6 @@ namespace RegressionGames.Editor.CodeGenerators
     public static class RGCodeGenerator
     {
 #if UNITY_EDITOR
-        // Used to exclude sample projects' directories from generation
-        // so that we don't duplicate .cs files that are already included in the sample projects.
-        // But while still scanning them so that we can include their States/Actions in the json.
-        private static readonly HashSet<string> ExcludeDirectories = new() {
-           "ThirdPersonDemoURP"
-        };
-
         private static bool _hasExtractProblem;
         
         private static readonly DirectoryInfo ParentDirectory = Directory.GetParent(Application.dataPath);
@@ -120,21 +112,6 @@ namespace RegressionGames.Editor.CodeGenerators
                 RGDebug.LogInfo($"Completed generating Regression Games scripts");
             }
 
-        }
-
-        private static List<Scene> GetDirtyScenes()
-        {
-            var result = new List<Scene>();
-            for (var j = 0; j < SceneManager.sceneCount; j++)
-            {
-                var scene = SceneManager.GetSceneAt(j);
-                if (scene.isDirty)
-                {
-                    result.Add(scene);
-                }
-            }
-
-            return result;
         }
 
         [MenuItem("Regression Games/Agent Builder/Extract Game Context")]
@@ -281,10 +258,6 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static List<RGActionAttributeInfo> SearchForBotActionAttributes()
         {
-            // make sure to exclude any sample project directories from generation, but not searching
-            var excludedPaths =
-                ExcludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
-
             var csFiles = Directory.GetFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).ToArray();
 
             var botActionList = new List<RGActionAttributeInfo>();
@@ -335,7 +308,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             var args = rgStateTypeAttribute.ArgumentList.Arguments;
                             if (args.Count >0 && args[0] is { Expression: LiteralExpressionSyntax literal })
                             {
-                                if (bool.TryParse(literal.Token.ValueText, out var isPlayer))
+                                if (bool.TryParse(literal.Token.ValueText, out _))
                                 {
                                     // not the type
                                 }
@@ -378,7 +351,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                 BehaviourFileDirectory =
                                     csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar)),
                                 // if this wasn't in a sample project folder, we need to generate CS for it
-                                ShouldGenerateCSFile = excludedPaths.All(ep => !csFilePath.StartsWith(ep)),
+                                ShouldGenerateCSFile = true,
                                 BehaviourNamespace = nameSpace,
                                 BehaviourName = behaviourName,
                                 MethodName = methodName,
@@ -397,11 +370,8 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static void CleanupPreviousFilesWithPathAndPattern(string path, string searchPattern)
         {
-            var excludedPaths =
-                ExcludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
-            
             // find all .cs files that match our pattern and remove them
-            var filesToRemove = Directory.EnumerateFiles(path, searchPattern, SearchOption.AllDirectories).Where(csFilePath => excludedPaths.All(ep => !csFilePath.StartsWith(ep)));
+            var filesToRemove = Directory.EnumerateFiles(path, searchPattern, SearchOption.AllDirectories);
             
             foreach (var filePath in filesToRemove)
             {
@@ -560,11 +530,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static void GenerateRGStateEntityClasses()
         {
-            // make sure to exclude any sample project directories from the search
-            var excludedPaths =
-                ExcludeDirectories.Select(ed => Path.Combine(UnityEngine.Device.Application.dataPath, ed)).ToArray();
-
-            var csFiles = Directory.EnumerateFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories).Where(csFilePath => excludedPaths.All(ep => !csFilePath.StartsWith(ep)));
+            var csFiles = Directory.EnumerateFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories);
 
             var fileWriteTasks = new List<(string,Task)>();
             // for each .cs file in the project
@@ -912,7 +878,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     stateList.Add(new RGStateInfo
                     {
                         StateName = memberInfo.Name,
-                        Type = GetTypeString(propertyType, out var isNullable)
+                        Type = GetTypeString(propertyType, out _)
                     });
                 }
 

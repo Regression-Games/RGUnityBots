@@ -60,7 +60,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <br/><br/>
          * WARNING: When controlling multiple player bots from a single client the result of this method may change from one tick to the next.</summary>
          */
-        public IRGStateEntity GetMyPlayer()
+        public RGStateEntity_Core GetMyPlayer()
         {
             var players = GetMyPlayers();
             if (players.Count > 0)
@@ -270,6 +270,12 @@ namespace RegressionGames.RGBotLocalRuntime
             }
 
             return result.ToList();
+        }
+
+        [Obsolete("See RG.FindEntitiesWithType(string) ...")]
+        public List<RGStateEntity_Core> FindEntities(string objectType = null)
+        {
+            return FindEntitiesWithType(objectType);
         }
 
         /**

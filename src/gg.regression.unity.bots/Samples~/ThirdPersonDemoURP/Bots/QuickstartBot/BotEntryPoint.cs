@@ -63,8 +63,8 @@ namespace QuickstartBot
                 var enemies = rgObject.FindEntities("Enemy");
                 if (enemies.Count > 0)
                 {
-                    rgObject.PerformAction(new RGActionRequest_MoveInDirection(new Vector2(0, 0)));
-                    rgObject.PerformAction(new RGActionRequest_SelectAndAttackEnemy(enemies[0].id, 0));
+                    rgObject.PerformAction(new RGActionRequest_PlayerInputControl_MoveInDirection(new Vector2(0, 0)));
+                    rgObject.PerformAction(new RGActionRequest_PlayerAttack_SelectAndAttackEnemy(enemies[0].id, 0));
                     return;
                 }
             }
@@ -77,8 +77,7 @@ namespace QuickstartBot
             var direction = (Vector3) _destination - new Vector3(thisBot.position.x, 0, thisBot.position.z);
             
             // Move to the desired location
-            rgObject.PerformAction(new RGActionRequest_MoveInDirection(new Vector2(direction.x, direction.z)));
-
+            rgObject.PerformAction(new RGActionRequest_PlayerInputControl_MoveInDirection(new Vector2(direction.x, direction.z)));
         }
     }
 }
