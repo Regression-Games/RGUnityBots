@@ -49,7 +49,7 @@ namespace QuickstartBot
             if (thisBot == null) return; // We have not fully spawned yet, so wait
 
             // If we are attacking, just wait, and don't move
-            if (thisBot.GetField<bool>("IsAttacking")) return;
+            if (thisBot.GetField<RGStateEntity_PlayerAttack>("PlayerAttack")?.IsAttacking == true) return;
             
             // If we have no destination, or we have reached our destination, choose a new one
             if (_destination == null || Vector3.Distance(thisBot.position, (Vector3) _destination) < 1)
