@@ -8,6 +8,7 @@ namespace RGThirdPersonDemo
 {
     [RequireComponent((typeof(PlayerMovement)))]
     [RequireComponent(typeof(Animator))]
+    [RGStateType(true)]
     public class PlayerAttack : MonoBehaviour
     {
         [SerializeField] private Transform _projectileRoot;

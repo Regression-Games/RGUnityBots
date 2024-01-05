@@ -10,8 +10,8 @@ namespace RegressionGames
         [SerializeField] private string email;
         [SerializeField] private string password;
 
-        private const string USER_SETTINGS_DIRECTORY = "Assets/UserSettings";
-        private const string USER_SETTINGS_PATH = USER_SETTINGS_DIRECTORY + "/RGUserSettings.asset";
+        private const string USER_SETTINGS_DIRECTORY = "UserSettings";
+        private const string USER_SETTINGS_PATH = "Assets/" + USER_SETTINGS_DIRECTORY + "/RGUserSettings.asset";
 
         private static RGUserSettings _userSettings = null;
         private static bool dirty = true;
@@ -39,9 +39,9 @@ namespace RegressionGames
                 _userSettings.email = "";
                 _userSettings.password = "";
 #if UNITY_EDITOR
-                if (!Directory.Exists(USER_SETTINGS_DIRECTORY))
+                if (!AssetDatabase.IsValidFolder("Assets/" + USER_SETTINGS_DIRECTORY))
                 {
-                    Directory.CreateDirectory(USER_SETTINGS_DIRECTORY);
+                    AssetDatabase.CreateFolder("Assets",USER_SETTINGS_DIRECTORY);
                 }
                 AssetDatabase.CreateAsset(_userSettings, USER_SETTINGS_PATH);
                 AssetDatabase.SaveAssets();

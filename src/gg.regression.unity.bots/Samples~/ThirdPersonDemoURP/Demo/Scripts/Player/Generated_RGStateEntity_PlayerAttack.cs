@@ -17,7 +17,7 @@ namespace RGThirdPersonDemo
     {
         public static readonly Type BehaviourType = typeof(PlayerAttack);
         public static readonly string EntityTypeName = "PlayerAttack";
-        public static readonly bool IsPlayer = false;
+        public static readonly bool IsPlayer = true;
         public override string GetEntityType()
         {
             return EntityTypeName;
