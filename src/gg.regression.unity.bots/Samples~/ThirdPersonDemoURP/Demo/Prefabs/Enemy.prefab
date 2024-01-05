@@ -2176,8 +2176,6 @@ GameObject:
   - component: {fileID: 6830097131033124378}
   - component: {fileID: 6830097131033124383}
   - component: {fileID: 6830097131033124382}
-  - component: {fileID: 6153279934475968107}
-  - component: {fileID: 4499955754935215128}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Enemy
@@ -2257,9 +2255,17 @@ CharacterController:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6830097131033124356}
   m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
   m_IsTrigger: 0
+  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
+  serializedVersion: 3
   m_Height: 1.8
   m_Radius: 0
   m_SlopeLimit: 45
@@ -2301,34 +2307,6 @@ MonoBehaviour:
   onBecameInvisible:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &6153279934475968107
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6830097131033124356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 12949602f31a04a319b1d6154c6a036e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  objectType: Enemy
-  isPlayer: 0
-  isRuntimeObject: 1
-  includeStateForAllBehaviours: 0
---- !u!114 &4499955754935215128
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6830097131033124356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eabbdbd8a82bf446da884eaf4c9b6332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &6830097131044803459
 GameObject:
   m_ObjectHideFlags: 0
@@ -2480,7 +2458,9 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 25
+  m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
@@ -4558,7 +4538,9 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
+  m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
