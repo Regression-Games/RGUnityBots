@@ -434,7 +434,12 @@ namespace RegressionGames.Editor.CodeGenerators
                 
                 if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                 {
-                    RecordError($"Error: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public.");
+                    if (hasRGStateAttribute)
+                    {
+                        RecordError(
+                            $"Error: Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public.");
+                    }
+
                     return null;
                 }
             }
@@ -448,19 +453,34 @@ namespace RegressionGames.Editor.CodeGenerators
                 
                 if (!methodDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                 {
-                    RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                    if (hasRGStateAttribute)
+                    {
+                        RecordError(
+                            $"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                    }
+
                     return null;
                 }
                 
                 if (methodDeclaration.ParameterList.Parameters.Count > 0)
                 {
-                    RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
+                    if (hasRGStateAttribute)
+                    {
+                        RecordError(
+                            $"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has parameters, which is not allowed.");
+                    }
+
                     return null;
                 }
                 
                 if (methodDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
                 {
-                    RecordError($"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
+                    if (hasRGStateAttribute)
+                    {
+                        RecordError(
+                            $"Error: Method '{methodDeclaration.Identifier.ValueText}' in class '{className}' has a void return type, which is not allowed.");
+                    }
+
                     return null;
                 }
             }
@@ -474,8 +494,12 @@ namespace RegressionGames.Editor.CodeGenerators
                 
                 if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                 {
-                    RecordError(
-                        $"Error: Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                    if (hasRGStateAttribute)
+                    {
+                        RecordError(
+                            $"Error: Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public.");
+                    }
+
                     return null;
                 }
             }
@@ -504,8 +528,11 @@ namespace RegressionGames.Editor.CodeGenerators
                         .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                     break;
                 default:
-                    RecordError(
-                        $"Error: [RGState] attribute in class '{className}' is applied to an invalid declaration: {member}.");
+                    if (hasRGStateAttribute)
+                    {
+                        RecordError(
+                            $"Error: [RGState] attribute in class '{className}' is applied to an invalid declaration: {member}.");
+                    }
                     return null;
             }
 
