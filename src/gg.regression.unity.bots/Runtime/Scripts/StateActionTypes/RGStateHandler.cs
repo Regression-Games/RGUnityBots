@@ -51,6 +51,11 @@ namespace RegressionGames.StateActionTypes
          */
         public static RGStateEntity_Core GetCoreStateForGameObject(GameObject gameObject, Button button = null)
         {
+            if (gameObject == null)
+            {
+                return null;
+            }
+            
             var rgState = EnsureRGStateHandlerOnGameObject(gameObject);
             
             RGStateEntity_Core state = rgState._myStateEntity;
