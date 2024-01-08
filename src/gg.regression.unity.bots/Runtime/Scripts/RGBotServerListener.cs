@@ -746,7 +746,7 @@ namespace RegressionGames
             EnqueueTaskForClient(clientId,() =>
             {
                 RGDebug.LogDebug($"QUEUE TASK for clientId: {clientId}, data: {actionRequest}");
-                HandleAction(clientId, actionRequest);
+                HandleActionForClient(clientId, actionRequest);
             });
         }
 
@@ -776,7 +776,7 @@ namespace RegressionGames
         }
         
         // call me on the main thread only
-        private void HandleAction(long clientId, RGActionRequest actionRequest)
+        private void HandleActionForClient(long clientId, RGActionRequest actionRequest)
         {
             var agents = AgentMap[clientId];
             /* TODO: Right now this broadcasts the action to all agents for a clientId.  We may
@@ -785,20 +785,25 @@ namespace RegressionGames
              */
             foreach (var agent in agents)
             {
-                //make sure this agent isn't being destroyed already
-                if (agent != null)
-                {
-                    var actionHandler = agent.GetComponent<RGActionHandler>();
-                    // make sure the gameObject has an ActionHandler ready to go
-                    if (actionHandler == null)
-                    {
-                        actionHandler = agent.AddComponent<RGActionHandler>();
-                        // call start right away so we don't have a race condition of the actions not loading in time
-                        actionHandler.Start();
-                    }
+                HandleActionOnGameObject(gameObject, actionRequest);
+            }
+        }
 
-                    actionHandler.Invoke(actionRequest);
+        public static void HandleActionOnGameObject(GameObject gameObject, RGActionRequest actionRequest)
+        {
+            //make sure this agent isn't being destroyed already
+            if (gameObject != null)
+            {
+                var actionHandler = gameObject.GetComponent<RGActionHandler>();
+                // make sure the gameObject has an ActionHandler ready to go
+                if (actionHandler == null)
+                {
+                    actionHandler = gameObject.AddComponent<RGActionHandler>();
+                    // call start right away so we don't have a race condition of the actions not loading in time
+                    actionHandler.Start();
                 }
+
+                actionHandler.Invoke(actionRequest);
             }
         }
         

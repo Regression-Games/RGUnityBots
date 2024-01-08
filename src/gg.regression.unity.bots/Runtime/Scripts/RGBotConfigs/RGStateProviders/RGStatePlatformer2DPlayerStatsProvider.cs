@@ -31,5 +31,10 @@ namespace RGBotConfigs.RGStateProviders
          * <summary> Get the current max non fatal fall height for the player.  From this height the player will take damage, but will not die from the fall. &lt;0 means they can fall any height without damage </summary>
          */
         public float NonFatalFallHeight();
+
+        /**
+         * <summary>Gravity unit to use for calculations</summary>
+         */
+        public float Gravity();
     }
 }

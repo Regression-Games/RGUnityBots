@@ -10,12 +10,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     [Serializable]
     public class RgStateEntityBasePlatformer2DPlayer : Dictionary<string,object>, IRGStateEntity
     {
+        public Vector3 position => (Vector3)this["position"];
         public float jumpHeight => (float)this["jumpHeight"];
         public float maxJumpHeight => (float)this["maxJumpHeight"];
         public float velocity => (float)this["velocity"];
         public float maxVelocity => (float)this["maxVelocity"];
         public float safeFallHeight => (float)this["safeFallHeight"];
         public float nonFatalFallHeight => (float)this["nonFatalFallHeight"];
+        public float gravity => (float)this["gravity"];
+        
         public string GetEntityType()
         {
             return EntityTypeName;
@@ -59,6 +62,10 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             "The current max non fatal fall height of the player.  From this height the player may take damage, but will not die from the fall. <0 means infinite. >=0 is treated as the actual value  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float nonFatalFallHeight = -1f;
         
+        [Tooltip(
+            "The gravity value (negative) to use in fall and jump calculations.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
+        public float gravity = -9.81f;
+        
         private Vector2? _truePosition = null;
 
         [NonSerialized]
@@ -74,7 +81,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             return new RgStateEntityBasePlatformer2DPlayer();
         }
 
-        protected override void PopulateStateEntity(RgStateEntityBasePlatformer2DPlayer stateEntity)
+        public override void PopulateStateEntity(RgStateEntityBasePlatformer2DPlayer stateEntity)
         {
             if (_statsProvider != null)
             {
@@ -84,6 +91,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 maxVelocity = _statsProvider.MaxVelocity();
                 safeFallHeight = _statsProvider.SafeFallHeight();
                 nonFatalFallHeight = _statsProvider.NonFatalFallHeight();
+                gravity = _statsProvider.Gravity();
             }
             _truePosition = GetTruePosition();
             stateEntity["position"] = (Vector3)(Vector2)_truePosition;
@@ -93,21 +101,18 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             stateEntity["maxVelocity"] = maxVelocity;
             stateEntity["safeFallHeight"] = safeFallHeight;
             stateEntity["nonFatalFallHeight"] = nonFatalFallHeight;
+            stateEntity["gravity"] = gravity;
         }
 
         // ReSharper disable once InconsistentNaming
         private Vector2 GetTruePosition()
         {
-            var thePosition = transform.position;
             var theCollider = gameObject.GetComponent<BoxCollider2D>();
-            var colliderOffset = theCollider.offset;
-            var colliderSize = theCollider.size;
-            
+            var theBounds = theCollider.bounds;
             // bottom of the feet centered horizontally
-            return new Vector2(
-                thePosition.x - colliderOffset.x - colliderSize.x/2,
-                thePosition.y - colliderOffset.y - colliderSize.y
-            );
+            var actualPosition = new Vector2(theBounds.center.x, theBounds.min.y);
+
+            return actualPosition;
         }
 
         private void OnDrawGizmos()

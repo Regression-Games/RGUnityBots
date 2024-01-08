@@ -7,19 +7,18 @@ using UnityEngine.Tilemaps;
 namespace RegressionGames.RGBotConfigs.RGStateProviders
 {
     [Serializable]
-    public class RGPlatformer2DPosition
+    public class RgPlatformer2DPosition
     {
         public Vector2 position;
         
-        // number of grid tiles tall this position is (computed up to the configured max on RGState_Platformer2DLevel)
-        public int tilesHeight;
-
-        // height in world units of this space
-        public float height;
+        // used by pathfinding to know if this has a wall adjoining it
+        public bool blockedRight;
+        // used by pathfinding to know if this has a wall adjoining it
+        public bool blockedLeft;
 
         public override string ToString()
         {
-            return $"Position: ({position.x}, {position.y}) , Height: {height} , TileHeight: {tilesHeight}";
+            return $"Position: ({position.x}, {position.y})";
         }
     }
 
@@ -27,8 +26,20 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     [Serializable]
     public class RgStateEntityBasePlatformer2DLevel : Dictionary<string,object>, IRGStateEntity
     {
+        /**
+         * <summary>The BoundsInt of the whole tileMap</summary>
+         */
+        public BoundsInt tileMapBounds => (BoundsInt)
+            this.GetValueOrDefault("tileMapBounds", new BoundsInt(0,0,0,0,0,0));
+
+        /**
+         * <summary>The BoundsInt of the current visible portion of the tileMap</summary>
+         */
+        public BoundsInt currentBounds => (BoundsInt)
+            this.GetValueOrDefault("currentBounds", new BoundsInt(0,0,0,0,0,0));
+        
         public Vector3 tileCellSize => (Vector3)this["tileCellSize"];
-        public RGPlatformer2DPosition[] platformPositions => (RGPlatformer2DPosition[])this["platformPositions"];
+        public RgPlatformer2DPosition[] platformPositions => (RgPlatformer2DPosition[])this["platformPositions"];
         
         public string GetEntityType()
         {
@@ -59,37 +70,61 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
-        private Vector3 _lastCellSize = Vector3.one;
-        private List<RGPlatformer2DPosition> _lastPositions = new();
+        internal Vector3 _lastCellSize = Vector3.one;
+        private List<RgPlatformer2DPosition> _lastPositions = new();
 
         protected override RgStateEntityBasePlatformer2DLevel CreateStateEntityInstance()
         {
             return new RgStateEntityBasePlatformer2DLevel();
         }
 
-        protected override void PopulateStateEntity(RgStateEntityBasePlatformer2DLevel stateEntity)
+        public override void PopulateStateEntity(RgStateEntityBasePlatformer2DLevel stateEntity)
         {
             var tileMap = gameObject.GetComponent<Tilemap>();
 
-            var mainCamera = Camera.main;
+            var currentCamera = Camera.main;
 
-            var cellBounds = tileMap.cellBounds;
+            var currentBounds = tileMap.cellBounds;
+            var cellBounds = currentBounds;
 
-            if (mainCamera != null)
+            if (currentCamera != null)
             {
-                var screenHeight = mainCamera.pixelHeight;
-                var screenWidth = mainCamera.pixelWidth;
+                var screenHeight = currentCamera.pixelHeight;
+                var screenWidth = currentCamera.pixelWidth;
 
-                var bottomLeft = mainCamera.ScreenToWorldPoint(Vector3.zero);
-                var topRight = mainCamera.ScreenToWorldPoint(new Vector3(screenWidth, screenHeight, 0));
+                var bottomLeft = currentCamera.ScreenToWorldPoint(Vector3.zero);
+                var topRight = currentCamera.ScreenToWorldPoint(new Vector3(screenWidth, screenHeight, 0));
 
                 var tileBottomLeft = tileMap.WorldToCell(bottomLeft);
-                tileBottomLeft.z = cellBounds.zMin;
+                tileBottomLeft.z = currentBounds.zMin;
                 var tileTopRight = tileMap.WorldToCell(topRight);
-                tileTopRight.z = cellBounds.zMax;
+                tileTopRight.z = currentBounds.zMax;
 
+                // some amount bigger than the max size of the screen size in either dimension
+                // this needs to be big enough to avoid getting 'stuck' without a path nearer to the goal
+                // but not so huge that we destroy the framerate considering irrelevant information
+                var fractionOfX = (tileTopRight.x - tileBottomLeft.x) / 2;
+                var fractionOfY = (tileTopRight.y - tileBottomLeft.y) / 2;
 
-                cellBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
+                var fraction = Math.Max(fractionOfX, fractionOfY);
+                tileBottomLeft.x -= fraction;
+                tileTopRight.x += fraction;
+
+                // limit y to the bottom of the tilemap
+                tileBottomLeft.y = Math.Max(tileBottomLeft.y-fraction, cellBounds.yMin);
+
+                tileTopRight.y += fraction;
+
+                currentBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
+
+                // limit this to the edges of the tilemap itself
+                var cellBoundsBottomLeft = new Vector3Int(Math.Max(currentBounds.xMin, cellBounds.xMin),
+                    Math.Max(currentBounds.yMin, cellBounds.yMin), cellBounds.zMin);
+
+                var cellBoundsTopRight = new Vector3Int( Math.Min(currentBounds.xMax, cellBounds.xMax),
+                    Math.Min(currentBounds.yMax, cellBounds.yMax), cellBounds.zMax);
+
+                cellBounds = new BoundsInt(cellBoundsBottomLeft, cellBoundsTopRight - cellBoundsBottomLeft);
             }
 
             //performance optimization to avoid computing these over and over in the loops
@@ -97,62 +132,53 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             {
                 cellBounds.xMin, cellBounds.xMax, cellBounds.yMin, cellBounds.yMax, cellBounds.zMin, cellBounds.zMax
             };
-            Vector3Int upInt = Vector3Int.up;
 
-            var safePositions = new List<RGPlatformer2DPosition>();
-            for (int x = minMax[0]; x < minMax[1]; x++)
+            var safePositions = new List<RgPlatformer2DPosition>();
+            // avoid re-constructing many Vector3s for perf and GC
+            var cellPlace = Vector3Int.zero;
+            for (int x = minMax[0]; x <= minMax[1]; x++)
             {
-                for (int y = minMax[2]; y < minMax[3]; y++)
+                for (int y = minMax[2]; y <= minMax[3]; y++)
                 {
                     for (int z = minMax[4]; z <= minMax[5]; z++)
                     {
+                        var cellY = y;
                         // checks for colliders to avoid decoration sprites being considered
-                        var cellPlace = new Vector3Int(x, y, z);
-                        var tile = tileMap.GetTile<Tile>(cellPlace);
-                        if (tile is not null && tile.colliderType != Tile.ColliderType.None)
+
+                        cellPlace.Set(x, y, z);
+
+                        var tileCollider = tileMap.GetColliderType(cellPlace);
+                        if (tileCollider != Tile.ColliderType.None)
                         {
-                            var heightAvailable = 0;
                             Vector3Int? finalSpotAbove = null;
-                            cellPlace += upInt;
-                            var tileAbove = tileMap.GetTile<Tile>(cellPlace);
+
+                            ++cellY;
+
+                            cellPlace.y = cellY;
+                            tileCollider = tileMap.GetColliderType(cellPlace);
                             //see if there is a tile above it or not
-                            if (tileAbove is null || tileAbove.colliderType == Tile.ColliderType.None)
+                            if (tileCollider == Tile.ColliderType.None)
                             {
                                 finalSpotAbove = cellPlace;
-                                heightAvailable = 1;
                             }
 
-                            // check up to the tileSpaceAbove
-                            for (int i = 2; i <= tileSpaceAbove; i++)
-                            {
-                                cellPlace += upInt;
-                                tileAbove = tileMap.GetTile<Tile>(cellPlace);
-                                //see if there is a tile above it or not
-                                if (tileAbove is null || tileAbove.colliderType == Tile.ColliderType.None)
-                                {
-                                    ++heightAvailable;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-
-                            if (finalSpotAbove is not null)
+                            if (finalSpotAbove != null)
                             {
                                 Vector3 place = tileMap.CellToWorld((Vector3Int)finalSpotAbove);
-                                var spot = new RGPlatformer2DPosition
+                                // avoid constructing or adding vectors if we can... performance reasons
+                                cellPlace.Set(x + 1, y + 1, z);
+                                var blockedRight = tileMap.GetColliderType(cellPlace) != Tile.ColliderType.None;
+                                // avoid constructing or adding vectors if we can... performance reasons
+                                cellPlace.x = x - 1;
+                                var blockedLeft = tileMap.GetColliderType(cellPlace) != Tile.ColliderType.None;
+                                var spot = new RgPlatformer2DPosition
                                 {
-                                    tilesHeight = heightAvailable,
-                                    height = heightAvailable * tileMap.cellSize.y,
-                                    position = place
+                                    position = place,
+                                    blockedLeft = blockedLeft,
+                                    blockedRight = blockedRight
                                 };
                                 safePositions.Add(spot);
                             }
-                        }
-                        else
-                        {
-                            //No tile at "place"
                         }
                     }
                 }
@@ -161,6 +187,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             _lastPositions = safePositions;
             _lastCellSize = tileMap.cellSize;
 
+            stateEntity["tileMapBounds"] = tileMap.cellBounds;
+            stateEntity["currentBounds"] = currentBounds;
             stateEntity["tileCellSize"] = _lastCellSize;
             stateEntity["platformPositions"] = _lastPositions.ToArray();
         }
@@ -169,19 +197,13 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         {
             if (renderDebugGizmos)
             {
-                DrawDebugPositions(_lastPositions, _lastCellSize);
+                foreach (var platformPosition in _lastPositions)
+                {
+                    Gizmos.DrawWireSphere(new Vector3(platformPosition.position.x + _lastCellSize.x / 2, platformPosition.position.y + _lastCellSize.y / 2, 0),
+                        _lastCellSize.x/2);
+                }
             }
         }
-
-        private void DrawDebugPositions(List<RGPlatformer2DPosition> platformPositions, Vector3 cellSize)
-        {
-            foreach (var platformPosition in platformPositions)
-            {
-                Gizmos.DrawWireSphere(new Vector3(platformPosition.position.x + cellSize.x / 2, platformPosition.position.y + cellSize.y / 2, 0),
-                    cellSize.x/2);
-            }
-        }
-
 
     }
     

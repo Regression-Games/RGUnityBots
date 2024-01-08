@@ -280,10 +280,10 @@ namespace RegressionGames.Editor.CodeGenerators
                     var root = syntaxTree.GetCompilationUnitRoot();
 
                     var semanticModel = compilation.GetSemanticModel(syntaxTree);
-                    
-                    var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
-                        .Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "MonoBehaviour");
 
+                    var monoBehaviourClassDeclarations = root
+                        .DescendantNodes().OfType<ClassDeclarationSyntax>();
+                    
                     foreach (var classDeclaration in monoBehaviourClassDeclarations)
                     {
                         var behaviourName
@@ -551,9 +551,8 @@ namespace RegressionGames.Editor.CodeGenerators
                     var root = syntaxTree.GetCompilationUnitRoot();
                     var semanticModel = compilation.GetSemanticModel(syntaxTree);
 
-                    var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
-                        .Where(cd => semanticModel.GetDeclaredSymbol(cd).BaseType.Name == "MonoBehaviour");
-
+                    var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+                    
                     // for each class declared in this .cs file
                     foreach (var classDeclaration in monoBehaviourClassDeclarations)
                     {
@@ -623,25 +622,28 @@ namespace RegressionGames.Editor.CodeGenerators
                         }
                         else if (rgStateTypeAttribute != null)
                         {
-                            // do logic for all the fields based on the type attribute settings
-                            var includeMembers = classDeclaration.Members
-                                .Where(m =>
-                                    // if it has [RGState explicitly], or is NOT obsolete
-                                    // iow.. obsolete members come through if annotated with [RGState]
-                                    membersWithRGStateAttribute.Contains(m)
-                                    || !m.AttributeLists.Any(a =>
-                                        a.Attributes.Any(attr =>
-                                            attr.Name.ToString() == "Obsolete"
-                                        )
-                                    )
-                                );
-
-                            foreach (var member in includeMembers)
+                            if (includeFlags != RGStateTypeAttribute.RGStateIncludeFlags.NONE)
                             {
-                                var hasRGState = membersWithRGStateAttribute.Contains(member);
-                                var nextEntry = GetStateNameFieldNameAndTypeForMember(hasRGState, semanticModel,
-                                    behaviourName, member, includeFlags);
-                                stateMetadata.Add(nextEntry);
+                                // do logic for all the fields based on the type attribute settings
+                                var includeMembers = classDeclaration.Members
+                                    .Where(m =>
+                                        // if it has [RGState explicitly], or is NOT obsolete
+                                        // iow.. obsolete members come through if annotated with [RGState]
+                                        membersWithRGStateAttribute.Contains(m)
+                                        || !m.AttributeLists.Any(a =>
+                                            a.Attributes.Any(attr =>
+                                                attr.Name.ToString() == "Obsolete"
+                                            )
+                                        )
+                                    );
+
+                                foreach (var member in includeMembers)
+                                {
+                                    var hasRGState = membersWithRGStateAttribute.Contains(member);
+                                    var nextEntry = GetStateNameFieldNameAndTypeForMember(hasRGState, semanticModel,
+                                        behaviourName, member, includeFlags);
+                                    stateMetadata.Add(nextEntry);
+                                }
                             }
                         }
                         else

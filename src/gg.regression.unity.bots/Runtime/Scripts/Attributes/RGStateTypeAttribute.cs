@@ -12,7 +12,7 @@ namespace RegressionGames
 
         public bool IsPlayer { get; }
         
-        public static readonly RGStateIncludeFlags DefaultFlags = RGStateIncludeFlags.Field | RGStateIncludeFlags.Property |
+        public const RGStateIncludeFlags DefaultFlags = RGStateIncludeFlags.Field | RGStateIncludeFlags.Property |
                                                                   RGStateIncludeFlags.Public | RGStateIncludeFlags.Serializable;
 
         /**
@@ -20,39 +20,17 @@ namespace RegressionGames
          */
         public RGStateIncludeFlags MyFlags { get; private set; } = DefaultFlags;
 
-        /**
-         * <summary>This constructor allows the attribute to be used without parameters, e.g., [RGStateType]
-         * Optionally you can also specify whether a game object with this behaviour represents a player avatar object.</summary>
-         */
-        public RGStateTypeAttribute(bool isPlayer = false)
-        {
-            IsPlayer = isPlayer;
-        }
-        
         // ReSharper disable once InvalidXmlDocComment
         /**
          * <summary>This constructor allows the attribute to specify RGStateIncludeFlags, e.g., [RGStateType(RGStateIncludeFlags.Public | RGStateIncludeFlags.Serializable | RGStateIncludeFlags.Field)]
          * Optionally you can also specify whether a game object with this behaviour represents a player avatar object.</summary>
          */
-        /*public RGStateTypeAttribute(RGStateIncludeFlags includeFlags, bool isPlayer = false)
+        public RGStateTypeAttribute(RGStateIncludeFlags includeFlags = DefaultFlags, bool isPlayer = false)
         {
             MyFlags = includeFlags;
             IsPlayer = isPlayer;
-        }*/
-
-        /**
-         * <summary>
-         * This constructor allows a type parameter to be specified, e.g., [RGStateType("SomeType")].
-         * This type is used in the state to override the classname being the type for this class.
-         * Optionally you can also specify whether a game object with this behaviour represents a player avatar object.
-         * </summary>
-         */
-        public RGStateTypeAttribute(string typeName, bool isPlayer = false)
-        {
-            TypeName = typeName;
-            IsPlayer = isPlayer;
         }
-        
+
         // ReSharper disable once InvalidXmlDocComment
         /**
          * <summary>
@@ -61,16 +39,17 @@ namespace RegressionGames
          * Optionally you can also specify whether a game object with this behaviour represents a player avatar object.
          * </summary>
          */
-        /*public RGStateTypeAttribute(string typeName, RGStateIncludeFlags includeFlags, bool isPlayer = false)
+        public RGStateTypeAttribute(string typeName, RGStateIncludeFlags includeFlags = DefaultFlags, bool isPlayer = false)
         {
             TypeName = typeName;
             MyFlags = includeFlags;
             IsPlayer = isPlayer;
-        }*/
+        }
         
         [Flags]
         public enum RGStateIncludeFlags
         {
+            NONE = 0,
             Public = 1,
             Serializable = 2,
             // Private = 4, TODO: Maybe support private properties later

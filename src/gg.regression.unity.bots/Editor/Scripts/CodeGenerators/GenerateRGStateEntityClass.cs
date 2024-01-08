@@ -42,8 +42,6 @@ namespace RegressionGames.Editor.CodeGenerators
                     usingList.Select(v => UsingDirective(ParseName(v))).ToArray()
                 );
 
-            var properties = attributeInfos.Select(a => GeneratePropertyDeclaration(a.Type, a.StateName)).ToArray();
-
             // Create a new class declaration with the desired name
             var classDeclaration = ClassDeclaration(className)
                 .AddModifiers(Token(SyntaxKind.PublicKeyword))
@@ -55,9 +53,15 @@ namespace RegressionGames.Editor.CodeGenerators
                     GenerateEntityTypeMethod(),
                     GenerateIsPlayerMethod(),
                     GeneratePopulateMethod(behaviourName, attributeInfos)
-                ).AddMembers(
+                );
+
+            var properties = attributeInfos.Where(a => a !=null).Select(a => GeneratePropertyDeclaration(a.Type, a.StateName)).Where(v => v != null).ToArray();
+            if (properties.Length > 0)
+            {
+                classDeclaration = classDeclaration.AddMembers(
                     properties
                 );
+            }
             
             
             var compilationUnitMembers = new List<MemberDeclarationSyntax>();
@@ -118,37 +122,43 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
             };
 
-            foreach (var attributeInfo in attributeInfos)
+            if (attributeInfos != null)
             {
-                body.Add(
-                    ExpressionStatement(
-                        AssignmentExpression(
-                            SyntaxKind.SimpleAssignmentExpression,
-                            ElementAccessExpression(
-                                    ThisExpression())
-                                .WithArgumentList(
-                                    BracketedArgumentList(
-                                        SingletonSeparatedList(
-                                            Argument(
-                                                LiteralExpression(
-                                                    SyntaxKind.StringLiteralExpression,
-                                                    Literal(attributeInfo.StateName)))))),
-                            attributeInfo.IsMethod
-                                ? InvocationExpression(
-                                    MemberAccessExpression(
-                                        SyntaxKind.SimpleMemberAccessExpression,
-                                        IdentifierName("behaviour"),
-                                        IdentifierName(attributeInfo.FieldName)
-                                    )
+                foreach (var attributeInfo in attributeInfos)
+                {
+                    if (attributeInfo != null)
+                    {
+                        body.Add(
+                            ExpressionStatement(
+                                AssignmentExpression(
+                                    SyntaxKind.SimpleAssignmentExpression,
+                                    ElementAccessExpression(
+                                            ThisExpression())
+                                        .WithArgumentList(
+                                            BracketedArgumentList(
+                                                SingletonSeparatedList(
+                                                    Argument(
+                                                        LiteralExpression(
+                                                            SyntaxKind.StringLiteralExpression,
+                                                            Literal(attributeInfo.StateName)))))),
+                                    attributeInfo.IsMethod
+                                        ? InvocationExpression(
+                                            MemberAccessExpression(
+                                                SyntaxKind.SimpleMemberAccessExpression,
+                                                IdentifierName("behaviour"),
+                                                IdentifierName(attributeInfo.FieldName)
+                                            )
+                                        )
+                                        : MemberAccessExpression(
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            IdentifierName("behaviour"),
+                                            IdentifierName(attributeInfo.FieldName)
+                                        )
                                 )
-                                : MemberAccessExpression(
-                                    SyntaxKind.SimpleMemberAccessExpression,
-                                    IdentifierName("behaviour"),
-                                    IdentifierName(attributeInfo.FieldName)
-                                )
-                        )
-                    )
-                );
+                            )
+                        );
+                    }
+                }
             }
 
             var method = MethodDeclaration(

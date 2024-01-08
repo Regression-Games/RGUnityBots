@@ -7,7 +7,7 @@ namespace RegressionGames.StateActionTypes
             return new RGStateEntity_Empty();
         }
 
-        protected override void PopulateStateEntity(RGStateEntity_Empty stateEntity)
+        public override void PopulateStateEntity(RGStateEntity_Empty stateEntity)
         {
             // no-op
         }

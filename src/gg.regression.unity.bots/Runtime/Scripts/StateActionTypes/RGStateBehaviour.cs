@@ -39,6 +39,6 @@ namespace RegressionGames.StateActionTypes
 
         protected abstract T CreateStateEntityInstance();
 
-        protected abstract void PopulateStateEntity(T stateEntity);
+        public abstract void PopulateStateEntity(T stateEntity);
     }
 }
