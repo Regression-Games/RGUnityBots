@@ -110,7 +110,7 @@ namespace RegressionGames
                 {
                     try
                     {
-                        action.Invoke(newState);
+                        EnqueueTaskForClient(id, () => action.Invoke(newState));
                     }
                     catch (Exception ex)
                     {
@@ -574,11 +574,6 @@ namespace RegressionGames
                     // custom state class
                     stateBehaviour.PopulateStateEntity(coreEntityState, out isPlayerBehaviour);
                 }
-                else if (statefulBehaviour is RGActionBehaviour actionBehaviour)
-                {
-                    // custom action class.. just make sure my type is on the gameobject
-                    coreEntityState[actionBehaviour.GetEntityType()] = new RGStateEntity_Empty();
-                }
                 else
                 {
                     // some other MonoBehaviour with [RGState] or [RGAction] attributes in it
@@ -785,7 +780,7 @@ namespace RegressionGames
              */
             foreach (var agent in agents)
             {
-                HandleActionOnGameObject(gameObject, actionRequest);
+                HandleActionOnGameObject(agent, actionRequest);
             }
         }
 

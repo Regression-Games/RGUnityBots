@@ -7,10 +7,10 @@ namespace RegressionGames
     public class RGStateTypeAttribute : Attribute
     {
         public static readonly Type Type = typeof(RGStateTypeAttribute);
-        
-        public string TypeName { get; }
 
-        public bool IsPlayer { get; }
+        public readonly string TypeName;
+
+        public readonly bool IsPlayer;
         
         public const RGStateIncludeFlags DefaultFlags = RGStateIncludeFlags.Field | RGStateIncludeFlags.Property |
                                                                   RGStateIncludeFlags.Public | RGStateIncludeFlags.Serializable;
@@ -18,7 +18,18 @@ namespace RegressionGames
         /**
          * <summary>Limit the properties of the call type to be included, Default is 'Field | Property | Public | Serializable</summary>
          */
-        public RGStateIncludeFlags MyFlags { get; private set; } = DefaultFlags;
+        public readonly RGStateIncludeFlags MyFlags;
+        
+        // ReSharper disable once InvalidXmlDocComment
+        /**
+         * <summary>This constructor allows the attribute to specify RGStateIncludeFlags, e.g., [RGStateType(RGStateIncludeFlags.Public | RGStateIncludeFlags.Serializable | RGStateIncludeFlags.Field)]
+         * Optionally you can also specify whether a game object with this behaviour represents a player avatar object.</summary>
+         */
+        public RGStateTypeAttribute(bool isPlayer = false)
+        {
+            MyFlags = DefaultFlags;
+            IsPlayer = isPlayer;
+        }
 
         // ReSharper disable once InvalidXmlDocComment
         /**
