@@ -191,15 +191,24 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return result.Count > 0 ? result[0] : null;
         }
+        
+        /**
+         * <summary>Returns all buttons from the game state.</summary>
+         * <returns>{List&lt;RGStateEntity_Button&gt;} All buttons in the state.</returns>
+         */
+        public List<RGStateEntity_Button> AllButtons()
+        {
+            return _tickInfo.gameState.Values.Where(v => v is RGStateEntity_Button).Cast<RGStateEntity_Button>().ToList();
+        }
 
         /**
          * <summary>Returns all entities from the game state.</summary>
+         * <param name="includeButtons">Should buttons be included in results (default false)</param>
          * <returns>{List&lt;RGStateEntity_Core&gt;} All entities in the state.</returns>
          */
-        public List<RGStateEntity_Core> AllEntities()
+        public List<RGStateEntity_Core> AllEntities(bool includeButtons = false)
         {
-            var gameState = _tickInfo.gameState;
-            return gameState.Values.ToList();
+            return _tickInfo.gameState.Values.Where(v => includeButtons || v is not RGStateEntity_Button).ToList();
         }
         
         /**
