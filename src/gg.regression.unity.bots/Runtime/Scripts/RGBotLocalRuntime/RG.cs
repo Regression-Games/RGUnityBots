@@ -48,7 +48,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
         /**
          * <summary>Retrieve the current game state.</summary>
-         * <returns>{RGStateEntity} The current game state.</returns>
+         * <returns>{Dictionary&lt;string, RGStateEntity_Core&gt;} The current game state.</returns>
          */
         public Dictionary<string, RGStateEntity_Core> GetState()
         {
@@ -59,6 +59,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>Returns the first player for my client id.
          * <br/><br/>
          * WARNING: When controlling multiple player bots from a single client the result of this method may change from one tick to the next.</summary>
+         * <returns>{RGStateEntity_Core} The Entity for the player owned by my clientId at index 0.</returns>
          */
         public RGStateEntity_Core GetMyPlayer()
         {
@@ -72,7 +73,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
         /**
          * <summary>Retrieve list of all player/bot entities controlled by this clientId.</summary>
-         * <returns>{List&lt;RGStateEntity&gt;} List of the entities from the state.</returns>
+         * <returns>{List&lt;RGStateEntity_Core&gt;} List of the entities for all players owned by my clientId from the state.</returns>
          */
         public List<RGStateEntity_Core> GetMyPlayers()
         {
@@ -82,7 +83,7 @@ namespace RegressionGames.RGBotLocalRuntime
         /**
          * <summary>Used to find a button Entity with the specific type name.</summary>
          * <param name="scenePath">{string | null} Search for button entities with a specific scenePath.</param>
-         * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
+         * <returns>{RGStateEntity_Button} The Entity for a button matching the search criteria, or null if none match.</returns>
          */
         public RGStateEntity_Button GetInteractableButtonByScenePath(string scenePath)
         {
@@ -98,7 +99,7 @@ namespace RegressionGames.RGBotLocalRuntime
         /**
          * <summary>Used to find a button Entity with the specific type name.</summary>
          * <param name="buttonName">{string | null} Search for button entities with a specific name.</param>
-         * <returns>{RGStateEntity} The Entity for a button matching the search criteria, or null if none match.</returns>
+         * <returns>{RGStateEntity_Button} The Entity for a button matching the search criteria, or null if none match.</returns>
          */
         public RGStateEntity_Button GetInteractableButtonByName(string buttonName)
         {
@@ -119,7 +120,7 @@ namespace RegressionGames.RGBotLocalRuntime
          *     position in index 0.
          * </param>
          * <param name="filterFunction">{Func&lt;RGStateEntity, bool&gt; | null} Function to filter entities.</param>
-         * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
+         * <returns>{RGStateEntity_Core} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
         public RGStateEntity_Core FindNearestEntityByName(string name = null, bool partial = true, Vector3? position = null,
@@ -153,19 +154,19 @@ namespace RegressionGames.RGBotLocalRuntime
 
         /**
          * <summary>Used to find the closest Entity to the given position.</summary>
-         * <param name="objectType">{string | null} Search for entities of a specific type</param>
+         * <param name="typeName">{string | null} Search for entities of a specific type name</param>
          * <param name="position">
          *     {Vector3 | null} Position to search from.  If not passed, attempts to use the client's bot
          *     position in index 0.
          * </param>
          * <param name="filterFunction">{Func&lt;RGStateEntity, bool&gt; | null} Function to filter entities.</param>
-         * <returns>{RGStateEntity} The closest Entity matching the search criteria, or null if none match.</returns>
+         * <returns>{RGStateEntity_Core} The closest Entity matching the search criteria, or null if none match.</returns>
          */
         [CanBeNull]
-        public RGStateEntity_Core FindNearestEntityWithType(string objectType = null, Vector3? position = null,
+        public RGStateEntity_Core FindNearestEntityWithTypeName(string typeName = null, Vector3? position = null,
             Func<RGStateEntity_Core, bool> filterFunction = null)
         {
-            var result = FindEntitiesWithType(objectType);
+            var result = FindEntitiesWithTypeName(typeName);
 
             if (filterFunction != null)
                 // filter entities
@@ -193,7 +194,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
         /**
          * <summary>Returns all entities from the game state.</summary>
-         * <returns>{List&lt;RGStateEntity&gt;} All entities in the state.</returns>
+         * <returns>{List&lt;RGStateEntity_Core&gt;} All entities in the state.</returns>
          */
         public List<RGStateEntity_Core> AllEntities()
         {
@@ -204,7 +205,7 @@ namespace RegressionGames.RGBotLocalRuntime
         /**
          * <summary>Used to find a list of entities from the game state.</summary>
          * <param name="scenePath">{string | null} Search for entities matching the given scenePath.  The path can be partial to match any gameObjects that start with the provided path. sorts those with the match closest to the front to the front</param>
-         * <returns>{List&lt;RGStateEntity&gt;} All entities with the given scenePath, or all entities in the state if name is null.</returns>
+         * <returns>{List&lt;RGStateEntity_Core&gt;} All entities with the given scenePath, or all entities in the state if name is null.</returns>
          */
         public List<RGStateEntity_Core> FindEntitiesByScenePath(string scenePath = null)
         {
@@ -237,7 +238,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>Used to find a list of entities from the game state.</summary>
          * <param name="name">{string | null} Search for entities of a specific name</param>
          * <param name="partial">{bool} Search for entities partially matching a specific name, sorts those with the match closest to the front to the front</param>
-         * <returns>{List&lt;RGStateEntity&gt;} All entities with the given name, or all entities in the state if name is null.</returns>
+         * <returns>{List&lt;RGStateEntity_Core&gt;} All entities with the given name, or all entities in the state if name is null.</returns>
          */
         public List<RGStateEntity_Core> FindEntitiesByName(string name = null, bool partial = true)
         {
@@ -272,18 +273,18 @@ namespace RegressionGames.RGBotLocalRuntime
             return result.ToList();
         }
 
-        [Obsolete("See RG.FindEntitiesWithType(string) ...")]
-        public List<RGStateEntity_Core> FindEntities(string objectType = null)
+        [Obsolete("See RG.FindEntitiesWithTypeName(string) ...")]
+        public List<RGStateEntity_Core> FindEntities(string typeName = null)
         {
-            return FindEntitiesWithType(objectType);
+            return FindEntitiesWithTypeName(typeName);
         }
 
         /**
          * <summary>Used to find a list of entities from the game state.</summary>
          * <param name="objectType">{string | null} Search for entities of a specific type</param>
-         * <returns>{List&lt;RGStateEntity&gt;} All entities with the given objectType, or all entities in the state if objectType is null.</returns>
+         * <returns>{List&lt;RGStateEntity_Core&gt;} All entities with the given objectType, or all entities in the state if objectType is null.</returns>
          */
-        public List<RGStateEntity_Core> FindEntitiesWithType(string objectType = null)
+        public List<RGStateEntity_Core> FindEntitiesWithTypeName(string typeName = null)
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
@@ -294,12 +295,32 @@ namespace RegressionGames.RGBotLocalRuntime
             // filter down to objectType Matches
             var result = gameState.Values.Where(value =>
             {
-                if (objectType != null && value.types != null)
+                if (typeName != null && value.types != null)
                 {
-                    return value.types.Contains(objectType);
+                    return value.types.Contains(typeName);
                 }
                 return true;
             });
+
+            return result.ToList();
+        }
+        
+        /**
+         * <summary>Used to find a list of entities from the game state that have the specified type.</summary>
+         * <returns>{List&lt;RGStateEntity_Core&gt;} All entities with the given objectType, or all entities in the state if objectType is null.</returns>
+         */
+        public List<RGStateEntity_Core> FindEntitiesWithType<T>() where T: IRGStateEntity
+        {
+            var gameState = _tickInfo.gameState;
+            if (gameState.Count == 0)
+            {
+                return new List<RGStateEntity_Core>();
+            }
+
+            // filter down to entities that have at least 1 entry of this type
+            var result = gameState.Values.Where(stateEntity =>
+                stateEntity.Values.Any(v => v is IRGStateEntity && typeof(T) == v.GetType())
+            );
 
             return result.ToList();
         }
@@ -307,7 +328,7 @@ namespace RegressionGames.RGBotLocalRuntime
         /**
          * <summary>Used to find a list of players from the game state.</summary>
          * <param name="clientId">{long | null} Search for players owned by a specific clientId</param>
-         * <returns>{List&lt;RGStateEntity&gt;} All players owned by the given clientId, or all players in the state if client is null.</returns>
+         * <returns>{List&lt;RGStateEntity_Core&gt;} All players owned by the given clientId, or all players in the state if client is null.</returns>
          */
         public List<RGStateEntity_Core> FindPlayers(long? clientId = null)
         {

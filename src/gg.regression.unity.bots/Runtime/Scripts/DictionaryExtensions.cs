@@ -1,11 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace RegressionGames
 {
 public static class DictionaryExtensions
     {
+        /**
+         * <summary>Retrieve the value of all fields of the specified type.</summary>
+         */
+        public static List<T> GetFields<T>(this IDictionary<string, object> dictionary)
+        {
+            return dictionary.Values.Where(v => v!= null && v.GetType() == typeof(T)).Cast<T>().ToList();
+        }
+        
         /**
          * <summary>Retrieve the value of the named field as the specified type or null if it does not exist.
          * Note, some types in Unity can only be constructed on the Main thread.
