@@ -101,8 +101,21 @@ namespace RegressionGames
             {
                 return null;
             }
-            BehaviourStateMappings.TryGetValue(behaviour.GetType(), out var result);
-            return result;
+            var nextType = behaviour.GetType();
+
+            //stop when we have no more parents to consider or we hit MonoBehaviour
+            while (nextType != null && nextType != typeof(MonoBehaviour))
+            {
+                if (BehaviourStateMappings.TryGetValue(nextType, out var result))
+                {
+                    return result;
+                }
+
+                // didn't have this exact type.. check if its parent types are in there
+                nextType = nextType.BaseType;
+            }
+
+            return null;
         }
         
         // ReSharper disable once InconsistentNaming
@@ -113,8 +126,22 @@ namespace RegressionGames
             {
                 return null;
             }
-            BehaviourActionMappings.TryGetValue(behaviour.GetType(), out var result);
-            return result;
+
+            var nextType = behaviour.GetType();
+
+            //stop when we have no more parents to consider or we hit MonoBehaviour
+            while (nextType != null && nextType != typeof(MonoBehaviour))
+            {
+                if (BehaviourActionMappings.TryGetValue(nextType, out var result))
+                {
+                    return result;
+                }
+
+                // didn't have this exact type.. check if its parent types are in there
+                nextType = nextType.BaseType;
+            }
+
+            return null;
         }
 
     }
