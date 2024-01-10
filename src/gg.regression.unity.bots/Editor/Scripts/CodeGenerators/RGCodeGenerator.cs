@@ -124,6 +124,11 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 RGDebug.LogInfo($"Extracting Regression Games context...");
                 
+                EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
+                    "Regenerating scripts", 0.1f);
+
+                GenerateRGScripts();
+                
                 // Find RGStateEntity scripts and generate state info from them
                 // Do NOT include the previous state infos.. so we don't have dupes
                 // This gives us a consistent view across both generated and hand written state class entities
