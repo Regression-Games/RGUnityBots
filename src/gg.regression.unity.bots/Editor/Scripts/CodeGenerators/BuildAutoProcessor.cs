@@ -29,7 +29,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     .FirstOrDefault(
                         ia => ia.EndsWith(".cs")
                                           && !ia.StartsWith("Packages/gg.regression.unity.bots")
-                                          && !ia.Contains("Generated_RG")
+                                          && !(ia.EndsWith("_Generated.cs") && (ia.Contains("RGActions_") || ia.Contains("RGStateEntity_")))
                                           && !ia.Contains("RegressionGames/Runtime/Bots")
                                           ) != null)
             {
