@@ -94,8 +94,7 @@ namespace RGThirdPersonDemo
             var monoBehaviour = gameObject.GetComponent<PlayerAttack>();
             if (monoBehaviour == null)
             {
-                //TODO (REG-1420): It would be nice if we could link them to the exact game object in the scene quickly.
-                RGDebug.LogError($"Error: Regression Games internal error... Somehow RGAction: SelectAndAttackEnemy got registered on a GameObject where MonoBehaviour: PlayerAttack does not exist.");
+                RGDebug.LogError($"Error: Regression Games internal error... Somehow RGAction: SelectAndAttackEnemy got registered on a GameObject where MonoBehaviour: PlayerAttack does not exist.", gameObject);
                 return;
             }
 

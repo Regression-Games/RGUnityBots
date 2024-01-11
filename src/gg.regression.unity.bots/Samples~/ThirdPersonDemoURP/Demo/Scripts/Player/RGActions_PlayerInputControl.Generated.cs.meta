@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:src/gg.regression.unity.bots/Samples~/ThirdPersonDemoURP/Demo/Scripts/Player/RGActions_PlayerInputControl_Generated.cs.meta
+guid: e8d980675d4424dca8358770c9f54d8d
+========
 guid: 433acaa6a1bd044a4abd7beae3792e24
+>>>>>>>> main:src/gg.regression.unity.bots/Samples~/ThirdPersonDemoURP/Demo/Scripts/Player/RGActions_PlayerInputControl.Generated.cs.meta
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
