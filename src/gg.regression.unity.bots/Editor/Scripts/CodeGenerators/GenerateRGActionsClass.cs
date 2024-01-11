@@ -13,7 +13,7 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace RegressionGames.Editor.CodeGenerators
 {
 #if UNITY_EDITOR
-    // Dev Note: Not perfect, but mega time saver for generating this gook: https://roslynquoter.azurewebsites.net/
+    // Dev Note: Not perfect, but mega time saver for generating this gobbledygook: https://roslynquoter.azurewebsites.net/
     public static class GenerateRGActionsClass
     {
         public static Task Generate(
