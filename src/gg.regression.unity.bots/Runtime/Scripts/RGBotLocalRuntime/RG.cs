@@ -32,7 +32,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>{string} The current game scene name.</summary>
          */
         public string SceneName => _tickInfo.sceneName;
-        
+
         /**
          * <summary>{long} The current tick since the start of the first bot that was run this session.</summary>
          */
@@ -271,7 +271,8 @@ namespace RegressionGames.RGBotLocalRuntime
             /**
              * <returns>{double} The square distance between two positions</returns>
              */
-            public static double DistanceSq (Vector3 position1, Vector3 position2) {
+            public static double DistanceSq(Vector3 position1, Vector3 position2)
+            {
                 return Math.Pow(position2.x - position1.x, 2) + Math.Pow(position2.y - position1.y, 2) + Math.Pow(position2.z - position1.z, 2);
             }
         }

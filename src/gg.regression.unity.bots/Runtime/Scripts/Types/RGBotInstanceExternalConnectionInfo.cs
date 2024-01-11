@@ -8,7 +8,7 @@ namespace RegressionGames.Types
         public long botInstanceId;
         public string address;
         public int port;
-        
+
         public override string ToString()
         {
             return $"{botInstanceId} - {address}:{port}";

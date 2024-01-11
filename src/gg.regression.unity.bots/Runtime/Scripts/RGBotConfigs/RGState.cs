@@ -20,7 +20,7 @@ namespace RegressionGames.RGBotConfigs
         // ReSharper disable once InconsistentNaming
         // we require each state to have an 'RGEntity' component
         protected RGEntity rgEntity => GetComponent<RGEntity>();
-        
+
         /**
          * <summary>A function that is overriden to provide the custom state of this specific GameObject.
          * For example, you may want to retrieve and set the health of a player on the returned
@@ -48,7 +48,7 @@ namespace RegressionGames.RGBotConfigs
 
             return state;
         }
-        
+
         protected virtual Type GetTypeForStateEntity()
         {
             return typeof(RGStateEntity<RGState>);
@@ -69,15 +69,15 @@ namespace RegressionGames.RGBotConfigs
             }
             return (IRGStateEntity)Activator.CreateInstance(type);
         }
-        
-        
+
+
         // Used to fill in the core state for any RGEntity that does NOT have an
         // RGState implementation on its game object
         public static IRGStateEntity GenerateCoreStateForRGEntity(RGEntity rgEntity)
         {
             IRGStateEntity state;
 
-            
+
             // if button.. include whether it is interactable
             var button = rgEntity.Button;
             if (button != null)
@@ -91,7 +91,7 @@ namespace RegressionGames.RGBotConfigs
                 state = new RGStateEntity<RGState>();
             }
             var theTransform = rgEntity.transform;
-            
+
             state["id"] = theTransform.GetInstanceID();
             // default to the gameObject name without uniqueness numbers
             var otName = rgEntity.objectType.Trim();
@@ -119,7 +119,7 @@ namespace RegressionGames.RGBotConfigs
             }
             return state;
         }
-        
+
         private static void PopulateEverythingStateForEntity(IRGStateEntity state, RGEntity entity)
         {
             var obsoleteAttributeType = typeof(ObsoleteAttribute);

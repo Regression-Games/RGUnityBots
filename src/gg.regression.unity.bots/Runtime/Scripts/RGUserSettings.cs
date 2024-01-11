@@ -49,14 +49,14 @@ namespace RegressionGames
 
             return _userSettings;
         }
-        
+
 #if UNITY_EDITOR
         public static SerializedObject GetSerializedUserSettings()
         {
             return new SerializedObject(GetOrCreateUserSettings());
         }
 #endif
-        
+
         public static void OptionsUpdated()
         {
             //mark dirty
@@ -75,7 +75,7 @@ namespace RegressionGames
                 // if not called on main thread this will exception
             }
         }
-        
+
         public string GetEmail()
         {
             return email;
@@ -85,7 +85,7 @@ namespace RegressionGames
         {
             email = newEmail;
         }
-        
+
         public string GetPassword()
         {
             return password;

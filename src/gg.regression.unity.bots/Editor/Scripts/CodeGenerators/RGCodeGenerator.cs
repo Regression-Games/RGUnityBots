@@ -41,8 +41,9 @@ namespace RegressionGames.Editor.CodeGenerators
         // Used to exclude sample projects' directories from generation
         // so that we don't duplicate .cs files that are already included in the sample projects.
         // But while still scanning them so that we can include their States/Actions in the json.
-        private static readonly HashSet<string> ExcludeDirectories = new() {
-           "ThirdPersonDemoURP"
+        private static readonly HashSet<string> ExcludeDirectories = new()
+        {
+            "ThirdPersonDemoURP"
         };
 
         private static bool _hasExtractProblem = false;
@@ -581,33 +582,33 @@ namespace RegressionGames.Editor.CodeGenerators
                             switch (member)
                             {
                                 case FieldDeclarationSyntax fieldDeclaration:
-                                {
-                                    fieldName = fieldDeclaration.Declaration.Variables.First().Identifier.ValueText;
-                                    type = RemoveGlobalPrefix(semanticModel
-                                        .GetTypeInfo(fieldDeclaration.Declaration.Type)
-                                        .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                                    if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                                     {
-                                        RecordWarning($"Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
-                                        continue;
-                                    }
+                                        fieldName = fieldDeclaration.Declaration.Variables.First().Identifier.ValueText;
+                                        type = RemoveGlobalPrefix(semanticModel
+                                            .GetTypeInfo(fieldDeclaration.Declaration.Type)
+                                            .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                        if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                        {
+                                            RecordWarning($"Field '{fieldDeclaration.Declaration.Variables.First().Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state fields.");
+                                            continue;
+                                        }
 
-                                    break;
-                                }
+                                        break;
+                                    }
                                 case PropertyDeclarationSyntax propertyDeclaration:
-                                {
-                                    fieldName = propertyDeclaration.Identifier.ValueText;
-                                    type = RemoveGlobalPrefix(semanticModel
-                                        .GetTypeInfo(propertyDeclaration.Type)
-                                        .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                                    if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                                     {
-                                        RecordWarning($"Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
-                                        continue;
-                                    }
+                                        fieldName = propertyDeclaration.Identifier.ValueText;
+                                        type = RemoveGlobalPrefix(semanticModel
+                                            .GetTypeInfo(propertyDeclaration.Type)
+                                            .Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                                        if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
+                                        {
+                                            RecordWarning($"Property '{propertyDeclaration.Identifier.ValueText}' in class '{className}' is not public and will not be included in the available state properties.");
+                                            continue;
+                                        }
 
-                                    break;
-                                }
+                                        break;
+                                    }
                                 default:
                                     // no methods
                                     continue;
@@ -719,7 +720,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     var allEntities = Object.FindObjectsOfType<RGEntity>().Where(v => !string.IsNullOrEmpty(v.objectType));
                     foreach (var entity in allEntities)
                     {
-                        var (stateClassNames,actionClassNames) = entity.LookupStatesAndActions();
+                        var (stateClassNames, actionClassNames) = entity.LookupStatesAndActions();
 
                         var entityStateActionJson = DeriveStateAndActionJsonForEntity(entity.objectType, stateClassNames, actionClassNames, statesInfos, actionInfos);
 
@@ -775,7 +776,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     RGEntity prefabComponent = prefab.GetComponent<RGEntity>();
                     if (prefabComponent != null && !string.IsNullOrEmpty(prefabComponent.objectType))
                     {
-                        var (stateClassNames,actionClassNames) = prefabComponent.LookupStatesAndActions();
+                        var (stateClassNames, actionClassNames) = prefabComponent.LookupStatesAndActions();
 
                         var prefabStateActionJson = DeriveStateAndActionJsonForEntity(prefabComponent.objectType, stateClassNames, actionClassNames, statesInfos, actionInfos);
                         CheckForMisMatchedStateOrActionsOnEntity(prefabComponent, prefabStateActionJson, result);
@@ -789,20 +790,20 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
             }
 
-            (List<RGEntityStatesJson>, List<RGEntityActionsJson>) listResult = new  ()
+            (List<RGEntityStatesJson>, List<RGEntityActionsJson>) listResult = new()
             {
                 Item1 = result.Item1.ToList(),
                 Item2 = result.Item2.ToList()
             };
 
-            listResult.Item1.Sort((a,b) => a.ObjectType.CompareTo(b.ObjectType));
-            listResult.Item2.Sort((a,b) => a.ObjectType.CompareTo(b.ObjectType));
+            listResult.Item1.Sort((a, b) => a.ObjectType.CompareTo(b.ObjectType));
+            listResult.Item2.Sort((a, b) => a.ObjectType.CompareTo(b.ObjectType));
             return listResult;
         }
 
-        private static void CheckForMisMatchedStateOrActionsOnEntity(RGEntity entity, (RGEntityStatesJson, RGEntityActionsJson) entityStateActionJson, (HashSet<RGEntityStatesJson>, HashSet<RGEntityActionsJson>)result)
+        private static void CheckForMisMatchedStateOrActionsOnEntity(RGEntity entity, (RGEntityStatesJson, RGEntityActionsJson) entityStateActionJson, (HashSet<RGEntityStatesJson>, HashSet<RGEntityActionsJson>) result)
         {
-            if(result.Item1.TryGetValue(entityStateActionJson.Item1, out var existingItem1))
+            if (result.Item1.TryGetValue(entityStateActionJson.Item1, out var existingItem1))
             {
                 // this is a bit expensive, but necessary to ensure all RGStateEntities of the same ObjectType expose the same state/Actions
                 if (existingItem1.States.Count != entityStateActionJson.Item1.States.Count ||
@@ -821,7 +822,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     RecordWarning($"RGEntity of ObjectType: {entity.objectType} has conflicting state definitions on different game objects or prefabs;  state lists: [{string.Join(", ", entityStateActionJson.Item1.States)}] <-> [{string.Join(", ", existingItem1.States)}]");
                 }
             }
-            if(result.Item2.TryGetValue(entityStateActionJson.Item2, out var existingItem2))
+            if (result.Item2.TryGetValue(entityStateActionJson.Item2, out var existingItem2))
             {
                 // this is a bit expensive, but necessary to ensure all RGStateEntities of the same ObjectType expose the same state/Actions
                 if (existingItem2.Actions.Count != entityStateActionJson.Item2.Actions.Count ||

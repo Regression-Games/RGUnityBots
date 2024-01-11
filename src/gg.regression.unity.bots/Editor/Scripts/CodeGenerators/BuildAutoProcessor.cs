@@ -9,18 +9,18 @@ namespace RegressionGames.Editor.CodeGenerators
     class BuildAutoPreProcessor : IPreprocessBuildWithReport
     {
         public int callbackOrder { get { return 0; } }
-        
+
         public void OnPreprocessBuild(BuildReport report)
         {
             BuildAssetPostProcessor.TriggerGeneration();
         }
     }
-   
+
     class BuildAssetPostProcessor : UnityEditor.AssetPostprocessor
     {
 
         static bool _enabled = true;
-        
+
         public static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets,
             string[] movedFromAssetPaths, bool didDomainReload)
         {
@@ -39,7 +39,7 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 _enabled = false;
                 RGDebug.LogInfo("Generating Regression Games scripts automatically due to asset change or build.");
-                RGCodeGenerator.GenerateRGScripts(); 
+                RGCodeGenerator.GenerateRGScripts();
             }
         }
     }

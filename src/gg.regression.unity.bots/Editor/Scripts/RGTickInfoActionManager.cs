@@ -73,23 +73,23 @@ namespace RegressionGames.Editor
 
                 bool isRuntimeObject = entity.isRuntimeObject;
                 populateReplayDataForEntity(entityId, isPlayer, isRuntimeObject, entity.type);
-                
+
                 // handle strong typing on position / rotation accessors
                 if (entity.ContainsKey("position") && entity["position"] is JObject)
                 {
-                        var jObj = (JObject)entity["position"];
-                        entity["position"] = new Vector3(jObj["x"].Value<float>(),
-                            jObj["y"].Value<float>(),
-                            jObj["z"].Value<float>());
+                    var jObj = (JObject)entity["position"];
+                    entity["position"] = new Vector3(jObj["x"].Value<float>(),
+                        jObj["y"].Value<float>(),
+                        jObj["z"].Value<float>());
                 }
-                
+
                 if (entity.ContainsKey("rotation") && entity["rotation"] is JObject)
                 {
-                        var jObj = (JObject)entity["rotation"];
-                        entity["rotation"] = new Quaternion(jObj["x"].Value<float>(),
-                            jObj["y"].Value<float>(),
-                            jObj["z"].Value<float>(),
-                            jObj["w"].Value<float>());
+                    var jObj = (JObject)entity["rotation"];
+                    entity["rotation"] = new Quaternion(jObj["x"].Value<float>(),
+                        jObj["y"].Value<float>(),
+                        jObj["z"].Value<float>(),
+                        jObj["w"].Value<float>());
                 }
             }
         }
@@ -100,7 +100,7 @@ namespace RegressionGames.Editor
             tickInfo.actions = data.actions == null ? Array.Empty<RGActionRequest>() : data.actions;
             tickInfo.validationResults = data.validationResults == null ? Array.Empty<RGValidationResult>() : data.validationResults;
             // show path and actions by default only for bot players with actions
-            populateReplayDataForEntity(entityId, true,false, null, true,
+            populateReplayDataForEntity(entityId, true, false, null, true,
                 true, true);
         }
 

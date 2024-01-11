@@ -24,7 +24,7 @@ namespace RegressionGames.StateActionTypes
             this.sceneName = sceneName;
             this.gameState = gameState;
         }
-        
+
         [JsonConstructor]
         // this is strongly typed so that the json convertor uses it to populate the map correctly
         public RGTickInfoData(long tick, string sceneName, Dictionary<string, RGStateEntity<RGState>> gameState)
@@ -32,7 +32,7 @@ namespace RegressionGames.StateActionTypes
             this.tick = tick;
             this.sceneName = sceneName;
             this.gameState = new();
-            foreach (var (key,value) in gameState)
+            foreach (var (key, value) in gameState)
             {
                 this.gameState[key] = value;
             }

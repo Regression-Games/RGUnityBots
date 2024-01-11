@@ -19,7 +19,7 @@ namespace RegressionGames.Types
 
         public override bool Equals(object obj)
         {
-            if ( obj != null && obj.GetType() == typeof(RGBotInstance))
+            if (obj != null && obj.GetType() == typeof(RGBotInstance))
             {
                 return ((RGBotInstance)obj).id == id;
             }
@@ -28,8 +28,8 @@ namespace RegressionGames.Types
 
         public override int GetHashCode()
         {
-            return (int) id;
+            return (int)id;
         }
     }
-    
+
 }

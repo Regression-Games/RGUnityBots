@@ -6,7 +6,7 @@ namespace RegressionGames
 {
     public static class RGDebug
     {
-        public enum RGLogLevel {Verbose, Debug, Info, Warning, Error}
+        public enum RGLogLevel { Verbose, Debug, Info, Warning, Error }
 
         /**
          * Logging of 'Verbose' logs. Only visible if Log Level is set to 'Verbose'
@@ -25,7 +25,7 @@ namespace RegressionGames
         {
             LogToConsole(message, RGLogLevel.Debug);
         }
-        
+
         /**
          * Logging of 'Info' logs. Only visible if Log Level is set to 'Info' or
          * lower in the Regression Project Settings.
@@ -35,7 +35,7 @@ namespace RegressionGames
         {
             LogToConsole(message, RGLogLevel.Info);
         }
-        
+
         /**
          * Logging of 'Info' logs. Only visible if Log Level is set to 'Info' or
          * lower in the Regression Project Settings
@@ -80,7 +80,7 @@ namespace RegressionGames
             }
             Debug.LogException(exception);
         }
-        
+
         public static bool IsVerboseEnabled => CheckLogLevel(RGLogLevel.Verbose);
         public static bool IsDebugEnabled => CheckLogLevel(RGLogLevel.Debug);
         public static bool IsInfoEnabled => CheckLogLevel(RGLogLevel.Info);
@@ -99,7 +99,7 @@ namespace RegressionGames
             {
                 return;
             }
-            
+
             switch (logLevel)
             {
                 case RGLogLevel.Verbose:
@@ -118,7 +118,7 @@ namespace RegressionGames
                     break;
             }
         }
-        
+
         // Determine if the log message is within the log levels in the settings
         private static bool CheckLogLevel(RGLogLevel logLevel)
         {

@@ -20,11 +20,11 @@ namespace RegressionGames.Types
 
         public virtual async void Connect()
         {
-            
+
         }
 
         public abstract bool SendTeardown();
-        
+
         public abstract bool SendTickInfo(RGTickInfoData tickInfo);
 
         public abstract bool SendHandshakeResponse(RGServerHandshake handshake);
@@ -34,7 +34,7 @@ namespace RegressionGames.Types
         public virtual void Close()
         {
         }
-        
+
     }
 
     public enum RGClientConnectionType

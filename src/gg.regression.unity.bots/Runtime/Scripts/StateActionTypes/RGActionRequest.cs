@@ -13,7 +13,7 @@ namespace RegressionGames.StateActionTypes
 
         public RGActionRequest()
         {
-            
+
         }
 
         public RGActionRequest(string action, Dictionary<string, object> input)
@@ -25,7 +25,7 @@ namespace RegressionGames.StateActionTypes
         public override string ToString()
         {
             var inputString = Input?.Select(kv => kv.Key + ": " + kv.Value).ToArray();
-            return $"{{action: {action}, input: {{{string.Join(", ", inputString ?? new string [] {})} }} }}";
+            return $"{{action: {action}, input: {{{string.Join(", ", inputString ?? new string[] { })} }} }}";
         }
     }
 }

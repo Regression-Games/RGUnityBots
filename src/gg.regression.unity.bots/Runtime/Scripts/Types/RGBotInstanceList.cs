@@ -6,7 +6,7 @@ namespace RegressionGames.Types
     public class RGBotInstanceList
     {
         public RGBotInstance[] botInstances;
-        
+
         public override string ToString()
         {
             return string.Join<RGBotInstance>(",", botInstances);

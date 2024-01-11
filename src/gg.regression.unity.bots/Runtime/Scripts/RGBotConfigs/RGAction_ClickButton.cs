@@ -13,7 +13,7 @@ namespace RegressionGames.RGBotConfigs
     public class RGAction_ClickButton : RGAction
     {
         private ConcurrentQueue<Button> _buttonsToClick = new();
-        
+
         public void Update()
         {
             // one button click per frame update

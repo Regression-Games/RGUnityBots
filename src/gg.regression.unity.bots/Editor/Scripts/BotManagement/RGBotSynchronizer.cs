@@ -19,9 +19,9 @@ namespace RegressionGames.Editor.BotManagement
     public class RGBotSynchronizer
     {
 #if UNITY_EDITOR
-        private static readonly RGBotSynchronizer _this = new ();
+        private static readonly RGBotSynchronizer _this = new();
 
-        private static RGServiceManager _rgServiceManager = new (); // editor, not game/scene so don't look for one, make one
+        private static RGServiceManager _rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
 
         // This must match RGBotRuntimeManagement.cs
         private const string BOTS_PATH = "Assets/RegressionGames/Runtime/Bots";
@@ -165,7 +165,7 @@ namespace RegressionGames.Editor.BotManagement
                 var countUpdated = 0;
                 foreach (var (botId, (localBot, md5, localLastUpdated)) in localBotZips)
                 {
-                    if(remoteBots.FirstOrDefault(b => b.id == botId) is not {} remoteBot)
+                    if (remoteBots.FirstOrDefault(b => b.id == botId) is not { } remoteBot)
                     {
                         RGDebug.LogError($"Unable to find remote bot with id {botId} to update.");
                         continue;
@@ -481,7 +481,7 @@ namespace RegressionGames.Editor.BotManagement
         private void CreateBotAssetFile(string folderName, string botName, long botId, string botChecksum)
         {
             var botRecordAssetPath = $"{folderName}/BotRecord.asset";
-            if ( AssetDatabase.GetMainAssetTypeAtPath( botRecordAssetPath ) == null)
+            if (AssetDatabase.GetMainAssetTypeAtPath(botRecordAssetPath) == null)
             {
                 RGDebug.LogDebug($"Writing {botRecordAssetPath}");
                 RGBot botRecord = new RGBot()
@@ -495,7 +495,7 @@ namespace RegressionGames.Editor.BotManagement
                 RGBotAsset botRecordAsset = ScriptableObject.CreateInstance<RGBotAsset>();
                 botRecordAsset.Bot = botRecord;
                 botRecordAsset.ChecksumAtLastSync = botChecksum;
-                AssetDatabase.CreateAsset(botRecordAsset, botRecordAssetPath );
+                AssetDatabase.CreateAsset(botRecordAsset, botRecordAssetPath);
                 AssetDatabase.SaveAssets();
             }
         }
@@ -503,7 +503,8 @@ namespace RegressionGames.Editor.BotManagement
 
     // Extension code borrowed from StackOverflow to allow creating a zip of directory
     // while filtering out certain contents
-    public static class ZipHelper {
+    public static class ZipHelper
+    {
         public static void CreateFromDirectory(string sourceDirectoryName,
             string destinationArchiveFileName,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,
@@ -511,10 +512,12 @@ namespace RegressionGames.Editor.BotManagement
             Predicate<string> exclusionFilter = null
         )
         {
-            if (string.IsNullOrEmpty(sourceDirectoryName)) {
+            if (string.IsNullOrEmpty(sourceDirectoryName))
+            {
                 throw new ArgumentNullException("sourceDirectoryName");
             }
-            if (string.IsNullOrEmpty(destinationArchiveFileName)) {
+            if (string.IsNullOrEmpty(destinationArchiveFileName))
+            {
                 throw new ArgumentNullException("destinationArchiveFileName");
             }
             var filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);

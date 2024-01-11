@@ -10,7 +10,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     public class RGPlatformer2DPosition
     {
         public Vector2 position;
-        
+
         // number of grid tiles tall this position is (computed up to the configured max on RGState_Platformer2DLevel)
         public int tilesHeight;
 
@@ -30,17 +30,17 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public Vector3 tileCellSize => (Vector3)this.GetValueOrDefault("tileCellSize", Vector3.one);
         public RGPlatformer2DPosition[] platformPositions => (RGPlatformer2DPosition[])this.GetValueOrDefault("platformPositions", Array.Empty<RGPlatformer2DPosition>());
     }
-    
+
     /**
      * Provides state information about the tile grid in the current visible screen space.
      */
     [Serializable]
-    public class RGState_Platformer2DLevel: RGState
+    public class RGState_Platformer2DLevel : RGState
     {
         [Tooltip("How many tile spaces above a platform to consider when determining the height available on top of a platform.  This should match the height of the largest character model navigating the scene in tile units.")]
         [Min(1)]
         public int tileSpaceAbove = 2;
-        
+
         [NonSerialized]
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
@@ -63,7 +63,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             var mainCamera = Camera.main;
 
             var cellBounds = tileMap.cellBounds;
-            
+
             if (mainCamera != null)
             {
                 var screenHeight = mainCamera.pixelHeight;
@@ -76,8 +76,8 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 tileBottomLeft.z = cellBounds.zMin;
                 var tileTopRight = tileMap.WorldToCell(topRight);
                 tileTopRight.z = cellBounds.zMax;
-                
-                
+
+
                 cellBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
             }
 
@@ -110,7 +110,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                                 finalSpotAbove = cellPlace;
                                 heightAvailable = 1;
                             }
-                            
+
                             // check up to the tileSpaceAbove
                             for (int i = 2; i <= tileSpaceAbove; i++)
                             {
@@ -146,7 +146,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                     }
                 }
             }
-            
+
             _lastPositions = safePositions;
             _lastCellSize = tileMap.cellSize;
 
@@ -162,7 +162,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             foreach (var platformPosition in platformPositions)
             {
                 Gizmos.DrawWireSphere(new Vector3(platformPosition.position.x + cellSize.x / 2, platformPosition.position.y + cellSize.y / 2, 0),
-                    cellSize.x/2);
+                    cellSize.x / 2);
             }
         }
 
@@ -171,7 +171,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             return typeof(RGStateEntity_Platformer2DLevel);
         }
     }
-    
 
-    
+
+
 }

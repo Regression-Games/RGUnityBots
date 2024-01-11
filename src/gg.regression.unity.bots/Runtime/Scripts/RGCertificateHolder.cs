@@ -11,7 +11,7 @@ namespace RegressionGames
         private X509Certificate2 RG_CERT;
 
         [CanBeNull] private static RGCertOnlyPublicKey _this = null;
-        
+
         public static RGCertOnlyPublicKey GetInstance()
         {
             if (_this == null)

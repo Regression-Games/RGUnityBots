@@ -19,7 +19,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
         public static void Generate(List<RGActionAttributeInfo> actionInfos)
         {
-            Dictionary<string, Task> fileWriteTasks = new(); 
+            Dictionary<string, Task> fileWriteTasks = new();
             // Iterate through BotActions
             foreach (var botAction in actionInfos)
             {
@@ -41,7 +41,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     }
 
                     var projectNamespace = CodeGeneratorUtils.GetNamespaceForProject();
-                    
+
                     botAction.GeneratedClassName =
                         $"{projectNamespace}.RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}";
 
@@ -60,7 +60,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                             $"RGAction_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                                         .AddModifiers(
                                             SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                            // Only add one of the "class" keywords here
+                                        // Only add one of the "class" keywords here
                                         )
                                         .AddBaseListTypes(
                                             SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGAction"))
@@ -78,7 +78,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                             $"RGActionRequest_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                                         .AddModifiers(
                                             SyntaxFactory.Token(SyntaxKind.PublicKeyword)
-                                            // Only add one of the "class" keywords here
+                                        // Only add one of the "class" keywords here
                                         )
                                         .AddBaseListTypes(
                                             SyntaxFactory.SimpleBaseType(SyntaxFactory.ParseTypeName("RGActionRequest"))
@@ -99,7 +99,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     string fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
 
                     Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                    var task= File.WriteAllTextAsync(filePath, fileContents);
+                    var task = File.WriteAllTextAsync(filePath, fileContents);
                     fileWriteTasks[filePath] = task;
                 }
             }
@@ -167,7 +167,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return getActionNameMethod;
         }
-        
+
         private static ArgumentSyntax GenerateActionDelegate(RGActionAttributeInfo action)
         {
             // Generate the GetComponent<Object>().MethodName piece for both cases (0 and non-0 parameters)
@@ -236,14 +236,14 @@ namespace RegressionGames.Editor.CodeGenerators
             foreach (var parameter in action.Parameters)
             {
                 string paramName = parameter.Name;
-                
+
                 methodInvocationArguments.Add(paramName);
                 parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"{parameter.Type} {paramName} = default;"));
                 parameterParsingStatements.Add(SyntaxFactory.IfStatement(IfCondition(parameter), IfBody(parameter), ElseBody(parameter)));
             }
 
-            string methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ? 
-                                                     ", " + string.Join(", ", methodInvocationArguments) : 
+            string methodInvocationArgumentsString = methodInvocationArguments.Count > 0 ?
+                                                     ", " + string.Join(", ", methodInvocationArguments) :
                                                      string.Empty;
 
             parameterParsingStatements.Add(SyntaxFactory.ParseStatement($"Invoke(\"{action.ActionName}\"{methodInvocationArgumentsString});"));
@@ -264,16 +264,16 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             return SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression, 
-                    SyntaxFactory.IdentifierName("input"), 
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.IdentifierName("input"),
                     SyntaxFactory.IdentifierName("TryGetValue")
                     )).WithArgumentList(
                 SyntaxFactory.ArgumentList(
-                    SyntaxFactory.SeparatedList(new List<ArgumentSyntax> 
-                    { 
+                    SyntaxFactory.SeparatedList(new List<ArgumentSyntax>
+                    {
                         SyntaxFactory.Argument(
                             SyntaxFactory.LiteralExpression(
-                                SyntaxKind.StringLiteralExpression, 
+                                SyntaxKind.StringLiteralExpression,
                                 SyntaxFactory.Literal(param.Name)
                             )
                         ),
@@ -309,7 +309,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             var paramType = param.Type;
             var paramName = param.Name;
-            
+
             string tryParseStatement;
             if (paramType.ToLower() == "string" || paramType.ToLower() == "system.string")
             {
@@ -368,15 +368,15 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 return default(ElseClauseSyntax);
             }
-            
+
             // Validation check for key existence if param must be non-null
-            return SyntaxFactory.ElseClause(SyntaxFactory.Block(new StatementSyntax[] 
+            return SyntaxFactory.ElseClause(SyntaxFactory.Block(new StatementSyntax[]
                     {
                         SyntaxFactory.ExpressionStatement(
                             SyntaxFactory.InvocationExpression(
                                     SyntaxFactory.MemberAccessExpression(
-                                        SyntaxKind.SimpleMemberAccessExpression, 
-                                        SyntaxFactory.IdentifierName("RGDebug"), 
+                                        SyntaxKind.SimpleMemberAccessExpression,
+                                        SyntaxFactory.IdentifierName("RGDebug"),
                                         SyntaxFactory.IdentifierName("LogError")
                                 )
                             ).WithArgumentList(
@@ -384,14 +384,14 @@ namespace RegressionGames.Editor.CodeGenerators
                                     SyntaxFactory.SingletonSeparatedList(
                                         SyntaxFactory.Argument(
                                             SyntaxFactory.LiteralExpression(
-                                                SyntaxKind.StringLiteralExpression, 
+                                                SyntaxKind.StringLiteralExpression,
                                                 SyntaxFactory.Literal($"No parameter '{param.Name}' found")
                                                 )
                                             )
                                         )
                                     )
                                 )
-                            ), SyntaxFactory.ReturnStatement() 
+                            ), SyntaxFactory.ReturnStatement()
                     }
                 ));
         }
@@ -400,7 +400,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             var methodParameters = new List<ParameterSyntax>();
             var parameterParsingStatements = new List<StatementSyntax>();
-            
+
             foreach (var rgParameterInfo in action.Parameters)
             {
                 methodParameters.Add(SyntaxFactory.Parameter(SyntaxFactory.Identifier(rgParameterInfo.Name))
@@ -416,7 +416,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
 
             inputString += "\r\n};";
-            
+
             parameterParsingStatements.Add(
                 SyntaxFactory.ParseStatement(inputString)
             );

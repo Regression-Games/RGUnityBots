@@ -16,7 +16,7 @@ namespace RegressionGames.BehaviorTree
 
         /// <summary>The name of the node.</summary>
         public readonly string Name;
-        
+
         /// <summary>The path from the root to this node.</summary>
         public string Path => Parent is null ? Name : $"{Parent.Path}/{Name}";
 
@@ -41,7 +41,7 @@ namespace RegressionGames.BehaviorTree
             RGDebug.LogVerbose($"Behavior Tree Node '{Path}' completed with result '{result}'");
             return result;
         }
-        
+
         /// <summary>
         /// Executes the node, given the provided <see cref="RG"/> object as context.
         /// </summary>
@@ -74,7 +74,7 @@ namespace RegressionGames.BehaviorTree
         protected void ClearData(string key)
             => GetRoot().Data.Remove(key);
 
-        internal void SetParent(BehaviorTreeNode parent) 
+        internal void SetParent(BehaviorTreeNode parent)
             => Parent = parent;
 
         protected RootNode GetRoot()
@@ -95,11 +95,11 @@ namespace RegressionGames.BehaviorTree
             return root;
         }
     }
-    
+
     /// <summary>
     /// Base class for any <see cref="BehaviorTreeNode"/> with child nodes.
     /// </summary>
-    public abstract class ContainerNode: BehaviorTreeNode
+    public abstract class ContainerNode : BehaviorTreeNode
     {
         private List<BehaviorTreeNode> _children = new();
 

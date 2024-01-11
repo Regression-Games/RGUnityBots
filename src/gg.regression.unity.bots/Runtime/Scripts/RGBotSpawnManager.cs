@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace RegressionGames
 {
-    
+
     /**
      * <summary>
      * The RGBotSpawnManager is the central configuration point for how bots spawn into your Unity Scene.
@@ -24,23 +24,23 @@ namespace RegressionGames
          * Internal reference for this object, for use in singleton management.
          */
         private static RGBotSpawnManager _this = null;
-        
+
         /**
          * A mapping from client IDs (i.e. the IDs used to identify bots connected from the Regression Games
          * backend) to the GameObjects in the scene for that bot.
          */
-        public readonly ConcurrentDictionary<long, GameObject> BotMap = new ();
-        
+        public readonly ConcurrentDictionary<long, GameObject> BotMap = new();
+
         /**
          * A set of information about bots to spawn, which are eventually popped off the queue.
          */
-        private readonly ConcurrentQueue<BotInformation> _botsToSpawn = new ();
-        
+        private readonly ConcurrentQueue<BotInformation> _botsToSpawn = new();
+
         /**
          * Tracks whether an initial set of bots have been spawned.
          */
         private bool _initialSpawnDone = false;
-        
+
         /**
          * <summary>
          * Defines how a bot if spawned into a scene. More specifically, <paramref name="botInformation"></paramref>
@@ -81,7 +81,7 @@ namespace RegressionGames
         protected virtual void Awake()
         {
             // only allow 1 of these to be alive
-            if( _this != null && this.gameObject != _this.gameObject)
+            if (_this != null && this.gameObject != _this.gameObject)
             {
                 Destroy(this.gameObject);
                 return;
@@ -155,7 +155,7 @@ namespace RegressionGames
                 return;
             }
             BotInformation botInformation;
-            while(_botsToSpawn.TryDequeue(out botInformation))
+            while (_botsToSpawn.TryDequeue(out botInformation))
             {
                 RGDebug.LogInfo($"Spawning bot: {botInformation.botName} for client Id: {botInformation.clientId}");
                 // make sure this client is still connected
@@ -184,7 +184,7 @@ namespace RegressionGames
                 if (bot == null) return;
                 BotMap[botInformation.clientId] = bot;
             }
-            
+
             RGBotServerListener rgBotServerListener = RGBotServerListener.GetInstance();
             if (rgBotServerListener != null)
             {
@@ -288,10 +288,10 @@ namespace RegressionGames
                 {
                     RGDebug.LogDebug($"[SeatBot] Sending socket handshake response characterConfig: {botToSpawn.characterConfig} - to client id: {botToSpawn.clientId}");
                     //send the client a handshake response so they can start processing
-                    rgBotServerListener.GetClientConnection(botToSpawn.clientId).SendHandshakeResponse( new RGServerHandshake( rgBotServerListener.UnitySideToken, botToSpawn.characterConfig, null));
+                    rgBotServerListener.GetClientConnection(botToSpawn.clientId).SendHandshakeResponse(new RGServerHandshake(rgBotServerListener.UnitySideToken, botToSpawn.characterConfig, null));
                 }
-                
-                
+
+
                 // If the bot already exists, let the client know about the new ID. Otherwise, queue to respawn
                 GameObject existingBot = GetBot(botToSpawn.clientId);
                 if (existingBot != null)
