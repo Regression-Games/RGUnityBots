@@ -1,5 +1,18 @@
 # Dev Tooling
 
+## Getting Started
+
+### Prerequisites
+
+* Unity Hub - You'll want to install whatever version of Unity is necessary to open the src/RGUnityBots project.
+* JetBrains Rider - Not required, but highly recommended for development.
+
+### Setup
+
+The first time you clone this repo you must run `script/bootstrap` to prepare your environment.
+This installs our precommit hook so that you don't commit code that fails our formatting checks.
+You can, and should, re-run this at any time to ensure your environment is up to date.
+
 ## Repo Layout
 
 This repository contains the following folders:
