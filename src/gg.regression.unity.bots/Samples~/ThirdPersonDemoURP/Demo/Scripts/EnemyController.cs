@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 
 namespace RGThirdPersonDemo
 {
+    [RGStateType("Enemy")]
     public class EnemyController : MonoBehaviour, ISelectable
     {
         [SerializeField] private EnemyEntity enemyInfo;
