@@ -382,11 +382,12 @@ namespace RegressionGames.DataCollection
             }
             finally
             {
-                //Cleanup(clientId);
+                // DEV NOTE : Comment out these cleanup calls to test extracts / replays locally
+                Cleanup(clientId);
                 // If there are no more bots, cleanup everything else
                 if (_clientIdToState.IsEmpty)
                 {
-                    //Cleanup();
+                    Cleanup();
                 }
             }
 
