@@ -195,7 +195,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 .ToDictionary(v => v.Key, v => v.ToList());
             foreach (var (behaviourDetails,actionInfoList) in actionInfosByBehaviour)
             {
-                var newFileName = $"{behaviourDetails.BehaviourFileDirectory}{Path.DirectorySeparatorChar}RGActions_{behaviourDetails.BehaviourName}_Generated.cs";
+                var newFileName = $"{behaviourDetails.BehaviourFileDirectory}{Path.DirectorySeparatorChar}RGActions_{behaviourDetails.BehaviourName}.Generated.cs";
                 fileWriteTasks.Add((newFileName,
                         GenerateRGActionsClass.Generate(
                             newFileName,
@@ -411,12 +411,12 @@ namespace RegressionGames.Editor.CodeGenerators
         
         private static void CleanupPreviousRGActionsClasses()
         {
-            CleanupPreviousFilesWithPathAndPattern(Application.dataPath, "*RGActions_*_Generated.cs");
+            CleanupPreviousFilesWithPathAndPattern(Application.dataPath, "*RGActions_*.Generated.cs");
         }
 
         private static void CleanupPreviousRGStateEntityClasses()
         {
-            CleanupPreviousFilesWithPathAndPattern(Application.dataPath, "*RGStateEntity_*_Generated.cs");
+            CleanupPreviousFilesWithPathAndPattern(Application.dataPath, "*RGStateEntity_*.Generated.cs");
         }
 
         public class StateBehaviourPropertyInfo
@@ -688,7 +688,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             var fileDirectory =
                                 csFilePath.Substring(0, csFilePath.LastIndexOf(Path.DirectorySeparatorChar));
                             var newFileName =
-                                $"{fileDirectory}{Path.DirectorySeparatorChar}RGStateEntity_{behaviourName}_Generated.cs";
+                                $"{fileDirectory}{Path.DirectorySeparatorChar}RGStateEntity_{behaviourName}.Generated.cs";
                             fileWriteTasks.Add((newFileName,
                                 GenerateRGStateEntityClass.Generate(newFileName, entityTypeName, isPlayer,
                                     behaviourName, nameSpace, stateMetadata)));

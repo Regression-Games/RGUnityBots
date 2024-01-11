@@ -71,7 +71,7 @@ namespace RegressionGames.Editor
 
                 tickInfo.state = entity;
                 
-                // support 'old' type field to be able to load extracts created pre Jan 2024
+                // support old 'type' field to be able to load extracts created pre Jan 2024
                 PopulateReplayDataForEntity(entityId, entity.name, (string)entity.GetValueOrDefault("type",null), entity.types, entity.isPlayer);
 
                     // handle strong typing on position / rotation accessors
