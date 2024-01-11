@@ -561,17 +561,12 @@ namespace RegressionGames.Editor.CodeGenerators
                                     InvocationExpression(
                                             MemberAccessExpression(
                                                 SyntaxKind.SimpleMemberAccessExpression,
-                                                IdentifierName(
-                                                    Identifier(
-                                                        TriviaList(
-                                                            Comment(
-                                                                "//TODO (REG-1420): It would be nice if we could link them to the exact game object in the scene quickly.")),
-                                                        "RGDebug",
-                                                        TriviaList())),
+                                                IdentifierName("RGDebug"),
                                                 IdentifierName("LogError")))
                                         .WithArgumentList(
                                             ArgumentList(
-                                                SingletonSeparatedList(
+                                                SeparatedList<ArgumentSyntax>(
+                                                    new SyntaxNodeOrToken[]{
                                                     Argument(
                                                         InterpolatedStringExpression(
                                                                 Token(SyntaxKind.InterpolatedStringStartToken))
@@ -590,7 +585,11 @@ namespace RegressionGames.Editor.CodeGenerators
                                                                                     TriviaList()))
                                                                     })
                                                             )
-                                                    )
+                                                    ),
+                                                    Token(SyntaxKind.CommaToken),
+                                                    Argument(
+                                                        IdentifierName("gameObject"))
+                                                    }
                                                 )
                                             )
                                         )
