@@ -567,6 +567,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                             ArgumentList(
                                                 SeparatedList<ArgumentSyntax>(
                                                     new SyntaxNodeOrToken[]{
+
                                                     Argument(
                                                         InterpolatedStringExpression(
                                                                 Token(SyntaxKind.InterpolatedStringStartToken))

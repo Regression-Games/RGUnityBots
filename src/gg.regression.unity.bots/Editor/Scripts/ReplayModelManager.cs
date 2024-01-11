@@ -79,7 +79,7 @@ namespace RegressionGames.Editor
         }
         
         [CanBeNull]
-        public GameObject GetModelPrefabForType(List<string> types, string charType)
+        public GameObject GetModelPrefabForType(string[] types, string charType)
         {
             NamedModel nm;
 
