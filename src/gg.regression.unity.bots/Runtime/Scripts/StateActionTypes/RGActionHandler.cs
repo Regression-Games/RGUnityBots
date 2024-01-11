@@ -41,9 +41,9 @@ namespace RegressionGames.StateActionTypes
                 {
                     if (_actionRequestGameObjectDelegateMap.ContainsKey(actionName))
                     {
-                        //TODO (REG-1420): It would be nice to give them a context log to the correct gameObject
                         RGDebug.LogError(
-                            $"Error: GameObject with MonoBehaviour: {monoBehaviour.GetType().Name} has multiple MonoBehaviours that define an action with name: {actionName}");
+                            $"Error: GameObject with MonoBehaviour: {monoBehaviour.GetType().Name} has multiple MonoBehaviours that define an action with name: {actionName}", gameObject);
+
                     }
 
                     _actionRequestGameObjectDelegateMap[actionName] = dDelegate;
@@ -57,8 +57,7 @@ namespace RegressionGames.StateActionTypes
                 var actionName = customAction.GetActionName();
                 if (_actionRequestDelegateMap.ContainsKey(actionName))
                 {
-                    //TODO (REG-1420): It would be nice to give them a context log to the correct gameObject
-                    RGDebug.LogError($"Error: GameObject with MonoBehaviour: {customAction.GetType().Name} has multiple MonoBehaviours that define an action with name: {actionName}");
+                    RGDebug.LogError($"Error: GameObject with MonoBehaviour: {customAction.GetType().Name} has multiple MonoBehaviours that define an action with name: {actionName}", gameObject);
                 }
 
                 _actionRequestDelegateMap[actionName] = new Action<RGActionRequest>(customAction.Invoke);
@@ -92,11 +91,10 @@ namespace RegressionGames.StateActionTypes
             }
             else
             {
-                //TODO (REG-1420): It would be nice to give them a context log to the correct gameObject
                 if (!isOverlayComponent)
                 {
                     RGDebug.LogWarning(
-                        $"Warning: Attempted to perform action name: {request.Action} on a GameObject with no MonoBehaviour that provides that action.");
+                        $"Warning: Attempted to perform action name: {request.Action} on a GameObject with no MonoBehaviour that provides that action.", gameObject);
                 }
             }
         }

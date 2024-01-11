@@ -105,6 +105,7 @@ namespace RegressionGames.Editor
         }
 
         private RGEntityReplayData PopulateReplayDataForEntity(long entityId, string name, string type, string[] types, bool isPlayer = false, 
+
             bool? showPath = null,
             bool? showActions = null, bool? highlight = null)
         {

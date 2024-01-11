@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:src/gg.regression.unity.bots/Samples~/ThirdPersonDemoURP/Demo/Scripts/Player/RGStateEntity_PlayerAttack_Generated.cs.meta
+guid: db2935422c7544b349d0696ebc7dc2ea
+========
 guid: 4d475418e753942edae058fe9a0af4b8
+>>>>>>>> main:src/gg.regression.unity.bots/Samples~/ThirdPersonDemoURP/Demo/Scripts/Player/RGStateEntity_PlayerAttack.Generated.cs.meta
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
