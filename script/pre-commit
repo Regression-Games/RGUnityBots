@@ -1,0 +1,11 @@
+#!/bin/bash
+#/ Usage: scripts/precommit
+#/ Runs pre-commit checks and auto-reformatting
+source_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+repo_root="$(dirname "$source_dir")"
+source "$repo_root/script/_utils.sh"
+
+set -euo pipefail
+
+# The fmt script will handle checking for the solution files.
+script/fmt
