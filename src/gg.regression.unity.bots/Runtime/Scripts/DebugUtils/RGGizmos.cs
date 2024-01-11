@@ -1,12 +1,12 @@
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames.RGBotConfigs;
 using UnityEngine;
+using Object = UnityEngine.Object;
+// ReSharper disable InvalidXmlDocComment
 
 namespace RegressionGames.DebugUtils
 {
-
+    
     /**
      * A set of debug utilities for drawing gizmos and text on top of entities in your scene.
      */
@@ -14,15 +14,20 @@ namespace RegressionGames.DebugUtils
     public class RGGizmos
     {
 
+        private readonly object _lock = new object();
+        
         const string BillboardTextAsset = "AgentBillboardText";
-
-        private readonly ConcurrentDictionary<string, (int, Vector3, Color)> _linesFromEntityToPosition = new();
-        private readonly ConcurrentDictionary<string, (int, int, Color)> _linesFromEntityToEntity = new();
-        private readonly ConcurrentDictionary<string, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
-        private readonly ConcurrentDictionary<string, (Vector3, Color, float, bool)> _spheresAtPosition = new();
-        private readonly ConcurrentDictionary<string, (int, Color, float, bool)> _spheresAtEntity = new();
-        private readonly ConcurrentDictionary<int, (string, Vector3)> _billboardsToDraw = new();
-        private readonly ConcurrentDictionary<int, GameObject> _drawnBillboards = new();
+        
+        private readonly Dictionary<object, (int, Vector3, Color)> _linesFromEntityToPosition = new();
+        private readonly Dictionary<object, (int, int, Color)> _linesFromEntityToEntity = new();
+        private readonly Dictionary<object, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
+        private readonly Dictionary<object, (Vector3, Color, float, bool)> _spheresAtPosition = new();
+        private readonly Dictionary<object, (int, Color, float, bool)> _spheresAtEntity = new();
+        private readonly Dictionary<object, (Vector3, Color, Vector3, bool)> _cubesAtPosition = new();
+        private readonly Dictionary<object, (int, Color, Vector3, bool)> _cubesAtEntity = new();
+        private readonly Dictionary<int, (string, float)> _billboardsToDraw = new();
+        private readonly Dictionary<int, GameObject> _drawnBillboards = new();
+        private readonly Dictionary<object, List<object>> _lineGroups = new();
 
         // Billboard text objects
         private readonly GameObject _billboardAsset;
@@ -47,8 +52,14 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(int startEntityId, Vector3 endPosition, Color color, string name) =>
-            _linesFromEntityToPosition[name] = (startEntityId, endPosition, color);
+        public void CreateLine(int startEntityId, Vector3 endPosition, Color color, object name)
+        {
+            lock (_lock)
+            {
+                _linesFromEntityToPosition[name] = (startEntityId, endPosition, color);
+            }
+        }
+
 
         /**
          * <summary>
@@ -68,50 +79,77 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyLine"/>
          * <seealso cref="DestroyAllLines"/>
          */
-        public void CreateLine(Vector3 startPosition, int endEntityId, Color color, string name) =>
-            CreateLine(endEntityId, startPosition, color, name);
+        public void CreateLine(Vector3 startPosition, int endEntityId, Color color, object name)
+        {
+            lock (_lock)
+            {
+                CreateLine(endEntityId, startPosition, color, name);
+            }
+        }
 
         /**
-         * <summary>
-         * Creates a line between two entities with the given ids. The line
-         * will persist until removed using `DestroyLine(name)` or `DestroyAllLines()`.
-         * </summary>
-         * <param name="startEntityId">The id of the entity this line should start at.</param>
-         * <param name="endEntityId">The id of the entity this line should end at.</param>
-         * <param name="color">The color of the line.</param>
-         * <param name="name">The name of the line. Used to remove the line later.</param>
-         * <example>
-         * <code>
-         * // Create a line from an entity with id 5 to and entity with id 10 with the color green
-         * RGGizmos.CreateLine(5, 10, Color.green, "myLine");
-         * </code>
-         * </example>
-         * <seealso cref="DestroyLine"/>
-         * <seealso cref="DestroyAllLines"/>
-         */
-        public void CreateLine(int startEntityId, int endEntityId, Color color, string name) =>
-            _linesFromEntityToEntity[name] = (startEntityId, endEntityId, color);
+             * <summary>
+             * Creates a line between two entities with the given ids. The line
+             * will persist until removed using `DestroyLine(name)` or `DestroyAllLines()`.
+             * </summary>
+             * <param name="startEntityId">The id of the entity this line should start at.</param>
+             * <param name="endEntityId">The id of the entity this line should end at.</param>
+             * <param name="color">The color of the line.</param>
+             * <param name="name">The name of the line. Used to remove the line later.</param>
+             * <example>
+             * <code>
+             * // Create a line from an entity with id 5 to and entity with id 10 with the color green
+             * RGGizmos.CreateLine(5, 10, Color.green, "myLine");
+             * </code>
+             * </example>
+             * <seealso cref="DestroyLine"/>
+             * <seealso cref="DestroyAllLines"/>
+             */
+        public void CreateLine(int startEntityId, int endEntityId, Color color, object name)
+        {
+            lock (_lock)
+            {
+                _linesFromEntityToEntity[name] = (startEntityId, endEntityId, color);
+            }
+        }
 
         /**
-         * <summary>
-         * Creates a line between two positions. The line will persist until removed using
-         * `DestroyLine(name)` or `DestroyAllLines()`.
-         * </summary>
-         * <param name="startPosition">The start position of the line.</param>
-         * <param name="endPosition">The end position of the line</param>
-         * <param name="color">The color of the line.</param>
-         * <param name="name">The name of the line. Used to remove the line later.</param>
-         * <example>
-         * <code>
-         * // Create a line from the position (0, 0, 0) to position (1, 1, 1) with the color red.
-         * RGGizmos.CreateLine(new Vector3(0, 0, 0), new Vector3(1, 1, 1), Color.red, "myLine");
-         * </code>
-         * </example>
-         * <seealso cref="DestroyLine"/>
-         * <seealso cref="DestroyAllLines"/>
-         */
-        public void CreateLine(Vector3 startPosition, Vector3 endPosition, Color color, string name) =>
-            _linesFromPositionToPosition[name] = (startPosition, endPosition, color);
+             * <summary>
+             * Creates a line between two positions. The line will persist until removed using
+             * `DestroyLine(name)` or `DestroyAllLines()` or `DestroyAllLines(groupName)`.
+             * </summary>
+             * <param name="startPosition">The start position of the line.</param>
+             * <param name="endPosition">The end position of the line</param>
+             * <param name="color">The color of the line.</param>
+             * <param name="name">The name of the line. Used to remove the line later.</param>
+             * <param name="groupId">The groupId with which to associate this line (optional). Used to remove the line later.</param>
+             * <example>
+             * <code>
+             * // Create a line from the position (0, 0, 0) to position (1, 1, 1) with the color red.
+             * RGGizmos.CreateLine(new Vector3(0, 0, 0), new Vector3(1, 1, 1), Color.red, "myLine");
+             * </code>
+             * </example>
+             * <seealso cref="DestroyLine"/>
+             * <seealso cref="DestroyAllLines"/>
+             */
+        public void CreateLine(Vector3 startPosition, Vector3 endPosition, Color color, object name,
+            object groupId = null)
+        {
+            lock (_lock)
+            {
+                _linesFromPositionToPosition[name] = (startPosition, endPosition, color);
+                if (groupId != null)
+                {
+                    if (!_lineGroups.TryGetValue(groupId, out var group))
+                    {
+                        group = new List<object>();
+                        _lineGroups[groupId] = group;
+                    }
+
+                    group.Add(name);
+                }
+            }
+        }
 
         /**
          * <summary>
@@ -126,9 +164,12 @@ namespace RegressionGames.DebugUtils
          */
         public void DestroyLine(string name)
         {
-            _linesFromEntityToPosition.Remove(name, out _);
-            _linesFromEntityToEntity.Remove(name, out _);
-            _linesFromPositionToPosition.Remove(name, out _);
+            lock (_lock)
+            {
+                _linesFromEntityToPosition.Remove(name, out _);
+                _linesFromEntityToEntity.Remove(name, out _);
+                _linesFromPositionToPosition.Remove(name, out _);
+            }
         }
 
         /**
@@ -144,9 +185,43 @@ namespace RegressionGames.DebugUtils
          */
         public void DestroyAllLines()
         {
-            _linesFromEntityToPosition.Clear();
-            _linesFromEntityToEntity.Clear();
-            _linesFromPositionToPosition.Clear();
+            lock (_lock)
+            {
+                _linesFromEntityToPosition.Clear();
+                _linesFromEntityToEntity.Clear();
+                _linesFromPositionToPosition.Clear();
+            }
+        }
+        
+        /**
+         * <summary>
+         * Destroys all lines created.
+         * </summary>
+         * <param name="groupId">The group of lines to destroy</param>
+         * <example>
+         * <code>
+         * RGGizmos.DestroyAllLines();
+         * </code>
+         * </example>
+         * <seealso cref="DestroyLine"/>
+         */
+        public void DestroyAllLines(object groupId)
+        {
+            lock (_lock)
+            {
+                if (!_lineGroups.TryGetValue(groupId, out var lineNames))
+                {
+                    return;
+                }
+
+                foreach (var lineName in lineNames)
+                {
+                    _linesFromEntityToPosition.Remove(lineName, out _);
+                    _linesFromEntityToEntity.Remove(lineName, out _);
+                    _linesFromPositionToPosition.Remove(lineName, out _);
+                }
+                lineNames.Clear();
+            }
         }
 
         /**
@@ -168,46 +243,59 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroySphere"/>
          * <seealso cref="DestroyAllSpheres"/>
          */
-        public void CreateSphere(Vector3 position, Color color, float size, bool isWireframe, string name) =>
-            _spheresAtPosition[name] = (position, color, size, isWireframe);
+        public void CreateSphere(Vector3 position, Color color, float size, bool isWireframe, string name)
+        {
+            lock (_lock)
+            {
+                _spheresAtPosition[name] = (position, color, size, isWireframe);
+            }
+        }
 
         /**
-         * <summary>
-         * Creates a sphere at the origin of the entity with the given id. The sphere will persist until removed using
-         * `DestroySphere(name)` or `DestroyAllSpheres()`.
-         * </summary>
-         * <param name="entityId">The entity of the id to place this sphere.</param>
-         * <param name="color">The color of the sphere.</param>
-         * <param name="size">The size of the sphere.</param>
-         * <param name="isWireframe">Whether the sphere should be rendered as a wireframe (true) or solid (false).</param>
-         * <param name="name">The name of the sphere. Used to remove the sphere later.</param>
-         * <example>
-         * <code>
-         * // Create a sphere at the origin of an entity with id 1 with the color red and a size of 0.4.
-         * RGGizmos.CreateSphere(1, Color.red, 0.4f, false, "mySphere");
-         * </code>
-         * </example>
-         * <seealso cref="DestroySphere"/>
-         * <seealso cref="DestroyAllSpheres"/>
-         */
-        public void CreateSphere(int entityId, Color color, float size, bool isWireframe, string name) =>
-            _spheresAtEntity[name] = (entityId, color, size, isWireframe);
+             * <summary>
+             * Creates a sphere at the origin of the entity with the given id. The sphere will persist until removed using
+             * `DestroySphere(name)` or `DestroyAllSpheres()`.
+             * </summary>
+             * <param name="entityId">The entity of the id to place this sphere.</param>
+             * <param name="color">The color of the sphere.</param>
+             * <param name="size">The size of the sphere.</param>
+             * <param name="isWireframe">Whether the sphere should be rendered as a wireframe (true) or solid (false).</param>
+             * <param name="name">The name of the sphere. Used to remove the sphere later.</param>
+             * <example>
+             * <code>
+             * // Create a sphere at the origin of an entity with id 1 with the color red and a size of 0.4.
+             * RGGizmos.CreateSphere(1, Color.red, 0.4f, false, "mySphere");
+             * </code>
+             * </example>
+             * <seealso cref="DestroySphere"/>
+             * <seealso cref="DestroyAllSpheres"/>
+             */
+        public void CreateSphere(int entityId, Color color, float size, bool isWireframe, string name)
+        {
+            lock (_lock)
+            {
+                _spheresAtEntity[name] = (entityId, color, size, isWireframe);
+            }
+        }
 
         /**
-         * <summary>
-         * Destroys a sphere with the given name. If no sphere with the given name exists, nothing happens.
-         * </summary>
-         * <param name="name">The name of the sphere to destroy.</param>
-         * <example>
-         * <code>
-         * RGGizmos.DestroySphere("mySphere");
-         * </code>
-         * </example>
-         */
+             * <summary>
+             * Destroys a sphere with the given name. If no sphere with the given name exists, nothing happens.
+             * </summary>
+             * <param name="name">The name of the sphere to destroy.</param>
+             * <example>
+             * <code>
+             * RGGizmos.DestroySphere("mySphere");
+             * </code>
+             * </example>
+             */
         public void DestroySphere(string name)
         {
-            _spheresAtPosition.Remove(name, out _);
-            _spheresAtEntity.Remove(name, out _);
+            lock (_lock)
+            {
+                _spheresAtPosition.Remove(name, out _);
+                _spheresAtEntity.Remove(name, out _);
+            }
         }
 
         /**
@@ -223,8 +311,105 @@ namespace RegressionGames.DebugUtils
          */
         public void DestroyAllSpheres()
         {
-            _spheresAtPosition.Clear();
-            _spheresAtEntity.Clear();
+            lock (_lock)
+            {
+                _spheresAtPosition.Clear();
+                _spheresAtEntity.Clear();
+            }
+        }
+        
+        /**
+         * <summary>
+         * Creates a cube at the given position. The cube will persist until removed using
+         * `DestroyCube(name)` or `DestroyAllCubes()`.
+         * </summary>
+         * <param name="position">The position of the cube.</param>
+         * <param name="color">The color of the cube.</param>
+         * <param name="size">The size of the cube.</param>
+         * <param name="isWireframe">Whether the cube should be rendered as a wireframe (true) or solid (false).</param>
+         * <param name="name">The name of the cube. Used to remove the cube later.</param>
+         * <example>
+         * <code>
+         * // Create a cube at the position (0, 0, 0) with the color red and a size of 0.4.
+         * RGGizmos.CreateCube(new Vector3(0, 0, 0), Color.red, 0.4f, false, "myCube");
+         * </code>
+         * </example>
+         * <seealso cref="DestroyCube"/>
+         * <seealso cref="DestroyAllCubes"/>
+         */
+        public void CreateCube(Vector3 position, Color color, Vector3 size, bool isWireframe, object name)
+        {
+            lock (_lock)
+            {
+                _cubesAtPosition[name] = (position, color, size, isWireframe);
+            }
+        }
+
+        /**
+             * <summary>
+             * Creates a cube at the origin of the entity with the given id. The cube will persist until removed using
+             * `DestroyCube(name)` or `DestroyAllCubes()`.
+             * </summary>
+             * <param name="entityId">The entity of the id to place this cube.</param>
+             * <param name="color">The color of the cube.</param>
+             * <param name="size">The size of the cube.</param>
+             * <param name="isWireframe">Whether the cube should be rendered as a wireframe (true) or solid (false).</param>
+             * <param name="name">The name of the cube. Used to remove the cube later.</param>
+             * <example>
+             * <code>
+             * // Create a cube at the origin of an entity with id 1 with the color red and a size of 0.4.
+             * RGGizmos.CreateCube(1, Color.red, 0.4f, false, "myCube");
+             * </code>
+             * </example>
+             * <seealso cref="DestroyCube"/>
+             * <seealso cref="DestroyAllCubes"/>
+             */
+        public void CreateCube(int entityId, Color color, Vector3 size, bool isWireframe, object name)
+        {
+            lock (_lock)
+            {
+                _cubesAtEntity[name] = (entityId, color, size, isWireframe);
+            }
+        }
+
+        /**
+             * <summary>
+             * Destroys a cube with the given name. If no cube with the given name exists, nothing happens.
+             * </summary>
+             * <param name="name">The name of the cube to destroy.</param>
+             * <example>
+             * <code>
+             * RGGizmos.DestroyCube("myCube");
+             * </code>
+             * </example>
+             */
+        public void DestroyCube(object name)
+        {
+            lock (_lock)
+            {
+                _cubesAtPosition.Remove(name, out _);
+                _cubesAtEntity.Remove(name, out _);
+            }
+        }
+
+        /**
+         * <summary>
+         * Destroys all cubes created.
+         * </summary>
+         * <example>
+         * <code>
+         * RGGizmos.DestroyAllCubes();
+         * </code>
+         * </example>
+         * <seealso cref="DestroyCube"/>
+         */
+        public void DestroyAllCubes()
+        {
+            lock (_lock)
+            {
+                _cubesAtPosition.Clear();
+                _cubesAtEntity.Clear();
+            }
         }
 
         /**
@@ -240,7 +425,7 @@ namespace RegressionGames.DebugUtils
          * </remarks>
          * <param name="entityId">The entity of the id to place this text billboard.</param>
          * <param name="content">The content of the text billboard.</param>
-         * <param name="offset">The Vector3 offset of the text billboard (defaults to 0f,2.0f,0f).</param>
+         * <param name="yOffset">The y offset of the text billboard (defaults to 2.0).</param>
          * <example>
          * <code>
          * // Create a text billboard on an entity with id 1 with the content "Hello World!".
@@ -250,156 +435,221 @@ namespace RegressionGames.DebugUtils
          * <seealso cref="DestroyText"/>
          * <seealso cref="DestroyAllTexts"/>
          */
-        public void CreateText(int entityId, string content, Vector3? offset = null) => _billboardsToDraw[entityId] = (content, offset ?? new Vector3(0f, 2f, 0f));
-
-        /**
-         * <summary>
-         * Destroys the text billboard on an entity with the given id. If no text billboard exists on the entity, nothing
-         * happens.
-         * </summary>
-         * <param name="entityId">The entity of the id whose text billboard should be destroyed.</param>
-         * <example>
-         * <code>
-         * RGGizmos.DestroyText(1);
-         * </code>
-         * </example>
-         * <seealso cref="CreateText"/>
-         * <seealso cref="DestroyAllTexts"/>
-         */
-        public void DestroyText(int entityId) => _billboardsToDraw.Remove(entityId, out _);
-
-        /**
-         * <summary>
-         * Destroys all text billboards created.
-         * </summary>
-         * <example>
-         * <code>
-         * RGGizmos.DestroyAllTexts();
-         * </code>
-         * </example>
-         * <seealso cref="CreateText"/>
-         * <seealso cref="DestroyText"/>
-         */
-        public void DestroyAllTexts() => _billboardsToDraw.Clear();
-
-        /**
-         * <summary>
-         * Draws all Gizmos that have been set.
-         * </summary>
-         */
-        public void OnDrawGizmos()
+        public void CreateText(int entityId, string content, float yOffset = 2.0f)
         {
+            lock (_lock)
+            {
+                _billboardsToDraw[entityId] = (content, yOffset);
+            }
+        }
 
-            var gizmosContainer = GameObject.Find("RGGizmosContainer");
-            if ( gizmosContainer == null)
+        /**
+             * <summary>
+             * Destroys the text billboard on an entity with the given id. If no text billboard exists on the entity, nothing
+             * happens.
+             * </summary>
+             * <param name="entityId">The entity of the id whose text billboard should be destroyed.</param>
+             * <example>
+             * <code>
+             * RGGizmos.DestroyText(1);
+             * </code>
+             * </example>
+             * <seealso cref="CreateText"/>
+             * <seealso cref="DestroyAllTexts"/>
+             */
+        public void DestroyText(int entityId)
+        {
+            lock (_lock)
             {
-                gizmosContainer = new GameObject("RGGizmosContainer");
+                _billboardsToDraw.Remove(entityId, out _);
             }
-            
-            // Draw lines
-            foreach (var lineParams in _linesFromEntityToPosition.Values)
+        }
+
+        /**
+             * <summary>
+             * Destroys all text billboards created.
+             * </summary>
+             * <example>
+             * <code>
+             * RGGizmos.DestroyAllTexts();
+             * </code>
+             * </example>
+             * <seealso cref="CreateText"/>
+             * <seealso cref="DestroyText"/>
+             */
+        public void DestroyAllTexts()
+        {
+            lock (_lock)
             {
-                var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item1);
-                if (originInstance != null)
+                _billboardsToDraw.Clear();
+            }
+        }
+
+        /**
+             * <summary>
+             * Draws all Gizmos that have been set.
+             * </summary>
+             */
+        protected internal void OnDrawGizmos()
+        {
+            lock (_lock)
+            {
+
+                var gizmosContainer = GameObject.Find("RGGizmosContainer");
+                if (gizmosContainer == null)
                 {
-                    Debug.DrawLine(originInstance.transform.position, lineParams.Item2, lineParams.Item3);
+                    gizmosContainer = new GameObject("RGGizmosContainer");
                 }
-            }
-            foreach (var lineParams in _linesFromEntityToEntity.Values)
-            {
-                var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item1);
-                var endInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(lineParams.Item2);
-                if (originInstance != null && endInstance != null)
+
+                // Draw lines
+                foreach (var lineParams in _linesFromEntityToPosition.Values)
                 {
-                    Debug.DrawLine(originInstance.transform.position, endInstance.transform.position, lineParams.Item3);
-                }
-            }
-            foreach (var lineParams in _linesFromPositionToPosition.Values)
-            {
-                Debug.DrawLine(lineParams.Item1, lineParams.Item2, lineParams.Item3);
-            }
-            
-            // Draw spheres
-            foreach (var sphereParams in _spheresAtPosition.Values)
-            {
-                if (sphereParams.Item4)
-                {
-                    Gizmos.color = sphereParams.Item2;
-                    Gizmos.DrawWireSphere(sphereParams.Item1, sphereParams.Item3);
-                }
-                else
-                {
-                    Gizmos.color = sphereParams.Item2;
-                    Gizmos.DrawSphere(sphereParams.Item1, sphereParams.Item3);
-                }
-            }
-            foreach (var sphereParams in _spheresAtEntity.Values)
-            {
-                var originInstance = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(sphereParams.Item1);
-                if (originInstance == null) continue;
-                if (sphereParams.Item4)
-                {
-                    Gizmos.color = sphereParams.Item2;
-                    Gizmos.DrawWireSphere(originInstance.transform.position, sphereParams.Item3);
-                }
-                else
-                {
-                    Gizmos.color = sphereParams.Item2;
-                    Gizmos.DrawSphere(originInstance.transform.position, sphereParams.Item3);
-                }
-            }
-            
-            // Delete any billboards that are no longer being drawn
-            var billboardsToRemove = _drawnBillboards.Where(b => !_billboardsToDraw.ContainsKey(b.Key));
-            foreach (var billboard in billboardsToRemove)
-            {
-                Object.Destroy(billboard.Value);
-                _drawnBillboards.Remove(billboard.Key, out _);
-            }
-            
-            // Now update or create any billboards that are being drawn
-            foreach (var billboardParams in _billboardsToDraw)
-            {
-                try
-                {
-                    // First, skip this billboard if the entity does not exist anymore
-                    var entityGameObject = RGFindUtils.Instance.FindOneByInstanceId<RGEntity>(billboardParams.Key);
-                    if (entityGameObject == null)
+                    var originInstance = RGFindUtils.Instance.FindOneByInstanceId(lineParams.Item1);
+                    if (originInstance != null)
                     {
-                        _drawnBillboards.Remove(billboardParams.Key, out _);
-                        continue;
+                        var color = Gizmos.color;
+                        Gizmos.color = lineParams.Item3;
+                        Gizmos.DrawLine(originInstance.transform.position, lineParams.Item2);
+                        Gizmos.color = color;
                     }
-                    
-                    // If the billboard game object does not exist, create it
-                    var billboard = _drawnBillboards.GetOrAdd(billboardParams.Key, (key) => {
-                        var billboardObject = Object.Instantiate(_billboardAsset, Vector3.zero, Quaternion.identity);
-                        billboardObject.transform.parent = gizmosContainer.transform;
-                        return billboardObject;
-                    });
-
-                    // If the billboard exist but is no longer active (i.e. destroyed), skip this
-                    if (billboard == null || !billboard.activeInHierarchy)
-                    {
-                        _drawnBillboards.Remove(billboardParams.Key, out _);
-                        continue;
-                    };
-                        
-                    // Then set the parameters
-                    var billboardText = billboard.GetComponent<BillboardText>();
-                    billboardText.content = billboardParams.Value.Item1;
-                    billboardText.offset = billboardParams.Value.Item2;
-                    billboardText.target = entityGameObject.gameObject;
                 }
-                catch (MissingReferenceException e)
+
+                foreach (var lineParams in _linesFromEntityToEntity.Values)
                 {
-                    // If an exception occurred, it's likely that the existing entity was destroyed.
-                    // In that case, just remove the billboard from the list of drawn billboards.
-                    _drawnBillboards.Remove(billboardParams.Key, out _);
+                    var originInstance = RGFindUtils.Instance.FindOneByInstanceId(lineParams.Item1);
+                    var endInstance = RGFindUtils.Instance.FindOneByInstanceId(lineParams.Item2);
+                    if (originInstance != null && endInstance != null)
+                    {
+                        var color = Gizmos.color;
+                        Gizmos.color = lineParams.Item3;
+                        Gizmos.DrawLine(originInstance.transform.position, endInstance.transform.position);
+                        Gizmos.color = color;
+                    }
+                }
+
+                foreach (var lineParams in _linesFromPositionToPosition.Values)
+                {
+                    var color = Gizmos.color;
+                    Gizmos.color = lineParams.Item3;
+                    Gizmos.DrawLine(lineParams.Item1, lineParams.Item2);
+                    Gizmos.color = color;
                 }
                 
-            }
+                // Draw cubes
+                foreach (var cubeParams in _cubesAtPosition.Values)
+                {
+                    if (cubeParams.Item4)
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawWireCube(cubeParams.Item1, cubeParams.Item3);
+                    }
+                    else
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawCube(cubeParams.Item1, cubeParams.Item3);
+                    }
+                }
 
+                foreach (var cubeParams in _cubesAtEntity.Values)
+                {
+                    var originInstance = RGFindUtils.Instance.FindOneByInstanceId(cubeParams.Item1);
+                    if (originInstance == null) continue;
+                    if (cubeParams.Item4)
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawWireCube(originInstance.transform.position, cubeParams.Item3);
+                    }
+                    else
+                    {
+                        Gizmos.color = cubeParams.Item2;
+                        Gizmos.DrawCube(originInstance.transform.position, cubeParams.Item3);
+                    }
+                }
+
+                // Draw spheres
+                foreach (var sphereParams in _spheresAtPosition.Values)
+                {
+                    if (sphereParams.Item4)
+                    {
+                        Gizmos.color = sphereParams.Item2;
+                        Gizmos.DrawWireSphere(sphereParams.Item1, sphereParams.Item3);
+                    }
+                    else
+                    {
+                        Gizmos.color = sphereParams.Item2;
+                        Gizmos.DrawSphere(sphereParams.Item1, sphereParams.Item3);
+                    }
+                }
+
+                foreach (var sphereParams in _spheresAtEntity.Values)
+                {
+                    var originInstance = RGFindUtils.Instance.FindOneByInstanceId(sphereParams.Item1);
+                    if (originInstance == null) continue;
+                    if (sphereParams.Item4)
+                    {
+                        Gizmos.color = sphereParams.Item2;
+                        Gizmos.DrawWireSphere(originInstance.transform.position, sphereParams.Item3);
+                    }
+                    else
+                    {
+                        Gizmos.color = sphereParams.Item2;
+                        Gizmos.DrawSphere(originInstance.transform.position, sphereParams.Item3);
+                    }
+                }
+
+                // Delete any billboards that are no longer being drawn
+                var billboardsToRemove = _drawnBillboards.Where(b => !_billboardsToDraw.ContainsKey(b.Key));
+                foreach (var billboard in billboardsToRemove)
+                {
+                    Object.Destroy(billboard.Value);
+                    _drawnBillboards.Remove(billboard.Key, out _);
+                }
+
+                // Now update or create any billboards that are being drawn
+                foreach (var billboardParams in _billboardsToDraw)
+                {
+                    try
+                    {
+                        // First, skip this billboard if the entity does not exist anymore
+                        var entityGameObject =
+                            RGFindUtils.Instance.FindOneByInstanceId(billboardParams.Key);
+                        if (entityGameObject == null)
+                        {
+                            _drawnBillboards.Remove(billboardParams.Key, out _);
+                            continue;
+                        }
+
+                        // If the billboard game object does not exist, create it
+                        if (!_drawnBillboards.TryGetValue(billboardParams.Key, out var billboard))
+                        {
+                            billboard = Object.Instantiate(_billboardAsset, Vector3.zero, Quaternion.identity);
+                            billboard.transform.parent = gizmosContainer.transform;
+                            _drawnBillboards[billboardParams.Key] = billboard;
+                        }
+
+                        // If the billboard exist but is no longer active (i.e. destroyed), skip this
+                        if (billboard == null || !billboard.activeInHierarchy)
+                        {
+                            _drawnBillboards.Remove(billboardParams.Key, out _);
+                            continue;
+                        }
+
+                        // Then set the parameters
+                        var billboardText = billboard.GetComponent<BillboardText>();
+                        billboardText.content = billboardParams.Value.Item1;
+                        billboardText.offset.y = billboardParams.Value.Item2;
+                        billboardText.target = entityGameObject.gameObject;
+                    }
+                    catch (MissingReferenceException)
+                    {
+                        // If an exception occurred, it's likely that the existing entity was destroyed.
+                        // In that case, just remove the billboard from the list of drawn billboards.
+                        _drawnBillboards.Remove(billboardParams.Key, out _);
+                    }
+
+                }
+            }
         }
-        
+
     }
 }

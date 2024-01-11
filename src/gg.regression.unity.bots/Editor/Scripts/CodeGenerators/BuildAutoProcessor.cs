@@ -1,7 +1,5 @@
 using System.Linq;
-using RegressionGames;
 #if UNITY_EDITOR
-using RegressionGames.Editor.CodeGenerators;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 namespace RegressionGames.Editor.CodeGenerators
@@ -26,7 +24,14 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // domain reload after build resets enabled to true
             // and this gets called once with the original script changes, once with the generated changes, and then one more time with an empty list
-            if (_enabled && importedAssets.FirstOrDefault(ia => ia.EndsWith(".cs") && !ia.StartsWith("Packages/gg.regression.unity.bots") && !ia.Contains("RegressionGames/Runtime/GeneratedScripts")) != null)
+            if (_enabled
+                && importedAssets
+                    .FirstOrDefault(
+                        ia => ia.EndsWith(".cs")
+                                          && !ia.StartsWith("Packages/gg.regression.unity.bots")
+                                          && !(ia.EndsWith(".Generated.cs") && (ia.Contains("RGActions_") || ia.Contains("RGStateEntity_")))
+                                          && !ia.Contains("RegressionGames/Runtime/Bots")
+                                          ) != null)
             {
                 TriggerGeneration();
             }
