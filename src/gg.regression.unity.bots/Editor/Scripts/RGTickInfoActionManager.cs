@@ -70,11 +70,11 @@ namespace RegressionGames.Editor
                 var tickInfo = PopulateTickInfoDataForEntity(tickNumber, entityId);
 
                 tickInfo.state = entity;
-                bool isPlayer = entity.isPlayer;
                 
-                PopulateReplayDataForEntity(entityId, entity.name, entity.types, isPlayer);
-                
-                // handle strong typing on position / rotation accessors
+                // support 'old' type field to be able to load extracts created pre Jan 2024
+                PopulateReplayDataForEntity(entityId, entity.name, (string)entity.GetValueOrDefault("type",null), entity.types, entity.isPlayer);
+
+                    // handle strong typing on position / rotation accessors
                 if (entity.ContainsKey("position") && entity["position"] is JObject)
                 {
                         var jObj = (JObject)entity["position"];
@@ -100,11 +100,11 @@ namespace RegressionGames.Editor
             tickInfo.actions = data.actions ?? Array.Empty<RGActionRequest>();
             tickInfo.validationResults = data.validationResults ?? Array.Empty<RGValidationResult>();
             // show path and actions by default only for bot players with actions
-            PopulateReplayDataForEntity(entityId, null, null, true, true,
+            PopulateReplayDataForEntity(entityId, null, null, Array.Empty<string>(), true, true,
                 true, true);
         }
 
-        private RGEntityReplayData PopulateReplayDataForEntity(long entityId, string name, List<string> types, bool isPlayer = false, 
+        private RGEntityReplayData PopulateReplayDataForEntity(long entityId, string name, string type, string[] types, bool isPlayer = false, 
             bool? showPath = null,
             bool? showActions = null, bool? highlight = null)
         {
@@ -112,6 +112,7 @@ namespace RegressionGames.Editor
             _entityInfo[entityId].id = entityId;
             _entityInfo[entityId].isPlayer = isPlayer;
             _entityInfo[entityId].name = name;
+            _entityInfo[entityId].type = type;
             _entityInfo[entityId].types = types;
             if (showPath != null) _entityInfo[entityId].showPath = showPath.Value;
             if (showActions != null) _entityInfo[entityId].showActions = showActions.Value;
@@ -123,7 +124,7 @@ namespace RegressionGames.Editor
         private RGEntityTickInfo PopulateTickInfoDataForEntity(int tickNumber, long entityId)
         {
             // make sure this player is in the dictionary
-            PopulateReplayDataForEntity(entityId, null, null);
+            PopulateReplayDataForEntity(entityId, null, null, Array.Empty<string>());
 
             _entityInfo[entityId].tickInfo ??= new List<RGEntityTickInfo>();
 
@@ -141,13 +142,16 @@ namespace RegressionGames.Editor
         public List<RGEntityTickInfo> tickInfo;
         public long id;
         public string name;
-        public List<string> types;
+        // support the 'type' field of old replays
+        [Obsolete]
+        public string type;
+        public string[] types;
         public bool isPlayer = false;
         public bool enabled = true;
         public bool showPath;
         public bool showActions;
         public bool showHighlight;
-        public string objectName => $"{name}_{id}";
+        public string objectName => $"{name ?? (type ?? "["+string.Join(',',types)+"]")}_{id}";
     }
 
     [Serializable]

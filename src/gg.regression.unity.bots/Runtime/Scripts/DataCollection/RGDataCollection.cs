@@ -230,38 +230,38 @@ namespace RegressionGames.DataCollection
                     // No point in continuing if there's no service manager
                     return;
                 }
+                Exception createBotInstanceException = null;
+                var botInstanceId = state.clientId;
+                try
+                {
+                    // Before we do anything, we need to verify that this bot actually exists in Regression Games
+                    await serviceManager.GetBotCodeDetails(state.bot.id,
+                            rgBot =>
+                            {
+                                RGDebug.LogVerbose(
+                                    $"DataCollection[{clientId}] - Found a bot on Regression Games with this ID");
+                            },
+                            () => throw new Exception(
+                                "This bot does not exist on the server. Please use the Regression Games > Synchronize Bots with RG menu option to register your bot."));
 
-                // Before we do anything, we need to verify that this bot actually exists in Regression Games
-                await serviceManager.GetBotCodeDetails(state.bot.id,
-                        rgBot =>
-                        {
-                            RGDebug.LogVerbose(
-                                $"DataCollection[{clientId}] - Found a bot on Regression Games with this ID");
-                        },
-                        () => throw new Exception(
-                            "This bot does not exist on the server. Please use the Regression Games > Synchronize Bots with RG menu option to register your bot."));
+                    // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
+                    RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
+                    
 
-                // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
-                RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
-                var botInstanceId = 0L;
-                await serviceManager.CreateBotInstance(
-                    state.bot.id,
-                    state.startTime,
-                    (result) =>
-                    {
-                        botInstanceId = result.id;
-                    },
-                    () => { });
+                    await serviceManager.CreateBotInstance(
+                        state.bot.id,
+                        state.startTime,
+                        (result) => { botInstanceId = result.id; },
+                        () => { });
+                }
+                catch (Exception e)
+                {
+                    // we save this to throw later after zipping up the files locally, otherwise developers can't validate things locally
+                    createBotInstanceException = e;
+                }
+
                 RGDebug.LogVerbose(
                     $"DataCollection[{clientId}] - Creating the record for bot instance, with id {botInstanceId}");
-
-                // Create a bot history record for this bot
-                RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance history...");
-                await serviceManager.CreateBotInstanceHistory(
-                    botInstanceId,
-                    (result) => { },
-                    () => { });
-                RGDebug.LogVerbose($"DataCollection[{clientId}] - Created the record for bot instance history");
 
                 // Save text files for each replay tick, zip it up, and then upload
                 RGDebug.LogVerbose(
@@ -275,11 +275,14 @@ namespace RegressionGames.DataCollection
                     GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip")
                 );
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Zipped data, now uploading...");
-                await serviceManager.UploadReplayData(
-                    botInstanceId, GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip"),
-                    () => { }, () => { });
-                RGDebug.LogVerbose($"DataCollection[{clientId}] - Successfully uploaded replay data");
-
+                
+                // Flush any outstanding logs.
+                // We don't need to do the atomic-swap trick here
+                // because we've been removed from the state dictionary so no more logs will be written to this queue.
+                await FlushLogs(clientId, state.logs);
+                var logsFilePath =
+                    GetSessionDirectory($"validationData/{clientId}/rgbot_logs.jsonl");
+                
                 // Save all of the validation data (i.e. the validation summary and validations file overall)
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading validation data...");
 
@@ -291,6 +294,28 @@ namespace RegressionGames.DataCollection
 
                 var validationFilePath =
                     GetSessionDirectory($"validationData/{clientId}/rgbot_validations.jsonl");
+
+                
+                // ==== now that we've saved everything ... do all the uploading if we can
+                if (createBotInstanceException != null)
+                {
+                    throw createBotInstanceException;
+                }
+                
+                // Create a bot history record for this bot
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance history...");
+                await serviceManager.CreateBotInstanceHistory(
+                    botInstanceId,
+                    (result) => { },
+                    () => { });
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Created the record for bot instance history");
+                
+                await serviceManager.UploadReplayData(
+                    botInstanceId, GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip"),
+                    () => { }, () => { });
+                RGDebug.LogVerbose($"DataCollection[{clientId}] - Successfully uploaded replay data");
+
+                // Upload validation data
                 await serviceManager
                     .UploadValidations(botInstanceId, validationFilePath, () => { }, () => { });
 
@@ -301,12 +326,7 @@ namespace RegressionGames.DataCollection
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Validation summary uploaded successfully");
 
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading logs...");
-                // Flush any outstanding logs.
-                // We don't need to do the atomic-swap trick here
-                // because we've been removed from the state dictionary so no more logs will be written to this queue.
-                await FlushLogs(clientId, state.logs);
-                var logsFilePath =
-                    GetSessionDirectory($"validationData/{clientId}/rgbot_logs.jsonl");
+
                 await serviceManager
                     .UploadLogs(botInstanceId, logsFilePath, () => { }, () => { });
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploaded logs");
@@ -362,11 +382,11 @@ namespace RegressionGames.DataCollection
             }
             finally
             {
-                Cleanup(clientId);
+                //Cleanup(clientId);
                 // If there are no more bots, cleanup everything else
                 if (_clientIdToState.IsEmpty)
                 {
-                    Cleanup();
+                    //Cleanup();
                 }
             }
 

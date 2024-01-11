@@ -233,7 +233,7 @@ namespace RegressionGames.Editor
                 width = 150.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("PlayerId", "Type and Id of the entity."),
+                headerContent = new GUIContent("Entity", "Name/Type and Id of the entity."),
                 headerTextAlignment = TextAlignment.Center
             });
             _columns.Add(new MultiColumnHeaderState.Column
@@ -296,7 +296,7 @@ namespace RegressionGames.Editor
             if (bTi != null && aTi == null) return 1;
 
             // if same types, sort by id
-            if (a.types.All(b.types.Contains) && a.types.Count == b.types.Count)
+            if (a.types.Length == b.types.Length && a.types.All(b.types.Contains))
             {
                 // group the positive ids and negative ids, but show them both ascending as though unsigned
                 if (a.id >= 0)
