@@ -4,7 +4,7 @@ get_unity_version() {
 
 get_unity_path() {
     local unity_version=$1
-    if $docker; then
+    if ${docker:-false}; then
         # When in docker mode, the version number is all we need
         echo $unity_version
     else
