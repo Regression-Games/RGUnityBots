@@ -1,13 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using RegressionGames;
-using UnityEditor;
 using UnityEngine;
 
 namespace RGThirdPersonDemo
 {
     [RequireComponent((typeof(PlayerMovement)))]
     [RequireComponent(typeof(Animator))]
+    [RGStateType(IsPlayer = true)]
     public class PlayerAttack : MonoBehaviour
     {
         [SerializeField] private Transform _projectileRoot;

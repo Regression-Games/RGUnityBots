@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+<<<<<<<< HEAD:src/gg.regression.unity.bots/Samples~/ThirdPersonDemoURP/Demo/Scripts/Player/RGActions_PlayerAttack_Generated.cs.meta
+guid: 75dcd3f4f83e947c8bdcf0cde260370c
+========
+guid: f47d5292177b642a38fca953303e188f
+>>>>>>>> main:src/gg.regression.unity.bots/Samples~/ThirdPersonDemoURP/Demo/Scripts/Player/RGActions_PlayerAttack.Generated.cs.meta
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
