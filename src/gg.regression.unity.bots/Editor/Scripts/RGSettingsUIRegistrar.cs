@@ -19,7 +19,7 @@ namespace RegressionGames.Editor
     public class RGSettingsUIRegistrar
     {
 
-        private static RGServiceManager rgServiceManager = new (); // editor, not game/scene so don't look for one, make one
+        private static RGServiceManager rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
 
         private static string token = null;
         private static string priorUser = null;
@@ -44,31 +44,31 @@ namespace RegressionGames.Editor
                     SerializedObject settings = RGSettings.GetSerializedSettings();
                     SerializedObject userSettings = RGUserSettings.GetSerializedUserSettings();
                     EditorGUI.BeginChangeCheck();
-                    
+
                     SerializedProperty hostField = settings.FindProperty("rgHostAddress");
                     hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
-                    
+
                     SerializedProperty emailField = userSettings.FindProperty("email");
                     emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
                     SerializedProperty passwordField = userSettings.FindProperty("password");
                     passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
-                    
+
                     SerializedProperty logLevel = settings.FindProperty("logLevel");
                     logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
 
                     SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
                     enableOverlay.boolValue =
                         EditorGUILayout.Toggle("Enable Screen Overlay ?", enableOverlay.boolValue);
-                    
+
                     SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
                     useSystemSettings.boolValue =
                         EditorGUILayout.Toggle("Use Global Bot Settings ?", useSystemSettings.boolValue);
-                    
+
                     EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
                     SerializedProperty numBotsProp = settings.FindProperty("numBots");
                     numBotsProp.intValue = EditorGUILayout.IntSlider("Number Of Bots", numBotsProp.intValue, 0, 7, new GUILayoutOption[] { });
                     SerializedProperty botsSelected = settings.FindProperty("botsSelected");
-                    if ((EditorApplication.timeSinceStartup-timeOfLastEdit) > 3f && token == null && priorPassword == null && priorHost == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4 && hostField.stringValue.Length > 4)
+                    if ((EditorApplication.timeSinceStartup - timeOfLastEdit) > 3f && token == null && priorPassword == null && priorHost == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4 && hostField.stringValue.Length > 4)
                     {
                         priorPassword = passwordField.stringValue;
                         priorUser = emailField.stringValue;
@@ -84,14 +84,14 @@ namespace RegressionGames.Editor
                         {
                             foreach (var rgBot in botList)
                             {
-                                if (rgBot is { IsUnityBot: true , IsLocal: false})
+                                if (rgBot is { IsUnityBot: true, IsLocal: false })
                                 {
                                     listOfBots.Add(rgBot);
                                 }
                             }
                         }, () =>
                         {
-                            
+
                         });
                         // get Local bots
                         RGBotAssetsManager.GetInstance()?.RefreshAvailableBots();
@@ -103,7 +103,7 @@ namespace RegressionGames.Editor
                                 listOfBots.Add(localBot);
                             }
                         }
-                        listOfBots.Sort((a,b) => String.Compare(a.UIString, b.UIString, StringComparison.Ordinal));
+                        listOfBots.Sort((a, b) => String.Compare(a.UIString, b.UIString, StringComparison.Ordinal));
                         bots = listOfBots.ToArray();
                     }
 
@@ -117,7 +117,7 @@ namespace RegressionGames.Editor
                             botIndexMap[bot.id] = index;
                             return index++;
                         });
-                        
+
                         for (int i = 1; i <= numBotsProp.intValue; i++)
                         {
                             try
@@ -131,10 +131,10 @@ namespace RegressionGames.Editor
 
                                 var priorIndex = 0;
                                 botIndexMap.TryGetValue(botSelected.longValue, out priorIndex);
-                                    var indexSelected = EditorGUILayout.IntPopup($"Bot # {i}",
-                                        priorIndex,
-                                    botUIStrings.ToArray(), botIndexes.ToArray(),
-                                    new GUILayoutOption[] { });
+                                var indexSelected = EditorGUILayout.IntPopup($"Bot # {i}",
+                                    priorIndex,
+                                botUIStrings.ToArray(), botIndexes.ToArray(),
+                                new GUILayoutOption[] { });
                                 if (indexSelected > bots.Length)
                                 {
                                     indexSelected = 0;
@@ -194,14 +194,14 @@ namespace RegressionGames.Editor
 
             var tcs = new TaskCompletionSource<bool>();
 
-            await rgServiceManager.Auth(priorUser, priorPassword, 
-                responseToken => 
+            await rgServiceManager.Auth(priorUser, priorPassword,
+                responseToken =>
                 {
                     token = responseToken;
                     bots = null;
                     tcs.SetResult(true);
-                }, 
-                f => 
+                },
+                f =>
                 {
                     token = null;
                     bots = null;

@@ -30,7 +30,7 @@ namespace RegressionGames.StateActionTypes
         public override string ToString()
         {
             var inputString = Input?.Select(kv => kv.Key + ": " + kv.Value).ToArray();
-            return $"{{action: {Action}, input: {{{string.Join(", ", inputString ?? new string [] {})} }} }}";
+            return $"{{action: {Action}, input: {{{string.Join(", ", inputString ?? new string[] { })} }} }}";
         }
     }
 }

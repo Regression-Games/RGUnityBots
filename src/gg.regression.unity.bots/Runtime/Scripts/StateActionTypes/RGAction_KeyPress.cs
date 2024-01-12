@@ -10,8 +10,8 @@ using UnityEngine.InputSystem.LowLevel;
 // ReSharper disable InconsistentNaming
 namespace RegressionGames.StateActionTypes
 {
- 
-    public class RGAction_KeyPress: RGActionBehaviour
+
+    public class RGAction_KeyPress : RGActionBehaviour
     {
         /*
         [Tooltip("Draw debug gizmos for current key inputs in editor runtime ?")]
@@ -29,7 +29,7 @@ namespace RegressionGames.StateActionTypes
 
         private readonly Dictionary<Key, InputControl> _inputActions = new();
         private InputControl _anyKey;
-        
+
         private readonly Dictionary<Key, double> keysDown = new();
 
         private void Start()
@@ -48,7 +48,7 @@ namespace RegressionGames.StateActionTypes
                     {
                         if (inputActionControl is KeyControl iac)
                         {
-                            _inputActions.Add(iac.keyCode, inputActionControl);    
+                            _inputActions.Add(iac.keyCode, inputActionControl);
                         }
                         else if (inputActionControl is AnyKeyControl)
                         {
@@ -82,7 +82,7 @@ namespace RegressionGames.StateActionTypes
                     PressKey(keyToPress.keyId, control, keyToPress.holdTime);
                 }
             }
-            
+
             // handle un-pressing any keys that have expired their time
             var keys = keysDown.Keys.ToList();
             foreach (var key in keys)
@@ -100,7 +100,7 @@ namespace RegressionGames.StateActionTypes
                 // un-press the 'any' key
                 UnPressKey(null, _anyKey);
             }
-            
+
             /* TODO Someday.. re-implement this as text on the overlay
             int id = gameObject.transform.GetInstanceID();
             // render debug text
@@ -129,7 +129,7 @@ namespace RegressionGames.StateActionTypes
                 RgGizmos.DestroyText(id);
             }
             */
-    
+
             // Update Input System
             InputSystem.Update();
         }
@@ -145,18 +145,18 @@ namespace RegressionGames.StateActionTypes
             }
         }
         */
-        
+
         private void UnPressKey(Key? key, InputControl control)
         {
             // 1 == pressed state
             // 0 == un-pressed state
-            void SetUpAndQueueEvent<TValue>(InputEventPtr eventPtr, TValue state) where TValue: struct
+            void SetUpAndQueueEvent<TValue>(InputEventPtr eventPtr, TValue state) where TValue : struct
             {
                 eventPtr.time = InputState.currentTime;
                 control.WriteValueIntoEvent(state, eventPtr);
                 InputSystem.QueueEvent(eventPtr);
             }
-            
+
             using (DeltaStateEvent.From(control, out var eventPtr))
             {
                 SetUpAndQueueEvent(eventPtr, 0f);
@@ -171,13 +171,13 @@ namespace RegressionGames.StateActionTypes
         {
             // 1 == pressed state
             // 0 == un-pressed state
-            void SetUpAndQueueEvent<TValue>(InputEventPtr eventPtr, TValue state) where TValue: struct
+            void SetUpAndQueueEvent<TValue>(InputEventPtr eventPtr, TValue state) where TValue : struct
             {
                 eventPtr.time = InputState.currentTime;
                 control.WriteValueIntoEvent(state, eventPtr);
                 InputSystem.QueueEvent(eventPtr);
             }
-            
+
             using (DeltaStateEvent.From(control, out var eventPtr))
             {
                 var hasKeyDown = keysDown.ContainsKey(key);
@@ -188,14 +188,14 @@ namespace RegressionGames.StateActionTypes
                     // make sure new value is after the existing value
                     if (timeToUnPress > keysDown[key])
                     {
-                        keysDown[key] = timeToUnPress;        
+                        keysDown[key] = timeToUnPress;
                     }
                 }
                 else
                 {
                     keysDown[key] = timeToUnPress;
                 }
-                
+
                 if (!hasKeyDown)
                 {
                     SetUpAndQueueEvent(eventPtr, 1f);
@@ -251,7 +251,7 @@ namespace RegressionGames.StateActionTypes
             }
         }
     }
-    
+
     internal class RG_KeyPress_Data
     {
         public readonly Key keyId;
@@ -269,10 +269,10 @@ namespace RegressionGames.StateActionTypes
 
     public class RGActionRequest_KeyPress : RGActionRequest
     {
-        public RGActionRequest_KeyPress(Key keyId, double holdTime = -1f) : base("KeyPress", new() { { "keyId", keyId }, {"holdTime", holdTime} })
+        public RGActionRequest_KeyPress(Key keyId, double holdTime = -1f) : base("KeyPress", new() { { "keyId", keyId }, { "holdTime", holdTime } })
         {
         }
-        
+
         public static readonly string EntityTypeName = null;
         public static readonly string ActionName = "KeyPress";
     }

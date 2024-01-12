@@ -37,9 +37,9 @@ namespace RegressionGames.Editor.CodeGenerators
             var className = $"RGActions_{behaviourName}";
 
             var entityTypeName = behaviourName;
-            
+
             List<SyntaxNodeOrToken> delegateList = new();
-            
+
             List<MemberDeclarationSyntax> actionClassDeclarations = new();
             // process each action
             foreach (var botAction in botActions)
@@ -48,16 +48,16 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     continue;
                 }
-                
+
                 entityTypeName = botAction.EntityTypeName ?? entityTypeName;
-                
+
                 // Add RGActionRequest class
                 actionClassDeclarations.Add(
                     ClassDeclaration(
                             $"RGActionRequest_{botAction.BehaviourName}_{CodeGeneratorUtils.SanitizeActionName(botAction.ActionName)}")
                         .AddModifiers(
                             Token(SyntaxKind.PublicKeyword)
-                            // Only add one of the "class" keywords here
+                        // Only add one of the "class" keywords here
                         )
                         .AddBaseListTypes(
                             SimpleBaseType(ParseTypeName("RGActionRequest"))
@@ -69,7 +69,7 @@ namespace RegressionGames.Editor.CodeGenerators
                             GenerateActionRequestFields(botAction).ToArray()
                         )
                     );
-                
+
                 // Add RGAction class
                 actionClassDeclarations.Add(
                     ClassDeclaration(
@@ -121,19 +121,19 @@ namespace RegressionGames.Editor.CodeGenerators
                                             )
                                         )
                                     )
-                                
+
                             })
                         )
                     );
                 delegateList.Add(Token(SyntaxKind.CommaToken));
             }
-            
+
             var mainClassDeclaration = ClassDeclaration(className)
                 .AddModifiers(Token(SyntaxKind.PublicKeyword))
                 .AddBaseListTypes(SimpleBaseType(ParseTypeName("IRGActions")))
                 // BehaviourTypeField
-                .AddMembers(                            
-                    GenerateBehaviourType(behaviourName), 
+                .AddMembers(
+                    GenerateBehaviourType(behaviourName),
                     GenerateEntityTypeName(entityTypeName),
                     GenerateMainClassDelegateDictionary(delegateList)
                 );
@@ -155,7 +155,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     .AddMembers(actionClassDeclarations.ToArray())
                     .AddMembers(serializationClassDeclaration));
             }
-            
+
             // Create a new compilation unit
             var compilationUnit = CompilationUnit()
                 .AddUsings(
@@ -165,7 +165,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             // Format the generated code
             var formattedCode = compilationUnit.NormalizeWhitespace(eol: Environment.NewLine).ToFullString();
-            
+
             var fileContents = CodeGeneratorUtils.HeaderComment + formattedCode;
 
             return File.WriteAllTextAsync(filePath, fileContents);
@@ -483,8 +483,8 @@ namespace RegressionGames.Editor.CodeGenerators
                                                     SyntaxKind.NumericLiteralExpression,
                                                     Literal(index))))))))
                 );
-                if (index+1 < action.Parameters.Count)
-                methodArguments.Add(Token(SyntaxKind.CommaToken));
+                if (index + 1 < action.Parameters.Count)
+                    methodArguments.Add(Token(SyntaxKind.CommaToken));
             }
 
             return MethodDeclaration(
@@ -784,11 +784,11 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 methodParameters.Add(Parameter(Identifier(rgParameterInfo.Name))
                     .WithType(ParseTypeName(rgParameterInfo.Type)));
-            
+
                 parameterParsingStatements.Add(
                     ParseStatement($"Input[\"{rgParameterInfo.Name}\"] = {rgParameterInfo.Name};"));
             }
-            
+
             var methodBody = Block(parameterParsingStatements);
 
             var constructor = ConstructorDeclaration(
@@ -809,7 +809,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return constructor;
         }
-        
+
         private static FieldDeclarationSyntax GenerateBehaviourType(string behaviourName)
         {
             return FieldDeclaration(
@@ -833,7 +833,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.StaticKeyword),
                             Token(SyntaxKind.ReadOnlyKeyword)
@@ -841,7 +841,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     )
                 );
         }
-        
+
         private static MemberDeclarationSyntax GenerateEntityTypeName(string entitytTypeName)
         {
             return FieldDeclaration(
@@ -868,7 +868,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.StaticKeyword),
                             Token(SyntaxKind.ReadOnlyKeyword)
@@ -876,7 +876,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     )
                 );
         }
-        
+
         private static MemberDeclarationSyntax GenerateActionRequestActionName(RGActionAttributeInfo action)
         {
             return FieldDeclaration(
@@ -903,7 +903,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.StaticKeyword),
                             Token(SyntaxKind.ReadOnlyKeyword)
@@ -946,7 +946,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return fieldStatements;
         }
-        
+
         private static MemberDeclarationSyntax GenerateSerializationClass(string behaviourName, List<RGActionAttributeInfo> botActions)
         {
             // Generate methods for deserialization based on parameter types

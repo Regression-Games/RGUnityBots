@@ -6,7 +6,7 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.DebugUtils
 {
-    
+
     /**
      * A set of debug utilities for drawing gizmos and text on top of entities in your scene.
      */
@@ -15,9 +15,9 @@ namespace RegressionGames.DebugUtils
     {
 
         private readonly object _lock = new object();
-        
+
         const string BillboardTextAsset = "AgentBillboardText";
-        
+
         private readonly Dictionary<object, (int, Vector3, Color)> _linesFromEntityToPosition = new();
         private readonly Dictionary<object, (int, int, Color)> _linesFromEntityToEntity = new();
         private readonly Dictionary<object, (Vector3, Vector3, Color)> _linesFromPositionToPosition = new();
@@ -192,7 +192,7 @@ namespace RegressionGames.DebugUtils
                 _linesFromPositionToPosition.Clear();
             }
         }
-        
+
         /**
          * <summary>
          * Destroys all lines created.
@@ -317,7 +317,7 @@ namespace RegressionGames.DebugUtils
                 _spheresAtEntity.Clear();
             }
         }
-        
+
         /**
          * <summary>
          * Creates a cube at the given position. The cube will persist until removed using
@@ -534,7 +534,7 @@ namespace RegressionGames.DebugUtils
                     Gizmos.DrawLine(lineParams.Item1, lineParams.Item2);
                     Gizmos.color = color;
                 }
-                
+
                 // Draw cubes
                 foreach (var cubeParams in _cubesAtPosition.Values)
                 {

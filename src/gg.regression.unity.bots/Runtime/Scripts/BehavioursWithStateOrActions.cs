@@ -14,18 +14,18 @@ namespace RegressionGames
                 // alternative: .GetExportedTypes()
                 .SelectMany(domainAssembly => domainAssembly.GetTypes())
                 .Where(t => typeof(IRGStateEntity).IsAssignableFrom(t) || t.IsSubclassOf(typeof(RGStateEntityBase))
-                    // alternative: => type.IsSubclassOf(typeof(B))
-                    // alternative: && type != typeof(B)
-                    // alternative: && ! type.IsAbstract
+                // alternative: => type.IsSubclassOf(typeof(B))
+                // alternative: && type != typeof(B)
+                // alternative: && ! type.IsAbstract
                 )
                 .Where(t =>
                     !t.IsAbstract && !t.IsInterface && t != typeof(RGStateEntity_Empty) && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core))
                 ).ToArray();
-            
+
             BehaviourStateMappings.Clear();
 
             var behaviourTypeNames = new Dictionary<string, Type>();
-            
+
             foreach (var stateEntityType in stateEntityTypes)
             {
                 // assumes the generated classes have these in them
@@ -57,11 +57,11 @@ namespace RegressionGames
                 // alternative: .GetExportedTypes()
                 .SelectMany(domainAssembly => domainAssembly.GetTypes())
                 .Where(type => typeof(IRGActions).IsAssignableFrom(type) && type != typeof(IRGActions)
-                    // alternative: => type.IsSubclassOf(typeof(B))
-                    // alternative: && type != typeof(B)
-                    // alternative: && ! type.IsAbstract
+                // alternative: => type.IsSubclassOf(typeof(B))
+                // alternative: && type != typeof(B)
+                // alternative: && ! type.IsAbstract
                 ).ToArray();
-            
+
             BehaviourActionMappings.Clear();
             foreach (var actionType in actionTypes)
             {
@@ -88,10 +88,10 @@ namespace RegressionGames
             }
 
         }
-        
-        private static readonly Dictionary<Type,BehaviourStateMappingContainer> BehaviourStateMappings = new ();
-        
-        private static readonly Dictionary<Type,BehaviourActionsMappingContainer> BehaviourActionMappings = new ();
+
+        private static readonly Dictionary<Type, BehaviourStateMappingContainer> BehaviourStateMappings = new();
+
+        private static readonly Dictionary<Type, BehaviourActionsMappingContainer> BehaviourActionMappings = new();
 
         // ReSharper disable once InconsistentNaming
         public static BehaviourStateMappingContainer GetRGStateEntityMappingForBehaviour(MonoBehaviour behaviour)
@@ -117,7 +117,7 @@ namespace RegressionGames
 
             return null;
         }
-        
+
         // ReSharper disable once InconsistentNaming
         public static BehaviourActionsMappingContainer GetRGActionsMappingForBehaviour(MonoBehaviour behaviour)
         {
@@ -145,7 +145,7 @@ namespace RegressionGames
         }
 
     }
-    
+
     public sealed class BehaviourStateMappingContainer
     {
         // ReSharper disable once InconsistentNaming
@@ -160,7 +160,7 @@ namespace RegressionGames
             this.IsPlayer = isPlayer;
         }
     }
-    
+
     public sealed class BehaviourActionsMappingContainer
     {
         // ReSharper disable once InconsistentNaming

@@ -24,7 +24,7 @@ namespace RegressionGames.StateActionTypes
             this.sceneName = sceneName;
             this.gameState = gameState;
         }
-        
+
         private string ToSerialized()
         {
             if (_serializedForm == null)

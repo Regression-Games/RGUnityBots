@@ -18,7 +18,7 @@ namespace RegressionGames
         {
             StateName = stateName;
         }
-        
+
     }
 
 }

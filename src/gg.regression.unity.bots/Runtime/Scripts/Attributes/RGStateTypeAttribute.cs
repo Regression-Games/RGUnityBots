@@ -11,7 +11,7 @@ namespace RegressionGames
         public string TypeName { get; }
 
         public bool IsPlayer { get; set; }
-        
+
         //Include Fields and Properties only by default
         public const RGStateIncludeFlags DefaultFlags = RGStateIncludeFlags.Field | RGStateIncludeFlags.Property;
 
@@ -19,12 +19,12 @@ namespace RegressionGames
          * <summary>Limit the properties of the call type to be included, Default is 'Field | Property'</summary>
          */
         public RGStateIncludeFlags IncludeFlags { get; set; } = DefaultFlags;
-        
+
 
         public RGStateTypeAttribute()
         {
         }
-        
+
         /**
          * <summary>
          * This constructor allows a type parameter to be specified, e.g., [RGStateType("SomeType")].
@@ -35,7 +35,7 @@ namespace RegressionGames
         {
             TypeName = typeName;
         }
-        
+
         [Flags]
         public enum RGStateIncludeFlags
         {
@@ -48,8 +48,8 @@ namespace RegressionGames
             Property = 0b0010_0000,
             Method = 0b0100_0000
         }
-        
-        
+
+
     }
 
 }

@@ -7,7 +7,7 @@ namespace RegressionGames
     public static class RGDebug
     {
         // ReSharper disable once InconsistentNaming
-        private enum RGLogLevel {Verbose, Debug, Info, Warning, Error}
+        private enum RGLogLevel { Verbose, Debug, Info, Warning, Error }
 
         /**
          * Logging of 'Verbose' logs. Only visible if Log Level is set to 'Verbose'
@@ -26,7 +26,7 @@ namespace RegressionGames
         {
             LogToConsole(message, RGLogLevel.Debug, context);
         }
-        
+
         /**
          * Logging of 'Info' logs. Only visible if Log Level is set to 'Info' or
          * lower in the Regression Project Settings.
@@ -36,7 +36,7 @@ namespace RegressionGames
         {
             LogToConsole(message, RGLogLevel.Info, context);
         }
-        
+
         /**
          * Logging of 'Info' logs. Only visible if Log Level is set to 'Info' or
          * lower in the Regression Project Settings
@@ -86,7 +86,7 @@ namespace RegressionGames
                     Debug.LogWarning(message);
                 }
             }
-            
+
             if (context != null)
             {
                 Debug.LogException(exception, context);
@@ -96,7 +96,7 @@ namespace RegressionGames
                 Debug.LogException(exception);
             }
         }
-        
+
         public static bool IsVerboseEnabled => CheckLogLevel(RGLogLevel.Verbose);
         public static bool IsDebugEnabled => CheckLogLevel(RGLogLevel.Debug);
         public static bool IsInfoEnabled => CheckLogLevel(RGLogLevel.Info);
@@ -117,7 +117,7 @@ namespace RegressionGames
             }
 
             var logMessage = BuildPrefix(logLevel) + message;
-            
+
             switch (logLevel)
             {
                 case RGLogLevel.Warning:
@@ -155,7 +155,7 @@ namespace RegressionGames
                     break;
             }
         }
-        
+
         // Determine if the log message is within the log levels in the settings
         private static bool CheckLogLevel(RGLogLevel logLevel)
         {
