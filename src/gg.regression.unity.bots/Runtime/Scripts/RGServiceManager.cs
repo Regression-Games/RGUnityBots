@@ -643,6 +643,26 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
+        private Task SendWebRequest(
+            string uri, string method, string payload, Action<string> onSuccess, Action<string> onFailure,
+            bool isAuth = false, string contentType = "application/json")
+            => SendWebRequest(
+                uri,
+                method,
+                payload,
+                s =>
+                {
+                    onSuccess(s);
+                    return Task.CompletedTask;
+                },
+                s =>
+                {
+                    onFailure(s);
+                    return Task.CompletedTask;
+                },
+                isAuth,
+                contentType);
+
         private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth = false, string contentType = "application/json")
         {
             var messageId = ++correlationId;

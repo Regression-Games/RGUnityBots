@@ -415,7 +415,7 @@ namespace RegressionGames
             EnqueueTaskForClient(long.MaxValue, StartGameHelper);
         }
 
-        private async Task SetupClientConnection(RGClientConnection clientConnection)
+        private Task SetupClientConnection(RGClientConnection clientConnection)
         {
             // MUST do this on the main thread
             // update to the latest connection info from RGService

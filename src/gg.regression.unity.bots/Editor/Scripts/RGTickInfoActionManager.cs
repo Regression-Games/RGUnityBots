@@ -152,7 +152,11 @@ namespace RegressionGames.Editor
         public bool showPath;
         public bool showActions;
         public bool showHighlight;
+
+        // It's ok for _us_ to call the obsolete 'type' property, because we're supporting old replays.
+#pragma warning disable CS0612 // Type or member is obsolete
         public string objectName => $"{name ?? (type ?? "[" + string.Join(',', types) + "]")}_{id}";
+#pragma warning restore CS0612 // Type or member is obsolete
     }
 
     [Serializable]
