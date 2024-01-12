@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace RegressionGames
 {
-    public class RGSettingsDynamicEnabler: MonoBehaviour
+    public class RGSettingsDynamicEnabler : MonoBehaviour
     {
         public bool disableIfUsingGlobalSettings = false;
         public void OnEnable()

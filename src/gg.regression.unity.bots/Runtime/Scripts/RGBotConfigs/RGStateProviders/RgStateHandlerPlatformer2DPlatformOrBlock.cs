@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace RGBotConfigs.RGStateProviders
 {
-    
+
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RGStateEntity_Platformer2DPlatformOrBlock : Dictionary<string,object>, IRGStateEntity
+    public class RGStateEntity_Platformer2DPlatformOrBlock : Dictionary<string, object>, IRGStateEntity
     {
         public Vector3 size => (Vector3)this["size"];
         public Vector3 position => (Vector3)this["position"];
@@ -17,7 +17,7 @@ namespace RGBotConfigs.RGStateProviders
         public bool movable => (bool)this["movable"];
         public bool dropthroughAble => (bool)this["dropthroughAble"];
         public bool jumpthroughAble => (bool)this["jumpthroughAble"];
-        
+
         public string GetEntityType()
         {
             return EntityTypeName;
@@ -32,15 +32,15 @@ namespace RGBotConfigs.RGStateProviders
         public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DPlatformOrBlock);
         public static readonly bool IsPlayer = false;
     }
-    
+
     /**
      * Provides state information about the tile grid in the current visible screen space.
      */
     [Serializable]
-    public class RgStateHandlerPlatformer2DPlatformOrBlock: RGStateBehaviour<RGStateEntity_Platformer2DPlatformOrBlock>
+    public class RgStateHandlerPlatformer2DPlatformOrBlock : RGStateBehaviour<RGStateEntity_Platformer2DPlatformOrBlock>
     {
         public bool movable;
-        
+
         public bool breakable;
 
         public bool dropthroughAble;
@@ -53,13 +53,13 @@ namespace RGBotConfigs.RGStateProviders
         private RgStateHandlerPlatformer2DLevel levelState;
 
         private Collider2D colliderThing;
-        
+
         private void OnEnable()
         {
             levelState = FindObjectOfType<RgStateHandlerPlatformer2DLevel>();
             colliderThing = GetComponentInChildren<Collider2D>();
         }
-        
+
         protected override RGStateEntity_Platformer2DPlatformOrBlock CreateStateEntityInstance()
         {
             return new RGStateEntity_Platformer2DPlatformOrBlock();
@@ -82,7 +82,7 @@ namespace RGBotConfigs.RGStateProviders
             var bounds = colliderThing.bounds;
             var minBounds = bounds.min;
             _lastSize = bounds.size;
-            
+
             // faster than adding vector3s
             _lastPosition = new Vector3(minBounds.x, minBounds.y + _lastSize.y, minBounds.z);
 
@@ -102,7 +102,7 @@ namespace RGBotConfigs.RGStateProviders
                 stateEntity["position"] = _lastPosition;
             }
         }
-        
+
         private void OnDrawGizmos()
         {
             if (renderDebugGizmos)
@@ -120,7 +120,7 @@ namespace RGBotConfigs.RGStateProviders
                         if (dropthroughAble || jumpthroughAble)
                         {
                             Gizmos.DrawWireCube(new Vector3(xPosition, lp.y + cellHeight / 2, lp.z),
-                                new Vector3(cellWidth, cellHeight, 1));   
+                                new Vector3(cellWidth, cellHeight, 1));
                         }
                         else
                         {

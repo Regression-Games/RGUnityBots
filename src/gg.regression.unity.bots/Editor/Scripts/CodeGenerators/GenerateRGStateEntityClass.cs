@@ -55,15 +55,15 @@ namespace RegressionGames.Editor.CodeGenerators
                     GeneratePopulateMethod(behaviourName, attributeInfos)
                 );
 
-            var properties = attributeInfos.Where(a => a !=null).Select(a => GeneratePropertyDeclaration(a.Type, a.StateName)).Where(v => v != null).ToArray();
+            var properties = attributeInfos.Where(a => a != null).Select(a => GeneratePropertyDeclaration(a.Type, a.StateName)).Where(v => v != null).ToArray();
             if (properties.Length > 0)
             {
                 classDeclaration = classDeclaration.AddMembers(
                     properties
                 );
             }
-            
-            
+
+
             var compilationUnitMembers = new List<MemberDeclarationSyntax>();
             // Create namespace
             if (string.IsNullOrEmpty(behaviourNamespace))
@@ -79,7 +79,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             // Add it all to the compilation unit
             compilationUnit = compilationUnit.AddMembers(compilationUnitMembers.ToArray());
-            
+
             // Get the full code text
             var formattedCode = compilationUnit.NormalizeWhitespace().ToFullString();
 
@@ -169,7 +169,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.OverrideKeyword)
                         }
@@ -203,7 +203,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.OverrideKeyword)
                         }
@@ -219,7 +219,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     )
                 );
         }
-        
+
         private static MethodDeclarationSyntax GenerateIsPlayerMethod()
         {
             return MethodDeclaration(
@@ -230,7 +230,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.OverrideKeyword)
                         }
@@ -306,7 +306,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.StaticKeyword),
                             Token(SyntaxKind.ReadOnlyKeyword)
@@ -342,7 +342,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 )
                 .WithModifiers(
                     TokenList(
-                        new []{
+                        new[]{
                             Token(SyntaxKind.PublicKeyword),
                             Token(SyntaxKind.StaticKeyword),
                             Token(SyntaxKind.ReadOnlyKeyword)
@@ -353,7 +353,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static PropertyDeclarationSyntax GeneratePropertyDeclaration(string propertyType, string propertyName)
         {
-            var specialNumberTypes = new [] {
+            var specialNumberTypes = new[] {
                 "float","double","decimal","sbyte","byte","short","ushort","int","uint","long","ulong"
             };
             if (specialNumberTypes.Contains(propertyType.ToLowerInvariant()))

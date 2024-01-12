@@ -8,7 +8,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 {
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RgStateEntityBasePlatformer2DPlayer : Dictionary<string,object>, IRGStateEntity
+    public class RgStateEntityBasePlatformer2DPlayer : Dictionary<string, object>, IRGStateEntity
     {
         public Vector3 position => (Vector3)this["position"];
         public float jumpHeight => (float)this["jumpHeight"];
@@ -18,7 +18,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public float safeFallHeight => (float)this["safeFallHeight"];
         public float nonFatalFallHeight => (float)this["nonFatalFallHeight"];
         public float gravity => (float)this["gravity"];
-        
+
         public string GetEntityType()
         {
             return EntityTypeName;
@@ -33,7 +33,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DPlayer);
         public static readonly bool IsPlayer = true;
     }
-    
+
     [Serializable]
     public class RgStateHandlerPlatformer2DPlayer : RGStateBehaviour<RgStateEntityBasePlatformer2DPlayer>
     {
@@ -48,24 +48,24 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip(
             "The max height that the player can jump.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float maxJumpHeight;
-        
+
         [Tooltip("The current horizontal velocity of the player.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float velocity;
-        
+
         [Tooltip("The current max horizontal velocity of the player.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float maxVelocity;
-        
+
         [Tooltip("The current max safe fall height of the player.  From this height the player will take zero damage. <0 means infinite. >=0 is treated as the actual value  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float safeFallHeight = -1f;
 
         [Tooltip(
             "The current max non fatal fall height of the player.  From this height the player may take damage, but will not die from the fall. <0 means infinite. >=0 is treated as the actual value  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float nonFatalFallHeight = -1f;
-        
+
         [Tooltip(
             "The gravity value (negative) to use in fall and jump calculations.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float gravity = -9.81f;
-        
+
         private Vector2? _truePosition = null;
 
         [NonSerialized]
@@ -75,7 +75,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         {
             _statsProvider = gameObject.GetComponent<RGStatePlatformer2DPlayerStatsProvider>();
         }
-        
+
         protected override RgStateEntityBasePlatformer2DPlayer CreateStateEntityInstance()
         {
             return new RgStateEntityBasePlatformer2DPlayer();
@@ -123,7 +123,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 Gizmos.DrawWireSphere((Vector2)_truePosition, 0.125f);
             }
         }
-        
+
     }
-    
+
 }

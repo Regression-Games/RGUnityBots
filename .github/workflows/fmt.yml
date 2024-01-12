@@ -1,17 +1,12 @@
-name: Unity Build and Test
+name: Validate C# Code Formatting
 
 on:
-  # Build every commit to 'main'
-  push:
-    branches:
-      - main
-
   # Build every PR
   pull_request:
 
 jobs:
-  test:
-    name: Unity Tests
+  fmt:
+    name: Validate C# Code Formatting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,7 +16,7 @@ jobs:
 
       - name: Activate Problem Matchers
         run:
-          echo "::add-matcher::$GITHUB_WORKSPACE/.github/problemMatchers/unity-compile.json"
+          echo "::add-matcher::$GITHUB_WORKSPACE/.github/problemMatchers/dotnet-format.json"
 
       - name: Retrieve Cached Library
         uses: actions/cache@v3
@@ -31,21 +26,10 @@ jobs:
           restore-keys: |
             Library-
 
-      - name: Run Unity Tests
-        id: run-unity-tests
-        uses: game-ci/unity-test-runner@v4
+      - name: Validate formatting
         env:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
-        with:
-          projectPath: src/RGUnityBots
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: Test results
-          path: ${{ steps.run-unity-tests.outputs.artifactsPath }}
-              
+        run:
+          script/fmt --docker --check --resync

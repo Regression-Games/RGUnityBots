@@ -70,26 +70,26 @@ namespace RegressionGames.Editor
                 var tickInfo = PopulateTickInfoDataForEntity(tickNumber, entityId);
 
                 tickInfo.state = entity;
-                
-                // support old 'type' field to be able to load extracts created pre Jan 2024
-                PopulateReplayDataForEntity(entityId, entity.name, (string)entity.GetValueOrDefault("type",null), entity.types, entity.isPlayer);
 
-                    // handle strong typing on position / rotation accessors
+                // support old 'type' field to be able to load extracts created pre Jan 2024
+                PopulateReplayDataForEntity(entityId, entity.name, (string)entity.GetValueOrDefault("type", null), entity.types, entity.isPlayer);
+
+                // handle strong typing on position / rotation accessors
                 if (entity.ContainsKey("position") && entity["position"] is JObject)
                 {
-                        var jObj = (JObject)entity["position"];
-                        entity["position"] = new Vector3(jObj["x"].Value<float>(),
-                            jObj["y"].Value<float>(),
-                            jObj["z"].Value<float>());
+                    var jObj = (JObject)entity["position"];
+                    entity["position"] = new Vector3(jObj["x"].Value<float>(),
+                        jObj["y"].Value<float>(),
+                        jObj["z"].Value<float>());
                 }
-                
+
                 if (entity.ContainsKey("rotation") && entity["rotation"] is JObject)
                 {
-                        var jObj = (JObject)entity["rotation"];
-                        entity["rotation"] = new Quaternion(jObj["x"].Value<float>(),
-                            jObj["y"].Value<float>(),
-                            jObj["z"].Value<float>(),
-                            jObj["w"].Value<float>());
+                    var jObj = (JObject)entity["rotation"];
+                    entity["rotation"] = new Quaternion(jObj["x"].Value<float>(),
+                        jObj["y"].Value<float>(),
+                        jObj["z"].Value<float>(),
+                        jObj["w"].Value<float>());
                 }
             }
         }
@@ -104,7 +104,7 @@ namespace RegressionGames.Editor
                 true, true);
         }
 
-        private RGEntityReplayData PopulateReplayDataForEntity(long entityId, string name, string type, string[] types, bool isPlayer = false, 
+        private RGEntityReplayData PopulateReplayDataForEntity(long entityId, string name, string type, string[] types, bool isPlayer = false,
 
             bool? showPath = null,
             bool? showActions = null, bool? highlight = null)
@@ -152,7 +152,7 @@ namespace RegressionGames.Editor
         public bool showPath;
         public bool showActions;
         public bool showHighlight;
-        public string objectName => $"{name ?? (type ?? "["+string.Join(',',types)+"]")}_{id}";
+        public string objectName => $"{name ?? (type ?? "[" + string.Join(',', types) + "]")}_{id}";
     }
 
     [Serializable]

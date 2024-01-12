@@ -10,7 +10,7 @@ namespace RegressionGames.StateActionTypes
     {
         // is this button currently interactable
         public bool interactable => (bool)this["interactable"];
-        
+
         // This is mostly implemented to make visibility in the debugger much easier... especially when finding the right object in the overall state
         public override string ToString()
         {

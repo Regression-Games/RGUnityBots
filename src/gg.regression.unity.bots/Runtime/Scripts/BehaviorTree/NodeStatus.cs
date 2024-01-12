@@ -6,12 +6,12 @@ namespace RegressionGames.BehaviorTree
         /// The node has completed successfully.
         /// </summary>
         Success,
-        
+
         /// <summary>
         /// The node failed to execute.
         /// </summary>
         Failure,
-        
+
         /// <summary>
         /// The node is still running.
         /// </summary>

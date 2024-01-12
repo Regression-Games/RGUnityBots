@@ -10,7 +10,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
     public class RgPlatformer2DPosition
     {
         public Vector2 position;
-        
+
         // used by pathfinding to know if this has a wall adjoining it
         public bool blockedRight;
         // used by pathfinding to know if this has a wall adjoining it
@@ -24,23 +24,23 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 
     // ReSharper disable InconsistentNaming
     [Serializable]
-    public class RgStateEntityBasePlatformer2DLevel : Dictionary<string,object>, IRGStateEntity
+    public class RgStateEntityBasePlatformer2DLevel : Dictionary<string, object>, IRGStateEntity
     {
         /**
          * <summary>The BoundsInt of the whole tileMap</summary>
          */
         public BoundsInt tileMapBounds => (BoundsInt)
-            this.GetValueOrDefault("tileMapBounds", new BoundsInt(0,0,0,0,0,0));
+            this.GetValueOrDefault("tileMapBounds", new BoundsInt(0, 0, 0, 0, 0, 0));
 
         /**
          * <summary>The BoundsInt of the current visible portion of the tileMap</summary>
          */
         public BoundsInt currentBounds => (BoundsInt)
-            this.GetValueOrDefault("currentBounds", new BoundsInt(0,0,0,0,0,0));
-        
+            this.GetValueOrDefault("currentBounds", new BoundsInt(0, 0, 0, 0, 0, 0));
+
         public Vector3 tileCellSize => (Vector3)this["tileCellSize"];
         public RgPlatformer2DPosition[] platformPositions => (RgPlatformer2DPosition[])this["platformPositions"];
-        
+
         public string GetEntityType()
         {
             return EntityTypeName;
@@ -50,22 +50,22 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         {
             return false;
         }
-        
+
         public static readonly string EntityTypeName = "platformer2DLevel";
         public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DLevel);
         public static readonly bool IsPlayer = false;
     }
-    
+
     /**
      * Provides state information about the tile grid in the current visible screen space.
      */
     [Serializable]
-    public class RgStateHandlerPlatformer2DLevel: RGStateBehaviour<RgStateEntityBasePlatformer2DLevel>
+    public class RgStateHandlerPlatformer2DLevel : RGStateBehaviour<RgStateEntityBasePlatformer2DLevel>
     {
         [Tooltip("How many tile spaces above a platform to consider when determining the height available on top of a platform.  This should match the height of the largest character model navigating the scene in tile units.")]
         [Min(1)]
         public int tileSpaceAbove = 2;
-        
+
         [NonSerialized]
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
@@ -111,7 +111,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 tileTopRight.x += fraction;
 
                 // limit y to the bottom of the tilemap
-                tileBottomLeft.y = Math.Max(tileBottomLeft.y-fraction, cellBounds.yMin);
+                tileBottomLeft.y = Math.Max(tileBottomLeft.y - fraction, cellBounds.yMin);
 
                 tileTopRight.y += fraction;
 
@@ -121,7 +121,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 var cellBoundsBottomLeft = new Vector3Int(Math.Max(currentBounds.xMin, cellBounds.xMin),
                     Math.Max(currentBounds.yMin, cellBounds.yMin), cellBounds.zMin);
 
-                var cellBoundsTopRight = new Vector3Int( Math.Min(currentBounds.xMax, cellBounds.xMax),
+                var cellBoundsTopRight = new Vector3Int(Math.Min(currentBounds.xMax, cellBounds.xMax),
                     Math.Min(currentBounds.yMax, cellBounds.yMax), cellBounds.zMax);
 
                 cellBounds = new BoundsInt(cellBoundsBottomLeft, cellBoundsTopRight - cellBoundsBottomLeft);
@@ -192,7 +192,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             stateEntity["tileCellSize"] = _lastCellSize;
             stateEntity["platformPositions"] = _lastPositions.ToArray();
         }
-        
+
         private void OnDrawGizmos()
         {
             if (renderDebugGizmos)
@@ -200,13 +200,13 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 foreach (var platformPosition in _lastPositions)
                 {
                     Gizmos.DrawWireSphere(new Vector3(platformPosition.position.x + _lastCellSize.x / 2, platformPosition.position.y + _lastCellSize.y / 2, 0),
-                        _lastCellSize.x/2);
+                        _lastCellSize.x / 2);
                 }
             }
         }
 
     }
-    
 
-    
+
+
 }

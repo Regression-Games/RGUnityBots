@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace RegressionGames.Editor
 {
-    
+
     [Serializable]
     // ReSharper disable InconsistentNaming
     public class RGEntityStatesJson

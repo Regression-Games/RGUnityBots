@@ -18,7 +18,8 @@ namespace RegressionGames.Editor
 
         public void OnEnable()
         {
-            if ( AssetDatabase.GetMainAssetTypeAtPath( AssetPath ) != null) {
+            if (AssetDatabase.GetMainAssetTypeAtPath(AssetPath) != null)
+            {
                 _this = AssetDatabase.LoadAssetAtPath<ReplayModelManager>(AssetPath);
             }
         }
@@ -42,11 +43,12 @@ namespace RegressionGames.Editor
                 _this = CreateInstance<ReplayModelManager>();
             }
 
-            if ( AssetDatabase.GetMainAssetTypeAtPath( AssetPath ) == null) {
-                AssetDatabase.CreateAsset(_this, AssetPath );
+            if (AssetDatabase.GetMainAssetTypeAtPath(AssetPath) == null)
+            {
+                AssetDatabase.CreateAsset(_this, AssetPath);
                 AssetDatabase.SaveAssets();
             }
-            
+
             return _this;
         }
 
@@ -57,7 +59,7 @@ namespace RegressionGames.Editor
                 AssetDatabase.OpenAsset(_this);
             }
         }
-        
+
         public bool HasEntries()
         {
             return models.Length > 0;
@@ -77,7 +79,7 @@ namespace RegressionGames.Editor
 
             return false;
         }
-        
+
         [CanBeNull]
         public GameObject GetModelPrefabForType(string[] types, string charType)
         {
@@ -92,13 +94,13 @@ namespace RegressionGames.Editor
             // TODO: This picks the first matching one today
             nm = models.FirstOrDefault(model => types.Contains(model.objectType));
             if (nm.objectType != null && nm.modelPrefab != null) return nm.modelPrefab;
-                
+
             GameObject defaultPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 $"{RGBotReplayWindow.PREFAB_PATH}/DefaultModel.prefab");
 
             // could be null
             return defaultPrefab;
-            
+
         }
 
         [Serializable]
@@ -109,7 +111,7 @@ namespace RegressionGames.Editor
                 this.objectType = objectType;
                 this.modelPrefab = modelPrefab;
             }
-            
+
             [CanBeNull] public string objectType;
             [CanBeNull] public GameObject modelPrefab;
         }

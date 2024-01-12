@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 
 namespace RegressionGames
 {
-    
+
     /**
      * Environment variable and command line argument utilities for configuring Regression Games
      */
@@ -21,7 +21,7 @@ namespace RegressionGames
          */
         [CanBeNull]
         public static string ReadAPIKey() => ReadEnvVarOrCommandLine(RG_API_KEY);
-        
+
         /**
          * Reads the RG_HOST from either the environment variable or command
          * line arguments. This is useful for automated CI builds, where the
@@ -30,7 +30,7 @@ namespace RegressionGames
          */
         [CanBeNull]
         public static string ReadHost() => ReadEnvVarOrCommandLine(RG_HOST);
-        
+
         /**
          * Reads the BOT from either the environment variable or command
          * line arguments. This is useful for automated CI builds, where the
