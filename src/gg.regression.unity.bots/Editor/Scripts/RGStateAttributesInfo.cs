@@ -9,7 +9,7 @@ namespace RegressionGames.Editor
     {
         public List<RGStateAttributesInfo> RGStateAttributesInfo { get; set; }
     }
-    
+
     [Serializable]
     public class RGStateAttributesInfo
     {

@@ -11,7 +11,7 @@ namespace RegressionGames.StateActionTypes
     public class RGAction_ClickButton : RGActionBehaviour
     {
         private readonly ConcurrentQueue<Button> _buttonsToClick = new();
-        
+
         public void Update()
         {
             // one button click per frame update
@@ -55,7 +55,7 @@ namespace RegressionGames.StateActionTypes
 
     public class RGActionRequest_ClickButton : RGActionRequest
     {
-        public RGActionRequest_ClickButton(int targetId) : base("ClickButton",  new Dictionary<string, object> { { "targetId", targetId } })
+        public RGActionRequest_ClickButton(int targetId) : base("ClickButton", new Dictionary<string, object> { { "targetId", targetId } })
         {
         }
 

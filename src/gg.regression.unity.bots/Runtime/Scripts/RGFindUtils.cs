@@ -19,7 +19,7 @@ namespace RegressionGames
         /**
          * Finds a GameObject by instance ID
          */
-        public GameObject FindOneByInstanceId(int instanceId) 
+        public GameObject FindOneByInstanceId(int instanceId)
         {
             // If the requested object is not in the cache, refresh the cache
             if (!_objectCache.ContainsKey(instanceId))
@@ -28,7 +28,7 @@ namespace RegressionGames
             }
             return _objectCache.GetValueOrDefault(instanceId, null);
         }
-        
+
         /**
          * Finds a MonoBehaviour on a GameObject by instance ID, using a type parameter for
          * specifying which MonoBehaviour on the Object to choose.
@@ -50,7 +50,7 @@ namespace RegressionGames
             var result = gameObject.GetComponent<T>();
             return result;
         }
-        
+
         private void UpdateCache()
         {
             var gameObjects = FindStatefulAndActionableBehaviours().Select(v => v.gameObject).Distinct();

@@ -4,6 +4,6 @@ namespace RegressionGames.StateActionTypes
 {
     public interface IRGAction
     {
-        
+
     }
 }

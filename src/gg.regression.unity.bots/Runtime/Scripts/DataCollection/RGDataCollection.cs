@@ -59,7 +59,7 @@ namespace RegressionGames.DataCollection
             public List<Task> replayDataTasks = new();
             public Task validationDataTask;
             public Task logFlushTask;
-            public RGValidationSummary validationSummary = new(0,0,0);
+            public RGValidationSummary validationSummary = new(0, 0, 0);
 
             public BotInstanceDataCollectionState(RGBot bot, DateTime startTime)
             {
@@ -108,7 +108,7 @@ namespace RegressionGames.DataCollection
         public void ProcessScreenshotRequests()
         {
             var done = false;
-            while(!done && _screenshotTicksRequested.TryDequeue(out long tick) )
+            while (!done && _screenshotTicksRequested.TryDequeue(out long tick))
             {
                 // only allow one screenshot per tick #
                 // if many bots are running locally, they may all ask for the same tick
@@ -246,7 +246,7 @@ namespace RegressionGames.DataCollection
 
                     // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
                     RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
-                    
+
 
                     await serviceManager.CreateBotInstance(
                         state.bot.id,
@@ -275,14 +275,14 @@ namespace RegressionGames.DataCollection
                     GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip")
                 );
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Zipped data, now uploading...");
-                
+
                 // Flush any outstanding logs.
                 // We don't need to do the atomic-swap trick here
                 // because we've been removed from the state dictionary so no more logs will be written to this queue.
                 await FlushLogs(clientId, state.logs);
                 var logsFilePath =
                     GetSessionDirectory($"validationData/{clientId}/rgbot_logs.jsonl");
-                
+
                 // Save all of the validation data (i.e. the validation summary and validations file overall)
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Uploading validation data...");
 
@@ -295,13 +295,13 @@ namespace RegressionGames.DataCollection
                 var validationFilePath =
                     GetSessionDirectory($"validationData/{clientId}/rgbot_validations.jsonl");
 
-                
+
                 // ==== now that we've saved everything ... do all the uploading if we can
                 if (createBotInstanceException != null)
                 {
                     throw createBotInstanceException;
                 }
-                
+
                 // Create a bot history record for this bot
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance history...");
                 await serviceManager.CreateBotInstanceHistory(
@@ -309,7 +309,7 @@ namespace RegressionGames.DataCollection
                     (result) => { },
                     () => { });
                 RGDebug.LogVerbose($"DataCollection[{clientId}] - Created the record for bot instance history");
-                
+
                 await serviceManager.UploadReplayData(
                     botInstanceId, GetSessionDirectory($"replayData/rg_bot_replay_data-{botInstanceId}.zip"),
                     () => { }, () => { });
@@ -404,7 +404,7 @@ namespace RegressionGames.DataCollection
         private string GetSessionDirectory(string path = "")
         {
             //TODO: (REG-1422) Make this deterministic in a way that we can sync data later if the connection was down
-            var fullPath = Path.Combine(_rootPath, "RGData",  _sessionName, path);
+            var fullPath = Path.Combine(_rootPath, "RGData", _sessionName, path);
             var directory = Path.GetDirectoryName(fullPath);
             if (directory != null)
             {
@@ -448,7 +448,8 @@ namespace RegressionGames.DataCollection
 
     // Extension code borrowed from StackOverflow to allow creating a zip of directory
     // while filtering out certain contents
-    public static class ZipHelper {
+    public static class ZipHelper
+    {
         public static void CreateFromDirectory(string sourceDirectoryName,
             string destinationArchiveFileName,
             CompressionLevel compressionLevel = CompressionLevel.Fastest,
@@ -456,10 +457,12 @@ namespace RegressionGames.DataCollection
             Predicate<string> exclusionFilter = null
         )
         {
-            if (string.IsNullOrEmpty(sourceDirectoryName)) {
+            if (string.IsNullOrEmpty(sourceDirectoryName))
+            {
                 throw new ArgumentNullException("sourceDirectoryName");
             }
-            if (string.IsNullOrEmpty(destinationArchiveFileName)) {
+            if (string.IsNullOrEmpty(destinationArchiveFileName))
+            {
                 throw new ArgumentNullException("destinationArchiveFileName");
             }
             var filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);

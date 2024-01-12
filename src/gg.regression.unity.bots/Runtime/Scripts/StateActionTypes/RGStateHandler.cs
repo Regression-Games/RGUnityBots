@@ -15,10 +15,10 @@ namespace RegressionGames.StateActionTypes
     {
         // used to track if this game object was spawned and owned by a bot
         internal long? ClientId;
-        
+
         // don't need to be re-creating my state entity every tick, just updating its values
         private RGStateEntity_Core _myStateEntity;
-        
+
         public static RGStateHandler EnsureRGStateHandlerOnGameObject(GameObject gameObject)
         {
             if (gameObject == null)
@@ -34,7 +34,7 @@ namespace RegressionGames.StateActionTypes
             }
             return rgState;
         }
-        
+
         private static string GetGameObjectPath(GameObject obj)
         {
             string path = "/" + obj.name;
@@ -45,7 +45,7 @@ namespace RegressionGames.StateActionTypes
             }
             return path;
         }
-        
+
         /**
          * <summary>Used to fill in the core state for any RGEntity that does NOT have an RGState implementation on its game object</summary>
          */
@@ -55,13 +55,13 @@ namespace RegressionGames.StateActionTypes
             {
                 return null;
             }
-            
+
             var rgState = EnsureRGStateHandlerOnGameObject(gameObject);
-            
+
             RGStateEntity_Core state = rgState._myStateEntity;
 
             var theTransform = gameObject.transform;
-            
+
             // only create this thing once, not every tick
             if (state == null)
             {
@@ -69,7 +69,7 @@ namespace RegressionGames.StateActionTypes
                 state = button != null ? new RGStateEntity_Button() : new RGStateEntity_Core();
 
                 rgState._myStateEntity = state;
-                
+
                 //only need to set these once
                 state["id"] = theTransform.GetInstanceID();
                 state["name"] = gameObject.name;
@@ -90,7 +90,7 @@ namespace RegressionGames.StateActionTypes
                 state["interactable"] = (cg == null || cg.enabled && cg.interactable) && button.enabled &&
                                         button.interactable;
             }
-            
+
             return state;
         }
 
@@ -102,15 +102,15 @@ namespace RegressionGames.StateActionTypes
             var type = monoBehaviour.GetType();
             var typeName = type.Name;
             isPlayer = false;
-            
+
             // this behaviour could have states and/or actions defined
             var stateBehaviour = BehavioursWithStateOrActions.GetRGStateEntityMappingForBehaviour(monoBehaviour);
-            if ( stateBehaviour != null)
+            if (stateBehaviour != null)
             {
                 typeName = stateBehaviour.EntityType ?? typeName;
                 isPlayer = stateBehaviour.IsPlayer;
             }
-        
+
             var actionBehaviour = BehavioursWithStateOrActions.GetRGActionsMappingForBehaviour(monoBehaviour);
             if (actionBehaviour != null)
             {
@@ -143,7 +143,7 @@ namespace RegressionGames.StateActionTypes
             // ignore any behaviour that doesn't have states
             state?.PopulateFromMonoBehaviour(monoBehaviour);
         }
-        
+
     }
 
 }

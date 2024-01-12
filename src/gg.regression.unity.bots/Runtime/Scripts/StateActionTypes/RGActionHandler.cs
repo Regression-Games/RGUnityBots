@@ -8,13 +8,13 @@ namespace RegressionGames.StateActionTypes
 {
     public sealed class RGActionHandler : MonoBehaviour
     {
-        private readonly Dictionary<string, Delegate> _actionRequestDelegateMap = new ();
-        private readonly Dictionary<string, Delegate> _actionRequestGameObjectDelegateMap = new ();
+        private readonly Dictionary<string, Delegate> _actionRequestDelegateMap = new();
+        private readonly Dictionary<string, Delegate> _actionRequestGameObjectDelegateMap = new();
 
         private bool loaded;
 
         private bool isOverlayComponent;
-        
+
         public void Start()
         {
             if (loaded)
@@ -23,9 +23,9 @@ namespace RegressionGames.StateActionTypes
             }
 
             isOverlayComponent = GetComponents<RGBotServerListener>() != null;
-            
+
             // when this object is started / attached to the gameObject... populate all the available methods on that game Object
-            
+
             // find all the MonoBehaviour and load their actions
             var monoBehaviours = GetComponents<MonoBehaviour>();
 
@@ -49,7 +49,7 @@ namespace RegressionGames.StateActionTypes
                     _actionRequestGameObjectDelegateMap[actionName] = dDelegate;
                 }
             }
-            
+
             // load any custom action behaviours on this gameObject
             var customActions = GetComponents<RGActionBehaviour>();
             foreach (var customAction in customActions)

@@ -36,7 +36,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
         protected abstract bool GetIsSpawnable();
         protected abstract RGBotLifecycle GetBotLifecycle();
-        
+
         /**
          * <summary>Used to configure the user's bot before starting. ALWAYS call base.ConfigureBot(rgObject) to help setup key information about your bot.</summary>
          * <param name="rgObject">{RG} Container object with access to character config, clientId, and state information</param>
@@ -48,9 +48,9 @@ namespace RegressionGames.RGBotLocalRuntime
          * <param name="rgObject">{RG} Container object with access to character config, clientId, and state information</param>
          */
         public abstract void ProcessTick(RG rgObject);
-        
+
         // Debug functions
-        
+
         public void OnDrawGizmos()
         {
             _rgGizmos.OnDrawGizmos();

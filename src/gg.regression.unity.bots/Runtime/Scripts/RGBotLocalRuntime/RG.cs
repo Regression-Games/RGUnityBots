@@ -32,7 +32,7 @@ namespace RegressionGames.RGBotLocalRuntime
          * <summary>{string} The current game scene name.</summary>
          */
         public string SceneName => _tickInfo.sceneName;
-        
+
         /**
          * <summary>{long} The current tick since the start of the first bot that was run this session.</summary>
          */
@@ -110,7 +110,7 @@ namespace RegressionGames.RGBotLocalRuntime
             }
             return null;
         }
-        
+
         /**
          * <summary>Used to find the closest Entity to the given position.</summary>
          * <param name="name">{string | null} Search for entities with a specific name</param>
@@ -191,7 +191,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return result.Count > 0 ? result[0] : null;
         }
-        
+
         /**
          * <summary>Returns all buttons from the game state.</summary>
          * <returns>{List&lt;RGStateEntity_Button&gt;} All buttons in the state.</returns>
@@ -210,7 +210,7 @@ namespace RegressionGames.RGBotLocalRuntime
         {
             return _tickInfo.gameState.Values.Where(v => includeButtons || v is not RGStateEntity_Button).ToList();
         }
-        
+
         /**
          * <summary>Used to find a list of entities from the game state.</summary>
          * <param name="scenePath">{string | null} Search for entities matching the given scenePath.  The path can be partial to match any gameObjects that start with the provided path. sorts those with the match closest to the front to the front</param>
@@ -241,8 +241,8 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return result.ToList();
         }
-        
-        
+
+
         /**
          * <summary>Used to find a list of entities from the game state.</summary>
          * <param name="name">{string | null} Search for entities of a specific name</param>
@@ -264,7 +264,7 @@ namespace RegressionGames.RGBotLocalRuntime
                 {
                     if (partial)
                     {
-                        return value.name.Contains(name);    
+                        return value.name.Contains(name);
                     }
 
                     return value.name == name;
@@ -275,7 +275,7 @@ namespace RegressionGames.RGBotLocalRuntime
 
             if (partial && name != null)
             {
-                var orderedResult= result.OrderBy(v => v.name.IndexOf(name, StringComparison.Ordinal)).ToList();
+                var orderedResult = result.OrderBy(v => v.name.IndexOf(name, StringComparison.Ordinal)).ToList();
                 return orderedResult;
             }
 
@@ -313,12 +313,12 @@ namespace RegressionGames.RGBotLocalRuntime
 
             return result.ToList();
         }
-        
+
         /**
          * <summary>Used to find a list of entities from the game state that have the specified type.</summary>
          * <returns>{List&lt;RGStateEntity_Core&gt;} All entities with the given objectType, or all entities in the state if objectType is null.</returns>
          */
-        public List<RGStateEntity_Core> FindEntitiesWithType<T>() where T: IRGStateEntity
+        public List<RGStateEntity_Core> FindEntitiesWithType<T>() where T : IRGStateEntity
         {
             var gameState = _tickInfo.gameState;
             if (gameState.Count == 0)
@@ -445,7 +445,8 @@ namespace RegressionGames.RGBotLocalRuntime
             /**
              * <returns>{double} The square distance between two positions</returns>
              */
-            public static double DistanceSq (Vector3 position1, Vector3 position2) {
+            public static double DistanceSq(Vector3 position1, Vector3 position2)
+            {
                 return Math.Pow(position2.x - position1.x, 2) + Math.Pow(position2.y - position1.y, 2) + Math.Pow(position2.z - position1.z, 2);
             }
         }

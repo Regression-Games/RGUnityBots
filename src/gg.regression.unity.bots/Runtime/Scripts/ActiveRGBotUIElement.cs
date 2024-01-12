@@ -20,11 +20,11 @@ namespace RegressionGames
                 statusText.text = $"{state}";
             }
         }
-        
+
         public void Start()
         {
             Button b = GetComponentInChildren<Button>();
-            
+
             b.onClick.AddListener(() =>
             {
                 FindObjectOfType<RGOverlayMenu>()?.StopBotInstance(_entry.id);
@@ -32,7 +32,7 @@ namespace RegressionGames
             RGBotServerListener.GetInstance().AddUnityBotStateListener(_entry.id, UpdateState);
             statusText.text = $"{RGBotServerListener.GetInstance().GetUnityBotState(_entry.id)}";
         }
-        
+
         public void PopulateBotEntry(RGBotInstance entry)
         {
             _entry = entry;

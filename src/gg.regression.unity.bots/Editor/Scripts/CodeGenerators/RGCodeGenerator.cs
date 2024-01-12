@@ -38,7 +38,7 @@ namespace RegressionGames.Editor.CodeGenerators
     {
 #if UNITY_EDITOR
         private static bool _hasExtractProblem;
-        
+
         private static readonly DirectoryInfo ParentDirectory = Directory.GetParent(Application.dataPath);
 
         private static void RecordError(string error)
@@ -66,7 +66,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     "Cleaning up previously generated RGStateEntity classes", 0.1f);
                 RGDebug.LogDebug($"Cleaning up previously generated RGStateEntity classes...");
                 CleanupPreviousRGStateEntityClasses();
-                
+
                 // generate new RGStateEntity classes
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Generating new RGStateEntity classes", 0.3f);
@@ -77,13 +77,13 @@ namespace RegressionGames.Editor.CodeGenerators
                     "Cleaning up previously generated RGActions classes", 0.5f);
                 RGDebug.LogDebug($"Cleaning up previously generated RGActions classes...");
                 CleanupPreviousRGActionsClasses();
-                
+
                 // find and extract RGAction data
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Searching for [RGAction] attributes", 0.7f);
                 RGDebug.LogDebug($"Searching for [RGAction] attributes...");
                 var actionAttributeInfos = SearchForBotActionAttributes();
-                
+
                 // generate classes
                 EditorUtility.DisplayProgressBar("Generating Regression Games Scripts",
                     "Generating new RGActions classes", 0.9f);
@@ -118,24 +118,24 @@ namespace RegressionGames.Editor.CodeGenerators
         private static void ExtractGameContext()
         {
             _hasExtractProblem = false;
-                
+
             // don't need to generate scripts here because we auto do that on any code change
             try
             {
                 RGDebug.LogInfo($"Extracting Regression Games context...");
-                
+
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
                     "Regenerating scripts", 0.1f);
 
                 GenerateRGScripts();
-                
+
                 // Find RGStateEntity scripts and generate state info from them
                 // Do NOT include the previous state infos.. so we don't have dupes
                 // This gives us a consistent view across both generated and hand written state class entities
                 EditorUtility.DisplayProgressBar("Extracting Regression Games Agent Builder Data",
                     "Extracting state info from RGStateEntity classes", 0.2f);
                 var statesInfos = CreateStateInfoFromRGStateEntities();
-                
+
                 // Do the same for generate RGActionRequest scripts
                 var actionInfos = CreateActionInfoFromRGActionRequests();
 
@@ -163,7 +163,7 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 EditorUtility.ClearProgressBar();
             }
-            
+
             if (_hasExtractProblem)
             {
                 RGDebug.LogWarning($"Completed extracting Regression Games context - Errors occurred, check logs above...");
@@ -176,24 +176,24 @@ namespace RegressionGames.Editor.CodeGenerators
             }
             else
             {
-                var zipPath = Path.Combine(ParentDirectory.FullName,  "RegressionGames.zip");
-                    RGDebug.LogInfo($"Completed extracting Regression Games context - filePath: {zipPath}");
-                    EditorUtility.DisplayDialog(
-                        "Extract Game Context\r\nComplete",
-                        "Game context extracted to .zip file:" +
-                        $"\r\n\r\n{zipPath}",
-                        "OK");
+                var zipPath = Path.Combine(ParentDirectory.FullName, "RegressionGames.zip");
+                RGDebug.LogInfo($"Completed extracting Regression Games context - filePath: {zipPath}");
+                EditorUtility.DisplayDialog(
+                    "Extract Game Context\r\nComplete",
+                    "Game context extracted to .zip file:" +
+                    $"\r\n\r\n{zipPath}",
+                    "OK");
             }
 
         }
 
         private static void GenerateActionClasses(List<RGActionAttributeInfo> actionInfos)
         {
-            var fileWriteTasks = new List<(string,Task)>();
+            var fileWriteTasks = new List<(string, Task)>();
             var actionInfosByBehaviour = actionInfos
                 .GroupBy(v => (v.BehaviourNamespace, v.BehaviourName, v.BehaviourFileDirectory))
                 .ToDictionary(v => v.Key, v => v.ToList());
-            foreach (var (behaviourDetails,actionInfoList) in actionInfosByBehaviour)
+            foreach (var (behaviourDetails, actionInfoList) in actionInfosByBehaviour)
             {
                 var newFileName = $"{behaviourDetails.BehaviourFileDirectory}{Path.DirectorySeparatorChar}RGActions_{behaviourDetails.BehaviourName}.Generated.cs";
                 fileWriteTasks.Add((newFileName,
@@ -212,7 +212,7 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 RGDebug.Log($"Successfully created: {filename}");
             }
-                
+
         }
 
         private static IEnumerable<Assembly> GetAssemblies()
@@ -270,7 +270,7 @@ namespace RegressionGames.Editor.CodeGenerators
             foreach (var csFilePath in csFiles)
             {
                 var scriptText = File.ReadAllText(csFilePath);
-                
+
                 // optimization... this slightly limits our inheritance cases by assuming the child has [RGAction]
                 // but for now its worth the tradeoff in time to avoid compiling all these files
                 if (scriptText.Contains("[RGAction"))
@@ -288,7 +288,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     var monoBehaviourClassDeclarations = root
                         .DescendantNodes().OfType<ClassDeclarationSyntax>();
-                    
+
                     foreach (var classDeclaration in monoBehaviourClassDeclarations)
                     {
                         var behaviourName
@@ -305,13 +305,13 @@ namespace RegressionGames.Editor.CodeGenerators
 
                         var rgStateTypeAttribute = classDeclaration.AttributeLists.SelectMany(attrList => attrList.Attributes)
                             .FirstOrDefault(attr => attr.Name.ToString() == "RGStateType");
-                        
+
                         var entityTypeName = behaviourName;
 
                         if (rgStateTypeAttribute != null)
                         {
                             var args = rgStateTypeAttribute.ArgumentList.Arguments;
-                            if (args.Count >0 && args[0] is { Expression: LiteralExpressionSyntax literal })
+                            if (args.Count > 0 && args[0] is { Expression: LiteralExpressionSyntax literal })
                             {
                                 if (bool.TryParse(literal.Token.ValueText, out _))
                                 {
@@ -323,7 +323,7 @@ namespace RegressionGames.Editor.CodeGenerators
                                     entityTypeName = literal.Token.ValueText;
                                 }
                             }
-                            
+
                         }
 
                         foreach (var method in botActionMethods)
@@ -377,7 +377,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             // find all .cs files that match our pattern and remove them
             var filesToRemove = Directory.EnumerateFiles(path, searchPattern, SearchOption.AllDirectories);
-            
+
             foreach (var filePath in filesToRemove)
             {
                 try
@@ -408,7 +408,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 }
             }
         }
-        
+
         private static void CleanupPreviousRGActionsClasses()
         {
             CleanupPreviousFilesWithPathAndPattern(Application.dataPath, "*RGActions_*.Generated.cs");
@@ -436,7 +436,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     return null;
                 }
-                
+
                 if (!fieldDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                 {
                     if (hasRGStateAttribute)
@@ -455,7 +455,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     return null;
                 }
-                
+
                 if (!methodDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                 {
                     if (hasRGStateAttribute)
@@ -466,7 +466,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     return null;
                 }
-                
+
                 if (methodDeclaration.ParameterList.Parameters.Count > 0)
                 {
                     if (hasRGStateAttribute)
@@ -477,7 +477,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     return null;
                 }
-                
+
                 if (methodDeclaration.ReturnType is PredefinedTypeSyntax predefinedType && predefinedType.Keyword.IsKind(SyntaxKind.VoidKeyword))
                 {
                     if (hasRGStateAttribute)
@@ -496,7 +496,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     return null;
                 }
-                
+
                 if (!propertyDeclaration.Modifiers.Any(SyntaxKind.PublicKeyword))
                 {
                     if (hasRGStateAttribute)
@@ -508,7 +508,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     return null;
                 }
             }
-            
+
             string fieldName;
             string type;
             var isMethod = false;
@@ -564,7 +564,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             var csFiles = Directory.EnumerateFiles(Application.dataPath, "*.cs", SearchOption.AllDirectories);
 
-            var fileWriteTasks = new List<(string,Task)>();
+            var fileWriteTasks = new List<(string, Task)>();
             // for each .cs file in the project
             foreach (var csFilePath in csFiles)
             {
@@ -584,7 +584,7 @@ namespace RegressionGames.Editor.CodeGenerators
                     var semanticModel = compilation.GetSemanticModel(syntaxTree);
 
                     var monoBehaviourClassDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-                    
+
                     // for each class declared in this .cs file
                     foreach (var classDeclaration in monoBehaviourClassDeclarations)
                     {
@@ -704,7 +704,7 @@ namespace RegressionGames.Editor.CodeGenerators
             }
         }
 
-        private static Dictionary<string,List<RGActionInfo>> CreateActionInfoFromRGActionRequests()
+        private static Dictionary<string, List<RGActionInfo>> CreateActionInfoFromRGActionRequests()
         {
             var actionInfos = new Dictionary<string, List<RGActionInfo>>();
             // get all classes of type RGActionRequest and add them
@@ -723,7 +723,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     RecordError($"{rgActionRequestType.FullName} must define field 'public static readonly string EntityTypeName = \"<EntityTypeName>\";' where '<EntityTypeName>' is either the RG State type this action is callable for or is the name of the MonoBehaviour with which this action is related.  If this is defined as null, then the action should be globally usable like ClickButton or KeyPress.");
                 }
-                
+
                 var actionName = rgActionRequestType.GetField("ActionName")?.GetValue(null)?.ToString();
                 if (string.IsNullOrEmpty(actionName))
                 {
@@ -734,7 +734,7 @@ namespace RegressionGames.Editor.CodeGenerators
                 {
                     break;
                 }
-                
+
                 if (!actionInfos.TryGetValue(entityTypeName ?? "NULL", out var theList))
                 {
                     theList = new List<RGActionInfo>();
@@ -766,16 +766,16 @@ namespace RegressionGames.Editor.CodeGenerators
 
                     // add an entry for this hand written rgActionRequest
                     theList.Add(new RGActionInfo()
+                    {
+                        ClassName = rgActionRequestType.FullName,
+                        ActionName = actionName,
+                        Parameters = constructorArgs.Select(v => new RGParameterInfo()
                         {
-                            ClassName = rgActionRequestType.FullName,
-                            ActionName = actionName,
-                            Parameters = constructorArgs.Select(v => new RGParameterInfo()
-                            {
-                                Name = v.Name,
-                                Type = GetTypeString(v.ParameterType, out var isNullable),
-                                Nullable = isNullable
-                            }).ToList()
-                        }
+                            Name = v.Name,
+                            Type = GetTypeString(v.ParameterType, out var isNullable),
+                            Nullable = isNullable
+                        }).ToList()
+                    }
                     );
                 }
                 else
@@ -794,12 +794,12 @@ namespace RegressionGames.Editor.CodeGenerators
             var underlyingType = Nullable.GetUnderlyingType(type);
             isNullable = underlyingType != null;
             type = underlyingType ?? type;
-            
+
             var result = PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : GetCSharpRepresentation(type, true);
             return result;
         }
-        
-        private static string GetCSharpRepresentation( Type type, bool trimArgCount)
+
+        private static string GetCSharpRepresentation(Type type, bool trimArgCount)
         {
             var underlyingType = Nullable.GetUnderlyingType(type);
             var isNullable = (underlyingType != null);
@@ -807,14 +807,14 @@ namespace RegressionGames.Editor.CodeGenerators
 
             if (!type!.IsGenericType)
             {
-                return (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : type.Namespace+"."+type.Name) + (isNullable ? "?" : "");
+                return (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : type.Namespace + "." + type.Name) + (isNullable ? "?" : "");
             }
-            
+
             var genericArgs = type.GetGenericArguments().ToList();
-            return GetCSharpRepresentation( type, trimArgCount, genericArgs );
+            return GetCSharpRepresentation(type, trimArgCount, genericArgs);
         }
 
-        private static string GetCSharpRepresentation( Type type, bool trimArgCount, List<Type> availableArguments )
+        private static string GetCSharpRepresentation(Type type, bool trimArgCount, List<Type> availableArguments)
         {
             var underlyingType = Nullable.GetUnderlyingType(type);
             var isNullable = (underlyingType != null);
@@ -822,31 +822,35 @@ namespace RegressionGames.Editor.CodeGenerators
 
             if (!type!.IsGenericType)
             {
-                return (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : type.Namespace+"."+type.Name) + (isNullable ? "?" : "");
+                return (PrimitiveTypeAliases.TryGetValue(type, out var primitiveType) ? primitiveType : type.Namespace + "." + type.Name) + (isNullable ? "?" : "");
             }
 
-            var value = type.Namespace+"."+type.Name;
-            if( trimArgCount && value.IndexOf("`") > -1 ) {
-                value = value.Substring( 0, value.IndexOf( "`" ) );
+            var value = type.Namespace + "." + type.Name;
+            if (trimArgCount && value.IndexOf("`") > -1)
+            {
+                value = value.Substring(0, value.IndexOf("`"));
             }
 
-            if( type.DeclaringType != null ) {
+            if (type.DeclaringType != null)
+            {
                 // This is a nested type, build the nesting type first
-                value = GetCSharpRepresentation( type.DeclaringType, trimArgCount, availableArguments ) + "+" + value;
+                value = GetCSharpRepresentation(type.DeclaringType, trimArgCount, availableArguments) + "+" + value;
             }
 
             // Build the type arguments (if any)
             var argString = "";
             var thisTypeArgs = type.GetGenericArguments();
-            for( var i = 0; i < thisTypeArgs.Length && availableArguments.Count > 0; i++ ) {
-                if( i != 0 ) argString += ", ";
+            for (var i = 0; i < thisTypeArgs.Length && availableArguments.Count > 0; i++)
+            {
+                if (i != 0) argString += ", ";
 
-                argString += GetCSharpRepresentation( availableArguments[0], trimArgCount );
-                availableArguments.RemoveAt( 0 );
+                argString += GetCSharpRepresentation(availableArguments[0], trimArgCount);
+                availableArguments.RemoveAt(0);
             }
 
             // If there are type arguments, add them with < >
-            if( argString.Length > 0 ) {
+            if (argString.Length > 0)
+            {
                 value += "<" + argString + ">";
             }
 
@@ -854,7 +858,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return value;
         }
-        
+
         private static readonly Dictionary<Type, string> PrimitiveTypeAliases =
             new()
             {
@@ -879,12 +883,12 @@ namespace RegressionGames.Editor.CodeGenerators
 
         private static List<RGStatesInfo> CreateStateInfoFromRGStateEntities()
         {
-            var result = new List<RGStatesInfo>(); 
+            var result = new List<RGStatesInfo>();
             var loadedAndReferencedAssemblies = GetAssemblies();
             var rgStateEntityTypes = loadedAndReferencedAssemblies
                 .SelectMany(a => a.GetTypes())
                 .Where(t => typeof(IRGStateEntity).IsAssignableFrom(t) || t.IsSubclassOf(typeof(RGStateEntityBase)))
-                .Where(t => !t.IsAbstract && !t.IsInterface &&t != typeof(RGStateEntity_Empty) && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core)));
+                .Where(t => !t.IsAbstract && !t.IsInterface && t != typeof(RGStateEntity_Empty) && t != typeof(RGStateEntity_Core) && !t.IsSubclassOf(typeof(RGStateEntity_Core)));
 
             foreach (var rgStateEntityType in rgStateEntityTypes)
             {
@@ -906,8 +910,8 @@ namespace RegressionGames.Editor.CodeGenerators
                 var stateList = new List<RGStateInfo>();
                 foreach (var memberInfo in properties)
                 {
-                     var propertyType = ((PropertyInfo)memberInfo).PropertyType;
-                     
+                    var propertyType = ((PropertyInfo)memberInfo).PropertyType;
+
 
                     stateList.Add(new RGStateInfo
                     {
@@ -929,7 +933,7 @@ namespace RegressionGames.Editor.CodeGenerators
 
             return result;
         }
-        
+
 
         private static void CreateJsonZip()
         {
@@ -959,7 +963,7 @@ namespace RegressionGames.Editor.CodeGenerators
         {
             return typeName.Replace("global::", string.Empty);
         }
-        
+
         private static (List<RGEntityStatesJson>, List<RGEntityActionsJson>) CreateStateAndActionJson(
             List<RGStatesInfo> statesInfos, Dictionary<string, List<RGActionInfo>> actionInfos)
         {
@@ -974,12 +978,12 @@ namespace RegressionGames.Editor.CodeGenerators
             {
                 // handle no type keys
                 ObjectType = v.Key == "NULL" ? null : v.Key,
-                Actions =  v.Value.ToHashSet()
+                Actions = v.Value.ToHashSet()
             }).ToList();
-            
-            statesJson.Sort((a,b) => String.Compare(a.ObjectType, b.ObjectType, StringComparison.Ordinal));
-            actionsJson.Sort((a,b) => String.Compare(a.ObjectType, b.ObjectType, StringComparison.Ordinal));
-            return (statesJson,actionsJson);
+
+            statesJson.Sort((a, b) => String.Compare(a.ObjectType, b.ObjectType, StringComparison.Ordinal));
+            actionsJson.Sort((a, b) => String.Compare(a.ObjectType, b.ObjectType, StringComparison.Ordinal));
+            return (statesJson, actionsJson);
         }
 
         private static void WriteJsonFiles(List<RGEntityStatesJson> statesInfos, List<RGEntityActionsJson> actionInfos)

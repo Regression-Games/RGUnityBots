@@ -6,12 +6,12 @@ namespace RegressionGames.StateActionTypes
     {
         public void PopulateStateEntity(RGStateEntity_Core gameObjectCoreState, out bool isPlayer);
     }
-    
-    public abstract class RGStateBehaviour<T> : MonoBehaviour , IRGStateBehaviour where T : IRGStateEntity
+
+    public abstract class RGStateBehaviour<T> : MonoBehaviour, IRGStateBehaviour where T : IRGStateEntity
     {
         // cache this so we don't create every tick
         private T _myStateEntity;
-        
+
         public void PopulateStateEntity(RGStateEntity_Core gameObjectCoreState, out bool isPlayer)
         {
             var typeName = GetType().Name;
