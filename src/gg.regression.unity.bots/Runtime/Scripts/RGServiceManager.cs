@@ -25,7 +25,7 @@ namespace RegressionGames
         // 1 hour
         public static readonly int WEB_REQUEST_FILE_TIMEOUT_SECONDS = 60 * 60;
 
-        private static Mutex authLock = new Mutex(false,"AuthLock");
+        private static Mutex authLock = new Mutex(false, "AuthLock");
 
         private string rgAuthToken;
 
@@ -104,7 +104,7 @@ namespace RegressionGames
             // don't all first off an auth request in parallel
             if (!IsAuthed())
             {
-                while (!authLock.WaitOne(1_000));
+                while (!authLock.WaitOne(1_000)) ;
 
                 try
                 {
@@ -643,29 +643,12 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
-        private Task SendWebRequest(
-            string uri, string method, string payload, Action<string> onSuccess, Action<string> onFailure,
-            bool isAuth = false, string contentType = "application/json")
-            => SendWebRequest(uri, method, payload,
-                s =>
-                {
-                    onSuccess(s);
-                    return Task.CompletedTask;
-                },
-                s =>
-                {
-                    onFailure(s);
-                    return Task.CompletedTask;
-                },
-                isAuth,
-                contentType);
-
-        private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth=false, string contentType="application/json")
+        private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth = false, string contentType = "application/json")
         {
             var messageId = ++correlationId;
             // don't log the details of auth requests :)
             string payloadToLog = isAuth ? "{***:***, ...}" : payload;
-            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload)?$"\r\n{payloadToLog}":"")}");
+            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload) ? $"\r\n{payloadToLog}" : "")}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
 
             try
@@ -889,7 +872,7 @@ namespace RegressionGames
         private readonly UnityWebRequestAsyncOperation _asyncOperation;
 
 
-        public UnityWebRequestAwaiter( UnityWebRequestAsyncOperation asyncOperation ) => _asyncOperation = asyncOperation;
+        public UnityWebRequestAwaiter(UnityWebRequestAsyncOperation asyncOperation) => _asyncOperation = asyncOperation;
 
         public UnityWebRequestAwaiter GetAwaiter()
         {
@@ -898,7 +881,7 @@ namespace RegressionGames
 
         public UnityWebRequest GetResult() => _asyncOperation.webRequest;
 
-        public void OnCompleted( Action continuation ) => _asyncOperation.completed += _ => continuation();
+        public void OnCompleted(Action continuation) => _asyncOperation.completed += _ => continuation();
 
         public bool IsCompleted => _asyncOperation.isDone;
     }

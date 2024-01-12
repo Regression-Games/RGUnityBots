@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace RegressionGames
 {
-    public enum DebugLogLevel {Off, Verbose, Debug, Info, Warning, Error}
+    public enum DebugLogLevel { Off, Verbose, Debug, Info, Warning, Error }
 
-    public class RGSettings: ScriptableObject
+    public class RGSettings : ScriptableObject
     {
         private const string SETTINGS_PATH = "Assets/RGSettings.asset";
 

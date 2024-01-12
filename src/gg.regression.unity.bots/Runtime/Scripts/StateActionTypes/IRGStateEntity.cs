@@ -1,18 +1,19 @@
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 
+// ReSharper disable once CheckNamespace
 namespace RegressionGames.StateActionTypes
 {
+    // ReSharper disable once InconsistentNaming
+    /**
+     * <summary>Any Custom RGStateEntity implementations should implement this interface.</summary>
+     */
     public interface IRGStateEntity : IDictionary<string, object>
     {
-        public int id => 0;
-        public string type => null;
-        public bool isPlayer => false;
-        public bool isRuntimeObject => false;
-        public Vector3 position => Vector3.zero;
-        public Quaternion rotation => Quaternion.identity;
-        public long? clientId => null;
-        
+        public string GetEntityType();
+
+        public bool GetIsPlayer();
+
         /**
          * <summary>Retrieve the value of the named field as the specified type or default value
          * Note, some types in Unity can only be constructed on the Main thread.
@@ -34,7 +35,7 @@ namespace RegressionGames.StateActionTypes
         {
             return DictionaryExtensions.GetField<T>(this, fieldName);
         }
-        
+
         /**
          * <summary>Retrieve the value of the named field or null if the field does not exist.</summary>
          */

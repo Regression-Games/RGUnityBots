@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 namespace RegressionGames.Editor
 {
@@ -7,8 +8,8 @@ namespace RegressionGames.Editor
     [Serializable]
     public class RGActionInfo
     {
-        // the name of the RGAction class
-        public string ActionClassName;
+        // The fully qualified name of the RGActionRequest class generated for this [RGAction] attribute
+        public string ClassName;
         // the identifier of the action. Default is the method name, but it can be overriden.
         // ex [RGAction("Action Name")]
         public string ActionName;
@@ -17,7 +18,7 @@ namespace RegressionGames.Editor
 
         public override string ToString()
         {
-            return $"{{ActionName: {ActionName}, ActionClassName: {ActionClassName}, Parameters: [{string.Join(",", Parameters)}]}}";
+            return $"{{ActionName: {ActionName}, ClassName: {ClassName}, Parameters: [{string.Join(",", Parameters)}]}}";
         }
     }
 }

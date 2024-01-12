@@ -19,7 +19,7 @@ namespace RegressionGames.Editor
     public class RGSettingsUIRegistrar
     {
 
-        private static RGServiceManager rgServiceManager = new (); // editor, not game/scene so don't look for one, make one
+        private static RGServiceManager rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
 
         private static string token = null;
         private static string priorUser = null;
@@ -68,7 +68,7 @@ namespace RegressionGames.Editor
                     SerializedProperty numBotsProp = settings.FindProperty("numBots");
                     numBotsProp.intValue = EditorGUILayout.IntSlider("Number Of Bots", numBotsProp.intValue, 0, 7, new GUILayoutOption[] { });
                     SerializedProperty botsSelected = settings.FindProperty("botsSelected");
-                    if ((EditorApplication.timeSinceStartup-timeOfLastEdit) > 3f && token == null && priorPassword == null && priorHost == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4 && hostField.stringValue.Length > 4)
+                    if ((EditorApplication.timeSinceStartup - timeOfLastEdit) > 3f && token == null && priorPassword == null && priorHost == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4 && hostField.stringValue.Length > 4)
                     {
                         priorPassword = passwordField.stringValue;
                         priorUser = emailField.stringValue;
@@ -84,7 +84,7 @@ namespace RegressionGames.Editor
                         {
                             foreach (var rgBot in botList)
                             {
-                                if (rgBot is { IsUnityBot: true , IsLocal: false})
+                                if (rgBot is { IsUnityBot: true, IsLocal: false })
                                 {
                                     listOfBots.Add(rgBot);
                                 }
@@ -103,7 +103,7 @@ namespace RegressionGames.Editor
                                 listOfBots.Add(localBot);
                             }
                         }
-                        listOfBots.Sort((a,b) => String.Compare(a.UIString, b.UIString, StringComparison.Ordinal));
+                        listOfBots.Sort((a, b) => String.Compare(a.UIString, b.UIString, StringComparison.Ordinal));
                         bots = listOfBots.ToArray();
                     }
 
@@ -131,10 +131,10 @@ namespace RegressionGames.Editor
 
                                 var priorIndex = 0;
                                 botIndexMap.TryGetValue(botSelected.longValue, out priorIndex);
-                                    var indexSelected = EditorGUILayout.IntPopup($"Bot # {i}",
-                                        priorIndex,
-                                    botUIStrings.ToArray(), botIndexes.ToArray(),
-                                    new GUILayoutOption[] { });
+                                var indexSelected = EditorGUILayout.IntPopup($"Bot # {i}",
+                                    priorIndex,
+                                botUIStrings.ToArray(), botIndexes.ToArray(),
+                                new GUILayoutOption[] { });
                                 if (indexSelected > bots.Length)
                                 {
                                     indexSelected = 0;

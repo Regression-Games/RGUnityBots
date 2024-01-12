@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace RegressionGames.Editor
 {
@@ -10,7 +9,7 @@ namespace RegressionGames.Editor
     {
         public List<RGStateAttributesInfo> RGStateAttributesInfo { get; set; }
     }
-    
+
     [Serializable]
     public class RGStateAttributesInfo
     {

@@ -675,9 +675,7 @@ Canvas:
   m_OverrideSorting: 1
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
-  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 25
-  m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 30000
   m_TargetDisplay: 0
@@ -2473,7 +2471,6 @@ GameObject:
   - component: {fileID: 2013619771457747224}
   - component: {fileID: 5154676213986407094}
   - component: {fileID: 1135829319142607603}
-  - component: {fileID: 3743269787975814722}
   m_Layer: 5
   m_Name: RGOverlayCanvas
   m_TagString: Untagged
@@ -2520,9 +2517,7 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
-  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 25
-  m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 10000
   m_TargetDisplay: 0
@@ -2633,22 +2628,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab39863c9ca64324b3351cbd5dfb088b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &3743269787975814722
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7045523072340300313}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 12949602f31a04a319b1d6154c6a036e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  objectType: 
-  isPlayer: 0
-  isRuntimeObject: 0
-  includeStateForAllBehaviours: 0
 --- !u!1 &7045523072349830337
 GameObject:
   m_ObjectHideFlags: 0

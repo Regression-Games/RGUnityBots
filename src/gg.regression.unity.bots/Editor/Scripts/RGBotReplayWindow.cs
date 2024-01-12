@@ -22,7 +22,7 @@ namespace RegressionGames.Editor
     public class RGBotReplayWindow : EditorWindow
     {
         public const string PREFAB_PATH = "Packages/gg.regression.unity.bots/Editor/Prefabs";
-       
+
         //TODO: Get this from game engine
         private const int PHYSICS_TICK_RATE = 20; // 0.02 sec or 20 ms per physics tick
         private readonly Color _darkerColor = Color.white * 0.1f;
@@ -89,21 +89,21 @@ namespace RegressionGames.Editor
             EditorGUI.BeginDisabledGroup(fileName == null || fileName.Length < 1);
             if (GUILayout.Button("Reload ...", GUILayout.ExpandWidth(false))) Reload();
             EditorGUI.EndDisabledGroup();
-            
+
             GUILayout.FlexibleSpace();
-                        
+
 
             EditorGUILayout.EndHorizontal();
-            
+
             GUILayout.Space(5);
-            
+
             if (!ReplayModelManager.GetInstance().HasEntries())
             {
                 EditorGUILayout.HelpBox("Custom Replay Models have not been configured for this project.\nLoad your first replay zip to auto populate the entity types, then configure their model associations using the `Configure Custom Replay Models` button.\n(You can also manually add, edit, or remove associations at any time.)", MessageType.Warning, true);
             }
-            
+
             // Button for registering custom replay models
-            if (GUILayout.Button("Configure Custom Replay Models", new GUILayoutOption[] {GUILayout.ExpandWidth(false)}))
+            if (GUILayout.Button("Configure Custom Replay Models", new GUILayoutOption[] { GUILayout.ExpandWidth(false) }))
             {
                 // create or load the prefabs list
                 ShowReplayModelsInspector();
@@ -233,7 +233,7 @@ namespace RegressionGames.Editor
                 width = 150.0f,
                 canSort = false,
                 sortingArrowAlignment = TextAlignment.Right,
-                headerContent = new GUIContent("PlayerId", "Type and Id of the entity."),
+                headerContent = new GUIContent("Entity", "Name/Type and Id of the entity."),
                 headerTextAlignment = TextAlignment.Center
             });
             _columns.Add(new MultiColumnHeaderState.Column
@@ -257,7 +257,7 @@ namespace RegressionGames.Editor
                 headerContent = new GUIContent("Actions", "Actions entity took in the current tick."),
                 headerTextAlignment = TextAlignment.Center
             });
-            
+
             _columns.Add(new MultiColumnHeaderState.Column
             {
                 allowToggleVisibility = false,
@@ -295,8 +295,8 @@ namespace RegressionGames.Editor
             if (aTi != null && bTi == null) return -1;
             if (bTi != null && aTi == null) return 1;
 
-            // if same type, sort by id
-            if (a.type == b.type)
+            // if same types, sort by id
+            if (a.types.Length == b.types.Length && a.types.All(b.types.Contains))
             {
                 // group the positive ids and negative ids, but show them both ascending as though unsigned
                 if (a.id >= 0)
@@ -315,13 +315,13 @@ namespace RegressionGames.Editor
             if (a.isPlayer && !b.isPlayer) return -1;
             if (b.isPlayer && !a.isPlayer) return 1;
 
-            // else sort by type
-            if (a.type == null)
+            // else sort by name
+            if (a.name == null)
             {
                 return 1;
             }
 
-            return a.type.CompareTo(b.type);
+            return String.Compare(a.name, b.name, StringComparison.Ordinal);
         }
 
         private void RenderTimelineView()
@@ -403,7 +403,7 @@ namespace RegressionGames.Editor
                 var tickInfos = new Dictionary<long, RGEntityTickInfo>();
 
                 for (var i = 0; i < rData.Count; i++)
-                    tickInfos[rData[i].id] = RGEntityDataForTick.FromReplayData(rData[i], currentTick)?.tickInfo;
+                    tickInfos[rData[i].id] = RGEntityDataForTick.FromReplayData(rData[i], currentTick)?.TickInfo;
 
                 rData.Sort((a, b) => compareListElements(tickInfos[a.id], tickInfos[b.id], a, b));
 
@@ -504,43 +504,43 @@ namespace RegressionGames.Editor
                         if (isSpawned)
                         {
                             var actions = dataTickInfo.actions;
-                       
+
                             // Fit each action equally into the space with text hover help
                             for (var j = 0; j < actions.Length; j++)
                             {
                                 // draw a colored rect
                                 var actionRect = CreateInfoRect(columnIndex, rowRect.y, actions.Length, j);
                                 EditorGUI.DrawRect(actionRect, Color.gray * Color.yellow);
-                                
+
                                 // then put a label in it
-                                var label = new GUIContent($"{actions[j].action}", $"{textForAction(j + 1, actions[j])}");
+                                var label = new GUIContent($"{actions[j].Action}", $"{textForAction(j + 1, actions[j])}");
                                 EditorGUI.DropShadowLabel(actionRect, label, actionLabelGUIStyle);
                             }
                         }
-                    
-                        // Validations column
-                        ++columnIndex;
-                        if (_multiColumnHeader.IsColumnVisible(columnIndex))
-                            if (isSpawned)
-                            {
-                                var validationResults = dataTickInfo.validationResults;
-                                
-                                // Fit each validation equally into the space with text hover help
-                                for (var j = 0; j < validationResults.Length; j++)
-                                {
-                                    var currentValidation = validationResults[j];
 
-                                    // draw a colored rect
-                                    var validationRect = CreateInfoRect(columnIndex, rowRect.y, validationResults.Length, j);
-                                    var color = currentValidation.passed ? Color.green : Color.red;
-                                    EditorGUI.DrawRect(validationRect, Color.gray * color);
-                                    
-                                    // then put a label in it
-                                    var tooltip = (currentValidation.passed ? "[PASSED] " : "[FAILED] ") + currentValidation.message;
-                                    var label = new GUIContent(currentValidation.message, tooltip);
-                                    EditorGUI.DropShadowLabel(validationRect, label, validationLabelGUIStyle);
-                                }
+                    // Validations column
+                    ++columnIndex;
+                    if (_multiColumnHeader.IsColumnVisible(columnIndex))
+                        if (isSpawned)
+                        {
+                            var validationResults = dataTickInfo.validationResults;
+
+                            // Fit each validation equally into the space with text hover help
+                            for (var j = 0; j < validationResults.Length; j++)
+                            {
+                                var currentValidation = validationResults[j];
+
+                                // draw a colored rect
+                                var validationRect = CreateInfoRect(columnIndex, rowRect.y, validationResults.Length, j);
+                                var color = currentValidation.passed ? Color.green : Color.red;
+                                EditorGUI.DrawRect(validationRect, Color.gray * color);
+
+                                // then put a label in it
+                                var tooltip = (currentValidation.passed ? "[PASSED] " : "[FAILED] ") + currentValidation.message;
+                                var label = new GUIContent(currentValidation.message, tooltip);
+                                EditorGUI.DropShadowLabel(validationRect, label, validationLabelGUIStyle);
                             }
+                        }
 
                     ++a;
                 }
@@ -569,7 +569,7 @@ namespace RegressionGames.Editor
                 insetRect.y += padding.Value.y;
                 insetRect.height -= padding.Value.y * 2;
             }
-            
+
             return insetRect;
         }
 
@@ -580,12 +580,12 @@ namespace RegressionGames.Editor
         private Rect CreateInfoRect(int columnIndex, float height, int componentsPerRow, int xOffset)
         {
             var insetRect = CreateInsetRect(columnIndex, height, null);
-            
+
             const float minWidth = 5f;
             const float maxWidth = 150f;
             var width = insetRect.width / Math.Max(1, componentsPerRow);
             width = Math.Min(Math.Max(width, minWidth), maxWidth);
-            
+
             // leave a 1 pixel gap .. this keeps many actions from flowing together
             insetRect.width = width - 1;
             insetRect.x += width * xOffset;
@@ -597,7 +597,7 @@ namespace RegressionGames.Editor
         {
             GetWindow(typeof(RGBotReplayWindow), false, "RG Bot Replay");
         }
-        
+
         // Did not add to the top menu yet, but might in the future
         //[MenuItem("Regression Games/Configure Custom Replay Models")]
         public static void ShowReplayModelsInspector()
@@ -653,10 +653,10 @@ namespace RegressionGames.Editor
                 foreach (var playerId in playerIds)
                 {
                     var tickData = tickInfoManager.GetEntityInfoForTick(currentTick, playerId);
-                    if (tickData != null && tickData.data.enabled)
+                    if (tickData != null && tickData.Data.enabled)
                     {
-                        var objectName = $"{tickData.data.type}_{tickData.data.id}";
-                        if (tickData.tickInfo != null) namesInState.Add(objectName);
+                        var objectName = $"{tickData.Data.name}_{tickData.Data.id}";
+                        if (tickData.TickInfo != null) namesInState.Add(objectName);
 
                         UpdatePlayerForGameState(tickData);
                         UpdatePlayerForActions(tickData);
@@ -692,9 +692,9 @@ namespace RegressionGames.Editor
             // populate the 'state' into our scene 
 
             // id, type, position, rotation
-            if (tickData.tickInfo != null)
+            if (tickData.TickInfo != null)
             {
-                var ti = tickData.tickInfo;
+                var ti = tickData.TickInfo;
 
                 if (ti.state != null)
                 {
@@ -706,13 +706,13 @@ namespace RegressionGames.Editor
                     {
                         position = ti.state.position;
                     }
-                    
+
                     if (ti?.state?.rotation != null)
                     {
                         rotation = ti.state.rotation;
                     }
-                    
-                    var typeRootName = $"{tickData.data.type}s";
+
+                    var typeRootName = $"{string.Join('_', tickData.Data.types)}s";
                     var typeRoot = findChildByName(rootObject.transform, typeRootName);
                     if (typeRoot == null)
                     {
@@ -720,7 +720,7 @@ namespace RegressionGames.Editor
                         typeRoot.transform.parent = rootObject.transform;
                     }
 
-                    var objectName = tickData.data.objectName;
+                    var objectName = tickData.Data.objectName;
 
                     var obj = findChildByName(typeRoot.transform, objectName);
                     if (obj == null)
@@ -740,7 +740,7 @@ namespace RegressionGames.Editor
 
                         //SETUP THE MODEL
                         var rmm = ReplayModelManager.GetInstance();
-                        var modelPrefab = rmm.getModelPrefabForType(tickData.data.type, characterType);
+                        var modelPrefab = rmm.GetModelPrefabForType(tickData.Data.types, characterType);
                         if (modelPrefab != null)
                         {
                             var model = Instantiate(modelPrefab, Vector3.zero, Quaternion.identity,
@@ -754,7 +754,7 @@ namespace RegressionGames.Editor
                         }
                     }
 
-                    if (tickData.data.showHighlight)
+                    if (tickData.Data.showHighlight)
                         // enable the 'my bot' showHighlight circle
                         obj.transform.GetChild(0).GetChild(2).gameObject.SetActive(true);
                     else
@@ -765,7 +765,7 @@ namespace RegressionGames.Editor
                     if (position != null)
                     {
                         obj.transform.GetChild(0).position = (Vector3)position;
-                        if (tickData.justSpawned)
+                        if (tickData.JustSpawned)
                         {
                             // create 'spawn' effect
                             if (spawnPrefab == null)
@@ -781,9 +781,9 @@ namespace RegressionGames.Editor
                     if (rotation != null) obj.transform.GetChild(0).rotation = (Quaternion)rotation;
 
                     // setup pathing lines for bots
-                    if (tickData.data.showPath)
+                    if (tickData.Data.showPath)
                     {
-                        var points = tickInfoManager.GetPathForEntityId(currentTick, tickData.data.id);
+                        var points = tickInfoManager.GetPathForEntityId(currentTick, tickData.Data.id);
                         if (points.Length > 0)
                         {
                             obj.transform.GetChild(1).gameObject.SetActive(true);
@@ -804,9 +804,9 @@ namespace RegressionGames.Editor
             }
 
             // handle showing despawn indicator
-            if (tickData.justDespawned)
+            if (tickData.JustDespawned)
             {
-                var priorPosition = tickInfoManager.GetEntityInfoForTick(currentTick - 1, tickData.data.id)?.tickInfo
+                var priorPosition = tickInfoManager.GetEntityInfoForTick(currentTick - 1, tickData.Data.id)?.TickInfo
                     ?.state.position;
                 var pos = (priorPosition ?? Vector3.zero) + DESPAWN_TEXT_OFFSET;
                 // create 'de-spawn' effect
@@ -817,18 +817,18 @@ namespace RegressionGames.Editor
                 var despawn =
                     Instantiate(despawnPrefab, pos, Quaternion.identity,
                         spawnsObject.transform) as GameObject;
-                despawn.transform.GetChild(0).GetComponent<TextMeshPro>().text = tickData.data.objectName;
+                despawn.transform.GetChild(0).GetComponent<TextMeshPro>().text = tickData.Data.objectName;
             }
         }
 
         private void UpdatePlayerForActions(RGEntityDataForTick tickData)
         {
-            if (tickData.data.showActions && tickData.tickInfo != null && tickData.tickInfo.actions.Length > 0)
+            if (tickData.Data.showActions && tickData.TickInfo != null && tickData.TickInfo.actions.Length > 0)
             {
                 var actionNumber = 1;
-                foreach (var action in tickData.tickInfo.actions)
+                foreach (var action in tickData.TickInfo.actions)
                 {
-                    var actionType = action.action;
+                    var actionType = action.Action;
                     if (targetPrefab == null)
                         targetPrefab =
                             AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -866,14 +866,14 @@ namespace RegressionGames.Editor
                         if (targetId != null)
                         {
                             var ti = tickInfoManager.GetEntityInfoForTick(currentTick, targetId.Value)
-                                ?.tickInfo;
+                                ?.TickInfo;
                             if (ti?.state.position != null) position = ti.state.position;
                         }
 
                         // if still null
-                        if (position == null && tickData.tickInfo?.state.position != null)
+                        if (position == null && tickData.TickInfo?.state.position != null)
                             // targeting the bot's self
-                            position = tickData.tickInfo?.state.position;
+                            position = tickData.TickInfo?.state.position;
                     }
 
                     if (position == null) position = Vector3.zero;
@@ -890,7 +890,7 @@ namespace RegressionGames.Editor
 
         private string textForAction(int actionNumber, RGActionRequest action)
         {
-            var actionType = action.action;
+            var actionType = action.Action;
             var actionText = $"Action: {actionNumber}";
 
             Vector3? position = null;
@@ -1008,10 +1008,10 @@ namespace RegressionGames.Editor
                             {
                                 var rData = JsonConvert.DeserializeObject<RGStateActionReplayData>(sr.ReadToEnd(),
                                     _jsonSettings);
-                                tickInfoManager.processTick(tickIndexNumber, rData.tickInfo);
+                                tickInfoManager.ProcessTick(tickIndexNumber, rData.tickInfo);
                                 if (rData.playerId != null && rData.playerId != -1)
-                                    tickInfoManager.processReplayData(tickIndexNumber, (long)rData.playerId, rData);
-                                    
+                                    tickInfoManager.ProcessReplayData(tickIndexNumber, (long)rData.playerId, rData);
+
                                 if (rData.tickRate != null)
                                     // get the right tickRate
                                     tickRate = (int)rData.tickRate;
@@ -1019,7 +1019,7 @@ namespace RegressionGames.Editor
                                 ++tickIndexNumber;
                             }
                     }
-                    
+
                     // save any assets we created, like replay model associations
                     // we do this once here instead of internally when adding the asset for
                     // performance reasons.. this is expensive
@@ -1089,5 +1089,5 @@ namespace RegressionGames.Editor
             if (currentTick == priorTick) playing = false;
         }
     }
-    #endif
+#endif
 }

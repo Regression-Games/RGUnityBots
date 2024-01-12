@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine.Serialization;
 
 namespace RegressionGames.Editor
 {
-    
+
     [Serializable]
     // ReSharper disable InconsistentNaming
     public class RGEntityStatesJson

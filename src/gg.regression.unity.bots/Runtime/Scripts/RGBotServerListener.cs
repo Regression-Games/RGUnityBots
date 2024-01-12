@@ -2,16 +2,15 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using RegressionGames.DataCollection;
-using RegressionGames.RGBotConfigs;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -22,29 +21,13 @@ namespace RegressionGames
         [Tooltip("Send a state update every X ticks")]
         public int tickRate = 50;
 
-        public readonly ConcurrentDictionary<long?, HashSet<RGEntity>> agentMap = new ();
+        public readonly ConcurrentDictionary<long?, HashSet<GameObject>> AgentMap = new();
 
-        private long tick = 0;
+        private long _tick;
 
-        private static RGBotServerListener _this = null;
+        private static RGBotServerListener _this;
 
-        private RGDataCollection _dataCollection = null;
-
-        /**
-         * Names of fields that are allowed to appear in multiple state scripts for the same GameObject.
-         * These are typically fields whose values are inherited from the GameObject's RGEntity component,
-         * and are expected to have the same value for each IRGState script attached to the GameObject.
-         */
-        private List<string> _duplicatedStateFields = new();
-
-        // of the core state fields, only position and rotation can be overridden by custom state classes
-        // an example of this being useful is remapping position for a platformer character to better align with
-        // their collider's bottom edge instead of the center of the character
-        private HashSet<string> _overridableCoreStateFields = new()
-        {
-            "position",
-            "rotation"
-        };
+        private RGDataCollection _dataCollection;
 
         public static RGBotServerListener GetInstance()
         {
@@ -54,12 +37,14 @@ namespace RegressionGames
         public void Start()
         {
             _dataCollection = new RGDataCollection();
+            // initialize/load all the states/actions in this project runtime
+            BehavioursWithStateOrActions.Initialize();
         }
 
         public void Awake()
         {
             // only allow 1 of these to be alive
-            if( _this != null && _this.gameObject != this.gameObject)
+            if (_this != null && _this.gameObject != this.gameObject)
             {
                 Destroy(this.gameObject);
                 return;
@@ -74,26 +59,26 @@ namespace RegressionGames
             StopBotClientConnections(false);
         }
 
-        private bool gameStarted = false;
+        private bool _gameStarted;
 
-        public string UnitySideToken { get; private set; }= Guid.NewGuid().ToString();
+        public string UnitySideToken { get; private set; } = Guid.NewGuid().ToString();
 
-        private readonly ConcurrentDictionary<long, RGUnityBotState> botStates = new();
+        private readonly ConcurrentDictionary<long, RGUnityBotState> _botStates = new();
 
-        private readonly ConcurrentDictionary<long, List<Action<RGUnityBotState>>> botStateListeners = new();
+        private readonly ConcurrentDictionary<long, List<Action<RGUnityBotState>>> _botStateListeners = new();
 
         public void AddUnityBotStateListener(long id, Action<RGUnityBotState> func)
         {
-            botStateListeners.AddOrUpdate(id, new List<Action<RGUnityBotState>> {func}, (key, oldValue) =>
-            {
-                oldValue.Add(func);
-                return oldValue;
-            });
+            _botStateListeners.AddOrUpdate(id, new List<Action<RGUnityBotState>> { func }, (key, oldValue) =>
+              {
+                  oldValue.Add(func);
+                  return oldValue;
+              });
         }
 
         public RGUnityBotState GetUnityBotState(long id)
         {
-            if (botStates.TryGetValue(id, out RGUnityBotState state))
+            if (_botStates.TryGetValue(id, out RGUnityBotState state))
             {
                 return state;
             }
@@ -102,30 +87,30 @@ namespace RegressionGames
 
         public void SetUnityBotState(long id, RGUnityBotState state)
         {
-            if (botStates.TryGetValue(id, out var oldValue))
+            if (_botStates.TryGetValue(id, out var oldValue))
             {
                 if (!oldValue.Equals(state))
                 {
-                    botStates[id] = state;
+                    _botStates[id] = state;
                     SendStateUpdatesToListeners(id, state);
                 }
             }
             else
             {
-                botStates[id] = state;
+                _botStates[id] = state;
                 SendStateUpdatesToListeners(id, state);
             }
         }
 
         private void SendStateUpdatesToListeners(long id, RGUnityBotState newState)
         {
-            if (botStateListeners.TryGetValue(id, out List<Action<RGUnityBotState>> funcs))
+            if (_botStateListeners.TryGetValue(id, out List<Action<RGUnityBotState>> funcList))
             {
-                foreach (var action in funcs)
+                foreach (var action in funcList)
                 {
                     try
                     {
-                        action.Invoke(newState);
+                        EnqueueTaskForClient(id, () => action.Invoke(newState));
                     }
                     catch (Exception ex)
                     {
@@ -159,16 +144,16 @@ namespace RegressionGames
          * 3. On FixedUpdate, when we send tickInfo, if any of the sends fail, we recycle their bot connection assuming
          *    that the bot code was reloaded/restarted.
          */
-        [ItemCanBeNull] private readonly ConcurrentDictionary<long, RGClientConnection> clientConnectionMap = new ();
+        [ItemCanBeNull] private readonly ConcurrentDictionary<long, RGClientConnection> _clientConnectionMap = new();
 
-        [ItemCanBeNull] private readonly ConcurrentDictionary<long?, ConcurrentQueue<RGValidationResult>> clientValidationMap = new ();
+        [ItemCanBeNull] private readonly ConcurrentDictionary<long?, ConcurrentQueue<RGValidationResult>> _clientValidationMap = new();
 
         // keep these in a map by clientId so that we can do 1 action per client per update call
-        private readonly ConcurrentDictionary<long, ConcurrentQueue<Action>> mainThreadTaskQueue = new ();
+        private readonly ConcurrentDictionary<long, ConcurrentQueue<Action>> _mainThreadTaskQueue = new();
 
         public RGClientConnection GetClientConnection(long clientId)
         {
-            if (clientConnectionMap.TryGetValue(clientId, out RGClientConnection result))
+            if (_clientConnectionMap.TryGetValue(clientId, out RGClientConnection result))
             {
                 return result;
             }
@@ -189,11 +174,11 @@ namespace RegressionGames
                 connection = new RGClientConnection_Local(clientId: botInstanceId);
             }
 
-            clientConnectionMap.AddOrUpdate(botInstanceId, connection, (k,v) =>
+            _clientConnectionMap.AddOrUpdate(botInstanceId, connection, (k, v) =>
             {
                 return v;
             });
-            clientValidationMap.AddOrUpdate(botInstanceId, new ConcurrentQueue<RGValidationResult>(), (k, v) =>
+            _clientValidationMap.AddOrUpdate(botInstanceId, new ConcurrentQueue<RGValidationResult>(), (k, v) =>
             {
                 return v;
             });
@@ -206,12 +191,12 @@ namespace RegressionGames
          */
         public bool HasBotsRunning()
         {
-            return !clientConnectionMap.IsEmpty;
+            return !_clientConnectionMap.IsEmpty;
         }
 
         public ConcurrentQueue<RGValidationResult> GetFailedValidationsForClient(long clientId)
         {
-            if (clientValidationMap.TryGetValue(clientId, out var validations))
+            if (_clientValidationMap.TryGetValue(clientId, out var validations))
             {
                 return validations;
             }
@@ -229,18 +214,18 @@ namespace RegressionGames
             RGDebug.LogInfo($"Stopping Bot Client Connections");
             StopGameHelper(updateBotsList);
             EndAllClientConnections();
-            clientConnectionMap.Clear();
-            clientValidationMap.Clear();
-            botStateListeners.Clear();
-            botStates.Clear();
-            mainThreadTaskQueue.Clear();
+            _clientConnectionMap.Clear();
+            _clientValidationMap.Clear();
+            _botStateListeners.Clear();
+            _botStates.Clear();
+            _mainThreadTaskQueue.Clear();
 
             UnitySideToken = Guid.NewGuid().ToString();
         }
 
         public void EndAllClientConnections()
         {
-            List<long> clientIds = clientConnectionMap.Keys.ToList();
+            List<long> clientIds = _clientConnectionMap.Keys.ToList();
             foreach (var clientId in clientIds)
             {
                 EndClientConnection(clientId);
@@ -249,7 +234,7 @@ namespace RegressionGames
 
         public void EndClientConnection(long clientId)
         {
-            if (clientConnectionMap.TryRemove(clientId, out var clientConnection))
+            if (_clientConnectionMap.TryRemove(clientId, out var clientConnection))
             {
                 clientConnection.SendTeardown();
 
@@ -287,10 +272,10 @@ namespace RegressionGames
             // Don't do this here, we only remove the validation on StopGame so the results are available to test cases
             //clientValidationMap.TryRemove(clientId, out _);
 
-            agentMap.TryRemove(clientId, out _);
-            botStateListeners.TryRemove(clientId, out _);
-            botStates.TryRemove(clientId, out _);
-            mainThreadTaskQueue.TryRemove(clientId, out _);
+            AgentMap.TryRemove(clientId, out _);
+            _botStateListeners.TryRemove(clientId, out _);
+            _botStates.TryRemove(clientId, out _);
+            _mainThreadTaskQueue.TryRemove(clientId, out _);
 
         }
 
@@ -299,7 +284,7 @@ namespace RegressionGames
          *
          * This will teardown the client and de-spawn the avatar if necessary
          */
-        private void TeardownClient(long clientId, bool doUpdateBots=true)
+        private void TeardownClient(long clientId, bool doUpdateBots = true)
         {
             // do this before we end the connection so the player is still in the map
             RGBotSpawnManager.GetInstance()?.TeardownBot(clientId);
@@ -319,15 +304,15 @@ namespace RegressionGames
          */
         public void TeardownAllClients()
         {
-            foreach (var (clientId, rgClientConnection) in clientConnectionMap)
+            foreach (var (clientId, rgClientConnection) in _clientConnectionMap)
             {
                 SetUnityBotState(clientId, RGUnityBotState.TEARING_DOWN);
             }
 
-            enqueueTaskForClient(0, () =>
+            EnqueueTaskForClient(0, () =>
             {
                 // do these all together on a single main thread update
-                foreach (var (clientId, rgClientConnection) in clientConnectionMap)
+                foreach (var (clientId, rgClientConnection) in _clientConnectionMap)
                 {
                     TeardownClient(clientId, false);
                 }
@@ -344,9 +329,9 @@ namespace RegressionGames
         private void StopGameHelper(bool updateBotsList = true)
         {
             RGDebug.LogInfo($"Stopping Spawnable Bots");
-            gameStarted = false;
+            _gameStarted = false;
 
-            foreach (var keyvalue in clientConnectionMap)
+            foreach (var keyvalue in _clientConnectionMap)
             {
                 string lifecycle = keyvalue.Value.Lifecycle;
                 if ("MANAGED" == lifecycle)
@@ -371,7 +356,7 @@ namespace RegressionGames
         public void StopGame()
         {
             // shutdown clients and de-spawn players that should be de-spawned
-            enqueueTaskForClient(long.MaxValue, () =>
+            EnqueueTaskForClient(long.MaxValue, () =>
             {
                 StopGameHelper();
             });
@@ -418,19 +403,19 @@ namespace RegressionGames
                                 );
                             }
                             return null;
-                        }).Where(v => v!= null));
+                        }).Where(v => v != null));
                 }
             }
 
-            gameStarted = true;
+            _gameStarted = true;
         }
 
         public void StartGame()
         {
-            enqueueTaskForClient(long.MaxValue, StartGameHelper);
+            EnqueueTaskForClient(long.MaxValue, StartGameHelper);
         }
 
-        private Task SetupClientConnection(RGClientConnection clientConnection)
+        private async Task SetupClientConnection(RGClientConnection clientConnection)
         {
             // MUST do this on the main thread
             // update to the latest connection info from RGService
@@ -446,7 +431,7 @@ namespace RegressionGames
             float time = Time.time;
             if (time - lastClientConnectTime >= 1f)
             {
-                foreach (var keyvalue in clientConnectionMap)
+                foreach (var keyvalue in _clientConnectionMap)
                 {
                     if (!keyvalue.Value.Connected())
                     {
@@ -458,13 +443,13 @@ namespace RegressionGames
                 lastClientConnectTime = time;
             }
 
-            if (gameStarted)
+            if (_gameStarted)
             {
                 SpawnBots(true);
             }
 
             // for each client, run up to 1 action per update
-            foreach (var (clientId, queue) in mainThreadTaskQueue)
+            foreach (var (clientId, queue) in _mainThreadTaskQueue)
             {
                 if (queue.TryDequeue(out Action action))
                 {
@@ -488,20 +473,20 @@ namespace RegressionGames
          */
         private void FixedUpdate()
         {
-            tick++;
-            if (tick % tickRate == 0)
+            _tick++;
+            if (_tick % tickRate == 0)
             {
-                if (clientConnectionMap.Count > 0)
+                if (_clientConnectionMap.Count > 0)
                 {
                     var state = GetGameState();
                     var sceneName = SceneManager.GetActiveScene().name;
-                    var tickInfoData = new RGTickInfoData(tick, sceneName, state);
+                    var tickInfoData = new RGTickInfoData(_tick, sceneName, state);
                     var sentTo = new List<long>();
 
                     // we tried to send these out in parallel on thread pool,
                     // but scheduling the tasks on the thread took longer than
                     // doing it sequentially... by a Lot, even with 200+ bots
-                    foreach (var (clientId, client) in clientConnectionMap)
+                    foreach (var (clientId, client) in _clientConnectionMap)
                     {
                         if (client.SendTickInfo(tickInfoData))
                         {
@@ -540,25 +525,73 @@ namespace RegressionGames
         }
 
         /**
-         * Gets the entire game state by searching for all RGEntity game objects and gathering their
-         * states.
+         * Gets the entire game state for each GameObject with RG components on it or in its behaviours.
          */
-        private Dictionary<string, IRGStateEntity> GetGameState()
+        private Dictionary<string, RGStateEntity_Core> GetGameState()
         {
-            var overlayAgent = this.gameObject.GetComponent<RGEntity>();
+            var overlayAgent = this.gameObject;
+            var fullGameState = new Dictionary<string, RGStateEntity_Core>();
 
-            var rgEntities = FindObjectsOfType<MonoBehaviour>(true).OfType<RGEntity>();
-            var fullGameState = new Dictionary<string, IRGStateEntity>();
+            // find all Buttons
+            var allButtons = RGFindUtils.Instance.FindAllButtons();
 
-            // SADLY... Unity's threading model sucks and accessing the transform of an object must be done on the main thread only
-            // thus, this code cannot really be run in parallel, causing a major object count scaling issue....
-            foreach (var rgEntity in rgEntities)
+            foreach (var button in allButtons)
             {
-                // Give the Entity its 'core' state fields whether their are custom RGstates on the object or not
-                // Custom states can then override these values
-                var coreEntityState = RGState.GenerateCoreStateForRGEntity(rgEntity);
+                var statefulGameObject = button.gameObject;
+                var gameObjectId = statefulGameObject.transform.GetInstanceID();
+                var gameObjectIdString = gameObjectId.ToString();
 
-                if (true.Equals(rgEntity.isPlayer))
+                // Give the GameObject its 'core' state fields
+                if (!fullGameState.TryGetValue(gameObjectIdString, out var coreEntityState))
+                {
+                    coreEntityState = RGStateHandler.GetCoreStateForGameObject(statefulGameObject, button);
+                    fullGameState[gameObjectIdString] = coreEntityState;
+                }
+            }
+
+            // get behaviours with attributes or custom RGState classes
+            var statefulBehaviours = RGFindUtils.Instance.FindStatefulAndActionableBehaviours();
+
+            // SADLY... Unity's threading model stinks and accessing the transform of an object must be done on the main thread only
+            // thus, this parts of this code cannot really be run in parallel, causing a potential state object count scaling performance issue....
+            foreach (var statefulBehaviour in statefulBehaviours)
+            {
+                var statefulGameObject = statefulBehaviour.gameObject;
+                var gameObjectId = statefulGameObject.transform.GetInstanceID();
+                var gameObjectIdString = gameObjectId.ToString();
+                // if the full game state doesn't already have this entry
+
+                // Give the GameObject its 'core' state fields
+                if (!fullGameState.TryGetValue(gameObjectIdString, out var coreEntityState))
+                {
+                    coreEntityState = RGStateHandler.GetCoreStateForGameObject(statefulGameObject);
+                    fullGameState[gameObjectIdString] = coreEntityState;
+                }
+
+                var isPlayerBehaviour = false;
+
+                if (statefulBehaviour is IRGStateBehaviour stateBehaviour)
+                {
+                    // custom state class
+                    stateBehaviour.PopulateStateEntity(coreEntityState, out isPlayerBehaviour);
+                }
+                else
+                {
+                    // some other MonoBehaviour with [RGState] or [RGAction] attributes in it
+                    RGStateHandler.PopulateStateEntityForStatefulObject(coreEntityState, statefulBehaviour,
+                        out isPlayerBehaviour);
+                }
+
+                // set the core state value for is player if any behaviour on this gameObject says it is
+                if (isPlayerBehaviour)
+                {
+                    coreEntityState["isPlayer"] = true;
+                }
+
+                // any of the stateful objects on a game object could set this
+                var isPlayer = (bool)coreEntityState["isPlayer"];
+
+                if (isPlayer)
                 {
                     if (!coreEntityState.ContainsKey("clientId") || coreEntityState["clientId"] == null)
                     {
@@ -567,7 +600,7 @@ namespace RegressionGames
                         // Note: We have to be very careful here or we'll set this up wrong
                         // we only want to give the overlay agent to the human player.
                         // Before the clientIds are all connected, this can mess-up
-                        var clientId = agentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
+                        var clientId = AgentMap.FirstOrDefault(x => x.Value.Contains(overlayAgent)).Key;
                         if (clientId != null)
                         {
                             coreEntityState["clientId"] = clientId;
@@ -576,92 +609,31 @@ namespace RegressionGames
                             // this happens for menu bots that spawn human players to control
                             // doing this allows actions from the bot code to process to the human player agent
                             // set this to avoid expensive lookups next time
-                            rgEntity.ClientId = clientId;
-                            agentMap[clientId].Add(rgEntity);
+                            RGStateHandler.EnsureRGStateHandlerOnGameObject(statefulGameObject).ClientId = clientId;
+                            AgentMap[clientId].Add(statefulGameObject);
                         }
                     }
                 }
-
-                IRGStateEntity currentEntityState = null;
-
-                // get the state behaviors on this game object
-                var rgStates = rgEntity.gameObject.GetComponents<IRGState>();
-
-                // build up the state for this entity from all the different state classes
-                foreach (var rgState in rgStates)
-                {
-                    var rgStateEntity = rgState.GetGameObjectState();
-                    // handle merging all the states into 1 overall state for the entity
-                    // if GameObject has multiple state scripts attached to it,
-                    // then we need to combine their state attributes into one IGStateEntity object.
-                    // ... hopefully there is only 1, but if multiple.. the Type of the last one wins
-                    // ... you still have all the data, just not easy '.' accessors for everything from the other Type(s)
-                    currentEntityState?.ToList().ForEach(x =>
-                    {
-                        // custom states can override only some core fields
-                        if (rgStateEntity.ContainsKey(x.Key))
-                        {
-                            RGDebug.LogWarning(
-                                $"RGEntity with ObjectType {coreEntityState["type"]} has duplicate state attribute {x.Key} on {rgStateEntity.GetType().Name} and {currentEntityState.GetType().Name}.");
-                        }
-                        else
-                        {
-                            rgStateEntity[x.Key] = x.Value;
-                        }
-                    });
-                    // update the current to the new class wrapper type
-                    currentEntityState = rgStateEntity;
-                }
-
-                if (currentEntityState == null)
-                {
-                    // use the core state
-                    currentEntityState = coreEntityState;
-                }
-                else
-                {
-                    // merge the 'core' state into this
-                    foreach (var x in coreEntityState)
-                    {
-                        if (_overridableCoreStateFields.Contains(x.Key) && currentEntityState.ContainsKey(x.Key))
-                        {
-                            // keep their override
-                        }
-                        else
-                        {
-                            if (currentEntityState.ContainsKey(x.Key))
-                            {
-                                RGDebug.LogWarning(
-                                    $"GameObject: {rgEntity.gameObject.name} with RGEntity objectType: {coreEntityState["type"]} has an RGState Behaviour that overrides core state attribute: {x.Key}; using the core state value instead.");
-                            }
-                            // write the value from the core state
-                            currentEntityState[x.Key] = x.Value;
-                        }
-                    }
-                }
-
-                //update the full game state
-                fullGameState[currentEntityState.id.ToString()] = currentEntityState;
             }
             return fullGameState;
         }
 
         public void SpawnBots(bool lateJoin = false)
         {
-            enqueueTaskForClient(long.MaxValue, () =>
+            EnqueueTaskForClient(long.MaxValue, () =>
             {
                 RGBotSpawnManager bsm = RGBotSpawnManager.GetInstance();
-                if (bsm != null && gameStarted)
+                if (bsm != null && _gameStarted)
                 {
                     bsm.SpawnBots(lateJoin);
                 }
             });
         }
 
-        private void enqueueTaskForClient(long clientId, Action task)
+        private void EnqueueTaskForClient(long clientId, Action task)
         {
-            mainThreadTaskQueue.TryAdd(clientId, new ConcurrentQueue<Action>());
-            mainThreadTaskQueue[clientId].Enqueue(task);
+            _mainThreadTaskQueue.TryAdd(clientId, new ConcurrentQueue<Action>());
+            _mainThreadTaskQueue[clientId].Enqueue(task);
         }
 
         public void HandleClientTeardown(long clientId, bool doUpdateBots = true)
@@ -670,7 +642,7 @@ namespace RegressionGames
             // This would happen when a particular bot's code determined it was finished and sent
             // us a teardown notification
             SetUnityBotState(clientId, RGUnityBotState.TEARING_DOWN);
-            enqueueTaskForClient(clientId, () =>
+            EnqueueTaskForClient(clientId, () =>
             {
                 TeardownClient(clientId, doUpdateBots);
             });
@@ -679,100 +651,99 @@ namespace RegressionGames
         public void HandleClientHandshakeMessage(long clientId, RGClientHandshake handshakeMessage)
         {
             // can only call Unity APIs on main thread, so queue this up
-            enqueueTaskForClient(clientId,() =>
-            {
-                try
-                {
-                    if (!RGServiceManager.RG_UNITY_AUTH_TOKEN.Equals(handshakeMessage.unityToken))
-                    {
-                        RGDebug.LogWarning(
-                            $"WARNING: A client tried to connect/handshake with an invalid external auth token");
-                        return;
-                    }
+            EnqueueTaskForClient(clientId, () =>
+             {
+                 try
+                 {
+                     if (!RGServiceManager.RG_UNITY_AUTH_TOKEN.Equals(handshakeMessage.unityToken))
+                     {
+                         RGDebug.LogWarning(
+                             $"WARNING: A client tried to connect/handshake with an invalid external auth token");
+                         return;
+                     }
 
-                    //Handle spawning player and recording lifecycle for de-spawn
-                    bool spawnable = handshakeMessage.spawnable;
+                     //Handle spawning player and recording lifecycle for de-spawn
+                     bool spawnable = handshakeMessage.spawnable;
 
-                    string lifecycle = string.IsNullOrEmpty(handshakeMessage.lifecycle)
-                        ? "MANAGED"
-                        : handshakeMessage.lifecycle;
+                     string lifecycle = string.IsNullOrEmpty(handshakeMessage.lifecycle)
+                         ? "MANAGED"
+                         : handshakeMessage.lifecycle;
 
-                    clientConnectionMap[clientId].Lifecycle = lifecycle;
+                     _clientConnectionMap[clientId].Lifecycle = lifecycle;
 
-                    // if the bot coming in already put its unique client Id on the end.. ignore
-                    // else make sure the name is unique by appending the id
-                    string botName = $"{handshakeMessage.botName}";
-                    string clientIdStringSuffix = $"-{clientId}";
-                    if (!botName.EndsWith(clientIdStringSuffix))
-                    {
-                        botName += clientIdStringSuffix;
-                    }
-                    Dictionary<string, object> characterConfig = handshakeMessage.characterConfig;
+                     // if the bot coming in already put its unique client Id on the end.. ignore
+                     // else make sure the name is unique by appending the id
+                     string botName = $"{handshakeMessage.botName}";
+                     string clientIdStringSuffix = $"-{clientId}";
+                     if (!botName.EndsWith(clientIdStringSuffix))
+                     {
+                         botName += clientIdStringSuffix;
+                     }
+                     Dictionary<string, object> characterConfig = handshakeMessage.characterConfig;
 
-                    // save the token the client gave us for talking to them
-                    clientConnectionMap[clientId].Token = handshakeMessage.rgToken;
+                     // save the token the client gave us for talking to them
+                     _clientConnectionMap[clientId].Token = handshakeMessage.rgToken;
 
-                    if (!spawnable && "PERSISTENT".Equals(lifecycle))
-                    {
-                        // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
-                        RGEntity theAgent = this.gameObject.GetComponent<RGEntity>();
-                        agentMap[clientId] = new HashSet<RGEntity> { theAgent };
-                    }
-                    else
-                    {
-                        agentMap[clientId] = new HashSet<RGEntity>( );
-                    }
+                     if (!spawnable && "PERSISTENT".Equals(lifecycle))
+                     {
+                         // should be a menu / human simulator bot, give them the default agent... thus allowing button clicks
+                         AgentMap[clientId] = new HashSet<GameObject> { this.gameObject };
+                     }
+                     else
+                     {
+                         AgentMap[clientId] = new HashSet<GameObject>();
+                     }
 
-                    // set this BEFORE sending the response of handshake to the client so it actually sends
-                    SetUnityBotState(clientId, RGUnityBotState.CONNECTED);
-                    if (spawnable)
-                    {
-                        try
-                        {
-                            RGBotSpawnManager.GetInstance()?.CallSeatBot(new BotInformation(clientId, botName, characterConfig));
-                        }
-                        catch (Exception e)
-                        {
-                            RGDebug.LogException(e, "ERROR seating player");
-                        }
-                    }
-                    else
-                    {
-                        RGDebug.LogDebug($"Sending socket handshake response to client id: {clientId}");
-                        //send the client a handshake response so they can start processing
-                        clientConnectionMap[clientId].SendHandshakeResponse( new RGServerHandshake(UnitySideToken, characterConfig, null));
-                    }
+                     // set this BEFORE sending the response of handshake to the client so it actually sends
+                     SetUnityBotState(clientId, RGUnityBotState.CONNECTED);
+                     if (spawnable)
+                     {
+                         try
+                         {
+                             RGBotSpawnManager.GetInstance()?.CallSeatBot(new BotInformation(clientId, botName, characterConfig));
+                         }
+                         catch (Exception e)
+                         {
+                             RGDebug.LogException(e, "ERROR seating player");
+                         }
+                     }
+                     else
+                     {
+                         RGDebug.LogDebug($"Sending socket handshake response to client id: {clientId}");
+                         //send the client a handshake response so they can start processing
+                         _clientConnectionMap[clientId].SendHandshakeResponse(new RGServerHandshake(UnitySideToken, characterConfig, null));
+                     }
 
-                    // we used to do this in the connection on each send, but that was too many updates.. now we do it after sending handshake response
-                    SetUnityBotState(clientId, RGUnityBotState.RUNNING);
-                }
-                catch (Exception ex)
-                {
-                    RGDebug.LogWarning($"WARNING: Failed to process handshake from clientId: {clientId} - {ex}");
-                }
-            });
+                     // we used to do this in the connection on each send, but that was too many updates.. now we do it after sending handshake response
+                     SetUnityBotState(clientId, RGUnityBotState.RUNNING);
+                 }
+                 catch (Exception ex)
+                 {
+                     RGDebug.LogWarning($"WARNING: Failed to process handshake from clientId: {clientId} - {ex}");
+                 }
+             });
 
         }
 
         public void HandleClientValidationResult(long clientId, RGValidationResult validationResult)
         {
-            enqueueTaskForClient(clientId,() =>
-            {
-                if (!validationResult.passed)
-                {
-                    RGDebug.LogDebug($"Save Validation Result for clientId: {clientId}, data: {validationResult.name}");
-                    clientValidationMap[clientId]?.Enqueue(validationResult);
-                }
-            });
+            EnqueueTaskForClient(clientId, () =>
+             {
+                 if (!validationResult.passed)
+                 {
+                     RGDebug.LogDebug($"Save Validation Result for clientId: {clientId}, data: {validationResult.name}");
+                     _clientValidationMap[clientId]?.Enqueue(validationResult);
+                 }
+             });
         }
 
         public void HandleClientActionRequest(long clientId, RGActionRequest actionRequest)
         {
-            enqueueTaskForClient(clientId,() =>
-            {
-                RGDebug.LogDebug($"QUEUE TASK for clientId: {clientId}, data: {actionRequest}");
-                HandleAction(clientId, actionRequest);
-            });
+            EnqueueTaskForClient(clientId, () =>
+             {
+                 RGDebug.LogDebug($"QUEUE TASK for clientId: {clientId}, data: {actionRequest}");
+                 HandleActionForClient(clientId, actionRequest);
+             });
         }
 
         public void SaveDataForTick(long clientId, RGTickInfoData tickInfoData, List<RGActionRequest> actions,
@@ -801,20 +772,34 @@ namespace RegressionGames
         }
 
         // call me on the main thread only
-        private void HandleAction(long clientId, RGActionRequest actionRequest)
+        private void HandleActionForClient(long clientId, RGActionRequest actionRequest)
         {
-            var agents = agentMap[clientId];
-            /* TODO: Right now this broadcasts the action to all agents.  We may
+            var agents = AgentMap[clientId];
+            /* TODO: Right now this broadcasts the action to all agents for a clientId.  We may
              * want to assign actions to specific agents based on their entity Id
              * if we ever support more than 1 entity + button clicks
              */
             foreach (var agent in agents)
             {
-                RGAction actionHandler = agent.GetActionHandler(actionRequest.action);
-                if (actionHandler != null)
+                HandleActionOnGameObject(agent, actionRequest);
+            }
+        }
+
+        public static void HandleActionOnGameObject(GameObject gameObject, RGActionRequest actionRequest)
+        {
+            //make sure this agent isn't being destroyed already
+            if (gameObject != null)
+            {
+                var actionHandler = gameObject.GetComponent<RGActionHandler>();
+                // make sure the gameObject has an ActionHandler ready to go
+                if (actionHandler == null)
                 {
-                    actionHandler.StartAction(actionRequest.Input);
+                    actionHandler = gameObject.AddComponent<RGActionHandler>();
+                    // call start right away so we don't have a race condition of the actions not loading in time
+                    actionHandler.Start();
                 }
+
+                actionHandler.Invoke(actionRequest);
             }
         }
 

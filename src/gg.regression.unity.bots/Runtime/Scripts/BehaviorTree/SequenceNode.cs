@@ -10,7 +10,7 @@ namespace RegressionGames.BehaviorTree
     {
         protected override NodeStatus Execute(RG rgObject)
         {
-            foreach(var child in Children)
+            foreach (var child in Children)
             {
                 var result = child.Invoke(rgObject);
                 if (result != NodeStatus.Success)
