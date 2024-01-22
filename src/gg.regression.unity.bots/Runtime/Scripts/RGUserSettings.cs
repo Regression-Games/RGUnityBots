@@ -27,7 +27,7 @@ namespace RegressionGames
 #endif
                     dirty = false;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // if not called on main thread this will exception
                 }
@@ -71,7 +71,7 @@ namespace RegressionGames
 #endif
                 dirty = false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // if not called on main thread this will exception
             }

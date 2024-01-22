@@ -141,7 +141,7 @@ namespace RegressionGames.Editor
                                 }
                                 botSelected.longValue = bots[indexSelected].id;
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
                                 // Solve why on first rendering after get this blows up but still renders fine
                                 // the answer is that OnGUI calls this multiple times per frame :(

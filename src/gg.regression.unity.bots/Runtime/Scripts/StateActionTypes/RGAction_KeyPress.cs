@@ -65,7 +65,7 @@ namespace RegressionGames.StateActionTypes
             if (_keysToPress.TryDequeue(out RG_KeyPress_Data keyToPress))
             {
                 List<InputControl> actionsToTake = new();
-                // check for any key 
+                // check for any key
                 if (_anyKey != null)
                 {
                     actionsToTake.Add(_anyKey);
@@ -114,7 +114,7 @@ namespace RegressionGames.StateActionTypes
                     debugText += $"{key.ToString()} : {(value-Time.unscaledTime):F2}\r\n";
                 }
 
-                
+
                 if (string.IsNullOrEmpty(debugText))
                 {
                     RgGizmos.DestroyText(id);

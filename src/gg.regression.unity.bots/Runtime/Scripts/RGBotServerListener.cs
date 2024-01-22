@@ -122,7 +122,7 @@ namespace RegressionGames
 
         /*
          * Tracking Maps
-         * 
+         *
          * clientConnectionMap - Clients that have connected and/or done their handshake will be populated here.
          *    Clients waiting on a connection will have a null value.
          *    (key is the botInstanceId as a long)
@@ -135,7 +135,7 @@ namespace RegressionGames
          *
          * 2. On Success of RGServiceManager.QueueInstantBot, that botInstanceId is added to a connections
          *    list in RGBotServerListener (this class).
-         * 
+         *
          *    On Unity Update, we evaluate the set of botInstanceIds that don't have a connection yet.
          *    For each of these, we attempt to use RGServiceManager.GetExternalConnectionInformationForBotInstance
          *    to call RGService to get the external connection information for the bot address:port.
@@ -389,7 +389,7 @@ namespace RegressionGames
                                 // handle remote bot
                                 return RGServiceManager.GetInstance()?.QueueInstantBot(
                                     (long)botId,
-                                    async (botInstance) =>
+                                    (botInstance) =>
                                     {
                                         AddClientConnectionForBotInstance(botInstance.id,
                                             RGClientConnectionType.REMOTE);
@@ -415,11 +415,12 @@ namespace RegressionGames
             EnqueueTaskForClient(long.MaxValue, StartGameHelper);
         }
 
-        private async Task SetupClientConnection(RGClientConnection clientConnection)
+        private Task SetupClientConnection(RGClientConnection clientConnection)
         {
             // MUST do this on the main thread
             // update to the latest connection info from RGService
             clientConnection.Connect();
+            return Task.CompletedTask;
         }
 
         private float lastClientConnectTime = -1f;
@@ -603,8 +604,8 @@ namespace RegressionGames
                         if (clientId != null)
                         {
                             coreEntityState["clientId"] = clientId;
-                            // add the agent from the player's object to the agentMap now that 
-                            // we have detected that they are here 
+                            // add the agent from the player's object to the agentMap now that
+                            // we have detected that they are here
                             // this happens for menu bots that spawn human players to control
                             // doing this allows actions from the bot code to process to the human player agent
                             // set this to avoid expensive lookups next time
@@ -748,7 +749,7 @@ namespace RegressionGames
         public void SaveDataForTick(long clientId, RGTickInfoData tickInfoData, List<RGActionRequest> actions,
             List<RGValidationResult> validations)
         {
-            _dataCollection.SaveReplayDataInfo(clientId, new RGStateActionReplayData(
+            _ = _dataCollection.SaveReplayDataInfo(clientId, new RGStateActionReplayData(
                 actions: actions.ToArray(),
                 validationResults: validations.ToArray(),
                 tickInfo: tickInfoData,
