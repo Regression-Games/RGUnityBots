@@ -52,7 +52,7 @@ namespace RegressionGames
 
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // ignored
             }

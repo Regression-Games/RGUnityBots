@@ -169,14 +169,14 @@ namespace RegressionGames
                 uri: $"{GetRgServiceBaseUri()}/auth",
                 method: "POST",
                 payload: JsonUtility.ToJson(new RGAuthRequest(email, password)),
-                onSuccess: async (s) =>
+                onSuccess: (s) =>
                 {
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
                     RGDebug.LogInfo($"Signed in to RG Service");
                     rgAuthToken = response.token;
                     onSuccess.Invoke(response.token);
                 },
-                onFailure: async (f) =>
+                onFailure: (f) =>
                 {
                     RGDebug.LogWarning($"Failed signing in to RG Service - {f}");
                     onFailure.Invoke(f);
@@ -193,7 +193,7 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot",
                     method: "GET",
                     payload: null,
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         string theNewText = $"{{\"bots\":{s}}}";
@@ -202,7 +202,7 @@ namespace RegressionGames
                             $"RGService GetBotsForCurrentUser response received with bots: {string.Join(",", response.bots.ToList())}");
                         onSuccess.Invoke(response.bots);
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed retrieving bots for current user: {f}");
                         onFailure.Invoke();
@@ -223,14 +223,14 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot",
                     method: "POST",
                     payload: JsonUtility.ToJson(request),
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         var response = JsonConvert.DeserializeObject<RGBot>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBot response received: {response}");
                         onSuccess.Invoke(response);
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to create bot for current user: {f}");
                         onFailure.Invoke();
@@ -251,14 +251,14 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/code-details",
                     method: "GET",
                     payload: null,
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         RGBotCodeDetails response = JsonConvert.DeserializeObject<RGBotCodeDetails>(s);
                         RGDebug.LogDebug(
                             $"RGService GetBotCodeDetails response received: {response}");
                         onSuccess.Invoke(response);
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to get bot code details for bot id: {botId} - {f}");
                         onFailure.Invoke();
@@ -280,7 +280,7 @@ namespace RegressionGames
                     method: "POST",
                     filePath: filePath,
                     contentType: "application/zip",
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         RGBotCodeDetails response = JsonUtility.FromJson<RGBotCodeDetails>(s);
@@ -288,7 +288,7 @@ namespace RegressionGames
                             $"RGService GetBotCodeDetails response received: {response}");
                         onSuccess.Invoke(response);
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to get bot code details for bot id: {botId} - {f}");
                         onFailure.Invoke();
@@ -310,13 +310,13 @@ namespace RegressionGames
                     method: "GET",
                     payload: null,
                     destinationFilePath: destinationFilePath,
-                    onSuccess: async () =>
+                    onSuccess: () =>
                     {
                         RGDebug.LogDebug(
                             $"RGService DownloadBotCode response received for bot id: {botId}");
                         onSuccess.Invoke();
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to DownloadBotCode for bot id: {botId} - {f}");
                         onFailure.Invoke();
@@ -338,8 +338,8 @@ namespace RegressionGames
                     method: "POST",
                     filePath: filePath,
                     contentType: "image/jpeg",
-                    onSuccess: async (s) => { onSuccess.Invoke(); },
-                    onFailure: async (f) =>
+                    onSuccess: (_) => { onSuccess.Invoke(); },
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to upload screenshot for bot instance: {botInstanceId} - {f}");
                         onFailure.Invoke();
@@ -365,14 +365,14 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/bot-instance",
                     method: "POST",
                     payload: JsonConvert.SerializeObject(new RGCreateBotInstanceRequest(startDate)),
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         RGBotInstance response = JsonUtility.FromJson<RGBotInstance>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBotInstance response received: {response}");
                         onSuccess.Invoke(response);
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to create bot instance record: {f}");
                         onFailure.Invoke();
@@ -397,14 +397,14 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}",
                     method: "POST",
                     payload: null,
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         RGBotInstanceHistory response = JsonUtility.FromJson<RGBotInstanceHistory>(s);
                         RGDebug.LogDebug(
                             $"RGService CreateBotInstanceHistory response received: {response}");
                         onSuccess.Invoke(response);
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to create bot instance history record: {f}");
                         onFailure.Invoke();
@@ -429,13 +429,13 @@ namespace RegressionGames
                     method: "POST",
                     filePath: filePath,
                     contentType: "application/zip",
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         RGDebug.LogDebug(
                             $"RGService UploadReplayData response received");
                         onSuccess.Invoke();
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to upload bot instance history replay data for bot instance id: {botInstanceId} - {f}");
                         onFailure.Invoke();
@@ -459,7 +459,7 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/validation-summary",
                     method: "POST",
                     payload: JsonUtility.ToJson(request),
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         RGBotInstanceHistory response = JsonUtility.FromJson<RGBotInstanceHistory>(s);
@@ -467,7 +467,7 @@ namespace RegressionGames
                             $"RGService UploadValidationSummary response received: {response}");
                         onSuccess.Invoke(response);
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to upload a validation summary for bot instance {botInstanceId}: {f}");
                         onFailure.Invoke();
@@ -492,14 +492,14 @@ namespace RegressionGames
                     method: "POST",
                     filePath: filePath,
                     contentType: "application/jsonl",
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         RGDebug.LogDebug(
                             $"RGService UploadValidations response received");
                         onSuccess.Invoke();
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to upload validations for bot instance {botInstanceId}: {f}");
                         onFailure.Invoke();
@@ -524,13 +524,13 @@ namespace RegressionGames
                     method: "POST",
                     filePath: filePath,
                     contentType: "application/jsonl",
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         RGDebug.LogDebug(
                             $"RGService UploadLogs response received");
                         onSuccess.Invoke();
                     },
-                    onFailure: async (f) =>
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to upload logs for bot instance {botInstanceId}: {f}");
                         onFailure.Invoke();
@@ -551,14 +551,14 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/external-connection-info",
                     method: "GET",
                     payload: null,
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         RGBotInstanceExternalConnectionInfo connInfo =
                             JsonUtility.FromJson<RGBotInstanceExternalConnectionInfo>(s);
                         RGDebug.LogDebug($"RG Bot Instance external connection info: {connInfo}");
                         onSuccess.Invoke(connInfo);
                     },
-                    onFailure: async (f) => { onFailure.Invoke(); }
+                    onFailure: (f) => { onFailure.Invoke(); }
                 );
             }
             else
@@ -576,7 +576,7 @@ namespace RegressionGames
                     method: "POST",
                     payload: JsonUtility.ToJson(new RGQueueInstantBotRequest("unused", 0, botId,
                         RG_UNITY_AUTH_TOKEN)), // TODO Remove host and port from payload if they're optional
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         RGBotInstance botInstance = JsonUtility.FromJson<RGBotInstance>(s);
                         RGBotServerListener.GetInstance()
@@ -584,7 +584,7 @@ namespace RegressionGames
                         RGDebug.LogInfo($"Bot Instance id: {botInstance.id} started");
                         onSuccess.Invoke(botInstance);
                     },
-                    onFailure: async (f) => { onFailure.Invoke(); }
+                    onFailure: (f) => { onFailure.Invoke(); }
                 );
             }
             else
@@ -601,7 +601,7 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botId}",
                     method: "GET",
                     payload: null,
-                    onSuccess: async (s) =>
+                    onSuccess: (s) =>
                     {
                         // wrapper this as C#/Unity json can't handle top level arrays /yuck
                         string theNewText = $"{{\"botInstances\":{s}}}";
@@ -609,7 +609,7 @@ namespace RegressionGames
                         RGBotInstanceList botInstanceList = JsonConvert.DeserializeObject<RGBotInstanceList>(theNewText);
                         onSuccess.Invoke(botInstanceList.botInstances);
                     },
-                    onFailure: async (f) => { onFailure.Invoke(); }
+                    onFailure: (f) => { onFailure.Invoke(); }
                 );
             }
             else
@@ -626,8 +626,8 @@ namespace RegressionGames
                     uri: $"{GetRgServiceBaseUri()}/matchmaking/running-bot/{botInstanceId}/stop",
                     method: "POST",
                     payload: null,
-                    onSuccess: async (s) => { onSuccess.Invoke(); },
-                    onFailure: async (f) =>
+                    onSuccess: (s) => { onSuccess.Invoke(); },
+                    onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to stop bot instance {botInstanceId}: {f}");
                         onFailure.Invoke();
@@ -643,6 +643,26 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
+        private Task SendWebRequest(
+            string uri, string method, string payload, Action<string> onSuccess, Action<string> onFailure,
+            bool isAuth = false, string contentType = "application/json")
+            => SendWebRequest(
+                uri,
+                method,
+                payload,
+                s =>
+                {
+                    onSuccess(s);
+                    return Task.CompletedTask;
+                },
+                s =>
+                {
+                    onFailure(s);
+                    return Task.CompletedTask;
+                },
+                isAuth,
+                contentType);
+
         private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth = false, string contentType = "application/json")
         {
             var messageId = ++correlationId;
@@ -711,6 +731,20 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
+        private Task SendWebFileUploadRequest(string uri, string method, string filePath, string contentType, Action<string> onSuccess, Action<string> onFailure)
+            => SendWebFileUploadRequest(uri, method, filePath, contentType,
+                s =>
+                {
+                    onSuccess(s);
+                    return Task.CompletedTask;
+                },
+                s =>
+                {
+                    onFailure(s);
+                    return Task.CompletedTask;
+                }
+            );
+
         private async Task SendWebFileUploadRequest(string uri, string method, string filePath, string contentType, Func<string, Task> onSuccess, Func<string, Task> onFailure)
         {
             var messageId = ++correlationId;
@@ -777,6 +811,20 @@ namespace RegressionGames
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
+        private Task SendWebFileDownloadRequest(string uri, string method, string payload, string destinationFilePath, Action onSuccess, Action<string> onFailure)
+            => SendWebFileDownloadRequest(uri, method, payload, destinationFilePath,
+                () =>
+                {
+                    onSuccess();
+                    return Task.CompletedTask;
+                },
+                s =>
+                {
+                    onFailure(s);
+                    return Task.CompletedTask;
+                }
+            );
+
         private async Task SendWebFileDownloadRequest(string uri, string method, string payload, string destinationFilePath, Func<Task> onSuccess, Func<string, Task> onFailure)
         {
             var messageId = ++correlationId;

@@ -18,7 +18,7 @@ namespace RegressionGames.Types
             this.Type = type;
         }
 
-        public virtual async void Connect()
+        public virtual void Connect()
         {
 
         }

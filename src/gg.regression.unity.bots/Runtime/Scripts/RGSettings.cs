@@ -17,7 +17,10 @@ namespace RegressionGames
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
         [SerializeField] private uint nextBotId;
+
+#pragma warning disable CS0414 // suppress unused field warning
         [SerializeField] private uint nextBotInstanceId;
+#pragma warning restore CS0414
 
         /*
          * This is setup to be safely callable on the non-main thread.
@@ -37,7 +40,7 @@ namespace RegressionGames
 #endif
                     dirty = false;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // if not called on main thread this will exception
                 }
@@ -85,7 +88,7 @@ namespace RegressionGames
 #endif
                 dirty = false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // if not called on main thread this will exception
             }

@@ -104,7 +104,7 @@ namespace RegressionGames.Types
                             Close();
                         }
                         // ReSharper disable once EmptyGeneralCatchClause
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                         }
 
@@ -129,7 +129,7 @@ namespace RegressionGames.Types
                         return _client.Connected;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // on teardown, the RemoteEndPoint can become invalid before the socket closes fully
                 }
@@ -208,7 +208,7 @@ namespace RegressionGames.Types
                                         {
                                             client.EndConnect(ar);
                                         }
-                                        catch (Exception e1)
+                                        catch (Exception)
                                         {
                                             // may not have gotten far enough to do this
                                         }
@@ -235,7 +235,7 @@ namespace RegressionGames.Types
                                     {
                                         client.EndConnect(beginConnect);
                                     }
-                                    catch (Exception e1)
+                                    catch (Exception)
                                     {
                                         // may not have gotten far enough to do this
                                         // RGDebug.LogDebug($"Failed to abort connection - {e1}");
@@ -270,7 +270,7 @@ namespace RegressionGames.Types
             {
                 _client?.Close();
             }
-            catch (Exception e1)
+            catch (Exception)
             {
                 // may not have gotten far enough to do this
             }
