@@ -113,8 +113,13 @@ namespace RegressionGames.Editor
             _entityInfo[entityId].id = entityId;
             _entityInfo[entityId].isPlayer = isPlayer;
             _entityInfo[entityId].name = name;
-            _entityInfo[entityId].type = type;
             _entityInfo[entityId].types = types;
+
+            // It's ok for _us_ to call the obsolete 'type' property, because we're supporting old replays.
+#pragma warning disable CS0612 // Type or member is obsolete
+            _entityInfo[entityId].type = type;
+#pragma warning restore CS0612 // Type or member is obsolete
+
             if (showPath != null) _entityInfo[entityId].showPath = showPath.Value;
             if (showActions != null) _entityInfo[entityId].showActions = showActions.Value;
             if (highlight != null) _entityInfo[entityId].showHighlight = highlight.Value;
@@ -152,7 +157,11 @@ namespace RegressionGames.Editor
         public bool showPath;
         public bool showActions;
         public bool showHighlight;
+
+        // It's ok for _us_ to call the obsolete 'type' property, because we're supporting old replays.
+#pragma warning disable CS0612 // Type or member is obsolete
         public string objectName => $"{name ?? (type ?? "[" + string.Join(',', types) + "]")}_{id}";
+#pragma warning restore CS0612 // Type or member is obsolete
     }
 
     [Serializable]

@@ -23,10 +23,8 @@ public class RegressionPackagePopup : EditorWindow
     private static bool loggedIn = false;
     private static string email = "";
     private static string password = "";
-    private static bool isSampleImportInProgress = false;
     private static AddRequest addRequest;
     private static ListRequest listRequest;
-    private static string samplePath = "Samples~/ThirdPersonDemoURP";
 
     void OnEnable()
     {
