@@ -124,7 +124,8 @@ namespace RegressionGames.DataCollection
                         string path = GetSessionDirectory($"screenshots/{tick}.jpg");
 
                         // Save the byte array as a jpg file
-                        File.WriteAllBytes(path, bytes);
+                        // We should wait to make sure all these tasks finish before we upload
+                        File.WriteAllBytesAsync(path, bytes);
                     }
                     finally
                     {

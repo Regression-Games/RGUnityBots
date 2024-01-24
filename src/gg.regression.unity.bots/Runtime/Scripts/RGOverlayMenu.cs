@@ -1,5 +1,8 @@
+using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using RegressionGames.RGBotLocalRuntime;
@@ -7,6 +10,7 @@ using RegressionGames.Types;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames
 {
@@ -14,6 +18,8 @@ namespace RegressionGames
     public class RGOverlayMenu : MonoBehaviour
     {
 
+        private readonly string _sessionName = Guid.NewGuid().ToString();
+        
         public Image launcherIcon;
         public RGIconPulse launcherPulse;
 
@@ -34,6 +40,15 @@ namespace RegressionGames
         private int lastCount = -1;
 
         private static RGOverlayMenu _this = null;
+
+        private bool _closeOverlayOnBotStart = true;
+
+        private bool _cvRecording = false;
+
+        [Tooltip("FPS at which to analyze state using CV")]
+        public int CVRecordingFPS = 30;
+
+        private float _lastCVFrameTime = -1f;
 
         public static RGOverlayMenu GetInstance()
         {
@@ -59,6 +74,7 @@ namespace RegressionGames
 
         public void Start()
         {
+            CleanupImageDirectory();
             selectionPanel.SetActive(false);
         }
 
@@ -126,7 +142,76 @@ namespace RegressionGames
             }
 
             lastCount = _activeBots.Count;
+            if (_cvRecording)
+            {
+                StartCoroutine(RecordFrame());
+            }
 
+        }
+        
+        IEnumerator RecordFrame()
+        {
+            yield return new WaitForEndOfFrame();
+            // handle recording
+            var time = Time.unscaledTime;
+            if ((int)(1000 * (time - _lastCVFrameTime)) >= (int)(1000.0f / CVRecordingFPS))
+            {
+                // estimating the time in int milliseconds .. won't exactly match FPS.. but will be close
+                _lastCVFrameTime = time;
+
+                // write out the image
+                string path = GetImageDirectory($"{_tickNumber}".PadLeft(9,'0')+".jpg");
+                    
+                RGDebug.LogVerbose($"Capturing screenshot for CV evaluation: {path}");
+                var texture = ScreenCapture.CaptureScreenshotAsTexture(1);
+                try
+                {
+                    // Encode the texture into a jpg byte array
+                    byte[] bytes = texture.EncodeToJPG(100);
+
+                    // Save the byte array as a file
+                    File.WriteAllBytesAsync(path, bytes);
+                }
+                finally
+                {
+                    ++_tickNumber;
+                    // Destroy the texture to free up memory
+                    Object.Destroy(texture);
+                }
+            }
+        }
+
+
+        private void OnDestroy()
+        {
+            string path = GetImageDirectory("DONE.txt");
+            File.Create(path);
+        }
+
+        private long _tickNumber = 0;
+        
+        private string GetImageDirectory(string path = "")
+        {
+            var fullPath = Path.Combine(Application.persistentDataPath, "RGData", "cvImages", path);
+            var directory = Path.GetDirectoryName(fullPath);
+            if (directory != null)
+            {
+                Directory.CreateDirectory(directory);
+            }
+            return fullPath;
+        }
+
+        private void CleanupImageDirectory()
+        {
+            var fullPath = Path.Combine(Application.persistentDataPath, "RGData", "cvImages");
+            var directory = Path.GetDirectoryName(fullPath);
+            if (directory != null)
+            {
+                if (Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, true);
+                }
+            }
         }
 
         public void OnOverlayClick()
@@ -143,6 +228,21 @@ namespace RegressionGames
         {
             RGDebug.LogVerbose("Closing RG Overlay Menu");
             selectionPanel.SetActive(false);
+        }
+
+        public void SetCloseOnBotStart()
+        {
+            _closeOverlayOnBotStart = !_closeOverlayOnBotStart;
+        }
+
+        public void SetCVRecording()
+        {
+            if (!_cvRecording)
+            {
+                // close this before we switch the flag
+                OnOverlayClosed();
+            }
+            _cvRecording = !_cvRecording;
         }
 
         public void AddBot()
@@ -166,20 +266,32 @@ namespace RegressionGames
                                     // don't update the bots as we'll update on re-open of overlay anyway
                                     //UpdateBots();
                                     // close the overlay so it doesn't hide components the bot needs to click
-                                    OnOverlayClosed();
+                                    if (_closeOverlayOnBotStart)
+                                    {
+                                        OnOverlayClosed();
+                                    }
                                     RGBotServerListener.GetInstance()
                                         ?.AddClientConnectionForBotInstance(botInstance.id,
                                             RGClientConnectionType.REMOTE);
+                                    if (!_closeOverlayOnBotStart)
+                                    {
+                                        UpdateBots();
+                                    }
                                 },
                                 () => { RGDebug.LogWarning("WARNING: Failed to start new Remote bot"); });
                         }
                         else
                         {
                             RGBotRuntimeManager.GetInstance()?.StartBot(botId);
-                            // don't update the bots as we'll update on re-open of overlay anyway
-                            //UpdateBots();
                             // close the overlay so it doesn't hide components the bot needs to click
-                            OnOverlayClosed();
+                            if (_closeOverlayOnBotStart)
+                            {
+                                OnOverlayClosed();
+                            }
+                            else
+                            {
+                                UpdateBots();
+                            }
                         }
                     }
                 }
