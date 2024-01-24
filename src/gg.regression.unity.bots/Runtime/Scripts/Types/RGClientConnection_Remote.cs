@@ -104,7 +104,7 @@ namespace RegressionGames.Types
                             Close();
                         }
                         // ReSharper disable once EmptyGeneralCatchClause
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                         }
 
@@ -129,7 +129,7 @@ namespace RegressionGames.Types
                         return _client.Connected;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // on teardown, the RemoteEndPoint can become invalid before the socket closes fully
                 }
@@ -208,7 +208,7 @@ namespace RegressionGames.Types
                                         {
                                             client.EndConnect(ar);
                                         }
-                                        catch (Exception e1)
+                                        catch (Exception )
                                         {
                                             // may not have gotten far enough to do this
                                         }
@@ -224,7 +224,7 @@ namespace RegressionGames.Types
 
                             // start a timer for SOCKET_READWRITE_TIMEOUT * 2 ms from now that will cancel the connection attempt if it didn't connect yet
                             var t = new Timer(SOCKET_READWRITE_TIMEOUT * 2);
-                            t.Elapsed += (s, e) =>
+                            t.Elapsed += (_, _) =>
                             {
                                 // if == 1 , we got here before the connection completed
                                 if (Interlocked.Increment(ref connectionComplete) == 1)
@@ -235,7 +235,7 @@ namespace RegressionGames.Types
                                     {
                                         client.EndConnect(beginConnect);
                                     }
-                                    catch (Exception e1)
+                                    catch (Exception)
                                     {
                                         // may not have gotten far enough to do this
                                         // RGDebug.LogDebug($"Failed to abort connection - {e1}");
@@ -270,7 +270,7 @@ namespace RegressionGames.Types
             {
                 _client?.Close();
             }
-            catch (Exception e1)
+            catch (Exception)
             {
                 // may not have gotten far enough to do this
             }

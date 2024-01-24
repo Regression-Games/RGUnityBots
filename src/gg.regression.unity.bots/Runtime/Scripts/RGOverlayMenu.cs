@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using OpenCvSharp;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
 using TMPro;
@@ -168,9 +169,19 @@ namespace RegressionGames
                 {
                     // Encode the texture into a jpg byte array
                     byte[] bytes = texture.EncodeToJPG(100);
-
                     // Save the byte array as a file
                     File.WriteAllBytesAsync(path, bytes);
+                    
+                    byte[] pngBytes = texture.EncodeToPNG();
+                    var mat = Mat.FromImageData(pngBytes, ImreadModes.Color);
+
+
+                    var backSub =  BackgroundSubtractorMOG2.Create();
+                    var fgMask = new Mat();
+                    backSub.Apply(mat, fgMask);
+                    string pathMask = GetImageDirectory($"{_tickNumber}".PadLeft(9,'0')+".mask.jpg");
+                    Cv2.ImWrite(pathMask, fgMask);
+                    
                 }
                 finally
                 {
