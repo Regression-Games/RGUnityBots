@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -123,8 +124,16 @@ public class ScreenRecorder : MonoBehaviour
         _encoder = null;
         if (_isRecording)
         {
+            var theVideoDirectory = _currentVideoDirectory;
+            Task.Run(() =>
+            {
+                RGDebug.LogInfo($"Zipping recording replay to file: {_currentVideoDirectory}.zip");
+                ZipFile.CreateFromDirectory(theVideoDirectory, theVideoDirectory + ".zip");
+                Directory.Delete(theVideoDirectory, true);
+                RGDebug.LogInfo($"Finished zipping replay to file: {_currentVideoDirectory}");
+            });
             _isRecording = false;
-            RGDebug.LogInfo($"Finished recording replay to directory: {_currentVideoDirectory}");
+
         }
     }
 
