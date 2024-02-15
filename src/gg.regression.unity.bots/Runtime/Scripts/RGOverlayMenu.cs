@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using OpenCvSharp;
 using RegressionGames.RGBotLocalRuntime;
 using RegressionGames.Types;
 using TMPro;
@@ -23,6 +22,8 @@ namespace RegressionGames
         
         public Image launcherIcon;
         public RGIconPulse launcherPulse;
+
+        public RGIconPulse recordingPulse;
 
         private RGServiceManager rgServiceManager;
 
@@ -45,11 +46,6 @@ namespace RegressionGames
         private bool _closeOverlayOnBotStart = true;
 
         private bool _cvRecording = false;
-
-        [Tooltip("FPS at which to analyze state using CV")]
-        public int CVRecordingFPS = 30;
-
-        private float _lastCVFrameTime = -1f;
 
         public static RGOverlayMenu GetInstance()
         {
@@ -75,7 +71,6 @@ namespace RegressionGames
 
         public void Start()
         {
-            CleanupImageDirectory();
             selectionPanel.SetActive(false);
         }
 
@@ -145,86 +140,17 @@ namespace RegressionGames
             lastCount = _activeBots.Count;
             if (_cvRecording)
             {
-                StartCoroutine(RecordFrame());
+                recordingPulse.Fast();
+                ScreenRecorder.GetInstance()?.StartRecording();
+            }
+            else
+            {
+                recordingPulse.Stop();
+                ScreenRecorder.GetInstance()?.StopRecording();
             }
 
         }
         
-        IEnumerator RecordFrame()
-        {
-            yield return new WaitForEndOfFrame();
-            // handle recording
-            var time = Time.unscaledTime;
-            if ((int)(1000 * (time - _lastCVFrameTime)) >= (int)(1000.0f / CVRecordingFPS))
-            {
-                // estimating the time in int milliseconds .. won't exactly match FPS.. but will be close
-                _lastCVFrameTime = time;
-
-                // write out the image
-                string path = GetImageDirectory($"{_tickNumber}".PadLeft(9,'0')+".jpg");
-                    
-                RGDebug.LogVerbose($"Capturing screenshot for CV evaluation: {path}");
-                var texture = ScreenCapture.CaptureScreenshotAsTexture(1);
-                try
-                {
-                    // Encode the texture into a jpg byte array
-                    byte[] bytes = texture.EncodeToJPG(100);
-                    // Save the byte array as a file
-                    File.WriteAllBytesAsync(path, bytes);
-                    
-                    byte[] pngBytes = texture.EncodeToPNG();
-                    var mat = Mat.FromImageData(pngBytes, ImreadModes.Color);
-
-
-                    var backSub =  BackgroundSubtractorMOG2.Create();
-                    var fgMask = new Mat();
-                    backSub.Apply(mat, fgMask);
-                    string pathMask = GetImageDirectory($"{_tickNumber}".PadLeft(9,'0')+".mask.jpg");
-                    Cv2.ImWrite(pathMask, fgMask);
-                    
-                }
-                finally
-                {
-                    ++_tickNumber;
-                    // Destroy the texture to free up memory
-                    Object.Destroy(texture);
-                }
-            }
-        }
-
-
-        private void OnDestroy()
-        {
-            string path = GetImageDirectory("DONE.txt");
-            File.Create(path);
-        }
-
-        private long _tickNumber = 0;
-        
-        private string GetImageDirectory(string path = "")
-        {
-            var fullPath = Path.Combine(Application.persistentDataPath, "RGData", "cvImages", path);
-            var directory = Path.GetDirectoryName(fullPath);
-            if (directory != null)
-            {
-                Directory.CreateDirectory(directory);
-            }
-            return fullPath;
-        }
-
-        private void CleanupImageDirectory()
-        {
-            var fullPath = Path.Combine(Application.persistentDataPath, "RGData", "cvImages");
-            var directory = Path.GetDirectoryName(fullPath);
-            if (directory != null)
-            {
-                if (Directory.Exists(directory))
-                {
-                    Directory.Delete(directory, true);
-                }
-            }
-        }
-
         public void OnOverlayClick()
         {
             RGDebug.LogVerbose("Showing RG Overlay Menu");

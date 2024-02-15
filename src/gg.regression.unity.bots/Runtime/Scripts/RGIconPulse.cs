@@ -5,7 +5,7 @@ namespace RegressionGames
 {
     public class RGIconPulse : MonoBehaviour
     {
-        private Image image;
+        private Image _image;
 
         public float pulseInterval = 3f;
 
@@ -13,23 +13,38 @@ namespace RegressionGames
 
         public float pulseDuration = 1f;
 
-        public int maxAlpha = 120;
+        [Tooltip("Maximum alpha value")]
+        public float maxAlpha = 255f;
 
-        private float lastPulse = -1f;
+        [Tooltip("Alpha value when animation is stopped")]
+        public float stoppedAlpha = 0f;
+
+        private float _lastPulse = -1f;
+
+        [Tooltip("Is this actively pulsing?")]
+        public bool active = true;
 
         public void Fast()
         {
+            active = true;
             pulseInterval = ogPulseInterval / 2;
         }
 
         public void Normal()
         {
+            active = true;
             pulseInterval = ogPulseInterval;
         }
 
         public void Slow()
         {
+            active = true;
             pulseInterval = ogPulseInterval * 2;
+        }
+
+        public void Stop()
+        {
+            active = false;
         }
 
         void Start()
@@ -39,27 +54,39 @@ namespace RegressionGames
                 pulseInterval = pulseDuration;
             }
             // start in 1 second
-            lastPulse = -1f * pulseInterval + 1f;
-            image = GetComponent<Image>();
+            _lastPulse = -1f * pulseInterval + 1f;
+            _image = GetComponent<Image>();
             ogPulseInterval = pulseInterval;
         }
 
         void LateUpdate()
         {
-            float time = Time.time;
-            float timeSinceLast = time - lastPulse;
-
-            if (timeSinceLast > pulseInterval)
+            if (active)
             {
-                lastPulse = time;
+                // animating
+                var time = Time.time;
+                var timeSinceLast = time - _lastPulse;
+
+                if (timeSinceLast > pulseInterval)
+                {
+                    _lastPulse = time;
+                }
+
+                var halfAlpha = maxAlpha / 2.0f;
+
+                // -1 -> 1
+                var rangeVal = (timeSinceLast / pulseDuration) * 2 - 1;
+
+                var alphaValue = (Mathf.Abs(rangeVal) * -1 * halfAlpha + halfAlpha) / 255f;
+
+                _image.color = new Color(_image.color.r, _image.color.g, _image.color.b, alphaValue);
             }
-
-            // -1 -> 1
-            float rangeVal = (timeSinceLast / pulseDuration) * 2 - 1;
-
-            float alphaValue = (Mathf.Abs(rangeVal) * -1 * maxAlpha + maxAlpha) / 255f;
-
-            image.color = new Color(image.color.r, image.color.g, image.color.b, alphaValue);
+            else
+            {
+                // not animating
+                var alphaValue = stoppedAlpha;
+                _image.color = new Color(_image.color.r, _image.color.g, _image.color.b, alphaValue);
+            }
         }
     }
 }

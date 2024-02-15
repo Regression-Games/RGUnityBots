@@ -10,7 +10,6 @@ using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -20,6 +19,10 @@ namespace RegressionGames
         [SerializeField]
         [Tooltip("Send a state update every X ticks")]
         public int tickRate = 50;
+
+        // are we recording the data
+        [Tooltip("")]
+        public bool recording = false;
 
         public readonly ConcurrentDictionary<long?, HashSet<GameObject>> AgentMap = new();
 
@@ -465,7 +468,7 @@ namespace RegressionGames
             }
 
             // Take any requested screenshots
-            _dataCollection.ProcessScreenshotRequests();
+            StartCoroutine(_dataCollection.ProcessScreenshotRequests());
         }
 
         /**
@@ -476,7 +479,7 @@ namespace RegressionGames
             _tick++;
             if (_tick % tickRate == 0)
             {
-                if (_clientConnectionMap.Count > 0)
+                if (_clientConnectionMap.Count > 0 || recording)
                 {
                     var state = GetGameState();
                     var sceneName = SceneManager.GetActiveScene().name;

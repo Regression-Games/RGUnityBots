@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -105,8 +106,11 @@ namespace RegressionGames.DataCollection
          * thread only.
          * Called on the main thread once per Update (frame).
          */
-        public void ProcessScreenshotRequests()
+        public IEnumerator ProcessScreenshotRequests()
         {
+            
+            // wait for finality of frame rendering before capturing screen shot
+            yield return new WaitForEndOfFrame();
             var done = false;
             while (!done && _screenshotTicksRequested.TryDequeue(out long tick))
             {
@@ -119,7 +123,8 @@ namespace RegressionGames.DataCollection
                     try
                     {
                         // Encode the texture into a jpg byte array
-                        byte[] bytes = texture.EncodeToJPG(100);
+                        // we let this use the default of 75% quality as 100% file sizes are large for not much gain in quality
+                        byte[] bytes = texture.EncodeToJPG();
 
                         string path = GetSessionDirectory($"screenshots/{tick}.jpg");
 
