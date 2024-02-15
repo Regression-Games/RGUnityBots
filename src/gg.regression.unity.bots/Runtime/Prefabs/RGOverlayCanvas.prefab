@@ -3072,7 +3072,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   collapseRenderersIntoTopLevelGameObject: 1
   includeOnlyOnCameraObjects: 1
-  collectStateFromBehaviours: 0
+  collectStateFromBehaviours: 1
 --- !u!1 &7045523072349830337
 GameObject:
   m_ObjectHideFlags: 0

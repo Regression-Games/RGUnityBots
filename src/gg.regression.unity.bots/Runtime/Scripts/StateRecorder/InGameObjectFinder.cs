@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
-using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Component = UnityEngine.Component;
@@ -274,7 +272,15 @@ public class InGameObjectFinder : MonoBehaviour
                 maxY = y;
             }
 
-            if (includeOnlyOnCameraObjects && minY < 0 && minX < 0 && maxY > screenHeight - 1 && maxX > screenWidth - 1)
+            if (includeOnlyOnCameraObjects
+                && (
+                    ((minY < 0 || minY > screenHeight - 1) 
+                     && (maxY < 0 || maxY > screenHeight - 1)
+                     ) ||
+                    ((minX < 0 || minX > screenWidth - 1)
+                     && (maxX < 0 || maxX > screenWidth - 1)
+                     )
+                ))
             {
                 // not in camera.. stop iterating
                 onCamera = false;
@@ -283,7 +289,7 @@ public class InGameObjectFinder : MonoBehaviour
         }
 
 
-        if (!includeOnlyOnCameraObjects || onCamera)
+        if (onCamera)
         {
             var size = new Vector3(maxX - minX, maxY - minY);
             var center = new Vector3(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);

@@ -88,7 +88,7 @@ public class ScreenRecorder : MonoBehaviour
             do
             {
                 _currentVideoDirectory = $"{stateRecordingsDirectory}/{Application.productName}/run_{_videoNumber++}";
-            } while (Directory.Exists(_currentVideoDirectory));
+            } while (Directory.Exists(_currentVideoDirectory) || File.Exists(_currentVideoDirectory+".zip"));
 
             if (!Directory.Exists(_currentVideoDirectory))
             {
