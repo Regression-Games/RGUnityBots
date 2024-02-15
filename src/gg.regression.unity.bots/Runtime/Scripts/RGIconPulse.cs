@@ -15,6 +15,9 @@ namespace RegressionGames
 
         [Tooltip("Maximum alpha value")]
         public float maxAlpha = 255f;
+        
+        [Tooltip("Minimum alpha value")]
+        public float minAlpha = 0f;
 
         [Tooltip("Alpha value when animation is stopped")]
         public float stoppedAlpha = 0f;
@@ -72,12 +75,12 @@ namespace RegressionGames
                     _lastPulse = time;
                 }
 
-                var halfAlpha = maxAlpha / 2.0f;
+                var halfAlpha = (maxAlpha-minAlpha) / 2.0f;
 
                 // -1 -> 1
                 var rangeVal = (timeSinceLast / pulseDuration) * 2 - 1;
 
-                var alphaValue = (Mathf.Abs(rangeVal) * -1 * halfAlpha + halfAlpha) / 255f;
+                var alphaValue = (minAlpha+(Mathf.Abs(rangeVal) * -1 * halfAlpha + halfAlpha)) / 255f;
 
                 _image.color = new Color(_image.color.r, _image.color.g, _image.color.b, alphaValue);
             }

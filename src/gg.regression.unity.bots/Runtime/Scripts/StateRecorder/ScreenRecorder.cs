@@ -283,7 +283,10 @@ public class ScreenRecorder : MonoBehaviour
             }
             catch (Exception e)
             {
-                RGDebug.LogException(e, "Error Processing Frames");
+                if (e is not OperationCanceledException)
+                {
+                    RGDebug.LogException(e, "Error Processing Frames");
+                }
             }
         }
     }

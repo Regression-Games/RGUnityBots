@@ -1785,6 +1785,7 @@ MonoBehaviour:
   ogPulseInterval: 3
   pulseDuration: 1
   maxAlpha: 255
+  minAlpha: 100
   stoppedAlpha: 255
   active: 0
 --- !u!1 &5027560884109106220
@@ -2667,7 +2668,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &7045523072150109870
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3017,6 +3018,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tickRate: 5
+  recording: 0
 --- !u!114 &5154676213986407094
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3053,8 +3055,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f43b8086b73946fcaed5cab7f692ce9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cvRecordingFPS: 30
+  recordingFPS: 5
   forceImageMode: 1
+  stateRecordingsDirectory: /Users/zack/unity_videos
 --- !u!114 &5227817124394843185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3067,6 +3070,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 88d7e0b66bd64408ae00f392e7077223, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  collapseRenderersIntoTopLevelGameObject: 1
+  includeOnlyOnCameraObjects: 1
+  collectStateFromBehaviours: 0
 --- !u!1 &7045523072349830337
 GameObject:
   m_ObjectHideFlags: 0
@@ -3160,6 +3166,7 @@ MonoBehaviour:
   ogPulseInterval: 3
   pulseDuration: 1
   maxAlpha: 255
+  minAlpha: 0
   stoppedAlpha: 0
   active: 1
 --- !u!1 &7045523072599472329
