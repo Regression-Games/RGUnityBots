@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -48,6 +49,9 @@ public class ScreenRecorder : MonoBehaviour
 
     private readonly ConcurrentQueue<Texture2D> _texture2Ds = new ConcurrentQueue<Texture2D>();
     
+    
+    private long _videoNumber;
+    private long _frameNumber;
 
     public static ScreenRecorder GetInstance()
     {
@@ -70,47 +74,6 @@ public class ScreenRecorder : MonoBehaviour
         // keep this thing alive across scenes
         DontDestroyOnLoad(gameObject);
         _this = this;
-    }
-    
-    public void StartRecording()
-    {
-        if (!_isRecording)
-        {
-            _isRecording = true;
-            _frameNumber = 0;
-            _frameQueue = new(new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>());
-
-            _tokenSource = new();
-
-            Directory.CreateDirectory(stateRecordingsDirectory);
-
-            // find the first index number we haven't used yet
-            do
-            {
-                _currentVideoDirectory = $"{stateRecordingsDirectory}/{Application.productName}/run_{_videoNumber++}";
-            } while (Directory.Exists(_currentVideoDirectory) || File.Exists(_currentVideoDirectory+".zip"));
-
-            if (!Directory.Exists(_currentVideoDirectory))
-            {
-                Directory.CreateDirectory(_currentVideoDirectory);
-            }
-
-            if (!_useImageMode)
-            {
-                RGDebug.LogInfo($"Recording replay video to directory: {_currentVideoDirectory}");
-            }
-            else
-            {
-                // run the frame processor in the background
-                Task.Run(ProcessFrames, _tokenSource.Token);
-                RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
-            }
-        }
-    }
-
-    public void StopRecording()
-    {
-        OnDestroy();
     }
 
     private void OnDestroy()
@@ -150,26 +113,142 @@ public class ScreenRecorder : MonoBehaviour
             StartCoroutine(RecordFrame());
         }
     }
-
-    private long _videoNumber;
-    private long _frameNumber;
     
+        
+    public void StartRecording()
+    {
+        if (!_isRecording)
+        {
+            _isRecording = true;
+            _frameNumber = 0;
+            _frameQueue = new(new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>());
+
+            _tokenSource = new();
+
+            Directory.CreateDirectory(stateRecordingsDirectory);
+
+            // find the first index number we haven't used yet
+            do
+            {
+                _currentVideoDirectory = $"{stateRecordingsDirectory}/{Application.productName}/run_{_videoNumber++}";
+            } while (Directory.Exists(_currentVideoDirectory) || File.Exists(_currentVideoDirectory+".zip"));
+
+            if (!Directory.Exists(_currentVideoDirectory))
+            {
+                Directory.CreateDirectory(_currentVideoDirectory);
+            }
+
+            if (!_useImageMode)
+            {
+                RGDebug.LogInfo($"Recording replay video to directory: {_currentVideoDirectory}");
+            }
+            else
+            {
+                // run the frame processor in the background
+                Task.Run(ProcessFrames, _tokenSource.Token);
+                RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
+            }
+        }
+    }
+    
+    private int _frameCountSinceLastTick = 0;
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class FrameState
+    {
+        public long tickNumber;
+        public float time;
+        public int[] screenSize;
+        public PerformanceMetricData performance;
+        public List<RenderableGameObjectState> state;
+    }
+    
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class PerformanceMetricData
+    {
+        public float previousTickTime;
+        public int framesSincePreviousTick;
+        public int fps;
+        public EngineStatsData engineStats;
+    }
+    
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class EngineStatsData
+    {
+        public float frameTime;
+        public float renderTime;
+        
+        public int triangles;
+        public int vertices;
+        
+        public int setPassCalls;
+
+        public int drawCalls;
+        public int dynamicBatchedDrawCalls;
+        public int staticBatchedDrawCalls;
+        public int instancedBatchedDrawCalls;
+        
+        public int batches;
+        public int dynamicBatches;
+        public int staticBatches;
+        public int instancedBatches;
+    }
+
+    public void StopRecording()
+    {
+        OnDestroy();
+    }
+
     IEnumerator RecordFrame()
     {
         yield return new WaitForEndOfFrame();
         if (!_frameQueue.IsCompleted)
         {
+            ++_frameCountSinceLastTick;
             // handle recording
             var time = Time.unscaledTime;
+
+            // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
             if ((int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / recordingFPS))
             {
-                // estimating the time in int milliseconds .. won't exactly match FPS.. but will be close
+
+                var performanceMetrics = new PerformanceMetricData()
+                {
+                    framesSincePreviousTick = _frameCountSinceLastTick,
+                    previousTickTime = _lastCvFrameTime,
+                    fps = (int)(_frameCountSinceLastTick/(time-_lastCvFrameTime)),
+                    engineStats = new EngineStatsData()
+                    {
+                         frameTime = UnityStats.frameTime,
+                         renderTime = UnityStats.renderTime,
+                         triangles = UnityStats.triangles,
+                         vertices = UnityStats.vertices,
+                         setPassCalls = UnityStats.setPassCalls,
+                         drawCalls = UnityStats.drawCalls,
+                         dynamicBatchedDrawCalls = UnityStats.dynamicBatchedDrawCalls,
+                         staticBatchedDrawCalls = UnityStats.staticBatchedDrawCalls,
+                         instancedBatchedDrawCalls = UnityStats.instancedBatchedDrawCalls,
+                         batches = UnityStats.batches,
+                         dynamicBatches = UnityStats.dynamicBatches,
+                         staticBatches = UnityStats.staticBatches,
+                         instancedBatches = UnityStats.instancedBatches,
+                    }
+                };
+                
                 _lastCvFrameTime = time;
 
-                var screenShot = new Texture2D(Screen.width, Screen.height);
+                _frameCountSinceLastTick = 0;
+
+                var screenWidth = Screen.width;
+                var screenHeight = Screen.height;
+                
+                var screenShot = new Texture2D(screenWidth, screenHeight);
                 try
                 {
-                    screenShot.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+                    screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
                     screenShot.Apply();
 
                     if (!_useImageMode)
@@ -222,8 +301,17 @@ public class ScreenRecorder : MonoBehaviour
                     else
                     {
                         ++_frameNumber;
-                        var frameState = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
+                        var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
+                        var frameState = new FrameState()
+                        {
+                            tickNumber = _frameNumber,
+                            time = time,
+                            screenSize = new [] {screenWidth, screenHeight},
+                            performance = performanceMetrics,
+                            state = statefulObjects
+                        };
+                        
                         // serialize to json byte[]
                         var jsonData = Encoding.UTF8.GetBytes(
                             JsonConvert.SerializeObject(frameState, Formatting.Indented, _serializerSettings)
