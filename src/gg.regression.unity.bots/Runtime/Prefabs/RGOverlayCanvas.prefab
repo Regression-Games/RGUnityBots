@@ -2884,6 +2884,7 @@ GameObject:
   - component: {fileID: 1135829319142607603}
   - component: {fileID: 7473711937111076411}
   - component: {fileID: 5227817124394843185}
+  - component: {fileID: 2741758657951281051}
   m_Layer: 5
   m_Name: RGOverlayCanvas
   m_TagString: Untagged
@@ -3073,6 +3074,19 @@ MonoBehaviour:
   collapseRenderersIntoTopLevelGameObject: 1
   includeOnlyOnCameraObjects: 1
   collectStateFromBehaviours: 1
+--- !u!114 &2741758657951281051
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7045523072340300313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3dee37366b24c85a4dc17720a64221d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  testAsset: {fileID: -944628639613478452, guid: 71544d83cbafc4a1bbdd839e23af51ad, type: 3}
 --- !u!1 &7045523072349830337
 GameObject:
   m_ObjectHideFlags: 0
