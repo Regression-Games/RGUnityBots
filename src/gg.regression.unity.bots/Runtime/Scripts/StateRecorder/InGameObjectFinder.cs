@@ -21,7 +21,6 @@ namespace StateRecorder
         public string layer;
 
         public Bounds screenSpaceBounds;
-        public Bounds? worldSpaceBounds;
 
         public Vector3 position;
         public Quaternion rotation;
@@ -31,6 +30,7 @@ namespace StateRecorder
         public List<ColliderState> colliders;
 
         public List<BehaviourState> behaviours;
+        public Bounds? worldSpaceBounds;
     }
 
     [Serializable]
@@ -83,6 +83,8 @@ namespace StateRecorder
 
     public class InGameObjectFinder : MonoBehaviour
     {
+        private static InGameObjectFinder _this;
+
         [FormerlySerializedAs("CollapseRenderersIntoTopLevelGameObject")]
         [Tooltip(
             "Collapse all renderers into their top level gameObject. If a gameObject hierarchy exists that has colliders/renderers/animators/etc at multiple levels, they will all be represented by a single entry in the state.  This defaults to True as it is normally desired to see each player, car, building, etc as a single entry in the state.  However, it can be useful to set this to false in cases where you want to validate individual render bounds, colliders, rigibodies, etc on individual armatures, weapons, or other components that are children in the hierarchy.")]
@@ -96,16 +98,9 @@ namespace StateRecorder
         [Tooltip("(WARNING: Performance Impact) Include field/property values for behaviours.")]
         public bool collectStateFromBehaviours;
 
-        private static InGameObjectFinder _this;
-
         // right now this resets on awake, but we may have to deal with dynamically re-parented transforms better at some point... 
         // <transform, (hasKeyTypes, isTopLevelParent)>
         private readonly Dictionary<Transform, TransformStatus> _transformsIveSeen = new();
-
-        public static InGameObjectFinder GetInstance()
-        {
-            return _this;
-        }
 
         public void Awake()
         {
@@ -123,7 +118,11 @@ namespace StateRecorder
             // keep this thing alive across scenes
             DontDestroyOnLoad(gameObject);
             _this = this;
+        }
 
+        public static InGameObjectFinder GetInstance()
+        {
+            return _this;
         }
 
         private string FastTrim(string input)
@@ -194,7 +193,7 @@ namespace StateRecorder
                 else
                 {
                     // add our result to the cache
-                    _transformsIveSeen[theTransform] = new TransformStatus()
+                    _transformsIveSeen[theTransform] = new TransformStatus
                     {
                         Path = tPath
                     };
@@ -207,7 +206,7 @@ namespace StateRecorder
         private BehaviourState GetStateForBehaviour(Behaviour behaviour)
         {
             var type = behaviour.GetType();
-            return new BehaviourState()
+            return new BehaviourState
             {
                 path = GetUniqueTransformPath(behaviour.transform),
                 name = type.FullName,
@@ -215,15 +214,15 @@ namespace StateRecorder
             };
         }
 
-        RenderableGameObjectState CreateStateForTransform(int screenWidth, int screenHeight, Transform t)
+        private RenderableGameObjectState CreateStateForTransform(int screenWidth, int screenHeight, Transform t)
         {
             var gameObjectPath = GetUniqueTransformPath(t);
 
             // find the full bounds of the statefulGameObject
-            GameObject statefulGameObject = t.gameObject;
+            var statefulGameObject = t.gameObject;
             var renderers = statefulGameObject.GetComponentsInChildren<Renderer>();
 
-            Bounds worldSpaceBounds = renderers[0].bounds;
+            var worldSpaceBounds = renderers[0].bounds;
             for (var i = 1; i < renderers.Length; ++i)
             {
                 worldSpaceBounds.Encapsulate(renderers[i].bounds);
@@ -308,13 +307,13 @@ namespace StateRecorder
                     .Select(GetStateForBehaviour)
                     .ToList();
 
-                List<ColliderState> collidersState = new List<ColliderState>();
+                var collidersState = new List<ColliderState>();
                 var colliders = statefulGameObject.GetComponentsInChildren<Collider>();
                 if (colliders.Length > 0)
                 {
                     foreach (var colliderEntry in colliders)
                     {
-                        collidersState.Add(new ColliderState()
+                        collidersState.Add(new ColliderState
                         {
                             path = GetUniqueTransformPath(colliderEntry.transform),
                             bounds = colliderEntry.bounds,
@@ -327,7 +326,7 @@ namespace StateRecorder
                     var colliders2D = statefulGameObject.GetComponentsInChildren<Collider2D>();
                     foreach (var colliderEntry in colliders2D)
                     {
-                        collidersState.Add(new ColliderState()
+                        collidersState.Add(new ColliderState
                             {
                                 path = GetUniqueTransformPath(colliderEntry.transform),
                                 bounds = colliderEntry.bounds,
@@ -343,7 +342,7 @@ namespace StateRecorder
                 {
                     foreach (var myRigidbody in myRigidbodies)
                     {
-                        rigidbodiesState.Add(new RigidbodyState()
+                        rigidbodiesState.Add(new RigidbodyState
                             {
                                 path = GetUniqueTransformPath(myRigidbody.transform),
                                 position = myRigidbody.position,
@@ -362,7 +361,7 @@ namespace StateRecorder
                     var myRigidbodies2D = statefulGameObject.GetComponentsInChildren<Rigidbody2D>();
                     foreach (var myRigidbody in myRigidbodies2D)
                     {
-                        rigidbodiesState.Add(new RigidbodyState()
+                        rigidbodiesState.Add(new RigidbodyState
                             {
                                 path = GetUniqueTransformPath(myRigidbody.transform),
                                 position = myRigidbody.position,
@@ -373,7 +372,7 @@ namespace StateRecorder
                     }
                 }
 
-                return new RenderableGameObjectState()
+                return new RenderableGameObjectState
                 {
                     id = statefulGameObject.transform.GetInstanceID(),
                     path = gameObjectPath,
@@ -402,16 +401,17 @@ namespace StateRecorder
             var statefulUIObjects =
                 FindObjectsByType<CanvasRenderer>(FindObjectsSortMode.None).Select(r => r.gameObject);
 
-            Vector3[] screenSpaceCorners = new Vector3[4];
+            var screenSpaceCorners = new Vector3[4];
             foreach (var statefulUIObject in statefulUIObjects)
             {
                 Button b;
                 // screen space
-                CanvasGroup canvasGroup = statefulUIObject.GetComponentInParent<CanvasGroup>();
+                var canvasGroup = statefulUIObject.GetComponentInParent<CanvasGroup>();
                 var cgEnabled = true;
                 while (cgEnabled && canvasGroup != null)
                 {
-                    cgEnabled &= (canvasGroup.enabled && (canvasGroup.blocksRaycasts || canvasGroup.interactable || canvasGroup.alpha > 0));
+                    cgEnabled &= canvasGroup.enabled &&
+                                 (canvasGroup.blocksRaycasts || canvasGroup.interactable || canvasGroup.alpha > 0);
                     if (canvasGroup.ignoreParentGroups)
                     {
                         break;
@@ -432,8 +432,8 @@ namespace StateRecorder
                         //Note that bottom left, for example, is an (x, y, z) vector with x being left and y being bottom.
                         rectTransforms[0].GetWorldCorners(screenSpaceCorners);
                         var size = screenSpaceCorners[2] - screenSpaceCorners[0];
-                        var center = screenSpaceCorners[0] + ((screenSpaceCorners[2] - screenSpaceCorners[0]) / 2);
-                        Bounds screenSpaceBounds = new Bounds(center, size);
+                        var center = screenSpaceCorners[0] + (screenSpaceCorners[2] - screenSpaceCorners[0]) / 2;
+                        var screenSpaceBounds = new Bounds(center, size);
 
                         for (var i = 1; i < rectTransforms.Length; ++i)
                         {
@@ -447,7 +447,7 @@ namespace StateRecorder
                             .Select(GetStateForBehaviour)
                             .ToList();
 
-                        resultList.Add(new RenderableGameObjectState()
+                        resultList.Add(new RenderableGameObjectState
                         {
                             id = statefulUIObject.transform.GetInstanceID(),
                             path = gameObjectPath,
@@ -464,7 +464,6 @@ namespace StateRecorder
                         });
                     }
                 }
-
             }
 
             // find everything with a renderer.. then select the last parent walking up the tree that has
@@ -491,7 +490,7 @@ namespace StateRecorder
                 }
                 else
                 {
-                    _transformsIveSeen[theTransform] = new TransformStatus()
+                    _transformsIveSeen[theTransform] = new TransformStatus
                     {
                         HasKeyTypes = true
                     };
@@ -535,7 +534,7 @@ namespace StateRecorder
                     }
                     else
                     {
-                        _transformsIveSeen[nextParent] = new TransformStatus()
+                        _transformsIveSeen[nextParent] = new TransformStatus
                         {
                             HasKeyTypes = parentHasKeyTypes
                         };
@@ -568,8 +567,6 @@ namespace StateRecorder
                         transformsForThisFrame.Add(maybeTopLevel);
                     }
                 }
-
-
             }
 
 
@@ -591,7 +588,5 @@ namespace StateRecorder
 
             return resultList;
         }
-
     }
-
 }
