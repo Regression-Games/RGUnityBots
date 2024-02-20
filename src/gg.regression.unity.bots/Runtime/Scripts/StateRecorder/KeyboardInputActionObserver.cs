@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Newtonsoft.Json;
 using RegressionGames;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -12,33 +13,34 @@ namespace StateRecorder
     
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class InputActionData
-    {
+    public class KeyboardInputActionData : InputActionData
+    {    
         public string action;
         public string binding;
-        public double startTime;
         [NonSerialized]
         public double lastUpdateTime;
         [NonSerialized]
         public double? lastSentUpdateTime;
         public double? endTime;
-        public double duration;
-        public bool isPressed; // logically equivalent to (duration > 0 && endTime == null)
+        public double duration; 
+        public bool isPressed => duration >0 && endTime == null;
     }
 
-    public class InputActionObserver : MonoBehaviour
+    public class KeyboardInputActionObserver : MonoBehaviour
     {
+        [Tooltip("Used on OSX runtimes to convert spammy keyboard events into proper key held states")]
         public float keyHeldThresholdSeconds = 0.100f;
         
         private InputActionAsset _inputActionAsset;
-
-        private readonly ConcurrentQueue<InputActionData> _inputDataQueue = new(); 
         
-        private static InputActionObserver _this;
+        private static KeyboardInputActionObserver _this;
 
-        private bool _recording = false;
+        private bool _recording;
 
-        public static InputActionObserver GetInstance()
+        private readonly ConcurrentDictionary<string, KeyboardInputActionData> _activeInputActions = new();
+        private readonly ConcurrentQueue<KeyboardInputActionData> _completedInputActions = new();
+        
+        public static KeyboardInputActionObserver GetInstance()
         {
             return _this;
         }
@@ -156,7 +158,7 @@ namespace StateRecorder
             CreateKeyboardAction(inputActionMap, "numpad7");
             CreateKeyboardAction(inputActionMap, "numpad8");
             CreateKeyboardAction(inputActionMap, "numpad9");
-            CreateKeyboardAction(inputActionMap, "numpadPlus"); ;
+            CreateKeyboardAction(inputActionMap, "numpadPlus");
             
             //row 4
             CreateKeyboardAction(inputActionMap, "capsLock");
@@ -236,16 +238,12 @@ namespace StateRecorder
             
         }
 
-        private InputAction CreateKeyboardAction(InputActionMap inputActionMap, string keyName)
+        private void CreateKeyboardAction(InputActionMap inputActionMap, string keyName)
         {
             var inputAction = inputActionMap.AddAction("Keyboard/" + keyName, InputActionType.Value, "<Keyboard>/" + keyName);
             inputAction.performed += ActionPerformed;
             inputAction.canceled += ActionCanceled;
-            return inputAction;
         }
-
-        private ConcurrentDictionary<string, InputActionData> _activeInputActions = new();
-        private ConcurrentQueue<InputActionData> _completedInputActions = new();
         
         void ActionCanceled(InputAction.CallbackContext context)
         {
@@ -289,7 +287,7 @@ namespace StateRecorder
                 if (!_activeInputActions.TryGetValue(action.name, out var activeAction))
                 {
                     RGDebug.LogVerbose("ActionPerformed - new action - " + action.name);
-                    activeAction = new InputActionData()
+                    activeAction = new KeyboardInputActionData()
                     {
                         action = action.name,
                         binding = action.bindings[0].path,
@@ -318,7 +316,7 @@ namespace StateRecorder
 
                             RGDebug.LogVerbose("ActionPerformed - over time - adding new action");
                             // add new one
-                            activeAction = new InputActionData()
+                            activeAction = new KeyboardInputActionData()
                             {
                                 action = action.name,
                                 binding = action.bindings[0].path,
@@ -346,9 +344,8 @@ namespace StateRecorder
             }
         }
 
-        private void AddToResultList(ICollection<InputActionData> list, InputActionData action, double sentTime)
+        private void AddToResultList(ICollection<InputActionData> list, KeyboardInputActionData action, double sentTime)
         {
-            action.isPressed = action.endTime == null && action.duration > 0;
             action.lastSentUpdateTime = sentTime;
             list.Add(action);
         }

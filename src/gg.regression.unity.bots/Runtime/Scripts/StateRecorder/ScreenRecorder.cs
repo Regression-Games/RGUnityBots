@@ -14,6 +14,7 @@ using StateRecorder.JsonConverters;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.InputSystem;
 using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 
 #if UNITY_EDITOR
@@ -27,6 +28,13 @@ namespace StateRecorder
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public abstract class InputActionData
+    {
+        public double startTime;
+    }
+    
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class FrameStateData
     {
         public long tickNumber;
@@ -35,7 +43,15 @@ namespace StateRecorder
         public int[] screenSize;
         public PerformanceMetricData performance;
         public List<RenderableGameObjectState> state;
-        public List<InputActionData> inputs;
+        public InputData inputs;
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class InputData
+    {
+        public List<InputActionData> keyboard;
+        public List<InputActionData> mouse;
     }
 
     [Serializable]
@@ -79,15 +95,15 @@ namespace StateRecorder
         public int recordingFPS = 5;
 
         [Tooltip("Forces image (non video) mode even in the Editor")]
-        public bool forceImageMode = false;
+        public bool forceImageMode;
 
         public string stateRecordingsDirectory = "/Users/zack/unity_videos";
         
-        private bool _useImageMode = false;
+        private bool _useImageMode;
 
         private float _lastCvFrameTime = -1f;
 
-        private int _frameCountSinceLastTick = 0;
+        private int _frameCountSinceLastTick;
 
         private string _currentVideoDirectory;
         
@@ -97,12 +113,12 @@ namespace StateRecorder
 
         private bool _isRecording;
 
-        private readonly ConcurrentQueue<Texture2D> _texture2Ds = new ConcurrentQueue<Texture2D>();
+        private readonly ConcurrentQueue<Texture2D> _texture2Ds = new ();
         
         private long _videoNumber;
-        private long _frameNumber;
+        private long _tickNumber;
 
-        private FrameStateData _priorFrame = null;
+        private FrameStateData _priorFrame;
 
         public static ScreenRecorder GetInstance()
         {
@@ -137,9 +153,10 @@ namespace StateRecorder
             _tokenSource = null;
             _encoder?.Dispose();
             _encoder = null;
+            KeyboardInputActionObserver.GetInstance()?.StopRecording();
+            MouseInputActionObserver.GetInstance()?.StopRecording();
             if (_isRecording)
             {
-                InputActionObserver.GetInstance()?.StopRecording();
                 var theVideoDirectory = _currentVideoDirectory;
                 Task.Run(() =>
                 {
@@ -173,9 +190,10 @@ namespace StateRecorder
         {
             if (!_isRecording)
             {
-                InputActionObserver.GetInstance()?.StartRecording();
+                KeyboardInputActionObserver.GetInstance()?.StartRecording();
+                MouseInputActionObserver.GetInstance()?.StartRecording();
                 _isRecording = true;
-                _frameNumber = 0;
+                _tickNumber = 0;
                 _frameQueue =
                     new(
                         new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>,
@@ -213,11 +231,18 @@ namespace StateRecorder
 
         private bool IsKeyFrame(FrameStateData priorFrame, FrameStateData currentFrame)
         {
-            if (currentFrame.inputs.FirstOrDefault(i => i.startTime > currentFrame.performance.previousTickTime) != null)
+            if (currentFrame.inputs.keyboard.FirstOrDefault(i => i.startTime > currentFrame.performance.previousTickTime) != null)
             {
-                // we had an input that started on this frame
+                // we had a keyboard input that started on this frame
                 return true;
             }
+            
+            if (currentFrame.inputs.mouse.FirstOrDefault(i => ((MouseInputActionData)i).NewButtonPress) != null)
+            {
+                // we had a mouse input that started on this frame
+                return true;
+            }
+            
             var scenesInPriorFrame = priorFrame.state.Select(s => s.scene).Distinct().ToList();
             var scenesInCurrentFrame = currentFrame.state.Select(s => s.scene).Distinct().ToList();
             if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
@@ -346,18 +371,26 @@ namespace StateRecorder
                         }
                         else
                         {
-                            ++_frameNumber;
+                            ++_tickNumber;
                             var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
-                            var inputData = InputActionObserver.GetInstance()?.FlushInputDataBuffer();
+                            var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
+
+                            var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer();
                             
+                            var deviceInputs = new InputData
+                            {
+                                keyboard = keyboardInputData,
+                                mouse = mouseInputData
+                            };
+
                             var frameState = new FrameStateData()
                             {
-                                tickNumber = _frameNumber,
+                                tickNumber = _tickNumber,
                                 time = time,
                                 screenSize = new[] { screenWidth, screenHeight },
                                 performance = performanceMetrics,
                                 state = statefulObjects,
-                                inputs = inputData
+                                inputs = deviceInputs
                             };
                             
                             // tell if the new frame is a key frame
@@ -365,11 +398,9 @@ namespace StateRecorder
                             {
                                 // first frame in a recording is always a key frame
                                 frameState.keyFrame = true;
+                                RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , "+ mouseInputData?.Count+ " mouse inputs - isKeyFrame: " + frameState.keyFrame);
                             }
-                            
-                            RGDebug.LogDebug("Frame " + _frameNumber + " had " + inputData?.Count + " inputs - isKeyFrame: " + frameState.keyFrame);
 
-                            
                             _priorFrame = frameState;
 
                             // serialize to json byte[]
@@ -381,7 +412,7 @@ namespace StateRecorder
 
                             // queue up writing the frame data to disk async
                             _frameQueue.Add((
-                                (_currentVideoDirectory, _frameNumber),
+                                (_currentVideoDirectory, _tickNumber),
                                 (
                                     jsonData,
                                     screenShot.width,
@@ -457,7 +488,7 @@ namespace StateRecorder
                 string path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, imageOutput.ToArray());
-                RecordFrameState(directoryPath, _frameNumber, jsonData);
+                RecordFrameState(directoryPath, _tickNumber, jsonData);
             }
             catch (Exception e)
             {
@@ -514,7 +545,7 @@ namespace StateRecorder
                 // KEEP THIS UnityObjectJsonConverter AT THE END OF THE LIST AS A FALLBACK TO PREVENT PERFORMANCE EXPLOSION
                 new UnityObjectFallbackJsonConverter()
             },
-            Error = delegate(object sender, ErrorEventArgs args)
+            Error = delegate(object _, ErrorEventArgs args)
             {
                 // just eat certain errors
                 if (args.ErrorContext.Error.InnerException is UnityException)
