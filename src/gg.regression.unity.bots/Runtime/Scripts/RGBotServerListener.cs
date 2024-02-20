@@ -20,10 +20,6 @@ namespace RegressionGames
         [Tooltip("Send a state update every X ticks")]
         public int tickRate = 50;
 
-        // are we recording the data
-        [Tooltip("")]
-        public bool recording = false;
-
         public readonly ConcurrentDictionary<long?, HashSet<GameObject>> AgentMap = new();
 
         private long _tick;
@@ -479,7 +475,7 @@ namespace RegressionGames
             _tick++;
             if (_tick % tickRate == 0)
             {
-                if (_clientConnectionMap.Count > 0 || recording)
+                if (_clientConnectionMap.Count > 0)
                 {
                     var state = GetGameState();
                     var sceneName = SceneManager.GetActiveScene().name;

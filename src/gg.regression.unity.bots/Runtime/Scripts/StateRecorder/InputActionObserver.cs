@@ -1,14 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
-using Component = UnityEngine.Component;
-
 
 namespace StateRecorder
 {
@@ -20,10 +16,13 @@ namespace StateRecorder
         public string action;
         public string binding;
         public double startTime;
+        [NonSerialized]
         public double lastUpdateTime;
+        [NonSerialized]
+        public double? lastSentUpdateTime;
         public double? endTime;
         public double duration;
-        public bool isPressed; // logically equivalent to (endTime == null)
+        public bool isPressed; // logically equivalent to (duration > 0 && endTime == null)
     }
 
     public class InputActionObserver : MonoBehaviour
@@ -36,7 +35,7 @@ namespace StateRecorder
         
         private static InputActionObserver _this;
 
-        public bool _recording = false;
+        private bool _recording = false;
 
         public static InputActionObserver GetInstance()
         {
@@ -63,12 +62,18 @@ namespace StateRecorder
 
         private void OnEnable()
         {
-            _inputActionAsset.Enable();
+            if (_inputActionAsset != null)
+            {
+                _inputActionAsset.Enable();
+            }
         }
         
         private void OnDisable()
         {
-            _inputActionAsset.Disable();
+            if (_inputActionAsset != null)
+            {
+                _inputActionAsset.Disable();
+            }
         }
 
         public void StartRecording()
@@ -245,14 +250,31 @@ namespace StateRecorder
         {
             if (_recording)
             {
+                Debug.Log("ActionCanceled - " + context.action.name);
                 // record the end time
-                if (_activeInputActions.TryGetValue(context.action.name, out var actionData))
-                {
-                    Debug.Log("ActionCanceled - updating");
-                    // don't set action.isPressed here, we set it before sending back
-                    actionData.lastUpdateTime = context.time;
-                    actionData.duration = context.time - actionData.startTime;
-                }
+
+                    if (Application.platform == RuntimePlatform.OSXPlayer)
+                    {
+                        if (_activeInputActions.TryGetValue(context.action.name, out var actionData))
+                        {
+                            Debug.Log("ActionCanceled - updating");
+                            // don't set action.isPressed here, we set it before sending back
+                            actionData.lastUpdateTime = context.time;
+                            actionData.duration = context.time - actionData.startTime;
+                        }
+                    }
+                    else
+                    {   // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
+                        if (_activeInputActions.TryRemove(context.action.name, out var actionData))
+                        {
+                            Debug.Log("ActionCanceled - end action");
+                            actionData.lastUpdateTime = context.time;
+                            actionData.duration = context.time - actionData.startTime;
+                            actionData.endTime = context.time;
+                            _completedInputActions.Enqueue(actionData);
+                        }
+                    }
+                
             }
         }
 
@@ -260,11 +282,12 @@ namespace StateRecorder
         {
             if (_recording)
             {
+                Debug.Log("ActionPerformed - " + context.action.name);
                 var action = context.action;
                 
                 if (!_activeInputActions.TryGetValue(action.name, out var activeAction))
                 {
-                    Debug.Log("ActionPerformed - new action");
+                    Debug.Log("ActionPerformed - new action - " + action.name);
                     activeAction = new InputActionData()
                     {
                         action = action.name,
@@ -272,50 +295,61 @@ namespace StateRecorder
                         startTime = context.startTime,
                         lastUpdateTime = context.time,
                         duration = context.time - context.startTime,
-                        isPressed = true
                     };
                     _activeInputActions[action.name] = activeAction;
                 }
                 else
                 {
-                    // see if there is an existing one that is 'too old' or not and do updates accordingly
+                    if (Application.platform == RuntimePlatform.OSXPlayer)
+                    {
+                        // see if there is an existing one that is 'too old' or not and do updates accordingly
+                        // too old.. finish it up and put into the completed queue
+                        if (context.time - activeAction.lastUpdateTime > keyHeldThresholdSeconds)
+                        {
+                            // this is a new press, not a hold
+                            if (_activeInputActions.TryRemove(action.name, out var oldAction))
+                            {
+                                Debug.Log("ActionPerformed - over time - removing old");
+                                //finish out the old one
+                                oldAction.endTime = oldAction.lastUpdateTime;
+                                _completedInputActions.Enqueue(oldAction);
+                            }
 
-                    // too old.. finish it up and put into the completed queue
-                    if (context.time - activeAction.lastUpdateTime > keyHeldThresholdSeconds)
-                    {
-                        // this is a new press, not a hold
-                        
-                        if (_activeInputActions.TryRemove(action.name, out var oldAction))
-                        {
-                            Debug.Log("ActionPerformed - over time - removing old");
-                            //finish out the old one
-                            oldAction.endTime = oldAction.lastUpdateTime;
-                            oldAction.isPressed = false;
-                            _completedInputActions.Enqueue(oldAction);
+                            Debug.Log("ActionPerformed - over time - adding new action");
+                            // add new one
+                            activeAction = new InputActionData()
+                            {
+                                action = action.name,
+                                binding = action.bindings[0].path,
+                                startTime = context.startTime,
+                                lastUpdateTime = context.time,
+                                duration = context.time - context.startTime,
+                            };
+                            _activeInputActions[action.name] = activeAction;
                         }
-                        Debug.Log("ActionPerformed - over time - adding new action");
-                        // add new one
-                        activeAction = new InputActionData()
+                        else
                         {
-                            action = action.name,
-                            binding = action.bindings[0].path,
-                            startTime = context.startTime,
-                            lastUpdateTime = context.time,
-                            duration = context.time - context.startTime,
-                            isPressed = true
-                        };
-                        _activeInputActions[action.name] = activeAction;
-                    }
-                    else
-                    {
-                        Debug.Log("ActionPerformed - still pushed");
+                            Debug.Log("ActionPerformed - still pushed- " + activeAction.action);
+                            // still pushed.. update end time
+                            activeAction.lastUpdateTime = context.time;
+                            activeAction.duration = context.time - activeAction.startTime;
+                        }
+                    } else {
+                        // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
+                        Debug.Log("ActionPerformed - still pushed- " + activeAction.action);
                         // still pushed.. update end time
                         activeAction.lastUpdateTime = context.time;
                         activeAction.duration = context.time - activeAction.startTime;
                     }
-                    
                 }
             }
+        }
+
+        private void AddToResultList(ICollection<InputActionData> list, InputActionData action, double sentTime)
+        {
+            action.isPressed = action.endTime == null && action.duration > 0;
+            action.lastSentUpdateTime = sentTime;
+            list.Add(action);
         }
 
         public List<InputActionData> FlushInputDataBuffer()
@@ -323,31 +357,50 @@ namespace StateRecorder
             var currentTime = Time.unscaledTimeAsDouble;
 
             List<InputActionData> result = new();
-            while (_completedInputActions.TryDequeue(out var input))
+            while (_completedInputActions.TryDequeue(out var completedAction))
             {
-                Debug.Log("Flush - adding completed");
-                result.Add(input);
+                Debug.Log("Flush - adding completed- " + completedAction.action);
+                AddToResultList( result, completedAction, currentTime);
             }
 
             var listOfActions = _activeInputActions.ToList();
             foreach (var activeAction in listOfActions)
             {
-                if (currentTime - activeAction.Value.lastUpdateTime > keyHeldThresholdSeconds)
+                if (Application.platform == RuntimePlatform.OSXPlayer)
                 {
-                    // not pushed for the threshold.. write it out, but also clean it up
-                    if (_activeInputActions.TryRemove(activeAction.Key, out var oldAction))
+                    if (currentTime - activeAction.Value.lastUpdateTime > keyHeldThresholdSeconds)
                     {
-                        Debug.Log("Flush - remove old");
-                        oldAction.endTime = oldAction.lastUpdateTime;
-                        oldAction.isPressed = false;
-                        result.Add(oldAction);
+                        // if already sent... it is done; don't send again - compared to ms decimal place
+                        if ((int)((activeAction.Value.lastSentUpdateTime ?? 0) * 1000) >=
+                            (int)(activeAction.Value.lastUpdateTime * 1000))
+                        {
+                            Debug.Log("Flush - Already sent update");
+                            _activeInputActions.TryRemove(activeAction.Key, out _);
+                        }
+                        // not pushed for the threshold.. write it out, but also clean it up
+                        else if (_activeInputActions.TryRemove(activeAction.Key, out var oldAction))
+                        {
+                            Debug.Log("Flush - remove old - " + oldAction.action);
+                            oldAction.endTime = oldAction.lastUpdateTime;
+                            AddToResultList(result, oldAction, currentTime);
+                        }
+                    }
+                    else
+                    {
+                        //still pushed
+                        Debug.Log("Flush - still pushed");
+                        AddToResultList(result, activeAction.Value, currentTime);
                     }
                 }
                 else
                 {
+                    // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
                     //still pushed
                     Debug.Log("Flush - still pushed");
-                    result.Add(activeAction.Value);
+                    // windows doesn't keep sending events, so until cancel.. it's still pressed
+                    activeAction.Value.lastUpdateTime = currentTime;
+                    activeAction.Value.duration = currentTime - activeAction.Value.startTime;
+                    AddToResultList(result, activeAction.Value, currentTime);
                 }
             }
             return result;

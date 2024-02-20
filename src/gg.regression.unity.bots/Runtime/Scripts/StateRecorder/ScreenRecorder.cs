@@ -336,12 +336,6 @@ namespace StateRecorder
 
                             var theScreenshot = screenShot;
 
-                            IEnumerator CleanupTexture()
-                            {
-                                Destroy(theScreenshot);
-                                yield return null;
-                            }
-
                             // queue up writing the frame data to disk async
                             _frameQueue.Add((
                                 (_currentVideoDirectory, _frameNumber),
