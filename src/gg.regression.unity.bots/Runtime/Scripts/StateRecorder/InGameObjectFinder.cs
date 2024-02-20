@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Serialization;
+using UnityEngine.UI;
 using Component = UnityEngine.Component;
 
 namespace StateRecorder
@@ -38,7 +39,7 @@ namespace StateRecorder
     {
         public string name;
         public string path;
-        public MonoBehaviour state;
+        public Behaviour state;
 
         public override string ToString()
         {
@@ -203,7 +204,7 @@ namespace StateRecorder
             return tPath;
         }
 
-        private BehaviourState GetStateForBehaviour(MonoBehaviour behaviour)
+        private BehaviourState GetStateForBehaviour(Behaviour behaviour)
         {
             var type = behaviour.GetType();
             return new BehaviourState()
@@ -404,13 +405,13 @@ namespace StateRecorder
             Vector3[] screenSpaceCorners = new Vector3[4];
             foreach (var statefulUIObject in statefulUIObjects)
             {
+                Button b;
                 // screen space
                 CanvasGroup canvasGroup = statefulUIObject.GetComponentInParent<CanvasGroup>();
                 var cgEnabled = true;
                 while (cgEnabled && canvasGroup != null)
                 {
-                    cgEnabled &= (canvasGroup.enabled && canvasGroup.interactable &&
-                                  canvasGroup.blocksRaycasts);
+                    cgEnabled &= (canvasGroup.enabled && (canvasGroup.blocksRaycasts || canvasGroup.interactable || canvasGroup.alpha > 0));
                     if (canvasGroup.ignoreParentGroups)
                     {
                         break;
@@ -442,7 +443,7 @@ namespace StateRecorder
                         }
 
                         var gameObjectPath = GetUniqueTransformPath(statefulUIObject.transform);
-                        var behaviours = statefulUIObject.GetComponents<MonoBehaviour>()
+                        var behaviours = statefulUIObject.GetComponents<Behaviour>()
                             .Select(GetStateForBehaviour)
                             .ToList();
 

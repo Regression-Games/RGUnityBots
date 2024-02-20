@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using RegressionGames;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -250,14 +251,14 @@ namespace StateRecorder
         {
             if (_recording)
             {
-                Debug.Log("ActionCanceled - " + context.action.name);
+                RGDebug.LogVerbose("ActionCanceled - " + context.action.name);
                 // record the end time
 
                     if (Application.platform == RuntimePlatform.OSXPlayer)
                     {
                         if (_activeInputActions.TryGetValue(context.action.name, out var actionData))
                         {
-                            Debug.Log("ActionCanceled - updating");
+                            RGDebug.LogVerbose("ActionCanceled - updating");
                             // don't set action.isPressed here, we set it before sending back
                             actionData.lastUpdateTime = context.time;
                             actionData.duration = context.time - actionData.startTime;
@@ -267,7 +268,7 @@ namespace StateRecorder
                     {   // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
                         if (_activeInputActions.TryRemove(context.action.name, out var actionData))
                         {
-                            Debug.Log("ActionCanceled - end action");
+                            RGDebug.LogVerbose("ActionCanceled - end action");
                             actionData.lastUpdateTime = context.time;
                             actionData.duration = context.time - actionData.startTime;
                             actionData.endTime = context.time;
@@ -282,12 +283,12 @@ namespace StateRecorder
         {
             if (_recording)
             {
-                Debug.Log("ActionPerformed - " + context.action.name);
+                RGDebug.LogVerbose("ActionPerformed - " + context.action.name);
                 var action = context.action;
                 
                 if (!_activeInputActions.TryGetValue(action.name, out var activeAction))
                 {
-                    Debug.Log("ActionPerformed - new action - " + action.name);
+                    RGDebug.LogVerbose("ActionPerformed - new action - " + action.name);
                     activeAction = new InputActionData()
                     {
                         action = action.name,
@@ -309,13 +310,13 @@ namespace StateRecorder
                             // this is a new press, not a hold
                             if (_activeInputActions.TryRemove(action.name, out var oldAction))
                             {
-                                Debug.Log("ActionPerformed - over time - removing old");
+                                RGDebug.LogVerbose("ActionPerformed - over time - removing old");
                                 //finish out the old one
                                 oldAction.endTime = oldAction.lastUpdateTime;
                                 _completedInputActions.Enqueue(oldAction);
                             }
 
-                            Debug.Log("ActionPerformed - over time - adding new action");
+                            RGDebug.LogVerbose("ActionPerformed - over time - adding new action");
                             // add new one
                             activeAction = new InputActionData()
                             {
@@ -329,14 +330,14 @@ namespace StateRecorder
                         }
                         else
                         {
-                            Debug.Log("ActionPerformed - still pushed- " + activeAction.action);
+                            RGDebug.LogVerbose("ActionPerformed - still pushed- " + activeAction.action);
                             // still pushed.. update end time
                             activeAction.lastUpdateTime = context.time;
                             activeAction.duration = context.time - activeAction.startTime;
                         }
                     } else {
                         // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
-                        Debug.Log("ActionPerformed - still pushed- " + activeAction.action);
+                        RGDebug.LogVerbose("ActionPerformed - still pushed- " + activeAction.action);
                         // still pushed.. update end time
                         activeAction.lastUpdateTime = context.time;
                         activeAction.duration = context.time - activeAction.startTime;
@@ -359,7 +360,7 @@ namespace StateRecorder
             List<InputActionData> result = new();
             while (_completedInputActions.TryDequeue(out var completedAction))
             {
-                Debug.Log("Flush - adding completed- " + completedAction.action);
+                RGDebug.LogVerbose("Flush - adding completed- " + completedAction.action);
                 AddToResultList( result, completedAction, currentTime);
             }
 
@@ -374,13 +375,13 @@ namespace StateRecorder
                         if ((int)((activeAction.Value.lastSentUpdateTime ?? 0) * 1000) >=
                             (int)(activeAction.Value.lastUpdateTime * 1000))
                         {
-                            Debug.Log("Flush - Already sent update");
+                            RGDebug.LogVerbose("Flush - Already sent update");
                             _activeInputActions.TryRemove(activeAction.Key, out _);
                         }
                         // not pushed for the threshold.. write it out, but also clean it up
                         else if (_activeInputActions.TryRemove(activeAction.Key, out var oldAction))
                         {
-                            Debug.Log("Flush - remove old - " + oldAction.action);
+                            RGDebug.LogVerbose("Flush - remove old - " + oldAction.action);
                             oldAction.endTime = oldAction.lastUpdateTime;
                             AddToResultList(result, oldAction, currentTime);
                         }
@@ -388,7 +389,7 @@ namespace StateRecorder
                     else
                     {
                         //still pushed
-                        Debug.Log("Flush - still pushed");
+                        RGDebug.LogVerbose("Flush - still pushed");
                         AddToResultList(result, activeAction.Value, currentTime);
                     }
                 }
@@ -396,7 +397,7 @@ namespace StateRecorder
                 {
                     // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
                     //still pushed
-                    Debug.Log("Flush - still pushed");
+                    RGDebug.LogVerbose("Flush - still pushed");
                     // windows doesn't keep sending events, so until cancel.. it's still pressed
                     activeAction.Value.lastUpdateTime = currentTime;
                     activeAction.Value.duration = currentTime - activeAction.Value.startTime;

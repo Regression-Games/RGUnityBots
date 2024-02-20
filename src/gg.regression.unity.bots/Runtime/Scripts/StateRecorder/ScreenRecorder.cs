@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ namespace StateRecorder
     public class FrameStateData
     {
         public long tickNumber;
+        public bool keyFrame;
         public float time;
         public int[] screenSize;
         public PerformanceMetricData performance;
@@ -80,8 +82,7 @@ namespace StateRecorder
         public bool forceImageMode = false;
 
         public string stateRecordingsDirectory = "/Users/zack/unity_videos";
-
-
+        
         private bool _useImageMode = false;
 
         private float _lastCvFrameTime = -1f;
@@ -89,8 +90,7 @@ namespace StateRecorder
         private int _frameCountSinceLastTick = 0;
 
         private string _currentVideoDirectory;
-
-
+        
         private CancellationTokenSource _tokenSource;
 
         private static ScreenRecorder _this;
@@ -98,10 +98,11 @@ namespace StateRecorder
         private bool _isRecording;
 
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new ConcurrentQueue<Texture2D>();
-
-
+        
         private long _videoNumber;
         private long _frameNumber;
+
+        private FrameStateData _priorFrame = null;
 
         public static ScreenRecorder GetInstance()
         {
@@ -208,6 +209,38 @@ namespace StateRecorder
                     RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
                 }
             }
+        }
+
+        private bool IsKeyFrame(FrameStateData priorFrame, FrameStateData currentFrame)
+        {
+            if (currentFrame.inputs.FirstOrDefault(i => i.startTime > currentFrame.performance.previousTickTime) != null)
+            {
+                // we had an input that started on this frame
+                return true;
+            }
+            var scenesInPriorFrame = priorFrame.state.Select(s => s.scene).Distinct().ToList();
+            var scenesInCurrentFrame = currentFrame.state.Select(s => s.scene).Distinct().ToList();
+            if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
+                !scenesInPriorFrame.All(scenesInCurrentFrame.Contains))
+            {
+                // elements from scenes changed this frame
+                return true;
+            }
+            
+            // visible UI elements changed
+            var uiElementsInPriorFrame = priorFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
+            var uiElementsInCurrentFrame = currentFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
+            if (uiElementsInPriorFrame.Count != uiElementsInCurrentFrame.Count ||
+                !uiElementsInPriorFrame.All(uiElementsInCurrentFrame.Contains))
+            {
+                // visible UI elements changed this frame
+                return true;
+            }
+            
+            //TODO: Future - What other things should 'automatically' be a key frame.
+            //TODO: Can we make it so that developers can add their own definitions for what is a key frame ??? Do we need to ?
+
+            return false;
         }
 
         public void StopRecording()
@@ -317,8 +350,6 @@ namespace StateRecorder
                             var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
                             var inputData = InputActionObserver.GetInstance()?.FlushInputDataBuffer();
                             
-                            Debug.Log("Frame " + _frameNumber + " had " + inputData?.Count + " inputs");
-                            
                             var frameState = new FrameStateData()
                             {
                                 tickNumber = _frameNumber,
@@ -328,6 +359,18 @@ namespace StateRecorder
                                 state = statefulObjects,
                                 inputs = inputData
                             };
+                            
+                            // tell if the new frame is a key frame
+                            if (_priorFrame == null || IsKeyFrame(_priorFrame, frameState))
+                            {
+                                // first frame in a recording is always a key frame
+                                frameState.keyFrame = true;
+                            }
+                            
+                            RGDebug.LogDebug("Frame " + _frameNumber + " had " + inputData?.Count + " inputs - isKeyFrame: " + frameState.keyFrame);
+
+                            
+                            _priorFrame = frameState;
 
                             // serialize to json byte[]
                             var jsonData = Encoding.UTF8.GetBytes(
