@@ -3,47 +3,38 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Newtonsoft.Json;
 using RegressionGames;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace StateRecorder
 {
-    
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class KeyboardInputActionData : InputActionData
-    {    
+    {
         public string action;
         public string binding;
-        [NonSerialized]
-        public double lastUpdateTime;
-        [NonSerialized]
-        public double? lastSentUpdateTime;
+        public double duration;
         public double? endTime;
-        public double duration; 
-        public bool isPressed => duration >0 && endTime == null;
+        [NonSerialized] public double? lastSentUpdateTime;
+        [NonSerialized] public double lastUpdateTime;
+        public bool isPressed => duration > 0 && endTime == null;
     }
 
     public class KeyboardInputActionObserver : MonoBehaviour
     {
-        [Tooltip("Used on OSX runtimes to convert spammy keyboard events into proper key held states")]
-        public float keyHeldThresholdSeconds = 0.100f;
-        
-        private InputActionAsset _inputActionAsset;
-        
         private static KeyboardInputActionObserver _this;
 
-        private bool _recording;
+        [Tooltip("Used on OSX runtimes to convert spammy keyboard events into proper key held states")]
+        public float keyHeldThresholdSeconds = 0.100f;
 
         private readonly ConcurrentDictionary<string, KeyboardInputActionData> _activeInputActions = new();
         private readonly ConcurrentQueue<KeyboardInputActionData> _completedInputActions = new();
-        
-        public static KeyboardInputActionObserver GetInstance()
-        {
-            return _this;
-        }
+
+        private InputActionAsset _inputActionAsset;
+
+        private bool _recording;
 
         public void Awake()
         {
@@ -60,42 +51,13 @@ namespace StateRecorder
             // keep this thing alive across scenes
             DontDestroyOnLoad(gameObject);
             _this = this;
-
-        }
-
-        private void OnEnable()
-        {
-            if (_inputActionAsset != null)
-            {
-                _inputActionAsset.Enable();
-            }
-        }
-        
-        private void OnDisable()
-        {
-            if (_inputActionAsset != null)
-            {
-                _inputActionAsset.Disable();
-            }
-        }
-
-        public void StartRecording()
-        {
-            _activeInputActions.Clear();
-            _recording = true;
-        }
-
-        public void StopRecording()
-        {
-            _recording = false;
         }
 
         private void Start()
         {
-            
             //define action map
             var inputActionMap = new InputActionMap("RegressionGames");
-            
+
             //row 1 (top row)
             CreateKeyboardAction(inputActionMap, "escape");
             CreateKeyboardAction(inputActionMap, "f1");
@@ -113,7 +75,7 @@ namespace StateRecorder
             CreateKeyboardAction(inputActionMap, "printScreen");
             CreateKeyboardAction(inputActionMap, "scrollLock");
             CreateKeyboardAction(inputActionMap, "pause");
-            
+
             // row 2
             CreateKeyboardAction(inputActionMap, "backquote");
             CreateKeyboardAction(inputActionMap, "1");
@@ -136,7 +98,7 @@ namespace StateRecorder
             CreateKeyboardAction(inputActionMap, "numpadDivide");
             CreateKeyboardAction(inputActionMap, "numpadMultiply");
             CreateKeyboardAction(inputActionMap, "numpadMinus");
-            
+
             //row 3
             CreateKeyboardAction(inputActionMap, "tab");
             CreateKeyboardAction(inputActionMap, "q");
@@ -159,7 +121,7 @@ namespace StateRecorder
             CreateKeyboardAction(inputActionMap, "numpad8");
             CreateKeyboardAction(inputActionMap, "numpad9");
             CreateKeyboardAction(inputActionMap, "numpadPlus");
-            
+
             //row 4
             CreateKeyboardAction(inputActionMap, "capsLock");
             CreateKeyboardAction(inputActionMap, "a");
@@ -178,7 +140,7 @@ namespace StateRecorder
             CreateKeyboardAction(inputActionMap, "numpad5");
             CreateKeyboardAction(inputActionMap, "numpad6");
             // big plus button already in row 3 
-            
+
             //row 5
             CreateKeyboardAction(inputActionMap, "leftShift");
             CreateKeyboardAction(inputActionMap, "z");
@@ -213,7 +175,7 @@ namespace StateRecorder
             CreateKeyboardAction(inputActionMap, "numpad0");
             CreateKeyboardAction(inputActionMap, "numpadPeriod");
             // big enter button already in row 5
-            
+
             // Keyboard OEM Special keys
             CreateKeyboardAction(inputActionMap, "OEM1");
             CreateKeyboardAction(inputActionMap, "OEM2");
@@ -221,79 +183,113 @@ namespace StateRecorder
             CreateKeyboardAction(inputActionMap, "OEM4");
             CreateKeyboardAction(inputActionMap, "OEM5");
 
-            
             // setup control scheme
-            var controlScheme = new InputControlScheme("RegressionKeyboardListener", new[] { new InputControlScheme.DeviceRequirement()
+            var controlScheme = new InputControlScheme("RegressionKeyboardListener", new[]
             {
-                controlPath = Keyboard.current?.path,
-                isAND = false,
-                isOptional = true
-            }});
+                new InputControlScheme.DeviceRequirement
+                {
+                    controlPath = Keyboard.current?.path,
+                    isAND = false,
+                    isOptional = true
+                }
+            });
 
             // setup the actionAsset
             _inputActionAsset = ScriptableObject.CreateInstance<InputActionAsset>();
             _inputActionAsset.AddActionMap(inputActionMap);
             _inputActionAsset.AddControlScheme(controlScheme);
             _inputActionAsset.Enable();
-            
+        }
+
+        private void OnEnable()
+        {
+            if (_inputActionAsset != null)
+            {
+                _inputActionAsset.Enable();
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (_inputActionAsset != null)
+            {
+                _inputActionAsset.Disable();
+            }
+        }
+
+        public static KeyboardInputActionObserver GetInstance()
+        {
+            return _this;
+        }
+
+        public void StartRecording()
+        {
+            _activeInputActions.Clear();
+            _recording = true;
+        }
+
+        public void StopRecording()
+        {
+            _recording = false;
         }
 
         private void CreateKeyboardAction(InputActionMap inputActionMap, string keyName)
         {
-            var inputAction = inputActionMap.AddAction("Keyboard/" + keyName, InputActionType.Value, "<Keyboard>/" + keyName);
+            var inputAction =
+                inputActionMap.AddAction("Keyboard/" + keyName, InputActionType.Value, "<Keyboard>/" + keyName);
             inputAction.performed += ActionPerformed;
             inputAction.canceled += ActionCanceled;
         }
-        
-        void ActionCanceled(InputAction.CallbackContext context)
+
+        private void ActionCanceled(InputAction.CallbackContext context)
         {
             if (_recording)
             {
                 RGDebug.LogVerbose("ActionCanceled - " + context.action.name);
                 // record the end time
 
-                    if (Application.platform == RuntimePlatform.OSXPlayer)
+                if (Application.platform == RuntimePlatform.OSXPlayer)
+                {
+                    if (_activeInputActions.TryGetValue(context.action.name, out var actionData))
                     {
-                        if (_activeInputActions.TryGetValue(context.action.name, out var actionData))
-                        {
-                            RGDebug.LogVerbose("ActionCanceled - updating");
-                            // don't set action.isPressed here, we set it before sending back
-                            actionData.lastUpdateTime = context.time;
-                            actionData.duration = context.time - actionData.startTime;
-                        }
+                        RGDebug.LogVerbose("ActionCanceled - updating");
+                        // don't set action.isPressed here, we set it before sending back
+                        actionData.lastUpdateTime = context.time;
+                        actionData.duration = context.time - actionData.startTime;
                     }
-                    else
-                    {   // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
-                        if (_activeInputActions.TryRemove(context.action.name, out var actionData))
-                        {
-                            RGDebug.LogVerbose("ActionCanceled - end action");
-                            actionData.lastUpdateTime = context.time;
-                            actionData.duration = context.time - actionData.startTime;
-                            actionData.endTime = context.time;
-                            _completedInputActions.Enqueue(actionData);
-                        }
+                }
+                else
+                {
+                    // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
+                    if (_activeInputActions.TryRemove(context.action.name, out var actionData))
+                    {
+                        RGDebug.LogVerbose("ActionCanceled - end action");
+                        actionData.lastUpdateTime = context.time;
+                        actionData.duration = context.time - actionData.startTime;
+                        actionData.endTime = context.time;
+                        _completedInputActions.Enqueue(actionData);
                     }
-                
+                }
             }
         }
 
-        void ActionPerformed(InputAction.CallbackContext context)
+        private void ActionPerformed(InputAction.CallbackContext context)
         {
             if (_recording)
             {
                 RGDebug.LogVerbose("ActionPerformed - " + context.action.name);
                 var action = context.action;
-                
+
                 if (!_activeInputActions.TryGetValue(action.name, out var activeAction))
                 {
                     RGDebug.LogVerbose("ActionPerformed - new action - " + action.name);
-                    activeAction = new KeyboardInputActionData()
+                    activeAction = new KeyboardInputActionData
                     {
                         action = action.name,
                         binding = action.bindings[0].path,
                         startTime = context.startTime,
                         lastUpdateTime = context.time,
-                        duration = context.time - context.startTime,
+                        duration = context.time - context.startTime
                     };
                     _activeInputActions[action.name] = activeAction;
                 }
@@ -316,13 +312,13 @@ namespace StateRecorder
 
                             RGDebug.LogVerbose("ActionPerformed - over time - adding new action");
                             // add new one
-                            activeAction = new KeyboardInputActionData()
+                            activeAction = new KeyboardInputActionData
                             {
                                 action = action.name,
                                 binding = action.bindings[0].path,
                                 startTime = context.startTime,
                                 lastUpdateTime = context.time,
-                                duration = context.time - context.startTime,
+                                duration = context.time - context.startTime
                             };
                             _activeInputActions[action.name] = activeAction;
                         }
@@ -333,7 +329,9 @@ namespace StateRecorder
                             activeAction.lastUpdateTime = context.time;
                             activeAction.duration = context.time - activeAction.startTime;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
                         RGDebug.LogVerbose("ActionPerformed - still pushed- " + activeAction.action);
                         // still pushed.. update end time
@@ -358,7 +356,7 @@ namespace StateRecorder
             while (_completedInputActions.TryDequeue(out var completedAction))
             {
                 RGDebug.LogVerbose("Flush - adding completed- " + completedAction.action);
-                AddToResultList( result, completedAction, currentTime);
+                AddToResultList(result, completedAction, currentTime);
             }
 
             var listOfActions = _activeInputActions.ToList();
@@ -401,6 +399,7 @@ namespace StateRecorder
                     AddToResultList(result, activeAction.Value, currentTime);
                 }
             }
+
             return result;
         }
     }
