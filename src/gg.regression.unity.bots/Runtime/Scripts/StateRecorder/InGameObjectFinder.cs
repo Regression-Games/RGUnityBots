@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Serialization;
-using UnityEngine.UI;
 using Component = UnityEngine.Component;
 
 namespace StateRecorder
@@ -404,7 +403,6 @@ namespace StateRecorder
             var screenSpaceCorners = new Vector3[4];
             foreach (var statefulUIObject in statefulUIObjects)
             {
-                Button b;
                 // screen space
                 var canvasGroup = statefulUIObject.GetComponentInParent<CanvasGroup>();
                 var cgEnabled = true;

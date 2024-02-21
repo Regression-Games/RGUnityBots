@@ -10,11 +10,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using StateRecorder.JsonConverters;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.InputSystem;
 using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 
 #if UNITY_EDITOR
@@ -26,19 +26,25 @@ using UnityEditor.Media;
 
 namespace StateRecorder
 {
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum KeyFrameReason
+    {
+        FirstFrame, Keyboard, Mouse, SceneObject, UIObject
+    }
+
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public abstract class InputActionData
     {
         public double startTime;
     }
-    
+
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class FrameStateData
     {
         public long tickNumber;
-        public bool keyFrame;
+        public KeyFrameReason? keyFrame;
         public float time;
         public int[] screenSize;
         public PerformanceMetricData performance;
@@ -98,7 +104,7 @@ namespace StateRecorder
         public bool forceImageMode;
 
         public string stateRecordingsDirectory = "/Users/zack/unity_videos";
-        
+
         private bool _useImageMode;
 
         private float _lastCvFrameTime = -1f;
@@ -106,7 +112,7 @@ namespace StateRecorder
         private int _frameCountSinceLastTick;
 
         private string _currentVideoDirectory;
-        
+
         private CancellationTokenSource _tokenSource;
 
         private static ScreenRecorder _this;
@@ -114,11 +120,13 @@ namespace StateRecorder
         private bool _isRecording;
 
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new ();
-        
+
         private long _videoNumber;
         private long _tickNumber;
 
         private FrameStateData _priorFrame;
+
+        private bool? lastState = null;
 
         public static ScreenRecorder GetInstance()
         {
@@ -185,7 +193,6 @@ namespace StateRecorder
             }
         }
 
-
         public void StartRecording()
         {
             if (!_isRecording)
@@ -229,43 +236,47 @@ namespace StateRecorder
             }
         }
 
-        private bool IsKeyFrame(FrameStateData priorFrame, FrameStateData currentFrame)
+        private KeyFrameReason? IsKeyFrame(FrameStateData priorFrame, FrameStateData currentFrame)
         {
-            if (currentFrame.inputs.keyboard.FirstOrDefault(i => i.startTime > currentFrame.performance.previousTickTime) != null)
+            if (priorFrame != null)
             {
-                // we had a keyboard input that started on this frame
-                return true;
-            }
-            
-            if (currentFrame.inputs.mouse.FirstOrDefault(i => ((MouseInputActionData)i).NewButtonPress) != null)
-            {
-                // we had a mouse input that started on this frame
-                return true;
-            }
-            
-            var scenesInPriorFrame = priorFrame.state.Select(s => s.scene).Distinct().ToList();
-            var scenesInCurrentFrame = currentFrame.state.Select(s => s.scene).Distinct().ToList();
-            if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
-                !scenesInPriorFrame.All(scenesInCurrentFrame.Contains))
-            {
-                // elements from scenes changed this frame
-                return true;
-            }
-            
-            // visible UI elements changed
-            var uiElementsInPriorFrame = priorFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
-            var uiElementsInCurrentFrame = currentFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
-            if (uiElementsInPriorFrame.Count != uiElementsInCurrentFrame.Count ||
-                !uiElementsInPriorFrame.All(uiElementsInCurrentFrame.Contains))
-            {
-                // visible UI elements changed this frame
-                return true;
-            }
-            
-            //TODO: Future - What other things should 'automatically' be a key frame.
-            //TODO: Can we make it so that developers can add their own definitions for what is a key frame ??? Do we need to ?
+                if (currentFrame.inputs.keyboard.FirstOrDefault(i => i.startTime > currentFrame.performance.previousTickTime) != null)
+                {
+                    // we had a keyboard input that started on this frame
+                    return KeyFrameReason.Keyboard;
+                }
 
-            return false;
+                if (currentFrame.inputs.mouse.FirstOrDefault(i => ((MouseInputActionData)i).NewButtonPress) != null)
+                {
+                    // we had a mouse input that started on this frame
+                    return KeyFrameReason.Mouse;
+                }
+
+                var scenesInPriorFrame = priorFrame.state.Select(s => s.scene).Distinct().ToList();
+                var scenesInCurrentFrame = currentFrame.state.Select(s => s.scene).Distinct().ToList();
+                if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
+                    !scenesInPriorFrame.All(scenesInCurrentFrame.Contains))
+                {
+                    // elements from scenes changed this frame
+                    return KeyFrameReason.SceneObject;
+                }
+
+                // visible UI elements changed
+                var uiElementsInPriorFrame = priorFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
+                var uiElementsInCurrentFrame = currentFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
+                if (uiElementsInPriorFrame.Count != uiElementsInCurrentFrame.Count ||
+                    !uiElementsInPriorFrame.All(uiElementsInCurrentFrame.Contains))
+                {
+                    // visible UI elements changed this frame
+                    return KeyFrameReason.UIObject;
+                }
+
+                //TODO: Future - What other things should 'automatically' be a key frame.
+                //TODO: Can we make it so that developers can add their own definitions for what is a key frame ??? Do we need to ?
+
+            }
+
+            return null;
         }
 
         public void StopRecording()
@@ -376,7 +387,7 @@ namespace StateRecorder
                             var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
 
                             var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                            
+
                             var deviceInputs = new InputData
                             {
                                 keyboard = keyboardInputData,
@@ -392,13 +403,14 @@ namespace StateRecorder
                                 state = statefulObjects,
                                 inputs = deviceInputs
                             };
-                            
+
                             // tell if the new frame is a key frame
-                            if (_priorFrame == null || IsKeyFrame(_priorFrame, frameState))
+                            var keyFrameReason = IsKeyFrame(_priorFrame, frameState);
+                            if (_priorFrame == null || keyFrameReason != null )
                             {
                                 // first frame in a recording is always a key frame
-                                frameState.keyFrame = true;
-                                RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , "+ mouseInputData?.Count+ " mouse inputs - isKeyFrame: " + frameState.keyFrame);
+                                frameState.keyFrame = keyFrameReason??KeyFrameReason.FirstFrame;
+                                RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , "+ mouseInputData?.Count+ " mouse inputs - KeyFrame: " + (frameState.keyFrame != null ? frameState.keyFrame : false) );
                             }
 
                             _priorFrame = frameState;
@@ -559,4 +571,3 @@ namespace StateRecorder
 
     }
 }
-

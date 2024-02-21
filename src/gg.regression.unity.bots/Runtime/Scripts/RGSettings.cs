@@ -12,16 +12,19 @@ namespace RegressionGames
 
         [SerializeField] private bool useSystemSettings;
         [SerializeField] private bool enableOverlay;
-        [SerializeField] private int numBots;
+        [SerializeField]
+        [Obsolete("Feature no longer available, please start bots using the overlay")]
+        private int numBots;
+        [Obsolete("Feature no longer available, please start bots using the overlay")]
         [SerializeField] private long[] botsSelected;
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
         [SerializeField] private uint nextBotId;
-
 #pragma warning disable CS0414 // suppress unused field warning
         [SerializeField] private uint nextBotInstanceId;
 #pragma warning restore CS0414
-
+        // ReSharper disable once InconsistentNaming
+        [SerializeField] private bool feature_StateRecordingAndReplay;
         /*
          * This is setup to be safely callable on the non-main thread.
          * Options will update as soon as called on main thread once marked dirty.
@@ -51,17 +54,31 @@ namespace RegressionGames
                 _settings = CreateInstance<RGSettings>();
                 _settings.useSystemSettings = true;
                 _settings.enableOverlay = true;
-                _settings.numBots = 0;
-                _settings.botsSelected = Array.Empty<long>();
                 _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
+
+#pragma warning disable CS0618 // Type or member is obsolete
+                _settings.numBots = 0;
+                _settings.botsSelected = Array.Empty<long>();
+#pragma warning restore CS0618 // Type or member is obsolete
+                
                 _settings.nextBotId = 0;
                 _settings.nextBotInstanceId = 0;
+
+                _settings.feature_StateRecordingAndReplay = false;
 #if UNITY_EDITOR
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
 #endif
             }
+            
+            // These fields are now obsolete
+#pragma warning disable CS0618 // Type or member is obsolete
+            _settings.numBots = 0;
+            _settings.botsSelected = Array.Empty<long>();
+            _settings.nextBotId = 0;
+            _settings.nextBotInstanceId = 0;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             // backwards compat for migrating RG devs before we had a single host address field
             if (string.IsNullOrEmpty(_settings.rgHostAddress))
@@ -154,6 +171,11 @@ namespace RegressionGames
         public string GetRgHostAddress()
         {
             return rgHostAddress;
+        }
+
+        public bool GetFeatureStateRecordingAndReplay()
+        {
+            return feature_StateRecordingAndReplay;
         }
     }
 

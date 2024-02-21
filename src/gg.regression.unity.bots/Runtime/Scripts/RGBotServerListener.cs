@@ -463,8 +463,11 @@ namespace RegressionGames
                 }
             }
 
-            // Take any requested screenshots
-            StartCoroutine(_dataCollection.ProcessScreenshotRequests());
+            if (_dataCollection != null)
+            {
+                // Take any requested screenshots
+                StartCoroutine(_dataCollection.ProcessScreenshotRequests());
+            }
         }
 
         /**

@@ -108,7 +108,7 @@ namespace RegressionGames.DataCollection
          */
         public IEnumerator ProcessScreenshotRequests()
         {
-            
+
             // wait for finality of frame rendering before capturing screen shot
             yield return new WaitForEndOfFrame();
             var done = false;
@@ -214,6 +214,13 @@ namespace RegressionGames.DataCollection
 
         }
 
+        class BotDoesNotExistOnServerException : Exception
+        {
+            public BotDoesNotExistOnServerException(string message) : base(message)
+            {
+            }
+        }
+
         public async Task SaveBotInstanceHistory(long clientId)
         {
             // Removing the state from the dictionary will prevent any further data from being saved
@@ -245,10 +252,10 @@ namespace RegressionGames.DataCollection
                             rgBot =>
                             {
                                 RGDebug.LogVerbose(
-                                    $"DataCollection[{clientId}] - Found a bot on Regression Games with this ID");
+                                    $"DataCollection[{clientId}] - Found a bot on Regression Games with id {state.bot.id}");
                             },
-                            () => throw new Exception(
-                                "This bot does not exist on the server. Please use the Regression Games > Synchronize Bots with RG menu option to register your bot."));
+                            () => throw new BotDoesNotExistOnServerException(
+                                $"Bot id {state.bot.id} does not exist on the server. Please use the Regression Games > Synchronize Bots with RG menu option to register your bot."));
 
                     // Always create a bot instance id, since this is a local bot and doesn't exist on the servers yet
                     RGDebug.LogVerbose($"DataCollection[{clientId}] - Creating the record for bot instance...");
@@ -383,7 +390,15 @@ namespace RegressionGames.DataCollection
             }
             catch (Exception e)
             {
-                RGDebug.LogException(e, $"DataCollection[{clientId}] - Error uploading data");
+                if (e is BotDoesNotExistOnServerException)
+                {
+                    RGDebug.LogWarning($"DataCollection[{clientId}] - Error uploading data - {e.Message}");
+                }
+                else
+                {
+                    RGDebug.LogException(e, $"DataCollection[{clientId}] - Error uploading data");
+                }
+
                 throw;
             }
             finally
