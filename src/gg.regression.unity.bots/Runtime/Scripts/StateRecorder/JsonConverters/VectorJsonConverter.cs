@@ -7,7 +7,7 @@ namespace StateRecorder.JsonConverters
     public class VectorJsonConverter : Newtonsoft.Json.JsonConverter
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {   
+        {
             if (value == null)
             {
                 writer.WriteNull();

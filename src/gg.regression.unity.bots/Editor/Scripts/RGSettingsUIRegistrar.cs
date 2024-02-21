@@ -55,7 +55,7 @@ namespace RegressionGames.Editor
                         EditorGUILayout.Toggle("Enable Screen Overlay ?", enableOverlay.boolValue);
 
                     // ----------
-                    DrawUILine((Color.gray+Color.black)/2);
+                    DrawUILine((Color.gray + Color.black) / 2);
                     EditorGUILayout.LabelField("Experimental Features");
 
                     SerializedProperty featureStateRecordingAndReplay = settings.FindProperty("feature_StateRecordingAndReplay");
@@ -104,7 +104,7 @@ namespace RegressionGames.Editor
 
         public static void DrawUILine(Color color, int thickness = 2, int verticalPadding = 10, int horizontalPadding = 10)
         {
-            var r = EditorGUILayout.GetControlRect(GUILayout.Height(verticalPadding+thickness));
+            var r = EditorGUILayout.GetControlRect(GUILayout.Height(verticalPadding + thickness));
             r.height = thickness;
             r.y += verticalPadding / 2.0f;
             r.x += horizontalPadding / 2.0f;

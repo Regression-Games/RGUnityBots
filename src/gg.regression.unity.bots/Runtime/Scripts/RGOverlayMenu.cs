@@ -25,7 +25,7 @@ namespace RegressionGames
 
         public RGIconPulse recordingPulse;
 
-        public GameObject  recordingToolbar;
+        public GameObject recordingToolbar;
 
         private RGServiceManager _rgServiceManager;
 
@@ -283,7 +283,7 @@ namespace RegressionGames
                 }
             }
 
-                // update the latest bot list from RGService
+            // update the latest bot list from RGService
             _ = _rgServiceManager.GetBotsForCurrentUser(
                 bots =>
                 {

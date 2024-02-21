@@ -97,7 +97,7 @@ namespace StateRecorder
         [Tooltip("(WARNING: Performance Impact) Include field/property values for behaviours.")]
         public bool collectStateFromBehaviours;
 
-        // right now this resets on awake, but we may have to deal with dynamically re-parented transforms better at some point... 
+        // right now this resets on awake, but we may have to deal with dynamically re-parented transforms better at some point...
         // <transform, (hasKeyTypes, isTopLevelParent)>
         private readonly Dictionary<Transform, TransformStatus> _transformsIveSeen = new();
 
@@ -325,7 +325,8 @@ namespace StateRecorder
                     var colliders2D = statefulGameObject.GetComponentsInChildren<Collider2D>();
                     foreach (var colliderEntry in colliders2D)
                     {
-                        collidersState.Add(new ColliderState
+                        collidersState.Add(
+                            new ColliderState
                             {
                                 path = GetUniqueTransformPath(colliderEntry.transform),
                                 bounds = colliderEntry.bounds,

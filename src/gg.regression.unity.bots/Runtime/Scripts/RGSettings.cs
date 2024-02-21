@@ -21,10 +21,12 @@ namespace RegressionGames
         [SerializeField] private bool useSystemSettings;
         [SerializeField] private bool enableOverlay;
 
-        [SerializeField] [Obsolete("Feature no longer available, please start bots using the overlay")]
+        [SerializeField]
+        [Obsolete("Feature no longer available, please start bots using the overlay")]
         private int numBots;
 
-        [Obsolete("Feature no longer available, please start bots using the overlay")] [SerializeField]
+        [Obsolete("Feature no longer available, please start bots using the overlay")]
+        [SerializeField]
         private long[] botsSelected;
 
         [SerializeField] private DebugLogLevel logLevel;
