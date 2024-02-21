@@ -9,7 +9,8 @@ namespace RegressionGames
     {
         private Image _image;
 
-        [NonSerialized] private Color ogColor = Color.white;
+        [NonSerialized]
+        private Color ogColor = Color.white;
 
         public float pulseInterval = 3f;
 
@@ -18,10 +19,12 @@ namespace RegressionGames
 
         public float pulseDuration = 1f;
 
-        [FormerlySerializedAs("maxAlpha")] [Tooltip("Pulse midpoint alpha value")]
+        [FormerlySerializedAs("maxAlpha")]
+        [Tooltip("Pulse midpoint alpha value")]
         public float pulseMidpointAlpha = 255f;
 
-        [FormerlySerializedAs("minAlpha")] [Tooltip("Pulse start/end alpha value")]
+        [FormerlySerializedAs("minAlpha")]
+        [Tooltip("Pulse start/end alpha value")]
         public float pulseStartEndAlpha = 0f;
 
         [Tooltip("Alpha value when animation is stopped")]
@@ -39,14 +42,13 @@ namespace RegressionGames
             if (color == null)
             {
                 // reset
-                _image.color = new Color( ogColor.r,  ogColor.g,  ogColor.b, _image.color.a);
+                _image.color = new Color(ogColor.r, ogColor.g, ogColor.b, _image.color.a);
             }
             else
             {
                 var theColor = color.Value;
-                _image.color = new Color( theColor.r,  theColor.g,  theColor.b, _image.color.a);
+                _image.color = new Color(theColor.r, theColor.g, theColor.b, _image.color.a);
             }
-
         }
 
         public void StopAtStartEndAlpha()
@@ -120,12 +122,11 @@ namespace RegressionGames
         {
             if (active)
             {
-
                 var time = Time.time;
                 var timeSinceLast = time - _lastPulse;
 
                 // in between pulses we are 'stopped'
-                var alphaValue = stoppedAlpha/255f;
+                var alphaValue = stoppedAlpha / 255f;
 
                 if (timeSinceLast >= pulseInterval)
                 {
@@ -139,9 +140,8 @@ namespace RegressionGames
                     // animating the pulse
                     var alphaRange = (pulseMidpointAlpha - pulseStartEndAlpha);
 
-
                     // -1 -> 1
-                    var rangeVal = (pulseDuration - timeSinceLast) - (pulseDuration/2.0f);
+                    var rangeVal = (pulseDuration - timeSinceLast) - (pulseDuration / 2.0f);
 
                     alphaValue = (pulseStartEndAlpha + (Mathf.Abs(rangeVal) * -1 * alphaRange + alphaRange)) / 255f;
                 }
@@ -152,7 +152,7 @@ namespace RegressionGames
             else
             {
                 // not animating
-                var alphaValue = stoppedAlpha/255f;
+                var alphaValue = stoppedAlpha / 255f;
                 _image.color = new Color(_image.color.r, _image.color.g, _image.color.b, alphaValue);
             }
         }
