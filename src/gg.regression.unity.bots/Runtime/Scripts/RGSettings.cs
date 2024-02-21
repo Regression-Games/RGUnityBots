@@ -4,7 +4,15 @@ using UnityEngine;
 
 namespace RegressionGames
 {
-    public enum DebugLogLevel { Off, Verbose, Debug, Info, Warning, Error }
+    public enum DebugLogLevel
+    {
+        Off,
+        Verbose,
+        Debug,
+        Info,
+        Warning,
+        Error
+    }
 
     public class RGSettings : ScriptableObject
     {
@@ -12,11 +20,13 @@ namespace RegressionGames
 
         [SerializeField] private bool useSystemSettings;
         [SerializeField] private bool enableOverlay;
-        [SerializeField]
-        [Obsolete("Feature no longer available, please start bots using the overlay")]
+
+        [SerializeField] [Obsolete("Feature no longer available, please start bots using the overlay")]
         private int numBots;
-        [Obsolete("Feature no longer available, please start bots using the overlay")]
-        [SerializeField] private long[] botsSelected;
+
+        [Obsolete("Feature no longer available, please start bots using the overlay")] [SerializeField]
+        private long[] botsSelected;
+
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
         [SerializeField] private uint nextBotId;
@@ -25,23 +35,24 @@ namespace RegressionGames
 #pragma warning restore CS0414
         // ReSharper disable once InconsistentNaming
         [SerializeField] private bool feature_StateRecordingAndReplay;
+
         /*
          * This is setup to be safely callable on the non-main thread.
          * Options will update as soon as called on main thread once marked dirty.
          */
-        private static RGSettings _settings = null;
-        private static bool dirty = true;
+        private static RGSettings _settings;
+        private static bool _dirty = true;
 
         public static RGSettings GetOrCreateSettings()
         {
-            if (_settings == null || dirty)
+            if (_settings == null || _dirty)
             {
                 try
                 {
 #if UNITY_EDITOR
                     _settings = AssetDatabase.LoadAssetAtPath<RGSettings>(SETTINGS_PATH);
 #endif
-                    dirty = false;
+                    _dirty = false;
                 }
                 catch (Exception)
                 {
@@ -61,7 +72,7 @@ namespace RegressionGames
                 _settings.numBots = 0;
                 _settings.botsSelected = Array.Empty<long>();
 #pragma warning restore CS0618 // Type or member is obsolete
-                
+
                 _settings.nextBotId = 0;
                 _settings.nextBotInstanceId = 0;
 
@@ -71,7 +82,7 @@ namespace RegressionGames
                 AssetDatabase.SaveAssets();
 #endif
             }
-            
+
             // These fields are now obsolete
 #pragma warning disable CS0618 // Type or member is obsolete
             _settings.numBots = 0;
@@ -95,7 +106,7 @@ namespace RegressionGames
         public static void OptionsUpdated()
         {
             //mark dirty
-            dirty = true;
+            _dirty = true;
             try
             {
                 // try to update and mark clean, but if failed
@@ -103,7 +114,7 @@ namespace RegressionGames
 #if UNITY_EDITOR
                 _settings = AssetDatabase.LoadAssetAtPath<RGSettings>(SETTINGS_PATH);
 #endif
-                dirty = false;
+                _dirty = false;
             }
             catch (Exception)
             {
@@ -140,6 +151,7 @@ namespace RegressionGames
             {
                 systemId += nextId;
             }
+
             return systemId;
         }
 
@@ -155,12 +167,16 @@ namespace RegressionGames
 
         public int GetNumBots()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             return numBots;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         public long[] GetBotsSelected()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             return botsSelected;
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         public DebugLogLevel GetLogLevel()
@@ -178,5 +194,4 @@ namespace RegressionGames
             return feature_StateRecordingAndReplay;
         }
     }
-
 }

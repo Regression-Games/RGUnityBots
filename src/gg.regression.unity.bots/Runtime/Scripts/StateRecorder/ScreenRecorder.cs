@@ -29,7 +29,11 @@ namespace StateRecorder
     [JsonConverter(typeof(StringEnumConverter))]
     public enum KeyFrameReason
     {
-        FirstFrame, Keyboard, Mouse, SceneObject, UIObject
+        FirstFrame,
+        Keyboard,
+        Mouse,
+        SceneObject,
+        UIObject
     }
 
     [Serializable]
@@ -95,7 +99,6 @@ namespace StateRecorder
 
     public class ScreenRecorder : MonoBehaviour
     {
-
         //TODO: ? Move these values to RGSettings ?
         [Tooltip("FPS at which to capture frames")]
         public int recordingFPS = 5;
@@ -119,14 +122,12 @@ namespace StateRecorder
 
         private bool _isRecording;
 
-        private readonly ConcurrentQueue<Texture2D> _texture2Ds = new ();
+        private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
         private long _videoNumber;
         private long _tickNumber;
 
         private FrameStateData _priorFrame;
-
-        private bool? lastState = null;
 
         public static ScreenRecorder GetInstance()
         {
@@ -154,7 +155,6 @@ namespace StateRecorder
 
         private void OnDestroy()
         {
-
             _frameQueue?.CompleteAdding();
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
@@ -174,12 +174,11 @@ namespace StateRecorder
                     RGDebug.LogInfo($"Finished zipping replay to file: {_currentVideoDirectory}");
                 });
                 _isRecording = false;
-
             }
         }
 
         // Update is called once per frame
-        void LateUpdate()
+        private void LateUpdate()
         {
             while (_texture2Ds.TryDequeue(out var text))
             {
@@ -202,12 +201,12 @@ namespace StateRecorder
                 _isRecording = true;
                 _tickNumber = 0;
                 _frameQueue =
-                    new(
+                    new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>(
                         new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>,
                             Action)
                             )>());
 
-                _tokenSource = new();
+                _tokenSource = new CancellationTokenSource();
 
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
@@ -273,7 +272,6 @@ namespace StateRecorder
 
                 //TODO: Future - What other things should 'automatically' be a key frame.
                 //TODO: Can we make it so that developers can add their own definitions for what is a key frame ??? Do we need to ?
-
             }
 
             return null;
@@ -284,7 +282,7 @@ namespace StateRecorder
             OnDestroy();
         }
 
-        IEnumerator RecordFrame()
+        private IEnumerator RecordFrame()
         {
             yield return new WaitForEndOfFrame();
             if (!_frameQueue.IsCompleted)
@@ -296,7 +294,6 @@ namespace StateRecorder
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if ((int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / recordingFPS))
                 {
-
                     var performanceMetrics = new PerformanceMetricData()
                     {
                         framesSincePreviousTick = _frameCountSinceLastTick,
@@ -316,7 +313,7 @@ namespace StateRecorder
                             batches = UnityStats.batches,
                             dynamicBatches = UnityStats.dynamicBatches,
                             staticBatches = UnityStats.staticBatches,
-                            instancedBatches = UnityStats.instancedBatches,
+                            instancedBatches = UnityStats.instancedBatches
                         }
                     };
 
@@ -406,11 +403,11 @@ namespace StateRecorder
 
                             // tell if the new frame is a key frame
                             var keyFrameReason = IsKeyFrame(_priorFrame, frameState);
-                            if (_priorFrame == null || keyFrameReason != null )
+                            if (_priorFrame == null || keyFrameReason != null)
                             {
                                 // first frame in a recording is always a key frame
-                                frameState.keyFrame = keyFrameReason??KeyFrameReason.FirstFrame;
-                                RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , "+ mouseInputData?.Count+ " mouse inputs - KeyFrame: " + (frameState.keyFrame != null ? frameState.keyFrame : false) );
+                                frameState.keyFrame = keyFrameReason ?? KeyFrameReason.FirstFrame;
+                                RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: " + (frameState.keyFrame != null ? frameState.keyFrame : false));
                             }
 
                             _priorFrame = frameState;
@@ -460,13 +457,12 @@ namespace StateRecorder
         }
 
 
-
         private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
             _frameQueue;
 
         private MediaEncoder _encoder;
 
-        void ProcessFrames()
+        private void ProcessFrames()
         {
             while (!_frameQueue.IsCompleted && _tokenSource is { IsCancellationRequested: false })
             {
@@ -497,7 +493,7 @@ namespace StateRecorder
                     ImageConversion.EncodeNativeArrayToJPG(frameData, graphicsFormat, (uint)width, (uint)height);
 
                 // write out the image to file
-                string path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
+                var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, imageOutput.ToArray());
                 RecordFrameState(directoryPath, _tickNumber, jsonData);
@@ -506,7 +502,6 @@ namespace StateRecorder
             {
                 RGDebug.LogWarning($"WARNING: Unable to record JPG for frame # {frameNumber} - {e}");
             }
-
         }
 
         private void RecordFrameState(string directoryPath, long frameNumber, byte[] jsonData)
@@ -514,7 +509,7 @@ namespace StateRecorder
             try
             {
                 // write out the json to file
-                string path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".json";
+                var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".json";
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, jsonData);
             }
@@ -522,11 +517,10 @@ namespace StateRecorder
             {
                 RGDebug.LogWarning($"WARNING: Unable to record JSON for frame # {frameNumber} - {e}");
             }
-
         }
 
 
-        private readonly JsonSerializerSettings _serializerSettings = new JsonSerializerSettings
+        private readonly JsonSerializerSettings _serializerSettings = new()
         {
             Formatting = Formatting.Indented,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
@@ -568,6 +562,5 @@ namespace StateRecorder
                 args.ErrorContext.Handled = true;
             }
         };
-
     }
 }
