@@ -20,7 +20,7 @@ namespace StateRecorder.JsonConverters
                 writer.WriteStartArray();
                 foreach (var valMaterial in val.materials)
                 {
-                    writer.WriteValue(valMaterial.name);    
+                    writer.WriteValue(valMaterial.name);
                 }
                 writer.WriteEndArray();
                 // TODO: Include Lighting/Lightmapping/Probes

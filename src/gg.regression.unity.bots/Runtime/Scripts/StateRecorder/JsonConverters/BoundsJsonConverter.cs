@@ -18,23 +18,23 @@ namespace StateRecorder.JsonConverters
                 var center = val.center;
                 var extents = val.extents;
                 writer.WriteStartObject();
-            
+
                 writer.WritePropertyName("center");
-            
+
                 writer.WriteStartArray();
                 writer.WriteValue(center.x);
                 writer.WriteValue(center.y);
                 writer.WriteValue(center.z);
                 writer.WriteEndArray();
-            
+
                 writer.WritePropertyName("extents");
-            
+
                 writer.WriteStartArray();
                 writer.WriteValue(extents.x);
                 writer.WriteValue(extents.y);
                 writer.WriteValue(extents.z);
                 writer.WriteEndArray();
-            
+
                 writer.WriteEndObject();
             }
         }

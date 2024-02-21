@@ -18,7 +18,6 @@ namespace StateRecorder.JsonConverters
             writer.WriteValue(val.b);
             writer.WriteValue(val.a);
             writer.WriteEndArray();
-
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
