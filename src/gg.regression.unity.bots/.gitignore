@@ -70,3 +70,12 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+
+# temp rider assets for formatting
+Temp*
+obj*
+
+#include our special sln and csproj files used for formatting
+!gg.regression.unity.bots.sln*
+!Assembly-CSharp.csproj*
