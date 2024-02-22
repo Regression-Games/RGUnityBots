@@ -13,7 +13,9 @@ namespace RegressionGames
         [SerializeField] private bool useSystemSettings;
         [SerializeField] private bool enableOverlay;
         [SerializeField] private int numBots;
-        [SerializeField] private long[] botsSelected;
+        [SerializeField]
+
+        private long[] botsSelected;
         [SerializeField] private DebugLogLevel logLevel;
         [SerializeField] private string rgHostAddress;
         [SerializeField] private uint nextBotId;
