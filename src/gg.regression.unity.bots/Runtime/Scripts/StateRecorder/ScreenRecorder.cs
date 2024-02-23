@@ -438,7 +438,7 @@ namespace RegressionGames.StateRecorder
                                         // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
                                         _texture2Ds.Enqueue(theScreenshot);
                                     }
-                                )
+                            )
                             ));
                             // null this out so the queue can clean it up, not this do
                             screenShot = null;
@@ -555,7 +555,7 @@ namespace RegressionGames.StateRecorder
                 // KEEP THIS UnityObjectJsonConverter AT THE END OF THE LIST AS A FALLBACK TO PREVENT PERFORMANCE EXPLOSION
                 new UnityObjectFallbackJsonConverter()
             },
-            Error = delegate(object _, ErrorEventArgs args)
+            Error = delegate (object _, ErrorEventArgs args)
             {
                 // just eat certain errors
                 if (args.ErrorContext.Error.InnerException is UnityException)

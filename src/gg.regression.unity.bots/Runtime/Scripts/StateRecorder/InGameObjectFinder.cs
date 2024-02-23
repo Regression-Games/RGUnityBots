@@ -352,16 +352,16 @@ namespace RegressionGames.StateRecorder
                     foreach (var myRigidbody in myRigidbodies)
                     {
                         rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = myRigidbody.rotation,
-                                velocity = myRigidbody.velocity,
-                                drag = myRigidbody.drag,
-                                angularDrag = myRigidbody.angularDrag,
-                                useGravity = myRigidbody.useGravity,
-                                isKinematic = myRigidbody.isKinematic
-                            }
+                        {
+                            path = GetUniqueTransformPath(myRigidbody.transform),
+                            position = myRigidbody.position,
+                            rotation = myRigidbody.rotation,
+                            velocity = myRigidbody.velocity,
+                            drag = myRigidbody.drag,
+                            angularDrag = myRigidbody.angularDrag,
+                            useGravity = myRigidbody.useGravity,
+                            isKinematic = myRigidbody.isKinematic
+                        }
                         );
                     }
                 }
@@ -371,12 +371,12 @@ namespace RegressionGames.StateRecorder
                     foreach (var myRigidbody in myRigidbodies2D)
                     {
                         rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
-                                velocity = myRigidbody.velocity
-                            }
+                        {
+                            path = GetUniqueTransformPath(myRigidbody.transform),
+                            position = myRigidbody.position,
+                            rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
+                            velocity = myRigidbody.velocity
+                        }
                         );
                     }
                 }
