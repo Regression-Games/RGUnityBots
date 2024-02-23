@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #/ Usage: scripts/fmt [-u|--unity-path <path>] [--check] [--docker]
 #/ Reformats the code using 'dotnet-format'.
 #/

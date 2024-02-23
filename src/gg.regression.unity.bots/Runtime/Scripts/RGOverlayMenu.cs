@@ -31,7 +31,7 @@ namespace RegressionGames
 
         private static List<RGBotInstance> _activeBots = new();
 
-        private int    lastCount = -1;
+        private int lastCount = -1;
 
         private static RGOverlayMenu _this = null;
 

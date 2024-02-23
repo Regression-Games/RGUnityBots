@@ -3,6 +3,12 @@
 artifacts/
 .DS_Store
 *.swp
+
+[Oo]bj
+[Oo]bj.meta
+[Tt]emp
+[Tt]emp.meta
+
 code_formatter/*
 
 !code_formatter/CodeFormatter_FakeAssembly.csproj

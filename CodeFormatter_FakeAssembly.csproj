@@ -41,9 +41,8 @@
     <ImplicitlyExpandDesignTimeFacades>false</ImplicitlyExpandDesignTimeFacades>
   </PropertyGroup>
   <ItemGroup>
-     <Folder Include="Runtime" />
-     <Folder Include="Editor" />
-     <Compile Include="..\src\gg.regression.unity.bots\**\*.cs" />
+     <!-- This assumes it will be run in the root of the repository -->
+     <Compile Include="src\**\*.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
