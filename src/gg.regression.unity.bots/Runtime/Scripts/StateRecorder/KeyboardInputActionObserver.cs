@@ -7,7 +7,7 @@ using RegressionGames;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]

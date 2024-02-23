@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class TextJsonConverter : Newtonsoft.Json.JsonConverter
     {

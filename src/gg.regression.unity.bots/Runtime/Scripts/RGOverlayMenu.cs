@@ -6,12 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using RegressionGames.RGBotLocalRuntime;
+using RegressionGames.StateRecorder;
 using RegressionGames.Types;
-using StateRecorder;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
-
 
 namespace RegressionGames
 {

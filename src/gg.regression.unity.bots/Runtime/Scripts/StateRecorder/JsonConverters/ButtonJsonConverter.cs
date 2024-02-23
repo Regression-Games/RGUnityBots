@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine.UI;
 
-namespace StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class ButtonJsonConverter : Newtonsoft.Json.JsonConverter
     {

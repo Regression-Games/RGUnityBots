@@ -11,20 +11,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using StateRecorder.JsonConverters;
+using RegressionGames.StateRecorder.JsonConverters;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 
 #if UNITY_EDITOR
-using RegressionGames;
 using UnityEditor;
 using UnityEditor.Media;
 #endif
 
-
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     [JsonConverter(typeof(StringEnumConverter))]
     public enum KeyFrameReason
@@ -106,7 +104,8 @@ namespace StateRecorder
         [Tooltip("Forces image (non video) mode even in the Editor")]
         public bool forceImageMode;
 
-        public string stateRecordingsDirectory = "/Users/zack/unity_videos";
+        [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
+        public string stateRecordingsDirectory = "";
 
         private bool _useImageMode;
 
@@ -146,6 +145,11 @@ namespace StateRecorder
             {
                 Destroy(gameObject);
                 return;
+            }
+
+            if (string.IsNullOrEmpty(stateRecordingsDirectory))
+            {
+                stateRecordingsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/unity_videos";
             }
 
             // keep this thing alive across scenes
