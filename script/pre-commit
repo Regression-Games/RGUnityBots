@@ -1,40 +1,42 @@
-#!/bin/bash
+#!/bin/sh
 #/ Usage: scripts/precommit
 #/ Runs pre-commit checks and auto-reformatting
 
+repo_root="$(git rev-parse --show-toplevel)"
 
-# Get the path to our script and resolve symlinks
-script_file="${BASH_SOURCE[0]}"
-while [ -L "$script_file" ]; do
-    script_file="$(readlink "$script_file")"
-done
-
-source_dir="$( cd "$( dirname $script_file )" >/dev/null 2>&1 && pwd )"
-repo_root="$(dirname "$source_dir")"
 source "$repo_root/script/_utils.sh"
 
+cd $repo_root
+
+set -e
 set -euo pipefail
 
 # echo an error message before exiting
 trap 'echo "\"${last_command}\" command filed with exit code $?."' ERR
 
+echo "PWD: $(pwd)"
+
 STAGED_FILES=`git diff --name-only --cached --diff-filter=d`
-echo "Staged files ${STAGED_FILES}"
+echo "---Staged files---"
+echo "${STAGED_FILES}"
 
 # Build edit string, by replacing newlines with semicolons.
 # --diff-filter=d only filters files that are not deleted, which means we won't have trouble adding them afterwards
 INCLUDE_STRING=`git diff --name-only --cached --diff-filter=d | sed ':a;N;$!ba;s/\n/;/g'`
-echo "Include string: $INCLUDE_STRING"
-#TODO??: We could pass this include string to the format script to limit the files formatted if we want
+#echo "Include string: $INCLUDE_STRING"
 
 # The fmt script will handle checking for the solution files.
-script/fmt
+dotnet format "CodeFormatter_FakeAssembly.csproj" --include "$INCLUDE_STRING"
+
+rm -rf "obj" "Temp" "obj.meta" "Temp.meta"
 
 # Commit any changes made by the fmt script, but only changes to files that already exist in the index.
 #git add -u
 
 # Restage files
-echo "Restaging files: $STAGED_FILES"
+echo "---Restaging files---"
+echo "$STAGED_FILES"
+
 echo ${STAGED_FILES} | xargs -t -l git add
 
 echo "pre-commit hook finished"
