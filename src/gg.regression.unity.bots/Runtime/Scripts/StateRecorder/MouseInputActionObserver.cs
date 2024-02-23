@@ -24,8 +24,7 @@ namespace StateRecorder
         public bool IsButtonHeld => leftMiddleRightForwardBackButton[0] || leftMiddleRightForwardBackButton[1] || leftMiddleRightForwardBackButton[2] || leftMiddleRightForwardBackButton[3] || leftMiddleRightForwardBackButton[4] ||
                                     scrollDownUpLeftRight[0] || scrollDownUpLeftRight[1] || scrollDownUpLeftRight[2] || scrollDownUpLeftRight[3];
 
-        [JsonIgnore]
-        public bool NewButtonPress;
+        public bool newButtonPress;
 
         public bool PositionsEqual(object obj)
         {
@@ -138,7 +137,7 @@ namespace StateRecorder
                             scroll.x < 0,
                             scroll.x > 0
                         },
-                        NewButtonPress = false
+                        newButtonPress = false
                     };
 
                     if (_priorMouseState == null)
@@ -150,7 +149,7 @@ namespace StateRecorder
                     {
                         if (!_priorMouseState.ButtonStatesEqual(newMouseState))
                         {
-                            newMouseState.NewButtonPress = MouseInputActionData.NewButtonPressed(_priorMouseState, newMouseState);
+                            newMouseState.newButtonPress = MouseInputActionData.NewButtonPressed(_priorMouseState, newMouseState);
                             // different mouse buttons are clicked
                             _completedInputActions.Enqueue(newMouseState);
                         }
