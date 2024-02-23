@@ -3,6 +3,9 @@
 artifacts/
 .DS_Store
 *.swp
+code_formatter/*
+
+!code_formatter/CodeFormatter_FakeAssembly.csproj
 
 # Unity specific ignores appear in '.gitignore' files within the Unity projects themselves
 # This is because the default Unity gitignore (https://github.com/github/gitignore/blob/main/Unity.gitignore) only works when at the root of the Unity project

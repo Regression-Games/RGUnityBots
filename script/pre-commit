@@ -2,6 +2,7 @@
 #/ Usage: scripts/precommit
 #/ Runs pre-commit checks and auto-reformatting
 
+
 # Get the path to our script and resolve symlinks
 script_file="${BASH_SOURCE[0]}"
 while [ -L "$script_file" ]; do
@@ -14,8 +15,26 @@ source "$repo_root/script/_utils.sh"
 
 set -euo pipefail
 
+# echo an error message before exiting
+trap 'echo "\"${last_command}\" command filed with exit code $?."' ERR
+
+STAGED_FILES=`git diff --name-only --cached --diff-filter=d`
+echo "Staged files ${STAGED_FILES}"
+
+# Build edit string, by replacing newlines with semicolons.
+# --diff-filter=d only filters files that are not deleted, which means we won't have trouble adding them afterwards
+INCLUDE_STRING=`git diff --name-only --cached --diff-filter=d | sed ':a;N;$!ba;s/\n/;/g'`
+echo "Include string: $INCLUDE_STRING"
+#TODO??: We could pass this include string to the format script to limit the files formatted if we want
+
 # The fmt script will handle checking for the solution files.
 script/fmt
 
 # Commit any changes made by the fmt script, but only changes to files that already exist in the index.
-git add -u
+#git add -u
+
+# Restage files
+echo "Restaging files: $STAGED_FILES"
+echo ${STAGED_FILES} | xargs -t -l git add
+
+echo "pre-commit hook finished"
