@@ -20,7 +20,7 @@ namespace RegressionGames
     {
 
         private readonly string _sessionName = Guid.NewGuid().ToString();
-        
+
         public Image launcherIcon;
         public RGIconPulse launcherPulse;
 
@@ -151,7 +151,7 @@ namespace RegressionGames
             }
 
         }
-        
+
         public void OnOverlayClick()
         {
             RGDebug.LogVerbose("Showing RG Overlay Menu");

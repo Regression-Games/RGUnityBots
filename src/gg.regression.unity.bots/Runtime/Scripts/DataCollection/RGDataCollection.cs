@@ -108,7 +108,7 @@ namespace RegressionGames.DataCollection
          */
         public IEnumerator ProcessScreenshotRequests()
         {
-            
+
             // wait for finality of frame rendering before capturing screen shot
             yield return new WaitForEndOfFrame();
             var done = false;

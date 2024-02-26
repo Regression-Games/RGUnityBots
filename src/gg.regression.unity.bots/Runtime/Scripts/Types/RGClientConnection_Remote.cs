@@ -208,7 +208,7 @@ namespace RegressionGames.Types
                                         {
                                             client.EndConnect(ar);
                                         }
-                                        catch (Exception )
+                                        catch (Exception)
                                         {
                                             // may not have gotten far enough to do this
                                         }

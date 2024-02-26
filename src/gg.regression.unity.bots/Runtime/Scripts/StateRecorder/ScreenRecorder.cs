@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +33,7 @@ namespace StateRecorder
     {
         public double startTime;
     }
-    
+
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class FrameStateData
@@ -97,8 +98,11 @@ namespace StateRecorder
         [Tooltip("Forces image (non video) mode even in the Editor")]
         public bool forceImageMode;
 
+        [Tooltip("The URL of the server to stream the replay data to")]
+        public string serverUrl;
+
         public string stateRecordingsDirectory = "/Users/zack/unity_videos";
-        
+
         private bool _useImageMode;
 
         private float _lastCvFrameTime = -1f;
@@ -106,7 +110,7 @@ namespace StateRecorder
         private int _frameCountSinceLastTick;
 
         private string _currentVideoDirectory;
-        
+
         private CancellationTokenSource _tokenSource;
 
         private static ScreenRecorder _this;
@@ -114,11 +118,13 @@ namespace StateRecorder
         private bool _isRecording;
 
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new ();
-        
+
         private long _videoNumber;
         private long _tickNumber;
 
         private FrameStateData _priorFrame;
+
+        private ClientWebSocket _streamSocket;
 
         public static ScreenRecorder GetInstance()
         {
@@ -236,13 +242,13 @@ namespace StateRecorder
                 // we had a keyboard input that started on this frame
                 return true;
             }
-            
+
             if (currentFrame.inputs.mouse.FirstOrDefault(i => ((MouseInputActionData)i).NewButtonPress) != null)
             {
                 // we had a mouse input that started on this frame
                 return true;
             }
-            
+
             var scenesInPriorFrame = priorFrame.state.Select(s => s.scene).Distinct().ToList();
             var scenesInCurrentFrame = currentFrame.state.Select(s => s.scene).Distinct().ToList();
             if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
@@ -251,7 +257,7 @@ namespace StateRecorder
                 // elements from scenes changed this frame
                 return true;
             }
-            
+
             // visible UI elements changed
             var uiElementsInPriorFrame = priorFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
             var uiElementsInCurrentFrame = currentFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
@@ -261,7 +267,7 @@ namespace StateRecorder
                 // visible UI elements changed this frame
                 return true;
             }
-            
+
             //TODO: Future - What other things should 'automatically' be a key frame.
             //TODO: Can we make it so that developers can add their own definitions for what is a key frame ??? Do we need to ?
 
@@ -376,7 +382,7 @@ namespace StateRecorder
                             var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
 
                             var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                            
+
                             var deviceInputs = new InputData
                             {
                                 keyboard = keyboardInputData,
@@ -392,7 +398,7 @@ namespace StateRecorder
                                 state = statefulObjects,
                                 inputs = deviceInputs
                             };
-                            
+
                             // tell if the new frame is a key frame
                             if (_priorFrame == null || IsKeyFrame(_priorFrame, frameState))
                             {
@@ -449,22 +455,41 @@ namespace StateRecorder
 
 
 
-        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
+        private BlockingCollection<((string VideoDirectory, long TickNumber), (byte[] JsonData, int Width, int Height, GraphicsFormat GraphicsFormat, NativeArray<byte> RawTexture, Action CleanUp))>
             _frameQueue;
 
         private MediaEncoder _encoder;
 
-        void ProcessFrames()
+        async Task ProcessFrames()
         {
+            // If we're supposed to stream to a server, connect the socket.
+            ClientWebSocket streamSocket = null;
+            if (serverUrl is not null)
+            {
+                streamSocket = new ClientWebSocket();
+                await streamSocket.ConnectAsync(new Uri(serverUrl), _tokenSource.Token);
+            }
+
             while (!_frameQueue.IsCompleted && _tokenSource is { IsCancellationRequested: false })
             {
                 try
                 {
                     var tuple = _frameQueue.Take(_tokenSource.Token);
-                    ProcessFrame(tuple.Item1.Item1, tuple.Item1.Item2, tuple.Item2.Item1, tuple.Item2.Item2,
-                        tuple.Item2.Item3, tuple.Item2.Item4, tuple.Item2.Item5);
+                    ProcessFrame(tuple.Item1.VideoDirectory, tuple.Item1.TickNumber, tuple.Item2.JsonData, tuple.Item2.Width,
+                        tuple.Item2.Height, tuple.Item2.GraphicsFormat, tuple.Item2.RawTexture);
+
+                    // If we're supposed to stream to a server, send the frame data.
+                    if (streamSocket is not null)
+                    {
+                        await streamSocket.SendAsync(
+                            tuple.Item2.JsonData,
+                            WebSocketMessageType.Text,
+                            endOfMessage: true,
+                            cancellationToken: _tokenSource.Token);
+                    }
+
                     // invoke the cleanup callback function
-                    tuple.Item2.Item6();
+                    tuple.Item2.CleanUp();
                 }
                 catch (Exception e)
                 {
@@ -473,6 +498,12 @@ namespace StateRecorder
                         RGDebug.LogException(e, "Error Processing Frames");
                     }
                 }
+            }
+
+            if (streamSocket is not null)
+            {
+                // Don't allow the close to be cancelled!
+                await streamSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Recording terminated", default);
             }
         }
 
@@ -486,6 +517,9 @@ namespace StateRecorder
 
                 // write out the image to file
                 string path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
+
+                // TODO: Stream the image to the server?
+
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, imageOutput.ToArray());
                 RecordFrameState(directoryPath, _tickNumber, jsonData);
@@ -556,7 +590,5 @@ namespace StateRecorder
                 args.ErrorContext.Handled = true;
             }
         };
-
     }
 }
-
