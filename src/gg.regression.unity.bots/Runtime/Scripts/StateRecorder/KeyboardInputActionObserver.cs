@@ -53,135 +53,143 @@ namespace RegressionGames.StateRecorder
             _this = this;
         }
 
+        public static readonly IReadOnlyCollection<string> AllKeyboardKeys = new List<string>
+        {
+            //row 1 (top row)
+            "escape",
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "f5",
+            "f6",
+            "f7",
+            "f8",
+            "f9",
+            "f10",
+            "f11",
+            "f12",
+            "printScreen",
+            "scrollLock",
+            "pause",
+
+            // row 2
+            "backquote",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "0",
+            "minus",
+            "equals",
+            "backspace",
+            "insert",
+            "home",
+            "pageUp",
+            "numLock",
+            "numpadDivide",
+            "numpadMultiply",
+            "numpadMinus",
+
+            //row 3
+            "tab",
+            "q",
+            "w",
+            "e",
+            "r",
+            "t",
+            "y",
+            "u",
+            "i",
+            "o",
+            "p",
+            "leftBracket",
+            "rightBracket",
+            "backSlash",
+            "delete",
+            "end",
+            "pageDown",
+            "numpad7",
+            "numpad8",
+            "numpad9",
+            "numpadPlus",
+
+            //row 4
+            "capsLock",
+            "a",
+            "s",
+            "d",
+            "f",
+            "g",
+            "h",
+            "j",
+            "k",
+            "l",
+            "semicolon",
+            "quote",
+            "enter",
+            "numpad4",
+            "numpad5",
+            "numpad6",
+            // big plus button already in row 3
+
+            //row 5
+            "leftShift",
+            "z",
+            "x",
+            "c",
+            "v",
+            "b",
+            "n",
+            "m",
+            "comma",
+            "period",
+            "slash",
+            "rightShift",
+            "upArrow",
+            "numpad1",
+            "numpad2",
+            "numpad3",
+            "numpadEnter",
+
+            // row 6 (bottom row)
+            "leftCtrl",
+            "leftMeta", // windows Logo or
+            "leftAlt",
+            "space",
+            "rightAlt",
+            "rightMeta", // windows Fn or m
+            "contextMenu",
+            "rightCtrl",
+            "leftArrow",
+            "downArrow",
+            "rightArrow",
+            "numpad0",
+            "numpadPeriod",
+            // big enter button already in row 5
+
+            // Keyboard OEM Special keys
+            "OEM1",
+            "OEM2",
+            "OEM3",
+            "OEM4",
+            "OEM5",
+        }.AsReadOnly();
+
         private void Start()
         {
             //define action map
             var inputActionMap = new InputActionMap("RegressionGames");
 
-            //row 1 (top row)
-            CreateKeyboardAction(inputActionMap, "escape");
-            CreateKeyboardAction(inputActionMap, "f1");
-            CreateKeyboardAction(inputActionMap, "f2");
-            CreateKeyboardAction(inputActionMap, "f3");
-            CreateKeyboardAction(inputActionMap, "f4");
-            CreateKeyboardAction(inputActionMap, "f5");
-            CreateKeyboardAction(inputActionMap, "f6");
-            CreateKeyboardAction(inputActionMap, "f7");
-            CreateKeyboardAction(inputActionMap, "f8");
-            CreateKeyboardAction(inputActionMap, "f9");
-            CreateKeyboardAction(inputActionMap, "f10");
-            CreateKeyboardAction(inputActionMap, "f11");
-            CreateKeyboardAction(inputActionMap, "f12");
-            CreateKeyboardAction(inputActionMap, "printScreen");
-            CreateKeyboardAction(inputActionMap, "scrollLock");
-            CreateKeyboardAction(inputActionMap, "pause");
-
-            // row 2
-            CreateKeyboardAction(inputActionMap, "backquote");
-            CreateKeyboardAction(inputActionMap, "1");
-            CreateKeyboardAction(inputActionMap, "2");
-            CreateKeyboardAction(inputActionMap, "3");
-            CreateKeyboardAction(inputActionMap, "4");
-            CreateKeyboardAction(inputActionMap, "5");
-            CreateKeyboardAction(inputActionMap, "6");
-            CreateKeyboardAction(inputActionMap, "7");
-            CreateKeyboardAction(inputActionMap, "8");
-            CreateKeyboardAction(inputActionMap, "9");
-            CreateKeyboardAction(inputActionMap, "0");
-            CreateKeyboardAction(inputActionMap, "minus");
-            CreateKeyboardAction(inputActionMap, "equals");
-            CreateKeyboardAction(inputActionMap, "backspace");
-            CreateKeyboardAction(inputActionMap, "insert");
-            CreateKeyboardAction(inputActionMap, "home");
-            CreateKeyboardAction(inputActionMap, "pageUp");
-            CreateKeyboardAction(inputActionMap, "numLock");
-            CreateKeyboardAction(inputActionMap, "numpadDivide");
-            CreateKeyboardAction(inputActionMap, "numpadMultiply");
-            CreateKeyboardAction(inputActionMap, "numpadMinus");
-
-            //row 3
-            CreateKeyboardAction(inputActionMap, "tab");
-            CreateKeyboardAction(inputActionMap, "q");
-            CreateKeyboardAction(inputActionMap, "w");
-            CreateKeyboardAction(inputActionMap, "e");
-            CreateKeyboardAction(inputActionMap, "r");
-            CreateKeyboardAction(inputActionMap, "t");
-            CreateKeyboardAction(inputActionMap, "y");
-            CreateKeyboardAction(inputActionMap, "u");
-            CreateKeyboardAction(inputActionMap, "i");
-            CreateKeyboardAction(inputActionMap, "o");
-            CreateKeyboardAction(inputActionMap, "p");
-            CreateKeyboardAction(inputActionMap, "leftBracket");
-            CreateKeyboardAction(inputActionMap, "rightBracket");
-            CreateKeyboardAction(inputActionMap, "backSlash");
-            CreateKeyboardAction(inputActionMap, "delete");
-            CreateKeyboardAction(inputActionMap, "end");
-            CreateKeyboardAction(inputActionMap, "pageDown");
-            CreateKeyboardAction(inputActionMap, "numpad7");
-            CreateKeyboardAction(inputActionMap, "numpad8");
-            CreateKeyboardAction(inputActionMap, "numpad9");
-            CreateKeyboardAction(inputActionMap, "numpadPlus");
-
-            //row 4
-            CreateKeyboardAction(inputActionMap, "capsLock");
-            CreateKeyboardAction(inputActionMap, "a");
-            CreateKeyboardAction(inputActionMap, "s");
-            CreateKeyboardAction(inputActionMap, "d");
-            CreateKeyboardAction(inputActionMap, "f");
-            CreateKeyboardAction(inputActionMap, "g");
-            CreateKeyboardAction(inputActionMap, "h");
-            CreateKeyboardAction(inputActionMap, "j");
-            CreateKeyboardAction(inputActionMap, "k");
-            CreateKeyboardAction(inputActionMap, "l");
-            CreateKeyboardAction(inputActionMap, "semicolon");
-            CreateKeyboardAction(inputActionMap, "quote");
-            CreateKeyboardAction(inputActionMap, "enter");
-            CreateKeyboardAction(inputActionMap, "numpad4");
-            CreateKeyboardAction(inputActionMap, "numpad5");
-            CreateKeyboardAction(inputActionMap, "numpad6");
-            // big plus button already in row 3 
-
-            //row 5
-            CreateKeyboardAction(inputActionMap, "leftShift");
-            CreateKeyboardAction(inputActionMap, "z");
-            CreateKeyboardAction(inputActionMap, "x");
-            CreateKeyboardAction(inputActionMap, "c");
-            CreateKeyboardAction(inputActionMap, "v");
-            CreateKeyboardAction(inputActionMap, "b");
-            CreateKeyboardAction(inputActionMap, "n");
-            CreateKeyboardAction(inputActionMap, "m");
-            CreateKeyboardAction(inputActionMap, "comma");
-            CreateKeyboardAction(inputActionMap, "period");
-            CreateKeyboardAction(inputActionMap, "slash");
-            CreateKeyboardAction(inputActionMap, "rightShift");
-            CreateKeyboardAction(inputActionMap, "upArrow");
-            CreateKeyboardAction(inputActionMap, "numpad1");
-            CreateKeyboardAction(inputActionMap, "numpad2");
-            CreateKeyboardAction(inputActionMap, "numpad3");
-            CreateKeyboardAction(inputActionMap, "numpadEnter");
-
-            // row 6 (bottom row)
-            CreateKeyboardAction(inputActionMap, "leftCtrl");
-            CreateKeyboardAction(inputActionMap, "leftMeta"); // windows Logo or mac-command key
-            CreateKeyboardAction(inputActionMap, "leftAlt");
-            CreateKeyboardAction(inputActionMap, "space");
-            CreateKeyboardAction(inputActionMap, "rightAlt");
-            CreateKeyboardAction(inputActionMap, "rightMeta"); // windows Fn or mac-command key
-            CreateKeyboardAction(inputActionMap, "contextMenu");
-            CreateKeyboardAction(inputActionMap, "rightCtrl");
-            CreateKeyboardAction(inputActionMap, "leftArrow");
-            CreateKeyboardAction(inputActionMap, "downArrow");
-            CreateKeyboardAction(inputActionMap, "rightArrow");
-            CreateKeyboardAction(inputActionMap, "numpad0");
-            CreateKeyboardAction(inputActionMap, "numpadPeriod");
-            // big enter button already in row 5
-
-            // Keyboard OEM Special keys
-            CreateKeyboardAction(inputActionMap, "OEM1");
-            CreateKeyboardAction(inputActionMap, "OEM2");
-            CreateKeyboardAction(inputActionMap, "OEM3");
-            CreateKeyboardAction(inputActionMap, "OEM4");
-            CreateKeyboardAction(inputActionMap, "OEM5");
+            foreach (var keyboardKey in AllKeyboardKeys)
+            {
+                CreateKeyboardAction(inputActionMap, keyboardKey);
+            }
 
             // setup control scheme
             var controlScheme = new InputControlScheme("RegressionKeyboardListener", new[]
