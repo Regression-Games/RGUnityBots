@@ -1,12 +1,15 @@
+using System;
+
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+
 using System.Linq;
 using System.Threading;
 using RegressionGames.RGBotLocalRuntime;
+using RegressionGames.StateRecorder;
 using RegressionGames.Types;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -14,12 +17,17 @@ namespace RegressionGames
     public class RGOverlayMenu : MonoBehaviour
     {
 
-        public Image launcherIcon;
+        private readonly string _sessionName = Guid.NewGuid().ToString();
+
         public RGIconPulse launcherPulse;
 
-        private RGServiceManager rgServiceManager;
+        public RGIconPulse recordingPulse;
 
-        private bool? lastState = null;
+        public GameObject recordingToolbar;
+
+        private RGServiceManager _rgServiceManager;
+
+        private bool? _lastState = null;
 
         public GameObject selectionPanel;
 
@@ -31,9 +39,13 @@ namespace RegressionGames
 
         private static List<RGBotInstance> _activeBots = new();
 
-        private int lastCount = -1;
+        private int _lastCount = -1;
 
         private static RGOverlayMenu _this = null;
+
+        private bool _closeOverlayOnBotStart = true;
+
+        private bool _cvRecording = false;
 
         public static RGOverlayMenu GetInstance()
         {
@@ -49,9 +61,19 @@ namespace RegressionGames
                 return;
             }
 
-            rgServiceManager = GetComponent<RGServiceManager>();
+            _rgServiceManager = GetComponent<RGServiceManager>();
             _this = this;
             DontDestroyOnLoad(_this.gameObject);
+
+            var newOverlayFeature = RGSettings.GetOrCreateSettings().GetFeatureStateRecordingAndReplay();
+            if (!newOverlayFeature)
+            {
+                if (recordingToolbar != null)
+                {
+                    // disable the toolbar
+                    recordingToolbar.SetActive(false);
+                }
+            }
 
             UpdateBots();
 
@@ -64,11 +86,11 @@ namespace RegressionGames
 
         public void LateUpdate()
         {
-            bool state = false;
+            var state = false;
 #if UNITY_EDITOR
             state = RGSettings.GetOrCreateSettings().GetEnableOverlay();
 #endif
-            if (lastState != state)
+            if (_lastState != state)
             {
                 if (state)
                 {
@@ -78,8 +100,7 @@ namespace RegressionGames
                 {
                     this.transform.GetChild(0).gameObject.SetActive(false);
                 }
-
-                lastState = state;
+                _lastState = state;
             }
 
             if (botListingRoot.transform.childCount != _activeBots.Count)
@@ -90,42 +111,52 @@ namespace RegressionGames
                     DestroyImmediate(botListingRoot.transform.GetChild(0).gameObject);
                 }
 
-                for (int i = 0; i < _activeBots.Count; i++)
+                for (var i = 0; i < _activeBots.Count; i++)
                 {
-                    RGBotInstance botEntry = _activeBots[i];
+                    var botEntry = _activeBots[i];
 
-                    RectTransform rt = botEntryPrefab.GetComponent<RectTransform>();
-                    Vector3 position = new Vector3(0f, rt.rect.height * -i, 0f);
+                    var rt = botEntryPrefab.GetComponent<RectTransform>();
+                    var position = new Vector3(0f, rt.rect.height * -i, 0f);
 
-                    GameObject newEntry = Instantiate(
+                    var newEntry = Instantiate(
                         original: botEntryPrefab,
                         parent: botListingRoot.transform
                         );
 
                     newEntry.transform.localPosition = position;
 
-                    ActiveRGBotUIElement uiElement = newEntry.GetComponent<ActiveRGBotUIElement>();
+                    var uiElement = newEntry.GetComponent<ActiveRGBotUIElement>();
                     uiElement.PopulateBotEntry(botEntry);
                 }
             }
 
-            if (_activeBots.Count != lastCount)
+            if (_activeBots.Count != _lastCount)
             {
                 if (_activeBots.Count > 0)
                 {
                     //set the overlay blinky thing to green
-                    launcherIcon.color = new Color(Color.green.r, Color.green.g, Color.green.b, launcherIcon.color.a);
-                    launcherPulse.Fast();
+                    launcherPulse.SetColor((Color.green + Color.white) / 2);
+                    launcherPulse.StopAtMidAlpha();
                 }
                 else
                 {
-                    //set the overlay blinky thing to white
-                    launcherIcon.color = new Color(Color.white.r, Color.white.g, Color.white.b, launcherIcon.color.a);
+                    //set the overlay blinky thing back to default
+                    launcherPulse.SetColor();
                     launcherPulse.Normal();
                 }
             }
 
-            lastCount = _activeBots.Count;
+            _lastCount = _activeBots.Count;
+            if (_cvRecording)
+            {
+                recordingPulse.Fast();
+                ScreenRecorder.GetInstance()?.StartRecording();
+            }
+            else
+            {
+                recordingPulse.Stop();
+                ScreenRecorder.GetInstance()?.StopRecording();
+            }
 
         }
 
@@ -145,11 +176,26 @@ namespace RegressionGames
             selectionPanel.SetActive(false);
         }
 
+        public void SetCloseOnBotStart()
+        {
+            _closeOverlayOnBotStart = !_closeOverlayOnBotStart;
+        }
+
+        public void SetCvRecording()
+        {
+            if (!_cvRecording)
+            {
+                // close this before we switch the flag
+                OnOverlayClosed();
+            }
+            _cvRecording = !_cvRecording;
+        }
+
         public void AddBot()
         {
             if (nextBotDropdown.options.Count > 0)
             {
-                int value = nextBotDropdown.value;
+                var value = nextBotDropdown.value;
                 if (value >= 0)
                 {
                     if (long.TryParse(nextBotDropdown.options[value].text.Split(':')[1].Trim(), out var botId))
@@ -159,27 +205,39 @@ namespace RegressionGames
                         var isLocal = "Local" == localRemote;
                         if (!isLocal)
                         {
-                            _ = rgServiceManager.QueueInstantBot(
+                            _ = _rgServiceManager.QueueInstantBot(
                                 botId,
                                 botInstance =>
                                 {
                                     // don't update the bots as we'll update on re-open of overlay anyway
                                     //UpdateBots();
                                     // close the overlay so it doesn't hide components the bot needs to click
-                                    OnOverlayClosed();
+                                    if (_closeOverlayOnBotStart)
+                                    {
+                                        OnOverlayClosed();
+                                    }
                                     RGBotServerListener.GetInstance()
                                         ?.AddClientConnectionForBotInstance(botInstance.id,
                                             RGClientConnectionType.REMOTE);
+                                    if (!_closeOverlayOnBotStart)
+                                    {
+                                        UpdateBots();
+                                    }
                                 },
                                 () => { RGDebug.LogWarning("WARNING: Failed to start new Remote bot"); });
                         }
                         else
                         {
                             RGBotRuntimeManager.GetInstance()?.StartBot(botId);
-                            // don't update the bots as we'll update on re-open of overlay anyway
-                            //UpdateBots();
                             // close the overlay so it doesn't hide components the bot needs to click
-                            OnOverlayClosed();
+                            if (_closeOverlayOnBotStart)
+                            {
+                                OnOverlayClosed();
+                            }
+                            else
+                            {
+                                UpdateBots();
+                            }
                         }
                     }
                 }
@@ -201,39 +259,45 @@ namespace RegressionGames
 
         public void UpdateBots()
         {
-            ConcurrentBag<RGBot> botBag = new ConcurrentBag<RGBot>();
-            ConcurrentBag<RGBotInstance> instances = new ConcurrentBag<RGBotInstance>();
+            var botBag = new ConcurrentBag<RGBot>();
+            var instances = new ConcurrentBag<RGBotInstance>();
 
             // update the latest bot list from Local Bots
             var localBotInstances = RGBotRuntimeManager.GetInstance()?.GetActiveBotInstances();
-            foreach (var localBotInstance in localBotInstances)
+            if (localBotInstances != null)
             {
-                instances.Add(localBotInstance);
+                foreach (var localBotInstance in localBotInstances)
+                {
+                    instances.Add(localBotInstance);
+                }
             }
 
             var localBotDefinitions = RGBotAssetsManager.GetInstance()?.GetAvailableBots();
-            foreach (var localBotDefinition in localBotDefinitions)
+            if (localBotDefinitions != null)
             {
-                botBag.Add(localBotDefinition);
+                foreach (var localBotDefinition in localBotDefinitions)
+                {
+                    botBag.Add(localBotDefinition);
+                }
             }
 
             // update the latest bot list from RGService
-            _ = rgServiceManager.GetBotsForCurrentUser(
+            _ = _rgServiceManager.GetBotsForCurrentUser(
                 bots =>
                 {
                     var count = bots.Length;
                     if (bots.Length > 0)
                     {
-                        foreach (RGBot bot in bots)
+                        foreach (var bot in bots)
                         {
                             if (bot is { IsUnityBot: true, IsLocal: false })
                             {
                                 botBag.Add(bot);
-                                _ = rgServiceManager.GetRunningInstancesForBot(
+                                _ = _rgServiceManager.GetRunningInstancesForBot(
                                     bot.id,
                                     botInstances =>
                                     {
-                                        foreach (RGBotInstance bi in botInstances)
+                                        foreach (var bi in botInstances)
                                         {
                                             // may want to further narrow this down to only the bots we started at some point
                                             instances.Add(bi);
@@ -283,7 +347,7 @@ namespace RegressionGames
 
         private void ProcessDropdownOptions(ConcurrentBag<RGBot> botBag)
         {
-            List<string> botStrings = botBag.Distinct().Select(bot => bot.UIString).ToList();
+            var botStrings = botBag.Distinct().Select(bot => bot.UIString).ToList();
             // sort alpha
             botStrings.Sort();
 
@@ -297,7 +361,7 @@ namespace RegressionGames
 
         private void ProcessBotUpdateList(ConcurrentBag<RGBotInstance> instances)
         {
-            List<RGBotInstance> botInstances = instances.Distinct().ToList();
+            var botInstances = instances.Distinct().ToList();
             // sort by createdDate with the oldest at the end
             botInstances.Sort((a, b) => (int)(b.createdDate.ToUnixTimeMilliseconds() - a.createdDate.ToUnixTimeMilliseconds()));
             _activeBots = botInstances;

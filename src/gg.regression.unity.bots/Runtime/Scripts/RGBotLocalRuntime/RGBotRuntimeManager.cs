@@ -104,6 +104,9 @@ namespace RegressionGames.RGBotLocalRuntime
                 _botRunners.TryAdd(botInstance.id, botRunner);
                 botRunner.StartBot();
 
+                // bot started.. update the bots list on the overlay
+                RGOverlayMenu.GetInstance()?.UpdateBots();
+
                 return botInstance.id;
             }
             else

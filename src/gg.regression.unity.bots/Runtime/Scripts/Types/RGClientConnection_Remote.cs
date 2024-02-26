@@ -224,7 +224,7 @@ namespace RegressionGames.Types
 
                             // start a timer for SOCKET_READWRITE_TIMEOUT * 2 ms from now that will cancel the connection attempt if it didn't connect yet
                             var t = new Timer(SOCKET_READWRITE_TIMEOUT * 2);
-                            t.Elapsed += (s, e) =>
+                            t.Elapsed += (_, _) =>
                             {
                                 // if == 1 , we got here before the connection completed
                                 if (Interlocked.Increment(ref connectionComplete) == 1)

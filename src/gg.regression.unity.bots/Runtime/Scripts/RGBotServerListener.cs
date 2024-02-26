@@ -10,7 +10,6 @@ using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -464,8 +463,11 @@ namespace RegressionGames
                 }
             }
 
-            // Take any requested screenshots
-            _dataCollection.ProcessScreenshotRequests();
+            if (_dataCollection != null)
+            {
+                // Take any requested screenshots
+                StartCoroutine(_dataCollection.ProcessScreenshotRequests());
+            }
         }
 
         /**
