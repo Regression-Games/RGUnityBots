@@ -1,11 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using RegressionGames.Types;
 using UnityEngine;
 #if UNITY_EDITOR
-using RegressionGames.RGBotLocalRuntime;
 using UnityEditor;
 #endif
 
@@ -25,8 +21,6 @@ namespace RegressionGames.Editor
         private static string priorUser = null;
         private static string priorPassword = null;
         private static string priorHost = null;
-
-        private static RGBot[] bots = null;
 
         // we use this to only call to redo signin when you haven't typed/updated for 3 seconds
         private static double timeOfLastEdit = 0f;
@@ -60,99 +54,20 @@ namespace RegressionGames.Editor
                     enableOverlay.boolValue =
                         EditorGUILayout.Toggle("Enable Screen Overlay ?", enableOverlay.boolValue);
 
-                    SerializedProperty useSystemSettings = settings.FindProperty("useSystemSettings");
-                    useSystemSettings.boolValue =
-                        EditorGUILayout.Toggle("Use Global Bot Settings ?", useSystemSettings.boolValue);
+                    // ----------
+                    DrawUILine((Color.gray + Color.black) / 2);
+                    EditorGUILayout.LabelField("Experimental Features");
 
-                    EditorGUI.BeginDisabledGroup(useSystemSettings.boolValue != true);
-                    SerializedProperty numBotsProp = settings.FindProperty("numBots");
-                    numBotsProp.intValue = EditorGUILayout.IntSlider("Number Of Bots", numBotsProp.intValue, 0, 7, new GUILayoutOption[] { });
-                    SerializedProperty botsSelected = settings.FindProperty("botsSelected");
+                    SerializedProperty featureStateRecordingAndReplay = settings.FindProperty("feature_StateRecordingAndReplay");
+                    featureStateRecordingAndReplay.boolValue =
+                        EditorGUILayout.Toggle("State Recording & Replay", featureStateRecordingAndReplay.boolValue);
+
                     if ((EditorApplication.timeSinceStartup - timeOfLastEdit) > 3f && token == null && priorPassword == null && priorHost == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4 && hostField.stringValue.Length > 4)
                     {
                         priorPassword = passwordField.stringValue;
                         priorUser = emailField.stringValue;
                         priorHost = hostField.stringValue;
                         await Login(priorUser, priorPassword);
-                    }
-
-                    if (token != null && (bots == null || bots.Length == 0))
-                    {
-                        List<RGBot> listOfBots = new();
-                        // get remote bots
-                        await rgServiceManager.GetBotsForCurrentUser(botList =>
-                        {
-                            foreach (var rgBot in botList)
-                            {
-                                if (rgBot is { IsUnityBot: true, IsLocal: false })
-                                {
-                                    listOfBots.Add(rgBot);
-                                }
-                            }
-                        }, () =>
-                        {
-
-                        });
-                        // get Local bots
-                        RGBotAssetsManager.GetInstance()?.RefreshAvailableBots();
-                        var localBots = RGBotAssetsManager.GetInstance()?.GetAvailableBots();
-                        if (localBots != null)
-                        {
-                            foreach (var localBot in localBots)
-                            {
-                                listOfBots.Add(localBot);
-                            }
-                        }
-                        listOfBots.Sort((a, b) => String.Compare(a.UIString, b.UIString, StringComparison.Ordinal));
-                        bots = listOfBots.ToArray();
-                    }
-
-                    if (bots != null && bots.Length > 0)
-                    {
-                        List<string> botUIStrings = bots.ToList().ConvertAll(v => v.UIString);
-                        int index = 0;
-                        Dictionary<long, int> botIndexMap = new();
-                        List<int> botIndexes = bots.ToList().ConvertAll(bot =>
-                        {
-                            botIndexMap[bot.id] = index;
-                            return index++;
-                        });
-
-                        for (int i = 1; i <= numBotsProp.intValue; i++)
-                        {
-                            try
-                            {
-                                if (botsSelected.arraySize < i)
-                                {
-                                    botsSelected.InsertArrayElementAtIndex(i - 1);
-                                }
-
-                                SerializedProperty botSelected = botsSelected.GetArrayElementAtIndex(i - 1);
-
-                                var priorIndex = 0;
-                                botIndexMap.TryGetValue(botSelected.longValue, out priorIndex);
-                                var indexSelected = EditorGUILayout.IntPopup($"Bot # {i}",
-                                    priorIndex,
-                                botUIStrings.ToArray(), botIndexes.ToArray(),
-                                new GUILayoutOption[] { });
-                                if (indexSelected > bots.Length)
-                                {
-                                    indexSelected = 0;
-                                }
-                                botSelected.longValue = bots[indexSelected].id;
-                            }
-                            catch (Exception)
-                            {
-                                // Solve why on first rendering after get this blows up but still renders fine
-                                // the answer is that OnGUI calls this multiple times per frame :(
-                                //Debug.LogException(ex);
-                            }
-                        }
-                    }
-
-                    if (numBotsProp.intValue != botsSelected.arraySize)
-                    {
-                        botsSelected.arraySize = numBotsProp.intValue;
                     }
 
                     settings.ApplyModifiedProperties();
@@ -187,6 +102,16 @@ namespace RegressionGames.Editor
             return provider;
         }
 
+        public static void DrawUILine(Color color, int thickness = 2, int verticalPadding = 10, int horizontalPadding = 10)
+        {
+            var r = EditorGUILayout.GetControlRect(GUILayout.Height(verticalPadding + thickness));
+            r.height = thickness;
+            r.y += verticalPadding / 2.0f;
+            r.x += horizontalPadding / 2.0f;
+            r.width -= horizontalPadding;
+            EditorGUI.DrawRect(r, color);
+        }
+
         public static async Task<bool> Login(string user, string password)
         {
             priorUser = user;
@@ -198,13 +123,11 @@ namespace RegressionGames.Editor
                 responseToken =>
                 {
                     token = responseToken;
-                    bots = null;
                     tcs.SetResult(true);
                 },
                 f =>
                 {
                     token = null;
-                    bots = null;
                     tcs.SetResult(false);
                 });
 
