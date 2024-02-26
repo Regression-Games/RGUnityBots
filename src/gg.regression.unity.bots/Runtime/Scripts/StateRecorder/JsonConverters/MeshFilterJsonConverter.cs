@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class MeshFilterJsonConverter : Newtonsoft.Json.JsonConverter
     {

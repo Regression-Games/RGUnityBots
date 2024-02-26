@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     public class ReplayDataPlaybackController: MonoBehaviour
     {

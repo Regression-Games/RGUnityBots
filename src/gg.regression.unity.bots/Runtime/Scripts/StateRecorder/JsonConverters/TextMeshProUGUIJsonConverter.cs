@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 
-namespace StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class TextMeshProUGUIJsonConverter : Newtonsoft.Json.JsonConverter
     {

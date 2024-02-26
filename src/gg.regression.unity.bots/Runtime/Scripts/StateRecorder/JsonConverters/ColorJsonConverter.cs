@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.JsonConverters
 {
 
     // NOTE: This class exists as a performance optimization as JsonConverters list model for JsonSerializerSettings scales very very poorly

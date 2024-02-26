@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using Component = UnityEngine.Component;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -84,16 +84,19 @@ namespace StateRecorder
     {
         private static InGameObjectFinder _this;
 
-        [FormerlySerializedAs("CollapseRenderersIntoTopLevelGameObject")]
         [Tooltip(
             "Collapse all renderers into their top level gameObject. If a gameObject hierarchy exists that has colliders/renderers/animators/etc at multiple levels, they will all be represented by a single entry in the state.  This defaults to True as it is normally desired to see each player, car, building, etc as a single entry in the state.  However, it can be useful to set this to false in cases where you want to validate individual render bounds, colliders, rigibodies, etc on individual armatures, weapons, or other components that are children in the hierarchy.")]
+         /*
+-         * Objects will be grouped based on the highest things in the hierarchy that have colliders/renderers/animators/particle-systems/rigibodies/etc.
+-         * If everything in your scene is under a single parent with one of these types (highly unlikely) .. then you're gonna have a bad time OR would need to set this to false and just deal with the granular object tracking.
+-         * The other case that currently doesn't work perfectly as expected OOB is if you have a lot of things parented on an empty gameObject without one of those components. Today those will show up as different entries in the state. That is 'fine', just not exactly what they may want.
+-         * Future: I expect us to add a 'RGStatefulParent' behaviour you can add to a game object to identify it as the 'top' of a game object tree to fix both of these cases when/if your game layout requires it. This behaviour would have no code in it, but would be a marker for the hierarchy search to use as a stopping point when walking up the tree.
+-         */
         public bool collapseRenderersIntoTopLevelGameObject = true;
 
-        [FormerlySerializedAs("IncludeOnlyOnCameraObjects")]
-        [Tooltip("Include only objects at are within the render bounds of the main camera view.")]
+        [Tooltip("Include only objects that are within the render bounds of the main camera view.")]
         public bool includeOnlyOnCameraObjects = true;
 
-        [FormerlySerializedAs("CollectStateFromBehaviours")]
         [Tooltip("(WARNING: Performance Impact) Include field/property values for behaviours.")]
         public bool collectStateFromBehaviours;
 
@@ -343,16 +346,16 @@ namespace StateRecorder
                     foreach (var myRigidbody in myRigidbodies)
                     {
                         rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = myRigidbody.rotation,
-                                velocity = myRigidbody.velocity,
-                                drag = myRigidbody.drag,
-                                angularDrag = myRigidbody.angularDrag,
-                                useGravity = myRigidbody.useGravity,
-                                isKinematic = myRigidbody.isKinematic
-                            }
+                        {
+                            path = GetUniqueTransformPath(myRigidbody.transform),
+                            position = myRigidbody.position,
+                            rotation = myRigidbody.rotation,
+                            velocity = myRigidbody.velocity,
+                            drag = myRigidbody.drag,
+                            angularDrag = myRigidbody.angularDrag,
+                            useGravity = myRigidbody.useGravity,
+                            isKinematic = myRigidbody.isKinematic
+                        }
                         );
                     }
                 }
@@ -362,12 +365,12 @@ namespace StateRecorder
                     foreach (var myRigidbody in myRigidbodies2D)
                     {
                         rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
-                                velocity = myRigidbody.velocity
-                            }
+                        {
+                            path = GetUniqueTransformPath(myRigidbody.transform),
+                            position = myRigidbody.position,
+                            rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
+                            velocity = myRigidbody.velocity
+                        }
                         );
                     }
                 }

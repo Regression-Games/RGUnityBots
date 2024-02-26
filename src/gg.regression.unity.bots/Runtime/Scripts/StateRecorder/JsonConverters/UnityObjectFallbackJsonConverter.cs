@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Newtonsoft.Json;
 
-namespace StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class UnityObjectFallbackJsonConverter : Newtonsoft.Json.JsonConverter
     {

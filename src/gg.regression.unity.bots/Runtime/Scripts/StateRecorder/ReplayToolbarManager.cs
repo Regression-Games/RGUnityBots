@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using RegressionGames;
 using SimpleFileBrowser;
-using StateRecorder;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 
 namespace Unity.Multiplayer.Samples.BossRoom

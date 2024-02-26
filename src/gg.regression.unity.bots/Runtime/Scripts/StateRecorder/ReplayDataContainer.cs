@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     [Serializable]
     public class ReplayKeyFrameEntry
