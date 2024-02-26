@@ -32,7 +32,7 @@ namespace RegressionGames.Editor
         public static void CreateAllAssetFolders(string path)
         {
             path = path.TrimEnd('/');
-//TODO: REG-1424 Cannot depend on Editor only tools for bot runtimes
+            //TODO: REG-1424 Cannot depend on Editor only tools for bot runtimes
 #if UNITY_EDITOR
             if (AssetDatabase.IsValidFolder(path))
             {
