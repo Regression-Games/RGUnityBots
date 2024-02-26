@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -106,6 +107,8 @@ namespace RegressionGames.StateRecorder
 
         [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
         public string stateRecordingsDirectory = "";
+        [Tooltip("The URL of the server to stream the replay data to")]
+        public string serverUrl;
 
         private bool _useImageMode;
 
@@ -127,6 +130,8 @@ namespace RegressionGames.StateRecorder
         private long _tickNumber;
 
         private FrameStateData _priorFrame;
+
+        private ClientWebSocket _streamSocket;
 
         public static ScreenRecorder GetInstance()
         {
@@ -466,8 +471,16 @@ namespace RegressionGames.StateRecorder
 
         private MediaEncoder _encoder;
 
-        private void ProcessFrames()
+        async Task ProcessFrames()
         {
+            // If we're supposed to stream to a server, connect the socket.
+            ClientWebSocket streamSocket = null;
+            if (serverUrl is not null)
+            {
+                streamSocket = new ClientWebSocket();
+                await streamSocket.ConnectAsync(new Uri(serverUrl), _tokenSource.Token);
+            }
+
             while (!_frameQueue.IsCompleted && _tokenSource is { IsCancellationRequested: false })
             {
                 try
@@ -475,6 +488,17 @@ namespace RegressionGames.StateRecorder
                     var tuple = _frameQueue.Take(_tokenSource.Token);
                     ProcessFrame(tuple.Item1.Item1, tuple.Item1.Item2, tuple.Item2.Item1, tuple.Item2.Item2,
                         tuple.Item2.Item3, tuple.Item2.Item4, tuple.Item2.Item5);
+
+                    // If we're supposed to stream to a server, send the frame data.
+                    if (streamSocket is not null)
+                    {
+                        await streamSocket.SendAsync(
+                            tuple.Item2.Item1,
+                            WebSocketMessageType.Text,
+                            endOfMessage: true,
+                            cancellationToken: _tokenSource.Token);
+                    }
+
                     // invoke the cleanup callback function
                     tuple.Item2.Item6();
                 }
@@ -485,6 +509,12 @@ namespace RegressionGames.StateRecorder
                         RGDebug.LogException(e, "Error Processing Frames");
                     }
                 }
+            }
+
+            if (streamSocket is not null)
+            {
+                // Don't allow the close to be cancelled!
+                await streamSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Recording terminated", default);
             }
         }
 
@@ -498,6 +528,9 @@ namespace RegressionGames.StateRecorder
 
                 // write out the image to file
                 var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
+
+                // TODO: Stream the image to the server?
+
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, imageOutput.ToArray());
                 RecordFrameState(directoryPath, _tickNumber, jsonData);
