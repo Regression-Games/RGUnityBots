@@ -305,6 +305,7 @@ namespace RegressionGames.StateRecorder
                         framesSincePreviousTick = _frameCountSinceLastTick,
                         previousTickTime = _lastCvFrameTime,
                         fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+#if UNITY_EDITOR
                         engineStats = new EngineStatsData()
                         {
                             frameTime = UnityStats.frameTime,
@@ -321,6 +322,9 @@ namespace RegressionGames.StateRecorder
                             staticBatches = UnityStats.staticBatches,
                             instancedBatches = UnityStats.instancedBatches
                         }
+#else
+                        engineStats = new EngineStatsData()
+#endif
                     };
 
                     _lastCvFrameTime = time;

@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using RegressionGames.Types;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using Random = System.Random;
 
@@ -61,6 +62,9 @@ namespace RegressionGames.RGBotLocalRuntime
             {
                 // Find the bot entry point script
                 var entryPointPath = $"{botAssetRecord.Path}/BotEntryPoint.cs";
+
+//TODO: REG-1424 Make local bots workable in production runtimes
+#if UNITY_EDITOR
                 var entryPointScript = AssetDatabase.LoadAssetAtPath<MonoScript>(entryPointPath);
                 if (entryPointScript == null)
                 {
@@ -108,6 +112,10 @@ namespace RegressionGames.RGBotLocalRuntime
                 RGOverlayMenu.GetInstance()?.UpdateBots();
 
                 return botInstance.id;
+#else
+                RGDebug.LogError($"TODO: REG-1424.  Local bots aren't supported yet in production builds.");
+                return 0;
+#endif
             }
             else
             {
