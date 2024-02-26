@@ -99,7 +99,7 @@ namespace RegressionGames.StateRecorder
         public bool collapseRenderersIntoTopLevelGameObject = true;
 
         [FormerlySerializedAs("IncludeOnlyOnCameraObjects")]
-        [Tooltip("Include only objects at are within the render bounds of the main camera view.")]
+        [Tooltip("Include only objects that are within the render bounds of the main camera view.")]
         public bool includeOnlyOnCameraObjects = true;
 
         [FormerlySerializedAs("CollectStateFromBehaviours")]
