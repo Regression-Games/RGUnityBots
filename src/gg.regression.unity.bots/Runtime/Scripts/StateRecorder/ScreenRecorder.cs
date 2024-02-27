@@ -163,8 +163,10 @@ namespace RegressionGames.StateRecorder
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
             _tokenSource = null;
+#if UNITY_EDITOR
             _encoder?.Dispose();
             _encoder = null;
+#endif
             KeyboardInputActionObserver.GetInstance()?.StopRecording();
             MouseInputActionObserver.GetInstance()?.StopRecording();
             if (_isRecording)
@@ -303,6 +305,7 @@ namespace RegressionGames.StateRecorder
                         framesSincePreviousTick = _frameCountSinceLastTick,
                         previousTickTime = _lastCvFrameTime,
                         fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+#if UNITY_EDITOR
                         engineStats = new EngineStatsData()
                         {
                             frameTime = UnityStats.frameTime,
@@ -319,6 +322,9 @@ namespace RegressionGames.StateRecorder
                             staticBatches = UnityStats.staticBatches,
                             instancedBatches = UnityStats.instancedBatches
                         }
+#else
+                        engineStats = new EngineStatsData()
+#endif
                     };
 
                     _lastCvFrameTime = time;
@@ -464,7 +470,9 @@ namespace RegressionGames.StateRecorder
         private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
             _frameQueue;
 
+#if UNITY_EDITOR
         private MediaEncoder _encoder;
+#endif
 
         private void ProcessFrames()
         {
