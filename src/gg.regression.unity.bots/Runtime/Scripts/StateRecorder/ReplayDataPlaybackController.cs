@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using StateRecorder;
 using UnityEngine;
@@ -38,12 +39,20 @@ namespace RegressionGames.StateRecorder
         // helps indicate if we made it through the full replay successfully
         private bool? _replaySuccessful;
 
+        private IDisposable _mouseEventHandler;
+
         public string WaitingForKeyFrameConditions { get; private set; }
 
         private void Start()
         {
             GetMouse(true);
             SceneManager.sceneLoaded += OnSceneLoad;
+        }
+
+        private void OnDestroy()
+        {
+            _mouseEventHandler?.Dispose();
+            _mouseEventHandler = null;
         }
 
         void OnSceneLoad(Scene s, LoadSceneMode m)
@@ -304,7 +313,7 @@ namespace RegressionGames.StateRecorder
 
             if (forceListener || created)
             {
-                InputSystem.onEvent.ForDevice(mouse).Call(e =>
+                _mouseEventHandler = InputSystem.onEvent.ForDevice(mouse).Call(e =>
                 {
                     var positionControl = mouse.allControls.First(a => a.name == "position") as Vector2Control;
                     var position = positionControl.ReadValueFromEvent(e);
