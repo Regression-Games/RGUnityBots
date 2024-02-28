@@ -147,15 +147,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             if (_replayDataController.WaitingForKeyFrameConditions != null)
             {
                 warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(_replayDataController.WaitingForKeyFrameConditions);
-                // don't show a warning when we're just waiting for timing
-                if (_replayDataController.WaitingForKeyFrameConditions.StartsWith("Time until next"))
-                {
-                    warningIcon.SetActive(false);
-                }
-                else
-                {
-                    warningIcon.SetActive(true);
-                }
+                warningIcon.SetActive(true);
             }
             else
             {

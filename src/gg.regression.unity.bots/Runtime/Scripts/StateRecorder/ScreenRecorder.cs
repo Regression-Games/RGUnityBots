@@ -328,7 +328,7 @@ namespace RegressionGames.StateRecorder
                                 tickNumber = _tickNumber,
                                 time =  Time.unscaledTime,
                                 timeScale =  Time.timeScale,
-                                screenSize = new[] { screenWidth, screenHeight },
+                                screenSize = new Vector2Int() { x= screenWidth, y=screenHeight },
                                 performance = performanceMetrics,
                                 state = statefulObjects,
                                 inputs = deviceInputs
@@ -340,6 +340,21 @@ namespace RegressionGames.StateRecorder
                             if (frameState.keyFrame)
                             {
                                 RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',',frameState.keyFrame) + "]");
+                            }
+
+                            if (frameState.keyFrame || _priorFrame?.keyFrame == true)
+                            {
+                                // if there wasn't a mouse event this frame, go get one... otherwise hover over type effects will not trigger
+                                // or go away correctly.. going away is why we also do the frame after
+                                if (mouseInputData?.Count == 0)
+                                {
+                                    mouseInputData = new List<MouseInputActionData>()
+                                    {
+                                        MouseInputActionObserver.GetInstance()?.GetCurrentMouseState()
+                                    };
+                                    // make sure to update the reference in the frame data
+                                    deviceInputs.mouse = mouseInputData;
+                                }
                             }
 
                             _priorFrame = frameState;

@@ -64,7 +64,7 @@ namespace RegressionGames.StateRecorder
         public bool keyFrame;
         public float time;
         public float timeScale;
-        public int[] screenSize;
+        public Vector2Int screenSize;
         public List<ReplayGameObjectState> state;
         public InputData inputs;
     }

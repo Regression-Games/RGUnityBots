@@ -312,6 +312,10 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
+                // make sure the screen space bounds has a non-zero Z size around 0
+                screenSpaceBounds.center.Set(screenSpaceBounds.center.x, screenSpaceBounds.center.y, 0f);
+                screenSpaceBounds.size.Set(screenSpaceBounds.size.x, screenSpaceBounds.size.y, 0.1f);
+
                 return new RecordedGameObjectState
                 {
                     id = statefulGameObject.transform.GetInstanceID(),
@@ -380,6 +384,10 @@ namespace RegressionGames.StateRecorder
                             screenSpaceBounds.Encapsulate(screenSpaceCorners[0]);
                             screenSpaceBounds.Encapsulate(screenSpaceCorners[2]);
                         }
+
+                        // make sure the screen space bounds has a non-zero Z size around 0
+                        screenSpaceBounds.center.Set(screenSpaceBounds.center.x, screenSpaceBounds.center.y, 0f);
+                        screenSpaceBounds.size.Set(screenSpaceBounds.size.x, screenSpaceBounds.size.y, 0.1f);
 
                         var gameObjectPath = GetUniqueTransformPath(statefulUIObject.transform);
                         var behaviours = statefulUIObject.GetComponents<Behaviour>()

@@ -115,23 +115,9 @@ namespace RegressionGames.StateRecorder
         {
             if (_recording)
             {
-                var mouse = Mouse.current;
-                if (mouse != null)
+                var newMouseState = GetCurrentMouseState();
+                if (newMouseState != null)
                 {
-                    var position = mouse.position.ReadValue();
-                    var newMouseState = new MouseInputActionData()
-                    {
-                        startTime =  Time.unscaledTimeAsDouble,
-                        position = new Vector2Int((int)position.x, (int)position.y),
-                        leftButton = mouse.leftButton.isPressed,
-                        middleButton = mouse.middleButton.isPressed,
-                        rightButton = mouse.rightButton.isPressed,
-                        forwardButton = mouse.forwardButton.isPressed,
-                        backButton = mouse.backButton.isPressed,
-                        scroll = mouse.scroll.ReadValue(),
-                        newButtonPress = false
-                    };
-
                     if (_priorMouseState == null)
                     {
                         // our first mouse state observation
@@ -156,6 +142,30 @@ namespace RegressionGames.StateRecorder
                     _priorMouseState = newMouseState;
                 }
             }
+        }
+
+        public MouseInputActionData GetCurrentMouseState()
+        {
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                var position = mouse.position.ReadValue();
+                var newMouseState = new MouseInputActionData()
+                {
+                    startTime = Time.unscaledTimeAsDouble,
+                    position = new Vector2Int((int)position.x, (int)position.y),
+                    leftButton = mouse.leftButton.isPressed,
+                    middleButton = mouse.middleButton.isPressed,
+                    rightButton = mouse.rightButton.isPressed,
+                    forwardButton = mouse.forwardButton.isPressed,
+                    backButton = mouse.backButton.isPressed,
+                    scroll = mouse.scroll.ReadValue(),
+                    newButtonPress = false
+                };
+                return newMouseState;
+            }
+
+            return null;
         }
 
         private readonly ConcurrentQueue<MouseInputActionData> _completedInputActions = new();

@@ -39,8 +39,8 @@ namespace RegressionGames.StateRecorder
     [Serializable]
     public class ReplayMouseInputEntry :ReplayInputEntry
     {
-        // non-fractional pixel accuracy
-        public Vector2 position;
+        public Vector2Int screenSize;
+        public Vector2Int position;
 
         //main 5 buttons
         public bool leftButton;
@@ -53,6 +53,13 @@ namespace RegressionGames.StateRecorder
         public Vector2 scroll;
         public string[] clickedObjectPaths;
         public bool IsDone;
+
+        // gives the position relative to the current screen size
+        public Vector2 NormalizedPosition => new()
+            {
+                x = (int)(position.x * (Screen.width / (float)screenSize.x)),
+                y = (int)(position.y * (Screen.height / (float)screenSize.y))
+            };
     }
 
     [Serializable]
@@ -229,12 +236,19 @@ namespace RegressionGames.StateRecorder
                             clickedOnObjectPaths = FindObjectPathsAtPosition(mouseInputData.position, frameData.state);
                             foreach (var clickedOnObject in clickedOnObjectPaths)
                             {
+                                if (clickedOnObject.StartsWith("RGOverlay"))
+                                {
+                                    // this was a click on RG.. ignore it in the replay
+                                    specificGameObjectPaths.Clear();
+                                    break;
+                                }
                                 specificGameObjectPaths.Add(clickedOnObject);
                             }
                         }
 
                         priorMouseInput = new ReplayMouseInputEntry()
                         {
+                            screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
                             clickedObjectPaths = clickedOnObjectPaths != null ? clickedOnObjectPaths.ToArray() : Array.Empty<string>(),
                             position = mouseInputData.position,
@@ -266,7 +280,8 @@ namespace RegressionGames.StateRecorder
 
         private List<string> FindObjectPathsAtPosition(Vector2 position, IEnumerable<ReplayGameObjectState> state)
         {
-            return state.Where(a => a.screenSpaceBounds.Contains(position)).Select(a => a.path).ToList();
+            // make sure screen space position Z is around 0
+            return state.Where(a => a.screenSpaceBounds.Contains(new Vector3(position.x, position.y, 0))).Select(a => a.path).ToList();
         }
     }
 }
