@@ -21,19 +21,25 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
                 writer.WritePropertyName("center");
 
-                writer.WriteStartArray();
+                writer.WriteStartObject();
+                writer.WritePropertyName("x");
                 writer.WriteValue(center.x);
+                writer.WritePropertyName("y");
                 writer.WriteValue(center.y);
+                writer.WritePropertyName("z");
                 writer.WriteValue(center.z);
-                writer.WriteEndArray();
+                writer.WriteEndObject();
 
                 writer.WritePropertyName("extents");
 
-                writer.WriteStartArray();
+                writer.WriteStartObject();
+                writer.WritePropertyName("x");
                 writer.WriteValue(extents.x);
+                writer.WritePropertyName("y");
                 writer.WriteValue(extents.y);
+                writer.WritePropertyName("z");
                 writer.WriteValue(extents.z);
-                writer.WriteEndArray();
+                writer.WriteEndObject();
 
                 writer.WriteEndObject();
             }

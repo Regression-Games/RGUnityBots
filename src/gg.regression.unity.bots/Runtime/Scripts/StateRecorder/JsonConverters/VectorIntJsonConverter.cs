@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class VectorJsonConverter : Newtonsoft.Json.JsonConverter
+    public class VectorIntJsonConverter : Newtonsoft.Json.JsonConverter
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                if (value is Vector2 val)
+                if (value is Vector2Int val)
                 {
                     writer.WriteStartObject();
                     writer.WritePropertyName("x");
@@ -25,7 +25,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 }
                 else
                 {
-                    var valZ = (Vector3)value;
+                    var valZ = (Vector3Int)value;
                     writer.WriteStartObject();
                     writer.WritePropertyName("x");
                     writer.WriteValue(valZ.x);
@@ -47,7 +47,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(Vector3) || objectType == typeof(Vector2)|| objectType == typeof(Vector3?) || objectType == typeof(Vector2?);
+            return objectType == typeof(Vector3Int) || objectType == typeof(Vector2Int) || objectType == typeof(Vector3Int?) || objectType == typeof(Vector2Int?);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using RegressionGames;
 using SimpleFileBrowser;
 using RegressionGames.StateRecorder;
+using TMPro;
 using UnityEngine;
 
 namespace Unity.Multiplayer.Samples.BossRoom
@@ -14,7 +15,9 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         public GameObject playButton;
         public GameObject stopButton;
-        public GameObject pauseButton;
+
+        public GameObject warningIcon;
+        public GameObject successIcon;
 
         public GameObject recordButton;
         public RGIconPulse recordingPulse;
@@ -28,7 +31,6 @@ namespace Unity.Multiplayer.Samples.BossRoom
             _replayDataController = GetComponent<ReplayDataPlaybackController>();
         }
 
-
         // Start is called before the first frame update
         void Start()
         {
@@ -40,7 +42,9 @@ namespace Unity.Multiplayer.Samples.BossRoom
             chooseReplayButton.SetActive(true);
             recordButton.SetActive(true);
 
-            pauseButton.SetActive(false);
+            warningIcon.SetActive(false);
+            successIcon.SetActive(false);
+
             playButton.SetActive(false);
             stopButton.SetActive(false);
         }
@@ -84,9 +88,8 @@ namespace Unity.Multiplayer.Samples.BossRoom
                 // setup the new replay data
                 _replayDataController.SetDataContainer(new ReplayDataContainer(filePath));
 
+                SetDefaultButtonStates();
                 // set button states
-                chooseReplayButton.SetActive(false);
-                pauseButton.SetActive(false);
                 playButton.SetActive(true);
                 stopButton.SetActive(true);
                 recordButton.SetActive(false);
@@ -100,32 +103,16 @@ namespace Unity.Multiplayer.Samples.BossRoom
         public void PlayReplay()
         {
             chooseReplayButton.SetActive(false);
-            pauseButton.SetActive(true);
             playButton.SetActive(false);
             stopButton.SetActive(true);
             recordButton.SetActive(false);
 
-            //TODO: Play the replay
             _replayDataController.Play();
-        }
-
-        public void PauseReplay()
-        {
-            chooseReplayButton.SetActive(false);
-            pauseButton.SetActive(false);
-            playButton.SetActive(true);
-            stopButton.SetActive(true);
-            recordButton.SetActive(false);
-
-            //TODO: Pause the replay
-            _replayDataController.Pause();
         }
 
         public void StopReplay()
         {
-            //TODO: Stop the replay
-
-            // clear the old replay data
+            // stop and clear the old replay data
             _replayDataController.Stop();
 
             SetDefaultButtonStates();
@@ -141,7 +128,6 @@ namespace Unity.Multiplayer.Samples.BossRoom
             else
             {
                 chooseReplayButton.SetActive(false);
-                pauseButton.SetActive(false);
                 playButton.SetActive(false);
                 stopButton.SetActive(false);
                 recordButton.SetActive(true);
@@ -150,6 +136,32 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         private void LateUpdate()
         {
+            if (_replayDataController.ReplayCompletedSuccessfully() != null)
+            {
+                _replayDataController.Stop();
+                // playback complete
+                SetDefaultButtonStates();
+                successIcon.SetActive(true);
+            }
+
+            if (_replayDataController.WaitingForKeyFrameConditions != null)
+            {
+                warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(_replayDataController.WaitingForKeyFrameConditions);
+                // don't show a warning when we're just waiting for timing
+                if (_replayDataController.WaitingForKeyFrameConditions.StartsWith("Time until next"))
+                {
+                    warningIcon.SetActive(false);
+                }
+                else
+                {
+                    warningIcon.SetActive(true);
+                }
+            }
+            else
+            {
+                warningIcon.SetActive(false);
+            }
+
             if (_recording)
             {
                 recordingPulse.Fast();

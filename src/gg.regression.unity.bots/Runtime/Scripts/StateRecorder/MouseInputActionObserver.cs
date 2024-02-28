@@ -10,19 +10,26 @@ namespace RegressionGames.StateRecorder
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class MouseInputActionData : InputActionData
+    public class MouseInputActionData
     {
-        // non-fractional pixel accuracy
-        public int[] position;
+        public double startTime;
 
-        public bool[] leftMiddleRightForwardBackButton;
+        public Vector2Int position;
+
+        // non-fractional pixel accuracy
+        //main 5 buttons
+        public bool leftButton;
+        public bool middleButton;
+        public bool rightButton;
+        public bool forwardButton;
+        public bool backButton;
 
         // scroll wheel
-        public bool[] scrollDownUpLeftRight;
+        public Vector2 scroll;
 
         [JsonIgnore]
-        public bool IsButtonHeld => leftMiddleRightForwardBackButton[0] || leftMiddleRightForwardBackButton[1] || leftMiddleRightForwardBackButton[2] || leftMiddleRightForwardBackButton[3] || leftMiddleRightForwardBackButton[4] ||
-                                    scrollDownUpLeftRight[0] || scrollDownUpLeftRight[1] || scrollDownUpLeftRight[2] || scrollDownUpLeftRight[3];
+        public bool IsButtonHeld => leftButton || middleButton || rightButton || forwardButton || backButton ||
+                                    scroll.y < -0.1f || scroll.y > 0.1f || scroll.x < -0.1f || scroll.x > 0.1f;
 
         public bool newButtonPress;
 
@@ -30,10 +37,9 @@ namespace RegressionGames.StateRecorder
         {
             if (obj is MouseInputActionData previous)
             {
-                return (previous.position[0]) == (this.position[0])
-                       && (previous.position[1]) == (this.position[1]);
+                return (previous.position.x) == (this.position.x)
+                       && (previous.position.y) == (this.position.y);
             }
-
             return false;
         }
 
@@ -41,15 +47,13 @@ namespace RegressionGames.StateRecorder
         {
             if (obj is MouseInputActionData previous)
             {
-                return previous.leftMiddleRightForwardBackButton[0] == this.leftMiddleRightForwardBackButton[0]
-                       && previous.leftMiddleRightForwardBackButton[1] == this.leftMiddleRightForwardBackButton[1]
-                       && previous.leftMiddleRightForwardBackButton[2] == this.leftMiddleRightForwardBackButton[2]
-                       && previous.leftMiddleRightForwardBackButton[3] == this.leftMiddleRightForwardBackButton[3]
-                       && previous.leftMiddleRightForwardBackButton[4] == this.leftMiddleRightForwardBackButton[4]
-                       && previous.scrollDownUpLeftRight[0] == this.scrollDownUpLeftRight[0]
-                       && previous.scrollDownUpLeftRight[1] == this.scrollDownUpLeftRight[1]
-                       && previous.scrollDownUpLeftRight[2] == this.scrollDownUpLeftRight[2]
-                       && previous.scrollDownUpLeftRight[3] == this.scrollDownUpLeftRight[3];
+                return previous.leftButton == this.leftButton
+                       && previous.middleButton == this.middleButton
+                       && previous.rightButton == this.rightButton
+                       && previous.forwardButton == this.forwardButton
+                       && previous.backButton == this.backButton
+                       && Math.Abs(previous.scroll.y - this.scroll.y) < 0.1f
+                       && Math.Abs(previous.scroll.x - this.scroll.x) < 0.1f;
             }
 
             return false;
@@ -57,15 +61,13 @@ namespace RegressionGames.StateRecorder
 
         public static bool NewButtonPressed(MouseInputActionData previous, MouseInputActionData current)
         {
-            return !previous.leftMiddleRightForwardBackButton[0] && current.leftMiddleRightForwardBackButton[0]
-                   || !previous.leftMiddleRightForwardBackButton[1] && current.leftMiddleRightForwardBackButton[1]
-                   || !previous.leftMiddleRightForwardBackButton[2] && current.leftMiddleRightForwardBackButton[2]
-                   || !previous.leftMiddleRightForwardBackButton[3] && current.leftMiddleRightForwardBackButton[3]
-                   || !previous.leftMiddleRightForwardBackButton[4] && current.leftMiddleRightForwardBackButton[4]
-                   || !previous.scrollDownUpLeftRight[0] && current.scrollDownUpLeftRight[0]
-                   || !previous.scrollDownUpLeftRight[1] && current.scrollDownUpLeftRight[1]
-                   || !previous.scrollDownUpLeftRight[2] && current.scrollDownUpLeftRight[2]
-                   || !previous.scrollDownUpLeftRight[3] && current.scrollDownUpLeftRight[3];
+            return !previous.leftButton && current.leftButton
+                   || !previous.middleButton && current.middleButton
+                   || !previous.rightButton && current.rightButton
+                   || !previous.forwardButton && current.forwardButton
+                   || !previous.backButton && current.backButton
+                   || Math.Abs(previous.scroll.y - current.scroll.y) > 0.1f
+                   || Math.Abs(previous.scroll.x - current.scroll.x) > 0.1f;
         }
     }
 
@@ -116,27 +118,17 @@ namespace RegressionGames.StateRecorder
                 var mouse = Mouse.current;
                 if (mouse != null)
                 {
-                    var scroll = mouse.scroll.ReadValue();
                     var position = mouse.position.ReadValue();
                     var newMouseState = new MouseInputActionData()
                     {
-                        startTime = Time.unscaledTimeAsDouble,
-                        position = new[] { (int)position.x, (int)position.y },
-                        leftMiddleRightForwardBackButton = new[]
-                        {
-                            mouse.leftButton.isPressed,
-                            mouse.middleButton.isPressed,
-                            mouse.rightButton.isPressed,
-                            mouse.forwardButton.isPressed,
-                            mouse.backButton.isPressed
-                        },
-                        scrollDownUpLeftRight = new[]
-                        {
-                            scroll.y < 0,
-                            scroll.y > 0,
-                            scroll.x < 0,
-                            scroll.x > 0
-                        },
+                        startTime =  Time.unscaledTimeAsDouble,
+                        position = new Vector2Int((int)position.x, (int)position.y),
+                        leftButton = mouse.leftButton.isPressed,
+                        middleButton = mouse.middleButton.isPressed,
+                        rightButton = mouse.rightButton.isPressed,
+                        forwardButton = mouse.forwardButton.isPressed,
+                        backButton = mouse.backButton.isPressed,
+                        scroll = mouse.scroll.ReadValue(),
                         newButtonPress = false
                     };
 
@@ -166,11 +158,11 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private readonly ConcurrentQueue<InputActionData> _completedInputActions = new();
+        private readonly ConcurrentQueue<MouseInputActionData> _completedInputActions = new();
 
-        public List<InputActionData> FlushInputDataBuffer()
+        public List<MouseInputActionData> FlushInputDataBuffer()
         {
-            List<InputActionData> result = new();
+            List<MouseInputActionData> result = new();
             while (_completedInputActions.TryDequeue(out var completedAction))
             {
                 result.Add(completedAction);

@@ -8,70 +8,7 @@ using Component = UnityEngine.Component;
 
 namespace RegressionGames.StateRecorder
 {
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RenderableGameObjectState
-    {
-        public int id;
 
-        public string path;
-        public string scene;
-        public string tag;
-        public string layer;
-
-        public Bounds screenSpaceBounds;
-
-        public Vector3 position;
-        public Quaternion rotation;
-
-        public List<RigidbodyState> rigidbodies;
-
-        public List<ColliderState> colliders;
-
-        public List<BehaviourState> behaviours;
-        public Bounds? worldSpaceBounds;
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class BehaviourState
-    {
-        public string name;
-        public string path;
-        public Behaviour state;
-
-        public override string ToString()
-        {
-            return name;
-        }
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class ColliderState
-    {
-        public string path;
-        public Bounds bounds;
-        public bool isTrigger;
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RigidbodyState
-    {
-        public string path;
-
-        public Vector3 position;
-
-        // for 3D this is rotation on Z axis
-        public Quaternion rotation;
-        public Vector3 velocity;
-        public float mass;
-        public float drag;
-        public float angularDrag;
-        public bool useGravity;
-        public bool isKinematic;
-    }
 
     public class TransformStatus
     {
@@ -216,7 +153,7 @@ namespace RegressionGames.StateRecorder
             };
         }
 
-        private RenderableGameObjectState CreateStateForTransform(int screenWidth, int screenHeight, Transform t)
+        private RecordedGameObjectState CreateStateForTransform(int screenWidth, int screenHeight, Transform t)
         {
             var gameObjectPath = GetUniqueTransformPath(t);
 
@@ -375,7 +312,7 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                return new RenderableGameObjectState
+                return new RecordedGameObjectState
                 {
                     id = statefulGameObject.transform.GetInstanceID(),
                     path = gameObjectPath,
@@ -396,9 +333,9 @@ namespace RegressionGames.StateRecorder
         }
 
 
-        public List<RenderableGameObjectState> GetStateForCurrentFrame()
+        public List<RecordedGameObjectState> GetStateForCurrentFrame()
         {
-            var resultList = new List<RenderableGameObjectState>();
+            var resultList = new List<RecordedGameObjectState>();
 
             //find any gameObject with a renderer or canvas renderer (rect transform)
             var statefulUIObjects =
@@ -449,7 +386,7 @@ namespace RegressionGames.StateRecorder
                             .Select(GetStateForBehaviour)
                             .ToList();
 
-                        resultList.Add(new RenderableGameObjectState
+                        resultList.Add(new RecordedGameObjectState
                         {
                             id = statefulUIObject.transform.GetInstanceID(),
                             path = gameObjectPath,

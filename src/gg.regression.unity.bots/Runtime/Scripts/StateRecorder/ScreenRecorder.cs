@@ -24,68 +24,6 @@ using UnityEditor.Media;
 
 namespace RegressionGames.StateRecorder
 {
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public abstract class InputActionData
-    {
-        public double startTime;
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class FrameStateData
-    {
-        public long tickNumber;
-        public bool keyFrame;
-        public float time;
-        public int[] screenSize;
-        public PerformanceMetricData performance;
-        public List<RenderableGameObjectState> state;
-        public InputData inputs;
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class InputData
-    {
-        public List<InputActionData> keyboard;
-        public List<InputActionData> mouse;
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class PerformanceMetricData
-    {
-        public float previousTickTime;
-        public int framesSincePreviousTick;
-        public int fps;
-        public EngineStatsData engineStats;
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class EngineStatsData
-    {
-        public float frameTime;
-        public float renderTime;
-
-        public int triangles;
-        public int vertices;
-
-        public int setPassCalls;
-
-        public int drawCalls;
-        public int dynamicBatchedDrawCalls;
-        public int staticBatchedDrawCalls;
-        public int instancedBatchedDrawCalls;
-
-        public int batches;
-        public int dynamicBatches;
-        public int staticBatches;
-        public int instancedBatches;
-    }
-
     public class ScreenRecorder : MonoBehaviour
     {
         //TODO: ? Move these values to RGSettings ?
@@ -117,7 +55,7 @@ namespace RegressionGames.StateRecorder
         private long _videoNumber;
         private long _tickNumber;
 
-
+        [NonSerialized]
         private FrameStateData _priorFrame;
 
         public static ScreenRecorder GetInstance()
@@ -281,7 +219,7 @@ namespace RegressionGames.StateRecorder
             if (!_frameQueue.IsCompleted)
             {
                 ++_frameCountSinceLastTick;
-                // handle recording
+                // handle recording ... uses unscaled time for real framerate calculations
                 var time = Time.unscaledTime;
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
@@ -388,8 +326,8 @@ namespace RegressionGames.StateRecorder
                             var frameState = new FrameStateData()
                             {
                                 tickNumber = _tickNumber,
-                                // offset time from 0.0 for first frame
-                                time = time,
+                                time =  Time.unscaledTime,
+                                timeScale =  Time.timeScale,
                                 screenSize = new[] { screenWidth, screenHeight },
                                 performance = performanceMetrics,
                                 state = statefulObjects,
@@ -523,6 +461,7 @@ namespace RegressionGames.StateRecorder
             {
                 new ColorJsonConverter(),
                 new BoundsJsonConverter(),
+                new VectorIntJsonConverter(),
                 new VectorJsonConverter(),
                 new QuaternionJsonConverter(),
                 new ImageJsonConverter(),
