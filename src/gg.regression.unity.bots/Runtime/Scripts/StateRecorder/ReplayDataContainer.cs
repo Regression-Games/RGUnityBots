@@ -33,6 +33,7 @@ namespace RegressionGames.StateRecorder
     [Serializable]
     public abstract class ReplayInputEntry
     {
+        public long tickNumber;
         public double startTime;
     }
 
@@ -202,6 +203,7 @@ namespace RegressionGames.StateRecorder
                         {
                             theData = new ReplayKeyboardInputEntry()
                             {
+                                tickNumber = frameData.tickNumber,
                                 startTime = keyboardInputData.startTime - firstFrame.time,
                                 endTime = keyboardInputData.endTime - firstFrame.time,
                                 binding = keyboardInputData.binding
@@ -209,7 +211,7 @@ namespace RegressionGames.StateRecorder
 
                             // we put this in the queue by its encounter position/start time
                             // we track pending ones if endtime not encountered yet
-                            this._keyboardData.Enqueue(theData);
+                            _keyboardData.Enqueue(theData);
 
                             if (theData.endTime == null)
                             {
@@ -248,6 +250,7 @@ namespace RegressionGames.StateRecorder
 
                         priorMouseInput = new ReplayMouseInputEntry()
                         {
+                            tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
                             clickedObjectPaths = clickedOnObjectPaths != null ? clickedOnObjectPaths.ToArray() : Array.Empty<string>(),

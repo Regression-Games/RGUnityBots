@@ -357,56 +357,63 @@ namespace RegressionGames.StateRecorder
             list.Add(action);
         }
 
-        public List<KeyboardInputActionData> FlushInputDataBuffer()
+        public List<KeyboardInputActionData> FlushInputDataBuffer(float upToTime = float.MaxValue)
         {
             // input events use unscaled time
             var currentTime = Time.unscaledTimeAsDouble;
 
             List<KeyboardInputActionData> result = new();
-            while (_completedInputActions.TryDequeue(out var completedAction))
+            while (_completedInputActions.TryPeek(out var completedAction))
             {
-                RGDebug.LogVerbose("Flush - adding completed- " + completedAction.action);
-                AddToResultList(result, completedAction, currentTime);
+                if (completedAction.startTime < upToTime)
+                {
+                    _completedInputActions.TryDequeue(out _);
+                    RGDebug.LogVerbose("Flush - adding completed - " + completedAction.action);
+                    AddToResultList(result, completedAction, currentTime);
+                }
             }
 
             var listOfActions = _activeInputActions.ToList();
             foreach (var activeAction in listOfActions)
             {
-                if (Application.platform == RuntimePlatform.OSXPlayer)
+                if (activeAction.Value.startTime < upToTime)
                 {
-                    if (currentTime - activeAction.Value.lastUpdateTime > keyHeldThresholdSeconds)
+                    if (Application.platform == RuntimePlatform.OSXPlayer)
                     {
-                        // if already sent... it is done; don't send again - compared to ms decimal place
-                        if ((int)((activeAction.Value.lastSentUpdateTime ?? 0) * 1000) >=
-                            (int)(activeAction.Value.lastUpdateTime * 1000))
+                        if (currentTime - activeAction.Value.lastUpdateTime > keyHeldThresholdSeconds)
                         {
-                            RGDebug.LogVerbose("Flush - Already sent update");
-                            _activeInputActions.TryRemove(activeAction.Key, out _);
+                            // if already sent... it is done; don't send again - compared to ms decimal place
+                            if ((int)((activeAction.Value.lastSentUpdateTime ?? 0) * 1000) >=
+                                (int)(activeAction.Value.lastUpdateTime * 1000))
+                            {
+                                RGDebug.LogVerbose("Flush - Already sent update");
+                                _activeInputActions.TryRemove(activeAction.Key, out _);
+                            }
+                            // not pushed for the threshold.. write it out, but also clean it up
+                            else if (_activeInputActions.TryRemove(activeAction.Key, out var oldAction))
+                            {
+                                RGDebug.LogVerbose("Flush - remove old - " + oldAction.action);
+                                oldAction.endTime = oldAction.lastUpdateTime;
+                                AddToResultList(result, oldAction, currentTime);
+                            }
                         }
-                        // not pushed for the threshold.. write it out, but also clean it up
-                        else if (_activeInputActions.TryRemove(activeAction.Key, out var oldAction))
+                        else
                         {
-                            RGDebug.LogVerbose("Flush - remove old - " + oldAction.action);
-                            oldAction.endTime = oldAction.lastUpdateTime;
-                            AddToResultList(result, oldAction, currentTime);
+                            //still pushed
+                            RGDebug.LogVerbose("Flush - still pushed");
+                            AddToResultList(result, activeAction.Value, currentTime);
                         }
                     }
                     else
                     {
+                        // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
                         //still pushed
                         RGDebug.LogVerbose("Flush - still pushed");
+                        // windows doesn't keep sending events, so until cancel.. it's still pressed
+                        activeAction.Value.lastUpdateTime = currentTime;
+                        activeAction.Value.duration = currentTime - activeAction.Value.startTime;
                         AddToResultList(result, activeAction.Value, currentTime);
                     }
-                }
-                else
-                {
-                    // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
-                    //still pushed
-                    RGDebug.LogVerbose("Flush - still pushed");
-                    // windows doesn't keep sending events, so until cancel.. it's still pressed
-                    activeAction.Value.lastUpdateTime = currentTime;
-                    activeAction.Value.duration = currentTime - activeAction.Value.startTime;
-                    AddToResultList(result, activeAction.Value, currentTime);
                 }
             }
 

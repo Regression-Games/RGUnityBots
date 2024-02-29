@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using RegressionGames.StateActionTypes;
 using RegressionGames.StateRecorder.JsonConverters;
 using Unity.Collections;
 using UnityEngine;
@@ -26,19 +27,13 @@ namespace RegressionGames.StateRecorder
 {
     public class ScreenRecorder : MonoBehaviour
     {
-        //TODO: ? Move these values to RGSettings ?
-        [Tooltip("FPS at which to capture frames")]
-        public int recordingFPS = 5;
-
-        [Tooltip("Forces image (non video) mode even in the Editor")]
-        public bool forceImageMode;
+        [Tooltip("Minimum FPS at which to capture frames.  Key frames will potentially be recorded more frequently than this.")]
+        public int recordingMinFPS = 5;
 
         [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
         public string stateRecordingsDirectory = "";
 
-        private bool _useImageMode;
-
-        private float _lastCvFrameTime = -1f;
+        private double _lastCvFrameTime = -1.0;
 
         private int _frameCountSinceLastTick;
 
@@ -65,11 +60,6 @@ namespace RegressionGames.StateRecorder
 
         public void Awake()
         {
-#if UNITY_EDITOR
-            _useImageMode = forceImageMode;
-#else
-        _useImageMode = true;
-#endif
             // only allow 1 of these to be alive
             if (_this != null && _this.gameObject != gameObject)
             {
@@ -120,7 +110,7 @@ namespace RegressionGames.StateRecorder
                 Destroy(text);
             }
 
-            if (_isRecording && recordingFPS > 0)
+            if (_isRecording)
             {
                 StartCoroutine(RecordFrame());
             }
@@ -156,37 +146,21 @@ namespace RegressionGames.StateRecorder
                     Directory.CreateDirectory(_currentVideoDirectory);
                 }
 
-                if (!_useImageMode)
-                {
-                    RGDebug.LogInfo($"Recording replay video to directory: {_currentVideoDirectory}");
-                }
-                else
-                {
-                    // run the frame processor in the background
-                    Task.Run(ProcessFrames, _tokenSource.Token);
-                    RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
-                }
+                // run the frame processor in the background
+                Task.Run(ProcessFrames, _tokenSource.Token);
+                RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
             }
         }
 
-        private bool IsKeyFrame(FrameStateData priorFrame, FrameStateData currentFrame)
+        private bool IsKeyFrame(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState)
         {
-            if (priorFrame != null)
+            if (priorState != null)
             {
-                if (currentFrame.inputs.keyboard.FirstOrDefault(i => i.startTime > currentFrame.performance.previousTickTime) != null)
-                {
-                    // we had a keyboard input that started on this frame
-                    return true;
-                }
 
-                if (currentFrame.inputs.mouse.FirstOrDefault(i => ((MouseInputActionData)i).newButtonPress) != null)
-                {
-                    // we had a mouse input that started on this frame
-                    return true;
-                }
+                // we have to treat
 
-                var scenesInPriorFrame = priorFrame.state.Select(s => s.scene).Distinct().ToList();
-                var scenesInCurrentFrame = currentFrame.state.Select(s => s.scene).Distinct().ToList();
+                var scenesInPriorFrame = priorState.Select(s => s.scene).Distinct().ToList();
+                var scenesInCurrentFrame = currentState.Select(s => s.scene).Distinct().ToList();
                 if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
                     !scenesInPriorFrame.All(scenesInCurrentFrame.Contains))
                 {
@@ -195,8 +169,8 @@ namespace RegressionGames.StateRecorder
                 }
 
                 // visible UI elements changed
-                var uiElementsInPriorFrame = priorFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
-                var uiElementsInCurrentFrame = currentFrame.state.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
+                var uiElementsInPriorFrame = priorState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
+                var uiElementsInCurrentFrame = currentState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
                 if (uiElementsInPriorFrame.Count != uiElementsInCurrentFrame.Count ||
                     !uiElementsInPriorFrame.All(uiElementsInCurrentFrame.Contains))
                 {
@@ -220,10 +194,17 @@ namespace RegressionGames.StateRecorder
             {
                 ++_frameCountSinceLastTick;
                 // handle recording ... uses unscaled time for real framerate calculations
-                var time = Time.unscaledTime;
+                var time = Time.unscaledTimeAsDouble;
+
+                var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
+
+                // tell if the new frame is a key frame or the first frame (always a key frame)
+                var isKeyFrame = (_priorFrame == null) || IsKeyFrame(_priorFrame.state, statefulObjects);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
-                if ((int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / recordingFPS))
+                if (isKeyFrame
+                    || (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS>0?recordingMinFPS:1))
+                    )
                 {
                     var performanceMetrics = new PerformanceMetricData()
                     {
@@ -232,6 +213,7 @@ namespace RegressionGames.StateRecorder
                         fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
                         engineStats = new EngineStatsData()
                         {
+#if UNITY_EDITOR
                             frameTime = UnityStats.frameTime,
                             renderTime = UnityStats.renderTime,
                             triangles = UnityStats.triangles,
@@ -245,6 +227,7 @@ namespace RegressionGames.StateRecorder
                             dynamicBatches = UnityStats.dynamicBatches,
                             staticBatches = UnityStats.staticBatches,
                             instancedBatches = UnityStats.instancedBatches
+#endif
                         }
                     };
 
@@ -261,131 +244,68 @@ namespace RegressionGames.StateRecorder
                         screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
                         screenShot.Apply();
 
-                        if (!_useImageMode)
+                        ++_tickNumber;
+
+                        var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
+                        var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer();
+
+                        // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
+                        // update the frame time to be latest of 'now' or the last device event in it
+                        // otherwise replay gets messed up trying to read the inputs by time
+                        var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => a.startTime);
+                        var mostRecentMouseTime = mouseInputData == null || mouseInputData.Count == 0 ? 0.0 : mouseInputData.Max(a => a.startTime);
+                        var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
+                        var frameTime = Math.Max(time, mostRecentDeviceEventTime);
+
+                        var frameState = new FrameStateData()
                         {
-#if UNITY_EDITOR
-                            if (_encoder == null)
+                            keyFrame = isKeyFrame,
+                            tickNumber = _tickNumber,
+                            time = frameTime,
+                            timeScale =  Time.timeScale,
+                            screenSize = new Vector2Int() { x= screenWidth, y=screenHeight },
+                            performance = performanceMetrics,
+                            state = statefulObjects,
+                            inputs = new InputData()
                             {
-                                try
-                                {
-                                    // encode the frames as video
-                                    var vidAttr = new VideoTrackAttributes
-                                    {
-                                        bitRateMode = VideoBitrateMode.Medium,
-                                        frameRate = new MediaRational(25),
-                                        width = (uint)screenShot.width,
-                                        height = (uint)screenShot.height,
-                                        includeAlpha = false
-                                    };
-
-                                    var audAttr = new AudioTrackAttributes
-                                    {
-                                        sampleRate = new MediaRational(48000),
-                                        channelCount = 2
-                                    };
-
-                                    _encoder = new MediaEncoder($"{_currentVideoDirectory}/gameVideo.mp4", vidAttr,
-                                        audAttr);
-                                    RGDebug.LogDebug(
-                                        $"Created mp4 encoder for file: {_currentVideoDirectory}/gameVideo.mp4");
-                                }
-                                catch (Exception e)
-                                {
-                                    RGDebug.LogException(e);
-                                }
-                            }
-
-                            if (_encoder != null)
-                            {
-                                try
-                                {
-                                    _encoder.AddFrame(screenShot);
-                                }
-                                catch (Exception e)
-                                {
-                                    RGDebug.LogException(e);
-                                }
-                            }
-#endif
-                        }
-                        else
-                        {
-                            ++_tickNumber;
-                            var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
-                            var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-
-                            var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-
-                            var deviceInputs = new InputData
-                            {
-                                //
                                 keyboard = keyboardInputData,
                                 mouse = mouseInputData
-                            };
-
-                            var frameState = new FrameStateData()
-                            {
-                                tickNumber = _tickNumber,
-                                time =  Time.unscaledTime,
-                                timeScale =  Time.timeScale,
-                                screenSize = new Vector2Int() { x= screenWidth, y=screenHeight },
-                                performance = performanceMetrics,
-                                state = statefulObjects,
-                                inputs = deviceInputs
-                            };
-
-                            // tell if the new frame is a key frame or the first frame (always a key frame)
-                            frameState.keyFrame = (_priorFrame == null) || IsKeyFrame(_priorFrame, frameState);
-
-                            if (frameState.keyFrame)
-                            {
-                                RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',',frameState.keyFrame) + "]");
                             }
+                        };
 
-                            if (frameState.keyFrame || _priorFrame?.keyFrame == true)
-                            {
-                                // if there wasn't a mouse event this frame, go get one... otherwise hover over type effects will not trigger
-                                // or go away correctly.. going away is why we also do the frame after
-                                if (mouseInputData?.Count == 0)
-                                {
-                                    mouseInputData = new List<MouseInputActionData>()
-                                    {
-                                        MouseInputActionObserver.GetInstance()?.GetCurrentMouseState()
-                                    };
-                                    // make sure to update the reference in the frame data
-                                    deviceInputs.mouse = mouseInputData;
-                                }
-                            }
-
-                            _priorFrame = frameState;
-
-                            // serialize to json byte[]
-                            var jsonData = Encoding.UTF8.GetBytes(
-                                JsonConvert.SerializeObject(frameState, Formatting.Indented, _serializerSettings)
-                            );
-
-                            var theScreenshot = screenShot;
-
-                            // queue up writing the frame data to disk async
-                            _frameQueue.Add((
-                                (_currentVideoDirectory, _tickNumber),
-                                (
-                                    jsonData,
-                                    screenShot.width,
-                                    screenShot.height,
-                                    screenShot.graphicsFormat,
-                                    screenShot.GetRawTextureData<byte>(),
-                                    () =>
-                                    {
-                                        // MUST happen on main thread
-                                        // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
-                                        _texture2Ds.Enqueue(theScreenshot);
-                                    }
-                                )
-                            ));
-                            // null this out so the queue can clean it up, not this do
-                            screenShot = null;
+                        if (frameState.keyFrame)
+                        {
+                            RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',',frameState.keyFrame) + "]");
                         }
+
+                        _priorFrame = frameState;
+
+                        // serialize to json byte[]
+                        var jsonData = Encoding.UTF8.GetBytes(
+                            JsonConvert.SerializeObject(frameState, Formatting.Indented, _serializerSettings)
+                        );
+
+                        var theScreenshot = screenShot;
+
+                        // queue up writing the frame data to disk async
+                        _frameQueue.Add((
+                            (_currentVideoDirectory, _tickNumber),
+                            (
+                                jsonData,
+                                screenShot.width,
+                                screenShot.height,
+                                screenShot.graphicsFormat,
+                                screenShot.GetRawTextureData<byte>(),
+                                () =>
+                                {
+                                    // MUST happen on main thread
+                                    // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
+                                    _texture2Ds.Enqueue(theScreenshot);
+                                }
+                            )
+                        ));
+                        // null this out so the queue can clean it up, not this do
+                        screenShot = null;
                     }
                     catch (Exception e)
                     {

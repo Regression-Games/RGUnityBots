@@ -79,6 +79,7 @@ namespace RegressionGames.StateRecorder
 
         private bool _recording;
 
+
         public static MouseInputActionObserver GetInstance()
         {
             return _this;
@@ -118,10 +119,13 @@ namespace RegressionGames.StateRecorder
                 var newMouseState = GetCurrentMouseState();
                 if (newMouseState != null)
                 {
-                    if (_priorMouseState == null)
+                    var time = Time.unscaledTime;
+                    if (_priorMouseState == null
+                        || _mouseInputActions.Count == 0)
                     {
                         // our first mouse state observation
-                        _completedInputActions.Enqueue(newMouseState);
+                        // or.. we need at least 1 mouse observation per tick, otherwise hover over effects/etc don't function correctly
+                        _mouseInputActions.Enqueue(newMouseState);
                     }
                     else
                     {
@@ -129,16 +133,15 @@ namespace RegressionGames.StateRecorder
                         {
                             newMouseState.newButtonPress = MouseInputActionData.NewButtonPressed(_priorMouseState, newMouseState);
                             // different mouse buttons are clicked
-                            _completedInputActions.Enqueue(newMouseState);
+                            _mouseInputActions.Enqueue(newMouseState);
                         }
-                        else if (newMouseState.IsButtonHeld && !_priorMouseState.PositionsEqual(newMouseState))
+                        else if (!_priorMouseState.PositionsEqual(newMouseState))
                         {
-                            // mouse buttons are held and the mouse moved (click-drag)
-                            _completedInputActions.Enqueue(newMouseState);
+                            // mouse moved
+                            _mouseInputActions.Enqueue(newMouseState);
                         }
                         // the case where buttons are released is handled by the !ButtonStatesEqual check at the start of this if/else chain
                     }
-
                     _priorMouseState = newMouseState;
                 }
             }
@@ -168,16 +171,19 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private readonly ConcurrentQueue<MouseInputActionData> _completedInputActions = new();
+        private readonly ConcurrentQueue<MouseInputActionData> _mouseInputActions = new();
 
-        public List<MouseInputActionData> FlushInputDataBuffer()
+        public List<MouseInputActionData> FlushInputDataBuffer(float upToTime = float.MaxValue)
         {
             List<MouseInputActionData> result = new();
-            while (_completedInputActions.TryDequeue(out var completedAction))
+            while (_mouseInputActions.TryPeek(out var action))
             {
-                result.Add(completedAction);
+                if (action.startTime < upToTime)
+                {
+                    _mouseInputActions.TryDequeue(out _);
+                    result.Add(action);
+                }
             }
-
             return result;
         }
     }

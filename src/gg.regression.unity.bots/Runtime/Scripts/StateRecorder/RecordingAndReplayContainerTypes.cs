@@ -26,7 +26,7 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class PerformanceMetricData
     {
-        public float previousTickTime;
+        public double previousTickTime;
         public int framesSincePreviousTick;
         public int fps;
         public EngineStatsData engineStats;
@@ -62,7 +62,7 @@ namespace RegressionGames.StateRecorder
     {
         public long tickNumber;
         public bool keyFrame;
-        public float time;
+        public double time;
         public float timeScale;
         public Vector2Int screenSize;
         public List<ReplayGameObjectState> state;
