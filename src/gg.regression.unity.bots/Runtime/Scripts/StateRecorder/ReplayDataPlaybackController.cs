@@ -350,25 +350,44 @@ namespace RegressionGames.StateRecorder
 
             RecordedGameObjectState bestObject = null;
 
-            // find the most precise object clicked on based on paths and sorted by relative distance
-            // to our normalized position
+            // find the most precise object clicked on based on paths
+            // sorted by relative distance to our normalized position
             var possibleObjects = objectStates
                 .Where(a => mouseInput.clickedObjectPaths.Contains(a.path))
+                // sort by nearest
                 .OrderBy(a =>
                 {
                     var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
                     return (theNp - closestPointInA).sqrMagnitude;
                 });
+            // TODO: While we should pick the 'best' object to guarantee we click it,
+            // we should also try to hit as many of the other boxes as possible with our click location
             foreach (var objectToCheck in possibleObjects)
             {
                 var size = objectToCheck.screenSpaceBounds.size.x * objectToCheck.screenSpaceBounds.size.y;
-                // give some threshold variance here for floating point math on sizes
-                // if 2 objects are very similarly sized, we want the one closest, not picking
-                // one based on some floating point rounding error
-                if (size * 1.02f < smallestSize)
+
+                if (bestObject == null
+                    || objectToCheck.worldSpaceBounds == null && bestObject.worldSpaceBounds != null)
                 {
+                    // prefer UI elements when overlaps occur with game objects
                     bestObject = objectToCheck;
                     smallestSize = size;
+                }
+                // prefer UI elements when overlaps occur with game objects
+                else if (bestObject.worldSpaceBounds == null && objectToCheck.worldSpaceBounds != null)
+                {
+                    // do nothing
+                }
+                else
+                {
+                    // give some threshold variance here for floating point math on sizes
+                    // if 2 objects are very similarly sized, we want the one closest, not picking
+                    // one based on some floating point rounding error
+                    if (size * 1.02f < smallestSize)
+                    {
+                        bestObject = objectToCheck;
+                        smallestSize = size;
+                    }
                 }
             }
 
