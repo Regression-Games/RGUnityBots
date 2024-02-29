@@ -3690,6 +3690,7 @@ GameObject:
   - component: {fileID: 5227817124394843185}
   - component: {fileID: 2741758657951281051}
   - component: {fileID: 6396052736670165599}
+  - component: {fileID: 4579448385280047325}
   m_Layer: 5
   m_Name: RGOverlayCanvas
   m_TagString: Untagged
@@ -3859,8 +3860,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f43b8086b73946fcaed5cab7f692ce9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  recordingFPS: 5
-  forceImageMode: 1
+  recordingMinFPS: 5
   stateRecordingsDirectory: /Users/zack/unity_videos
 --- !u!114 &5227817124394843185
 MonoBehaviour:
@@ -3900,6 +3900,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c3bb809bb42a4a3cb5fd77cae025afea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &4579448385280047325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7045523072340300313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f66df9a2989d4781ad0de64fbe91751d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &7045523072349830337
