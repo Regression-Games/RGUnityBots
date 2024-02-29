@@ -393,12 +393,27 @@ namespace RegressionGames.StateRecorder
 
             if (bestObject != null)
             {
-                // make sure our click is on that object
-                if (!bestObject.screenSpaceBounds.Contains(normalizedPosition))
+                var clickBounds = bestObject.screenSpaceBounds;
+
+                // evaluate the bounds of the possible objects and narrow our bounding box for any that intersect these bounds
+                // ReSharper disable once PossibleMultipleEnumeration
+                foreach (var objectToCheck in possibleObjects)
                 {
-                    RGDebug.LogInfo($"({tickNumber}) Adjusting click location to hit object path: " + bestObject.path);
+                    if (clickBounds.Intersects(objectToCheck.screenSpaceBounds))
+                    {
+                        clickBounds.SetMinMax(
+                            Vector3.Max(clickBounds.min, objectToCheck.screenSpaceBounds.min),
+                            Vector3.Min(clickBounds.max, objectToCheck.screenSpaceBounds.max)
+                        );
+                    }
+                }
+
+                // make sure our click is on that object
+                if (!clickBounds.Contains(normalizedPosition))
+                {
+                    RGDebug.LogInfo($"({tickNumber}) Adjusting click location to ensure hit on object path: " + bestObject.path);
                     // use the center of these bounds as our best point to click
-                    normalizedPosition = new Vector2((int)bestObject.screenSpaceBounds.center.x, (int)bestObject.screenSpaceBounds.center.y);
+                    normalizedPosition = new Vector2((int)clickBounds.center.x, (int)clickBounds.center.y);
                 }
             }
 
