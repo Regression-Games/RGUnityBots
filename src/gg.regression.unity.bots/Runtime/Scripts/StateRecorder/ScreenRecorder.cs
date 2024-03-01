@@ -50,6 +50,13 @@ namespace RegressionGames.StateRecorder
         private long _videoNumber;
         private long _tickNumber;
 
+        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
+            _frameQueue;
+
+#if UNITY_EDITOR
+        private MediaEncoder _encoder;
+#endif
+
         [NonSerialized]
         private FrameStateData _priorFrame;
 
@@ -83,8 +90,10 @@ namespace RegressionGames.StateRecorder
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
             _tokenSource = null;
+#if UNITY_EDITOR
             _encoder?.Dispose();
             _encoder = null;
+#endif
             if (_isRecording)
             {
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
@@ -323,12 +332,6 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-
-        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
-            _frameQueue;
-
-        private MediaEncoder _encoder;
-
         private void ProcessFrames()
         {
             while (!_frameQueue.IsCompleted && _tokenSource is { IsCancellationRequested: false })
@@ -385,7 +388,6 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogWarning($"WARNING: Unable to record JSON for frame # {frameNumber} - {e}");
             }
         }
-
 
         private readonly JsonSerializerSettings _serializerSettings = new()
         {
