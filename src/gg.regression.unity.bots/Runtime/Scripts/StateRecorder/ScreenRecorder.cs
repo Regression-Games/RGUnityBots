@@ -85,10 +85,10 @@ namespace RegressionGames.StateRecorder
             _tokenSource = null;
             _encoder?.Dispose();
             _encoder = null;
-            KeyboardInputActionObserver.GetInstance()?.StopRecording();
-            MouseInputActionObserver.GetInstance()?.StopRecording();
             if (_isRecording)
             {
+                KeyboardInputActionObserver.GetInstance()?.StopRecording();
+                MouseInputActionObserver.GetInstance()?.StopRecording();
                 var theVideoDirectory = _currentVideoDirectory;
                 Task.Run(() =>
                 {

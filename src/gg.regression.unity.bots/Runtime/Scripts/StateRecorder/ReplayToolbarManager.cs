@@ -127,12 +127,13 @@ namespace Unity.Multiplayer.Samples.BossRoom
             }
             else
             {
+                SetDefaultButtonStates();
                 chooseReplayButton.SetActive(false);
-                playButton.SetActive(false);
-                stopButton.SetActive(false);
                 recordButton.SetActive(true);
             }
         }
+
+        private string _lastKeyFrameError = null;
 
         private void LateUpdate()
         {
@@ -144,13 +145,22 @@ namespace Unity.Multiplayer.Samples.BossRoom
                 successIcon.SetActive(true);
             }
 
-            if (_replayDataController.WaitingForKeyFrameConditions != null)
+            if (_replayDataController.WaitingForKeyFrameConditions != null && _replayDataController.KeyFrameInputComplete)
             {
+                // check that we've started all the last inputs as we got those up to the next key frame time
+                // if we haven't started all those yet, we shouldn't be super worried about not hitting the key frame .. yet
+                if (_lastKeyFrameError != _replayDataController.WaitingForKeyFrameConditions)
+                {
+                    RGDebug.LogInfo(_replayDataController.WaitingForKeyFrameConditions);
+                    _lastKeyFrameError = _replayDataController.WaitingForKeyFrameConditions;
+                }
+                //TODO: It might be nice if we got enough info here to draw the names and bounding boxes of the missing information
                 warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(_replayDataController.WaitingForKeyFrameConditions);
                 warningIcon.SetActive(true);
             }
             else
             {
+                _lastKeyFrameError = null;
                 warningIcon.SetActive(false);
             }
 

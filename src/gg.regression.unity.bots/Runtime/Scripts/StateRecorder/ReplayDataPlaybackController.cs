@@ -41,6 +41,8 @@ namespace RegressionGames.StateRecorder
 
         public string WaitingForKeyFrameConditions { get; private set; }
 
+        public bool KeyFrameInputComplete { get; private set; }
+
         private void Start()
         {
             GetMouse(true);
@@ -116,7 +118,7 @@ namespace RegressionGames.StateRecorder
             _replaySuccessful = null;
         }
 
-        private double CurrentTimePoint =>  Time.unscaledTime - _lastStartTime + _priorKeyFrameTime??0.0;
+        private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime??0.0;
 
         private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates)
         {
@@ -124,50 +126,43 @@ namespace RegressionGames.StateRecorder
             {
                 if (_nextKeyFrame != null)
                 {
-                    // check that we've started all the last inputs as we got those up to the next key frame time
-                    // if we haven't started all those yet, we shouldn't be checking the next key frame time
-                    if (_keyboardQueue.All(a => a.startEndSentFlags[0]
-                            && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrame.time))
-                        && _mouseQueue.Count == 0
-                        )
+                    KeyFrameInputComplete = (_keyboardQueue.All(a => a.startEndSentFlags[0]
+                                                                     && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrame.time))
+                                             && _mouseQueue.Count == 0
+                        );
+                    WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates);
+
+                    if (WaitingForKeyFrameConditions == null)
                     {
-                        // we've started all the inputs but have we hit the key frame state yet?
-                        WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates);
+                        RGDebug.LogInfo($"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - ConditionsMatched: true");
 
-                        if (WaitingForKeyFrameConditions == null)
+                        _priorKeyFrameTime = _nextKeyFrame?.time;
+
+                        // get the next key frame for future stuff
+                        _nextKeyFrame = _dataContainer.DequeueKeyFrame();
+
+                        // when we update the keyframe, re-sync our time point to avoid drifting off track
+                        _lastStartTime =  Time.unscaledTime;
+
+                        if (_nextKeyFrame != null)
                         {
-                            RGDebug.LogInfo($"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - ConditionsMatched: true");
-
-                            _priorKeyFrameTime = _nextKeyFrame?.time;
-                            _firstWaitForKeyFrame = true;
-
-                            // get the next key frame for future stuff
-                            _nextKeyFrame = _dataContainer.DequeueKeyFrame();
-
-                            // when we update the keyframe, re-sync our time point to avoid drifting off track
-                            _lastStartTime =  Time.unscaledTime;
-
-                            if (_nextKeyFrame != null)
-                            {
-                                // get all the inputs starting before the next key frame time and add them to the queue
-                                // floating point hell.. give them 1ms tolerance to avoid fp comparison issues
-                                _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrame.time+0.001));
-                                _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrame.time+0.001));
-                            }
-                            else
-                            {
-                                WaitingForKeyFrameConditions = null;
-                                // get the rest
-                                _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime());
-                                _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime());
-                            }
+                            // get all the inputs starting before the next key frame time and add them to the queue
+                            // floating point hell.. give them 1ms tolerance to avoid fp comparison issues
+                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrame.time+0.001));
+                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrame.time+0.001));
+                        }
+                        else
+                        {
+                            WaitingForKeyFrameConditions = null;
+                            // get the rest
+                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime());
+                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime());
                         }
                     }
+
                 }
             }
         }
-
-        private bool _firstWaitForKeyFrame = true;
 
         private string CheckKeyFrameState(List<RecordedGameObjectState> objectStates)
         {
@@ -177,7 +172,6 @@ namespace RegressionGames.StateRecorder
                     || _nextKeyFrame.uiElements.Length > 0
                     || _nextKeyFrame.scenes.Length > 0)
                 {
-
                     if (objectStates != null)
                     {
                         // copy these so we can remove from them
@@ -198,22 +192,12 @@ namespace RegressionGames.StateRecorder
                                 {
                                     if (uiElements.Count == 0)
                                     {
-                                        if (_firstWaitForKeyFrame)
-                                        {
-                                            RGDebug.LogInfo($"({_nextKeyFrame.tickNumber}) KeyFrame - " + "Unexpected UIElement:\r\n" + state.path);
-                                        }
-                                        _firstWaitForKeyFrame = false;
-                                        return "Unexpected UIElement:\r\n" + state.path;
+                                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
                                     }
                                     var didRemove = uiElements.Remove(state.path);
                                     if (!didRemove)
                                     {
-                                        if (_firstWaitForKeyFrame)
-                                        {
-                                            RGDebug.LogInfo($"({_nextKeyFrame.tickNumber}) KeyFrame - " + "Too many instances of UIElement:\r\n" + state.path);
-                                        }
-                                        _firstWaitForKeyFrame = false;
-                                        return "Too many instances of UIElement:\r\n" + state.path;
+                                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
                                     }
                                 }
                             }
@@ -221,12 +205,7 @@ namespace RegressionGames.StateRecorder
 
                         if (scenes.Count != 0 || specificObjectPaths.Count != 0 || uiElements.Count != 0)
                         {
-                            var missingConditions = $"Waiting for conditions...\r\nscenes:\r\n{string.Join("\r\n", scenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\nspecificObjectPaths:\r\n{string.Join("\r\n", specificObjectPaths)}";
-                            if (_firstWaitForKeyFrame)
-                            {
-                                RGDebug.LogInfo($"({_nextKeyFrame.tickNumber}) KeyFrame - " + missingConditions);
-                            }
-                            _firstWaitForKeyFrame = false;
+                            var missingConditions = $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Waiting for conditions...\r\nscenes:\r\n{string.Join("\r\n", scenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\nspecificObjectPaths:\r\n{string.Join("\r\n", specificObjectPaths)}";
                             // still missing something from the key frame
                             return missingConditions;
                         }
@@ -492,7 +471,7 @@ namespace RegressionGames.StateRecorder
             {
                 if (_startPlaying)
                 {
-                    _lastStartTime =  Time.unscaledTime;
+                    _lastStartTime = Time.unscaledTime;
                     _startPlaying = false;
                     _isPlaying = true;
                 }
