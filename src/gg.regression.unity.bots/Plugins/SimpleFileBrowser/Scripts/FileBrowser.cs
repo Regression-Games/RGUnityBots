@@ -1048,7 +1048,7 @@ namespace SimpleFileBrowser
 			if( FileBrowserHelpers.ShouldUseSAF )
 			{
 				AddQuickLink( m_skin.DriveIcon, PickFolderQuickLinkText, SAF_PICK_FOLDER_QUICK_LINK_PATH );
-				
+
 				try
 				{
 					FetchPersistedSAFQuickLinks();
@@ -1166,7 +1166,7 @@ namespace SimpleFileBrowser
 						//	{
 						//		driveName = "Drive " + driveIndex++;
 						//	}
-						//}	
+						//}
 
 						string driveName;
 						if( !defaultPathInitialized )
@@ -2385,13 +2385,13 @@ namespace SimpleFileBrowser
                 return false;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
-			if( !FileBrowserHelpers.ShouldUseSAFForPath( path ) )
+            if (!FileBrowserHelpers.ShouldUseSAFForPath(path))
 #endif
             {
 #if !WIN_DIR_CHECK_WITHOUT_TIMEOUT && (UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN)
                 if (!CheckDirectoryExistsWithTimeout(path))
 #else
-				if( !Directory.Exists( path ) )
+                if (!Directory.Exists(path))
 #endif
                     return false;
 
