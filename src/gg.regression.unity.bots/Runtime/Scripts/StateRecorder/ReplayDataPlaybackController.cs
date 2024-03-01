@@ -63,6 +63,8 @@ namespace RegressionGames.StateRecorder
 
         private void SetupEventSystem()
         {
+            //TODO: Really.. we should NOT do this, but for now.. it both input system work side by side for games like boss room
+            // when/if we can make the legacy input system work, we should remove this and respect that system
             var eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
             foreach (var eventSystem in eventSystems)
             {
