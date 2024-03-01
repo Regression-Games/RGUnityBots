@@ -37,7 +37,7 @@ namespace RegressionGames.StateRecorder
 
         private bool _recording;
 
-        public static readonly IReadOnlyDictionary<string, Key> AllKeyboardKeys = new ReadOnlyDictionary<string, Key> (new Dictionary<string, Key>()
+        public static readonly IReadOnlyDictionary<string, Key> AllKeyboardKeys = new ReadOnlyDictionary<string, Key>(new Dictionary<string, Key>()
         {
             //row 1 (top row)
             {"escape", Key.Escape},

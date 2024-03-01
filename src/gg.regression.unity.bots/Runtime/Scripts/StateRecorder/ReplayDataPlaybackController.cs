@@ -13,7 +13,7 @@ using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder
 {
-    public class ReplayDataPlaybackController: MonoBehaviour
+    public class ReplayDataPlaybackController : MonoBehaviour
     {
 
         private ReplayDataContainer _dataContainer;
@@ -31,7 +31,7 @@ namespace RegressionGames.StateRecorder
 
         private ReplayKeyFrameEntry _nextKeyFrame;
 
-        private readonly List<ReplayKeyboardInputEntry> _keyboardQueue = new ();
+        private readonly List<ReplayKeyboardInputEntry> _keyboardQueue = new();
         private readonly List<ReplayMouseInputEntry> _mouseQueue = new();
 
         // helps indicate if we made it through the full replay successfully
@@ -120,11 +120,11 @@ namespace RegressionGames.StateRecorder
             _replaySuccessful = null;
         }
 
-        private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime??0.0;
+        private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
 
         private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates)
         {
-            if (_isPlaying && _dataContainer != null )
+            if (_isPlaying && _dataContainer != null)
             {
                 if (_nextKeyFrame != null)
                 {
@@ -144,14 +144,14 @@ namespace RegressionGames.StateRecorder
                         _nextKeyFrame = _dataContainer.DequeueKeyFrame();
 
                         // when we update the keyframe, re-sync our time point to avoid drifting off track
-                        _lastStartTime =  Time.unscaledTime;
+                        _lastStartTime = Time.unscaledTime;
 
                         if (_nextKeyFrame != null)
                         {
                             // get all the inputs starting before the next key frame time and add them to the queue
                             // floating point hell.. give them 1ms tolerance to avoid fp comparison issues
-                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrame.time+0.001));
-                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrame.time+0.001));
+                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrame.time + 0.001));
+                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrame.time + 0.001));
                         }
                         else
                         {
@@ -278,7 +278,7 @@ namespace RegressionGames.StateRecorder
                 if (inputControl != null)
                 {
                     inputControl.WriteValueIntoEvent(upOrDown == KeyState.Up ? 1f : 0f, eventPtr);
-                    RGDebug.LogInfo( $"({tickNumber}) Sending Key Event: {key} - {upOrDown}");
+                    RGDebug.LogInfo($"({tickNumber}) Sending Key Event: {key} - {upOrDown}");
                     InputSystem.QueueEvent(eventPtr);
                 }
             }
@@ -430,35 +430,35 @@ namespace RegressionGames.StateRecorder
                             {
                                 mouseEventString += $"leftButton  ";
                             }
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.leftButton?1f:0f, eventPtr);
+                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.leftButton ? 1f : 0f, eventPtr);
                             break;
                         case "middleButton":
                             if (mouseInput.middleButton)
                             {
                                 mouseEventString += $"middleButton  ";
                             }
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.middleButton?1f:0f, eventPtr);
+                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.middleButton ? 1f : 0f, eventPtr);
                             break;
                         case "rightButton":
                             if (mouseInput.rightButton)
                             {
                                 mouseEventString += $"rightButton  ";
                             }
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.rightButton?1f:0f, eventPtr);
+                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.rightButton ? 1f : 0f, eventPtr);
                             break;
                         case "forwardButton":
                             if (mouseInput.forwardButton)
                             {
                                 mouseEventString += $"forwardButton  ";
                             }
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.forwardButton?1f:0f, eventPtr);
+                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.forwardButton ? 1f : 0f, eventPtr);
                             break;
                         case "backButton":
                             if (mouseInput.backButton)
                             {
                                 mouseEventString += $"backButton  ";
                             }
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.backButton?1f:0f, eventPtr);
+                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.backButton ? 1f : 0f, eventPtr);
                             break;
                     }
                 }

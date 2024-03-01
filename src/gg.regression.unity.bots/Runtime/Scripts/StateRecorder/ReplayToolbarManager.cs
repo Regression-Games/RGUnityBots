@@ -52,7 +52,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
         public void ChooseReplay()
         {
             //File choose and load the replay
-            StartCoroutine( ShowFileLoadDialog() );
+            StartCoroutine(ShowFileLoadDialog());
         }
 
         private IEnumerator ShowFileLoadDialog()
@@ -77,7 +77,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             }
         }
 
-        void OnFilesSelected( string[] filePaths )
+        void OnFilesSelected(string[] filePaths)
         {
 
             // Get the file path of the first selected file

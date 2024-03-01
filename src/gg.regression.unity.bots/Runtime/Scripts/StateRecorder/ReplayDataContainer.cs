@@ -39,7 +39,7 @@ namespace RegressionGames.StateRecorder
     }
 
     [Serializable]
-    public class ReplayMouseInputEntry :ReplayInputEntry
+    public class ReplayMouseInputEntry : ReplayInputEntry
     {
         public Vector2Int screenSize;
         public Vector2Int position;
@@ -58,21 +58,21 @@ namespace RegressionGames.StateRecorder
 
         // gives the position relative to the current screen size
         public Vector2 NormalizedPosition => new()
-            {
-                x = (int)(position.x * (Screen.width / (float)screenSize.x)),
-                y = (int)(position.y * (Screen.height / (float)screenSize.y))
-            };
+        {
+            x = (int)(position.x * (Screen.width / (float)screenSize.x)),
+            y = (int)(position.y * (Screen.height / (float)screenSize.y))
+        };
     }
 
     [Serializable]
-    public class ReplayKeyboardInputEntry :ReplayInputEntry
+    public class ReplayKeyboardInputEntry : ReplayInputEntry
     {
         public string binding;
-        public Key key => KeyboardInputActionObserver.AllKeyboardKeys[binding.Substring(binding.LastIndexOf('/')+1)];
+        public Key key => KeyboardInputActionObserver.AllKeyboardKeys[binding.Substring(binding.LastIndexOf('/') + 1)];
 
         public double? endTime;
         // used to track if we have sent the start and end events for this entry yet
-        public bool[] startEndSentFlags = new bool[] {false, false};
+        public bool[] startEndSentFlags = new bool[] { false, false };
         // have we finished processing this input
         public bool IsDone => startEndSentFlags[0] && startEndSentFlags[1];
 
@@ -301,12 +301,12 @@ namespace RegressionGames.StateRecorder
             // by having to process the state on every frame and click
 
             // make sure screen space position Z is around 0
-            var currentStateEntries = state.ToDictionary(a=>a.id, a=> a.screenSpaceBounds.Contains(new Vector3(position.x, position.y, 0))?a:null);
+            var currentStateEntries = state.ToDictionary(a => a.id, a => a.screenSpaceBounds.Contains(new Vector3(position.x, position.y, 0)) ? a : null);
             var priorStateEntries = priorState?.Where(a => !currentStateEntries.ContainsKey(a.id) && a.screenSpaceBounds.Contains(new Vector3(position.x, position.y, 0))).ToList();
             if (priorStateEntries != null)
             {
                 priorStateEntries.AddRange(currentStateEntries.Values.Where(a => a != null));
-                return priorStateEntries.Select(a=>a.path).ToList();
+                return priorStateEntries.Select(a => a.path).ToList();
             }
             //else
             return currentStateEntries.Values.Where(a => a != null).Select(a => a.path).ToList();

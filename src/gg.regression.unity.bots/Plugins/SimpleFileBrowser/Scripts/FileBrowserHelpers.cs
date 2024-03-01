@@ -3,34 +3,34 @@ using UnityEngine;
 
 namespace SimpleFileBrowser
 {
-	public struct FileSystemEntry
-	{
-		public readonly string Path;
-		public readonly string Name;
-		public readonly string Extension;
-		public readonly FileAttributes Attributes;
+    public struct FileSystemEntry
+    {
+        public readonly string Path;
+        public readonly string Name;
+        public readonly string Extension;
+        public readonly FileAttributes Attributes;
 
-		public bool IsDirectory { get { return ( Attributes & FileAttributes.Directory ) == FileAttributes.Directory; } }
+        public bool IsDirectory { get { return (Attributes & FileAttributes.Directory) == FileAttributes.Directory; } }
 
-		public FileSystemEntry( string path, string name, string extension, bool isDirectory )
-		{
-			Path = path;
-			Name = name;
-			Extension = extension;
-			Attributes = isDirectory ? FileAttributes.Directory : FileAttributes.Normal;
-		}
+        public FileSystemEntry(string path, string name, string extension, bool isDirectory)
+        {
+            Path = path;
+            Name = name;
+            Extension = extension;
+            Attributes = isDirectory ? FileAttributes.Directory : FileAttributes.Normal;
+        }
 
-		public FileSystemEntry( FileSystemInfo fileInfo, string extension )
-		{
-			Path = fileInfo.FullName;
-			Name = fileInfo.Name;
-			Extension = extension;
-			Attributes = fileInfo.Attributes;
-		}
-	}
+        public FileSystemEntry(FileSystemInfo fileInfo, string extension)
+        {
+            Path = fileInfo.FullName;
+            Name = fileInfo.Name;
+            Extension = extension;
+            Attributes = fileInfo.Attributes;
+        }
+    }
 
-	public static class FileBrowserHelpers
-	{
+    public static class FileBrowserHelpers
+    {
 #if !UNITY_EDITOR && UNITY_ANDROID
 		private static AndroidJavaClass m_ajc = null;
 		public static AndroidJavaClass AJC
@@ -95,17 +95,17 @@ namespace SimpleFileBrowser
 		}
 #endif
 
-		public static bool FileExists( string path )
-		{
+        public static bool FileExists(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<bool>( "SAFEntryExists", Context, path, false );
 #endif
-			return File.Exists( path );
-		}
+            return File.Exists(path);
+        }
 
-		public static bool DirectoryExists( string path )
-		{
+        public static bool DirectoryExists(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<bool>( "SAFEntryExists", Context, path, true );
@@ -122,53 +122,53 @@ namespace SimpleFileBrowser
 				}
 			}
 #endif
-			return Directory.Exists( path );
-		}
+            return Directory.Exists(path);
+        }
 
-		public static bool IsDirectory( string path )
-		{
+        public static bool IsDirectory(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<bool>( "SAFEntryDirectory", Context, path );
 #endif
-			if( Directory.Exists( path ) )
-				return true;
-			if( File.Exists( path ) )
-				return false;
+            if (Directory.Exists(path))
+                return true;
+            if (File.Exists(path))
+                return false;
 
-			string extension = Path.GetExtension( path );
-			return extension == null || extension.Length <= 1; // extension includes '.'
-		}
+            string extension = Path.GetExtension(path);
+            return extension == null || extension.Length <= 1; // extension includes '.'
+        }
 
-		public static bool IsPathDescendantOfAnother( string path, string parentFolderPath )
-		{
+        public static bool IsPathDescendantOfAnother(string path, string parentFolderPath)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<bool>( "IsSAFEntryChildOfAnother", Context, path, parentFolderPath );
 #endif
-			path = Path.GetFullPath( path ).Replace( '\\', '/' );
-			parentFolderPath = Path.GetFullPath( parentFolderPath ).Replace( '\\', '/' );
+            path = Path.GetFullPath(path).Replace('\\', '/');
+            parentFolderPath = Path.GetFullPath(parentFolderPath).Replace('\\', '/');
 
-			if( path == parentFolderPath )
-				return false;
+            if (path == parentFolderPath)
+                return false;
 
-			if( parentFolderPath[parentFolderPath.Length - 1] != '/' )
-				parentFolderPath += "/";
+            if (parentFolderPath[parentFolderPath.Length - 1] != '/')
+                parentFolderPath += "/";
 
-			return path != parentFolderPath && path.StartsWith( parentFolderPath, System.StringComparison.OrdinalIgnoreCase );
-		}
+            return path != parentFolderPath && path.StartsWith(parentFolderPath, System.StringComparison.OrdinalIgnoreCase);
+        }
 
-		public static string GetDirectoryName( string path )
-		{
+        public static string GetDirectoryName(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<string>( "GetParentDirectory", Context, path );
 #endif
-			return Path.GetDirectoryName( path );
-		}
+            return Path.GetDirectoryName(path);
+        }
 
-		public static FileSystemEntry[] GetEntriesInDirectory( string path, bool extractOnlyLastSuffixFromExtensions )
-		{
+        public static FileSystemEntry[] GetEntriesInDirectory(string path, bool extractOnlyLastSuffixFromExtensions)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 			{
@@ -237,79 +237,79 @@ namespace SimpleFileBrowser
 			}
 #endif
 
-			try
-			{
-				string[] files = Directory.GetFiles( path );
-				string[] subDirectories = Directory.GetDirectories( path );
-				FileSystemEntry[] result = new FileSystemEntry[files.Length + subDirectories.Length];
-				int index = 0;
-				for( int i = 0; i < files.Length; i++ )
-				{
-					try
-					{
-						FileInfo fileInfo = new FileInfo( files[i] );
-						result[index] = new FileSystemEntry( fileInfo, FileBrowser.GetExtensionFromFilename( fileInfo.Name, extractOnlyLastSuffixFromExtensions ) );
-						index++;
-					}
-					catch( System.Exception e )
-					{
-						Debug.LogException( e );
-					}
-				}
+            try
+            {
+                string[] files = Directory.GetFiles(path);
+                string[] subDirectories = Directory.GetDirectories(path);
+                FileSystemEntry[] result = new FileSystemEntry[files.Length + subDirectories.Length];
+                int index = 0;
+                for (int i = 0; i < files.Length; i++)
+                {
+                    try
+                    {
+                        FileInfo fileInfo = new FileInfo(files[i]);
+                        result[index] = new FileSystemEntry(fileInfo, FileBrowser.GetExtensionFromFilename(fileInfo.Name, extractOnlyLastSuffixFromExtensions));
+                        index++;
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
+                }
 
-				for( int i = 0; i < subDirectories.Length; i++ )
-				{
-					try
-					{
-						result[index] = new FileSystemEntry( new DirectoryInfo( subDirectories[i] ), string.Empty );
-						index++;
-					}
-					catch( System.Exception e )
-					{
-						Debug.LogException( e );
-					}
-				}
+                for (int i = 0; i < subDirectories.Length; i++)
+                {
+                    try
+                    {
+                        result[index] = new FileSystemEntry(new DirectoryInfo(subDirectories[i]), string.Empty);
+                        index++;
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogException(e);
+                    }
+                }
 
-				if( result.Length != index )
-					System.Array.Resize( ref result, index );
+                if (result.Length != index)
+                    System.Array.Resize(ref result, index);
 
-				return result;
-			}
-			catch( System.UnauthorizedAccessException ) { }
-			catch( System.Exception e )
-			{
-				Debug.LogException( e );
-			}
+                return result;
+            }
+            catch (System.UnauthorizedAccessException) { }
+            catch (System.Exception e)
+            {
+                Debug.LogException(e);
+            }
 
-			return null;
-		}
+            return null;
+        }
 
-		public static string CreateFileInDirectory( string directoryPath, string filename )
-		{
+        public static string CreateFileInDirectory(string directoryPath, string filename)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( directoryPath ) )
 				return AJC.CallStatic<string>( "CreateSAFEntry", Context, directoryPath, false, filename );
 #endif
 
-			string path = Path.Combine( directoryPath, filename );
-			using( File.Create( path ) ) { }
-			return path;
-		}
+            string path = Path.Combine(directoryPath, filename);
+            using (File.Create(path)) { }
+            return path;
+        }
 
-		public static string CreateFolderInDirectory( string directoryPath, string folderName )
-		{
+        public static string CreateFolderInDirectory(string directoryPath, string folderName)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( directoryPath ) )
 				return AJC.CallStatic<string>( "CreateSAFEntry", Context, directoryPath, true, folderName );
 #endif
 
-			string path = Path.Combine( directoryPath, folderName );
-			Directory.CreateDirectory( path );
-			return path;
-		}
+            string path = Path.Combine(directoryPath, folderName);
+            Directory.CreateDirectory(path);
+            return path;
+        }
 
-		public static void WriteBytesToFile( string targetPath, byte[] bytes )
-		{
+        public static void WriteBytesToFile(string targetPath, byte[] bytes)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( targetPath ) )
 			{
@@ -320,11 +320,11 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			File.WriteAllBytes( targetPath, bytes );
-		}
+            File.WriteAllBytes(targetPath, bytes);
+        }
 
-		public static void WriteTextToFile( string targetPath, string text )
-		{
+        public static void WriteTextToFile(string targetPath, string text)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( targetPath ) )
 			{
@@ -335,11 +335,11 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			File.WriteAllText( targetPath, text );
-		}
+            File.WriteAllText(targetPath, text);
+        }
 
-		public static void AppendBytesToFile( string targetPath, byte[] bytes )
-		{
+        public static void AppendBytesToFile(string targetPath, byte[] bytes)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( targetPath ) )
 			{
@@ -350,14 +350,14 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			using( var stream = new FileStream( targetPath, FileMode.Append, FileAccess.Write ) )
-			{
-				stream.Write( bytes, 0, bytes.Length );
-			}
-		}
+            using (var stream = new FileStream(targetPath, FileMode.Append, FileAccess.Write))
+            {
+                stream.Write(bytes, 0, bytes.Length);
+            }
+        }
 
-		public static void AppendTextToFile( string targetPath, string text )
-		{
+        public static void AppendTextToFile(string targetPath, string text)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( targetPath ) )
 			{
@@ -368,11 +368,11 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			File.AppendAllText( targetPath, text );
-		}
+            File.AppendAllText(targetPath, text);
+        }
 
-		private static void AppendFileToFile( string targetPath, string sourceFileToAppend )
-		{
+        private static void AppendFileToFile(string targetPath, string sourceFileToAppend)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( targetPath ) )
 			{
@@ -380,18 +380,18 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			using( Stream input = File.OpenRead( sourceFileToAppend ) )
-			using( Stream output = new FileStream( targetPath, FileMode.Append, FileAccess.Write ) )
-			{
-				byte[] buffer = new byte[4096];
-				int bytesRead;
-				while( ( bytesRead = input.Read( buffer, 0, buffer.Length ) ) > 0 )
-					output.Write( buffer, 0, bytesRead );
-			}
-		}
+            using (Stream input = File.OpenRead(sourceFileToAppend))
+            using (Stream output = new FileStream(targetPath, FileMode.Append, FileAccess.Write))
+            {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
+                    output.Write(buffer, 0, bytesRead);
+            }
+        }
 
-		public static byte[] ReadBytesFromFile( string sourcePath )
-		{
+        public static byte[] ReadBytesFromFile(string sourcePath)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( sourcePath ) )
 			{
@@ -401,11 +401,11 @@ namespace SimpleFileBrowser
 				return result;
 			}
 #endif
-			return File.ReadAllBytes( sourcePath );
-		}
+            return File.ReadAllBytes(sourcePath);
+        }
 
-		public static string ReadTextFromFile( string sourcePath )
-		{
+        public static string ReadTextFromFile(string sourcePath)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( sourcePath ) )
 			{
@@ -415,11 +415,11 @@ namespace SimpleFileBrowser
 				return result;
 			}
 #endif
-			return File.ReadAllText( sourcePath );
-		}
+            return File.ReadAllText(sourcePath);
+        }
 
-		public static void CopyFile( string sourcePath, string destinationPath )
-		{
+        public static void CopyFile(string sourcePath, string destinationPath)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAF ) // No need to use ShouldUseSAFForPath because both SAF paths and raw file paths are handled on the native-side
 			{
@@ -427,11 +427,11 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			File.Copy( sourcePath, destinationPath, true );
-		}
+            File.Copy(sourcePath, destinationPath, true);
+        }
 
-		public static void CopyDirectory( string sourcePath, string destinationPath )
-		{
+        public static void CopyDirectory(string sourcePath, string destinationPath)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAF ) // No need to use ShouldUseSAFForPath because both SAF paths and raw directory paths are handled on the native-side
 			{
@@ -439,24 +439,24 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			CopyDirectoryRecursively( new DirectoryInfo( sourcePath ), destinationPath );
-		}
+            CopyDirectoryRecursively(new DirectoryInfo(sourcePath), destinationPath);
+        }
 
-		private static void CopyDirectoryRecursively( DirectoryInfo sourceDirectory, string destinationPath )
-		{
-			Directory.CreateDirectory( destinationPath );
+        private static void CopyDirectoryRecursively(DirectoryInfo sourceDirectory, string destinationPath)
+        {
+            Directory.CreateDirectory(destinationPath);
 
-			FileInfo[] files = sourceDirectory.GetFiles();
-			for( int i = 0; i < files.Length; i++ )
-				files[i].CopyTo( Path.Combine( destinationPath, files[i].Name ), true );
+            FileInfo[] files = sourceDirectory.GetFiles();
+            for (int i = 0; i < files.Length; i++)
+                files[i].CopyTo(Path.Combine(destinationPath, files[i].Name), true);
 
-			DirectoryInfo[] subDirectories = sourceDirectory.GetDirectories();
-			for( int i = 0; i < subDirectories.Length; i++ )
-				CopyDirectoryRecursively( subDirectories[i], Path.Combine( destinationPath, subDirectories[i].Name ) );
-		}
+            DirectoryInfo[] subDirectories = sourceDirectory.GetDirectories();
+            for (int i = 0; i < subDirectories.Length; i++)
+                CopyDirectoryRecursively(subDirectories[i], Path.Combine(destinationPath, subDirectories[i].Name));
+        }
 
-		public static void MoveFile( string sourcePath, string destinationPath )
-		{
+        public static void MoveFile(string sourcePath, string destinationPath)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAF ) // No need to use ShouldUseSAFForPath because both SAF paths and raw file paths are handled on the native-side
 			{
@@ -464,11 +464,11 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			File.Move( sourcePath, destinationPath );
-		}
+            File.Move(sourcePath, destinationPath);
+        }
 
-		public static void MoveDirectory( string sourcePath, string destinationPath )
-		{
+        public static void MoveDirectory(string sourcePath, string destinationPath)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAF ) // No need to use ShouldUseSAFForPath because both SAF paths and raw directory paths are handled on the native-side
 			{
@@ -476,35 +476,35 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			Directory.Move( sourcePath, destinationPath );
-		}
+            Directory.Move(sourcePath, destinationPath);
+        }
 
-		public static string RenameFile( string path, string newName )
-		{
+        public static string RenameFile(string path, string newName)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<string>( "RenameSAFEntry", Context, path, newName );
 #endif
-			string newPath = Path.Combine( Path.GetDirectoryName( path ), newName );
-			File.Move( path, newPath );
+            string newPath = Path.Combine(Path.GetDirectoryName(path), newName);
+            File.Move(path, newPath);
 
-			return newPath;
-		}
+            return newPath;
+        }
 
-		public static string RenameDirectory( string path, string newName )
-		{
+        public static string RenameDirectory(string path, string newName)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<string>( "RenameSAFEntry", Context, path, newName );
 #endif
-			string newPath = Path.Combine( new DirectoryInfo( path ).Parent.FullName, newName );
-			Directory.Move( path, newPath );
+            string newPath = Path.Combine(new DirectoryInfo(path).Parent.FullName, newName);
+            Directory.Move(path, newPath);
 
-			return newPath;
-		}
+            return newPath;
+        }
 
-		public static void DeleteFile( string path )
-		{
+        public static void DeleteFile(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 			{
@@ -512,11 +512,11 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			File.Delete( path );
-		}
+            File.Delete(path);
+        }
 
-		public static void DeleteDirectory( string path )
-		{
+        public static void DeleteDirectory(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 			{
@@ -524,35 +524,35 @@ namespace SimpleFileBrowser
 				return;
 			}
 #endif
-			Directory.Delete( path, true );
-		}
+            Directory.Delete(path, true);
+        }
 
-		public static string GetFilename( string path )
-		{
+        public static string GetFilename(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<string>( "SAFEntryName", Context, path );
 #endif
-			return Path.GetFileName( path );
-		}
+            return Path.GetFileName(path);
+        }
 
-		public static long GetFilesize( string path )
-		{
+        public static long GetFilesize(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			if( ShouldUseSAFForPath( path ) )
 				return AJC.CallStatic<long>( "SAFEntrySize", Context, path );
 #endif
-			return new FileInfo( path ).Length;
-		}
+            return new FileInfo(path).Length;
+        }
 
-		public static System.DateTime GetLastModifiedDate( string path )
-		{
+        public static System.DateTime GetLastModifiedDate(string path)
+        {
 #if !UNITY_EDITOR && UNITY_ANDROID
 			// Credit: https://stackoverflow.com/a/28504416/2373034
 			if( ShouldUseSAFForPath( path ) )
 				return new System.DateTime( 1970, 1, 1, 0, 0, 0 ).AddMilliseconds( AJC.CallStatic<long>( "SAFEntryLastModified", Context, path ) );
 #endif
-			return new FileInfo( path ).LastWriteTime;
-		}
-	}
+            return new FileInfo(path).LastWriteTime;
+        }
+    }
 }

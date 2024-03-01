@@ -212,7 +212,7 @@ namespace RegressionGames.StateRecorder
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (isKeyFrame
-                    || (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS>0?recordingMinFPS:1))
+                    || (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS > 0 ? recordingMinFPS : 1))
                     )
                 {
                     var performanceMetrics = new PerformanceMetricData()
@@ -271,8 +271,8 @@ namespace RegressionGames.StateRecorder
                             keyFrame = isKeyFrame,
                             tickNumber = _tickNumber,
                             time = frameTime,
-                            timeScale =  Time.timeScale,
-                            screenSize = new Vector2Int() { x= screenWidth, y=screenHeight },
+                            timeScale = Time.timeScale,
+                            screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
                             state = statefulObjects,
                             inputs = new InputData()
@@ -284,7 +284,7 @@ namespace RegressionGames.StateRecorder
 
                         if (frameState.keyFrame)
                         {
-                            RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',',frameState.keyFrame) + "]");
+                            RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',', frameState.keyFrame) + "]");
                         }
 
                         _priorFrame = frameState;
@@ -311,7 +311,7 @@ namespace RegressionGames.StateRecorder
                                     // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
                                     _texture2Ds.Enqueue(theScreenshot);
                                 }
-                            )
+                        )
                         ));
                         // null this out so the queue can clean it up, not this do
                         screenShot = null;

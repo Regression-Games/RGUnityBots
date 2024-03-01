@@ -47,7 +47,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(Vector3) || objectType == typeof(Vector2)|| objectType == typeof(Vector3?) || objectType == typeof(Vector2?);
+            return objectType == typeof(Vector3) || objectType == typeof(Vector2) || objectType == typeof(Vector3?) || objectType == typeof(Vector2?);
         }
     }
 }

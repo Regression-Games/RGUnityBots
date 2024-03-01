@@ -4,26 +4,26 @@ using UnityEngine;
 
 namespace SimpleFileBrowser
 {
-	public class FBPermissionCallbackAndroid : AndroidJavaProxy
-	{
-		private object threadLock;
-		public int Result { get; private set; }
+    public class FBPermissionCallbackAndroid : AndroidJavaProxy
+    {
+        private object threadLock;
+        public int Result { get; private set; }
 
-		public FBPermissionCallbackAndroid( object threadLock ) : base( "com.yasirkula.unity.FileBrowserPermissionReceiver" )
-		{
-			Result = -1;
-			this.threadLock = threadLock;
-		}
+        public FBPermissionCallbackAndroid(object threadLock) : base("com.yasirkula.unity.FileBrowserPermissionReceiver")
+        {
+            Result = -1;
+            this.threadLock = threadLock;
+        }
 
-		public void OnPermissionResult( int result )
-		{
-			Result = result;
+        public void OnPermissionResult(int result)
+        {
+            Result = result;
 
-			lock( threadLock )
-			{
-				Monitor.Pulse( threadLock );
-			}
-		}
-	}
+            lock (threadLock)
+            {
+                Monitor.Pulse(threadLock);
+            }
+        }
+    }
 }
 #endif
