@@ -84,6 +84,7 @@ namespace RegressionGames.StateRecorder
             _this = this;
         }
 
+
         private void OnDestroy()
         {
             _frameQueue?.CompleteAdding();
