@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using RegressionGames.RGBotLocalRuntime;
-using RegressionGames.StateRecorder;
 using RegressionGames.Types;
 using TMPro;
 using UnityEngine;
@@ -20,8 +19,6 @@ namespace RegressionGames
         private readonly string _sessionName = Guid.NewGuid().ToString();
 
         public RGIconPulse launcherPulse;
-
-        public RGIconPulse recordingPulse;
 
         public GameObject recordingToolbar;
 
@@ -44,8 +41,6 @@ namespace RegressionGames
         private static RGOverlayMenu _this = null;
 
         private bool _closeOverlayOnBotStart = true;
-
-        private bool _cvRecording = false;
 
         public static RGOverlayMenu GetInstance()
         {
@@ -147,16 +142,7 @@ namespace RegressionGames
             }
 
             _lastCount = _activeBots.Count;
-            if (_cvRecording)
-            {
-                recordingPulse.Fast();
-                ScreenRecorder.GetInstance()?.StartRecording();
-            }
-            else
-            {
-                recordingPulse.Stop();
-                ScreenRecorder.GetInstance()?.StopRecording();
-            }
+
 
         }
 
@@ -179,16 +165,6 @@ namespace RegressionGames
         public void SetCloseOnBotStart()
         {
             _closeOverlayOnBotStart = !_closeOverlayOnBotStart;
-        }
-
-        public void SetCvRecording()
-        {
-            if (!_cvRecording)
-            {
-                // close this before we switch the flag
-                OnOverlayClosed();
-            }
-            _cvRecording = !_cvRecording;
         }
 
         public void AddBot()

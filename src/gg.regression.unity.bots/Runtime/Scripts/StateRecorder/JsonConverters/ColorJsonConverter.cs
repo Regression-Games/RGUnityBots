@@ -12,12 +12,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var val = (Color)value;
-            writer.WriteStartArray();
+            writer.WriteStartObject();
+            writer.WritePropertyName("r");
             writer.WriteValue(val.r);
+            writer.WritePropertyName("g");
             writer.WriteValue(val.g);
+            writer.WritePropertyName("b");
             writer.WriteValue(val.b);
+            writer.WritePropertyName("a");
             writer.WriteValue(val.a);
-            writer.WriteEndArray();
+            writer.WriteEndObject();
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)

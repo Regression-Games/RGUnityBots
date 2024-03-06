@@ -14,12 +14,27 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Vector3)value;
-                writer.WriteStartArray();
-                writer.WriteValue(val.x);
-                writer.WriteValue(val.y);
-                writer.WriteValue(val.z);
-                writer.WriteEndArray();
+                if (value is Vector2 val)
+                {
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("x");
+                    writer.WriteValue(val.x);
+                    writer.WritePropertyName("y");
+                    writer.WriteValue(val.y);
+                    writer.WriteEndObject();
+                }
+                else
+                {
+                    var valZ = (Vector3)value;
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("x");
+                    writer.WriteValue(valZ.x);
+                    writer.WritePropertyName("y");
+                    writer.WriteValue(valZ.y);
+                    writer.WritePropertyName("z");
+                    writer.WriteValue(valZ.z);
+                    writer.WriteEndObject();
+                }
             }
         }
 
