@@ -56,6 +56,19 @@ namespace RegressionGames
             return rgAuthToken != null;
         }
 
+        private bool HasConfiguredTokenOrCredentials()
+        {
+            RGUserSettings rgSettings = RGUserSettings.GetOrCreateUserSettings();
+            string email = rgSettings.GetEmail();
+            string password = rgSettings.GetPassword();
+            var apiKey = RGEnvConfigs.ReadAPIKey();
+            if ((apiKey != null && apiKey.Trim() != "") || (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password)))
+            {
+                return true;
+            }
+            return false;
+        }
+
         public async Task<bool> TryAuth()
         {
             try
@@ -86,6 +99,7 @@ namespace RegressionGames
                     else
                     {
                         RGDebug.LogWarning("RG Service email or password not configured");
+                        return false;
                     }
                 }
             }
@@ -111,7 +125,7 @@ namespace RegressionGames
                     if (!IsAuthed())
                     {
                         var result = await TryAuth();
-                        if (!result)
+                        if (!result && HasConfiguredTokenOrCredentials())
                         {
                             RGDebug.LogWarning(
                                 $"Failed to authenticate with the Regression Games server at {GetRgServiceBaseUri()}");
