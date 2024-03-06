@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
-using RegressionGames.StateActionTypes;
 using RegressionGames.Types;
 using Unity.Profiling;
 using UnityEngine;
@@ -151,68 +150,68 @@ namespace RegressionGames.DataCollection
         /**
          * Saves the state, action, and validation information for a given tick
          */
-        public async Task SaveReplayDataInfo(long clientId, RGStateActionReplayData replayData)
-        {
-            RGDebug.LogVerbose($"DataCollection[{clientId}] - Saving replay data for tick {replayData.tickInfo.tick}");
-
-            var state = _clientIdToState.TryGetValue(clientId, out var s) ? s : null;
-            if (state == null)
-            {
-                // Shouldn't really happen
-                RGDebug.LogError("Attempted to save replay data for a stopped bot");
-                return;
-            }
-
-            using var _ = SaveTickDataMarker.Auto();
-
-            // Add the new replay data to a new or existing mapping in our client replay data dictionary
-            var filePath =
-                GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.txt");
-            var task = File.WriteAllTextAsync(filePath, replayData.ToSerialized());
-            state.replayDataTasks.Add(task);
-
-            // If the replay data has a validation, queue up a screenshot
-            if (replayData.validationResults?.Length > 0)
-            {
-                RGDebug.LogVerbose($"DataCollection[{clientId}] - Also saving a screenshot for tick {replayData.tickInfo.tick}");
-                _screenshotTicksRequested.Enqueue(replayData.tickInfo.tick);
-
-                var validations = replayData.validationResults;
-
-                // update the validation summary data
-                state.validationSummary.passed += validations.Count(rd => rd.result == RGValidationResultType.PASS);
-                state.validationSummary.failed += validations.Count(rd => rd.result == RGValidationResultType.FAIL);
-                state.validationSummary.warnings += validations.Count(rd => rd.result == RGValidationResultType.WARNING);
-
-                var validationsLinesString = SerializeJsonLines(validations);
-
-                // Wait for any prior validation write task to finish
-                if (state.validationDataTask != null)
-                {
-                    await state.validationDataTask;
-                    state.validationDataTask = null;
-                }
-
-                // Write out the validations to the JSONL file; note.. the prior write mush finish before the next tick
-                // otherwise we can't write to the file safely
-                var validationFilePath =
-                    GetSessionDirectory($"validationData/{clientId}/rgbot_validations.jsonl");
-                var validationTask = File.AppendAllTextAsync(validationFilePath, validationsLinesString);
-                state.validationDataTask = validationTask;
-            }
-
-            // Atomically swap the logs queue with an empty queue.
-            // Then the log collector can upload this queue's logs while logs continue to accumulate in the new queue
-            var logs = Interlocked.Exchange(ref state.logs, new());
-            if (!logs.IsEmpty)
-            {
-                state.logFlushTask = FlushLogs(clientId, logs);
-            }
-
-            // remove any already completed tasks from the tracker
-            state.replayDataTasks.RemoveAll(v => v.IsCompleted);
-
-        }
+//        public async Task SaveReplayDataInfo(long clientId, RGStateActionReplayData replayData)
+//        {
+//            RGDebug.LogVerbose($"DataCollection[{clientId}] - Saving replay data for tick {replayData.tickInfo.tick}");
+//
+//            var state = _clientIdToState.TryGetValue(clientId, out var s) ? s : null;
+//            if (state == null)
+//            {
+//                // Shouldn't really happen
+//                RGDebug.LogError("Attempted to save replay data for a stopped bot");
+//                return;
+//            }
+//
+//            using var _ = SaveTickDataMarker.Auto();
+//
+//            // Add the new replay data to a new or existing mapping in our client replay data dictionary
+//            var filePath =
+//                GetSessionDirectory($"replayData/{clientId}/rgbot_replay_data_{replayData.tickInfo.tick}.txt");
+//            var task = File.WriteAllTextAsync(filePath, replayData.ToSerialized());
+//            state.replayDataTasks.Add(task);
+//
+//            // If the replay data has a validation, queue up a screenshot
+//            if (replayData.validationResults?.Length > 0)
+//            {
+//                RGDebug.LogVerbose($"DataCollection[{clientId}] - Also saving a screenshot for tick {replayData.tickInfo.tick}");
+//                _screenshotTicksRequested.Enqueue(replayData.tickInfo.tick);
+//
+//                var validations = replayData.validationResults;
+//
+//                // update the validation summary data
+//                state.validationSummary.passed += validations.Count(rd => rd.result == RGValidationResultType.PASS);
+//                state.validationSummary.failed += validations.Count(rd => rd.result == RGValidationResultType.FAIL);
+//                state.validationSummary.warnings += validations.Count(rd => rd.result == RGValidationResultType.WARNING);
+//
+//                var validationsLinesString = SerializeJsonLines(validations);
+//
+//                // Wait for any prior validation write task to finish
+//                if (state.validationDataTask != null)
+//                {
+//                    await state.validationDataTask;
+//                    state.validationDataTask = null;
+//                }
+//
+//                // Write out the validations to the JSONL file; note.. the prior write mush finish before the next tick
+//                // otherwise we can't write to the file safely
+//                var validationFilePath =
+//                    GetSessionDirectory($"validationData/{clientId}/rgbot_validations.jsonl");
+//                var validationTask = File.AppendAllTextAsync(validationFilePath, validationsLinesString);
+//                state.validationDataTask = validationTask;
+//            }
+//
+//            // Atomically swap the logs queue with an empty queue.
+//            // Then the log collector can upload this queue's logs while logs continue to accumulate in the new queue
+//            var logs = Interlocked.Exchange(ref state.logs, new());
+//            if (!logs.IsEmpty)
+//            {
+//                state.logFlushTask = FlushLogs(clientId, logs);
+//            }
+//
+//            // remove any already completed tasks from the tracker
+//            state.replayDataTasks.RemoveAll(v => v.IsCompleted);
+//
+//        }
 
         class BotDoesNotExistOnServerException : Exception
         {
