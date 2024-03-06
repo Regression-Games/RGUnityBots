@@ -50,7 +50,7 @@ public class IRGBotFinder : Editor
         botList.botEntries = entries.ToArray();
 
         // Mark the ScriptableObject as dirty to ensure it saves
-        EditorUtility.SetDirty(botList); 
+        EditorUtility.SetDirty(botList);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
     }

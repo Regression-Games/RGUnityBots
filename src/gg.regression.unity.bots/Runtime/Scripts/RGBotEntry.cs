@@ -6,18 +6,18 @@ using UnityEngine.UI;
 
 public class RGBotEntry : MonoBehaviour
 {
-    [SerializeField] 
+    [SerializeField]
     private TMP_Text gameObjectName;
 
-    [SerializeField] 
+    [SerializeField]
     private TMP_Text behaviorName;
 
-    [SerializeField] 
+    [SerializeField]
     private Button deleteButton;
-    
+
     void Start()
     {
-        
+
     }
 
     public void Initialize(GameObject runtimeObject, string behavior)
