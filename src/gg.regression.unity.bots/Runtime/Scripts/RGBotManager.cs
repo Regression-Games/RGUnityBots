@@ -19,7 +19,7 @@ public class RGBotManager : MonoBehaviour
     public RGIconPulse recordingPulse;
 
     public GameObject recordingToolbar;
-    
+
     public GameObject selectionPanel;
 
     [SerializeField]
@@ -86,7 +86,7 @@ public class RGBotManager : MonoBehaviour
         delegate { PrefabSelected(gameObjectsDropdown); }
         );
         behaviorsDropdown.onValueChanged.AddListener(
-        delegate{ BehaviorSelected(behaviorsDropdown); }
+        delegate { BehaviorSelected(behaviorsDropdown); }
         );
 
         var bots = FindObjectsOfType<MonoBehaviour>().OfType<IRGBot>();
@@ -173,7 +173,7 @@ public class RGBotManager : MonoBehaviour
     {
         List<string> dropdownOptions = new List<string>();
         dropdownOptions.Add("Empty");
-        
+
         var botList = Resources.Load<IRGBotList>("RGBotList");
         if (!botList)
         {
@@ -193,7 +193,7 @@ public class RGBotManager : MonoBehaviour
     void PrefabSelected(TMP_Dropdown dropdown)
     {
         int index = dropdown.value;
-    
+
         // Check if "Empty" is selected
         if (index == 0)
         {
@@ -208,7 +208,7 @@ public class RGBotManager : MonoBehaviour
     void BehaviorSelected(TMP_Dropdown dropdown)
     {
         int index = dropdown.value;
-    
+
         // Check if "Empty" is selected
         if (index == 0)
         {
