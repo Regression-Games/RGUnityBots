@@ -9,10 +9,10 @@ using UnityEngine;
 public class RGBotManager : MonoBehaviour
 {
     private static RGBotManager _this;
-    
-    [Header("Prefabs")] 
+
+    [Header("Prefabs")]
     public List<GameObject> botPrefabs;
-    
+
     [Header("References")]
     public RGIconPulse launcherPulse;
 
@@ -21,19 +21,19 @@ public class RGBotManager : MonoBehaviour
     public GameObject recordingToolbar;
     
     public GameObject selectionPanel;
-    
-    [SerializeField] 
+
+    [SerializeField]
     private TMP_Dropdown gameObjectsDropdown;
 
-    [SerializeField] 
+    [SerializeField]
     private TMP_Dropdown behaviorsDropdown;
 
-    [SerializeField] 
+    [SerializeField]
     private GameObject activeBotRoot;
 
-    [SerializeField] 
+    [SerializeField]
     private GameObject rgBotEntry;
-    
+
     public static RGBotManager GetInstance()
     {
         return _this;
@@ -55,7 +55,7 @@ public class RGBotManager : MonoBehaviour
         }
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
-        
+
         var newOverlayFeature = RGSettings.GetOrCreateSettings().GetFeatureStateRecordingAndReplay();
         if (!newOverlayFeature)
         {
@@ -71,20 +71,24 @@ public class RGBotManager : MonoBehaviour
     {
         gameObjectsDropdown.ClearOptions();
         behaviorsDropdown.ClearOptions();
-        
+
         AddPrefabsToDropdown();
         AddBehaviorsToDropdown();
-        
+
         // Initialize with "Empty" option selected
         gameObjectsDropdown.value = 0;
         behaviorsDropdown.value = 0;
         _selectedBotPrefab = null;
         _selectedBehavior = null;
-        
+
         // Subscribe to the dropdown's onValueChanged event
-        gameObjectsDropdown.onValueChanged.AddListener(delegate { PrefabSelected(gameObjectsDropdown); });
-        behaviorsDropdown.onValueChanged.AddListener(delegate{ BehaviorSelected(behaviorsDropdown); });
-        
+        gameObjectsDropdown.onValueChanged.AddListener(
+        delegate { PrefabSelected(gameObjectsDropdown); }
+        );
+        behaviorsDropdown.onValueChanged.AddListener(
+        delegate{ BehaviorSelected(behaviorsDropdown); }
+        );
+
         var bots = FindObjectsOfType<MonoBehaviour>().OfType<IRGBot>();
         foreach (var bot in bots)
         {
@@ -131,7 +135,7 @@ public class RGBotManager : MonoBehaviour
             activeBots[i].Delete();
         }
     }
-    
+
     public void SetCloseOnBotStart()
     {
         _closeOverlayOnBotStart = !_closeOverlayOnBotStart;
@@ -146,7 +150,7 @@ public class RGBotManager : MonoBehaviour
         }
         _cvRecording = !_cvRecording;
     }
-    
+
     public void AddActiveBot(GameObject runtimeObject, string behavior)
     {
         var uiObject = GameObject.Instantiate(rgBotEntry, activeBotRoot.transform);
@@ -185,7 +189,7 @@ public class RGBotManager : MonoBehaviour
 
         behaviorsDropdown.AddOptions(dropdownOptions);
     }
-    
+
     void PrefabSelected(TMP_Dropdown dropdown)
     {
         int index = dropdown.value;
@@ -215,7 +219,7 @@ public class RGBotManager : MonoBehaviour
             _selectedBehavior = _botEntries[index - 1].botName;
         }
     }
-    
+
     string FindBotName(string qualifiedName)
     {
         var botList = Resources.Load<IRGBotList>("RGBotList");

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-        
+
 [Serializable]
 public class IRGBotEntry
 {

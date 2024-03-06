@@ -56,7 +56,7 @@ public static class RGBots
         LinkToOverlay(botGameObject, behaviorName);
         return botGameObject;
     }
-    
+
     public static GameObject SpawnBot(string botName)
     {
         GameObject botGameObject = new GameObject();

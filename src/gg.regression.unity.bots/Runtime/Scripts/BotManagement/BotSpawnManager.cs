@@ -14,16 +14,16 @@ public class BotSpawnManager : RGBotSpawnManager
     protected override void Awake()
     {
         base.Awake();
-        
+
         // Prepares the RG SDK for spawning bots
         RGBotServerListener.GetInstance()?.StartGame();
         RGBotServerListener.GetInstance()?.SpawnBots();
-        
+
     }
 
     private void Start()
     {
-        
+
     }
 
     private void OnDestroy()
@@ -34,7 +34,6 @@ public class BotSpawnManager : RGBotSpawnManager
 
     public override GameObject SpawnBot(bool lateJoin, BotInformation botInformation)
     {
-        Debug.Log("Spawn Bots!");
         // Loads the bot prefab and spawns it into the scene
         var bot = Instantiate(rgBotPrefab, Vector3.zero, Quaternion.identity);
         return bot;
