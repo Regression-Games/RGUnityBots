@@ -1,5 +1,7 @@
 using System;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 namespace RegressionGames.Editor
 {
@@ -30,7 +32,8 @@ namespace RegressionGames.Editor
         public static void CreateAllAssetFolders(string path)
         {
             path = path.TrimEnd('/');
-
+            //TODO: REG-1424 Cannot depend on Editor only tools for bot runtimes
+#if UNITY_EDITOR
             if (AssetDatabase.IsValidFolder(path))
             {
                 // This path already exists as a folder, so we're done.
@@ -57,6 +60,7 @@ namespace RegressionGames.Editor
             {
                 throw new InvalidOperationException("Unexpected folder name from AssetDatabase.CreateFolder");
             }
+#endif
         }
     }
 }
