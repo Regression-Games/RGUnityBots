@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames;
@@ -39,7 +38,6 @@ public class RGBotManager : MonoBehaviour
         return _this;
     }
 
-    private bool _initialized = false;
     private bool _cvRecording = false;
     private bool _closeOverlayOnBotStart = true;
     private GameObject _selectedBotPrefab;
@@ -70,12 +68,6 @@ public class RGBotManager : MonoBehaviour
 
     private void Start()
     {
-
-    }
-
-    private void InitializeDropdown()
-    {
-        _initialized = true;
         gameObjectsDropdown.ClearOptions();
         behaviorsDropdown.ClearOptions();
 
@@ -87,10 +79,6 @@ public class RGBotManager : MonoBehaviour
         behaviorsDropdown.value = 0;
         _selectedBotPrefab = null;
         _selectedBehavior = null;
-        if (_botEntries.Length > 0)
-        {
-            _selectedBehavior = _botEntries[0].botName;
-        }
 
         // Subscribe to the dropdown's onValueChanged event
         gameObjectsDropdown.onValueChanged.AddListener(
@@ -113,10 +101,6 @@ public class RGBotManager : MonoBehaviour
     public void OnOverlayClick()
     {
         RGDebug.LogVerbose("Showing RG Overlay Menu");
-        if (!_initialized)
-        {
-            InitializeDropdown();
-        }
         selectionPanel.SetActive(true);
     }
 
@@ -187,8 +171,9 @@ public class RGBotManager : MonoBehaviour
     void AddBehaviorsToDropdown()
     {
         List<string> dropdownOptions = new List<string>();
+        dropdownOptions.Add("Empty");
 
-        var botList = Resources.Load<IRGBotList>("RGBots");
+        var botList = Resources.Load<IRGBotList>("RGBotList");
         if (!botList)
         {
             RGDebug.LogWarning("Failed to load RGBotList from Resources");
@@ -201,10 +186,6 @@ public class RGBotManager : MonoBehaviour
             dropdownOptions.Add(bot.botName);
         }
 
-        if (dropdownOptions.Count == 0)
-        {
-            dropdownOptions.Add("Empty");
-        }
         behaviorsDropdown.AddOptions(dropdownOptions);
     }
 
@@ -228,10 +209,13 @@ public class RGBotManager : MonoBehaviour
         int index = dropdown.value;
 
         // Check if "Empty" is selected
-        _selectedBehavior = null;
-        if (_botEntries.Length > 0)
+        if (index == 0)
         {
-            _selectedBehavior = _botEntries[index].botName;
+            _selectedBehavior = null;
+        }
+        else
+        {
+            _selectedBehavior = _botEntries[index - 1].botName;
         }
     }
 
