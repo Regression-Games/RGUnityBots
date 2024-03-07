@@ -1,6 +1,9 @@
 using UnityEngine;
 
-public class IRGBotList : ScriptableObject
+namespace RegressionGames
 {
-    public IRGBotEntry[] botEntries;
+    public class IRGBotList : ScriptableObject
+    {
+        public IRGBotEntry[] botEntries;
+    }
 }

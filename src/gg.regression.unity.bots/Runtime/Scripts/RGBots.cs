@@ -1,95 +1,120 @@
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using RegressionGames;
 using UnityEngine;
 
-public static class RGBots
+namespace RegressionGames
 {
-    private static IRGBotEntry FindBot(string botName)
+    public static class RGBots
     {
-        var botList = Resources.Load<IRGBotList>("RGBotList");
-
-        var botEntry = botList.botEntries.FirstOrDefault(b => b.botName == botName);
-        if (botEntry != null)
+        private static IRGBotEntry FindBot(string botName)
         {
-            return botEntry;
+            var botList = Resources.Load<IRGBotList>("RGBotList");
+
+            var botEntry = botList.botEntries.FirstOrDefault(b => b.botName == botName);
+            if (botEntry != null)
+            {
+                return botEntry;
+            }
+
+            return null;
         }
-        return null;
-    }
 
-    private static IRGBotEntry FindBotByType<T>() where T : Component
-    {
-        var assemblyQualifiedName = typeof(T).AssemblyQualifiedName;
-        var botList = Resources.Load<IRGBotList>("RGBotList");
-
-        var botEntry = botList.botEntries.FirstOrDefault(b => b.qualifiedName == assemblyQualifiedName);
-        if (botEntry != null)
+        private static IRGBotEntry FindBotByType<T>() where T : Component
         {
-            return botEntry;
-        }
-        return null;
-    }
+            var assemblyQualifiedName = typeof(T).AssemblyQualifiedName;
+            var botList = Resources.Load<IRGBotList>("RGBotList");
 
-    public static GameObject SpawnBot<T>() where T : Component
-    {
-        GameObject botGameObject = new GameObject(typeof(T).Name);
-        var botEntry = FindBotByType<T>();
-        var behaviorName = botEntry?.botName ?? "Empty";
-        if (botEntry != null)
-        {
-            botGameObject.AddComponent<T>();
-        }
-        LinkToOverlay(botGameObject, behaviorName);
-        return botGameObject;
-    }
+            var botEntry = botList.botEntries.FirstOrDefault(b => b.qualifiedName == assemblyQualifiedName);
+            if (botEntry != null)
+            {
+                return botEntry;
+            }
 
-    public static GameObject SpawnBot<T>(GameObject prefab) where T : Component
-    {
-        GameObject botGameObject = GameObject.Instantiate(prefab);
-        var botEntry = FindBotByType<T>();
-        var behaviorName = botEntry?.botName ?? "Empty";
-        if (botEntry != null)
-        {
-            botGameObject.AddComponent<T>();
+            return null;
         }
-        LinkToOverlay(botGameObject, behaviorName);
-        return botGameObject;
-    }
 
-    public static GameObject SpawnBot(string botName)
-    {
-        GameObject botGameObject = new GameObject();
-        var botEntry = FindBot(botName);
-        var behaviorName = botEntry?.botName ?? "Empty";
-        if (botEntry != null)
+        /// <summary>
+        /// Creates a new bot, with the typed behavior T. Adds an empty GameObject to the
+        /// current scene, then adds the bot script component 
+        /// </summary>
+        public static GameObject SpawnBot<T>() where T : Component
         {
-            botGameObject.AddComponent(System.Type.GetType(botEntry.qualifiedName));
-        }
-        LinkToOverlay(botGameObject, behaviorName);
-        return botGameObject;
-    }
+            GameObject botGameObject = new GameObject(typeof(T).Name);
+            var botEntry = FindBotByType<T>();
+            var behaviorName = botEntry?.botName ?? "Empty";
+            if (botEntry != null)
+            {
+                botGameObject.AddComponent<T>();
+            }
 
-    public static GameObject SpawnBot(string botName, GameObject prefab)
-    {
-        GameObject botGameObject = GameObject.Instantiate(prefab);
-        var botEntry = FindBot(botName);
-        var behaviorName = botEntry?.botName ?? "Empty";
-        if (botEntry != null)
-        {
-            botGameObject.AddComponent(System.Type.GetType(botEntry.qualifiedName));
+            LinkToOverlay(botGameObject, behaviorName);
+            return botGameObject;
         }
-        LinkToOverlay(botGameObject, behaviorName);
-        return botGameObject;
-    }
 
-    private static void LinkToOverlay(GameObject runtimeObject, string botName)
-    {
-        var botManager = GameObject.FindObjectOfType<RGBotManager>();
-        if (botManager == null)
+        /// <summary>
+        /// Creates a new bot, with the typed behavior T. Instantiates the given gameObject
+        /// in the current scene, then adds the bot script component 
+        /// </summary>
+        public static GameObject SpawnBot<T>(GameObject prefab) where T : Component
         {
-            return;
+            GameObject botGameObject = GameObject.Instantiate(prefab);
+            var botEntry = FindBotByType<T>();
+            var behaviorName = botEntry?.botName ?? "Empty";
+            if (botEntry != null)
+            {
+                botGameObject.AddComponent<T>();
+            }
+
+            LinkToOverlay(botGameObject, behaviorName);
+            return botGameObject;
         }
-        botManager.AddActiveBot(runtimeObject, botName);
+
+        /// <summary>
+        /// Creates a new bot, with the behavior of the given name. Instantiates an empty gameObject
+        /// in the current scene, finds the behavior matching the name, then adds the bot script
+        /// component 
+        /// </summary>
+        public static GameObject SpawnBot(string botName)
+        {
+            GameObject botGameObject = new GameObject(botName);
+            var botEntry = FindBot(botName);
+            var behaviorName = botEntry?.botName ?? "Empty";
+            if (botEntry != null)
+            {
+                botGameObject.AddComponent(System.Type.GetType(botEntry.qualifiedName));
+            }
+
+            LinkToOverlay(botGameObject, behaviorName);
+            return botGameObject;
+        }
+
+        /// <summary>
+        /// Creates a new bot, with the behavior of the given name. Instantiates the given
+        /// gameObject in the current scene, finds the behavior matching the name, then adds
+        /// the bot script component 
+        /// </summary>
+        public static GameObject SpawnBot(string botName, GameObject prefab)
+        {
+            GameObject botGameObject = GameObject.Instantiate(prefab);
+            var botEntry = FindBot(botName);
+            var behaviorName = botEntry?.botName ?? "Empty";
+            if (botEntry != null)
+            {
+                botGameObject.AddComponent(System.Type.GetType(botEntry.qualifiedName));
+            }
+
+            LinkToOverlay(botGameObject, behaviorName);
+            return botGameObject;
+        }
+
+        private static void LinkToOverlay(GameObject runtimeObject, string botName)
+        {
+            var botManager = GameObject.FindObjectOfType<RGBotManager>();
+            if (botManager == null)
+            {
+                return;
+            }
+
+            botManager.AddActiveBot(runtimeObject, botName);
+        }
     }
 }
