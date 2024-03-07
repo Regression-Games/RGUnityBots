@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using RegressionGames.StateActionTypes;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -22,45 +21,11 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         }
     }
 
-    // ReSharper disable InconsistentNaming
-    [Serializable]
-    public class RgStateEntityBasePlatformer2DLevel : Dictionary<string, object>, IRGStateEntity
-    {
-        /**
-         * <summary>The BoundsInt of the whole tileMap</summary>
-         */
-        public BoundsInt tileMapBounds => (BoundsInt)
-            this.GetValueOrDefault("tileMapBounds", new BoundsInt(0, 0, 0, 0, 0, 0));
-
-        /**
-         * <summary>The BoundsInt of the current visible portion of the tileMap</summary>
-         */
-        public BoundsInt currentBounds => (BoundsInt)
-            this.GetValueOrDefault("currentBounds", new BoundsInt(0, 0, 0, 0, 0, 0));
-
-        public Vector3 tileCellSize => (Vector3)this["tileCellSize"];
-        public RgPlatformer2DPosition[] platformPositions => (RgPlatformer2DPosition[])this["platformPositions"];
-
-        public string GetEntityType()
-        {
-            return EntityTypeName;
-        }
-
-        public bool GetIsPlayer()
-        {
-            return false;
-        }
-
-        public static readonly string EntityTypeName = "platformer2DLevel";
-        public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DLevel);
-        public static readonly bool IsPlayer = false;
-    }
-
     /**
      * Provides state information about the tile grid in the current visible screen space.
      */
     [Serializable]
-    public class RgStateHandlerPlatformer2DLevel : RGStateBehaviour<RgStateEntityBasePlatformer2DLevel>
+    public class RgStateHandlerPlatformer2DLevel : MonoBehaviour
     {
         [Tooltip("How many tile spaces above a platform to consider when determining the height available on top of a platform.  This should match the height of the largest character model navigating the scene in tile units.")]
         [Min(1)]
@@ -70,22 +35,39 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
-        internal Vector3 _lastCellSize = Vector3.one;
-        private List<RgPlatformer2DPosition> _lastPositions = new();
+        public Vector3 tileCellSize = Vector3.one;
+        public List<RgPlatformer2DPosition> platformPositions = new();
+        public BoundsInt tileMapBounds = new BoundsInt();
+        public BoundsInt currentBounds = new BoundsInt();
 
-        protected override RgStateEntityBasePlatformer2DLevel CreateStateEntityInstance()
+        [NonSerialized]
+        [Tooltip("Update state every X seconds.")]
+        public float updateInterval = 1.0f;
+
+        private float _lastUpdateTime = float.MinValue;
+        public void OnEnable()
         {
-            return new RgStateEntityBasePlatformer2DLevel();
+            Update();
         }
 
-        public override void PopulateStateEntity(RgStateEntityBasePlatformer2DLevel stateEntity)
+        public void Update()
+        {
+            var time = Time.time;
+            if (time - _lastUpdateTime >= updateInterval)
+            {
+                _lastUpdateTime = time;
+                UpdateState();
+            }
+        }
+
+        public void UpdateState()
         {
             var tileMap = gameObject.GetComponent<Tilemap>();
 
             var currentCamera = Camera.main;
 
-            var currentBounds = tileMap.cellBounds;
-            var cellBounds = currentBounds;
+            var theCurrentBounds = tileMap.cellBounds;
+            var cellBounds = theCurrentBounds;
 
             if (currentCamera != null)
             {
@@ -96,9 +78,9 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 var topRight = currentCamera.ScreenToWorldPoint(new Vector3(screenWidth, screenHeight, 0));
 
                 var tileBottomLeft = tileMap.WorldToCell(bottomLeft);
-                tileBottomLeft.z = currentBounds.zMin;
+                tileBottomLeft.z = theCurrentBounds.zMin;
                 var tileTopRight = tileMap.WorldToCell(topRight);
-                tileTopRight.z = currentBounds.zMax;
+                tileTopRight.z = theCurrentBounds.zMax;
 
                 // some amount bigger than the max size of the screen size in either dimension
                 // this needs to be big enough to avoid getting 'stuck' without a path nearer to the goal
@@ -115,14 +97,14 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
 
                 tileTopRight.y += fraction;
 
-                currentBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
+                theCurrentBounds = new BoundsInt(tileBottomLeft, tileTopRight - tileBottomLeft);
 
                 // limit this to the edges of the tilemap itself
-                var cellBoundsBottomLeft = new Vector3Int(Math.Max(currentBounds.xMin, cellBounds.xMin),
-                    Math.Max(currentBounds.yMin, cellBounds.yMin), cellBounds.zMin);
+                var cellBoundsBottomLeft = new Vector3Int(Math.Max(theCurrentBounds.xMin, cellBounds.xMin),
+                    Math.Max(theCurrentBounds.yMin, cellBounds.yMin), cellBounds.zMin);
 
-                var cellBoundsTopRight = new Vector3Int(Math.Min(currentBounds.xMax, cellBounds.xMax),
-                    Math.Min(currentBounds.yMax, cellBounds.yMax), cellBounds.zMax);
+                var cellBoundsTopRight = new Vector3Int(Math.Min(theCurrentBounds.xMax, cellBounds.xMax),
+                    Math.Min(theCurrentBounds.yMax, cellBounds.yMax), cellBounds.zMax);
 
                 cellBounds = new BoundsInt(cellBoundsBottomLeft, cellBoundsTopRight - cellBoundsBottomLeft);
             }
@@ -184,23 +166,24 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 }
             }
 
-            _lastPositions = safePositions;
-            _lastCellSize = tileMap.cellSize;
-
-            stateEntity["tileMapBounds"] = tileMap.cellBounds;
-            stateEntity["currentBounds"] = currentBounds;
-            stateEntity["tileCellSize"] = _lastCellSize;
-            stateEntity["platformPositions"] = _lastPositions.ToArray();
+            platformPositions = safePositions;
+            tileCellSize = tileMap.cellSize;
+            tileMapBounds = tileMap.cellBounds;
+            this.currentBounds = theCurrentBounds;
         }
 
         private void OnDrawGizmos()
         {
             if (renderDebugGizmos)
             {
-                foreach (var platformPosition in _lastPositions)
+                foreach (var platformPosition in platformPositions)
                 {
-                    Gizmos.DrawWireSphere(new Vector3(platformPosition.position.x + _lastCellSize.x / 2, platformPosition.position.y + _lastCellSize.y / 2, 0),
-                        _lastCellSize.x / 2);
+                    Gizmos.DrawWireSphere(new Vector3(
+                            platformPosition.position.x + tileCellSize.x / 2,
+                            platformPosition.position.y + tileCellSize.y / 2,
+                            0
+                            ),
+                        tileCellSize.x / 2);
                 }
             }
         }

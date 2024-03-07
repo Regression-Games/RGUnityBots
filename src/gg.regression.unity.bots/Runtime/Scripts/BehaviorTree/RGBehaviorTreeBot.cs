@@ -1,20 +1,19 @@
-using RegressionGames.RGBotLocalRuntime;
+using UnityEngine;
 
 namespace RegressionGames.BehaviorTree
 {
-    public abstract class RGBehaviorTreeBot : RGUserBot
+    public abstract class RGBehaviorTreeBot : MonoBehaviour, IRGBot
     {
         private BehaviorTreeNode _rootNode;
 
-        internal override void Init(long botId, string botName)
+        public void Start()
         {
-            base.Init(botId, botName);
             _rootNode = BuildBehaviorTree();
         }
 
-        public override void ProcessTick(RG rgObject)
+        public void Update()
         {
-            _ = _rootNode.Invoke(rgObject);
+            _ = _rootNode.Invoke(this.gameObject);
         }
 
         protected abstract RootNode BuildBehaviorTree();
