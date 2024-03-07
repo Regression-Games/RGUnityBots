@@ -1,5 +1,7 @@
 using System.Linq;
+using System.Numerics;
 using UnityEngine;
+using Vector3 = UnityEngine.Vector3;
 
 namespace RegressionGames
 {
@@ -56,7 +58,17 @@ namespace RegressionGames
         /// </summary>
         public static GameObject SpawnBot<T>(GameObject prefab) where T : Component
         {
+            return SpawnBot<T>(prefab, Vector3.zero);
+        }
+
+        /// <summary>
+        /// Creates a new bot, with the typed behavior T. Instantiates the given gameObject
+        /// in the current scene, sets the given position, then adds the bot script component 
+        /// </summary>
+        public static GameObject SpawnBot<T>(GameObject prefab, Vector3 position) where T : Component
+        {
             GameObject botGameObject = GameObject.Instantiate(prefab);
+            botGameObject.transform.position = position;
             var botEntry = FindBotByType<T>();
             var behaviorName = botEntry?.botName ?? "Empty";
             if (botEntry != null)
@@ -94,7 +106,18 @@ namespace RegressionGames
         /// </summary>
         public static GameObject SpawnBot(string botName, GameObject prefab)
         {
+            return SpawnBot(botName, prefab, Vector3.zero);
+        }
+
+        /// <summary>
+        /// Creates a new bot, with the behavior of the given name. Instantiates the given
+        /// gameObject in the current scene, sets the given position, finds the behavior
+        /// matching the name, then adds the bot script component 
+        /// </summary>
+        public static GameObject SpawnBot(string botName, GameObject prefab, Vector3 position)
+        {
             GameObject botGameObject = GameObject.Instantiate(prefab);
+            botGameObject.transform.position = position;
             var botEntry = FindBot(botName);
             var behaviorName = botEntry?.botName ?? "Empty";
             if (botEntry != null)
