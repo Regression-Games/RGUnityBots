@@ -79,6 +79,10 @@ public class RGBotManager : MonoBehaviour
         behaviorsDropdown.value = 0;
         _selectedBotPrefab = null;
         _selectedBehavior = null;
+        if (_botEntries.Length > 0)
+        {
+            _selectedBehavior = _botEntries[0].botName;
+        }
 
         // Subscribe to the dropdown's onValueChanged event
         gameObjectsDropdown.onValueChanged.AddListener(
@@ -212,11 +216,8 @@ public class RGBotManager : MonoBehaviour
         int index = dropdown.value;
 
         // Check if "Empty" is selected
-        if (index == 0)
-        {
-            _selectedBehavior = null;
-        }
-        else
+        _selectedBehavior = null;
+        if (_botEntries.Length > 0)
         {
             _selectedBehavior = _botEntries[index - 1].botName;
         }
