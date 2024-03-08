@@ -171,7 +171,6 @@ public class RGBotManager : MonoBehaviour
     void AddBehaviorsToDropdown()
     {
         List<string> dropdownOptions = new List<string>();
-        dropdownOptions.Add("Empty");
 
         var botList = Resources.Load<IRGBotList>("RGBotList");
         if (!botList)
@@ -186,6 +185,10 @@ public class RGBotManager : MonoBehaviour
             dropdownOptions.Add(bot.botName);
         }
 
+        if (dropdownOptions.Count == 0)
+        {
+            dropdownOptions.Add("Empty");
+        }
         behaviorsDropdown.AddOptions(dropdownOptions);
     }
 
