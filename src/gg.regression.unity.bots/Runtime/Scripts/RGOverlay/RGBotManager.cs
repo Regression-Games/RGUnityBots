@@ -219,7 +219,7 @@ public class RGBotManager : MonoBehaviour
         _selectedBehavior = null;
         if (_botEntries.Length > 0)
         {
-            _selectedBehavior = _botEntries[index - 1].botName;
+            _selectedBehavior = _botEntries[index].botName;
         }
     }
 
