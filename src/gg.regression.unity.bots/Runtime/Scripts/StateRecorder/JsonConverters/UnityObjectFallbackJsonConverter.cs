@@ -29,20 +29,35 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public override bool CanRead => false;
 
         // optimize to avoid string comparisons on every object
-        private readonly Dictionary<Assembly, bool> _unityAssemblies = new();
+        // our primary testing project, bossroom, is from 'Unity' so we need to clarify our exclusions
+        // (isBossRoom, isUnity)
+        private readonly Dictionary<Assembly, (bool,bool)> _unityAssemblies = new();
 
         public override bool CanConvert(Type objectType)
         {
-            var assembly = objectType.Assembly;
-            if (_unityAssemblies.TryGetValue(assembly, out var isUnityType))
+            var fullName = objectType.FullName;
+            // we have added custom serializers for specific unity types
+            if (NetworkVariableJsonConverter.Convertable(objectType) || NetworkVariableJsonConverter.NetworkObjectType == objectType)
             {
-                return isUnityType;
+                return false;
             }
 
-            isUnityType = assembly.FullName.StartsWith("Unity");
-            _unityAssemblies[assembly] = isUnityType;
+            var assembly = objectType.Assembly;
+            if (!_unityAssemblies.TryGetValue(assembly, out var isUnityType))
+            {
+                var isUnity = fullName.StartsWith("Unity");
+                var isBossRoom = isUnity && fullName.StartsWith("Unity.BossRoom");
 
-            return isUnityType;
+                isUnityType = (isBossRoom, isUnity);
+                _unityAssemblies[assembly] = isUnityType;
+            }
+
+            if (!isUnityType.Item1)
+            {
+                return isUnityType.Item2;
+            }
+
+            return false;
         }
     }
 }

@@ -419,6 +419,7 @@ namespace RegressionGames.StateRecorder
                 new MeshRendererJsonConverter(),
                 new SkinnedMeshRendererJsonConverter(),
                 new NavMeshAgentJsonConverter(),
+                new NetworkVariableJsonConverter(),
                 // KEEP THIS UnityObjectJsonConverter AT THE END OF THE LIST AS A FALLBACK TO PREVENT PERFORMANCE EXPLOSION
                 new UnityObjectFallbackJsonConverter()
             },
