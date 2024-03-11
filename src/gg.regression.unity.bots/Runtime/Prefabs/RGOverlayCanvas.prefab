@@ -3861,7 +3861,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   recordingMinFPS: 5
-  stateRecordingsDirectory: /Users/zack/unity_videos
+  stateRecordingsDirectory: 
 --- !u!114 &5227817124394843185
 MonoBehaviour:
   m_ObjectHideFlags: 0
