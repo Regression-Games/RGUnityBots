@@ -70,16 +70,9 @@ public class RGBotManager : MonoBehaviour
 
     private void Start()
     {
-        var bots = FindObjectsOfType<MonoBehaviour>().OfType<IRGBot>();
-        foreach (var bot in bots)
-        {
-            Type botType = bot.GetType();
-            string fullyQualifiedName = botType.AssemblyQualifiedName;
-            string botName = FindBotName(fullyQualifiedName);
-            AddActiveBot(((MonoBehaviour)bot).gameObject, botName);
-        }
+
     }
-    
+
     private void InitializeDropdown()
     {
         _initialized = true;
@@ -106,6 +99,15 @@ public class RGBotManager : MonoBehaviour
         behaviorsDropdown.onValueChanged.AddListener(
         delegate { BehaviorSelected(behaviorsDropdown); }
         );
+
+        var bots = FindObjectsOfType<MonoBehaviour>().OfType<IRGBot>();
+        foreach (var bot in bots)
+        {
+            Type botType = bot.GetType();
+            string fullyQualifiedName = botType.AssemblyQualifiedName;
+            string botName = FindBotName(fullyQualifiedName);
+            AddActiveBot(((MonoBehaviour)bot).gameObject, botName);
+        }
     }
 
     public void OnOverlayClick()
@@ -115,16 +117,11 @@ public class RGBotManager : MonoBehaviour
         {
             InitializeDropdown();
         }
-        InitializeDropdown();
         selectionPanel.SetActive(true);
     }
 
     public void OnOverlayClosed()
     {
-        // gameObjectsDropdown.ClearOptions();
-        // behaviorsDropdown.ClearOptions();
-        // _selectedBehavior = null;
-        // _selectedBotPrefab = null;
         selectionPanel.SetActive(false);
     }
 
