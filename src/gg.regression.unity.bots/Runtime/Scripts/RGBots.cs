@@ -9,7 +9,7 @@ namespace RegressionGames
     {
         private static IRGBotEntry FindBot(string botName)
         {
-            var botList = Resources.Load<IRGBotList>("RGBotList");
+            var botList = Resources.Load<IRGBotList>("RGBots");
 
             var botEntry = botList.botEntries.FirstOrDefault(b => b.botName == botName);
             if (botEntry != null)
@@ -23,7 +23,7 @@ namespace RegressionGames
         private static IRGBotEntry FindBotByType<T>() where T : Component
         {
             var assemblyQualifiedName = typeof(T).AssemblyQualifiedName;
-            var botList = Resources.Load<IRGBotList>("RGBotList");
+            var botList = Resources.Load<IRGBotList>("RGBots");
 
             var botEntry = botList.botEntries.FirstOrDefault(b => b.qualifiedName == assemblyQualifiedName);
             if (botEntry != null)
