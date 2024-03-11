@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames;
@@ -38,6 +39,7 @@ public class RGBotManager : MonoBehaviour
         return _this;
     }
 
+    private bool _initialized = false;
     private bool _cvRecording = false;
     private bool _closeOverlayOnBotStart = true;
     private GameObject _selectedBotPrefab;
@@ -68,6 +70,19 @@ public class RGBotManager : MonoBehaviour
 
     private void Start()
     {
+        var bots = FindObjectsOfType<MonoBehaviour>().OfType<IRGBot>();
+        foreach (var bot in bots)
+        {
+            Type botType = bot.GetType();
+            string fullyQualifiedName = botType.AssemblyQualifiedName;
+            string botName = FindBotName(fullyQualifiedName);
+            AddActiveBot(((MonoBehaviour)bot).gameObject, botName);
+        }
+    }
+    
+    private void InitializeDropdown()
+    {
+        _initialized = true;
         gameObjectsDropdown.ClearOptions();
         behaviorsDropdown.ClearOptions();
 
@@ -91,25 +106,25 @@ public class RGBotManager : MonoBehaviour
         behaviorsDropdown.onValueChanged.AddListener(
         delegate { BehaviorSelected(behaviorsDropdown); }
         );
-
-        var bots = FindObjectsOfType<MonoBehaviour>().OfType<IRGBot>();
-        foreach (var bot in bots)
-        {
-            Type botType = bot.GetType();
-            string fullyQualifiedName = botType.AssemblyQualifiedName;
-            string botName = FindBotName(fullyQualifiedName);
-            AddActiveBot(((MonoBehaviour)bot).gameObject, botName);
-        }
     }
 
     public void OnOverlayClick()
     {
         RGDebug.LogVerbose("Showing RG Overlay Menu");
+        if (!_initialized)
+        {
+            InitializeDropdown();
+        }
+        InitializeDropdown();
         selectionPanel.SetActive(true);
     }
 
     public void OnOverlayClosed()
     {
+        // gameObjectsDropdown.ClearOptions();
+        // behaviorsDropdown.ClearOptions();
+        // _selectedBehavior = null;
+        // _selectedBotPrefab = null;
         selectionPanel.SetActive(false);
     }
 
@@ -176,7 +191,7 @@ public class RGBotManager : MonoBehaviour
     {
         List<string> dropdownOptions = new List<string>();
 
-        var botList = Resources.Load<IRGBotList>("RGBotList");
+        var botList = Resources.Load<IRGBotList>("RGBots");
         if (!botList)
         {
             RGDebug.LogWarning("Failed to load RGBotList from Resources");

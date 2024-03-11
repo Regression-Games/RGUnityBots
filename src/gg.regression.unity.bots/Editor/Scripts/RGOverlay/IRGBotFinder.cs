@@ -4,25 +4,35 @@ using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace RegressionGames
+namespace RegressionGames.Editor
 {
+    [InitializeOnLoad]
     public class IRGBotFinder : UnityEditor.Editor
     {
+        static IRGBotFinder()
+        {
+            // Subscribe to the play mode state changed event
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            // Check if Unity has entered play mode
+            if (state == PlayModeStateChange.EnteredPlayMode)
+            {
+                OnScriptsReloaded();
+            }
+        }
+        
         [DidReloadScripts]
         private static void OnScriptsReloaded()
         {
-            // Only run this method in the Unity editor, not at runtime
-            if (!EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isPlaying)
-            {
-                return;
-            }
-
             // Find the IRGBotList ScriptableObject in your project
             IRGBotList botList = LoadBotList();
 
             if (botList == null)
             {
-                Debug.LogWarning("IRGBotList ScriptableObject not found");
                 return;
             }
 
@@ -56,7 +66,27 @@ namespace RegressionGames
         private static IRGBotList LoadBotList()
         {
             string packagePath = "Packages/gg.regression.unity.bots/Runtime/Resources/RGBotList.asset";
-            return AssetDatabase.LoadAssetAtPath<IRGBotList>(packagePath);
+            IRGBotList botList = AssetDatabase.LoadAssetAtPath<IRGBotList>(packagePath);
+
+            // Ensure the target SO directory exists
+            string targetDirPath = "Assets/RegressionGames/Resources";
+            RGEditorUtils.CreateAllAssetFolders(targetDirPath);
+
+            // Define the path for the new asset
+            string targetAssetPath = $"{targetDirPath}/RGBots.asset";
+
+            // Check if the asset already exists to avoid overwriting it
+            if (AssetDatabase.LoadAssetAtPath<IRGBotList>(targetAssetPath) == null)
+            {
+                // Copy the asset
+                AssetDatabase.CopyAsset(packagePath, targetAssetPath);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+            }
+
+            botList = AssetDatabase.LoadAssetAtPath<IRGBotList>(targetAssetPath);
+            AssetDatabase.Refresh();
+            return botList;
         }
     }
 }
