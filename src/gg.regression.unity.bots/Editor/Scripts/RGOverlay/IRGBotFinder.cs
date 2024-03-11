@@ -24,7 +24,7 @@ namespace RegressionGames.Editor
                 OnScriptsReloaded();
             }
         }
-        
+
         [DidReloadScripts]
         private static void OnScriptsReloaded()
         {
