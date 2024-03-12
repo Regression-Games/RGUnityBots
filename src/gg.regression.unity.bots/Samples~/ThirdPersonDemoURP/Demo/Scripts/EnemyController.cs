@@ -1,25 +1,21 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using RegressionGames;
 using UnityEngine;
 using RGThirdPersonDemo.Events;
 using UnityEngine.EventSystems;
 
 namespace RGThirdPersonDemo
 {
-    [RGStateType("Enemy")]
+
     public class EnemyController : MonoBehaviour, ISelectable
     {
         [SerializeField] private EnemyEntity enemyInfo;
         [SerializeField] private EnemyEvent onEnemySelected;
         [SerializeField] private EnemyEvent onEnemyDeselected;
         [SerializeField] private DamageText enemyDamageText;
-        
+
         private Animator _animator;
         private CheckCameraVisibility _checkCameraVisibility;
         private Transform _player;
-        
+
         private int _currentHp;
         private bool _isSelected = false;
         private bool _isMouseOver = false;
@@ -48,14 +44,14 @@ namespace RGThirdPersonDemo
                 Deselect();
             }
         }
-        
+
         void Update()
         {
             if (Input.GetMouseButtonDown(0))
             {
                 if (EventSystem.current.IsPointerOverGameObject())
                     return;
-                
+
                 if (_isSelected && !_isMouseOver)
                 {
                     // Deselect the object if it's already selected and the mouse click is away from the object.
@@ -83,7 +79,7 @@ namespace RGThirdPersonDemo
         {
             _isMouseOver = false;
         }
-        
+
         public void Select()
         {
             _isSelected = true;
@@ -102,7 +98,7 @@ namespace RGThirdPersonDemo
             enemyDamageText.SetDamageText(Mathf.Round(damage).ToString());
             _currentHp -= damage;
         }
-        
+
         /*
          * Gets the enemy's name from its assigned info
          */
@@ -132,16 +128,14 @@ namespace RGThirdPersonDemo
         /*
          * Gets the enemies current hp
          */
-        [RGState("CurrentHealth")]
         public int GetCurrentHp()
         {
             return _currentHp;
         }
-        
+
         /*
          * Gets the enemy's total HP from its assigned info
          */
-        [RGState("MaxHealth")]
         public int GetTotalHp()
         {
             if (!enemyInfo)
@@ -161,7 +155,7 @@ namespace RGThirdPersonDemo
             position.y = 1f;
             return position;
         }
-        
+
         /*
          * The enemy will look at the player if is currently selectly
          */
