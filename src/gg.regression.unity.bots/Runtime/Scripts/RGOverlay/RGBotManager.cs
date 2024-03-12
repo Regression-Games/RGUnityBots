@@ -117,6 +117,17 @@ public class RGBotManager : MonoBehaviour
         {
             InitializeDropdown();
         }
+
+        // check for bots that were destroyed in a script
+        var activeBots = GetComponentsInChildren<RGBotEntry>(true);
+        foreach (var activeBot in activeBots)
+        {
+            if (activeBot.IsRuntimeObjectDestroyed())
+            {
+                Destroy(activeBot.gameObject);
+            }
+        }
+
         selectionPanel.SetActive(true);
     }
 
