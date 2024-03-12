@@ -15,10 +15,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             else
             {
                 var val = (Mask)value;
-                writer.WriteStartObject();
-                writer.WritePropertyName("showMaskGraphic");
-                writer.WriteValue(val.showMaskGraphic);
-                writer.WriteEndObject();
+                // raw is way faster than using the libraries
+                writer.WriteRawValue("{\"showMaskGraphic\":" + val.showMaskGraphic.ToString().ToLower()+"}");
             }
         }
 

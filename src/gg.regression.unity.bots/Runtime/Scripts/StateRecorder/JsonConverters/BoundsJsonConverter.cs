@@ -6,6 +6,26 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class BoundsJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        public static string ToJsonString(Bounds? val)
+        {
+            if (val != null)
+            {
+                var center = val.Value.center;
+                var extents = val.Value.extents;
+                return "{\"center\":{\"x\":"
+                    + center.x
+                    + ",\"y\":" + center.y
+                    + ",\"z\":" + center.z
+                    + "},"
+                    + "\"extents\":{\"x\":"
+                    + extents.x
+                    + ",\"y\":" + extents.y
+                    + ",\"z\":" + extents.z
+                    + "}}";
+            }
+            return "null";
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,34 +34,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Bounds)value;
-                var center = val.center;
-                var extents = val.extents;
-                writer.WriteStartObject();
-
-                writer.WritePropertyName("center");
-
-                writer.WriteStartObject();
-                writer.WritePropertyName("x");
-                writer.WriteValue(center.x);
-                writer.WritePropertyName("y");
-                writer.WriteValue(center.y);
-                writer.WritePropertyName("z");
-                writer.WriteValue(center.z);
-                writer.WriteEndObject();
-
-                writer.WritePropertyName("extents");
-
-                writer.WriteStartObject();
-                writer.WritePropertyName("x");
-                writer.WriteValue(extents.x);
-                writer.WritePropertyName("y");
-                writer.WriteValue(extents.y);
-                writer.WritePropertyName("z");
-                writer.WriteValue(extents.z);
-                writer.WriteEndObject();
-
-                writer.WriteEndObject();
+                // raw is way faster than using the libraries
+                writer.WriteRawValue(ToJsonString((Bounds)value));
             }
         }
 

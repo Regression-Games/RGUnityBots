@@ -16,22 +16,15 @@ namespace RegressionGames.StateRecorder.JsonConverters
             else
             {
                 var val = (TextMeshPro)value;
-                writer.WriteStartObject();
-                writer.WritePropertyName("text");
-                writer.WriteValue(val.text);
-                writer.WritePropertyName("textStyle");
-                writer.WriteValue(val.textStyle.name);
-                writer.WritePropertyName("font");
-                writer.WriteValue(val.font.name);
-                writer.WritePropertyName("fontStyle");
-                writer.WriteValue(val.fontStyle.ToString());
-                writer.WritePropertyName("fontSize");
-                writer.WriteValue(val.fontSize);
-                writer.WritePropertyName("color");
-                serializer.Serialize(writer, val.color, typeof(Color));
-                writer.WritePropertyName("raycastTarget");
-                writer.WriteValue(val.raycastTarget);
-                writer.WriteEndObject();
+
+                // raw is way faster than using the libraries
+                writer.WriteRawValue("{\"text\":" + JsonConvert.ToString(val.text)
+                             +",\"textStyle\":" + JsonConvert.ToString(val.textStyle.name)
+                             +",\"font\":" + JsonConvert.ToString(val.font.name)
+                             +",\"fontStyle\":" + JsonConvert.ToString(val.fontStyle)
+                             +",\"fontSize\":" + val.fontSize
+                             +",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
+                             +",\"raycastTarget\":" + val.raycastTarget.ToString().ToLower() +"}");
             }
         }
 

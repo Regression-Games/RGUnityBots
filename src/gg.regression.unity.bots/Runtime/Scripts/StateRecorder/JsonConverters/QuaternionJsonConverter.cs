@@ -15,16 +15,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
             else
             {
                 var val = (Quaternion)value;
-                writer.WriteStartObject();
-                writer.WritePropertyName("x");
-                writer.WriteValue(val.x);
-                writer.WritePropertyName("y");
-                writer.WriteValue(val.y);
-                writer.WritePropertyName("z");
-                writer.WriteValue(val.z);
-                writer.WritePropertyName("w");
-                writer.WriteValue(val.w);
-                writer.WriteEndObject();
+                // raw is way faster than using the libraries
+                writer.WriteRawValue("{\"x\":"+val.x
+                                         +",\"y\":"+val.y
+                                         +",\"z\":"+val.z
+                                         +",\"w\":"+val.w+"}");
             }
         }
 

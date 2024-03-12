@@ -16,8 +16,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                writer.WriteStartObject();
-                writer.WriteEndObject();
+                writer.WriteRawValue("{}");
             }
         }
 

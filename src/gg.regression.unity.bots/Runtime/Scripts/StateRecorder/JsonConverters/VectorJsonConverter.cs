@@ -14,26 +14,15 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
+                // raw is way faster than using the libraries
                 if (value is Vector2 val)
                 {
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("x");
-                    writer.WriteValue(val.x);
-                    writer.WritePropertyName("y");
-                    writer.WriteValue(val.y);
-                    writer.WriteEndObject();
+                    writer.WriteRawValue("{\"x\":"+val.x+",\"y\":"+val.y+"}");
                 }
                 else
                 {
                     var valZ = (Vector3)value;
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("x");
-                    writer.WriteValue(valZ.x);
-                    writer.WritePropertyName("y");
-                    writer.WriteValue(valZ.y);
-                    writer.WritePropertyName("z");
-                    writer.WriteValue(valZ.z);
-                    writer.WriteEndObject();
+                    writer.WriteRawValue("{\"x\":"+valZ.x+",\"y\":"+valZ.y+",\"z\":"+valZ.z+"}");
                 }
             }
         }

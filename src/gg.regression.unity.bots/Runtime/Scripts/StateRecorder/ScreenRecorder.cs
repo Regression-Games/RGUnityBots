@@ -2,19 +2,22 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using RegressionGames.StateActionTypes;
+using Newtonsoft.Json.Serialization;
 using RegressionGames.StateRecorder.JsonConverters;
+using TMPro;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.UI;
 using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 
 #if UNITY_EDITOR
@@ -292,7 +295,7 @@ namespace RegressionGames.StateRecorder
 
                         // serialize to json byte[]
                         var jsonData = Encoding.UTF8.GetBytes(
-                            JsonConvert.SerializeObject(frameState, Formatting.Indented, _serializerSettings)
+                            JsonConvert.SerializeObject(frameState, Formatting.None, _serializerSettings)
                         );
 
                         var theScreenshot = screenShot;
@@ -392,37 +395,9 @@ namespace RegressionGames.StateRecorder
 
         private readonly JsonSerializerSettings _serializerSettings = new()
         {
-            Formatting = Formatting.Indented,
+            Formatting = Formatting.None,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-
-            Converters = new List<JsonConverter>
-            {
-                new ColorJsonConverter(),
-                new BoundsJsonConverter(),
-                new VectorIntJsonConverter(),
-                new VectorJsonConverter(),
-                new QuaternionJsonConverter(),
-                new ImageJsonConverter(),
-                new ButtonJsonConverter(),
-                new TextMeshProJsonConverter(),
-                new TextMeshProUGUIJsonConverter(),
-                new TextJsonConverter(),
-                new RectJsonConverter(),
-                new RawImageJsonConverter(),
-                new MaskJsonConverter(),
-                new AnimatorJsonConverter(),
-                new RigidbodyJsonConverter(),
-                new ColliderJsonConverter(),
-                new Collider2DJsonConverter(),
-                new ParticleSystemJsonConverter(),
-                new MeshFilterJsonConverter(),
-                new MeshRendererJsonConverter(),
-                new SkinnedMeshRendererJsonConverter(),
-                new NavMeshAgentJsonConverter(),
-                new NetworkVariableJsonConverter(),
-                // KEEP THIS UnityObjectJsonConverter AT THE END OF THE LIST AS A FALLBACK TO PREVENT PERFORMANCE EXPLOSION
-                new UnityObjectFallbackJsonConverter()
-            },
+            ContractResolver = ConverterContractResolver.Instance,
             Error = delegate (object _, ErrorEventArgs args)
             {
                 // just eat certain errors
@@ -434,5 +409,145 @@ namespace RegressionGames.StateRecorder
                 args.ErrorContext.Handled = true;
             }
         };
+    }
+
+    public class ConverterContractResolver : DefaultContractResolver
+    {
+        public static readonly ConverterContractResolver Instance = new ();
+
+        protected override JsonContract CreateContract(Type objectType)
+        {
+            JsonContract contract = base.CreateContract(objectType);
+
+            // this will only be called once and then cached
+            if (objectType == typeof(Color) )
+            {
+                contract.Converter = new ColorJsonConverter();
+            }
+            else if (objectType == typeof(Bounds) )
+            {
+                contract.Converter = new BoundsJsonConverter();
+            }
+            else if (objectType == typeof(Vector2Int) || objectType == typeof(Vector3Int) )
+            {
+                contract.Converter = new VectorIntJsonConverter();
+            }
+            else if (objectType == typeof(Vector2) || objectType == typeof(Vector3) || objectType == typeof(Vector4) )
+            {
+                contract.Converter = new VectorJsonConverter();
+            }
+            else if (objectType == typeof(Quaternion) )
+            {
+                contract.Converter = new QuaternionJsonConverter();
+            }
+            else if (objectType == typeof(Image) )
+            {
+                contract.Converter = new ImageJsonConverter();
+            }
+            else if (objectType == typeof(Button) )
+            {
+                contract.Converter = new ButtonJsonConverter();
+            }
+            else if (objectType == typeof(TextMeshPro) )
+            {
+                contract.Converter = new TextMeshProJsonConverter();
+            }
+            else  if (objectType == typeof(TextMeshProUGUI) )
+            {
+                contract.Converter = new TextMeshProUGUIJsonConverter();
+            }
+            else if (objectType == typeof(Text) )
+            {
+                contract.Converter = new TextJsonConverter();
+            }
+            else if (objectType == typeof(Rect) )
+            {
+                contract.Converter = new RectJsonConverter();
+            }
+            else  if (objectType == typeof(RawImage) )
+            {
+                contract.Converter = new RawImageJsonConverter();
+            }
+            else if (objectType == typeof(Mask) )
+            {
+                contract.Converter = new MaskJsonConverter();
+            }
+            else if (objectType == typeof(Animator) )
+            {
+                contract.Converter = new AnimatorJsonConverter();
+            }
+            else if (objectType == typeof(Rigidbody) )
+            {
+                contract.Converter = new RigidbodyJsonConverter();
+            }
+            else if (objectType == typeof(Rigidbody2D) )
+            {
+                contract.Converter = new Rigidbody2DJsonConverter();
+            }
+            else if (objectType == typeof(Collider) )
+            {
+                contract.Converter = new ColliderJsonConverter();
+            }
+            else if (objectType == typeof(Collider2D) )
+            {
+                contract.Converter = new Collider2DJsonConverter();
+            }
+            else if (objectType == typeof(ParticleSystem) )
+            {
+                contract.Converter = new ParticleSystemJsonConverter();
+            }
+            else if (objectType == typeof(MeshFilter) )
+            {
+                contract.Converter = new MeshFilterJsonConverter();
+            }
+            else if (objectType == typeof(MeshRenderer) )
+            {
+                contract.Converter = new MeshRendererJsonConverter();
+            }
+            else if (objectType == typeof(SkinnedMeshRenderer) )
+            {
+                contract.Converter = new SkinnedMeshRendererJsonConverter();
+            }
+            else if (objectType == typeof(NavMeshAgent) )
+            {
+                contract.Converter = new NavMeshAgentJsonConverter();
+            }
+            else if (IsUnityType(objectType))
+            {
+                if (NetworkVariableJsonConverter.Convertable(objectType))
+                {
+                    // only support when netcode is in the project
+                    contract.Converter = new NetworkVariableJsonConverter();
+                }
+                else if (objectType != NetworkVariableJsonConverter.NetworkObjectType)
+                {
+                    contract.Converter = new UnityObjectFallbackJsonConverter();
+                }
+            }
+
+            return contract;
+        }
+
+        // leave out bossroom types as that is our main test project
+        // (isUnity, isBossRoom)
+        private readonly Dictionary<Assembly, (bool,bool)> _unityAssemblies = new();
+
+        private bool IsUnityType(Type objectType)
+        {
+            var assembly = objectType.Assembly;
+            if (!_unityAssemblies.TryGetValue(assembly, out var isUnityType))
+            {
+                var isUnity = assembly.FullName.StartsWith("Unity");
+                var isBossRoom = false;
+                if (isUnity)
+                {
+                    isBossRoom = assembly.FullName.StartsWith("Unity.BossRoom");
+                }
+                isUnityType = (isUnity, isBossRoom);
+                _unityAssemblies[assembly] = isUnityType;
+            }
+
+            return isUnityType is { Item1: true, Item2: false };
+        }
     }
 }

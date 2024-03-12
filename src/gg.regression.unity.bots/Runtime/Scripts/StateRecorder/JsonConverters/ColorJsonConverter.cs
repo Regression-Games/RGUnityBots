@@ -9,19 +9,22 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class ColorJsonConverter : Newtonsoft.Json.JsonConverter
     {
 
+        public static string ToJsonString(Color? val)
+        {
+            if (val != null)
+            {
+                return "{\"r\":" + val.Value.r
+                                 + ",\"g\":" + val.Value.g
+                                 + ",\"b\":" + val.Value.b
+                                 + ",\"a\":" + val.Value.a + "}";
+            }
+            return "null";
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            var val = (Color)value;
-            writer.WriteStartObject();
-            writer.WritePropertyName("r");
-            writer.WriteValue(val.r);
-            writer.WritePropertyName("g");
-            writer.WriteValue(val.g);
-            writer.WritePropertyName("b");
-            writer.WriteValue(val.b);
-            writer.WritePropertyName("a");
-            writer.WriteValue(val.a);
-            writer.WriteEndObject();
+            // raw is way faster than using the libraries
+            writer.WriteRawValue(ToJsonString((Color?)value));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
