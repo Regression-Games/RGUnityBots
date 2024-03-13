@@ -1,5 +1,6 @@
 using System;
 using RegressionGames.RGBotLocalRuntime;
+using UnityEngine;
 
 namespace RegressionGames.BehaviorTree
 {
@@ -42,7 +43,7 @@ namespace RegressionGames.BehaviorTree
         {
         }
 
-        protected override NodeStatus Execute(RG rgObject)
+        protected override NodeStatus Execute(GameObject rgObject)
         {
             _ = Child?.Invoke(rgObject);
             return NodeStatus.Success;
@@ -62,7 +63,7 @@ namespace RegressionGames.BehaviorTree
         {
         }
 
-        protected override NodeStatus Execute(RG rgObject)
+        protected override NodeStatus Execute(GameObject rgObject)
         {
             _ = Child?.Invoke(rgObject);
             return NodeStatus.Failure;
@@ -87,7 +88,7 @@ namespace RegressionGames.BehaviorTree
         {
         }
 
-        protected override NodeStatus Execute(RG rgObject) =>
+        protected override NodeStatus Execute(GameObject rgObject) =>
             Child?.Invoke(rgObject) switch
             {
                 null => throw new InvalidOperationException("Invert node must have a child"),

@@ -1,4 +1,5 @@
 using RegressionGames.RGBotLocalRuntime;
+using UnityEngine;
 
 namespace RegressionGames.BehaviorTree
 {
@@ -9,7 +10,7 @@ namespace RegressionGames.BehaviorTree
     /// </summary>
     public class SelectorNode : ContainerNode
     {
-        protected override NodeStatus Execute(RG rgObject)
+        protected override NodeStatus Execute(GameObject rgObject)
         {
             foreach (var child in Children)
             {

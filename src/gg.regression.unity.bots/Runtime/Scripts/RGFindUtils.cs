@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
-using RegressionGames.StateActionTypes;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -53,8 +51,8 @@ namespace RegressionGames
 
         private void UpdateCache()
         {
-            var gameObjects = FindStatefulAndActionableBehaviours().Select(v => v.gameObject).Distinct();
-            foreach (var obj in gameObjects)
+            var objects = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+            foreach (var obj in objects)
             {
                 _objectCache[obj.transform.GetInstanceID()] = obj;
             }
@@ -70,19 +68,6 @@ namespace RegressionGames
         {
             var buttons = Object.FindObjectsByType<Button>(FindObjectsSortMode.None);
             return buttons;
-        }
-
-        /**
-         * <summary>WARNING:  Call this no more than once per tick, it evaluates every behaviour in the scene.  VERY EXPENSIVE</summary>
-         */
-        public IEnumerable<MonoBehaviour> FindStatefulAndActionableBehaviours()
-        {
-            var statefulBehaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
-                .Where(v => BehavioursWithStateOrActions.GetRGStateEntityMappingForBehaviour(v) != null
-                            || BehavioursWithStateOrActions.GetRGActionsMappingForBehaviour(v) != null
-                            || v is IRGStateBehaviour
-                            || v is RGActionBehaviour);
-            return statefulBehaviours;
         }
     }
 }

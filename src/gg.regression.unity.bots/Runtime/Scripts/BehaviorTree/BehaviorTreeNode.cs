@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using RegressionGames.RGBotLocalRuntime;
+using UnityEngine;
 
 namespace RegressionGames.BehaviorTree
 {
@@ -30,11 +31,11 @@ namespace RegressionGames.BehaviorTree
         }
 
         /// <summary>
-        /// Executes the node, given the provided <see cref="RG"/> object as context.
+        /// Executes the node, given the provided <see cref="GameObject"/> object as context.
         /// </summary>
-        /// <param name="rgObject">The <see cref="RG"/> context object.</param>
+        /// <param name="rgObject">The <see cref="GameObject"/> context object.</param>
         /// <returns>A <see cref="NodeStatus"/> indicating the result of executing the node.</returns>
-        public NodeStatus Invoke(RG rgObject)
+        public NodeStatus Invoke(GameObject rgObject)
         {
             // We use a public wrapper to call the protected Execute method so that we can log the result.
             var result = Execute(rgObject);
@@ -43,11 +44,11 @@ namespace RegressionGames.BehaviorTree
         }
 
         /// <summary>
-        /// Executes the node, given the provided <see cref="RG"/> object as context.
+        /// Executes the node, given the provided <see cref="GameObject"/> object as context.
         /// </summary>
-        /// <param name="rgObject">The <see cref="RG"/> context object.</param>
+        /// <param name="rgObject">The <see cref="GameObject"/> context object.</param>
         /// <returns>A <see cref="NodeStatus"/> indicating the result of executing the node.</returns>
-        protected abstract NodeStatus Execute(RG rgObject);
+        protected abstract NodeStatus Execute(GameObject rgObject);
 
         /// <summary>
         /// Sets a data value with the specified key and value.
