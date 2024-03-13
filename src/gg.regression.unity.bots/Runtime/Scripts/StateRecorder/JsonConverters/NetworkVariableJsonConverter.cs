@@ -10,7 +10,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
     {
         // only works if they include this type in their runtime
         public static readonly Type NetworkVariableType = Type.GetType("Unity.Netcode.NetworkVariable`1, Unity.Netcode.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", throwOnError: false);
-        public static readonly Type NetworkObjectType = Type.GetType("Unity.Netcode.NetworkObject, Unity.Netcode.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", throwOnError: false);
+        // network behaviours already expose the networkobject data.. exposing it again is duplication in the json
+        //public static readonly Type NetworkObjectType = Type.GetType("Unity.Netcode.NetworkObject, Unity.Netcode.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", throwOnError: false);
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {

@@ -35,7 +35,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
         {
             var fullName = objectType.FullName;
             // we have added custom serializers for specific unity types
-            if (NetworkVariableJsonConverter.Convertable(objectType) || NetworkVariableJsonConverter.NetworkObjectType == objectType)
+            if (NetworkVariableJsonConverter.Convertable(objectType))
             {
                 return false;
             }

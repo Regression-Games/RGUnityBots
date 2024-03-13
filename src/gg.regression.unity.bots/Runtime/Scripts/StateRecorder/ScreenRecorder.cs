@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -294,7 +295,7 @@ namespace RegressionGames.StateRecorder
 
                         // serialize to json byte[]
                         var jsonData = Encoding.UTF8.GetBytes(
-                            JsonConvert.SerializeObject(frameState, Formatting.None, JsonSerializerSettings)
+                            JsonConvert.SerializeObject(frameState, Formatting.Indented, JsonSerializerSettings)
                         );
 
                         var theScreenshot = screenShot;
@@ -406,7 +407,9 @@ namespace RegressionGames.StateRecorder
                 }
 
                 args.ErrorContext.Handled = true;
-            }
+            },
+            // state, behaviours, state, field, child field ... so we can basically see the vector values of a field on a behaviour on an object, but stop there
+            //MaxDepth = 5
         };
     }
 
@@ -518,7 +521,7 @@ namespace RegressionGames.StateRecorder
                     // only support when netcode is in the project
                     contract.Converter = new NetworkVariableJsonConverter();
                 }
-                else if (objectType != NetworkVariableJsonConverter.NetworkObjectType)
+                else
                 {
                     contract.Converter = new UnityObjectFallbackJsonConverter();
                 }
