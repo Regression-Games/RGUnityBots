@@ -16,7 +16,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (MeshFilter)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"mesh\":" + (val.mesh != null ? "\"" + val.mesh.name + "\"":"null")+"}");
+                writer.WriteRawValue("{\"mesh\":" + (val.mesh != null ? "\"" + val.mesh.name + "\"" : "null") + "}");
             }
         }
 

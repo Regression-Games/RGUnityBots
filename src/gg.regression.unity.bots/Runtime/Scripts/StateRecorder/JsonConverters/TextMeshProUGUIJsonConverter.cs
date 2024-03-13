@@ -18,12 +18,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 var val = (TextMeshProUGUI)value;
                 // raw is way faster than using the libraries
                 writer.WriteRawValue("{\"text\":" + JsonConvert.ToString(val.text)
-                                                   +",\"textStyle\":" + JsonConvert.ToString(val.textStyle.name)
-                                                                                             +",\"font\":" + JsonConvert.ToString(val.font.name)
-                                                                                                                                  +",\"fontStyle\":" + JsonConvert.ToString(val.fontStyle)
-                                                                                                                                                                            +",\"fontSize\":" + val.fontSize
-                                                                                                                                                                            +",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                                                                                                                                            +",\"raycastTarget\":" + val.raycastTarget.ToString().ToLower() +"}");
+                                                  + ",\"textStyle\":" + JsonConvert.ToString(val.textStyle.name)
+                                                  + ",\"font\":" + JsonConvert.ToString(val.font.name)
+                                                  + ",\"fontStyle\":" + JsonConvert.ToString(val.fontStyle)
+                                                  + ",\"fontSize\":" + val.fontSize
+                                                  + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
+                                                  + ",\"raycastTarget\":" + val.raycastTarget.ToString().ToLower()
+                                                  + "}");
             }
         }
 

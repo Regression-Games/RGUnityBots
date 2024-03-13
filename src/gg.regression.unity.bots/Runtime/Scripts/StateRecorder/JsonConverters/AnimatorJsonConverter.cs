@@ -16,11 +16,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (Animator)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"controller\":"+JsonConvert.ToString(val.runtimeAnimatorController.name)
-                +",\"avatar\":"+JsonConvert.ToString(val.avatar.name)
-                +",\"applyRootMotion\":"+val.applyRootMotion.ToString().ToLower()
-                +",\"updateMode\":"+JsonConvert.ToString(val.updateMode)
-                +",\"cullingMode\":"+JsonConvert.ToString(val.cullingMode)+"}");
+                writer.WriteRawValue("{\"controller\":" + JsonConvert.ToString(val.runtimeAnimatorController.name)
+                                                        + ",\"avatar\":" + JsonConvert.ToString(val.avatar.name)
+                                                        + ",\"applyRootMotion\":" + val.applyRootMotion.ToString().ToLower()
+                                                        + ",\"updateMode\":" + JsonConvert.ToString(val.updateMode)
+                                                        + ",\"cullingMode\":" + JsonConvert.ToString(val.cullingMode) + "}");
             }
         }
 

@@ -6,6 +6,28 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class VectorIntJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        public static string ToJsonString(Vector2Int? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + value.x + ",\"y\":" + value.y + "}";
+            }
+
+            return "null";
+        }
+
+        public static string ToJsonString(Vector3Int? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + value.x + ",\"y\":" + value.y + ",\"z\":" + value.z + "}";
+            }
+
+            return "null";
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -17,13 +39,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 if (value is Vector2Int val)
                 {
                     // raw is way faster than using the libraries
-                    writer.WriteRawValue("{\"x\":"+val.x+",\"y\":"+val.y+"}");
+                    writer.WriteRawValue(ToJsonString(val));
                 }
                 else
                 {
                     var valZ = (Vector3Int)value;
                     // raw is way faster than using the libraries
-                    writer.WriteRawValue("{\"x\":"+valZ.x+",\"y\":"+valZ.y+",\"z\":"+valZ.z+"}");
+                    writer.WriteRawValue(ToJsonString(valZ));
                 }
             }
         }

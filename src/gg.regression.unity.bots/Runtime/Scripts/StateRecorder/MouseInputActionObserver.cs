@@ -40,6 +40,7 @@ namespace RegressionGames.StateRecorder
                 return (previous.position.x) == (this.position.x)
                        && (previous.position.y) == (this.position.y);
             }
+
             return false;
         }
 
@@ -142,6 +143,7 @@ namespace RegressionGames.StateRecorder
                         }
                         // the case where buttons are released is handled by the !ButtonStatesEqual check at the start of this if/else chain
                     }
+
                     _priorMouseState = newMouseState;
                 }
             }
@@ -184,6 +186,7 @@ namespace RegressionGames.StateRecorder
                     result.Add(action);
                 }
             }
+
             return result;
         }
     }

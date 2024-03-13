@@ -16,7 +16,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (NavMeshAgent)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"agentType\":" + JsonConvert.ToString(NavMesh.GetSettingsNameFromID(val.agentTypeID))+"}");
+                writer.WriteRawValue("{\"agentType\":" + JsonConvert.ToString(NavMesh.GetSettingsNameFromID(val.agentTypeID)) + "}");
             }
         }
 

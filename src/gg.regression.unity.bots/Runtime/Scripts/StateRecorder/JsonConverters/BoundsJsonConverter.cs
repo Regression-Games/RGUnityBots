@@ -10,19 +10,20 @@ namespace RegressionGames.StateRecorder.JsonConverters
         {
             if (val != null)
             {
-                var center = val.Value.center;
-                var extents = val.Value.extents;
+                var value = val.Value;
+                var center = value.center;
+                var extents = value.extents;
                 return "{\"center\":{\"x\":"
-                    + center.x
-                    + ",\"y\":" + center.y
-                    + ",\"z\":" + center.z
-                    + "},"
-                    + "\"extents\":{\"x\":"
-                    + extents.x
-                    + ",\"y\":" + extents.y
-                    + ",\"z\":" + extents.z
-                    + "}}";
+                       + center.x
+                       + ",\"y\":" + center.y
+                       + ",\"z\":" + center.z
+                       + "},\"extents\":{\"x\":"
+                       + extents.x
+                       + ",\"y\":" + extents.y
+                       + ",\"z\":" + extents.z
+                       + "}}";
             }
+
             return "null";
         }
 

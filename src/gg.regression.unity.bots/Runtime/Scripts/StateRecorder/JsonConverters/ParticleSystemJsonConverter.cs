@@ -17,7 +17,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 var val = (ParticleSystem)value;
                 // raw is way faster than using the libraries
                 writer.WriteRawValue("{\"name\":" + JsonConvert.ToString(val.name)
-                                            + ",\"isPlaying\":" + val.isPlaying.ToString().ToLower()+"}");
+                                                  + ",\"isPlaying\":" + val.isPlaying.ToString().ToLower() + "}");
             }
         }
 

@@ -16,14 +16,14 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (Rigidbody)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"position\":"+val.position
-                                        +",\"rotation\":"+val.rotation
-                                        +",\"velocity\":"+val.velocity
-                                        +",\"mass\":"+val.mass
-                                        +",\"drag\":"+val.drag
-                                        +",\"angularDrag\":"+val.angularDrag
-                                        +",\"useGravity\":"+val.useGravity.ToString().ToLower()
-                                        +",\"isKinematic\":"+val.isKinematic.ToString().ToLower()+"}");
+                writer.WriteRawValue("{\"position\":" + val.position
+                                                      + ",\"rotation\":" + val.rotation
+                                                      + ",\"velocity\":" + val.velocity
+                                                      + ",\"mass\":" + val.mass
+                                                      + ",\"drag\":" + val.drag
+                                                      + ",\"angularDrag\":" + val.angularDrag
+                                                      + ",\"useGravity\":" + val.useGravity.ToString().ToLower()
+                                                      + ",\"isKinematic\":" + val.isKinematic.ToString().ToLower() + "}");
             }
         }
 

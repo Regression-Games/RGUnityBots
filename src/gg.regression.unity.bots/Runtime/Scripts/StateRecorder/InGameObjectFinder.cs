@@ -1,16 +1,11 @@
-using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using StateRecorder.Types;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Component = UnityEngine.Component;
 
 namespace RegressionGames.StateRecorder
 {
-
-
     public class TransformStatus
     {
         public bool? HasKeyTypes;
@@ -181,7 +176,6 @@ namespace RegressionGames.StateRecorder
             var onCamera = worldSpaceBounds != null;
             if (onCamera)
             {
-
                 // convert world space to screen space
                 var c = worldSpaceBounds.Value.center;
                 var e = worldSpaceBounds.Value.extents;
@@ -294,16 +288,16 @@ namespace RegressionGames.StateRecorder
                         foreach (var myRigidbody in myRigidbodies)
                         {
                             rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = myRigidbody.rotation,
-                                velocity = myRigidbody.velocity,
-                                drag = myRigidbody.drag,
-                                angularDrag = myRigidbody.angularDrag,
-                                useGravity = myRigidbody.useGravity,
-                                isKinematic = myRigidbody.isKinematic
-                            }
+                                {
+                                    path = GetUniqueTransformPath(myRigidbody.transform),
+                                    position = myRigidbody.position,
+                                    rotation = myRigidbody.rotation,
+                                    velocity = myRigidbody.velocity,
+                                    drag = myRigidbody.drag,
+                                    angularDrag = myRigidbody.angularDrag,
+                                    useGravity = myRigidbody.useGravity,
+                                    isKinematic = myRigidbody.isKinematic
+                                }
                             );
                         }
                     }
@@ -313,12 +307,12 @@ namespace RegressionGames.StateRecorder
                         foreach (var myRigidbody in myRigidbodies2D)
                         {
                             rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
-                                velocity = myRigidbody.velocity
-                            }
+                                {
+                                    path = GetUniqueTransformPath(myRigidbody.transform),
+                                    position = myRigidbody.position,
+                                    rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
+                                    velocity = myRigidbody.velocity
+                                }
                             );
                         }
                     }
@@ -388,20 +382,23 @@ namespace RegressionGames.StateRecorder
                             //It starts bottom left and rotates to top left, then top right, and finally bottom right.
                             //Note that bottom left, for example, is an (x, y, z) vector with x being left and y being bottom.
                             rectTransforms[0].GetWorldCorners(screenSpaceCorners);
-                            var size = screenSpaceCorners[2] - screenSpaceCorners[0];
-                            var center = screenSpaceCorners[0] + (screenSpaceCorners[2] - screenSpaceCorners[0]) / 2;
-                            var screenSpaceBounds = new Bounds(center, size);
+
+                            var min = screenSpaceCorners[0];
+                            var max = screenSpaceCorners[2];
 
                             for (var i = 1; i < rectTransforms.Length; ++i)
                             {
                                 rectTransforms[i].GetWorldCorners(screenSpaceCorners);
-                                screenSpaceBounds.Encapsulate(screenSpaceCorners[0]);
-                                screenSpaceBounds.Encapsulate(screenSpaceCorners[2]);
+                                min = Vector3.Min(min, screenSpaceCorners[0]);
+                                max = Vector3.Max(max, screenSpaceCorners[2]);
                             }
 
                             // make sure the screen space bounds has a non-zero Z size around 0
-                            screenSpaceBounds.center.Set(screenSpaceBounds.center.x, screenSpaceBounds.center.y, 0f);
-                            screenSpaceBounds.size.Set(screenSpaceBounds.size.x, screenSpaceBounds.size.y, 0.1f);
+                            var size = max - min;
+                            size.z = 0.1f;
+                            var center = min + ((max - min) / 2);
+                            center.z = 0f;
+                            var screenSpaceBounds = new Bounds(center, size);
 
                             var gameObjectPath = GetUniqueTransformPath(statefulUIObject.transform);
                             var behaviours = statefulUIObject.GetComponents<Behaviour>()

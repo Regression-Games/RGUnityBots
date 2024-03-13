@@ -169,7 +169,6 @@ namespace RegressionGames.StateRecorder
         {
             if (priorState != null)
             {
-
                 // we have to treat
 
                 var scenesInPriorFrame = priorState.Select(s => s.scene).Distinct().ToList();
@@ -217,7 +216,7 @@ namespace RegressionGames.StateRecorder
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (isKeyFrame
                     || (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS > 0 ? recordingMinFPS : 1))
-                    )
+                   )
                 {
                     var performanceMetrics = new PerformanceMetricData()
                     {
@@ -295,7 +294,7 @@ namespace RegressionGames.StateRecorder
 
                         // serialize to json byte[]
                         var jsonData = Encoding.UTF8.GetBytes(
-                            JsonConvert.SerializeObject(frameState, Formatting.None, _serializerSettings)
+                            JsonConvert.SerializeObject(frameState, Formatting.Indented, JsonSerializerSettings)
                         );
 
                         var theScreenshot = screenShot;
@@ -315,7 +314,7 @@ namespace RegressionGames.StateRecorder
                                     // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
                                     _texture2Ds.Enqueue(theScreenshot);
                                 }
-                        )
+                            )
                         ));
                         // null this out so the queue can clean it up, not this do
                         screenShot = null;
@@ -393,12 +392,12 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private readonly JsonSerializerSettings _serializerSettings = new()
+        public static readonly JsonSerializerSettings JsonSerializerSettings = new()
         {
             Formatting = Formatting.None,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            ContractResolver = ConverterContractResolver.Instance,
-            Error = delegate (object _, ErrorEventArgs args)
+            ContractResolver = JsonConverterContractResolver.Instance,
+            Error = delegate(object _, ErrorEventArgs args)
             {
                 // just eat certain errors
                 if (args.ErrorContext.Error.InnerException is UnityException)
@@ -411,104 +410,104 @@ namespace RegressionGames.StateRecorder
         };
     }
 
-    public class ConverterContractResolver : DefaultContractResolver
+    public class JsonConverterContractResolver : DefaultContractResolver
     {
-        public static readonly ConverterContractResolver Instance = new ();
+        public static readonly JsonConverterContractResolver Instance = new();
 
         protected override JsonContract CreateContract(Type objectType)
         {
             JsonContract contract = base.CreateContract(objectType);
 
             // this will only be called once and then cached
-            if (objectType == typeof(Color) )
+            if (objectType == typeof(Color))
             {
                 contract.Converter = new ColorJsonConverter();
             }
-            else if (objectType == typeof(Bounds) )
+            else if (objectType == typeof(Bounds))
             {
                 contract.Converter = new BoundsJsonConverter();
             }
-            else if (objectType == typeof(Vector2Int) || objectType == typeof(Vector3Int) )
+            else if (objectType == typeof(Vector2Int) || objectType == typeof(Vector3Int))
             {
                 contract.Converter = new VectorIntJsonConverter();
             }
-            else if (objectType == typeof(Vector2) || objectType == typeof(Vector3) || objectType == typeof(Vector4) )
+            else if (objectType == typeof(Vector2) || objectType == typeof(Vector3) || objectType == typeof(Vector4))
             {
                 contract.Converter = new VectorJsonConverter();
             }
-            else if (objectType == typeof(Quaternion) )
+            else if (objectType == typeof(Quaternion))
             {
                 contract.Converter = new QuaternionJsonConverter();
             }
-            else if (objectType == typeof(Image) )
+            else if (objectType == typeof(Image))
             {
                 contract.Converter = new ImageJsonConverter();
             }
-            else if (objectType == typeof(Button) )
+            else if (objectType == typeof(Button))
             {
                 contract.Converter = new ButtonJsonConverter();
             }
-            else if (objectType == typeof(TextMeshPro) )
+            else if (objectType == typeof(TextMeshPro))
             {
                 contract.Converter = new TextMeshProJsonConverter();
             }
-            else  if (objectType == typeof(TextMeshProUGUI) )
+            else if (objectType == typeof(TextMeshProUGUI))
             {
                 contract.Converter = new TextMeshProUGUIJsonConverter();
             }
-            else if (objectType == typeof(Text) )
+            else if (objectType == typeof(Text))
             {
                 contract.Converter = new TextJsonConverter();
             }
-            else if (objectType == typeof(Rect) )
+            else if (objectType == typeof(Rect))
             {
                 contract.Converter = new RectJsonConverter();
             }
-            else  if (objectType == typeof(RawImage) )
+            else if (objectType == typeof(RawImage))
             {
                 contract.Converter = new RawImageJsonConverter();
             }
-            else if (objectType == typeof(Mask) )
+            else if (objectType == typeof(Mask))
             {
                 contract.Converter = new MaskJsonConverter();
             }
-            else if (objectType == typeof(Animator) )
+            else if (objectType == typeof(Animator))
             {
                 contract.Converter = new AnimatorJsonConverter();
             }
-            else if (objectType == typeof(Rigidbody) )
+            else if (objectType == typeof(Rigidbody))
             {
                 contract.Converter = new RigidbodyJsonConverter();
             }
-            else if (objectType == typeof(Rigidbody2D) )
+            else if (objectType == typeof(Rigidbody2D))
             {
                 contract.Converter = new Rigidbody2DJsonConverter();
             }
-            else if (objectType == typeof(Collider) )
+            else if (objectType == typeof(Collider))
             {
                 contract.Converter = new ColliderJsonConverter();
             }
-            else if (objectType == typeof(Collider2D) )
+            else if (objectType == typeof(Collider2D))
             {
                 contract.Converter = new Collider2DJsonConverter();
             }
-            else if (objectType == typeof(ParticleSystem) )
+            else if (objectType == typeof(ParticleSystem))
             {
                 contract.Converter = new ParticleSystemJsonConverter();
             }
-            else if (objectType == typeof(MeshFilter) )
+            else if (objectType == typeof(MeshFilter))
             {
                 contract.Converter = new MeshFilterJsonConverter();
             }
-            else if (objectType == typeof(MeshRenderer) )
+            else if (objectType == typeof(MeshRenderer))
             {
                 contract.Converter = new MeshRendererJsonConverter();
             }
-            else if (objectType == typeof(SkinnedMeshRenderer) )
+            else if (objectType == typeof(SkinnedMeshRenderer))
             {
                 contract.Converter = new SkinnedMeshRendererJsonConverter();
             }
-            else if (objectType == typeof(NavMeshAgent) )
+            else if (objectType == typeof(NavMeshAgent))
             {
                 contract.Converter = new NavMeshAgentJsonConverter();
             }
@@ -530,7 +529,7 @@ namespace RegressionGames.StateRecorder
 
         // leave out bossroom types as that is our main test project
         // (isUnity, isBossRoom)
-        private readonly Dictionary<Assembly, (bool,bool)> _unityAssemblies = new();
+        private readonly Dictionary<Assembly, (bool, bool)> _unityAssemblies = new();
 
         private bool IsUnityType(Type objectType)
         {
@@ -543,6 +542,7 @@ namespace RegressionGames.StateRecorder
                 {
                     isBossRoom = assembly.FullName.StartsWith("Unity.BossRoom");
                 }
+
                 isUnityType = (isUnity, isBossRoom);
                 _unityAssemblies[assembly] = isUnityType;
             }

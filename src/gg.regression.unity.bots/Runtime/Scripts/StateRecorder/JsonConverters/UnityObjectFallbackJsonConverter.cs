@@ -7,7 +7,6 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class UnityObjectFallbackJsonConverter : Newtonsoft.Json.JsonConverter
     {
-
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -30,7 +29,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
         // optimize to avoid string comparisons on every object
         // our primary testing project, bossroom, is from 'Unity' so we need to clarify our exclusions
         // (isBossRoom, isUnity)
-        private readonly Dictionary<Assembly, (bool,bool)> _unityAssemblies = new();
+        private readonly Dictionary<Assembly, (bool, bool)> _unityAssemblies = new();
 
         public override bool CanConvert(Type objectType)
         {

@@ -18,10 +18,10 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 var val = (RawImage)value;
                 // raw is way faster than using the libraries
                 writer.WriteRawValue("{\"texture\":" + JsonConvert.ToString(val.texture?.name)
-                +",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                +",\"material\":" + JsonConvert.ToString(val.material?.name)
-                +",\"raycastTarget\":" + val.raycastTarget.ToString().ToLower()
-                +",\"uvRect\":" +  RectJsonConverter.ToJsonString(val.uvRect)+"}");
+                                                     + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
+                                                     + ",\"material\":" + JsonConvert.ToString(val.material?.name)
+                                                     + ",\"raycastTarget\":" + val.raycastTarget.ToString().ToLower()
+                                                     + ",\"uvRect\":" + RectJsonConverter.ToJsonString(val.uvRect) + "}");
             }
         }
 

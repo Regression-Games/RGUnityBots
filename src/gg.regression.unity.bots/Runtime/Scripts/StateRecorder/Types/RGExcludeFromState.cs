@@ -7,6 +7,5 @@ namespace StateRecorder.Types
      */
     public class RGExcludeFromState : MonoBehaviour
     {
-
     }
 }

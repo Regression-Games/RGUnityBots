@@ -12,9 +12,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = value.Value;
                 return "{\"x\":" + val.x
-                          + ",\"y\":" + val.y
-                          + ",\"width\":" + val.width
-                          + ",\"height\":" + val.height + "}";
+                                 + ",\"y\":" + val.y
+                                 + ",\"width\":" + val.width
+                                 + ",\"height\":" + val.height + "}";
             }
 
             return "null";

@@ -16,7 +16,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (Button)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"interactable\":"+val.interactable.ToString().ToLower()+"}");
+                writer.WriteRawValue("{\"interactable\":" + val.interactable.ToString().ToLower() + "}");
             }
         }
 

@@ -4,20 +4,21 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-
     // NOTE: This class exists as a performance optimization as JsonConverters list model for JsonSerializerSettings scales very very poorly
     public class ColorJsonConverter : Newtonsoft.Json.JsonConverter
     {
-
         public static string ToJsonString(Color? val)
         {
             if (val != null)
             {
-                return "{\"r\":" + val.Value.r
-                                 + ",\"g\":" + val.Value.g
-                                 + ",\"b\":" + val.Value.b
-                                 + ",\"a\":" + val.Value.a + "}";
+                var value = val.Value;
+                return "{\"r\":" + value.r
+                                 + ",\"g\":" + value.g
+                                 + ",\"b\":" + value.b
+                                 + ",\"a\":" + value.a
+                                 + "}";
             }
+
             return "null";
         }
 
@@ -38,6 +39,5 @@ namespace RegressionGames.StateRecorder.JsonConverters
         }
 
         public override bool CanRead => false;
-
     }
 }

@@ -6,6 +6,40 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class VectorJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        public static string ToJsonStringVector2(Vector2? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + value.x + ",\"y\":" + value.y + "}";
+            }
+
+            return "null";
+        }
+
+        public static string ToJsonStringVector3(Vector3? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + value.x + ",\"y\":" + value.y + ",\"z\":" + value.z + "}";
+            }
+
+            return "null";
+        }
+
+        public static string ToJsonStringVector4(Vector4? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + value.x + ",\"y\":" + value.y + ",\"z\":" + value.z + ",\"w\":" + value.w + "}";
+            }
+
+            return "null";
+        }
+
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -17,12 +51,15 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 // raw is way faster than using the libraries
                 if (value is Vector2 val)
                 {
-                    writer.WriteRawValue("{\"x\":"+val.x+",\"y\":"+val.y+"}");
+                    writer.WriteRawValue(ToJsonStringVector2(val));
                 }
-                else
+                else if (value is Vector3 valZ)
                 {
-                    var valZ = (Vector3)value;
-                    writer.WriteRawValue("{\"x\":"+valZ.x+",\"y\":"+valZ.y+",\"z\":"+valZ.z+"}");
+                    writer.WriteRawValue(ToJsonStringVector3(valZ));
+                }
+                else if (value is Vector4 valW)
+                {
+                    writer.WriteRawValue(ToJsonStringVector4(valW));
                 }
             }
         }
@@ -36,7 +73,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(Vector3) || objectType == typeof(Vector2) || objectType == typeof(Vector3?) || objectType == typeof(Vector2?);
+            return objectType == typeof(Vector4) || objectType == typeof(Vector3) || objectType == typeof(Vector2) || objectType == typeof(Vector4?) || objectType == typeof(Vector3?) || objectType == typeof(Vector2?);
         }
     }
 }

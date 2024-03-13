@@ -5,7 +5,6 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder
 {
-
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class FrameStateData : ReplayFrameStateData

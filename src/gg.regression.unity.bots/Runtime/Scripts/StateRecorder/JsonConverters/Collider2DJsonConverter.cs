@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-
     public class Collider2DJsonConverter : Newtonsoft.Json.JsonConverter
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -17,8 +16,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (Collider2D)value;
                 // raw is way faster than using the libraries
-                writer.WritePropertyName("{\"bounds\":"+BoundsJsonConverter.ToJsonString(val.bounds)
-                +",\"isTrigger\":"+val.isTrigger.ToString().ToLower() + "}");
+                writer.WritePropertyName("{\"bounds\":" + BoundsJsonConverter.ToJsonString(val.bounds)
+                                                        + ",\"isTrigger\":" + val.isTrigger.ToString().ToLower() + "}");
             }
         }
 
