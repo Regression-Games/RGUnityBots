@@ -294,7 +294,7 @@ namespace RegressionGames.StateRecorder
 
                         // serialize to json byte[]
                         var jsonData = Encoding.UTF8.GetBytes(
-                            JsonConvert.SerializeObject(frameState, Formatting.Indented, JsonSerializerSettings)
+                            JsonConvert.SerializeObject(frameState, Formatting.None, JsonSerializerSettings)
                         );
 
                         var theScreenshot = screenShot;
