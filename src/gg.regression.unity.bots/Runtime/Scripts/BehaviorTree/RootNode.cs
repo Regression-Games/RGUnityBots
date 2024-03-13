@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.RGBotLocalRuntime;
+using UnityEngine;
 
 namespace RegressionGames.BehaviorTree
 {
@@ -16,7 +17,7 @@ namespace RegressionGames.BehaviorTree
         {
         }
 
-        protected override NodeStatus Execute(RG rgObject)
+        protected override NodeStatus Execute(GameObject rgObject)
         {
             return Children.Count > 0
                 ? Children.First().Invoke(rgObject)

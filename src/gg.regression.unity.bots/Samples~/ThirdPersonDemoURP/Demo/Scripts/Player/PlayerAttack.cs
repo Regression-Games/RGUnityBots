@@ -1,17 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
-using RegressionGames;
 using UnityEngine;
 
 namespace RGThirdPersonDemo
 {
     [RequireComponent((typeof(PlayerMovement)))]
     [RequireComponent(typeof(Animator))]
-    [RGStateType(IsPlayer = true)]
     public class PlayerAttack : MonoBehaviour
     {
         [SerializeField] private Transform _projectileRoot;
-        
+
         private PlayerMovement _playerMovement;
         private Animator _animator;
         private EnemyController _selectedEnemy;
@@ -21,7 +19,7 @@ namespace RGThirdPersonDemo
         private string _attackAnimation;
 
         public List<AttackAbility> abilities = new ();
-        
+
         void Awake()
         {
             _animator = GetComponent<Animator>();
@@ -38,10 +36,10 @@ namespace RGThirdPersonDemo
                 Debug.LogWarning("Unable to attack without enemy selected");
                 return;
             }
-            
+
             // rotate to target
             _playerMovement.LookAtTransform(_selectedEnemy.transform);
-            
+
             // animate
             if (!string.IsNullOrEmpty(attack.animation))
             {
@@ -76,18 +74,18 @@ namespace RGThirdPersonDemo
                 StopCoroutine(_attackEndCoroutine);
                 _attackEndCoroutine = null;
             }
-            
+
             // remove any pending projectiles
             if (_hasProjectile && _projectile != null)
             {
                 Destroy(_projectile.gameObject);
                 _hasProjectile = false;
             }
-            
+
             // run end-of-attack logic
             EndAttack();
         }
-        
+
         /*
          * Triggered from the animator. Animation event used to precisely match animation to projectile launch
          * without relying on frame-counting
@@ -100,7 +98,7 @@ namespace RGThirdPersonDemo
             }
             _projectile.Fire(_selectedEnemy);
         }
-        
+
         public void EndAttack()
         {
             if (!string.IsNullOrEmpty(_attackAnimation))
@@ -109,7 +107,7 @@ namespace RGThirdPersonDemo
                 _animator.SetBool(_attackAnimation, false);
             }
         }
-        
+
         public void SelectEnemy(EnemyController enemyController)
         {
             _selectedEnemy = enemyController;
@@ -136,20 +134,17 @@ namespace RGThirdPersonDemo
             _hasProjectile = false;
         }
 
-        [RGAction]
-        public void SelectAndAttackEnemy(int enemyId, int ability)
+        public void SelectAndAttackEnemy(EnemyController enemy, int ability)
         {
-            Debug.Log("Attack enemy with id " + enemyId);
-            var enemy = RGFindUtils.Instance.FindOneByInstanceId<EnemyController>(enemyId);
+            Debug.Log("Attack enemy with id " + enemy.transform.GetInstanceID());
             SelectEnemy(enemy);
             Attack(abilities[ability]);
         }
 
-        [RGState]
         public bool IsAttacking()
         {
             return !string.IsNullOrEmpty(_attackAnimation) && _animator.GetBool(_attackAnimation);
         }
-        
+
     }
 }

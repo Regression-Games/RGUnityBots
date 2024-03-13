@@ -24,12 +24,11 @@ namespace RGThirdPersonDemo
             }
         }
 
-        [RGAction("MoveInDirection")]
         public void MoveInput(Vector2 newMoveDirection)
         {
             move = newMoveDirection;
         }
-        
+
         public void JumpInput(bool newJumpState)
         {
             jump = newJumpState;

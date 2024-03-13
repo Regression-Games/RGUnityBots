@@ -35,52 +35,6 @@ namespace RegressionGames.Editor.BotManagement
             return Path.Combine(PARENT_DIRECTORY_PATH, ZIP_TEMP_FOLDER_NAME, $"Bot_{botId}.zip");
         }
 
-        [MenuItem("Regression Games/Create New Bot")]
-        private static void CreateNewBot()
-        {
-            // Create our bot folder if it doesn't exist
-            RGEditorUtils.CreateAllAssetFolders(BOTS_PATH);
-
-            // prompt the user to choose a folder
-            var newBotPath = EditorUtility.SaveFilePanelInProject(
-                "Create a new RegressionGames Bot",
-                "NewRGBot",
-                "",
-                "Enter the name of the new bot.",
-                BOTS_PATH);
-            if (string.IsNullOrEmpty(newBotPath))
-            {
-                // The user cancelled
-                return;
-            }
-
-            var botName = RGEditorUtils.GetAssetPathLeaf(newBotPath);
-            var botParentPath = RGEditorUtils.GetAssetPathParent(newBotPath);
-            RGEditorUtils.CreateAllAssetFolders(botParentPath);
-            var botFolderGuid = AssetDatabase.CreateFolder(botParentPath, botName);
-            var botFolder = AssetDatabase.GUIDToAssetPath(botFolderGuid);
-
-            // Create the bot assets
-            var botId = RGSettings.GetOrCreateSettings().GetNextBotId();
-            _this.CreateNewBotAssets(botFolder, botName, botId);
-
-            // Make sure we can find the entry point.
-            var entryPointPath = $"{botFolder}/BotEntryPoint.cs";
-            var entryPointScript = AssetDatabase.LoadAssetAtPath<MonoScript>(entryPointPath);
-            if (entryPointScript != null)
-            {
-                // If we can, ask the user if they want to open it.
-                var openNow = EditorUtility.DisplayDialog("Bot Created",
-                    $"Created a new RegressionGames bot at {newBotPath}. Would you like to open the entrypoint script now?",
-                    "Yes",
-                    "No");
-                if (openNow)
-                {
-                    AssetDatabase.OpenAsset(entryPointScript);
-                }
-            }
-        }
-
         /**
          * Synchronizes local bots with RG remote server if connected.
          * This is a long one, it...

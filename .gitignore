@@ -5,6 +5,8 @@ artifacts/
 *.swp
 .idea
 
+src/RGUnityBots/Assets/RegressionGames/Resources/RGBots.asset*
+
 # Unity specific ignores appear in '.gitignore' files within the Unity projects themselves
 # This is because the default Unity gitignore (https://github.com/github/gitignore/blob/main/Unity.gitignore) only works when at the root of the Unity project
 # Instead of messing with it, we just put it in each Project so it works as expected

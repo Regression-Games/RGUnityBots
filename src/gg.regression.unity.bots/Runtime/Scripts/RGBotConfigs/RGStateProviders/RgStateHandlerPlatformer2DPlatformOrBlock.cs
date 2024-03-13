@@ -1,119 +1,68 @@
 using System;
-using System.Collections.Generic;
 using RegressionGames.RGBotConfigs.RGStateProviders;
-using RegressionGames.StateActionTypes;
 using UnityEngine;
 
 namespace RGBotConfigs.RGStateProviders
 {
 
-    // ReSharper disable InconsistentNaming
-    [Serializable]
-    public class RGStateEntity_Platformer2DPlatformOrBlock : Dictionary<string, object>, IRGStateEntity
-    {
-        public Vector3 size => (Vector3)this["size"];
-        public Vector3 position => (Vector3)this["position"];
-        public bool breakable => (bool)this["breakable"];
-        public bool movable => (bool)this["movable"];
-        public bool dropthroughAble => (bool)this["dropthroughAble"];
-        public bool jumpthroughAble => (bool)this["jumpthroughAble"];
-
-        public string GetEntityType()
-        {
-            return EntityTypeName;
-        }
-
-        public bool GetIsPlayer()
-        {
-            return IsPlayer;
-        }
-
-        public static readonly string EntityTypeName = "platformer2DPlatformOrBlock";
-        public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DPlatformOrBlock);
-        public static readonly bool IsPlayer = false;
-    }
-
     /**
      * Provides state information about the tile grid in the current visible screen space.
      */
     [Serializable]
-    public class RgStateHandlerPlatformer2DPlatformOrBlock : RGStateBehaviour<RGStateEntity_Platformer2DPlatformOrBlock>
+    public class RgStateHandlerPlatformer2DPlatformOrBlock : MonoBehaviour
     {
-        public bool movable;
 
-        public bool breakable;
-
-        public bool dropthroughAble;
-
-        public bool jumpthroughAble;
-
+        [NonSerialized]
         [Tooltip("Draw debug gizmos for platform locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
 
-        private RgStateHandlerPlatformer2DLevel levelState;
+        public Vector3 size = Vector3.one;
+        public Vector3 position = Vector3.zero;
 
-        private Collider2D colliderThing;
+        public bool movable;
+        public bool breakable;
+        public bool dropthroughAble;
+        public bool jumpthroughAble;
 
-        private void OnEnable()
+        private RgStateHandlerPlatformer2DLevel _levelState;
+
+        private Collider2D _colliderThing;
+
+        public void OnEnable()
         {
-            levelState = FindObjectOfType<RgStateHandlerPlatformer2DLevel>();
-            colliderThing = GetComponentInChildren<Collider2D>();
+            _levelState = FindObjectOfType<RgStateHandlerPlatformer2DLevel>();
+            _colliderThing = GetComponentInChildren<Collider2D>();
+            UpdateState();
         }
 
-        protected override RGStateEntity_Platformer2DPlatformOrBlock CreateStateEntityInstance()
+        public void UpdateState()
         {
-            return new RGStateEntity_Platformer2DPlatformOrBlock();
-        }
-
-
-
-        private Vector3 _lastSize = Vector3.one;
-        private Vector3 _lastPosition = Vector3.zero;
-
-
-        public override void PopulateStateEntity(RGStateEntity_Platformer2DPlatformOrBlock stateEntity)
-        {
-            if (colliderThing == null)
+            if (_colliderThing == null)
             {
                 throw new Exception(
                     "RGState_Platformer2DPlatformOrBlock must have a Collider2D in its GameObject structure");
             }
 
-            var bounds = colliderThing.bounds;
+            var bounds = _colliderThing.bounds;
             var minBounds = bounds.min;
-            _lastSize = bounds.size;
+            size = bounds.size;
 
             // faster than adding vector3s
-            _lastPosition = new Vector3(minBounds.x, minBounds.y + _lastSize.y, minBounds.z);
+            position = new Vector3(minBounds.x, minBounds.y + size.y, minBounds.z);
 
-            // avoid all this allocation and set after first call
-            if (!stateEntity.ContainsKey("jumpthroughAble"))
-            {
-                stateEntity["jumpthroughAble"] = jumpthroughAble;
-                stateEntity["dropthroughAble"] = dropthroughAble;
-                stateEntity["breakable"] = breakable;
-                stateEntity["movable"] = movable;
-                stateEntity["size"] = _lastSize;
-                stateEntity["position"] = _lastPosition;
-            }
-            // set every time if movable
-            if (movable)
-            {
-                stateEntity["position"] = _lastPosition;
-            }
         }
 
         private void OnDrawGizmos()
         {
             if (renderDebugGizmos)
             {
-                var lp = _lastPosition;
-                if (levelState != null)
+                var lp = position;
+                if (_levelState != null)
                 {
                     // draw the right circles to represent all the nodes
-                    var width = _lastSize.x;
-                    var cellWidth = levelState._lastCellSize.x;
-                    var cellHeight = levelState._lastCellSize.y;
+                    var width = size.x;
+                    var cellWidth = _levelState.tileCellSize.x;
+                    var cellHeight = _levelState.tileCellSize.y;
                     var xPosition = lp.x + cellWidth / 2;
                     while (xPosition < lp.x + width)
                     {
@@ -134,14 +83,14 @@ namespace RGBotConfigs.RGStateProviders
                 {
                     if (dropthroughAble || jumpthroughAble)
                     {
-                        Gizmos.DrawWireCube(new Vector3(lp.x + _lastSize.x / 2, lp.y + _lastSize.y / 2, lp.z),
-                            new Vector3(_lastSize.x, _lastSize.y, 1));
+                        Gizmos.DrawWireCube(new Vector3(lp.x + size.x / 2, lp.y + size.y / 2, lp.z),
+                            new Vector3(size.x, size.y, 1));
                     }
                     else
                     {
                         // just draw one big guess circle
-                        Gizmos.DrawWireSphere(new Vector3(lp.x + _lastSize.x / 2, lp.y + _lastSize.y / 2, lp.z),
-                            _lastSize.x / 2);
+                        Gizmos.DrawWireSphere(new Vector3(lp.x + size.x / 2, lp.y + size.y / 2, lp.z),
+                            size.x / 2);
                     }
                 }
             }
