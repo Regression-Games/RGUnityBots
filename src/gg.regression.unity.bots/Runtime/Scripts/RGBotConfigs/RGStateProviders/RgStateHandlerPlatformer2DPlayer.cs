@@ -1,45 +1,19 @@
 using System;
-using System.Collections.Generic;
-using RegressionGames.StateActionTypes;
 using RGBotConfigs.RGStateProviders;
 using UnityEngine;
 
 namespace RegressionGames.RGBotConfigs.RGStateProviders
 {
-    // ReSharper disable InconsistentNaming
-    [Serializable]
-    public class RgStateEntityBasePlatformer2DPlayer : Dictionary<string, object>, IRGStateEntity
-    {
-        public Vector3 position => (Vector3)this["position"];
-        public float jumpHeight => (float)this["jumpHeight"];
-        public float maxJumpHeight => (float)this["maxJumpHeight"];
-        public float velocity => (float)this["velocity"];
-        public float maxVelocity => (float)this["maxVelocity"];
-        public float safeFallHeight => (float)this["safeFallHeight"];
-        public float nonFatalFallHeight => (float)this["nonFatalFallHeight"];
-        public float gravity => (float)this["gravity"];
-
-        public string GetEntityType()
-        {
-            return EntityTypeName;
-        }
-
-        public bool GetIsPlayer()
-        {
-            return IsPlayer;
-        }
-
-        public static readonly string EntityTypeName = "platformer2DPlayer";
-        public static readonly Type BehaviourType = typeof(RgStateHandlerPlatformer2DPlayer);
-        public static readonly bool IsPlayer = true;
-    }
 
     [Serializable]
-    public class RgStateHandlerPlatformer2DPlayer : RGStateBehaviour<RgStateEntityBasePlatformer2DPlayer>
+    public class RgStateHandlerPlatformer2DPlayer : MonoBehaviour
     {
         [NonSerialized]
         [Tooltip("Draw debug gizmos for player locations in editor runtime ?")]
         public bool renderDebugGizmos = true;
+
+        [HideInInspector]
+        public Vector2 position = Vector2.zero;
 
         [Tooltip("The current height that the player can jump.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         [Min(0f)]
@@ -66,22 +40,21 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             "The gravity value (negative) to use in fall and jump calculations.  (Updated automatically when using a RGStatePlatformer2DPlayerStatsProvider)")]
         public float gravity = -9.81f;
 
-        private Vector2? _truePosition = null;
-
         [NonSerialized]
         private RGStatePlatformer2DPlayerStatsProvider _statsProvider;
 
-        private void Start()
+        private void OnEnable()
         {
             _statsProvider = gameObject.GetComponent<RGStatePlatformer2DPlayerStatsProvider>();
+            UpdateState();
         }
 
-        protected override RgStateEntityBasePlatformer2DPlayer CreateStateEntityInstance()
+        private void Update()
         {
-            return new RgStateEntityBasePlatformer2DPlayer();
+            UpdateState();
         }
 
-        public override void PopulateStateEntity(RgStateEntityBasePlatformer2DPlayer stateEntity)
+        public void UpdateState()
         {
             if (_statsProvider != null)
             {
@@ -93,15 +66,7 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
                 nonFatalFallHeight = _statsProvider.NonFatalFallHeight();
                 gravity = _statsProvider.Gravity();
             }
-            _truePosition = GetTruePosition();
-            stateEntity["position"] = (Vector3)(Vector2)_truePosition;
-            stateEntity["jumpHeight"] = jumpHeight;
-            stateEntity["maxJumpHeight"] = maxJumpHeight;
-            stateEntity["velocity"] = velocity;
-            stateEntity["maxVelocity"] = maxVelocity;
-            stateEntity["safeFallHeight"] = safeFallHeight;
-            stateEntity["nonFatalFallHeight"] = nonFatalFallHeight;
-            stateEntity["gravity"] = gravity;
+            position = GetTruePosition();
         }
 
         // ReSharper disable once InconsistentNaming
@@ -110,17 +75,15 @@ namespace RegressionGames.RGBotConfigs.RGStateProviders
             var theCollider = gameObject.GetComponent<BoxCollider2D>();
             var theBounds = theCollider.bounds;
             // bottom of the feet centered horizontally
-            var actualPosition = new Vector2(theBounds.center.x, theBounds.min.y);
-
-            return actualPosition;
+            return new Vector2(theBounds.center.x, theBounds.min.y);
         }
 
         private void OnDrawGizmos()
         {
-            if (_truePosition != null)
+            if (renderDebugGizmos)
             {
                 Gizmos.color = Color.green;
-                Gizmos.DrawWireSphere((Vector2)_truePosition, 0.125f);
+                Gizmos.DrawWireSphere((Vector2)position, 0.125f);
             }
         }
 

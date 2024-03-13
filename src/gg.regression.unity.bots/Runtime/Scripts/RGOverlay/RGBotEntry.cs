@@ -13,13 +13,11 @@ public class RGBotEntry : MonoBehaviour
     [SerializeField]
     private Button deleteButton;
 
-    void Start()
-    {
-
-    }
+    private GameObject _runtimeObject;
 
     public void Initialize(GameObject runtimeObject, string behavior)
     {
+        _runtimeObject = runtimeObject;
         gameObjectName.text = runtimeObject.name;
         behaviorName.text = behavior;
         if (string.IsNullOrEmpty(behavior))
@@ -28,13 +26,19 @@ public class RGBotEntry : MonoBehaviour
         }
         deleteButton.onClick.AddListener(() =>
         {
-            GameObject.Destroy(runtimeObject);
+            GameObject.Destroy(_runtimeObject);
             GameObject.Destroy(gameObject);
+            _runtimeObject = null;
         });
     }
 
     public void Delete()
     {
         deleteButton.onClick.Invoke();
+    }
+
+    public bool IsRuntimeObjectDestroyed()
+    {
+        return _runtimeObject == null || !_runtimeObject.activeInHierarchy;
     }
 }
