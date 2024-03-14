@@ -21,10 +21,12 @@ namespace RegressionGames.StateRecorder
          * <summary>the scenes for objects set must match this list (no duplicates allowed in the list)</summary>
          */
         public string[] scenes;
+
         /**
          * <summary>the ui elements visible must match this list exactly; (could be similar/duplicate paths in the list, need to match value + # of appearances)</summary>
          */
         public string[] uiElements;
+
         /**
          * <summary>used for mouse input events to confirm that what they clicked on path wise exists; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)</summary>
          */
@@ -71,16 +73,16 @@ namespace RegressionGames.StateRecorder
         public Key key => KeyboardInputActionObserver.AllKeyboardKeys[binding.Substring(binding.LastIndexOf('/') + 1)];
 
         public double? endTime;
+
         // used to track if we have sent the start and end events for this entry yet
         public bool[] startEndSentFlags = new bool[] { false, false };
+
         // have we finished processing this input
         public bool IsDone => startEndSentFlags[0] && startEndSentFlags[1];
-
     }
 
     public class ReplayDataContainer
     {
-
         private readonly Queue<ReplayKeyFrameEntry> _keyFrames = new();
 
         private readonly Queue<ReplayKeyboardInputEntry> _keyboardData = new();
@@ -132,6 +134,7 @@ namespace RegressionGames.StateRecorder
                     break;
                 }
             }
+
             return output;
         }
 
@@ -166,7 +169,6 @@ namespace RegressionGames.StateRecorder
             ReplayFrameStateData priorFrame = null;
             foreach (var entry in entries)
             {
-
                 using var sr = new StreamReader(entry.Open());
                 var frameData = JsonConvert.DeserializeObject<ReplayFrameStateData>(sr.ReadToEnd());
 
@@ -220,7 +222,6 @@ namespace RegressionGames.StateRecorder
                                 _pendingEndKeyboardInputs[theData.binding] = theData;
                             }
                         }
-
                     }
                 }
 
@@ -250,6 +251,7 @@ namespace RegressionGames.StateRecorder
                                     specificGameObjectPaths.Clear();
                                     break;
                                 }
+
                                 specificGameObjectPaths.Add(clickedOnObject);
                             }
                         }
@@ -286,9 +288,6 @@ namespace RegressionGames.StateRecorder
                 // entries was empty
                 throw new Exception("Error parsing replay .zip.  Must include at least 1 frame json/jpg pair.");
             }
-
-
-
         }
 
         private List<string> FindObjectPathsAtPosition(Vector2 position, IEnumerable<ReplayGameObjectState> priorState, IEnumerable<ReplayGameObjectState> state)
@@ -308,6 +307,7 @@ namespace RegressionGames.StateRecorder
                 priorStateEntries.AddRange(currentStateEntries.Values.Where(a => a != null));
                 return priorStateEntries.Select(a => a.path).ToList();
             }
+
             //else
             return currentStateEntries.Values.Where(a => a != null).Select(a => a.path).ToList();
         }

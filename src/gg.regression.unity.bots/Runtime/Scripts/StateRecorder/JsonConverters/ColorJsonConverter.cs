@@ -4,24 +4,28 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-
     // NOTE: This class exists as a performance optimization as JsonConverters list model for JsonSerializerSettings scales very very poorly
     public class ColorJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        public static string ToJsonString(Color? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"r\":" + FloatJsonConverter.ToJsonString(value.r)
+                                 + ",\"g\":" + FloatJsonConverter.ToJsonString(value.g)
+                                 + ",\"b\":" + FloatJsonConverter.ToJsonString(value.b)
+                                 + ",\"a\":" + FloatJsonConverter.ToJsonString(value.a)
+                                 + "}";
+            }
+
+            return "null";
+        }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            var val = (Color)value;
-            writer.WriteStartObject();
-            writer.WritePropertyName("r");
-            writer.WriteValue(val.r);
-            writer.WritePropertyName("g");
-            writer.WriteValue(val.g);
-            writer.WritePropertyName("b");
-            writer.WriteValue(val.b);
-            writer.WritePropertyName("a");
-            writer.WriteValue(val.a);
-            writer.WriteEndObject();
+            // raw is way faster than using the libraries
+            writer.WriteRawValue(ToJsonString((Color?)value));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -35,6 +39,5 @@ namespace RegressionGames.StateRecorder.JsonConverters
         }
 
         public override bool CanRead => false;
-
     }
 }

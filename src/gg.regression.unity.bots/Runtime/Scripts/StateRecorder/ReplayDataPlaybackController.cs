@@ -15,7 +15,6 @@ namespace RegressionGames.StateRecorder
 {
     public class ReplayDataPlaybackController : MonoBehaviour
     {
-
         private ReplayDataContainer _dataContainer;
 
         // flag to indicate the next update loop should start playing
@@ -161,7 +160,6 @@ namespace RegressionGames.StateRecorder
                             _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime());
                         }
                     }
-
                 }
             }
         }
@@ -196,6 +194,7 @@ namespace RegressionGames.StateRecorder
                                     {
                                         return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
                                     }
+
                                     var didRemove = uiElements.Remove(state.path);
                                     if (!didRemove)
                                     {
@@ -214,12 +213,14 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
+
             return null;
         }
 
         private enum KeyState
         {
-            Up, Down
+            Up,
+            Down
         }
 
         private void PlayInputs(List<RecordedGameObjectState> objectStates)
@@ -242,7 +243,6 @@ namespace RegressionGames.StateRecorder
                         SendKeyEvent(replayKeyboardInputEntry.tickNumber, replayKeyboardInputEntry.key, KeyState.Down);
                         replayKeyboardInputEntry.startEndSentFlags[0] = true;
                     }
-
                 }
             }
 
@@ -302,8 +302,8 @@ namespace RegressionGames.StateRecorder
                     var position = positionControl.ReadValueFromEvent(e);
 
                     var buttonsClicked = mouse.allControls.FirstOrDefault(a =>
-                                                 a is ButtonControl abc && abc.ReadValueFromEvent(e) > 0.1f
-                                             ) != null;
+                        a is ButtonControl abc && abc.ReadValueFromEvent(e) > 0.1f
+                    ) != null;
                     RGDebug.LogInfo("Mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
                     // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
                     FindObjectOfType<VirtualMouseCursor>().SetPosition(position, buttonsClicked);
@@ -423,6 +423,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 mouseEventString += $"scroll: {mouseInput.scroll.x},{mouseInput.scroll.y}  ";
                             }
+
                             ((DeltaControl)mouseControl).WriteValueIntoEvent(mouseInput.scroll, eventPtr);
                             break;
                         case "leftButton":
@@ -430,6 +431,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 mouseEventString += $"leftButton  ";
                             }
+
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.leftButton ? 1f : 0f, eventPtr);
                             break;
                         case "middleButton":
@@ -437,6 +439,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 mouseEventString += $"middleButton  ";
                             }
+
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.middleButton ? 1f : 0f, eventPtr);
                             break;
                         case "rightButton":
@@ -444,6 +447,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 mouseEventString += $"rightButton  ";
                             }
+
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.rightButton ? 1f : 0f, eventPtr);
                             break;
                         case "forwardButton":
@@ -451,6 +455,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 mouseEventString += $"forwardButton  ";
                             }
+
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.forwardButton ? 1f : 0f, eventPtr);
                             break;
                         case "backButton":
@@ -458,10 +463,12 @@ namespace RegressionGames.StateRecorder
                             {
                                 mouseEventString += $"backButton  ";
                             }
+
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.backButton ? 1f : 0f, eventPtr);
                             break;
                     }
                 }
+
                 RGDebug.LogInfo($"({tickNumber}) Sending Mouse Event - {mouseEventString}");
                 InputSystem.QueueEvent(eventPtr);
             }
@@ -486,8 +493,8 @@ namespace RegressionGames.StateRecorder
 
                     PlayInputs(objectStates);
                 }
-
             }
+
             if (_isPlaying && _nextKeyFrame == null && _keyboardQueue.Count == 0 && _mouseQueue.Count == 0)
             {
                 // we hit the end of the replay

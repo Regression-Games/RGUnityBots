@@ -3,13 +3,31 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder
 {
+
+    public class MouseInputActionDataJsonConverter : JsonConverter<MouseInputActionData>
+    {
+        public override void WriteJson(JsonWriter writer, MouseInputActionData value, JsonSerializer serializer)
+        {
+            writer.WriteRawValue(value.ToJson());
+        }
+
+        public override bool CanRead => false;
+
+        public override MouseInputActionData ReadJson(JsonReader reader, Type objectType, MouseInputActionData existingValue, bool hasExistingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [JsonConverter(typeof(MouseInputActionDataJsonConverter))]
     public class MouseInputActionData
     {
         public double startTime;
@@ -40,6 +58,7 @@ namespace RegressionGames.StateRecorder
                 return (previous.position.x) == (this.position.x)
                        && (previous.position.y) == (this.position.y);
             }
+
             return false;
         }
 
@@ -68,6 +87,20 @@ namespace RegressionGames.StateRecorder
                    || !previous.backButton && current.backButton
                    || Math.Abs(previous.scroll.y - current.scroll.y) > 0.1f
                    || Math.Abs(previous.scroll.x - current.scroll.x) > 0.1f;
+        }
+
+        public string ToJson()
+        {
+            return "{\"startTime\":" + startTime
+                                     + ",\"position\":" + VectorIntJsonConverter.ToJsonString(position)
+                                     + ",\"leftButton\":" + (leftButton ? "true" : "false")
+                                     + ",\"middleButton\":" + (middleButton ? "true" : "false")
+                                     + ",\"rightButton\":" + (rightButton ? "true" : "false")
+                                     + ",\"forwardButton\":" + (forwardButton ? "true" : "false")
+                                     + ",\"backButton\":" + (backButton ? "true" : "false")
+                                     + ",\"scroll\":" + VectorJsonConverter.ToJsonStringVector2(scroll)
+                                     + ",\"newButtonPress\":" + (newButtonPress ? "true" : "false")
+                                     + "}";
         }
     }
 
@@ -142,6 +175,7 @@ namespace RegressionGames.StateRecorder
                         }
                         // the case where buttons are released is handled by the !ButtonStatesEqual check at the start of this if/else chain
                     }
+
                     _priorMouseState = newMouseState;
                 }
             }
@@ -184,6 +218,7 @@ namespace RegressionGames.StateRecorder
                     result.Add(action);
                 }
             }
+
             return result;
         }
     }

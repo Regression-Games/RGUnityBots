@@ -1,21 +1,18 @@
-using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using JetBrains.Annotations;
 using StateRecorder.Types;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Component = UnityEngine.Component;
 
 namespace RegressionGames.StateRecorder
 {
-
-
     public class TransformStatus
     {
         public bool? HasKeyTypes;
         public bool? IsTopLevel;
         public string Path;
+        public string TypeFullName;
     }
 
     public class InGameObjectFinder : MonoBehaviour
@@ -98,7 +95,7 @@ namespace RegressionGames.StateRecorder
             return objectName;
         }
 
-        private string GetUniqueTransformPath(Transform theTransform)
+        private TransformStatus GetUniqueTransformPath(Transform theTransform, [CanBeNull] Behaviour behaviour = null)
         {
             string tPath = null;
 
@@ -132,31 +129,38 @@ namespace RegressionGames.StateRecorder
                 }
                 else
                 {
-                    // add our result to the cache
-                    _transformsIveSeen[theTransform] = new TransformStatus
+                    status = new TransformStatus
                     {
-                        Path = tPath
+                        Path = tPath,
+                        TypeFullName = behaviour != null ? behaviour.GetType().FullName : null
                     };
+                    // add our result to the cache
+                    _transformsIveSeen[theTransform] = status;
                 }
             }
 
-            return tPath;
+            if (status.TypeFullName == null)
+            {
+                status.TypeFullName = behaviour != null ? behaviour.GetType().FullName : null;
+            }
+
+            return status;
         }
 
         private BehaviourState GetStateForBehaviour(Behaviour behaviour)
         {
-            var type = behaviour.GetType();
+            var tStatus = GetUniqueTransformPath(behaviour.transform, behaviour);
             return new BehaviourState
             {
-                path = GetUniqueTransformPath(behaviour.transform),
-                name = type.FullName,
+                path = tStatus.Path,
+                name = tStatus.TypeFullName,
                 state = collectStateFromBehaviours ? behaviour : null
             };
         }
 
         private RecordedGameObjectState CreateStateForTransform(int screenWidth, int screenHeight, Transform t)
         {
-            var gameObjectPath = GetUniqueTransformPath(t);
+            var gameObjectPath = GetUniqueTransformPath(t).Path;
 
             // find the full bounds of the statefulGameObject
             var statefulGameObject = t.gameObject;
@@ -181,7 +185,6 @@ namespace RegressionGames.StateRecorder
             var onCamera = worldSpaceBounds != null;
             if (onCamera)
             {
-
                 // convert world space to screen space
                 var c = worldSpaceBounds.Value.center;
                 var e = worldSpaceBounds.Value.extents;
@@ -265,7 +268,7 @@ namespace RegressionGames.StateRecorder
                         {
                             collidersState.Add(new ColliderState
                             {
-                                path = GetUniqueTransformPath(colliderEntry.transform),
+                                path = GetUniqueTransformPath(colliderEntry.transform).Path,
                                 bounds = colliderEntry.bounds,
                                 isTrigger = colliderEntry.isTrigger
                             });
@@ -279,7 +282,7 @@ namespace RegressionGames.StateRecorder
                             collidersState.Add(
                                 new ColliderState
                                 {
-                                    path = GetUniqueTransformPath(colliderEntry.transform),
+                                    path = GetUniqueTransformPath(colliderEntry.transform).Path,
                                     bounds = colliderEntry.bounds,
                                     isTrigger = colliderEntry.isTrigger
                                 }
@@ -294,16 +297,16 @@ namespace RegressionGames.StateRecorder
                         foreach (var myRigidbody in myRigidbodies)
                         {
                             rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = myRigidbody.rotation,
-                                velocity = myRigidbody.velocity,
-                                drag = myRigidbody.drag,
-                                angularDrag = myRigidbody.angularDrag,
-                                useGravity = myRigidbody.useGravity,
-                                isKinematic = myRigidbody.isKinematic
-                            }
+                                {
+                                    path = GetUniqueTransformPath(myRigidbody.transform).Path,
+                                    position = myRigidbody.position,
+                                    rotation = myRigidbody.rotation,
+                                    velocity = myRigidbody.velocity,
+                                    drag = myRigidbody.drag,
+                                    angularDrag = myRigidbody.angularDrag,
+                                    useGravity = myRigidbody.useGravity,
+                                    isKinematic = myRigidbody.isKinematic
+                                }
                             );
                         }
                     }
@@ -313,12 +316,12 @@ namespace RegressionGames.StateRecorder
                         foreach (var myRigidbody in myRigidbodies2D)
                         {
                             rigidbodiesState.Add(new RigidbodyState
-                            {
-                                path = GetUniqueTransformPath(myRigidbody.transform),
-                                position = myRigidbody.position,
-                                rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
-                                velocity = myRigidbody.velocity
-                            }
+                                {
+                                    path = GetUniqueTransformPath(myRigidbody.transform).Path,
+                                    position = myRigidbody.position,
+                                    rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
+                                    velocity = myRigidbody.velocity
+                                }
                             );
                         }
                     }
@@ -388,33 +391,37 @@ namespace RegressionGames.StateRecorder
                             //It starts bottom left and rotates to top left, then top right, and finally bottom right.
                             //Note that bottom left, for example, is an (x, y, z) vector with x being left and y being bottom.
                             rectTransforms[0].GetWorldCorners(screenSpaceCorners);
-                            var size = screenSpaceCorners[2] - screenSpaceCorners[0];
-                            var center = screenSpaceCorners[0] + (screenSpaceCorners[2] - screenSpaceCorners[0]) / 2;
-                            var screenSpaceBounds = new Bounds(center, size);
+
+                            var min = screenSpaceCorners[0];
+                            var max = screenSpaceCorners[2];
 
                             for (var i = 1; i < rectTransforms.Length; ++i)
                             {
                                 rectTransforms[i].GetWorldCorners(screenSpaceCorners);
-                                screenSpaceBounds.Encapsulate(screenSpaceCorners[0]);
-                                screenSpaceBounds.Encapsulate(screenSpaceCorners[2]);
+                                min = Vector3.Min(min, screenSpaceCorners[0]);
+                                max = Vector3.Max(max, screenSpaceCorners[2]);
                             }
 
                             // make sure the screen space bounds has a non-zero Z size around 0
-                            screenSpaceBounds.center.Set(screenSpaceBounds.center.x, screenSpaceBounds.center.y, 0f);
-                            screenSpaceBounds.size.Set(screenSpaceBounds.size.x, screenSpaceBounds.size.y, 0.1f);
+                            var size = max - min;
+                            size.z = 0.1f;
+                            var center = min + ((max - min) / 2);
+                            center.z = 0f;
+                            var screenSpaceBounds = new Bounds(center, size);
 
-                            var gameObjectPath = GetUniqueTransformPath(statefulUIObject.transform);
+                            var gameObjectPath = GetUniqueTransformPath(statefulUIObject.transform).Path;
                             var behaviours = statefulUIObject.GetComponents<Behaviour>()
                                 .Select(GetStateForBehaviour)
                                 .ToList();
 
+                            var soTransform = statefulUIObject.transform;
                             resultList.Add(new RecordedGameObjectState
                             {
-                                id = statefulUIObject.transform.GetInstanceID(),
+                                id = soTransform.GetInstanceID(),
                                 path = gameObjectPath,
                                 screenSpaceBounds = screenSpaceBounds,
-                                position = statefulUIObject.transform.position,
-                                rotation = statefulUIObject.transform.rotation,
+                                position = soTransform.position,
+                                rotation = soTransform.rotation,
                                 tag = statefulUIObject.tag,
                                 layer = LayerMask.LayerToName(statefulUIObject.layer),
                                 scene = statefulUIObject.scene.name,

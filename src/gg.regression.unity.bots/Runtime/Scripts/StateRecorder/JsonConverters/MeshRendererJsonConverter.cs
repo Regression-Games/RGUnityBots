@@ -14,21 +14,26 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
+                // TODO: Include Lighting/Lightmapping/Probes
                 var val = (MeshRenderer)value;
-                writer.WriteStartObject();
-                writer.WritePropertyName("materials");
-                writer.WriteStartArray();
+                var strValue = "{\"materials\":[";
+
+                bool first = true;
                 foreach (var valMaterial in val.materials)
                 {
-                    writer.WriteValue(valMaterial.name);
+                    if (!first)
+                    {
+                        strValue += ",";
+                    }
+
+                    strValue += "\"" + valMaterial.name + "\"";
+                    first = false;
                 }
-                writer.WriteEndArray();
-                // TODO: Include Lighting/Lightmapping/Probes
-                writer.WritePropertyName("dynamicOcclusion");
-                writer.WriteValue(val.allowOcclusionWhenDynamic);
-                writer.WritePropertyName("renderingLayerMask");
-                writer.WriteValue("" + val.renderingLayerMask + ": " + LayerMask.LayerToName((int)val.renderingLayerMask));
-                writer.WriteEndObject();
+
+                strValue += "],\"dynamicOcclusion\":" + (val.allowOcclusionWhenDynamic ? "true" : "false")
+                                                      + ",\"renderingLayerMask\":\"" + val.renderingLayerMask + ": " + LayerMask.LayerToName((int)val.renderingLayerMask)
+                                                      + "\"}";
+                writer.WriteRawValue(strValue);
             }
         }
 

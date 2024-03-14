@@ -6,6 +6,40 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class VectorJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        public static string ToJsonStringVector2(Vector2? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + "}";
+            }
+
+            return "null";
+        }
+
+        public static string ToJsonStringVector3(Vector3? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + ",\"z\":" + FloatJsonConverter.ToJsonString(value.z) + "}";
+            }
+
+            return "null";
+        }
+
+        public static string ToJsonStringVector4(Vector4? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + ",\"z\":" + FloatJsonConverter.ToJsonString(value.z) + ",\"w\":" + FloatJsonConverter.ToJsonString(value.w) + "}";
+            }
+
+            return "null";
+        }
+
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,26 +48,18 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
+                // raw is way faster than using the libraries
                 if (value is Vector2 val)
                 {
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("x");
-                    writer.WriteValue(val.x);
-                    writer.WritePropertyName("y");
-                    writer.WriteValue(val.y);
-                    writer.WriteEndObject();
+                    writer.WriteRawValue(ToJsonStringVector2(val));
                 }
-                else
+                else if (value is Vector3 valZ)
                 {
-                    var valZ = (Vector3)value;
-                    writer.WriteStartObject();
-                    writer.WritePropertyName("x");
-                    writer.WriteValue(valZ.x);
-                    writer.WritePropertyName("y");
-                    writer.WriteValue(valZ.y);
-                    writer.WritePropertyName("z");
-                    writer.WriteValue(valZ.z);
-                    writer.WriteEndObject();
+                    writer.WriteRawValue(ToJsonStringVector3(valZ));
+                }
+                else if (value is Vector4 valW)
+                {
+                    writer.WriteRawValue(ToJsonStringVector4(valW));
                 }
             }
         }
@@ -47,7 +73,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(Vector3) || objectType == typeof(Vector2) || objectType == typeof(Vector3?) || objectType == typeof(Vector2?);
+            return objectType == typeof(Vector4) || objectType == typeof(Vector3) || objectType == typeof(Vector2) || objectType == typeof(Vector4?) || objectType == typeof(Vector3?) || objectType == typeof(Vector2?);
         }
     }
 }
