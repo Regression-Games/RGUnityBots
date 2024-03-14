@@ -25,8 +25,8 @@ namespace RegressionGames.StateRecorder
                                         + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
                                         + ",\n\"performance\":" + performance.ToJson()
                                         + ",\n\"state\":[\n" + string.Join(",\n", state.Select(a=>a.ToJson()))
-                                        + "\n],\n\"inputs\":[\n" + inputs.ToJson()
-                                        + "\n]\n}";
+                                        + "\n],\n\"inputs\":" + inputs.ToJson()
+                                        + "\n}";
         }
     }
 
