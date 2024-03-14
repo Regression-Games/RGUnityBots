@@ -400,12 +400,15 @@ namespace RegressionGames.StateRecorder
             Error = delegate(object _, ErrorEventArgs args)
             {
                 // just eat certain errors
-                if (args.ErrorContext.Error.InnerException is UnityException)
+                if (args.ErrorContext.Error is MissingComponentException || args.ErrorContext.Error.InnerException is UnityException or NotSupportedException or MissingComponentException)
                 {
                     args.ErrorContext.Handled = true;
                 }
-
-                args.ErrorContext.Handled = true;
+                else
+                {
+                    // do nothing anyway.. but useful for debugging which errors happened
+                    args.ErrorContext.Handled = true;
+                }
             },
             // state, behaviours, state, field, child field ... so we can basically see the vector values of a field on a behaviour on an object, but stop there
             //MaxDepth = 5

@@ -187,12 +187,13 @@ namespace RegressionGames.StateRecorder
                 stateJson = JsonConvert.SerializeObject(state, Formatting.None, ScreenRecorder.JsonSerializerSettings);
                 if (string.IsNullOrEmpty(stateJson))
                 {
-                    throw new Exception("StateJson came back empty or null.. This indicates that an exception happened in one of the custom json converters.");
+                    // shouldn't happen... but keeps us running if it does
+                    stateJson = "{\"EXCEPTION\":\"Could not convert Behaviour to JSON\"}";
                 }
             }
             catch (Exception ex)
             {
-                RGDebug.LogException(ex, "Error converting behaviour to JSON");
+                RGDebug.LogException(ex, "Error converting behaviour to JSON - " + state.name);
             }
 
             return "{\"name\":" + JsonConvert.ToString(name)
