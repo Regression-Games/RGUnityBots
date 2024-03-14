@@ -19,10 +19,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 // raw is way faster than using the libraries
                 writer.WriteRawValue("{\"text\":" + JsonConvert.ToString(val.text)
                                                   + ",\"font\":" + JsonConvert.ToString(val.font.name)
-                                                  + ",\"fontStyle\":" + JsonConvert.ToString(val.fontStyle)
-                                                  + ",\"fontSize\":" + val.fontSize
+                                                  // enum doesn't need json escaping
+                                                  + ",\"fontStyle\":\"" + val.fontStyle
+                                                  + "\",\"fontSize\":" + val.fontSize
                                                   + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                  + ",\"raycastTarget\":" + val.raycastTarget.ToString().ToLower() + "}");
+                                                  + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false") + "}");
             }
         }
 

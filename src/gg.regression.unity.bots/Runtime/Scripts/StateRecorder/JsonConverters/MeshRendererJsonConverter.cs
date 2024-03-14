@@ -30,7 +30,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
                     first = false;
                 }
 
-                strValue += "],\"dynamicOcclusion\":" + val.allowOcclusionWhenDynamic.ToString().ToLower()
+                strValue += "],\"dynamicOcclusion\":" + (val.allowOcclusionWhenDynamic ? "true" : "false")
                                                       + ",\"renderingLayerMask\":\"" + val.renderingLayerMask + ": " + LayerMask.LayerToName((int)val.renderingLayerMask)
                                                       + "\"}";
                 writer.WriteRawValue(strValue);

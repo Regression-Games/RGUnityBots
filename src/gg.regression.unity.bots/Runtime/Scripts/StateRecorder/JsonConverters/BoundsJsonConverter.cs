@@ -14,13 +14,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 var center = value.center;
                 var extents = value.extents;
                 return "{\"center\":{\"x\":"
-                       + center.x
-                       + ",\"y\":" + center.y
-                       + ",\"z\":" + center.z
+                       + FloatJsonConverter.ToJsonString(center.x)
+                       + ",\"y\":" + FloatJsonConverter.ToJsonString(center.y)
+                       + ",\"z\":" + FloatJsonConverter.ToJsonString(center.z)
                        + "},\"extents\":{\"x\":"
-                       + extents.x
-                       + ",\"y\":" + extents.y
-                       + ",\"z\":" + extents.z
+                       + FloatJsonConverter.ToJsonString(extents.x)
+                       + ",\"y\":" + FloatJsonConverter.ToJsonString(extents.y)
+                       + ",\"z\":" + FloatJsonConverter.ToJsonString(extents.z)
                        + "}}";
             }
 

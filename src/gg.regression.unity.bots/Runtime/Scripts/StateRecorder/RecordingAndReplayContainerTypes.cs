@@ -1,16 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using Newtonsoft.Json;
+using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder
 {
+
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class FrameStateData : ReplayFrameStateData
     {
         public PerformanceMetricData performance;
         public new List<RecordedGameObjectState> state;
+
+        public string ToJson()
+        {
+            return "{\n\"tickNumber\":" + tickNumber
+                                        + ",\n\"keyFrame\":" + (keyFrame ? "true" : "false")
+                                        + ",\n\"time\":" + time
+                                        + ",\n\"timeScale\":" + timeScale
+                                        + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
+                                        + ",\n\"performance\":" + performance.ToJson()
+                                        + ",\n\"state\":[\n" + string.Join(",\n", state.Select(a=>a.ToJson()))
+                                        + "\n],\n\"inputs\":[\n" + inputs.ToJson()
+                                        + "\n]\n}";
+        }
     }
 
     [Serializable]
@@ -19,6 +36,14 @@ namespace RegressionGames.StateRecorder
     {
         public List<KeyboardInputActionData> keyboard;
         public List<MouseInputActionData> mouse;
+
+        public string ToJson()
+        {
+            return "{\n\"keyboard\":[\n" + string.Join(",\n", keyboard.Select(a=>a.ToJson()))
+                   + "\n],\n\"mouse\":[\n" + string.Join(",\n", mouse.Select(a=>a.ToJson()))
+                   + "\n]"
+                   + "\n}";
+        }
     }
 
     [Serializable]
@@ -29,6 +54,15 @@ namespace RegressionGames.StateRecorder
         public int framesSincePreviousTick;
         public int fps;
         public EngineStatsData engineStats;
+
+        public string ToJson()
+        {
+            return "{\"previousTickTime\":" + previousTickTime
+                                            + ",\"framesSincePreviousTick\":" + framesSincePreviousTick
+                                            + ",\"fps\":" + fps
+                                            + ",\"engineStats\":" + engineStats.ToJson()
+                                         + "}";
+        }
     }
 
     [Serializable]
@@ -52,11 +86,29 @@ namespace RegressionGames.StateRecorder
         public int dynamicBatches;
         public int staticBatches;
         public int instancedBatches;
+
+        public string ToJson()
+        {
+            return "{\"frameTime\":" + frameTime
+                                     + ",\"renderTime\":" + renderTime
+                                     + ",\"triangles\":" + triangles
+                                     + ",\"vertices\":" + vertices
+                                     + ",\"setPassCalls\":" + setPassCalls
+                                     + ",\"drawCalls\":" + drawCalls
+                                     + ",\"dynamicBatchedDrawCalls\":" + dynamicBatchedDrawCalls
+                                     + ",\"staticBatchedDrawCalls\":" + staticBatchedDrawCalls
+                                     + ",\"instancedBatchedDrawCalls\":" + instancedBatchedDrawCalls
+                                     + ",\"batches\":" + batches
+                                     + ",\"dynamicBatches\":" + dynamicBatches
+                                     + ",\"staticBatches\":" + staticBatches
+                                     + ",\"instancedBatches\":" + instancedBatches
+                                     + "}";
+        }
     }
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    // replay doesn't need to deserialize everything we reocrd
+    // replay doesn't need to deserialize everything we record
     public class ReplayFrameStateData
     {
         public long tickNumber;
@@ -70,7 +122,7 @@ namespace RegressionGames.StateRecorder
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    // replay doesn't need to deserialize everything we reocrd
+    // replay doesn't need to deserialize everything we record
     public class ReplayGameObjectState
     {
         public int id;
@@ -95,6 +147,23 @@ namespace RegressionGames.StateRecorder
         public List<RigidbodyState> rigidbodies;
         public List<ColliderState> colliders;
         public List<BehaviourState> behaviours;
+
+        public string ToJson()
+        {
+            return "{\n\"id\":" + id
+                                + ",\n\"path\":" + JsonConvert.ToString(path)
+                                + ",\n\"scene\":" + JsonConvert.ToString(scene)
+                                + ",\n\"tag\":" + JsonConvert.ToString(tag)
+                                + ",\n\"layer\":" + JsonConvert.ToString(layer)
+                                + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
+                                + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
+                                + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
+                                + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
+                                + ",\n\"rigidbodies\":[\n" + string.Join(",\n", rigidbodies.Select(a=>a.ToJson()))
+                                + "\n],\n\"colliders\":[\n" + string.Join(",\n", colliders.Select(a=>a.ToJson()))
+                                + "\n],\n\"behaviours\":[\n" + string.Join(",\n", behaviours.Select(a=>a.ToJson()))
+                                + "\n]\n}";
+        }
     }
 
     [Serializable]
@@ -109,6 +178,29 @@ namespace RegressionGames.StateRecorder
         {
             return name;
         }
+
+        public string ToJson()
+        {
+            var stateJson = "{}";
+            try
+            {
+                stateJson = JsonConvert.SerializeObject(state, Formatting.None, ScreenRecorder.JsonSerializerSettings);
+                if (string.IsNullOrEmpty(stateJson))
+                {
+                    throw new Exception("StateJson came back empty or null.. This indicates that an exception happened in one of the custom json converters.");
+                }
+            }
+            catch (Exception ex)
+            {
+                RGDebug.LogException(ex, "Error converting behaviour to JSON");
+            }
+
+            return "{\"name\":" + JsonConvert.ToString(name)
+                                     + ",\"path\":" + JsonConvert.ToString(path)
+                                     // have to use JsonConvert to serialize here as Behaviours are the wild wild west of contents
+                                     + ",\"state\":" + stateJson
+                                     + "}";
+        }
     }
 
     [Serializable]
@@ -118,7 +210,16 @@ namespace RegressionGames.StateRecorder
         public string path;
         public Bounds bounds;
         public bool isTrigger;
+
+        public string ToJson()
+        {
+            return "{\"path\":" + JsonConvert.ToString(path)
+                                + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(bounds)
+                                + ",\"isTrigger\":" + (isTrigger ? "true" : "false")
+                                + "}";
+        }
     }
+
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -136,5 +237,19 @@ namespace RegressionGames.StateRecorder
         public float angularDrag;
         public bool useGravity;
         public bool isKinematic;
+
+        public string ToJson()
+        {
+            return "{\"path\":" + JsonConvert.ToString(path)
+                                + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
+                                + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
+                                + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(velocity)
+                                + ",\"mass\":" + mass
+                                + ",\"drag\":" + drag
+                                + ",\"angularDrag\":" + angularDrag
+                                + ",\"useGravity\":" + (useGravity ? "true" : "false")
+                                + ",\"isKinematic\":" + (isKinematic ? "true" : "false")
+                                + "}";
+        }
     }
 }

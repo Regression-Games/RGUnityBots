@@ -11,10 +11,10 @@ namespace RegressionGames.StateRecorder.JsonConverters
             if (value != null)
             {
                 var val = value.Value;
-                return "{\"x\":" + val.x
-                                 + ",\"y\":" + val.y
-                                 + ",\"width\":" + val.width
-                                 + ",\"height\":" + val.height + "}";
+                return "{\"x\":" + FloatJsonConverter.ToJsonString(val.x)
+                                 + ",\"y\":" + FloatJsonConverter.ToJsonString(val.y)
+                                 + ",\"width\":" + FloatJsonConverter.ToJsonString(val.width)
+                                 + ",\"height\":" + FloatJsonConverter.ToJsonString(val.height) + "}";
             }
 
             return "null";

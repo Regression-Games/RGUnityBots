@@ -17,7 +17,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 var val = (Collider)value;
                 // raw is way faster than using the libraries
                 writer.WritePropertyName("{\"bounds\":" + BoundsJsonConverter.ToJsonString(val.bounds)
-                                                        + ",\"isTrigger\":" + val.isTrigger.ToString().ToLower() + "}");
+                                                        + ",\"isTrigger\":" + (val.isTrigger ? "true" : "false") + "}");
             }
         }
 

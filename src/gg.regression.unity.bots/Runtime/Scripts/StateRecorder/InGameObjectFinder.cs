@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using StateRecorder.Types;
 using UnityEngine;
 using Component = UnityEngine.Component;
@@ -11,6 +12,7 @@ namespace RegressionGames.StateRecorder
         public bool? HasKeyTypes;
         public bool? IsTopLevel;
         public string Path;
+        public string TypeFullName;
     }
 
     public class InGameObjectFinder : MonoBehaviour
@@ -93,7 +95,7 @@ namespace RegressionGames.StateRecorder
             return objectName;
         }
 
-        private string GetUniqueTransformPath(Transform theTransform)
+        private TransformStatus GetUniqueTransformPath(Transform theTransform, [CanBeNull] Behaviour behaviour = null)
         {
             string tPath = null;
 
@@ -127,31 +129,38 @@ namespace RegressionGames.StateRecorder
                 }
                 else
                 {
-                    // add our result to the cache
-                    _transformsIveSeen[theTransform] = new TransformStatus
+                    status = new TransformStatus
                     {
-                        Path = tPath
+                        Path = tPath,
+                        TypeFullName = behaviour != null ? behaviour.GetType().FullName : null
                     };
+                    // add our result to the cache
+                    _transformsIveSeen[theTransform] = status;
                 }
             }
 
-            return tPath;
+            if (status.TypeFullName == null)
+            {
+                status.TypeFullName = behaviour != null ? behaviour.GetType().FullName : null;
+            }
+
+            return status;
         }
 
         private BehaviourState GetStateForBehaviour(Behaviour behaviour)
         {
-            var type = behaviour.GetType();
+            var tStatus = GetUniqueTransformPath(behaviour.transform, behaviour);
             return new BehaviourState
             {
-                path = GetUniqueTransformPath(behaviour.transform),
-                name = type.FullName,
+                path = tStatus.Path,
+                name = tStatus.TypeFullName,
                 state = collectStateFromBehaviours ? behaviour : null
             };
         }
 
         private RecordedGameObjectState CreateStateForTransform(int screenWidth, int screenHeight, Transform t)
         {
-            var gameObjectPath = GetUniqueTransformPath(t);
+            var gameObjectPath = GetUniqueTransformPath(t).Path;
 
             // find the full bounds of the statefulGameObject
             var statefulGameObject = t.gameObject;
@@ -259,7 +268,7 @@ namespace RegressionGames.StateRecorder
                         {
                             collidersState.Add(new ColliderState
                             {
-                                path = GetUniqueTransformPath(colliderEntry.transform),
+                                path = GetUniqueTransformPath(colliderEntry.transform).Path,
                                 bounds = colliderEntry.bounds,
                                 isTrigger = colliderEntry.isTrigger
                             });
@@ -273,7 +282,7 @@ namespace RegressionGames.StateRecorder
                             collidersState.Add(
                                 new ColliderState
                                 {
-                                    path = GetUniqueTransformPath(colliderEntry.transform),
+                                    path = GetUniqueTransformPath(colliderEntry.transform).Path,
                                     bounds = colliderEntry.bounds,
                                     isTrigger = colliderEntry.isTrigger
                                 }
@@ -289,7 +298,7 @@ namespace RegressionGames.StateRecorder
                         {
                             rigidbodiesState.Add(new RigidbodyState
                                 {
-                                    path = GetUniqueTransformPath(myRigidbody.transform),
+                                    path = GetUniqueTransformPath(myRigidbody.transform).Path,
                                     position = myRigidbody.position,
                                     rotation = myRigidbody.rotation,
                                     velocity = myRigidbody.velocity,
@@ -308,7 +317,7 @@ namespace RegressionGames.StateRecorder
                         {
                             rigidbodiesState.Add(new RigidbodyState
                                 {
-                                    path = GetUniqueTransformPath(myRigidbody.transform),
+                                    path = GetUniqueTransformPath(myRigidbody.transform).Path,
                                     position = myRigidbody.position,
                                     rotation = Quaternion.Euler(0, 0, myRigidbody.rotation),
                                     velocity = myRigidbody.velocity
@@ -400,18 +409,19 @@ namespace RegressionGames.StateRecorder
                             center.z = 0f;
                             var screenSpaceBounds = new Bounds(center, size);
 
-                            var gameObjectPath = GetUniqueTransformPath(statefulUIObject.transform);
+                            var gameObjectPath = GetUniqueTransformPath(statefulUIObject.transform).Path;
                             var behaviours = statefulUIObject.GetComponents<Behaviour>()
                                 .Select(GetStateForBehaviour)
                                 .ToList();
 
+                            var soTransform = statefulUIObject.transform;
                             resultList.Add(new RecordedGameObjectState
                             {
-                                id = statefulUIObject.transform.GetInstanceID(),
+                                id = soTransform.GetInstanceID(),
                                 path = gameObjectPath,
                                 screenSpaceBounds = screenSpaceBounds,
-                                position = statefulUIObject.transform.position,
-                                rotation = statefulUIObject.transform.rotation,
+                                position = soTransform.position,
+                                rotation = soTransform.rotation,
                                 tag = statefulUIObject.tag,
                                 layer = LayerMask.LayerToName(statefulUIObject.layer),
                                 scene = statefulUIObject.scene.name,

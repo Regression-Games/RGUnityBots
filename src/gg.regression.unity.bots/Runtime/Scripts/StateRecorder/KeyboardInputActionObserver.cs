@@ -4,13 +4,31 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder
 {
+
+    public class KeyboardInputActionDataJsonConverter : JsonConverter<KeyboardInputActionData>
+    {
+        public override void WriteJson(JsonWriter writer, KeyboardInputActionData value, JsonSerializer serializer)
+        {
+            writer.WriteRawValue(value.ToJson());
+        }
+
+        public override bool CanRead => false;
+
+        public override KeyboardInputActionData ReadJson(JsonReader reader, Type objectType, KeyboardInputActionData existingValue, bool hasExistingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [JsonConverter(typeof(KeyboardInputActionDataJsonConverter))]
     public class KeyboardInputActionData
     {
         public double startTime;
@@ -28,6 +46,16 @@ namespace RegressionGames.StateRecorder
         public double lastUpdateTime;
 
         public bool isPressed => duration > 0 && endTime == null;
+
+        public string ToJson()
+        {
+            return "{\"startTime\":" + startTime
+                                     + ",\"action\":" + JsonConvert.ToString(action)
+                                     + ",\"binding\":" + JsonConvert.ToString(binding)
+                                     + ",\"endTime\":" + endTime
+                                     + ",\"isPressed\":" + (isPressed ? "true" : "false")
+                                     + "}";
+        }
     }
 
     public class KeyboardInputActionObserver : MonoBehaviour

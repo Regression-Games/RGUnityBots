@@ -19,11 +19,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 writer.WriteRawValue("{\"position\":" + val.position
                                                       + ",\"rotation\":" + val.rotation
                                                       + ",\"velocity\":" + val.velocity
-                                                      + ",\"mass\":" + val.mass
-                                                      + ",\"drag\":" + val.drag
-                                                      + ",\"angularDrag\":" + val.angularDrag
-                                                      + ",\"gravityScale\":" + val.gravityScale
-                                                      + ",\"isKinematic\":" + val.isKinematic.ToString().ToLower() + "}");
+                                                      + ",\"mass\":" + FloatJsonConverter.ToJsonString(val.mass)
+                                                      + ",\"drag\":" + FloatJsonConverter.ToJsonString(val.drag)
+                                                      + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(val.angularDrag)
+                                                      + ",\"gravityScale\":" + FloatJsonConverter.ToJsonString(val.gravityScale)
+                                                      + ",\"isKinematic\":" + (val.isKinematic ? "true" : "false") + "}");
             }
         }
 

@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             if (val != null)
             {
                 var value = val.Value;
-                return "{\"x\":" + value.x + ",\"y\":" + value.y + ",\"z\":" + value.z + ",\"w\":" + value.w + "}";
+                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + ",\"z\":" + FloatJsonConverter.ToJsonString(value.z) + ",\"w\":" + FloatJsonConverter.ToJsonString(value.w) + "}";
             }
 
             return "null";

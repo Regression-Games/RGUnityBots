@@ -294,7 +294,7 @@ namespace RegressionGames.StateRecorder
 
                         // serialize to json byte[]
                         var jsonData = Encoding.UTF8.GetBytes(
-                            JsonConvert.SerializeObject(frameState, Formatting.Indented, JsonSerializerSettings)
+                            frameState.ToJson()
                         );
 
                         var theScreenshot = screenShot;
@@ -419,9 +419,21 @@ namespace RegressionGames.StateRecorder
         protected override JsonContract CreateContract(Type objectType)
         {
             JsonContract contract = base.CreateContract(objectType);
-
             // this will only be called once and then cached
-            if (objectType == typeof(Color))
+
+            if (objectType == typeof(float) || objectType == typeof(Single))
+            {
+                contract.Converter = new FloatJsonConverter();
+            }
+            else if (objectType == typeof(double) || objectType == typeof(Double))
+            {
+                contract.Converter = new DoubleJsonConverter();
+            }
+            else if (objectType == typeof(decimal) || objectType == typeof(Decimal))
+            {
+                contract.Converter = new DecimalJsonConverter();
+            }
+            else if (objectType == typeof(Color))
             {
                 contract.Converter = new ColorJsonConverter();
             }
