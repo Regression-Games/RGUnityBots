@@ -8,6 +8,5 @@ namespace StateRecorder.Types
      */
     public class RGIncludeInState : MonoBehaviour
     {
-
     }
 }

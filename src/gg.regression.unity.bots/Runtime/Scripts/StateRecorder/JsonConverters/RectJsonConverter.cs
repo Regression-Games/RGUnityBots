@@ -6,6 +6,20 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class RectJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        public static string ToJsonString(Rect? value)
+        {
+            if (value != null)
+            {
+                var val = value.Value;
+                return "{\"x\":" + FloatJsonConverter.ToJsonString(val.x)
+                                 + ",\"y\":" + FloatJsonConverter.ToJsonString(val.y)
+                                 + ",\"width\":" + FloatJsonConverter.ToJsonString(val.width)
+                                 + ",\"height\":" + FloatJsonConverter.ToJsonString(val.height) + "}";
+            }
+
+            return "null";
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,17 +28,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Rect)value;
-                writer.WriteStartObject();
-                writer.WritePropertyName("x");
-                writer.WriteValue(val.x);
-                writer.WritePropertyName("y");
-                writer.WriteValue(val.y);
-                writer.WritePropertyName("w");
-                writer.WriteValue(val.width);
-                writer.WritePropertyName("h");
-                writer.WriteValue(val.height);
-                writer.WriteEndObject();
+                // raw is way faster than using the libraries
+                writer.WriteRawValue(ToJsonString((Rect)value));
             }
         }
 

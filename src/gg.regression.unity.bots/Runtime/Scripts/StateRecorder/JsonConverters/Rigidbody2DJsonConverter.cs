@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class RigidbodyJsonConverter : Newtonsoft.Json.JsonConverter
+    public class Rigidbody2DJsonConverter : Newtonsoft.Json.JsonConverter
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Rigidbody)value;
+                var val = (Rigidbody2D)value;
                 // raw is way faster than using the libraries
                 writer.WriteRawValue("{\"position\":" + val.position
                                                       + ",\"rotation\":" + val.rotation
@@ -22,7 +22,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
                                                       + ",\"mass\":" + FloatJsonConverter.ToJsonString(val.mass)
                                                       + ",\"drag\":" + FloatJsonConverter.ToJsonString(val.drag)
                                                       + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(val.angularDrag)
-                                                      + ",\"useGravity\":" + (val.useGravity ? "true" : "false")
+                                                      + ",\"gravityScale\":" + FloatJsonConverter.ToJsonString(val.gravityScale)
                                                       + ",\"isKinematic\":" + (val.isKinematic ? "true" : "false") + "}");
             }
         }
@@ -36,7 +36,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(Rigidbody);
+            return objectType == typeof(Rigidbody2D);
         }
     }
 }

@@ -4,23 +4,58 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder
 {
+
+    public class KeyboardInputActionDataJsonConverter : JsonConverter<KeyboardInputActionData>
+    {
+        public override void WriteJson(JsonWriter writer, KeyboardInputActionData value, JsonSerializer serializer)
+        {
+            writer.WriteRawValue(value.ToJson());
+        }
+
+        public override bool CanRead => false;
+
+        public override KeyboardInputActionData ReadJson(JsonReader reader, Type objectType, KeyboardInputActionData existingValue, bool hasExistingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
+    [JsonConverter(typeof(KeyboardInputActionDataJsonConverter))]
     public class KeyboardInputActionData
     {
         public double startTime;
         public string action;
         public string binding;
         public double? endTime;
-        [NonSerialized] public double duration;
-        [NonSerialized] public double? lastSentUpdateTime;
-        [NonSerialized] public double lastUpdateTime;
+
+        [NonSerialized]
+        public double duration;
+
+        [NonSerialized]
+        public double? lastSentUpdateTime;
+
+        [NonSerialized]
+        public double lastUpdateTime;
+
         public bool isPressed => duration > 0 && endTime == null;
+
+        public string ToJson()
+        {
+            return "{\"startTime\":" + startTime
+                                     + ",\"action\":" + JsonConvert.ToString(action)
+                                     + ",\"binding\":" + JsonConvert.ToString(binding)
+                                     + ",\"endTime\":" + endTime
+                                     + ",\"isPressed\":" + (isPressed ? "true" : "false")
+                                     + "}";
+        }
     }
 
     public class KeyboardInputActionObserver : MonoBehaviour
@@ -40,129 +75,129 @@ namespace RegressionGames.StateRecorder
         public static readonly IReadOnlyDictionary<string, Key> AllKeyboardKeys = new ReadOnlyDictionary<string, Key>(new Dictionary<string, Key>()
         {
             //row 1 (top row)
-            {"escape", Key.Escape},
-            {"f1", Key.F1},
-            {"f2", Key.F2},
-            {"f3", Key.F3},
-            {"f4", Key.F4},
-            {"f5", Key.F5},
-            {"f6", Key.F6},
-            {"f7", Key.F7},
-            {"f8", Key.F8},
-            {"f9", Key.F9},
-            {"f10", Key.F10},
-            {"f11", Key.F11},
-            {"f12", Key.F12},
-            {"printScreen", Key.PrintScreen},
-            {"scrollLock", Key.ScrollLock},
-            {"pause", Key.Pause},
+            { "escape", Key.Escape },
+            { "f1", Key.F1 },
+            { "f2", Key.F2 },
+            { "f3", Key.F3 },
+            { "f4", Key.F4 },
+            { "f5", Key.F5 },
+            { "f6", Key.F6 },
+            { "f7", Key.F7 },
+            { "f8", Key.F8 },
+            { "f9", Key.F9 },
+            { "f10", Key.F10 },
+            { "f11", Key.F11 },
+            { "f12", Key.F12 },
+            { "printScreen", Key.PrintScreen },
+            { "scrollLock", Key.ScrollLock },
+            { "pause", Key.Pause },
 
             // row 2
-            {"backquote", Key.Backquote},
-            {"1", Key.Digit1},
-            {"2", Key.Digit2},
-            {"3", Key.Digit3},
-            {"4", Key.Digit4},
-            {"5", Key.Digit5},
-            {"6", Key.Digit6},
-            {"7", Key.Digit7},
-            {"8", Key.Digit8},
-            {"9", Key.Digit9},
-            {"0", Key.Digit0},
-            {"minus", Key.Minus},
-            {"equals", Key.Equals},
-            {"backspace", Key.Backspace},
-            {"insert", Key.Insert},
-            {"home", Key.Home},
-            {"pageUp", Key.PageUp},
-            {"numLock", Key.NumLock},
-            {"numpadDivide", Key.NumpadDivide},
-            {"numpadMultiply", Key.NumpadMultiply},
-            {"numpadMinus", Key.NumpadMinus},
+            { "backquote", Key.Backquote },
+            { "1", Key.Digit1 },
+            { "2", Key.Digit2 },
+            { "3", Key.Digit3 },
+            { "4", Key.Digit4 },
+            { "5", Key.Digit5 },
+            { "6", Key.Digit6 },
+            { "7", Key.Digit7 },
+            { "8", Key.Digit8 },
+            { "9", Key.Digit9 },
+            { "0", Key.Digit0 },
+            { "minus", Key.Minus },
+            { "equals", Key.Equals },
+            { "backspace", Key.Backspace },
+            { "insert", Key.Insert },
+            { "home", Key.Home },
+            { "pageUp", Key.PageUp },
+            { "numLock", Key.NumLock },
+            { "numpadDivide", Key.NumpadDivide },
+            { "numpadMultiply", Key.NumpadMultiply },
+            { "numpadMinus", Key.NumpadMinus },
 
             //row 3
-            {"tab", Key.Tab},
-            {"q", Key.Q},
-            {"w", Key.W},
-            {"e", Key.E},
-            {"r", Key.R},
-            {"t", Key.T},
-            {"y", Key.Y},
-            {"u", Key.U},
-            {"i", Key.I},
-            {"o", Key.O},
-            {"p", Key.P},
-            {"leftBracket", Key.LeftBracket},
-            {"rightBracket", Key.RightBracket},
-            {"backSlash", Key.Backslash},
-            {"delete", Key.Delete},
-            {"end", Key.End},
-            {"pageDown", Key.PageDown},
-            {"numpad7", Key.Numpad7},
-            {"numpad8", Key.Numpad8},
-            {"numpad9", Key.Numpad9},
-            {"numpadPlus", Key.NumpadPlus},
+            { "tab", Key.Tab },
+            { "q", Key.Q },
+            { "w", Key.W },
+            { "e", Key.E },
+            { "r", Key.R },
+            { "t", Key.T },
+            { "y", Key.Y },
+            { "u", Key.U },
+            { "i", Key.I },
+            { "o", Key.O },
+            { "p", Key.P },
+            { "leftBracket", Key.LeftBracket },
+            { "rightBracket", Key.RightBracket },
+            { "backSlash", Key.Backslash },
+            { "delete", Key.Delete },
+            { "end", Key.End },
+            { "pageDown", Key.PageDown },
+            { "numpad7", Key.Numpad7 },
+            { "numpad8", Key.Numpad8 },
+            { "numpad9", Key.Numpad9 },
+            { "numpadPlus", Key.NumpadPlus },
 
             //row 4
-            {"capsLock", Key.CapsLock},
-            {"a", Key.A},
-            {"s", Key.S},
-            {"d", Key.D},
-            {"f", Key.F},
-            {"g", Key.G},
-            {"h", Key.H},
-            {"j", Key.J},
-            {"k", Key.K},
-            {"l", Key.L},
-            {"semicolon", Key.Semicolon},
-            {"quote", Key.Quote},
-            {"enter", Key.Enter},
-            {"numpad4", Key.Numpad4},
-            {"numpad5", Key.Numpad5},
-            {"numpad6", Key.Numpad6},
+            { "capsLock", Key.CapsLock },
+            { "a", Key.A },
+            { "s", Key.S },
+            { "d", Key.D },
+            { "f", Key.F },
+            { "g", Key.G },
+            { "h", Key.H },
+            { "j", Key.J },
+            { "k", Key.K },
+            { "l", Key.L },
+            { "semicolon", Key.Semicolon },
+            { "quote", Key.Quote },
+            { "enter", Key.Enter },
+            { "numpad4", Key.Numpad4 },
+            { "numpad5", Key.Numpad5 },
+            { "numpad6", Key.Numpad6 },
             // big plus button already in row 3
 
             //row 5
-            {"leftShift", Key.LeftShift},
-            {"z", Key.Z},
-            {"x", Key.X},
-            {"c", Key.C},
-            {"v", Key.V},
-            {"b", Key.B},
-            {"n", Key.N},
-            {"m", Key.M},
-            {"comma", Key.Comma},
-            {"period", Key.Period},
-            {"slash", Key.Slash},
-            {"rightShift", Key.RightShift},
-            {"upArrow", Key.UpArrow},
-            {"numpad1", Key.Numpad1},
-            {"numpad2", Key.Numpad2},
-            {"numpad3", Key.Numpad3},
-            {"numpadEnter", Key.NumpadEnter},
+            { "leftShift", Key.LeftShift },
+            { "z", Key.Z },
+            { "x", Key.X },
+            { "c", Key.C },
+            { "v", Key.V },
+            { "b", Key.B },
+            { "n", Key.N },
+            { "m", Key.M },
+            { "comma", Key.Comma },
+            { "period", Key.Period },
+            { "slash", Key.Slash },
+            { "rightShift", Key.RightShift },
+            { "upArrow", Key.UpArrow },
+            { "numpad1", Key.Numpad1 },
+            { "numpad2", Key.Numpad2 },
+            { "numpad3", Key.Numpad3 },
+            { "numpadEnter", Key.NumpadEnter },
 
             // row 6 (bottom row)
-            {"leftCtrl", Key.LeftCtrl},
-            {"leftMeta", Key.LeftMeta}, // windows Logo or
-            {"leftAlt", Key.LeftAlt},
-            {"space", Key.Space},
-            {"rightAlt", Key.RightAlt},
-            {"rightMeta", Key.RightMeta}, // windows Fn or m
-            {"contextMenu", Key.ContextMenu},
-            {"rightCtrl", Key.RightCtrl},
-            {"leftArrow", Key.LeftArrow},
-            {"downArrow", Key.DownArrow},
-            {"rightArrow", Key.RightArrow},
-            {"numpad0", Key.Numpad0},
-            {"numpadPeriod", Key.NumpadPeriod},
+            { "leftCtrl", Key.LeftCtrl },
+            { "leftMeta", Key.LeftMeta }, // windows Logo or
+            { "leftAlt", Key.LeftAlt },
+            { "space", Key.Space },
+            { "rightAlt", Key.RightAlt },
+            { "rightMeta", Key.RightMeta }, // windows Fn or m
+            { "contextMenu", Key.ContextMenu },
+            { "rightCtrl", Key.RightCtrl },
+            { "leftArrow", Key.LeftArrow },
+            { "downArrow", Key.DownArrow },
+            { "rightArrow", Key.RightArrow },
+            { "numpad0", Key.Numpad0 },
+            { "numpadPeriod", Key.NumpadPeriod },
             // big enter button already in row 5
 
             // Keyboard OEM Special keys
-            {"OEM1", Key.OEM1},
-            {"OEM2", Key.OEM2},
-            {"OEM3", Key.OEM3},
-            {"OEM4", Key.OEM4},
-            {"OEM5", Key.OEM5},
+            { "OEM1", Key.OEM1 },
+            { "OEM2", Key.OEM2 },
+            { "OEM3", Key.OEM3 },
+            { "OEM4", Key.OEM4 },
+            { "OEM5", Key.OEM5 },
         });
 
         public void Awake()

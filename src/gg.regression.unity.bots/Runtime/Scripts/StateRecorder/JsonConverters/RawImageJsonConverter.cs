@@ -16,18 +16,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             else
             {
                 var val = (RawImage)value;
-                writer.WriteStartObject();
-                writer.WritePropertyName("texture");
-                writer.WriteValue(val.texture?.name);
-                writer.WritePropertyName("color");
-                serializer.Serialize(writer, val.color, typeof(Color));
-                writer.WritePropertyName("material");
-                writer.WriteValue(val.material?.name);
-                writer.WritePropertyName("raycastTarget");
-                writer.WriteValue(val.raycastTarget);
-                writer.WritePropertyName("uvRect");
-                writer.WriteValue(val.uvRect);
-                writer.WriteEndObject();
+                // raw is way faster than using the libraries
+                writer.WriteRawValue("{\"texture\":" + (val.texture == null ? "null":JsonConvert.ToString(val.texture.name))
+                                                     + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
+                                                     + ",\"material\":" + (val.material == null ? "null":JsonConvert.ToString(val.material.name))
+                                                     + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false")
+                                                     + ",\"uvRect\":" + RectJsonConverter.ToJsonString(val.uvRect) + "}");
             }
         }
 

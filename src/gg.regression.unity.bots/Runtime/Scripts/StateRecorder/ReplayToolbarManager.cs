@@ -10,7 +10,6 @@ namespace Unity.Multiplayer.Samples.BossRoom
 {
     public class ReplayToolbarManager : MonoBehaviour
     {
-
         public GameObject chooseReplayButton;
 
         public GameObject playButton;
@@ -79,7 +78,6 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         void OnFilesSelected(string[] filePaths)
         {
-
             // Get the file path of the first selected file
             var filePath = filePaths[0];
 
@@ -154,6 +152,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
                     RGDebug.LogInfo(_replayDataController.WaitingForKeyFrameConditions);
                     _lastKeyFrameError = _replayDataController.WaitingForKeyFrameConditions;
                 }
+
                 //TODO: It might be nice if we got enough info here to draw the names and bounding boxes of the missing information
                 warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(_replayDataController.WaitingForKeyFrameConditions);
                 warningIcon.SetActive(true);

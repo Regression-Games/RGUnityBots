@@ -6,6 +6,17 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class QuaternionJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        public static string ToJsonString(Quaternion? val)
+        {
+            if (val != null)
+            {
+                var value = val.Value;
+                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + ",\"z\":" + FloatJsonConverter.ToJsonString(value.z) + ",\"w\":" + FloatJsonConverter.ToJsonString(value.w) + "}";
+            }
+
+            return "null";
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -15,16 +26,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             else
             {
                 var val = (Quaternion)value;
-                writer.WriteStartObject();
-                writer.WritePropertyName("x");
-                writer.WriteValue(val.x);
-                writer.WritePropertyName("y");
-                writer.WriteValue(val.y);
-                writer.WritePropertyName("z");
-                writer.WriteValue(val.z);
-                writer.WritePropertyName("w");
-                writer.WriteValue(val.w);
-                writer.WriteEndObject();
+                // raw is way faster than using the libraries
+                writer.WriteRawValue(ToJsonString(val));
             }
         }
 
