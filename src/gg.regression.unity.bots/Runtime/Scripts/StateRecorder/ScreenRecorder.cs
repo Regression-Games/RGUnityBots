@@ -40,11 +40,13 @@ namespace RegressionGames.StateRecorder
 
         private int _frameCountSinceLastTick;
 
-        private string _currentVideoDirectory;
+        private string _currentGameplaySessionDirectoryPrefix;
 
         private CancellationTokenSource _tokenSource;
 
         private static ScreenRecorder _this;
+        
+        private static RGServiceManager _rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
 
         private bool _isRecording;
 
@@ -52,6 +54,7 @@ namespace RegressionGames.StateRecorder
 
         private long _videoNumber;
         private long _tickNumber;
+        private DateTime _startTime;
 
         private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
             _frameQueue;
@@ -100,18 +103,82 @@ namespace RegressionGames.StateRecorder
 #endif
             if (_isRecording)
             {
+                _rgServiceManager.TryAuth();
+                var endTime = DateTime.Now;
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 MouseInputActionObserver.GetInstance()?.StopRecording();
-                var theVideoDirectory = _currentVideoDirectory;
-                Task.Run(() =>
+                var gameplaySessionDataDirectory = _currentGameplaySessionDirectoryPrefix + "_data";
+                var gameplaySessionScreenshotDirectory = _currentGameplaySessionDirectoryPrefix + "_screenshots";
+                var thumbnailPath = _currentGameplaySessionDirectoryPrefix + "_thumbnail.png";
+                var zipTask = Task.Run(() =>
                 {
-                    RGDebug.LogInfo($"Zipping recording replay to file: {_currentVideoDirectory}.zip");
-                    ZipFile.CreateFromDirectory(theVideoDirectory, theVideoDirectory + ".zip");
-                    Directory.Delete(theVideoDirectory, true);
-                    RGDebug.LogInfo($"Finished zipping replay to file: {_currentVideoDirectory}");
+                    // First, save the gameplay session data
+                    RGDebug.LogInfo($"Zipping state recording replay to file: {gameplaySessionDataDirectory}.zip");
+                    ZipFile.CreateFromDirectory(gameplaySessionDataDirectory, gameplaySessionDataDirectory + ".zip");
+                    Directory.Delete(gameplaySessionDataDirectory, true);
+                    RGDebug.LogInfo($"Finished zipping replay to file: {gameplaySessionDataDirectory}.zip");
+                    
+                    // Then save the screenshots separately
+                    RGDebug.LogInfo($"Zipping screenshot recording replay to file: {gameplaySessionScreenshotDirectory}.zip");
+                    ZipFile.CreateFromDirectory(gameplaySessionScreenshotDirectory, gameplaySessionScreenshotDirectory + ".zip");
+                    RGDebug.LogInfo($"Finished zipping replay to file: {gameplaySessionScreenshotDirectory}.zip");
+                    
+                    // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
+                    var screenshotFiles = Directory.GetFiles(gameplaySessionScreenshotDirectory);
+                    var middleFile = screenshotFiles[screenshotFiles.Length / 2];
+                    File.Copy(middleFile, thumbnailPath);
+                    Directory.Delete(gameplaySessionScreenshotDirectory, true);
                 });
+                CreateAndUploadGameplaySession(endTime);
                 _isRecording = false;
             }
+        }
+
+        private async void CreateAndUploadGameplaySession(DateTime endTime)
+        {
+            RGDebug.LogInfo($"Creating and uploading GameplaySession on the backend {_startTime} - {endTime} with {_tickNumber} ticks");
+            try
+            {
+                
+                // First, create the gameplay session
+                long gameplaySessionId = -1;
+                await _rgServiceManager.CreateGameplaySession(_startTime, endTime, _tickNumber,
+                    (response) =>
+                    {
+                        gameplaySessionId = response.id;
+                        RGDebug.LogInfo($"Created gameplay session with id: {response.id}");
+                    },
+                    () => { RGDebug.LogError($"Failed to create gameplay session"); });
+                
+                // If the gameplay session was not created, return
+                if (gameplaySessionId == -1)
+                {
+                    return;
+                }
+                
+                // Next, upload the gameplay session data
+                await _rgServiceManager.UploadGameplaySessionData(gameplaySessionId,
+                    _currentGameplaySessionDirectoryPrefix + "_data.zip",
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session data"); },
+                    () => { RGDebug.LogError($"Failed to upload gameplay session data"); });
+                
+                // Next, upload the gameplay session screenshots
+                await _rgServiceManager.UploadGameplaySessionScreenshots(gameplaySessionId,
+                    _currentGameplaySessionDirectoryPrefix + "_screenshots.zip",
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session screenshots"); },
+                    () => { RGDebug.LogError($"Failed to upload gameplay session screenshots"); });
+                
+                // Finally, upload the thumbnail
+                await _rgServiceManager.UploadGameplaySessionThumbnail(gameplaySessionId,
+                    _currentGameplaySessionDirectoryPrefix + "_thumbnail.png",
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session thumbnail"); },
+                    () => { RGDebug.LogError($"Failed to upload gameplay session thumbnail"); });
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+            }
+            
         }
 
         // Update is called once per frame
@@ -137,6 +204,7 @@ namespace RegressionGames.StateRecorder
                 MouseInputActionObserver.GetInstance()?.StartRecording();
                 _isRecording = true;
                 _tickNumber = 0;
+                _startTime = DateTime.Now;
                 _frameQueue =
                     new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>(
                         new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>,
@@ -150,18 +218,19 @@ namespace RegressionGames.StateRecorder
                 // find the first index number we haven't used yet
                 do
                 {
-                    _currentVideoDirectory =
+                    _currentGameplaySessionDirectoryPrefix =
                         $"{stateRecordingsDirectory}/{Application.productName}/run_{_videoNumber++}";
-                } while (Directory.Exists(_currentVideoDirectory) || File.Exists(_currentVideoDirectory + ".zip"));
+                } while (Directory.Exists(_currentGameplaySessionDirectoryPrefix + "_data") || File.Exists(_currentGameplaySessionDirectoryPrefix + "_data.zip"));
 
-                if (!Directory.Exists(_currentVideoDirectory))
+                if (!Directory.Exists(_currentGameplaySessionDirectoryPrefix))
                 {
-                    Directory.CreateDirectory(_currentVideoDirectory);
+                    Directory.CreateDirectory(_currentGameplaySessionDirectoryPrefix + "_data");
+                    Directory.CreateDirectory(_currentGameplaySessionDirectoryPrefix + "_screenshots");
                 }
 
                 // run the frame processor in the background
                 Task.Run(ProcessFrames, _tokenSource.Token);
-                RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
+                RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentGameplaySessionDirectoryPrefix}_screenshots");
             }
         }
 
@@ -301,7 +370,7 @@ namespace RegressionGames.StateRecorder
 
                         // queue up writing the frame data to disk async
                         _frameQueue.Add((
-                            (_currentVideoDirectory, _tickNumber),
+                            (_currentGameplaySessionDirectoryPrefix, _tickNumber),
                             (
                                 jsonData,
                                 screenShot.width,
@@ -366,7 +435,7 @@ namespace RegressionGames.StateRecorder
                     ImageConversion.EncodeNativeArrayToJPG(frameData, graphicsFormat, (uint)width, (uint)height);
 
                 // write out the image to file
-                var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
+                var path = $"{directoryPath}_screenshots/{frameNumber}".PadLeft(9, '0') + ".jpg";
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, imageOutput.ToArray());
                 RecordFrameState(directoryPath, _tickNumber, jsonData);
@@ -382,7 +451,7 @@ namespace RegressionGames.StateRecorder
             try
             {
                 // write out the json to file
-                var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".json";
+                var path = $"{directoryPath}_data/{frameNumber}".PadLeft(9, '0') + ".json";
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, jsonData);
             }
