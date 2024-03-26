@@ -23,6 +23,7 @@ public class RegressionPackagePopup : EditorWindow
     private static bool loggedIn = false;
     private static string email = "";
     private static string password = "";
+    private static bool requestingLogin = false;
     private static AddRequest addRequest;
     private static ListRequest listRequest;
 
@@ -45,13 +46,8 @@ public class RegressionPackagePopup : EditorWindow
     }
 
     [MenuItem("Regression Games/Getting Started")]
-    public static async void ShowWindow()
+    public static void ShowWindow(bool shouldShowLogin = false)
     {
-        // attempt a login with saved credentials
-        email = RGUserSettings.GetOrCreateUserSettings().GetEmail();
-        password = RGUserSettings.GetOrCreateUserSettings().GetPassword();
-        await Login();
-
         if (window == null)
         {
             Rect windowRect = new Rect(100, 100, 600, 600);
@@ -61,12 +57,18 @@ public class RegressionPackagePopup : EditorWindow
         {
             window.Focus();
         }
+
+        if (shouldShowLogin)
+        {
+            requestingLogin = true;
+        }
+        
     }
 
     void OnGUI()
     {
         bool isGuest = PlayerPrefs.HasKey(RGGuestCheck);
-        if (!loggedIn && !isGuest)
+        if ((!loggedIn && !isGuest) || requestingLogin)
         {
             RenderLoginScreen();
         }
@@ -193,6 +195,8 @@ public class RegressionPackagePopup : EditorWindow
         RenderAlwaysShowOnStartupCheckbox();
         RenderQuickstartDocs();
         RenderSampleQuickstart();
+        RenderLoginButtonOption();
+        
     }
 
     private void RenderBanner()
@@ -298,7 +302,7 @@ public class RegressionPackagePopup : EditorWindow
         // Draw the docs button
         if (GUI.Button(new Rect(20, 250, 100, 30), "View Docs"))
         {
-            Application.OpenURL("https://docs.regression.gg/studios/unity/unity-sdk/creating-bots/csharp/configuration");
+            Application.OpenURL("https://docs.regression.gg/creating-bots/csharp/configuration");
         }
     }
 
@@ -345,6 +349,40 @@ public class RegressionPackagePopup : EditorWindow
             Close();
         }
         GUI.enabled = true;
+    }
+
+    private void RenderLoginButtonOption()
+    {
+        // Define the styles for the login button section
+        GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
+        {
+            fontSize = 14,
+            normal = { textColor = Color.white }
+        };
+
+        GUIStyle descriptionStyle = new GUIStyle(EditorStyles.label)
+        {
+            wordWrap = true
+        };
+
+        // Define the background box for the new section
+        Rect demoInfoBoxRect = new Rect(10, 440, 580, 110);
+        Color prevColor = GUI.color;
+        GUI.color = new Color(100, 100, 100, 0.25f);
+        GUI.Box(demoInfoBoxRect, "");
+        GUI.color = prevColor;
+
+        // Draw the login title
+        GUI.Label(new Rect(20, 450, 580, 20), "Login", titleStyle);
+
+        // Draw the description for logging in
+        GUI.Label(new Rect(20, 480, 565, 20), "Login to Regression Games to utilize our features.", descriptionStyle);
+        
+        // Draw the "Login" button
+        if (GUI.Button(new Rect(20, 510, 170, 30), "Login to Regression Games"))
+        {
+            requestingLogin = true;
+        }
     }
 
     private bool IsURPEnabled()
@@ -435,12 +473,11 @@ public class RegressionPackagePopup : EditorWindow
             return;
         }
 
-        var settings = RGUserSettings.GetOrCreateUserSettings();
-        settings.SetEmail(email);
-        settings.SetPassword(password);
-        RGSettings.OptionsUpdated();
-
         loggedIn = await RGSettingsUIRegistrar.Login(email, password);
+        if (loggedIn)
+        {
+            requestingLogin = false;
+        }
         if (window != null)
         {
             window.Repaint();
@@ -449,6 +486,8 @@ public class RegressionPackagePopup : EditorWindow
 
     private static void ContinueAsGuest()
     {
+
+        requestingLogin = false;
         // check if already logged in
         if (loggedIn && window != null)
         {

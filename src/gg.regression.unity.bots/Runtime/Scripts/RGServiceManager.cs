@@ -54,20 +54,7 @@ namespace RegressionGames
             return rgAuthToken != null;
         }
 
-        private bool HasConfiguredTokenOrCredentials()
-        {
-            RGUserSettings rgSettings = RGUserSettings.GetOrCreateUserSettings();
-            string email = rgSettings.GetEmail();
-            string password = rgSettings.GetPassword();
-            var apiKey = RGEnvConfigs.ReadAPIKey();
-            if ((apiKey != null && apiKey.Trim() != "") || (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password)))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        public async Task<bool> TryAuth()
+        public bool LoadAuth()
         {
             try
             {
@@ -75,28 +62,21 @@ namespace RegressionGames
                 var apiKey = RGEnvConfigs.ReadAPIKey();
                 if (apiKey != null && apiKey.Trim() != "")
                 {
-                    RGDebug.LogDebug("Using API Key from env var rather than username/password for auth");
+                    RGDebug.LogDebug("Using API Key from env var rather than from built in resources");
                     rgAuthToken = apiKey.Trim();
                 }
                 else
                 {
-                    RGDebug.LogDebug("Using username/password rather than env var for auth");
-                    RGUserSettings rgSettings = RGUserSettings.GetOrCreateUserSettings();
-                    string email = rgSettings.GetEmail();
-                    string password = rgSettings.GetPassword();
+                    RGSettings settings = RGSettings.GetOrCreateSettings();
+                    RGDebug.LogDebug("Using API Key from RGSettings resource");
 
-                    if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+                    if (!string.IsNullOrEmpty(settings.GetApiKey()))
                     {
-                        await Auth(
-                            email: email,
-                            password: password,
-                            onSuccess: s => { rgAuthToken = s; },
-                            onFailure: f => { }
-                        );
+                        rgAuthToken = settings.GetApiKey();
                     }
                     else
                     {
-                        RGDebug.LogWarning("RG Service email or password not configured");
+                        RGDebug.LogWarning("RG API Key not configured");
                         return false;
                     }
                 }
@@ -108,43 +88,6 @@ namespace RegressionGames
 
             return IsAuthed();
         }
-
-        private async Task<bool> EnsureAuthed()
-        {
-            // double lock checking paradigm to avoid locking when possible
-            // we lock this so that multiple APIs called close in time at startup
-            // don't all first off an auth request in parallel
-            if (!IsAuthed())
-            {
-                while (!authLock.WaitOne(1_000)) ;
-
-                try
-                {
-                    if (!IsAuthed())
-                    {
-                        var result = await TryAuth();
-                        if (!result && HasConfiguredTokenOrCredentials())
-                        {
-                            RGDebug.LogWarning(
-                                $"Failed to authenticate with the Regression Games server at {GetRgServiceBaseUri()}");
-                        }
-
-                        return result;
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-                finally
-                {
-                    authLock.ReleaseMutex();
-                }
-
-            }
-            return true;
-        }
-
 
         private String GetRgServiceBaseUri()
         {
@@ -199,7 +142,7 @@ namespace RegressionGames
 
         public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot",
@@ -229,7 +172,7 @@ namespace RegressionGames
 
         public async Task CreateBot(RGCreateBotRequest request, Action<RGBot> onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot",
@@ -257,7 +200,7 @@ namespace RegressionGames
 
         public async Task GetBotCodeDetails(long botId, Action<RGBotCodeDetails> onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/code-details",
@@ -285,7 +228,7 @@ namespace RegressionGames
 
         public async Task UpdateBotCode(long botId, string filePath, Action<RGBotCodeDetails> onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebFileUploadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/update-code",
@@ -315,7 +258,7 @@ namespace RegressionGames
 
         public async Task DownloadBotCode(long botId, string destinationFilePath, Action onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebFileDownloadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/download-code",
@@ -343,7 +286,7 @@ namespace RegressionGames
 
         public async Task UploadScreenshot(long botInstanceId, long tick, string filePath, Action onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebFileUploadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/screenshots/{tick}",
@@ -371,7 +314,7 @@ namespace RegressionGames
          */
         public async Task CreateBotInstance(long botId, DateTime startDate, Action<RGBotInstance> onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot/{botId}/bot-instance",
@@ -403,7 +346,7 @@ namespace RegressionGames
          */
         public async Task CreateBotInstanceHistory(long botInstanceId, Action<RGBotInstanceHistory> onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}",
@@ -434,7 +377,7 @@ namespace RegressionGames
          */
         public async Task UploadReplayData(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebFileUploadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/replay-data",
@@ -465,7 +408,7 @@ namespace RegressionGames
          */
         public async Task UploadValidationSummary(long botInstanceId, RGValidationSummary request, Action<RGBotInstanceHistory> onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/validation-summary",
@@ -497,7 +440,7 @@ namespace RegressionGames
          */
         public async Task UploadValidations(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebFileUploadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/validations",
@@ -529,7 +472,7 @@ namespace RegressionGames
          */
         public async Task UploadLogs(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
         {
-            if (await EnsureAuthed())
+            if (LoadAuth())
             {
                 await SendWebFileUploadRequest(
                     uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/logs",
