@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -31,7 +30,7 @@ namespace RegressionGames
         
         // Authentication settings
         [SerializeField] private string rgHostAddress;
-        [SerializeField] private string encodedApiKey;
+        [SerializeField] private string apiKey;
 
         /*
          * This is setup to be safely callable on the non-main thread.
@@ -121,20 +120,9 @@ namespace RegressionGames
             return logLevel;
         }
         
-        public string ApiKey
+        public string GetApiKey() 
         {
-            get => encodedApiKey != null ? Encoding.UTF8.GetString(Convert.FromBase64String(encodedApiKey)) : null;
-            set => encodedApiKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
-        }
-
-        /**
-         * In some cases, like in the UI registrar, we need to store the API key in a serialized property, rather
-         * than through this class. This method allows us to encode the API key for storage in serialized properties
-         * without the calling location needing to know how we encode and decode.
-         */
-        public static string EncodeApiKeyForSerializedProperties(string decodedApiKey)
-        {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(decodedApiKey));
+            return apiKey;
         }
 
         public string GetRgHostAddress()

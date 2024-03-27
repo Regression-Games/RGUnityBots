@@ -33,11 +33,8 @@ namespace RegressionGames.Editor
                     SerializedProperty hostField = settings.FindProperty("rgHostAddress");
                     hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
                     
-                    // Use a temporary variable to hold and update the API key through the user interface, since we
-                    // encode and decode in the actual settings object. Since this is not backed by the serialized,
-                    // properties functionality, we don't get undo capabilities.
-                    string tempApiKey = RGSettings.GetOrCreateSettings().ApiKey;
-                    tempApiKey = EditorGUILayout.PasswordField("RG API Key", tempApiKey);
+                    SerializedProperty apiKeyField = settings.FindProperty("apiKey");
+                    apiKeyField.stringValue = EditorGUILayout.PasswordField("RG API Key", apiKeyField.stringValue);
 
                     EditorGUILayout.BeginHorizontal();
                     GUILayout.FlexibleSpace();
@@ -70,9 +67,6 @@ namespace RegressionGames.Editor
                     settings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
                     {
-                        // This next line is purely for the UI - since we aren't using the apiKeyField.stringValue for
-                        // the UI, we need to update it within the settings. It then still gets saved in the line after.
-                        RGSettings.GetOrCreateSettings().ApiKey = tempApiKey;
                         AssetDatabase.SaveAssets();
                         RGSettings.OptionsUpdated();
                         RGSettingsDynamicEnabler[] objects = GameObject.FindObjectsOfType<RGSettingsDynamicEnabler>(true);
@@ -111,7 +105,7 @@ namespace RegressionGames.Editor
                 responseToken =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
-                    settings.FindProperty("encodedApiKey").stringValue = RGSettings.EncodeApiKeyForSerializedProperties(responseToken);
+                    settings.FindProperty("apiKey").stringValue = responseToken;
                     settings.ApplyModifiedProperties();
                     AssetDatabase.SaveAssets();
                     RGSettings.OptionsUpdated();
@@ -120,7 +114,7 @@ namespace RegressionGames.Editor
                 f =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
-                    settings.FindProperty("encodedApiKey").stringValue = null;
+                    settings.FindProperty("apiKey").stringValue = null;
                     settings.ApplyModifiedProperties();
                     AssetDatabase.SaveAssets();
                     RGSettings.OptionsUpdated();
