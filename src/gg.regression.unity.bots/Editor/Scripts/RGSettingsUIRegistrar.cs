@@ -111,7 +111,7 @@ namespace RegressionGames.Editor
                 responseToken =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
-                    settings.FindProperty("apiKey").stringValue = responseToken;
+                    settings.FindProperty("encodedApiKey").stringValue = RGSettings.EncodeApiKeyForSerializedProperties(responseToken);
                     settings.ApplyModifiedProperties();
                     AssetDatabase.SaveAssets();
                     RGSettings.OptionsUpdated();
@@ -120,7 +120,7 @@ namespace RegressionGames.Editor
                 f =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
-                    settings.FindProperty("apiKey").stringValue = null;
+                    settings.FindProperty("encodedApiKey").stringValue = null;
                     settings.ApplyModifiedProperties();
                     AssetDatabase.SaveAssets();
                     RGSettings.OptionsUpdated();
