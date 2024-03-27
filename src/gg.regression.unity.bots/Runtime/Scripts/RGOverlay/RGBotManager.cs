@@ -34,6 +34,8 @@ public class RGBotManager : MonoBehaviour
     [SerializeField]
     private GameObject rgBotEntry;
 
+    private RGServiceManager _rgServiceManager = new();
+
     public static RGBotManager GetInstance()
     {
         return _this;
@@ -216,7 +218,22 @@ public class RGBotManager : MonoBehaviour
         {
             dropdownOptions.Add("Empty");
         }
-        behaviorsDropdown.AddOptions(dropdownOptions);
+        
+        _rgServiceManager.GetBotsForCurrentUser(
+            (existingRGBots) =>
+            {
+                foreach (var existingRgBot in existingRGBots)
+                {
+                    dropdownOptions.Add("REMOTE " + existingRgBot.name);
+                    behaviorsDropdown.AddOptions(dropdownOptions);
+                }
+            }, () =>
+            {
+                dropdownOptions.Add("API Call failed");
+                behaviorsDropdown.AddOptions(dropdownOptions);
+            }
+        );
+
     }
 
     void PrefabSelected(TMP_Dropdown dropdown)
