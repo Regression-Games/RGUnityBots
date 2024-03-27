@@ -16,27 +16,21 @@ namespace RegressionGames
 
     public class RGSettings : ScriptableObject
     {
-        private const string SETTINGS_PATH = "Assets/RGSettings.asset";
+        // We store this asset in the Resources folder so that it can be accessed from any build
+        // Note that it can only be created in the editor, however.
+        private static readonly string SETTINGS_RESOURCE_NAME = "RGSettings";
+        private static readonly string SETTINGS_PATH = $"Assets/Resources/{SETTINGS_RESOURCE_NAME}.asset";
 
+        // General settings about how the SDK should operate
         [SerializeField] private bool useSystemSettings;
         [SerializeField] private bool enableOverlay;
-
-        [SerializeField]
-        [Obsolete("Feature no longer available, please start bots using the overlay")]
-        private int numBots;
-
-        [Obsolete("Feature no longer available, please start bots using the overlay")]
-        [SerializeField]
-        private long[] botsSelected;
-
         [SerializeField] private DebugLogLevel logLevel;
-        [SerializeField] private string rgHostAddress;
-        [SerializeField] private uint nextBotId;
-#pragma warning disable CS0414 // suppress unused field warning
-        [SerializeField] private uint nextBotInstanceId;
-#pragma warning restore CS0414
         // ReSharper disable once InconsistentNaming
         [SerializeField] private bool feature_StateRecordingAndReplay;
+        
+        // Authentication settings
+        [SerializeField] private string rgHostAddress;
+        [SerializeField] private string apiKey;
 
         /*
          * This is setup to be safely callable on the non-main thread.
@@ -51,9 +45,7 @@ namespace RegressionGames
             {
                 try
                 {
-#if UNITY_EDITOR
-                    _settings = AssetDatabase.LoadAssetAtPath<RGSettings>(SETTINGS_PATH);
-#endif
+                    _settings = Resources.Load<RGSettings>(SETTINGS_RESOURCE_NAME);
                     _dirty = false;
                 }
                 catch (Exception)
@@ -70,35 +62,13 @@ namespace RegressionGames
                 _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
 
-#pragma warning disable CS0618 // Type or member is obsolete
-                _settings.numBots = 0;
-                _settings.botsSelected = Array.Empty<long>();
-#pragma warning restore CS0618 // Type or member is obsolete
-
-                _settings.nextBotId = 0;
-                _settings.nextBotInstanceId = 0;
-
                 _settings.feature_StateRecordingAndReplay = false;
 #if UNITY_EDITOR
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
 #endif
-            }
-
-            // These fields are now obsolete
-#pragma warning disable CS0618 // Type or member is obsolete
-            _settings.numBots = 0;
-            _settings.botsSelected = Array.Empty<long>();
-            _settings.nextBotId = 0;
-            _settings.nextBotInstanceId = 0;
-#pragma warning restore CS0618 // Type or member is obsolete
-
-            // backwards compat for migrating RG devs before we had a single host address field
-            if (string.IsNullOrEmpty(_settings.rgHostAddress))
-            {
-                _settings.rgHostAddress = "https://play.regression.gg";
-#if UNITY_EDITOR
-                AssetDatabase.SaveAssets();
+#if !UNITY_EDITOR
+                Debug.LogWarning("RG settings could not be loaded. Make sure to log into Regression Games within the Unity Editor before building your project. For now, an empty user settings object will be used.");
 #endif
             }
 
@@ -113,9 +83,7 @@ namespace RegressionGames
             {
                 // try to update and mark clean, but if failed
                 // will keep trying to update until clean
-#if UNITY_EDITOR
-                _settings = AssetDatabase.LoadAssetAtPath<RGSettings>(SETTINGS_PATH);
-#endif
+                _settings = Resources.Load<RGSettings>(SETTINGS_RESOURCE_NAME);
                 _dirty = false;
             }
             catch (Exception)
@@ -123,7 +91,7 @@ namespace RegressionGames
                 // if not called on main thread this will exception
             }
         }
-
+        
 #if UNITY_EDITOR
         public static SerializedObject GetSerializedSettings()
         {
@@ -137,26 +105,6 @@ namespace RegressionGames
             return SystemInfo.deviceUniqueIdentifier.GetHashCode() * 1_000_000_000L;
         }
 
-        public long GetNextBotId()
-        {
-            var systemId = GetSystemId();
-            var nextId = nextBotId++;
-#if UNITY_EDITOR
-            AssetDatabase.SaveAssets();
-#endif
-            // this is so that 'to a human' these ids look sequential
-            if (systemId < 0)
-            {
-                systemId -= nextId;
-            }
-            else
-            {
-                systemId += nextId;
-            }
-
-            return systemId;
-        }
-
         public bool GetUseSystemSettings()
         {
             return useSystemSettings;
@@ -167,23 +115,14 @@ namespace RegressionGames
             return enableOverlay;
         }
 
-        public int GetNumBots()
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            return numBots;
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
-
-        public long[] GetBotsSelected()
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            return botsSelected;
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
-
         public DebugLogLevel GetLogLevel()
         {
             return logLevel;
+        }
+        
+        public string GetApiKey() 
+        {
+            return apiKey;
         }
 
         public string GetRgHostAddress()

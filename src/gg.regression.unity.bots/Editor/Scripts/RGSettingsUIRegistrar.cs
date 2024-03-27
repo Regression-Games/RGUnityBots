@@ -17,14 +17,6 @@ namespace RegressionGames.Editor
 
         private static RGServiceManager rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
 
-        private static string token = null;
-        private static string priorUser = null;
-        private static string priorPassword = null;
-        private static string priorHost = null;
-
-        // we use this to only call to redo signin when you haven't typed/updated for 3 seconds
-        private static double timeOfLastEdit = 0f;
-
         [SettingsProvider]
         public static SettingsProvider CreateRGSettingsProvider()
         {
@@ -36,16 +28,26 @@ namespace RegressionGames.Editor
                 guiHandler = async (searchContext) =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
-                    SerializedObject userSettings = RGUserSettings.GetSerializedUserSettings();
                     EditorGUI.BeginChangeCheck();
 
                     SerializedProperty hostField = settings.FindProperty("rgHostAddress");
                     hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
+                    
+                    SerializedProperty apiKeyField = settings.FindProperty("apiKey");
+                    apiKeyField.stringValue = EditorGUILayout.PasswordField("RG API Key", apiKeyField.stringValue);
 
-                    SerializedProperty emailField = userSettings.FindProperty("email");
-                    emailField.stringValue = EditorGUILayout.TextField("RG Email", emailField.stringValue);
-                    SerializedProperty passwordField = userSettings.FindProperty("password");
-                    passwordField.stringValue = EditorGUILayout.PasswordField("RG Password", passwordField.stringValue);
+                    EditorGUILayout.BeginHorizontal();
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button("Click here to access API keys on your account", EditorStyles.linkLabel))
+                    {
+                        Application.OpenURL("https://play.regression.gg/account");
+                    }
+                    GUILayout.Label("or", EditorStyles.whiteLabel);
+                    if (GUILayout.Button("login and get an API key", EditorStyles.linkLabel))
+                    {
+                        RegressionPackagePopup.ShowWindow(true);
+                    }
+                    EditorGUILayout.EndHorizontal();
 
                     SerializedProperty logLevel = settings.FindProperty("logLevel");
                     logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
@@ -62,29 +64,11 @@ namespace RegressionGames.Editor
                     featureStateRecordingAndReplay.boolValue =
                         EditorGUILayout.Toggle("State Recording & Replay", featureStateRecordingAndReplay.boolValue);
 
-                    if ((EditorApplication.timeSinceStartup - timeOfLastEdit) > 3f && token == null && priorPassword == null && priorHost == null && priorUser == null && passwordField.stringValue.Length > 4 && emailField.stringValue.Length > 4 && hostField.stringValue.Length > 4)
-                    {
-                        priorPassword = passwordField.stringValue;
-                        priorUser = emailField.stringValue;
-                        priorHost = hostField.stringValue;
-                        await Login(priorUser, priorPassword);
-                    }
-
                     settings.ApplyModifiedProperties();
-                    userSettings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
                     {
-                        timeOfLastEdit = EditorApplication.timeSinceStartup;
-                        if (priorHost != hostField.stringValue || priorUser != emailField.stringValue || priorPassword != passwordField.stringValue)
-                        {
-                            priorHost = null;
-                            token = null;
-                            priorPassword = null;
-                            priorUser = null;
-                        }
                         AssetDatabase.SaveAssets();
                         RGSettings.OptionsUpdated();
-                        RGUserSettings.OptionsUpdated();
                         RGSettingsDynamicEnabler[] objects = GameObject.FindObjectsOfType<RGSettingsDynamicEnabler>(true);
                         foreach (RGSettingsDynamicEnabler rgSettingsDynamicEnabler in objects)
                         {
@@ -114,20 +98,26 @@ namespace RegressionGames.Editor
 
         public static async Task<bool> Login(string user, string password)
         {
-            priorUser = user;
-            priorPassword = password;
 
             var tcs = new TaskCompletionSource<bool>();
 
-            await rgServiceManager.Auth(priorUser, priorPassword,
+            await rgServiceManager.Auth(user, password,
                 responseToken =>
                 {
-                    token = responseToken;
+                    SerializedObject settings = RGSettings.GetSerializedSettings();
+                    settings.FindProperty("apiKey").stringValue = responseToken;
+                    settings.ApplyModifiedProperties();
+                    AssetDatabase.SaveAssets();
+                    RGSettings.OptionsUpdated();
                     tcs.SetResult(true);
                 },
                 f =>
                 {
-                    token = null;
+                    SerializedObject settings = RGSettings.GetSerializedSettings();
+                    settings.FindProperty("apiKey").stringValue = null;
+                    settings.ApplyModifiedProperties();
+                    AssetDatabase.SaveAssets();
+                    RGSettings.OptionsUpdated();
                     tcs.SetResult(false);
                 });
 
