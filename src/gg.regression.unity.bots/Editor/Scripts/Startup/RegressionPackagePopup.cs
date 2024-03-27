@@ -45,8 +45,17 @@ public class RegressionPackagePopup : EditorWindow
         }
     }
 
+    public static void ShowWindow(bool shouldShowLogin)
+    {
+        ShowWindow();
+        if (shouldShowLogin)
+        {
+            requestingLogin = true;
+        }
+    }
+
     [MenuItem("Regression Games/Getting Started")]
-    public static void ShowWindow(bool shouldShowLogin = false)
+    public static void ShowWindow()
     {
         if (window == null)
         {
@@ -57,12 +66,6 @@ public class RegressionPackagePopup : EditorWindow
         {
             window.Focus();
         }
-
-        if (shouldShowLogin)
-        {
-            requestingLogin = true;
-        }
-        
     }
 
     void OnGUI()
