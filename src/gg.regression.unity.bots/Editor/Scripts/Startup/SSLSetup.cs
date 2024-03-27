@@ -33,6 +33,9 @@ namespace RegressionGames.Editor
             }
         }
 
+        /**
+         * This verifies that the ssl cert is in the correct location and copies it over if it is not.
+         */
         [DidReloadScripts]
         private static void OnScriptsReloaded()
         {
@@ -46,11 +49,11 @@ namespace RegressionGames.Editor
             string targetDirPath = "Assets/RegressionGames/Resources";
             RGEditorUtils.CreateAllAssetFolders(targetDirPath);
 
-            // Define the path for the new asset
+            // Define the path for the new asset. We have to store this as a text file as Unity won't
+            // load up cer files.
             string targetAssetPath = $"{targetDirPath}/regression_cert.txt";
 
-            // Check if the asset already exists to avoid overwriting it, only if it matches,
-            // since sometimes we update the certs.
+            // Only copy over cert if it does not exist or it has changed
             var existingCert = AssetDatabase.LoadAssetAtPath<TextAsset>(targetAssetPath);
             if (existingCert == null || existingCert.text != certContents)
             {
