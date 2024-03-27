@@ -216,7 +216,7 @@ public class RGBotManager : MonoBehaviour
         {
             dropdownOptions.Add("Empty");
         }
-        behaviorsDropdown.AddOptions(dropdownOptions);
+
     }
 
     void PrefabSelected(TMP_Dropdown dropdown)
