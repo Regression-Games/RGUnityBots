@@ -3,8 +3,6 @@ using UnityEditor;
 using UnityEditor.Callbacks;
 #endif
 using UnityEngine;
-using System.Linq;
-using System.Collections.Generic;
 using System.IO;
 
 namespace RegressionGames.Editor
