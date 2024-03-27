@@ -70,9 +70,10 @@ namespace RegressionGames
                     RGSettings settings = RGSettings.GetOrCreateSettings();
                     RGDebug.LogDebug("Using API Key from RGSettings resource");
 
-                    if (!string.IsNullOrEmpty(settings.GetApiKey()))
+                    var apiKeyFromSettings = settings.GetApiKey();
+                    if (!string.IsNullOrEmpty(apiKeyFromSettings))
                     {
-                        rgAuthToken = settings.GetApiKey();
+                        rgAuthToken = apiKeyFromSettings;
                     }
                     else
                     {
