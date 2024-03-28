@@ -504,7 +504,6 @@ namespace RegressionGames
             if (LoadAuth())
             {
                 RGGameplaySessionCreateRequest request = new RGGameplaySessionCreateRequest(startTime, endTime, numTicks);
-                Debug.LogError(JsonConvert.SerializeObject(request));
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/gameplay-session",
                     method: "POST",
