@@ -1,11 +1,14 @@
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Callbacks;
+#endif
 using UnityEngine;
 using System.Linq;
 using System.Collections.Generic;
 
 namespace RegressionGames.Editor
 {
+#if UNITY_EDITOR
     [InitializeOnLoad]
     public class IRGBotFinder : UnityEditor.Editor
     {
@@ -89,4 +92,5 @@ namespace RegressionGames.Editor
             return botList;
         }
     }
+#endif
 }

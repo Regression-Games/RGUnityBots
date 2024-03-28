@@ -103,40 +103,48 @@ namespace RegressionGames.StateRecorder
 #endif
             if (_isRecording)
             {
-                _rgServiceManager.TryAuth();
-                var endTime = DateTime.Now;
-                KeyboardInputActionObserver.GetInstance()?.StopRecording();
-                MouseInputActionObserver.GetInstance()?.StopRecording();
-                var gameplaySessionDataDirectory = _currentGameplaySessionDirectoryPrefix + "_data";
-                var gameplaySessionScreenshotDirectory = _currentGameplaySessionDirectoryPrefix + "_screenshots";
-                var thumbnailPath = _currentGameplaySessionDirectoryPrefix + "_thumbnail.png";
-                var zipTask = Task.Run(() =>
-                {
-                    // First, save the gameplay session data
-                    RGDebug.LogInfo($"Zipping state recording replay to file: {gameplaySessionDataDirectory}.zip");
-                    ZipFile.CreateFromDirectory(gameplaySessionDataDirectory, gameplaySessionDataDirectory + ".zip");
-                    Directory.Delete(gameplaySessionDataDirectory, true);
-                    RGDebug.LogInfo($"Finished zipping replay to file: {gameplaySessionDataDirectory}.zip");
-                    
-                    // Then save the screenshots separately
-                    RGDebug.LogInfo($"Zipping screenshot recording replay to file: {gameplaySessionScreenshotDirectory}.zip");
-                    ZipFile.CreateFromDirectory(gameplaySessionScreenshotDirectory, gameplaySessionScreenshotDirectory + ".zip");
-                    RGDebug.LogInfo($"Finished zipping replay to file: {gameplaySessionScreenshotDirectory}.zip");
-                    
-                    // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
-                    var screenshotFiles = Directory.GetFiles(gameplaySessionScreenshotDirectory);
-                    var middleFile = screenshotFiles[screenshotFiles.Length / 2];
-                    File.Copy(middleFile, thumbnailPath);
-                    Directory.Delete(gameplaySessionScreenshotDirectory, true);
-                });
-                CreateAndUploadGameplaySession(endTime);
-                _isRecording = false;
+                RGBotManager.GetInstance().ShowUploadingIndicator(true);
+                HandleRecordingSaving();
             }
+        }
+
+        /**
+         * We separate out the async recording saving code since OnDestroy can't be async
+         */
+        private async void HandleRecordingSaving()
+        {
+            _isRecording = false;
+            var endTime = DateTime.Now;
+            KeyboardInputActionObserver.GetInstance()?.StopRecording();
+            MouseInputActionObserver.GetInstance()?.StopRecording();
+            var gameplaySessionDataDirectory = _currentGameplaySessionDirectoryPrefix + "_data";
+            var gameplaySessionScreenshotDirectory = _currentGameplaySessionDirectoryPrefix + "_screenshots";
+            var thumbnailPath = _currentGameplaySessionDirectoryPrefix + "_thumbnail.png";
+            await Task.Run(() =>
+            {
+                // First, save the gameplay session data
+                RGDebug.LogInfo($"Zipping state recording replay to file: {gameplaySessionDataDirectory}.zip");
+                ZipFile.CreateFromDirectory(gameplaySessionDataDirectory, gameplaySessionDataDirectory + ".zip");
+                Directory.Delete(gameplaySessionDataDirectory, true);
+                RGDebug.LogInfo($"Finished zipping replay to file: {gameplaySessionDataDirectory}.zip");
+                
+                // Then save the screenshots separately
+                RGDebug.LogInfo($"Zipping screenshot recording replay to file: {gameplaySessionScreenshotDirectory}.zip");
+                ZipFile.CreateFromDirectory(gameplaySessionScreenshotDirectory, gameplaySessionScreenshotDirectory + ".zip");
+                RGDebug.LogInfo($"Finished zipping replay to file: {gameplaySessionScreenshotDirectory}.zip");
+                
+                // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
+                var screenshotFiles = Directory.GetFiles(gameplaySessionScreenshotDirectory);
+                var middleFile = screenshotFiles[screenshotFiles.Length / 2];
+                File.Copy(middleFile, thumbnailPath);
+                Directory.Delete(gameplaySessionScreenshotDirectory, true);
+            });
+            CreateAndUploadGameplaySession(endTime);
         }
 
         private async void CreateAndUploadGameplaySession(DateTime endTime)
         {
-            RGDebug.LogInfo($"Creating and uploading GameplaySession on the backend {_startTime} - {endTime} with {_tickNumber} ticks");
+            RGDebug.LogInfo($"Creating and uploading GameplaySession on the backend, from {_startTime} to {endTime} with {_tickNumber} ticks");
             try
             {
                 
@@ -150,7 +158,7 @@ namespace RegressionGames.StateRecorder
                     },
                     () => { RGDebug.LogError($"Failed to create gameplay session"); });
                 
-                // If the gameplay session was not created, return
+                // If the gameplay session was not created
                 if (gameplaySessionId == -1)
                 {
                     return;
@@ -178,6 +186,7 @@ namespace RegressionGames.StateRecorder
             {
                 Debug.LogError(e);
             }
+            RGBotManager.GetInstance().ShowUploadingIndicator(false);
             
         }
 

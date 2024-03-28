@@ -22,6 +22,8 @@ public class RGBotManager : MonoBehaviour
 
     public GameObject selectionPanel;
 
+    public GameObject uploadingIndicator;
+
     [SerializeField]
     private TMP_Dropdown gameObjectsDropdown;
 
@@ -257,4 +259,10 @@ public class RGBotManager : MonoBehaviour
         }
         return null;
     }
+    
+    public void ShowUploadingIndicator(bool show)
+    {
+        uploadingIndicator.SetActive(show);
+    }
+    
 }

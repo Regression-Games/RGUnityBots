@@ -497,6 +497,11 @@ namespace RegressionGames.StateRecorder
 
             if (_isPlaying && _nextKeyFrame == null && _keyboardQueue.Count == 0 && _mouseQueue.Count == 0)
             {
+                SendMouseEvent(0, new ReplayMouseInputEntry()
+                {
+                    // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure
+                    position = new Vector2Int(Screen.width +20, -20)
+                }, new List<RecordedGameObjectState>());
                 // we hit the end of the replay
                 Stop();
                 _replaySuccessful = true;
