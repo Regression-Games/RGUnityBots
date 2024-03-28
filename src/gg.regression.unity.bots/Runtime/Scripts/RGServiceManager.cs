@@ -596,12 +596,12 @@ namespace RegressionGames
                     onSuccess: (s) =>
                     {
                         RGDebug.LogDebug(
-                            $"RGService GameplaySessionScreenshots response received");
+                            $"RGService GameplaySessionThumbnail response received");
                         onSuccess.Invoke();
                     },
                     onFailure: (f) =>
                     {
-                        RGDebug.LogWarning($"Failed to upload screenshots for gameplay session {gameplaySessionId}: {f}");
+                        RGDebug.LogWarning($"Failed to upload thumbnail for gameplay session {gameplaySessionId}: {f}");
                         onFailure.Invoke();
                     }
                 );

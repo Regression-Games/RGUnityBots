@@ -46,7 +46,7 @@ namespace RegressionGames.StateRecorder
 
         private static ScreenRecorder _this;
         
-        private static RGServiceManager _rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
+        private static RGServiceManager _rgServiceManager = new();
 
         private bool _isRecording;
 
@@ -109,7 +109,8 @@ namespace RegressionGames.StateRecorder
         }
 
         /**
-         * We separate out the async recording saving code since OnDestroy can't be async
+         * We separate out the async saving code since OnDestroy can't be async, and we need to wait for saving
+         * before doing API calls
          */
         private async void HandleRecordingSaving()
         {
@@ -135,7 +136,7 @@ namespace RegressionGames.StateRecorder
                 
                 // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
                 var screenshotFiles = Directory.GetFiles(gameplaySessionScreenshotDirectory);
-                var middleFile = screenshotFiles[screenshotFiles.Length / 2];
+                var middleFile = screenshotFiles[screenshotFiles.Length / 2]; // this gets floored automatically
                 File.Copy(middleFile, thumbnailPath);
                 Directory.Delete(gameplaySessionScreenshotDirectory, true);
             });
@@ -158,13 +159,13 @@ namespace RegressionGames.StateRecorder
                     },
                     () => { RGDebug.LogError($"Failed to create gameplay session"); });
                 
-                // If the gameplay session was not created
+                // If the gameplay session was not created, return
                 if (gameplaySessionId == -1)
                 {
                     return;
                 }
                 
-                // Next, upload the gameplay session data
+                // Upload the gameplay session data
                 await _rgServiceManager.UploadGameplaySessionData(gameplaySessionId,
                     _currentGameplaySessionDirectoryPrefix + "_data.zip",
                     () => { RGDebug.LogInfo($"Uploaded gameplay session data"); },
