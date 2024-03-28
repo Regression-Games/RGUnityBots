@@ -262,7 +262,10 @@ public class RGBotManager : MonoBehaviour
     
     public void ShowUploadingIndicator(bool show)
     {
-        uploadingIndicator.SetActive(show);
+        if (show != uploadingIndicator.activeSelf)
+        {
+            uploadingIndicator.SetActive(show);
+        }
     }
     
 }
