@@ -238,11 +238,8 @@ namespace RegressionGames.StateRecorder
                 _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";
                 _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
                 _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
-                if (!Directory.Exists(_currentGameplaySessionDirectoryPrefix))
-                {
-                    Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
-                    Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
-                }
+                Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
+                Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
 
                 // run the frame processor in the background
                 Task.Run(ProcessFrames, _tokenSource.Token);
