@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder
@@ -19,8 +20,8 @@ namespace RegressionGames.StateRecorder
         public string ToJson()
         {
             return "{\n\"tickNumber\":" + tickNumber
-                                        + ",\n\"keyFrame\":" + (keyFrame ? "true" : "false")
-                                        + ",\n\"time\":" + time
+                                        + ",\n\"keyFrame\":[" + string.Join(",",keyFrame.Select(a=>a.ToJson()))
+                                        + "],\n\"time\":" + time
                                         + ",\n\"timeScale\":" + timeScale
                                         + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
                                         + ",\n\"performance\":" + performance.ToJson()
@@ -112,7 +113,7 @@ namespace RegressionGames.StateRecorder
     public class ReplayFrameStateData
     {
         public long tickNumber;
-        public bool keyFrame;
+        public KeyFrameType[] keyFrame;
         public double time;
         public float timeScale;
         public Vector2Int screenSize;
@@ -120,10 +121,7 @@ namespace RegressionGames.StateRecorder
         public InputData inputs;
     }
 
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    // replay doesn't need to deserialize everything we record
-    public class ReplayGameObjectState
+    public abstract class BaseReplayObjectState
     {
         public int id;
 
@@ -131,6 +129,11 @@ namespace RegressionGames.StateRecorder
         public string scene;
         public string tag;
         public string layer;
+
+        public int rendererCount;
+
+        public List<RigidbodyState> rigidbodies;
+        public List<ColliderState> colliders;
 
         public Bounds screenSpaceBounds;
 
@@ -142,10 +145,15 @@ namespace RegressionGames.StateRecorder
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RecordedGameObjectState : ReplayGameObjectState
+    // replay doesn't need to deserialize everything we record
+    public class ReplayGameObjectState : BaseReplayObjectState
     {
-        public List<RigidbodyState> rigidbodies;
-        public List<ColliderState> colliders;
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class RecordedGameObjectState : BaseReplayObjectState
+    {
         public List<BehaviourState> behaviours;
 
         public string ToJson()
@@ -155,6 +163,7 @@ namespace RegressionGames.StateRecorder
                                 + ",\n\"scene\":" + JsonConvert.ToString(scene)
                                 + ",\n\"tag\":" + JsonConvert.ToString(tag)
                                 + ",\n\"layer\":" + JsonConvert.ToString(layer)
+                                + ",\n\"rendererCount\":" + rendererCount
                                 + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
                                 + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
                                 + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)

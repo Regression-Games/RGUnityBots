@@ -28,6 +28,13 @@ namespace RegressionGames.StateRecorder
         public string[] uiElements;
 
         /**
+         * <summary>the in game elements visible must include everything in this list; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)
+         * This will also try to match the number of renderers and colliders for each object</summary>
+         */
+        // (path, #renderers, #colliders, #rigidbodies)
+        public (string,int,int,int)[] gameElements;
+
+        /**
          * <summary>used for mouse input events to confirm that what they clicked on path wise exists; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)</summary>
          */
         public string[] specificObjectPaths;
@@ -179,7 +186,7 @@ namespace RegressionGames.StateRecorder
 
                 // process key frame info
                 ReplayKeyFrameEntry keyFrame = null;
-                if (frameData.keyFrame)
+                if (frameData.keyFrame.Length > 0)
                 {
                     keyFrame = new ReplayKeyFrameEntry()
                     {
@@ -187,6 +194,7 @@ namespace RegressionGames.StateRecorder
                         time = frameData.time - firstFrame.time,
                         scenes = frameData.state.Select(a => a.scene).Distinct().ToArray(),
                         uiElements = frameData.state.Where(a => a.worldSpaceBounds == null).Select(a => a.path).ToArray(),
+                        gameElements = frameData.state.Where(a=>a.worldSpaceBounds != null).Select(a => (a.path, a.rendererCount, a.colliders.Count, a.rigidbodies.Count)).ToArray()
                     };
                     _keyFrames.Enqueue(keyFrame);
                 }
@@ -235,24 +243,17 @@ namespace RegressionGames.StateRecorder
                 {
                     if (inputData is MouseInputActionData mouseInputData)
                     {
-                        List<String> clickedOnObjectPaths = null;
+                        List<ReplayGameObjectState> clickedOnObjects = null;
                         if (keyFrame != null && mouseInputData.newButtonPress)
                         {
-                            clickedOnObjectPaths = FindObjectPathsAtPosition(mouseInputData.position, priorFrame?.state, frameData.state);
+                            clickedOnObjects = FindObjectsAtPosition(mouseInputData.position, priorFrame?.state, frameData.state);
 
                             // we need the mouse data to have the prior and next frame objects as possibilities
                             // BUT.. we need to do enforcement on only the new frame data
-                            var clickedPathsInCurrentFrame = FindObjectPathsAtPosition(mouseInputData.position, null, frameData.state);
-                            foreach (var clickedOnObject in clickedPathsInCurrentFrame)
+                            var clickedObjectsInCurrentFrame = FindObjectsAtPosition(mouseInputData.position, null, frameData.state);
+                            foreach (var clickedOnObject in clickedObjectsInCurrentFrame)
                             {
-                                if (clickedOnObject.StartsWith("RGOverlay"))
-                                {
-                                    // this was a click on RG.. ignore it in the replay
-                                    specificGameObjectPaths.Clear();
-                                    break;
-                                }
-
-                                specificGameObjectPaths.Add(clickedOnObject);
+                                specificGameObjectPaths.Add(clickedOnObject.path);
                             }
                         }
 
@@ -261,7 +262,7 @@ namespace RegressionGames.StateRecorder
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
-                            clickedObjectPaths = clickedOnObjectPaths != null ? clickedOnObjectPaths.ToArray() : Array.Empty<string>(),
+                            clickedObjectPaths = clickedOnObjects != null ? clickedOnObjects.Select(a=>a.path).ToArray() : Array.Empty<string>(),
                             position = mouseInputData.position,
                             leftButton = mouseInputData.leftButton,
                             middleButton = mouseInputData.middleButton,
@@ -290,13 +291,13 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private List<string> FindObjectPathsAtPosition(Vector2 position, IEnumerable<ReplayGameObjectState> priorState, IEnumerable<ReplayGameObjectState> state)
+        private List<ReplayGameObjectState> FindObjectsAtPosition(Vector2 position, IEnumerable<ReplayGameObjectState> priorState, IEnumerable<ReplayGameObjectState> state)
         {
             // collect the set of possible matches from the current and prior frame
             // why both.. well.. the click action will be on the current frame... that it caused
             // but the object it clicked on may no longer exist because it caused the very state change we're recording
             // so we get the entries from the current frame, and if those are in the prior frame also.. we prioritize their current frame bounds/location
-            // CONSIDER: Another way to do this is to capture the paths clicked in the state at each click based on the prior frame.. but that saves a ton more state an affects their runtime
+            // CONSIDER: Another way to do this is to capture the paths clicked in the state at each click based on the prior frame.. but that saves a ton more state and affects their runtime
             // by having to process the state on every frame and click
 
             // make sure screen space position Z is around 0
@@ -305,11 +306,11 @@ namespace RegressionGames.StateRecorder
             if (priorStateEntries != null)
             {
                 priorStateEntries.AddRange(currentStateEntries.Values.Where(a => a != null));
-                return priorStateEntries.Select(a => a.path).ToList();
+                return priorStateEntries.ToList();
             }
 
             //else
-            return currentStateEntries.Values.Where(a => a != null).Select(a => a.path).ToList();
+            return currentStateEntries.Values.Where(a => a != null).ToList();
         }
     }
 }

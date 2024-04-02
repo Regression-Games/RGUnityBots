@@ -176,37 +176,46 @@ namespace RegressionGames.StateRecorder
                     {
                         // copy these so we can remove from them
                         var scenes = _nextKeyFrame.scenes.ToList();
-                        // don't validate Regression Games overlay stuff
-                        var uiElements = _nextKeyFrame.uiElements.Where(a => !a.StartsWith("RGOverlay")).ToList();
-                        var specificObjectPaths = _nextKeyFrame.specificObjectPaths.Where(a => !a.StartsWith("RGOverlay")).ToList();
+                        var uiElements = _nextKeyFrame.uiElements.ToList();
+                        var specificObjectPaths = _nextKeyFrame.specificObjectPaths.ToList();
+                        var gameElements = _nextKeyFrame.gameElements.ToList();
                         foreach (var state in objectStates)
                         {
                             scenes.Remove(state.scene);
 
-                            //don't validate Regression Games overlay stuff
-                            if (!state.path.StartsWith("RGOverlay"))
+                            specificObjectPaths.Remove(state.path);
+
+                            if (state.worldSpaceBounds == null)
                             {
-                                specificObjectPaths.Remove(state.path);
-
-                                if (state.worldSpaceBounds == null)
+                                if (uiElements.Count == 0)
                                 {
-                                    if (uiElements.Count == 0)
-                                    {
-                                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
-                                    }
+                                    return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
+                                }
 
-                                    var didRemove = uiElements.Remove(state.path);
-                                    if (!didRemove)
+                                var didRemove = uiElements.Remove(state.path);
+                                if (!didRemove)
+                                {
+                                    return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                }
+                            }
+                            else
+                            {
+                                // remove any matching game elements
+                                for (var i = gameElements.Count-1; i >= 0; i--)
+                                {
+                                    var element = gameElements[i];
+                                    if (element.Item1 == state.path && element.Item2 == state.rendererCount && element.Item3 == state.colliders.Count && element.Item4 == state.rigidbodies.Count)
                                     {
-                                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                        gameElements.RemoveAt(i);
+                                        break;
                                     }
                                 }
                             }
                         }
 
-                        if (scenes.Count != 0 || specificObjectPaths.Count != 0 || uiElements.Count != 0)
+                        if (scenes.Count != 0 || specificObjectPaths.Count != 0 || uiElements.Count != 0 || gameElements.Count != 0)
                         {
-                            var missingConditions = $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Waiting for conditions...\r\nscenes:\r\n{string.Join("\r\n", scenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\nspecificObjectPaths:\r\n{string.Join("\r\n", specificObjectPaths)}";
+                            var missingConditions = $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Waiting for conditions...\r\nscenes:\r\n{string.Join("\r\n", scenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\ngameElements:\r\n{string.Join("\r\n", gameElements.Select(a=> $"({a.Item1}, {a.Item2}, {a.Item3}, {a.Item4})"))}\r\nspecificObjectPaths:\r\n{string.Join("\r\n", specificObjectPaths)}";
                             // still missing something from the key frame
                             return missingConditions;
                         }
@@ -487,7 +496,7 @@ namespace RegressionGames.StateRecorder
 
                 if (_isPlaying)
                 {
-                    var objectStates = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
+                    var objectStates = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
 
                     CheckWaitForKeyStateMatch(objectStates);
 

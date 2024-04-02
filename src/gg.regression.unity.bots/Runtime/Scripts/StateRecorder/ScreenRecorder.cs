@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder;
 using TMPro;
 using Unity.Collections;
 using UnityEngine;
@@ -30,8 +31,8 @@ namespace RegressionGames.StateRecorder
 {
     public class ScreenRecorder : MonoBehaviour
     {
-        [Tooltip("Minimum FPS at which to capture frames.  Key frames will potentially be recorded more frequently than this.")]
-        public int recordingMinFPS = 5;
+        [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
+        public int recordingMinFPS = 0;
 
         [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
         public string stateRecordingsDirectory = "";
@@ -55,6 +56,8 @@ namespace RegressionGames.StateRecorder
 
         private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
             _frameQueue;
+
+        private readonly List<(string, Task)> _fileWriteTasks = new();
 
 #if UNITY_EDITOR
         private MediaEncoder _encoder;
@@ -91,6 +94,12 @@ namespace RegressionGames.StateRecorder
         private void OnDestroy()
         {
             _frameQueue?.CompleteAdding();
+            if (_fileWriteTasks.Count > 0)
+            {
+                RGDebug.LogInfo($"Waiting for unfinished file write tasks before stopping ["+ string.Join(",", _fileWriteTasks.Select(a=>a.Item1).ToArray())+ "]");
+            }
+            Task.WaitAll(_fileWriteTasks.Select(a=>a.Item2).ToArray());
+            _fileWriteTasks.Clear();
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
             _tokenSource = null;
@@ -114,9 +123,10 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        // Update is called once per frame
         private void LateUpdate()
         {
+            _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
+
             while (_texture2Ds.TryDequeue(out var text))
             {
                 // have to destroy the textures on the main thread
@@ -165,19 +175,21 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private bool IsKeyFrame(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState)
+
+
+        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState)
         {
+            var result = new List<KeyFrameType>();
             if (priorState != null)
             {
-                // we have to treat
-
+                // scene loaded or changed
                 var scenesInPriorFrame = priorState.Select(s => s.scene).Distinct().ToList();
                 var scenesInCurrentFrame = currentState.Select(s => s.scene).Distinct().ToList();
                 if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
                     !scenesInPriorFrame.All(scenesInCurrentFrame.Contains))
                 {
                     // elements from scenes changed this frame
-                    return true;
+                    result.Add(KeyFrameType.SCENE);
                 }
 
                 // visible UI elements changed
@@ -187,11 +199,40 @@ namespace RegressionGames.StateRecorder
                     !uiElementsInPriorFrame.All(uiElementsInCurrentFrame.Contains))
                 {
                     // visible UI elements changed this frame
-                    return true;
+                    result.Add(KeyFrameType.UI_ELEMENT);
+                }
+
+                // visible game elements changed
+                var worldElementsInPriorFrame = priorState.Where(s => s.worldSpaceBounds != null);
+                var worldElementsInCurrentFrame = currentState.Where(s => s.worldSpaceBounds != null).ToDictionary(a => a.id);
+
+                var count = 0;
+                foreach (var elementInPriorFrame in worldElementsInPriorFrame)
+                {
+                    ++count;
+                    if (worldElementsInCurrentFrame.TryGetValue(elementInPriorFrame.id, out var elementInCurrentFrame))
+                    {
+                        if (elementInCurrentFrame.rendererCount != elementInPriorFrame.rendererCount)
+                        {
+                            // if an element changed its renderer count
+                            result.Add(KeyFrameType.GAME_ELEMENT_RENDERER_COUNT);
+                        }
+                    }
+                    else
+                    {
+                        // if we had an element disappear
+                        result.Add(KeyFrameType.GAME_ELEMENT);
+                    }
+                }
+
+                if (count != worldElementsInCurrentFrame.Count() && !result.Contains(KeyFrameType.GAME_ELEMENT))
+                {
+                    // if we had a new element appear
+                    result.Add(KeyFrameType.GAME_ELEMENT);
                 }
             }
 
-            return false;
+            return result.ToArray();
         }
 
         public void StopRecording()
@@ -201,47 +242,24 @@ namespace RegressionGames.StateRecorder
 
         private IEnumerator RecordFrame()
         {
-            yield return new WaitForEndOfFrame();
             if (!_frameQueue.IsCompleted)
             {
                 ++_frameCountSinceLastTick;
                 // handle recording ... uses unscaled time for real framerate calculations
                 var time = Time.unscaledTimeAsDouble;
 
+                byte[] jsonData = null;
+
                 var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                var isKeyFrame = (_priorFrame == null) || IsKeyFrame(_priorFrame.state, statefulObjects);
+                var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
-                if (isKeyFrame
-                    || (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS > 0 ? recordingMinFPS : 1))
+                if (keyFrameType.Length > 0
+                    || (recordingMinFPS > 0 && (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
                    )
                 {
-                    var performanceMetrics = new PerformanceMetricData()
-                    {
-                        framesSincePreviousTick = _frameCountSinceLastTick,
-                        previousTickTime = _lastCvFrameTime,
-                        fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
-                        engineStats = new EngineStatsData()
-                        {
-#if UNITY_EDITOR
-                            frameTime = UnityStats.frameTime,
-                            renderTime = UnityStats.renderTime,
-                            triangles = UnityStats.triangles,
-                            vertices = UnityStats.vertices,
-                            setPassCalls = UnityStats.setPassCalls,
-                            drawCalls = UnityStats.drawCalls,
-                            dynamicBatchedDrawCalls = UnityStats.dynamicBatchedDrawCalls,
-                            staticBatchedDrawCalls = UnityStats.staticBatchedDrawCalls,
-                            instancedBatchedDrawCalls = UnityStats.instancedBatchedDrawCalls,
-                            batches = UnityStats.batches,
-                            dynamicBatches = UnityStats.dynamicBatches,
-                            staticBatches = UnityStats.staticBatches,
-                            instancedBatches = UnityStats.instancedBatches
-#endif
-                        }
-                    };
 
                     _lastCvFrameTime = time;
 
@@ -250,16 +268,37 @@ namespace RegressionGames.StateRecorder
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
-                    var screenShot = new Texture2D(screenWidth, screenHeight);
                     try
                     {
-                        screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
-                        screenShot.Apply();
-
                         ++_tickNumber;
 
+                        var performanceMetrics = new PerformanceMetricData()
+                        {
+                            framesSincePreviousTick = _frameCountSinceLastTick,
+                            previousTickTime = _lastCvFrameTime,
+                            fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+                            engineStats = new EngineStatsData()
+                            {
+#if UNITY_EDITOR
+                                frameTime = UnityStats.frameTime,
+                                renderTime = UnityStats.renderTime,
+                                triangles = UnityStats.triangles,
+                                vertices = UnityStats.vertices,
+                                setPassCalls = UnityStats.setPassCalls,
+                                drawCalls = UnityStats.drawCalls,
+                                dynamicBatchedDrawCalls = UnityStats.dynamicBatchedDrawCalls,
+                                staticBatchedDrawCalls = UnityStats.staticBatchedDrawCalls,
+                                instancedBatchedDrawCalls = UnityStats.instancedBatchedDrawCalls,
+                                batches = UnityStats.batches,
+                                dynamicBatches = UnityStats.dynamicBatches,
+                                staticBatches = UnityStats.staticBatches,
+                                instancedBatches = UnityStats.instancedBatches
+#endif
+                            }
+                        };
+
                         var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                        var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer();
+                        var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer(true);
 
                         // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                         // update the frame time to be latest of 'now' or the last device event in it
@@ -271,7 +310,7 @@ namespace RegressionGames.StateRecorder
 
                         var frameState = new FrameStateData()
                         {
-                            keyFrame = isKeyFrame,
+                            keyFrame = keyFrameType,
                             tickNumber = _tickNumber,
                             time = frameTime,
                             timeScale = Time.timeScale,
@@ -285,7 +324,7 @@ namespace RegressionGames.StateRecorder
                             }
                         };
 
-                        if (frameState.keyFrame)
+                        if (frameState.keyFrame != null)
                         {
                             RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',', frameState.keyFrame) + "]");
                         }
@@ -293,42 +332,57 @@ namespace RegressionGames.StateRecorder
                         _priorFrame = frameState;
 
                         // serialize to json byte[]
-                        var jsonData = Encoding.UTF8.GetBytes(
+                        jsonData = Encoding.UTF8.GetBytes(
                             frameState.ToJson()
                         );
 
-                        var theScreenshot = screenShot;
-
-                        // queue up writing the frame data to disk async
-                        _frameQueue.Add((
-                            (_currentVideoDirectory, _tickNumber),
-                            (
-                                jsonData,
-                                screenShot.width,
-                                screenShot.height,
-                                screenShot.graphicsFormat,
-                                screenShot.GetRawTextureData<byte>(),
-                                () =>
-                                {
-                                    // MUST happen on main thread
-                                    // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
-                                    _texture2Ds.Enqueue(theScreenshot);
-                                }
-                            )
-                        ));
-                        // null this out so the queue can clean it up, not this do
-                        screenShot = null;
                     }
                     catch (Exception e)
                     {
-                        RGDebug.LogException(e, "Exception capturing state or screenshot for frame");
+                        RGDebug.LogException(e, "Exception capturing state for frame");
                     }
-                    finally
+
+                    if (jsonData != null)
                     {
-                        if (screenShot != null)
+                        var screenShot = new Texture2D(screenWidth, screenHeight);
+                        // wait for all frame rendering/etc to finish before taking the screenshot
+                        yield return new WaitForEndOfFrame();
+                        try
                         {
-                            // Destroy the texture to free up memory
-                            _texture2Ds.Enqueue(screenShot);
+                            screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
+                            screenShot.Apply();
+
+                            // queue up writing the frame data to disk async
+                            _frameQueue.Add((
+                                (_currentVideoDirectory, _tickNumber),
+                                (
+                                    jsonData,
+                                    screenShot.width,
+                                    screenShot.height,
+                                    screenShot.graphicsFormat,
+                                    screenShot.GetRawTextureData<byte>(),
+                                    () =>
+                                    {
+                                        // MUST happen on main thread
+                                        // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
+                                        _texture2Ds.Enqueue(screenShot);
+                                    }
+                                )
+                            ));
+                            // null this out so the queue can clean it up, not this code...
+                            screenShot = null;
+                        }
+                        catch (Exception e)
+                        {
+                            RGDebug.LogException(e, "Exception capturing screenshot for frame");
+                        }
+                        finally
+                        {
+                            if (screenShot != null)
+                            {
+                                // Destroy the texture to free up memory
+                                _texture2Ds.Enqueue(screenShot);
+                            }
                         }
                     }
                 }
@@ -349,7 +403,7 @@ namespace RegressionGames.StateRecorder
                 }
                 catch (Exception e)
                 {
-                    if (e is not OperationCanceledException)
+                    if (e is not OperationCanceledException or InvalidOperationException)
                     {
                         RGDebug.LogException(e, "Error Processing Frames");
                     }
@@ -360,6 +414,13 @@ namespace RegressionGames.StateRecorder
         private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height,
             GraphicsFormat graphicsFormat, NativeArray<byte> frameData)
         {
+            RecordJSON(directoryPath, frameNumber, jsonData);
+            RecordJPG(directoryPath, frameNumber, width, height, graphicsFormat, frameData);
+        }
+
+        private void RecordJPG(string directoryPath, long frameNumber,int width, int height,
+            GraphicsFormat graphicsFormat, NativeArray<byte> frameData)
+        {
             try
             {
                 var imageOutput =
@@ -368,27 +429,48 @@ namespace RegressionGames.StateRecorder
                 // write out the image to file
                 var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
                 // Save the byte array as a file
-                File.WriteAllBytesAsync(path, imageOutput.ToArray());
-                RecordFrameState(directoryPath, _tickNumber, jsonData);
+                var fileWriteTask = File.WriteAllBytesAsync(path, imageOutput.ToArray(), _tokenSource.Token);
+                fileWriteTask.ContinueWith((nextTask) =>
+                {
+                    if (nextTask.Exception != null)
+                    {
+                        RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record JPG for frame # {frameNumber}");
+                    }
+
+                });
+                _fileWriteTasks.Add((path,fileWriteTask));
             }
             catch (Exception e)
             {
-                RGDebug.LogWarning($"WARNING: Unable to record JPG for frame # {frameNumber} - {e}");
+                RGDebug.LogException(e, $"WARNING: Unable to record JPG for frame # {frameNumber}");
             }
         }
 
-        private void RecordFrameState(string directoryPath, long frameNumber, byte[] jsonData)
+        private void RecordJSON(string directoryPath, long frameNumber, byte[] jsonData)
         {
             try
             {
                 // write out the json to file
                 var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".json";
+                if (jsonData.Length == 0)
+                {
+                    RGDebug.LogError($"ERROR: Empty JSON data for frame # {frameNumber}");
+                }
                 // Save the byte array as a file
-                File.WriteAllBytesAsync(path, jsonData);
+                var fileWriteTask = File.WriteAllBytesAsync(path, jsonData, _tokenSource.Token);
+                fileWriteTask.ContinueWith((nextTask) =>
+                {
+                    if (nextTask.Exception != null)
+                    {
+                        RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record JSON for frame # {frameNumber}");
+                    }
+
+                });
+                _fileWriteTasks.Add((path,fileWriteTask));
             }
             catch (Exception e)
             {
-                RGDebug.LogWarning($"WARNING: Unable to record JSON for frame # {frameNumber} - {e}");
+                RGDebug.LogException(e, $"ERROR: Unable to record JSON for frame # {frameNumber}");
             }
         }
 
@@ -528,7 +610,7 @@ namespace RegressionGames.StateRecorder
             {
                 contract.Converter = new NavMeshAgentJsonConverter();
             }
-            else if (IsUnityType(objectType))
+            else if (IsUnityType(objectType) && InGameObjectFinder.GetInstance().collectStateFromBehaviours)
             {
                 if (NetworkVariableJsonConverter.Convertable(objectType))
                 {
@@ -539,6 +621,10 @@ namespace RegressionGames.StateRecorder
                 {
                     contract.Converter = new UnityObjectFallbackJsonConverter();
                 }
+            }
+            else if (typeof(Behaviour).IsAssignableFrom(objectType))
+            {
+                contract.Converter = new UnityObjectFallbackJsonConverter();
             }
 
             return contract;

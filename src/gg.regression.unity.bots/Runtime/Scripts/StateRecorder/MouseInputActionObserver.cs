@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
@@ -153,27 +154,15 @@ namespace RegressionGames.StateRecorder
                 if (newMouseState != null)
                 {
                     var time = Time.unscaledTime;
-                    if (_priorMouseState == null
-                        || _mouseInputActions.Count == 0)
+                    if (newMouseState.IsButtonHeld)
                     {
-                        // our first mouse state observation
-                        // or.. we need at least 1 mouse observation per tick, otherwise hover over effects/etc don't function correctly
                         _mouseInputActions.Enqueue(newMouseState);
                     }
-                    else
+                    else if (_priorMouseState != null && !(_priorMouseState.ButtonStatesEqual(newMouseState) && _priorMouseState.PositionsEqual(newMouseState)) )
                     {
-                        if (!_priorMouseState.ButtonStatesEqual(newMouseState))
-                        {
-                            newMouseState.newButtonPress = MouseInputActionData.NewButtonPressed(_priorMouseState, newMouseState);
-                            // different mouse buttons are clicked
-                            _mouseInputActions.Enqueue(newMouseState);
-                        }
-                        else if (!_priorMouseState.PositionsEqual(newMouseState))
-                        {
-                            // mouse moved
-                            _mouseInputActions.Enqueue(newMouseState);
-                        }
-                        // the case where buttons are released is handled by the !ButtonStatesEqual check at the start of this if/else chain
+                        // are new mouse buttons are clicked
+                        newMouseState.newButtonPress = MouseInputActionData.NewButtonPressed(_priorMouseState, newMouseState);
+                        _mouseInputActions.Enqueue(newMouseState);
                     }
 
                     _priorMouseState = newMouseState;
@@ -207,16 +196,19 @@ namespace RegressionGames.StateRecorder
 
         private readonly ConcurrentQueue<MouseInputActionData> _mouseInputActions = new();
 
-        public List<MouseInputActionData> FlushInputDataBuffer(float upToTime = float.MaxValue)
+        public List<MouseInputActionData> FlushInputDataBuffer(bool ensureOne = false)
         {
             List<MouseInputActionData> result = new();
             while (_mouseInputActions.TryPeek(out var action))
             {
-                if (action.startTime < upToTime)
-                {
-                    _mouseInputActions.TryDequeue(out _);
-                    result.Add(action);
-                }
+                _mouseInputActions.TryDequeue(out _);
+                result.Add(action);
+            }
+
+            if (ensureOne && result.Count == 0 && _priorMouseState != null)
+            {
+                // or.. we need at least 1 mouse observation per tick, otherwise hover over effects/etc don't function correctly
+                result.Add(_priorMouseState);
             }
 
             return result;
