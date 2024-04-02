@@ -40,11 +40,17 @@ namespace RegressionGames.StateRecorder
 
         private int _frameCountSinceLastTick;
 
-        private string _currentVideoDirectory;
+        private string _currentGameplaySessionDirectoryPrefix;
+        private string _currentGameplaySessionScreenshotsDirectoryPrefix;
+        private string _currentGameplaySessionDataDirectoryPrefix;
+        private string _currentGameplaySessionThumbnailPath;
 
         private CancellationTokenSource _tokenSource;
 
         private static ScreenRecorder _this;
+
+        private static RGServiceManager _rgServiceManager;
+        private static RGBotManager _rgBotManager;
 
         private bool _isRecording;
 
@@ -52,6 +58,7 @@ namespace RegressionGames.StateRecorder
 
         private long _videoNumber;
         private long _tickNumber;
+        private DateTime _startTime;
 
         private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
             _frameQueue;
@@ -86,7 +93,12 @@ namespace RegressionGames.StateRecorder
             DontDestroyOnLoad(gameObject);
             _this = this;
         }
-
+        
+        public void Start()
+        {
+            _rgServiceManager = RGServiceManager.GetInstance();
+            _rgBotManager = RGBotManager.GetInstance();
+        }
 
         private void OnDestroy()
         {
@@ -100,18 +112,79 @@ namespace RegressionGames.StateRecorder
 #endif
             if (_isRecording)
             {
-                KeyboardInputActionObserver.GetInstance()?.StopRecording();
-                MouseInputActionObserver.GetInstance()?.StopRecording();
-                var theVideoDirectory = _currentVideoDirectory;
-                Task.Run(() =>
-                {
-                    RGDebug.LogInfo($"Zipping recording replay to file: {_currentVideoDirectory}.zip");
-                    ZipFile.CreateFromDirectory(theVideoDirectory, theVideoDirectory + ".zip");
-                    Directory.Delete(theVideoDirectory, true);
-                    RGDebug.LogInfo($"Finished zipping replay to file: {_currentVideoDirectory}");
-                });
-                _isRecording = false;
+                HandleRecordingSaving();
             }
+        }
+        
+        private void HandleRecordingSaving()
+        {
+            _rgBotManager.ShowUploadingIndicator(true);
+            
+            _isRecording = false;
+            var endTime = DateTime.Now;
+            KeyboardInputActionObserver.GetInstance()?.StopRecording();
+            MouseInputActionObserver.GetInstance()?.StopRecording();
+            
+            // First, save the gameplay session data
+            RGDebug.LogInfo($"Zipping state recording replay to file: {_currentGameplaySessionDataDirectoryPrefix}.zip");
+            ZipFile.CreateFromDirectory(_currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionDataDirectoryPrefix + ".zip");
+            Directory.Delete(_currentGameplaySessionDataDirectoryPrefix, true);
+            RGDebug.LogInfo($"Finished zipping replay to file: {_currentGameplaySessionDataDirectoryPrefix}.zip");
+            
+            // Then save the screenshots separately
+            RGDebug.LogInfo($"Zipping screenshot recording replay to file: {_currentGameplaySessionScreenshotsDirectoryPrefix}.zip");
+            ZipFile.CreateFromDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionScreenshotsDirectoryPrefix + ".zip");
+            RGDebug.LogInfo($"Finished zipping replay to file: {_currentGameplaySessionScreenshotsDirectoryPrefix}.zip");
+            
+            // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
+            var screenshotFiles = Directory.GetFiles(_currentGameplaySessionScreenshotsDirectoryPrefix);
+            var middleFile = screenshotFiles[screenshotFiles.Length / 2]; // this gets floored automatically
+            File.Copy(middleFile, _currentGameplaySessionThumbnailPath);
+            Directory.Delete(_currentGameplaySessionScreenshotsDirectoryPrefix, true);
+            
+            _ = CreateAndUploadGameplaySession(endTime);
+        }
+
+        private async Task CreateAndUploadGameplaySession(DateTime endTime)
+        {
+            
+            RGDebug.LogInfo($"Creating and uploading GameplaySession on the backend, from {_startTime} to {endTime} with {_tickNumber} ticks");
+                
+            // First, create the gameplay session
+            long gameplaySessionId = -1;
+            await _rgServiceManager.CreateGameplaySession(_startTime, endTime, _tickNumber,
+                (response) =>
+                {
+                    gameplaySessionId = response.id;
+                    RGDebug.LogInfo($"Created gameplay session with id: {response.id}");
+                },
+                () => {});
+            
+            // If the gameplay session was not created, return
+            if (gameplaySessionId == -1)
+            {
+                return;
+            }
+            
+            // Upload the gameplay session data
+            await _rgServiceManager.UploadGameplaySessionData(gameplaySessionId,
+                _currentGameplaySessionDataDirectoryPrefix + ".zip",
+                () => { RGDebug.LogInfo($"Uploaded gameplay session data from {_currentGameplaySessionDataDirectoryPrefix}.zip"); },
+                () => {});
+            
+            // Next, upload the gameplay session screenshots
+            await _rgServiceManager.UploadGameplaySessionScreenshots(gameplaySessionId,
+                _currentGameplaySessionScreenshotsDirectoryPrefix + ".zip",
+                () => { RGDebug.LogInfo($"Uploaded gameplay session screenshots from {_currentGameplaySessionScreenshotsDirectoryPrefix}.zip"); },
+                () => {});
+            
+            // Finally, upload the thumbnail
+            await _rgServiceManager.UploadGameplaySessionThumbnail(gameplaySessionId,
+                _currentGameplaySessionThumbnailPath,
+                () => { RGDebug.LogInfo($"Uploaded gameplay session thumbnail from {_currentGameplaySessionThumbnailPath}"); },
+                () => {});
+            
+            StartCoroutine(ShowUploadingIndicator(false));
         }
 
         // Update is called once per frame
@@ -127,6 +200,13 @@ namespace RegressionGames.StateRecorder
             {
                 StartCoroutine(RecordFrame());
             }
+           
+        }
+
+        private IEnumerator ShowUploadingIndicator(bool shouldShow)
+        {
+            yield return null;
+            _rgBotManager.ShowUploadingIndicator(shouldShow);
         }
 
         public void StartRecording()
@@ -137,6 +217,7 @@ namespace RegressionGames.StateRecorder
                 MouseInputActionObserver.GetInstance()?.StartRecording();
                 _isRecording = true;
                 _tickNumber = 0;
+                _startTime = DateTime.Now;
                 _frameQueue =
                     new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>(
                         new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>,
@@ -150,18 +231,19 @@ namespace RegressionGames.StateRecorder
                 // find the first index number we haven't used yet
                 do
                 {
-                    _currentVideoDirectory =
+                    _currentGameplaySessionDirectoryPrefix =
                         $"{stateRecordingsDirectory}/{Application.productName}/run_{_videoNumber++}";
-                } while (Directory.Exists(_currentVideoDirectory) || File.Exists(_currentVideoDirectory + ".zip"));
+                } while (Directory.Exists(_currentGameplaySessionDirectoryPrefix));
 
-                if (!Directory.Exists(_currentVideoDirectory))
-                {
-                    Directory.CreateDirectory(_currentVideoDirectory);
-                }
+                _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";
+                _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
+                _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
+                Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
+                Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
 
                 // run the frame processor in the background
                 Task.Run(ProcessFrames, _tokenSource.Token);
-                RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
+                RGDebug.LogInfo($"Recording replay screenshots and data to directories inside {_currentGameplaySessionDirectoryPrefix}");
             }
         }
 
@@ -301,7 +383,7 @@ namespace RegressionGames.StateRecorder
 
                         // queue up writing the frame data to disk async
                         _frameQueue.Add((
-                            (_currentVideoDirectory, _tickNumber),
+                            (_currentGameplaySessionDirectoryPrefix, _tickNumber),
                             (
                                 jsonData,
                                 screenShot.width,
@@ -366,7 +448,7 @@ namespace RegressionGames.StateRecorder
                     ImageConversion.EncodeNativeArrayToJPG(frameData, graphicsFormat, (uint)width, (uint)height);
 
                 // write out the image to file
-                var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".jpg";
+                var path = $"{directoryPath}/screenshots/{frameNumber}".PadLeft(9, '0') + ".jpg";
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, imageOutput.ToArray());
                 RecordFrameState(directoryPath, _tickNumber, jsonData);
@@ -382,7 +464,7 @@ namespace RegressionGames.StateRecorder
             try
             {
                 // write out the json to file
-                var path = $"{directoryPath}/{frameNumber}".PadLeft(9, '0') + ".json";
+                var path = $"{directoryPath}/data/{frameNumber}".PadLeft(9, '0') + ".json";
                 // Save the byte array as a file
                 File.WriteAllBytesAsync(path, jsonData);
             }

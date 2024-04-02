@@ -498,6 +498,119 @@ namespace RegressionGames
                 onFailure();
             }
         }
+        
+        public async Task CreateGameplaySession(DateTime startTime, DateTime endTime, long numTicks, Action<RGGameplaySession> onSuccess, Action onFailure)
+        {
+            if (LoadAuth())
+            {
+                RGGameplaySessionCreateRequest request = new RGGameplaySessionCreateRequest(startTime, endTime, numTicks);
+                await SendWebRequest(
+                    uri: $"{GetRgServiceBaseUri()}/gameplay-session",
+                    method: "POST",
+                    payload: JsonConvert.SerializeObject(request),
+                    onSuccess: (s) =>
+                    {
+                        RGGameplaySession response = JsonUtility.FromJson<RGGameplaySession>(s);
+                        RGDebug.LogDebug(
+                            $"RGService CreateGameplaySession response received");
+                        onSuccess.Invoke(response);
+                    },
+                    onFailure: (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to create gameplay session: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+        
+        public async Task UploadGameplaySessionData(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
+        {
+            if (LoadAuth())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/gameplay-session/{gameplaySessionId}/data",
+                    method: "POST",
+                    filePath: zipPath,
+                    contentType: "application/zip",
+                    onSuccess: (s) =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService GameplaySessionData response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload data for gameplay session {gameplaySessionId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+        
+        public async Task UploadGameplaySessionScreenshots(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
+        {
+            if (LoadAuth())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/gameplay-session/{gameplaySessionId}/screenshots",
+                    method: "POST",
+                    filePath: zipPath,
+                    contentType: "application/zip",
+                    onSuccess: (s) =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService GameplaySessionScreenshots response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload screenshots for gameplay session {gameplaySessionId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
+        
+        public async Task UploadGameplaySessionThumbnail(long gameplaySessionId, string jpegPath, Action onSuccess, Action onFailure)
+        {
+            if (LoadAuth())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/gameplay-session/{gameplaySessionId}/thumbnail",
+                    method: "POST",
+                    filePath: jpegPath,
+                    contentType: "image/jpeg",
+                    onSuccess: (s) =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService GameplaySessionThumbnail response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload thumbnail for gameplay session {gameplaySessionId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure();
+            }
+        }
 
         /**
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
