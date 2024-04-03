@@ -127,7 +127,7 @@ namespace RegressionGames.StateRecorder
 
         private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath)
         {
-            RGBotManager.GetInstance().ShowUploadingIndicator(true);
+            StartCoroutine(ShowUploadingIndicator(true));
 
             var zipTask1 = Task.Run(() =>
             {
@@ -162,41 +162,48 @@ namespace RegressionGames.StateRecorder
         private async Task CreateAndUploadGameplaySession(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath)
         {
 
-            RGDebug.LogInfo($"Creating and uploading GameplaySession on the backend, from {startTime} to {endTime} with {tickCount} ticks");
-
-            // First, create the gameplay session
-            long gameplaySessionId = -1;
-            await RGServiceManager.GetInstance().CreateGameplaySession(startTime, endTime, tickCount,
-                (response) =>
-                {
-                    gameplaySessionId = response.id;
-                    RGDebug.LogInfo($"Created gameplay session with id: {response.id}");
-                },
-                () => {});
-
-            // If the gameplay session was not created, return
-            if (gameplaySessionId == -1)
+            try
             {
-                return;
+                RGDebug.LogInfo($"Creating and uploading GameplaySession on the backend, from {startTime} to {endTime} with {tickCount} ticks");
+
+                // First, create the gameplay session
+                long gameplaySessionId = -1;
+                await RGServiceManager.GetInstance().CreateGameplaySession(startTime, endTime, tickCount,
+                    (response) =>
+                    {
+                        gameplaySessionId = response.id;
+                        RGDebug.LogInfo($"Created gameplay session with id: {response.id}");
+                    },
+                    () => { });
+
+                // If the gameplay session was not created, return
+                if (gameplaySessionId == -1)
+                {
+                    return;
+                }
+
+                // Upload the gameplay session data
+                await RGServiceManager.GetInstance().UploadGameplaySessionData(gameplaySessionId,
+                    dataDirectoryPrefix + ".zip",
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session data from {dataDirectoryPrefix}.zip"); },
+                    () => { });
+
+                // Next, upload the gameplay session screenshots
+                await RGServiceManager.GetInstance().UploadGameplaySessionScreenshots(gameplaySessionId,
+                    screenshotsDirectoryPrefix + ".zip",
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session screenshots from {screenshotsDirectoryPrefix}.zip"); },
+                    () => { });
+
+                // Finally, upload the thumbnail
+                await RGServiceManager.GetInstance().UploadGameplaySessionThumbnail(gameplaySessionId,
+                    thumbnailPath,
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session thumbnail from {thumbnailPath}"); },
+                    () => { });
             }
-
-            // Upload the gameplay session data
-            await RGServiceManager.GetInstance().UploadGameplaySessionData(gameplaySessionId,
-                dataDirectoryPrefix + ".zip",
-                () => { RGDebug.LogInfo($"Uploaded gameplay session data from {dataDirectoryPrefix}.zip"); },
-                () => {});
-
-            // Next, upload the gameplay session screenshots
-            await RGServiceManager.GetInstance().UploadGameplaySessionScreenshots(gameplaySessionId,
-                screenshotsDirectoryPrefix + ".zip",
-                () => { RGDebug.LogInfo($"Uploaded gameplay session screenshots from {screenshotsDirectoryPrefix}.zip"); },
-                () => {});
-
-            // Finally, upload the thumbnail
-            await RGServiceManager.GetInstance().UploadGameplaySessionThumbnail(gameplaySessionId,
-                thumbnailPath,
-                () => { RGDebug.LogInfo($"Uploaded gameplay session thumbnail from {thumbnailPath}"); },
-                () => {});
+            catch (Exception e)
+            {
+                RGDebug.LogException(e, "Exception uploading gameplay session recording data");
+            }
 
             StartCoroutine(ShowUploadingIndicator(false));
         }
