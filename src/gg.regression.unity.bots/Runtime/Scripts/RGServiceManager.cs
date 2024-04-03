@@ -15,21 +15,19 @@ namespace RegressionGames
     public class RGServiceManager : MonoBehaviour
     { // not really a monobehaviour.. but we make one of these on an object
 
-        public static readonly string RG_UNITY_AUTH_TOKEN = Guid.NewGuid().ToString();
-
         // 10 seconds
         public static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 10;
 
         // 1 hour
         public static readonly int WEB_REQUEST_FILE_TIMEOUT_SECONDS = 60 * 60;
 
-        private static Mutex authLock = new Mutex(false, "AuthLock");
+        private static Mutex _authLock = new Mutex(false, "AuthLock");
 
-        private string rgAuthToken;
+        private string _rgAuthToken;
 
-        protected static RGServiceManager _this = null;
+        private static RGServiceManager _this = null;
 
-        private long correlationId = 0L;
+        private long _correlationId = 0L;
 
         protected virtual void Awake()
         {
@@ -51,7 +49,7 @@ namespace RegressionGames
 
         public bool IsAuthed()
         {
-            return rgAuthToken != null;
+            return _rgAuthToken != null;
         }
 
         public bool LoadAuth()
@@ -63,7 +61,7 @@ namespace RegressionGames
                 if (apiKey != null && apiKey.Trim() != "")
                 {
                     RGDebug.LogDebug("Using API Key from env var rather than from built in resources");
-                    rgAuthToken = apiKey.Trim();
+                    _rgAuthToken = apiKey.Trim();
                 }
                 else
                 {
@@ -73,7 +71,7 @@ namespace RegressionGames
                     var apiKeyFromSettings = settings.GetApiKey();
                     if (!string.IsNullOrEmpty(apiKeyFromSettings))
                     {
-                        rgAuthToken = apiKeyFromSettings;
+                        _rgAuthToken = apiKeyFromSettings;
                     }
                     else
                     {
@@ -129,7 +127,7 @@ namespace RegressionGames
                 {
                     RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
                     RGDebug.LogInfo($"Signed in to RG Service");
-                    rgAuthToken = response.token;
+                    _rgAuthToken = response.token;
                     onSuccess.Invoke(response.token);
                 },
                 onFailure: (f) =>
@@ -498,7 +496,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         public async Task CreateGameplaySession(DateTime startTime, DateTime endTime, long numTicks, Action<RGGameplaySession> onSuccess, Action onFailure)
         {
             if (LoadAuth())
@@ -527,7 +525,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         public async Task UploadGameplaySessionData(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
         {
             if (LoadAuth())
@@ -555,7 +553,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         public async Task UploadGameplaySessionScreenshots(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
         {
             if (LoadAuth())
@@ -583,7 +581,7 @@ namespace RegressionGames
                 onFailure();
             }
         }
-        
+
         public async Task UploadGameplaySessionThumbnail(long gameplaySessionId, string jpegPath, Action onSuccess, Action onFailure)
         {
             if (LoadAuth())
@@ -637,7 +635,7 @@ namespace RegressionGames
 
         private async Task SendWebRequest(string uri, string method, string payload, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth = false, string contentType = "application/json")
         {
-            var messageId = ++correlationId;
+            var messageId = ++_correlationId;
             // don't log the details of auth requests :)
             string payloadToLog = isAuth ? "{***:***, ...}" : payload;
             RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload) ? $"\r\n{payloadToLog}" : "")}");
@@ -653,9 +651,9 @@ namespace RegressionGames
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", contentType);
                 request.SetRequestHeader("Accept", "application/json");
-                if (rgAuthToken != null && !isAuth)
+                if (_rgAuthToken != null && !isAuth)
                 {
-                    request.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+                    request.SetRequestHeader("Authorization", $"Bearer {_rgAuthToken}");
                 }
 
                 if (request.uri.Scheme.Equals(Uri.UriSchemeHttps))
@@ -719,22 +717,22 @@ namespace RegressionGames
 
         private async Task SendWebFileUploadRequest(string uri, string method, string filePath, string contentType, Func<string, Task> onSuccess, Func<string, Task> onFailure)
         {
-            var messageId = ++correlationId;
+            var messageId = ++_correlationId;
             RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}\r\nfilePath:{filePath}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
 
             try
             {
-                request.timeout = WEB_REQUEST_TIMEOUT_SECONDS;
+                request.timeout = WEB_REQUEST_FILE_TIMEOUT_SECONDS;
                 UploadHandler uh = new UploadHandlerFile(filePath);
                 uh.contentType = contentType;
                 request.uploadHandler = uh;
                 request.downloadHandler = new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", contentType);
                 request.SetRequestHeader("Accept", "application/json");
-                if (rgAuthToken != null)
+                if (_rgAuthToken != null)
                 {
-                    request.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+                    request.SetRequestHeader("Authorization", $"Bearer {_rgAuthToken}");
                 }
 
                 if (request.uri.Scheme.Equals(Uri.UriSchemeHttps))
@@ -799,23 +797,23 @@ namespace RegressionGames
 
         private async Task SendWebFileDownloadRequest(string uri, string method, string payload, string destinationFilePath, Func<Task> onSuccess, Func<string, Task> onFailure)
         {
-            var messageId = ++correlationId;
+            var messageId = ++_correlationId;
             RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
 
             try
             {
                 var payloadBytes = payload == null ? null : Encoding.UTF8.GetBytes(payload);
-                request.timeout = WEB_REQUEST_TIMEOUT_SECONDS;
+                request.timeout = WEB_REQUEST_FILE_TIMEOUT_SECONDS;
                 UploadHandler uh = new UploadHandlerRaw(payloadBytes);
                 uh.contentType = "application/json";
                 request.uploadHandler = uh;
                 request.downloadHandler = new DownloadHandlerFile(destinationFilePath);
                 request.SetRequestHeader("Content-Type", "application/json");
                 request.SetRequestHeader("Accepts", "application/zip");
-                if (rgAuthToken != null)
+                if (_rgAuthToken != null)
                 {
-                    request.SetRequestHeader("Authorization", $"Bearer {rgAuthToken}");
+                    request.SetRequestHeader("Authorization", $"Bearer {_rgAuthToken}");
                 }
 
                 if (request.uri.Scheme.Equals(Uri.UriSchemeHttps))
