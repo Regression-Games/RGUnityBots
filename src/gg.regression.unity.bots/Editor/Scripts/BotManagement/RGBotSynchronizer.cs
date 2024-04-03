@@ -53,7 +53,7 @@ namespace RegressionGames.Editor.BotManagement
         {
             try
             {
-                if (!_rgServiceManager.IsAuthed() && !await _rgServiceManager.TryAuth())
+                if (!_rgServiceManager.LoadAuth())
                 {
                     RGDebug.LogWarning("Unable to synchronize bots with Regression Games.  Check your configuration and ensure that your network connection can reach the configured Regression Games server.");
                     return;

@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using JetBrains.Annotations;
+using UnityEngine;
 using UnityEngine.Networking;
 
 namespace RegressionGames
@@ -24,8 +25,8 @@ namespace RegressionGames
 
         private RGCertOnlyPublicKey()
         {
-            var certFile = Path.GetFullPath("Packages/gg.regression.unity.bots/Runtime/Resources/regression_cert.cer");
-            RG_CERT = new X509Certificate2(certFile);
+            var certAsset = Resources.Load<TextAsset>("regression_cert");
+            RG_CERT = new X509Certificate2(certAsset.bytes);
         }
 
         protected override bool ValidateCertificate(byte[] certificateData)
