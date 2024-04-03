@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
@@ -34,6 +36,8 @@ namespace RegressionGames.StateRecorder
 
         public Vector2Int position;
 
+        public Vector3? worldPosition;
+
         // non-fractional pixel accuracy
         //main 5 buttons
         public bool leftButton;
@@ -45,11 +49,9 @@ namespace RegressionGames.StateRecorder
         // scroll wheel
         public Vector2 scroll;
 
-        [JsonIgnore]
-        public bool IsButtonHeld => leftButton || middleButton || rightButton || forwardButton || backButton ||
-                                    scroll.y < -0.1f || scroll.y > 0.1f || scroll.x < -0.1f || scroll.x > 0.1f;
+        public int[] clickedObjectIds;
 
-        public bool newButtonPress;
+        public bool IsButtonClicked => leftButton || middleButton || rightButton || forwardButton || backButton || Math.Abs(scroll.y) > 0.1f || Math.Abs(scroll.x) > 0.1f;
 
         public bool PositionsEqual(object obj)
         {
@@ -78,29 +80,19 @@ namespace RegressionGames.StateRecorder
             return false;
         }
 
-        public static bool NewButtonPressed(MouseInputActionData previous, MouseInputActionData current)
-        {
-            return !previous.leftButton && current.leftButton
-                   || !previous.middleButton && current.middleButton
-                   || !previous.rightButton && current.rightButton
-                   || !previous.forwardButton && current.forwardButton
-                   || !previous.backButton && current.backButton
-                   || Math.Abs(previous.scroll.y - current.scroll.y) > 0.1f
-                   || Math.Abs(previous.scroll.x - current.scroll.x) > 0.1f;
-        }
-
         public string ToJson()
         {
             return "{\"startTime\":" + startTime
                                      + ",\"position\":" + VectorIntJsonConverter.ToJsonString(position)
+                                     + ",\"worldPosition\":" + VectorJsonConverter.ToJsonStringVector3(worldPosition)
                                      + ",\"leftButton\":" + (leftButton ? "true" : "false")
                                      + ",\"middleButton\":" + (middleButton ? "true" : "false")
                                      + ",\"rightButton\":" + (rightButton ? "true" : "false")
                                      + ",\"forwardButton\":" + (forwardButton ? "true" : "false")
                                      + ",\"backButton\":" + (backButton ? "true" : "false")
                                      + ",\"scroll\":" + VectorJsonConverter.ToJsonStringVector2(scroll)
-                                     + ",\"newButtonPress\":" + (newButtonPress ? "true" : "false")
-                                     + "}";
+                                     + ",\"clickedObjectIds\":[" + string.Join(",", clickedObjectIds)
+                                     + "]}";
         }
     }
 
@@ -108,96 +100,121 @@ namespace RegressionGames.StateRecorder
     {
         private MouseInputActionData _priorMouseState;
 
-        private static MouseInputActionObserver _this;
+        // limit this to 5 hits... any hit should be good enough to guess the proper screen x,y based on precise world x,y,z .. but sometimes
+        // we get slight positional variances in games from run to run and need to account for edge cases where objects get hidden by other objects
+        // based on a few pixel shift in relative camera position
+        private readonly RaycastHit[] _cachedRaycastHits = new RaycastHit[5];
 
-        private bool _recording;
-
-
-        public static MouseInputActionObserver GetInstance()
+        public void ObserveMouse(List<RecordedGameObjectState> statefulObjects)
         {
-            return _this;
-        }
-
-        public void Awake()
-        {
-            if (_this != null)
+            var mousePosition = Mouse.current.position.ReadValue();
+            var newMouseState = GetCurrentMouseState(mousePosition);
+            if (newMouseState != null)
             {
-                // only allow 1 of these to be alive
-                if (_this.gameObject != gameObject)
+                if (_priorMouseState?.ButtonStatesEqual(newMouseState) != true)
                 {
-                    Destroy(gameObject);
-                    return;
-                }
-            }
+                    Vector3? worldPosition = null;
+                    var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);
 
-            // keep this thing alive across scenes
-            DontDestroyOnLoad(gameObject);
-            _this = this;
-        }
+                    var mouseRayHits = 0;
 
-        public void StartRecording()
-        {
-            _recording = true;
-        }
 
-        public void StopRecording()
-        {
-            _recording = false;
-        }
+                    var ray = Camera.main.ScreenPointToRay(mousePosition);
+                    mouseRayHits = Physics.RaycastNonAlloc(ray,
+                        _cachedRaycastHits,
+                        maxZDepth+0.1f);
 
-        private void Update()
-        {
-            if (_recording)
-            {
-                var newMouseState = GetCurrentMouseState();
-                if (newMouseState != null)
-                {
-                    var time = Time.unscaledTime;
-                    if (_priorMouseState == null
-                        || _mouseInputActions.Count == 0)
+
+                    var comparer = Comparer<RaycastHit>.Create(
+                        (x1, x2) =>
+                        {
+                            var d = x1.distance - x2.distance;
+                            return (d > 0) ? 1 : (d < 0) ? -1 : 0;
+                        } );
+
+                    if (mouseRayHits > 0)
                     {
-                        // our first mouse state observation
-                        // or.. we need at least 1 mouse observation per tick, otherwise hover over effects/etc don't function correctly
-                        _mouseInputActions.Enqueue(newMouseState);
+                        // order by distance from camera
+                        Array.Sort(_cachedRaycastHits, 0, mouseRayHits, comparer);
+                    }
+
+                    List<int> clickedOnObjectIds = new();
+                    var bestIndex = int.MaxValue;
+                    if (mouseRayHits > 0)
+                    {
+                        foreach (var recordedGameObjectState in clickedOnObjects)
+                        {
+                            clickedOnObjectIds.Add(recordedGameObjectState.id);
+                            if (recordedGameObjectState.worldSpaceBounds != null)
+                            {
+                                // compare to any raycast hits and pick the one closest to the camera
+                                if (bestIndex > 0)
+                                {
+                                    for (var i = 0; i < mouseRayHits; i++)
+                                    {
+                                        var rayHit = _cachedRaycastHits[i];
+                                        try
+                                        {
+                                            if (_cachedRaycastHits[i].transform.GetInstanceID() == recordedGameObjectState.id)
+                                            {
+                                                if (i < bestIndex)
+                                                {
+                                                    worldPosition = _cachedRaycastHits[i].point;
+                                                    bestIndex = i;
+                                                }
+
+                                                break;
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            RGDebug.LogException(e, "Exception handling raycast hits for in game object click");
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     else
                     {
-                        if (!_priorMouseState.ButtonStatesEqual(newMouseState))
+                        // without a collider hit, we can't set a worldPosition
+                        foreach (var recordedGameObjectState in clickedOnObjects)
                         {
-                            newMouseState.newButtonPress = MouseInputActionData.NewButtonPressed(_priorMouseState, newMouseState);
-                            // different mouse buttons are clicked
-                            _mouseInputActions.Enqueue(newMouseState);
+                            clickedOnObjectIds.Add(recordedGameObjectState.id);
                         }
-                        else if (!_priorMouseState.PositionsEqual(newMouseState))
-                        {
-                            // mouse moved
-                            _mouseInputActions.Enqueue(newMouseState);
-                        }
-                        // the case where buttons are released is handled by the !ButtonStatesEqual check at the start of this if/else chain
                     }
 
-                    _priorMouseState = newMouseState;
+                    newMouseState.worldPosition = worldPosition;
+                    newMouseState.clickedObjectIds = clickedOnObjectIds.ToArray();
+                    _mouseInputActions.Enqueue(newMouseState);
                 }
+                else if (_priorMouseState?.PositionsEqual(newMouseState) != true)
+                {
+                    _mouseInputActions.Enqueue(newMouseState);
+                }
+
+                _priorMouseState = newMouseState;
             }
         }
 
-        public MouseInputActionData GetCurrentMouseState()
+        public MouseInputActionData GetCurrentMouseState(Vector2? position = null)
         {
             var mouse = Mouse.current;
             if (mouse != null)
             {
-                var position = mouse.position.ReadValue();
+                position ??= mouse.position.ReadValue();
                 var newMouseState = new MouseInputActionData()
                 {
                     startTime = Time.unscaledTimeAsDouble,
-                    position = new Vector2Int((int)position.x, (int)position.y),
+                    position = new Vector2Int((int)position.Value.x, (int)position.Value.y),
                     leftButton = mouse.leftButton.isPressed,
                     middleButton = mouse.middleButton.isPressed,
                     rightButton = mouse.rightButton.isPressed,
                     forwardButton = mouse.forwardButton.isPressed,
                     backButton = mouse.backButton.isPressed,
                     scroll = mouse.scroll.ReadValue(),
-                    newButtonPress = false
+                    clickedObjectIds = Array.Empty<int>(),
+                    worldPosition = null
                 };
                 return newMouseState;
             }
@@ -207,16 +224,61 @@ namespace RegressionGames.StateRecorder
 
         private readonly ConcurrentQueue<MouseInputActionData> _mouseInputActions = new();
 
-        public List<MouseInputActionData> FlushInputDataBuffer(float upToTime = float.MaxValue)
+        public void ClearBuffer()
+        {
+            _mouseInputActions.Clear();
+        }
+
+        public List<MouseInputActionData> FlushInputDataBuffer(bool ensureOne = false)
         {
             List<MouseInputActionData> result = new();
             while (_mouseInputActions.TryPeek(out var action))
             {
-                if (action.startTime < upToTime)
+                _mouseInputActions.TryDequeue(out _);
+                result.Add(action);
+            }
+
+            if (ensureOne && result.Count == 0 && _priorMouseState != null)
+            {
+                // or.. we need at least 1 mouse observation per tick, otherwise hover over effects/etc don't function correctly
+                result.Add(_priorMouseState);
+            }
+
+            return result;
+        }
+
+        private IEnumerable<RecordedGameObjectState> FindObjectsAtPosition(Vector2 position, List<RecordedGameObjectState> state, out float maxZDepth)
+        {
+            // make sure screen space position Z is around 0
+            var vec3Position = new Vector3(position.x, position.y, 0);
+            List<RecordedGameObjectState> result = new();
+            maxZDepth = 0f;
+            var hitUIElement = false;
+            foreach (var recordedGameObjectState in state)
+            {
+                if (recordedGameObjectState.screenSpaceBounds.Contains(vec3Position))
                 {
-                    _mouseInputActions.TryDequeue(out _);
-                    result.Add(action);
+                    if (!hitUIElement && recordedGameObjectState.worldSpaceBounds != null )
+                    {
+                        if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                        {
+                            maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                        }
+                        result.Add(recordedGameObjectState);
+                    }
+                    else
+                    {
+                        maxZDepth = 0f;
+                        hitUIElement = true;
+                        result.Add(recordedGameObjectState);
+                    }
                 }
+            }
+
+            if (hitUIElement)
+            {
+                // if we hit a UI element, ignore the in game elements
+                result.RemoveAll(a => a.worldSpaceBounds != null);
             }
 
             return result;
