@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
@@ -33,6 +34,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
+            if (InGameObjectFinder.GetInstance().collectStateFromBehaviours == false &&
+                objectType == typeof(Behaviour))
+            {
+                // in this case, any Behaviour should just be empty unless it has a custom converter
+                return true;
+            }
             var fullName = objectType.FullName;
             // we have added custom serializers for specific unity types
             if (NetworkVariableJsonConverter.Convertable(objectType))
