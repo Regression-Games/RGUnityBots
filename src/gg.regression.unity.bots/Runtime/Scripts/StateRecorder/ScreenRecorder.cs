@@ -116,6 +116,7 @@ namespace RegressionGames.StateRecorder
             _encoder?.Dispose();
             _encoder = null;
 #endif
+            _priorFrame = null;
             if (_isRecording)
             {
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
