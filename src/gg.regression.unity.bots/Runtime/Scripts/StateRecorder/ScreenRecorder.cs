@@ -179,6 +179,7 @@ namespace RegressionGames.StateRecorder
                 // If the gameplay session was not created, return
                 if (gameplaySessionId == -1)
                 {
+                    RGDebug.LogWarning("Unable to upload gameplay session data.  Check your authorization credentials and network connection");
                     return;
                 }
 
@@ -204,8 +205,10 @@ namespace RegressionGames.StateRecorder
             {
                 RGDebug.LogException(e, "Exception uploading gameplay session recording data");
             }
-
-            StartCoroutine(ShowUploadingIndicator(false));
+            finally
+            {
+                StartCoroutine(ShowUploadingIndicator(false));
+            }
         }
 
         private void LateUpdate()

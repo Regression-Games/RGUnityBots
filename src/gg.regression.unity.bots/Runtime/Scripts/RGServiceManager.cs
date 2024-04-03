@@ -165,7 +165,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -193,7 +193,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -221,7 +221,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -251,7 +251,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -279,7 +279,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -302,7 +302,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
 
         }
@@ -398,7 +398,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -430,7 +430,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -462,7 +462,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -493,7 +493,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -522,7 +522,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -550,7 +550,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -578,7 +578,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
@@ -606,7 +606,7 @@ namespace RegressionGames
             }
             else
             {
-                onFailure();
+                onFailure.Invoke();
             }
         }
 
