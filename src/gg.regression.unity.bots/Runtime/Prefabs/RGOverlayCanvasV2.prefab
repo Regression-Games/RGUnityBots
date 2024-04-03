@@ -4917,7 +4917,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f43b8086b73946fcaed5cab7f692ce9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  recordingMinFPS: 5
+  recordingMinFPS: 0
   stateRecordingsDirectory: 
 --- !u!114 &4232611005985544413
 MonoBehaviour:
