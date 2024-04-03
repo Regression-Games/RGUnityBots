@@ -53,6 +53,8 @@ namespace RegressionGames.StateRecorder
         public Vector2Int screenSize;
         public Vector2Int position;
 
+        public Vector3? worldPosition;
+
         //main 5 buttons
         public bool leftButton;
         public bool middleButton;
@@ -173,7 +175,6 @@ namespace RegressionGames.StateRecorder
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
             ReplayFrameStateData firstFrame = null;
-            ReplayFrameStateData priorFrame = null;
             foreach (var entry in entries)
             {
                 using var sr = new StreamReader(entry.Open());
@@ -237,42 +238,31 @@ namespace RegressionGames.StateRecorder
                 // if they are a new button, add that to the key frame data
                 List<string> specificGameObjectPaths = new();
 
-                ReplayMouseInputEntry priorMouseInput = null;
-
                 foreach (var inputData in frameData.inputs.mouse)
                 {
                     if (inputData is MouseInputActionData mouseInputData)
                     {
-                        List<ReplayGameObjectState> clickedOnObjects = null;
-                        if (keyFrame != null && mouseInputData.newButtonPress)
+                        // in the future, we may validate the object ids on mouse release.. but in early testing this had timing issues
+                        if (keyFrame != null && mouseInputData.clickedObjectIds != null && mouseInputData.IsButtonClicked)
                         {
-                            clickedOnObjects = FindObjectsAtPosition(mouseInputData.position, priorFrame?.state, frameData.state);
-
-                            // we need the mouse data to have the prior and next frame objects as possibilities
-                            // BUT.. we need to do enforcement on only the new frame data
-                            var clickedObjectsInCurrentFrame = FindObjectsAtPosition(mouseInputData.position, null, frameData.state);
-                            foreach (var clickedOnObject in clickedObjectsInCurrentFrame)
-                            {
-                                specificGameObjectPaths.Add(clickedOnObject.path);
-                            }
+                            specificGameObjectPaths = FindObjectsWithIds(mouseInputData.clickedObjectIds, frameData.state);
                         }
 
-                        priorMouseInput = new ReplayMouseInputEntry()
+                        _mouseData.Enqueue(new ReplayMouseInputEntry()
                         {
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
-                            clickedObjectPaths = clickedOnObjects != null ? clickedOnObjects.Select(a=>a.path).ToArray() : Array.Empty<string>(),
+                            clickedObjectPaths = specificGameObjectPaths.ToArray(),
                             position = mouseInputData.position,
+                            worldPosition = mouseInputData.worldPosition,
                             leftButton = mouseInputData.leftButton,
                             middleButton = mouseInputData.middleButton,
                             rightButton = mouseInputData.rightButton,
                             forwardButton = mouseInputData.forwardButton,
                             backButton = mouseInputData.backButton,
                             scroll = mouseInputData.scroll
-                        };
-
-                        _mouseData.Enqueue(priorMouseInput);
+                        });
                     }
                 }
 
@@ -280,8 +270,6 @@ namespace RegressionGames.StateRecorder
                 {
                     keyFrame.specificObjectPaths = specificGameObjectPaths.ToArray();
                 }
-
-                priorFrame = frameData;
             }
 
             if (firstFrame == null)
@@ -291,26 +279,10 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private List<ReplayGameObjectState> FindObjectsAtPosition(Vector2 position, IEnumerable<ReplayGameObjectState> priorState, IEnumerable<ReplayGameObjectState> state)
+        private List<string> FindObjectsWithIds(int[] objectIds, List<ReplayGameObjectState> state)
         {
-            // collect the set of possible matches from the current and prior frame
-            // why both.. well.. the click action will be on the current frame... that it caused
-            // but the object it clicked on may no longer exist because it caused the very state change we're recording
-            // so we get the entries from the current frame, and if those are in the prior frame also.. we prioritize their current frame bounds/location
-            // CONSIDER: Another way to do this is to capture the paths clicked in the state at each click based on the prior frame.. but that saves a ton more state and affects their runtime
-            // by having to process the state on every frame and click
-
-            // make sure screen space position Z is around 0
-            var currentStateEntries = state.ToDictionary(a => a.id, a => a.screenSpaceBounds.Contains(new Vector3(position.x, position.y, 0)) ? a : null);
-            var priorStateEntries = priorState?.Where(a => !currentStateEntries.ContainsKey(a.id) && a.screenSpaceBounds.Contains(new Vector3(position.x, position.y, 0))).ToList();
-            if (priorStateEntries != null)
-            {
-                priorStateEntries.AddRange(currentStateEntries.Values.Where(a => a != null));
-                return priorStateEntries.ToList();
-            }
-
-            //else
-            return currentStateEntries.Values.Where(a => a != null).ToList();
+            var currentStateEntries = state.Where(a => objectIds.Contains(a.id)).Select(a => a.path);
+            return currentStateEntries.ToList();
         }
     }
 }

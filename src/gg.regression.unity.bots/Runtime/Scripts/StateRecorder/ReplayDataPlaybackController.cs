@@ -36,7 +36,7 @@ namespace RegressionGames.StateRecorder
         // helps indicate if we made it through the full replay successfully
         private bool? _replaySuccessful;
 
-        private IDisposable _mouseEventHandler;
+        private static IDisposable _mouseEventHandler;
 
         public string WaitingForKeyFrameConditions { get; private set; }
 
@@ -62,7 +62,6 @@ namespace RegressionGames.StateRecorder
 
         private void SetupEventSystem()
         {
-            //TODO: Really.. we should NOT do this, but for now.. it both input system work side by side for games like boss room
             // when/if we can make the legacy input system work, we should remove this and respect that system
             var eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
             foreach (var eventSystem in eventSystems)
@@ -70,9 +69,7 @@ namespace RegressionGames.StateRecorder
                 var inputModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
                 if (inputModule == null)
                 {
-                    // forcefully add the UI input module to the event system if not present
-                    // basically force using the new input system for our replay
-                    eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                    throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
                 }
             }
         }
@@ -84,7 +81,14 @@ namespace RegressionGames.StateRecorder
 
         public void SetDataContainer(ReplayDataContainer dataContainer)
         {
-            _isPlaying = false;
+            Stop();
+
+            SendMouseEvent(0, new ReplayMouseInputEntry()
+            {
+                // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
+                position = new Vector2Int(Screen.width +20, -20)
+            }, new List<RecordedGameObjectState>());
+
             _dataContainer = dataContainer;
             _nextKeyFrame = _dataContainer.DequeueKeyFrame();
         }
@@ -293,7 +297,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private InputDevice GetMouse(bool forceListener = false)
+        private static InputDevice GetMouse(bool forceListener = false)
         {
             var mouse = InputSystem.devices.FirstOrDefault(a => a.name == "RGVirtualMouse");
             var created = false;
@@ -327,8 +331,26 @@ namespace RegressionGames.StateRecorder
             return mouse;
         }
 
-        private void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> objectStates)
+        public class RecordedGameObjectStatePathEqualityComparer : IEqualityComparer<RecordedGameObjectState>
         {
+            public bool Equals(RecordedGameObjectState x, RecordedGameObjectState y)
+            {
+                return x.path == y.path;
+            }
+
+            public int GetHashCode(RecordedGameObjectState obj)
+            {
+                return obj.path.GetHashCode();
+            }
+        }
+
+        private static readonly RecordedGameObjectStatePathEqualityComparer _recordedGameObjectStatePathEqualityComparer = new();
+
+        public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> objectStates)
+        {
+            var screenWidth = Screen.width;
+            var screenHeight = Screen.height;
+
             // Mouse is hard... we can't use the raw position, we need to use the position relative to the current resolution
             // but.. it gets tougher than that.  Some UI elements scale differently with resolution (only horizontal, only vertical, preserve aspect, expand, etc)
             // so we have to take the bounding space of the original object(s) clicked on into consideration
@@ -349,35 +371,97 @@ namespace RegressionGames.StateRecorder
                 {
                     var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
                     return (theNp - closestPointInA).sqrMagnitude;
-                });
-            // TODO: While we should pick the 'best' object to guarantee we click it,
-            // we should also try to hit as many of the other boxes as possible with our click location
+                }).Distinct(_recordedGameObjectStatePathEqualityComparer); // select only the first entry of each path
             foreach (var objectToCheck in possibleObjects)
             {
                 var size = objectToCheck.screenSpaceBounds.size.x * objectToCheck.screenSpaceBounds.size.y;
 
-                if (bestObject == null
-                    || objectToCheck.worldSpaceBounds == null && bestObject.worldSpaceBounds != null)
+                if (bestObject == null)
                 {
                     // prefer UI elements when overlaps occur with game objects
                     bestObject = objectToCheck;
                     smallestSize = size;
                 }
-                // prefer UI elements when overlaps occur with game objects
-                else if (bestObject.worldSpaceBounds == null && objectToCheck.worldSpaceBounds != null)
+                else if (objectToCheck.worldSpaceBounds != null)
                 {
-                    // do nothing
-                }
-                else
-                {
-                    // give some threshold variance here for floating point math on sizes
-                    // if 2 objects are very similarly sized, we want the one closest, not picking
-                    // one based on some floating point rounding error
-                    if (size * 1.02f < smallestSize)
+                    if (bestObject.worldSpaceBounds == null)
                     {
+                        //do nothing, prefer ui elements
+                    }
+                    else
+                    {
+                        if (mouseInput.worldPosition != null)
+                        {
+                            // use the world space click location closest to the actual object location
+                            var mouseWorldPosition = mouseInput.worldPosition.Value;
+                            if (objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition))
+                            {
+                                var screenPoint = Camera.main.WorldToScreenPoint(mouseWorldPosition);
+                                if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
+                                {
+                                    RGDebug.LogError($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
+                                }
+                                else
+                                {
+                                    bestObject = null;
+                                    // we hit one of our world objects, set the normalized position and stop looping
+                                    normalizedPosition = new Vector2((int)screenPoint.x, (int)screenPoint.y);
+                                    break; // end the foreach
+                                }
+                            }
+                            else
+                            {
+                                // TODO: Maybe??? , should we re-write this to be more like the non world position evaluation and evaluate the 'best' objects to see if we need to shift the world click position a tiny bit to hit our objects
+                                // for now, we let that fall back to the renderer bounds evaluation of best objects
+
+
+                                // compare elements bounds for best match
+                                // give some threshold variance here for floating point math on sizes
+                                // if 2 objects are very similarly sized, we want the one closest, not picking
+                                // one based on some floating point rounding error
+                                if (size * 1.02f < smallestSize)
+                                {
+                                    bestObject = objectToCheck;
+                                    smallestSize = size;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // compare elements bounds for best match
+                            // give some threshold variance here for floating point math on sizes
+                            // if 2 objects are very similarly sized, we want the one closest, not picking
+                            // one based on some floating point rounding error
+                            if (size * 1.02f < smallestSize)
+                            {
+                                bestObject = objectToCheck;
+                                smallestSize = size;
+                            }
+                        }
+
+                    }
+                }
+                else // objectToCheck.worldSpaceBounds == null
+                {
+                    if (bestObject.worldSpaceBounds == null)
+                    {
+                        // compare ui elements for best match
+                        // give some threshold variance here for floating point math on sizes
+                        // if 2 objects are very similarly sized, we want the one closest, not picking
+                        // one based on some floating point rounding error
+                        if (size * 1.02f < smallestSize)
+                        {
+                            bestObject = objectToCheck;
+                            smallestSize = size;
+                        }
+                    }
+                    else
+                    {
+                        // prefer UI elements when overlaps occur with game objects
                         bestObject = objectToCheck;
                         smallestSize = size;
                     }
+
                 }
             }
 

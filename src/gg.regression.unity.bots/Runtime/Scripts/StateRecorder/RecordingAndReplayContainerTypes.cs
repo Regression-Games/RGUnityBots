@@ -137,6 +137,8 @@ namespace RegressionGames.StateRecorder
 
         public Bounds screenSpaceBounds;
 
+        public float screenSpaceZOffset;
+
         public Vector3 position;
         public Quaternion rotation;
 

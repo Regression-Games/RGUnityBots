@@ -232,13 +232,16 @@ namespace RegressionGames.StateRecorder
                 };
 
                 var screenSpaceObjectCorners =
-                    worldCorners.Select(corner => Camera.main.WorldToViewportPoint(corner));
+                    worldCorners.Select(corner => Camera.main.WorldToScreenPoint(corner));
 
                 var minX = float.MaxValue;
                 var maxX = float.MinValue;
 
                 var minY = float.MaxValue;
                 var maxY = float.MinValue;
+
+                var minZ = float.MaxValue;
+                var maxZ = float.MinValue;
 
                 foreach (var screenSpaceObjectCorner in screenSpaceObjectCorners)
                 {
@@ -262,6 +265,17 @@ namespace RegressionGames.StateRecorder
                     if (y > maxY)
                     {
                         maxY = y;
+                    }
+
+                    var z = screenSpaceObjectCorner.z;
+                    if (z < minZ)
+                    {
+                        minZ = z;
+                    }
+
+                    if (z > maxZ)
+                    {
+                        maxZ = z;
                     }
                 }
 
@@ -290,8 +304,9 @@ namespace RegressionGames.StateRecorder
                 if (onCamera)
                 {
                     // make sure the screen space bounds has a non-zero Z size around 0
+                    // we track the true z offset separately for ease of mouse selection on replay
                     var size = new Vector3(maxX - minX, maxY - minY, 0.1f);
-                    var center = new Vector3(minX + size.x / 2, minY + size.y / 2, 0f);
+                    var center = new Vector3(minX + size.x / 2, minY + size.y / 2, 0);
                     var screenSpaceBounds = new Bounds(center, size);
 
                     var childComponents = statefulGameObject.GetComponentsInChildren<Component>();
@@ -360,6 +375,7 @@ namespace RegressionGames.StateRecorder
                         id = statefulGameObject.transform.GetInstanceID(),
                         path = gameObjectPath,
                         screenSpaceBounds = screenSpaceBounds,
+                        screenSpaceZOffset = maxZ,
                         worldSpaceBounds = worldBounds,
                         rendererCount = renderers.Length,
                         position = statefulGameObject.transform.position,

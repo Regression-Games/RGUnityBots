@@ -66,6 +66,8 @@ namespace RegressionGames.StateRecorder
         [NonSerialized]
         private FrameStateData _priorFrame;
 
+        private MouseInputActionObserver _mouseObserver;
+
         public static ScreenRecorder GetInstance()
         {
             return _this;
@@ -90,6 +92,11 @@ namespace RegressionGames.StateRecorder
             _this = this;
         }
 
+        public void OnEnable()
+        {
+            _this._mouseObserver = GetComponent<MouseInputActionObserver>();
+        }
+
 
         private void OnDestroy()
         {
@@ -110,7 +117,7 @@ namespace RegressionGames.StateRecorder
             if (_isRecording)
             {
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
-                MouseInputActionObserver.GetInstance()?.StopRecording();
+                _mouseObserver.ClearBuffer();
                 var theVideoDirectory = _currentVideoDirectory;
                 Task.Run(() =>
                 {
@@ -139,12 +146,20 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public void StartRecording()
+        private IEnumerator StartRecordingCoroutine()
         {
+            // Do this 1 frame after the request so that the click action of starting the recording itself isn't captured
+            yield return null;
             if (!_isRecording)
             {
+                ReplayDataPlaybackController.SendMouseEvent(0, new ReplayMouseInputEntry()
+                {
+                    // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
+                    position = new Vector2Int(Screen.width +20, -20)
+                }, new List<RecordedGameObjectState>());
+
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
-                MouseInputActionObserver.GetInstance()?.StartRecording();
+                _mouseObserver.ClearBuffer();
                 _isRecording = true;
                 _tickNumber = 0;
                 _frameQueue =
@@ -173,6 +188,12 @@ namespace RegressionGames.StateRecorder
                 Task.Run(ProcessFrames, _tokenSource.Token);
                 RGDebug.LogInfo($"Recording replay screenshots to directory: {_currentVideoDirectory}");
             }
+        }
+
+        public void StartRecording()
+        {
+            StartCoroutine(StartRecordingCoroutine());
+
         }
 
 
@@ -252,6 +273,8 @@ namespace RegressionGames.StateRecorder
 
                 var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
+                _mouseObserver.ObserveMouse(statefulObjects);
+
                 // tell if the new frame is a key frame or the first frame (always a key frame)
                 var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects);
 
@@ -298,7 +321,7 @@ namespace RegressionGames.StateRecorder
                         };
 
                         var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                        var mouseInputData = MouseInputActionObserver.GetInstance()?.FlushInputDataBuffer(true);
+                        var mouseInputData = _mouseObserver.FlushInputDataBuffer(true);
 
                         // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                         // update the frame time to be latest of 'now' or the last device event in it
