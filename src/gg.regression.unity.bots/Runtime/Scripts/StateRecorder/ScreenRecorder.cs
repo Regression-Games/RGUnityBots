@@ -58,7 +58,7 @@ namespace RegressionGames.StateRecorder
         private long _tickNumber;
         private DateTime _startTime;
 
-        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>
+        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, byte[], Action))>
             _frameQueue;
 
         private readonly List<(string, Task)> _fileWriteTasks = new();
@@ -253,8 +253,8 @@ namespace RegressionGames.StateRecorder
                 _tickNumber = 0;
                 _startTime = DateTime.Now;
                 _frameQueue =
-                    new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>, Action))>(
-                        new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, NativeArray<byte>,
+                    new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, byte[], Action))>(
+                        new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, byte[],
                             Action)
                             )>());
 
@@ -472,7 +472,7 @@ namespace RegressionGames.StateRecorder
                                     screenShot.width,
                                     screenShot.height,
                                     screenShot.graphicsFormat,
-                                    screenShot.GetRawTextureData<byte>(),
+                                    screenShot.GetRawTextureData(),
                                     () =>
                                     {
                                         // MUST happen on main thread
@@ -524,19 +524,19 @@ namespace RegressionGames.StateRecorder
         }
 
         private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height,
-            GraphicsFormat graphicsFormat, NativeArray<byte> frameData)
+            GraphicsFormat graphicsFormat, byte[] frameData)
         {
             RecordJSON(directoryPath, frameNumber, jsonData);
             RecordJPG(directoryPath, frameNumber, width, height, graphicsFormat, frameData);
         }
 
         private void RecordJPG(string directoryPath, long frameNumber,int width, int height,
-            GraphicsFormat graphicsFormat, NativeArray<byte> frameData)
+            GraphicsFormat graphicsFormat, byte[] frameData)
         {
             try
             {
                 var imageOutput =
-                    ImageConversion.EncodeNativeArrayToJPG(frameData, graphicsFormat, (uint)width, (uint)height);
+                    ImageConversion.EncodeArrayToJPG(frameData, graphicsFormat, (uint)width, (uint)height);
 
                 // write out the image to file
                 var path = $"{directoryPath}/screenshots/{frameNumber}".PadLeft(9, '0') + ".jpg";
