@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
+using Unity.Plastic.Newtonsoft.Json;
 using UnityEngine;
+using Formatting = Newtonsoft.Json.Formatting;
+using JsonConvert = Newtonsoft.Json.JsonConvert;
 
 namespace RegressionGames.StateRecorder
 {
@@ -156,24 +158,36 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RecordedGameObjectState : BaseReplayObjectState
     {
+
+        [JsonIgnore]
+        [NonSerialized]
+        private string _cachedJsonStringRootString;
+
         public List<BehaviourState> behaviours;
 
         public string ToJson()
         {
-            return "{\n\"id\":" + id
-                                + ",\n\"path\":" + JsonConvert.ToString(path)
-                                + ",\n\"scene\":" + JsonConvert.ToString(scene)
-                                + ",\n\"tag\":" + JsonConvert.ToString(tag)
-                                + ",\n\"layer\":" + JsonConvert.ToString(layer)
-                                + ",\n\"rendererCount\":" + rendererCount
-                                + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
-                                + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
-                                + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
-                                + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
-                                + ",\n\"rigidbodies\":[\n" + string.Join(",\n", rigidbodies.Select(a=>a.ToJson()))
-                                + "\n],\n\"colliders\":[\n" + string.Join(",\n", colliders.Select(a=>a.ToJson()))
-                                + "\n],\n\"behaviours\":[\n" + string.Join(",\n", behaviours.Select(a=>a.ToJson()))
-                                + "\n]\n}";
+            if (_cachedJsonStringRootString == null)
+            {
+                _cachedJsonStringRootString = "{\n\"id\":" + id
+                                                           + ",\n\"path\":" + JsonConvert.ToString(path)
+                                                           + ",\n\"scene\":" + JsonConvert.ToString(scene)
+                                                           + ",\n\"tag\":" + JsonConvert.ToString(tag)
+                                                           + ",\n\"layer\":" + JsonConvert.ToString(layer);
+            }
+
+           return _cachedJsonStringRootString
+                  + ",\n\"rendererCount\":" + rendererCount
+                  + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
+                  + ",\n\"screenSpaceZOffset\":" + FloatJsonConverter.ToJsonString(screenSpaceZOffset)
+                  + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
+                  + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
+                  + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
+                  + ",\n\"rigidbodies\":[\n" + string.Join(",\n", rigidbodies.Select(a => a.ToJson()))
+                  + "\n],\n\"colliders\":[\n" + string.Join(",\n", colliders.Select(a => a.ToJson()))
+                  + "\n],\n\"behaviours\":[\n" + string.Join(",\n", behaviours.Select(a => a.ToJson()))
+                  + "\n]\n}";
+
         }
     }
 
@@ -190,11 +204,16 @@ namespace RegressionGames.StateRecorder
             return name;
         }
 
+        [JsonIgnore]
+        [NonSerialized]
+        protected string _cachedJsonStringRootString;
+
         public string ToJson()
         {
             var stateJson = "{}";
             try
             {
+                // have to use JsonConvert to serialize here as Behaviours are the wild wild west of contents
                 stateJson = JsonConvert.SerializeObject(state, Formatting.None, ScreenRecorder.JsonSerializerSettings);
                 if (string.IsNullOrEmpty(stateJson))
                 {
@@ -207,12 +226,15 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogException(ex, "Error converting behaviour to JSON - " + state.name);
             }
 
-            return "{\"name\":" + JsonConvert.ToString(name)
-                                     + ",\"path\":" + JsonConvert.ToString(path)
-                                     // have to use JsonConvert to serialize here as Behaviours are the wild wild west of contents
-                                     + ",\"state\":" + stateJson
-                                     + "}";
+            if (_cachedJsonStringRootString == null)
+            {
+                _cachedJsonStringRootString = "{\"name\":" + JsonConvert.ToString(name)
+                                                           + ",\"path\":" + JsonConvert.ToString(path);
+            }
+
+            return _cachedJsonStringRootString + ",\"state\":" + stateJson + "}";
         }
+
     }
 
     [Serializable]
@@ -223,13 +245,19 @@ namespace RegressionGames.StateRecorder
         public Bounds bounds;
         public bool isTrigger;
 
+        [JsonIgnore]
+        [NonSerialized]
+        protected string _cachedJsonStringRootString;
+
         public string ToJson()
         {
-            return "{\"path\":" + JsonConvert.ToString(path)
-                                + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(bounds)
-                                + ",\"isTrigger\":" + (isTrigger ? "true" : "false")
-                                + "}";
+            if (_cachedJsonStringRootString == null)
+            {
+                _cachedJsonStringRootString = "{\"path\":" + JsonConvert.ToString(path) + ",\"isTrigger\":" + (isTrigger ? "true" : "false");
+            }
+            return _cachedJsonStringRootString + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(bounds) + "}";
         }
+
     }
 
 
@@ -237,6 +265,7 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RigidbodyState
     {
+
         public string path;
 
         public Vector3 position;
@@ -250,18 +279,27 @@ namespace RegressionGames.StateRecorder
         public bool useGravity;
         public bool isKinematic;
 
+        [JsonIgnore]
+        [NonSerialized]
+        protected string _cachedJsonStringRootString;
+
         public string ToJson()
         {
-            return "{\"path\":" + JsonConvert.ToString(path)
-                                + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
-                                + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
-                                + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(velocity)
-                                + ",\"mass\":" + mass
-                                + ",\"drag\":" + drag
-                                + ",\"angularDrag\":" + angularDrag
-                                + ",\"useGravity\":" + (useGravity ? "true" : "false")
-                                + ",\"isKinematic\":" + (isKinematic ? "true" : "false")
-                                + "}";
+            if (_cachedJsonStringRootString == null)
+            {
+                _cachedJsonStringRootString = "{\"path\":" + JsonConvert.ToString(path)
+                                                           + ",\"useGravity\":" + (useGravity ? "true" : "false")
+                                                           + ",\"isKinematic\":" + (isKinematic ? "true" : "false");
+            }
+            return _cachedJsonStringRootString
+                   + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
+                   + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
+                   + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(velocity)
+                   + ",\"mass\":" + mass
+                   + ",\"drag\":" + drag
+                   + ",\"angularDrag\":" + angularDrag
+                   + "}";
         }
+
     }
 }

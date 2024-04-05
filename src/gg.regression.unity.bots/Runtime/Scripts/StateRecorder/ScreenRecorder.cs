@@ -303,8 +303,8 @@ namespace RegressionGames.StateRecorder
                 }
 
                 // visible UI elements changed
-                var uiElementsInPriorFrame = priorState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
-                var uiElementsInCurrentFrame = currentState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
+                var uiElementsInPriorFrame = priorState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).ToList();
+                var uiElementsInCurrentFrame = currentState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).ToList();
                 if (uiElementsInPriorFrame.Count != uiElementsInCurrentFrame.Count ||
                     !uiElementsInPriorFrame.All(uiElementsInCurrentFrame.Contains))
                 {

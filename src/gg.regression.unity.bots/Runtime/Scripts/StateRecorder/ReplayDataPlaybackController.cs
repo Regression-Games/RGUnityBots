@@ -42,6 +42,13 @@ namespace RegressionGames.StateRecorder
 
         public bool KeyFrameInputComplete { get; private set; }
 
+        private static Camera _mainCamera;
+
+        public void Awake()
+        {
+            _mainCamera = Camera.main;
+        }
+
         private void Start()
         {
             GetMouse(true);
@@ -64,13 +71,18 @@ namespace RegressionGames.StateRecorder
         {
             // when/if we can make the legacy input system work, we should remove this and respect that system
             var eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
+            InputSystemUIInputModule inputModule = null;
             foreach (var eventSystem in eventSystems)
             {
-                var inputModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
-                if (inputModule == null)
+                inputModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
+                if (inputModule != null)
                 {
-                    throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
+                    break;
                 }
+            }
+            if (inputModule == null)
+            {
+                throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
             }
         }
 
@@ -396,7 +408,7 @@ namespace RegressionGames.StateRecorder
                             var mouseWorldPosition = mouseInput.worldPosition.Value;
                             if (objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition))
                             {
-                                var screenPoint = Camera.main.WorldToScreenPoint(mouseWorldPosition);
+                                var screenPoint = _mainCamera.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
                                 {
                                     RGDebug.LogError($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
