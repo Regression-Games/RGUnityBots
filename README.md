@@ -1,5 +1,5 @@
 # Regression Games Unity Bots
-[![Static Badge](https://img.shields.io/badge/Latest%20Version-0.0.17-blue)](https://docs.regression.gg)
+[![Static Badge](https://img.shields.io/badge/Latest%20Version-0.0.18-rc2-blue)](https://docs.regression.gg)
 [![Join our Discord](https://img.shields.io/badge/Join%20our%20Discord-8A2BE2)](https://discord.com/invite/925SYVse2H)
 [![Changelog](https://img.shields.io/badge/Visit%20the%20Changelog-orange)](https://docs.regression.gg/changelog)
 
