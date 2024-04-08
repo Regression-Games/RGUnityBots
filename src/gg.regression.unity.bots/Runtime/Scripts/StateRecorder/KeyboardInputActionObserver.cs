@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -49,12 +50,12 @@ namespace RegressionGames.StateRecorder
 
         public string ToJson()
         {
-            return "{\"startTime\":" + startTime
-                                     + ",\"action\":" + JsonConvert.ToString(action)
-                                     + ",\"binding\":" + JsonConvert.ToString(binding)
-                                     + ",\"endTime\":" + endTime
-                                     + ",\"isPressed\":" + (isPressed ? "true" : "false")
-                                     + "}";
+            return "{\"startTime\":" + DoubleJsonConverter.ToJsonString(startTime)
+                                               + ",\"action\":" + JsonConvert.ToString(action)
+                                               + ",\"binding\":" + JsonConvert.ToString(binding)
+                                               + ",\"endTime\":" + DoubleJsonConverter.ToJsonString(endTime)
+                                               + ",\"isPressed\":" + (isPressed ? "true" : "false")
+                                               + "}";
         }
     }
 

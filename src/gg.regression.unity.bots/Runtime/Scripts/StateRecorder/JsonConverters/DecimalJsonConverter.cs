@@ -5,8 +5,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class DecimalJsonConverter: JsonConverter
     {
-        public static string ToJsonString(decimal f)
+        public static string ToJsonString(decimal? f)
         {
+            if (f == null)
+            {
+                return "null";
+            }
             var val = (int)f;
             var remainder = (int)((f % 1) * 10_000_000);
             // write to fixed precision of 7 decimal places
