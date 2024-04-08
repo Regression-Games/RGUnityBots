@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,8 +19,9 @@ namespace RegressionGames
     {
         // We store this asset in the Resources folder so that it can be accessed from any build
         // Note that it can only be created in the editor, however.
+        private static readonly string SETTINGS_DIRECTORY = "Assets/Resources";
         private static readonly string SETTINGS_RESOURCE_NAME = "RGSettings";
-        private static readonly string SETTINGS_PATH = $"Assets/Resources/{SETTINGS_RESOURCE_NAME}.asset";
+        private static readonly string SETTINGS_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_RESOURCE_NAME}.asset";
 
         // General settings about how the SDK should operate
         [SerializeField] private bool useSystemSettings;
@@ -64,6 +66,7 @@ namespace RegressionGames
 
                 _settings.feature_StateRecordingAndReplay = false;
 #if UNITY_EDITOR
+                Directory.CreateDirectory(SETTINGS_DIRECTORY);
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
                 AssetDatabase.SaveAssets();
 #endif
