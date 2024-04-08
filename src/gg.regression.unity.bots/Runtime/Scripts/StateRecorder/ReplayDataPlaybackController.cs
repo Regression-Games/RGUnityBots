@@ -64,13 +64,18 @@ namespace RegressionGames.StateRecorder
         {
             // when/if we can make the legacy input system work, we should remove this and respect that system
             var eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
+            InputSystemUIInputModule inputModule = null;
             foreach (var eventSystem in eventSystems)
             {
-                var inputModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
-                if (inputModule == null)
+                inputModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
+                if (inputModule != null)
                 {
-                    throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
+                    break;
                 }
+            }
+            if (inputModule == null)
+            {
+                throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
             }
         }
 
