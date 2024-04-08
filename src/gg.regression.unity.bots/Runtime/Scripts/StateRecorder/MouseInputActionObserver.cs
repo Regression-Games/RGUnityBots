@@ -82,7 +82,7 @@ namespace RegressionGames.StateRecorder
 
         public string ToJson()
         {
-            return "{\"startTime\":" + startTime
+            return "{\"startTime\":" + DoubleJsonConverter.ToJsonString(startTime)
                                      + ",\"position\":" + VectorIntJsonConverter.ToJsonString(position)
                                      + ",\"worldPosition\":" + VectorJsonConverter.ToJsonStringVector3(worldPosition)
                                      + ",\"leftButton\":" + (leftButton ? "true" : "false")
