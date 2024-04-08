@@ -21,8 +21,8 @@ namespace RegressionGames.StateRecorder
         {
             return "{\n\"tickNumber\":" + tickNumber
                                         + ",\n\"keyFrame\":[" + string.Join(",",keyFrame.Select(a=>a.ToJson()))
-                                        + "],\n\"time\":" + time
-                                        + ",\n\"timeScale\":" + timeScale
+                                        + "],\n\"time\":" + DoubleJsonConverter.ToJsonString(time)
+                                        + ",\n\"timeScale\":" + FloatJsonConverter.ToJsonString(timeScale)
                                         + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
                                         + ",\n\"performance\":" + performance.ToJson()
                                         + ",\n\"state\":[\n" + string.Join(",\n", state.Select(a=>a.ToJson()))
@@ -58,11 +58,11 @@ namespace RegressionGames.StateRecorder
 
         public string ToJson()
         {
-            return "{\"previousTickTime\":" + previousTickTime
+            return "{\"previousTickTime\":" + DoubleJsonConverter.ToJsonString(previousTickTime)
                                             + ",\"framesSincePreviousTick\":" + framesSincePreviousTick
                                             + ",\"fps\":" + fps
                                             + ",\"engineStats\":" + engineStats.ToJson()
-                                         + "}";
+                                            + "}";
         }
     }
 
@@ -90,8 +90,8 @@ namespace RegressionGames.StateRecorder
 
         public string ToJson()
         {
-            return "{\"frameTime\":" + frameTime
-                                     + ",\"renderTime\":" + renderTime
+            return "{\"frameTime\":" + FloatJsonConverter.ToJsonString(frameTime)
+                                     + ",\"renderTime\":" + FloatJsonConverter.ToJsonString(renderTime)
                                      + ",\"triangles\":" + triangles
                                      + ",\"vertices\":" + vertices
                                      + ",\"setPassCalls\":" + setPassCalls
@@ -256,9 +256,9 @@ namespace RegressionGames.StateRecorder
                                 + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
                                 + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
                                 + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(velocity)
-                                + ",\"mass\":" + mass
-                                + ",\"drag\":" + drag
-                                + ",\"angularDrag\":" + angularDrag
+                                + ",\"mass\":" + FloatJsonConverter.ToJsonString(mass)
+                                + ",\"drag\":" + FloatJsonConverter.ToJsonString(drag)
+                                + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(angularDrag)
                                 + ",\"useGravity\":" + (useGravity ? "true" : "false")
                                 + ",\"isKinematic\":" + (isKinematic ? "true" : "false")
                                 + "}";
