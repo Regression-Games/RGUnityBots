@@ -75,7 +75,7 @@ namespace RegressionGames.StateRecorder
             }
             if (inputModule == null)
             {
-                throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
+                RGDebug.LogError("Regression Games Unity SDK only supports the new InputSystem, but did not detect an instance of InputSystemUIInputModule in the scene.  If you are using a 3rd party input module like Coherent GameFace this may be expected/ok.");
             }
         }
 
@@ -295,7 +295,7 @@ namespace RegressionGames.StateRecorder
 
                 if (inputControl != null)
                 {
-                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Up ? 1f : 0f, eventPtr);
+                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
                     RGDebug.LogInfo($"({tickNumber}) Sending Key Event: {key} - {upOrDown}");
                     InputSystem.QueueEvent(eventPtr);
                 }
