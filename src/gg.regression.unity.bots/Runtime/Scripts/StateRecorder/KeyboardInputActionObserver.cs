@@ -200,6 +200,99 @@ namespace RegressionGames.StateRecorder
             { "OEM4", Key.OEM4 },
             { "OEM5", Key.OEM5 },
         });
+        
+        // Key -> (without-Shift, with-Shift) values
+        public static readonly IReadOnlyDictionary<Key, (char, char)> KeyToValueMap = new ReadOnlyDictionary<Key, (char,char)>(new Dictionary<Key, (char,char)>()
+        {
+            //row 1 (top row)
+
+            // row 2
+            { Key.Backquote, ('`', '~') },
+            { Key.Digit1, ('1','!') },
+            { Key.Digit2, ('2','@') },
+            { Key.Digit3, ('3','#') },
+            { Key.Digit4, ('4','$') },
+            { Key.Digit5, ('5','%') },
+            { Key.Digit6, ('6','^') },
+            { Key.Digit7, ('7','&') },
+            { Key.Digit8, ('8','*') },
+            { Key.Digit9, ('9','(') },
+            { Key.Digit0, ('0',')') },
+            { Key.Minus, ('-','_') },
+            { Key.Equals, ('=', '+')},
+            { Key.Backspace, ((char)8, (char)8) },
+
+            //row 3
+            // TODO: Not sure how to do back-tab
+            { Key.Tab, ((char)9, (char)9) },
+            { Key.Q, ('q','Q') },
+            { Key.W, ('w','W') },
+            { Key.E, ('e','E') },
+            { Key.R, ('r','R') },
+            { Key.T, ('t','T') },
+            { Key.Y, ('y','Y') },
+            { Key.U, ('u','u') },
+            { Key.I, ('i','I') },
+            { Key.O, ('o','O') },
+            { Key.P, ('p','P') },
+            { Key.LeftBracket, ('[','{') },
+            { Key.RightBracket, (']','}') },
+            { Key.Backslash, ('\\','|') },
+            
+            //row 4
+            { Key.A, ('a','A') },
+            { Key.S, ('s','S') },
+            { Key.D, ('d','D') },
+            { Key.F, ('f','F') },
+            { Key.G, ('g','G') },
+            { Key.H, ('h','H') },
+            { Key.J, ('j','J') },
+            { Key.K, ('k','K') },
+            { Key.L, ('l','L') },
+            { Key.Semicolon, (';',':') },
+            { Key.Quote, ('\'','"') },
+            { Key.Enter, ('\n','\n') },
+            
+            //row 5
+            // left shift modifies each of these so doesn't need its own entry
+            { Key.Z, ('z','Z') },
+            { Key.X, ('x','X') },
+            { Key.C, ('c','C') },
+            { Key.V, ('v','V') },
+            { Key.B, ('b','B') },
+            { Key.N, ('n','N') },
+            { Key.M, ('m','M') },
+            { Key.Comma, (',','<') },
+            { Key.Period, ('.','>') },
+            { Key.Slash, ('/','?') },
+            // same for right shift
+            
+            // row 6 (bottom row)
+            // TODO ctrl, alt will be modifier keys??
+            { Key.Space, (' ', ' ') },
+            
+            // move this
+            { Key.Delete, ((char)127, (char)127) },
+
+            // numpad
+            { Key.NumpadMultiply, ('*','*') },
+            { Key.NumpadDivide, ('/', '/') },
+            { Key.NumpadPlus, ('+', '+')},
+            { Key.NumpadMinus, ('-','-') },
+            { Key.Numpad7, ('7', '7') },
+            { Key.Numpad8, ('8', '8') },
+            { Key.Numpad9, ('9', '9') },
+            { Key.Numpad4, ('4', '4') },
+            { Key.Numpad5, ('5', '5') },
+            { Key.Numpad6, ('6', '6') },
+            { Key.Numpad1, ('1', '1') },
+            { Key.Numpad2, ('2', '2') },
+            { Key.Numpad3, ('3', '3') },
+            { Key.Numpad0, ('0', '0') },
+            // shift . on numpad is Delete
+            { Key.NumpadPeriod, ('.', (char)127) },
+            { Key.NumpadEnter, ('\n', '\n') },
+        });
 
         public void Awake()
         {

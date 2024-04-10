@@ -96,6 +96,8 @@ namespace RegressionGames.StateRecorder
 
         private readonly Queue<ReplayKeyboardInputEntry> _keyboardData = new();
 
+        public bool IsShiftDown = false;
+
         private readonly Dictionary<string, ReplayKeyboardInputEntry> _pendingEndKeyboardInputs = new();
 
         private readonly Queue<ReplayMouseInputEntry> _mouseData = new();
