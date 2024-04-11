@@ -296,7 +296,8 @@ namespace RegressionGames.StateRecorder
             // 0f == false == un-pressed state
             using (DeltaStateEvent.From(keyboard, out var eventPtr))
             {
-                eventPtr.time = InputState.currentTime;
+                var time = InputState.currentTime;
+                eventPtr.time = time;
 
                 char value = (char)0;
                 var inputControl = keyboard.allControls
@@ -314,11 +315,12 @@ namespace RegressionGames.StateRecorder
                     if (upOrDown == KeyState.Down)
                     {
                         // convert key to text
-                        var keyToPossibleValues = KeyboardInputActionObserver.KeyToValueMap
-                            .FirstOrDefault(a => a.Key == ((KeyControl)inputControl).keyCode).Value;
-                        value = _dataContainer.IsShiftDown ? keyToPossibleValues.Item2 : keyToPossibleValues.Item1;
-                        var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, Time.timeAsDouble);
-                        InputSystem.QueueEvent(ref inputEvent);
+                        if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
+                        {
+                            value = _dataContainer.IsShiftDown ? possibleValues.Item2 : possibleValues.Item1;
+                            var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
+                            InputSystem.QueueEvent(ref inputEvent);
+                        }
                     }
                 }
             }

@@ -202,11 +202,13 @@ namespace RegressionGames.StateRecorder
         });
         
         // Key -> (without-Shift, with-Shift) values
-        public static readonly IReadOnlyDictionary<Key, (char, char)> KeyToValueMap = new ReadOnlyDictionary<Key, (char,char)>(new Dictionary<Key, (char,char)>()
+        public static readonly IReadOnlyDictionary<Key, (char, char)> KeyboardKeyToValueMap = new ReadOnlyDictionary<Key, (char,char)>(new Dictionary<Key, (char,char)>()
         {
-            //row 1 (top row)
-
-            // row 2
+            // row 1 (top row) is generally function keys.
+            // ignore these since they don't have ascii characters associated with them
+            { Key.Delete, ((char)127, (char)127) },
+            
+            // row 2 - numbers and symbols
             { Key.Backquote, ('`', '~') },
             { Key.Digit1, ('1','!') },
             { Key.Digit2, ('2','@') },
@@ -222,8 +224,7 @@ namespace RegressionGames.StateRecorder
             { Key.Equals, ('=', '+')},
             { Key.Backspace, ((char)8, (char)8) },
 
-            //row 3
-            // TODO: Not sure how to do back-tab
+            // row 3 - qwerty
             { Key.Tab, ((char)9, (char)9) },
             { Key.Q, ('q','Q') },
             { Key.W, ('w','W') },
@@ -239,7 +240,7 @@ namespace RegressionGames.StateRecorder
             { Key.RightBracket, (']','}') },
             { Key.Backslash, ('\\','|') },
             
-            //row 4
+            // row 4 - asdf
             { Key.A, ('a','A') },
             { Key.S, ('s','S') },
             { Key.D, ('d','D') },
@@ -253,7 +254,7 @@ namespace RegressionGames.StateRecorder
             { Key.Quote, ('\'','"') },
             { Key.Enter, ('\n','\n') },
             
-            //row 5
+            // row 5 - zxcv
             // left shift modifies each of these so doesn't need its own entry
             { Key.Z, ('z','Z') },
             { Key.X, ('x','X') },
@@ -267,13 +268,10 @@ namespace RegressionGames.StateRecorder
             { Key.Slash, ('/','?') },
             // same for right shift
             
-            // row 6 (bottom row)
-            // TODO ctrl, alt will be modifier keys??
+            // row 6 - bottom row with space bar
+            // ignore ctrl. alt, other modifier keys
             { Key.Space, (' ', ' ') },
             
-            // move this
-            { Key.Delete, ((char)127, (char)127) },
-
             // numpad
             { Key.NumpadMultiply, ('*','*') },
             { Key.NumpadDivide, ('/', '/') },
