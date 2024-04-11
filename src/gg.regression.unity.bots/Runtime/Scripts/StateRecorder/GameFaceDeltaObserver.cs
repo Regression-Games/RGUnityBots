@@ -4,7 +4,6 @@ using System.Threading;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Zoop.Unity;
 using Object = UnityEngine.Object;
 
 namespace StateRecorder
