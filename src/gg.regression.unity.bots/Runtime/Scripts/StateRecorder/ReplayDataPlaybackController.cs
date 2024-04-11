@@ -75,7 +75,7 @@ namespace RegressionGames.StateRecorder
             }
             if (inputModule == null)
             {
-                throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
+                RGDebug.LogError("Regression Games Unity SDK only supports the new InputSystem, but did not detect an instance of InputSystemUIInputModule in the scene.  If you are using a 3rd party input module like GameFace this may be expected/ok.");
             }
         }
 
@@ -289,16 +289,24 @@ namespace RegressionGames.StateRecorder
             // 0f == false == un-pressed state
             using (DeltaStateEvent.From(keyboard, out var eventPtr))
             {
+                char value = (char)0;
                 eventPtr.time = InputState.currentTime;
                 var inputControl = keyboard.allControls
                     .FirstOrDefault(a => a is KeyControl kc && kc.keyCode == key) ?? keyboard.anyKey;
 
                 if (inputControl != null)
                 {
-                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Up ? 1f : 0f, eventPtr);
+                    // this isn't safe
+                    value = KeyboardInputActionObserver.AllKeyboardKeys.FirstOrDefault(a => a.Value == ((KeyControl)inputControl).keyCode).Key.ToCharArray()[0];
+                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
                     RGDebug.LogInfo($"({tickNumber}) Sending Key Event: {key} - {upOrDown}");
                     InputSystem.QueueEvent(eventPtr);
                 }
+
+                // send a text event so that 'onChange' text events fire
+                // TODO: Fix this to consider modifier keys, proper text value mappings, etc
+                var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, Time.timeAsDouble);
+                InputSystem.QueueEvent(ref inputEvent);
             }
         }
 

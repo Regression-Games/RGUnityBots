@@ -25,14 +25,14 @@ namespace RegressionGames.Editor
             var provider = new SettingsProvider("Regression Games", SettingsScope.Project)
             {
                 // Create the SettingsProvider and initialize its drawing (IMGUI) function in place:
-                guiHandler = async (searchContext) =>
+                guiHandler = (searchContext) =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();
                     EditorGUI.BeginChangeCheck();
 
                     SerializedProperty hostField = settings.FindProperty("rgHostAddress");
                     hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
-                    
+
                     SerializedProperty apiKeyField = settings.FindProperty("apiKey");
                     apiKeyField.stringValue = EditorGUILayout.PasswordField("RG API Key", apiKeyField.stringValue);
 

@@ -9,16 +9,18 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
 using TMPro;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
+using Zoop.Unity;
 using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 
 #if UNITY_EDITOR
@@ -63,6 +65,8 @@ namespace RegressionGames.StateRecorder
 
         private readonly List<(string, Task)> _fileWriteTasks = new();
 
+        private GameFaceDeltaObserver _gameFaceDeltaObserver = null;
+
 #if UNITY_EDITOR
         private MediaEncoder _encoder;
 #endif
@@ -71,6 +75,7 @@ namespace RegressionGames.StateRecorder
         private FrameStateData _priorFrame;
 
         private MouseInputActionObserver _mouseObserver;
+
 
         public static ScreenRecorder GetInstance()
         {
@@ -95,9 +100,28 @@ namespace RegressionGames.StateRecorder
             DontDestroyOnLoad(gameObject);
             _this = this;
         }
+
         public void OnEnable()
         {
             _this._mouseObserver = GetComponent<MouseInputActionObserver>();
+        }
+
+        private void Update()
+        {
+            // can't do this in onEnable or Start as gameface doesn't load/initialize that early
+            if (GameFaceDeltaObserver.CohtmlViewType != null && _gameFaceDeltaObserver == null)
+            {
+                var cothmlObject = FindAnyObjectByType(GameFaceDeltaObserver.CohtmlViewType) as MonoBehaviour;
+                if (cothmlObject != null)
+                {
+                    _gameFaceDeltaObserver = cothmlObject.gameObject.GetComponent<GameFaceDeltaObserver>();
+                    if (_gameFaceDeltaObserver == null)
+                    {
+                        _gameFaceDeltaObserver = cothmlObject.gameObject.AddComponent<GameFaceDeltaObserver>();
+                    }
+                }
+            }
+
         }
 
         private void OnDestroy()
@@ -216,10 +240,10 @@ namespace RegressionGames.StateRecorder
         {
             _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
 
-            while (_texture2Ds.TryDequeue(out var text))
+            while (_texture2Ds.TryDequeue(out var tex))
             {
                 // have to destroy the textures on the main thread
-                Destroy(text);
+                Destroy(tex);
             }
 
             if (_isRecording)
@@ -283,6 +307,10 @@ namespace RegressionGames.StateRecorder
 
         public void StartRecording()
         {
+            if (_gameFaceDeltaObserver != null)
+            {
+                _gameFaceDeltaObserver.StartRecording();
+            }
             StartCoroutine(StartRecordingCoroutine());
 
         }
@@ -290,6 +318,10 @@ namespace RegressionGames.StateRecorder
         private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState)
         {
             var result = new List<KeyFrameType>();
+            if (_gameFaceDeltaObserver != null && _gameFaceDeltaObserver.HadDelta())
+            {
+                result.Add(KeyFrameType.UI_GAMEFACE);
+            }
             if (priorState != null)
             {
                 // scene loaded or changed
@@ -347,6 +379,10 @@ namespace RegressionGames.StateRecorder
 
         public void StopRecording()
         {
+            if (_gameFaceDeltaObserver != null)
+            {
+                _gameFaceDeltaObserver.StopRecording();
+            }
             OnDestroy();
         }
 
@@ -456,9 +492,12 @@ namespace RegressionGames.StateRecorder
 
                     if (jsonData != null)
                     {
-                        var screenShot = new Texture2D(screenWidth, screenHeight);
+
                         // wait for all frame rendering/etc to finish before taking the screenshot
                         yield return new WaitForEndOfFrame();
+
+                        var screenShot = new Texture2D(screenWidth, screenHeight);
+
                         try
                         {
                             screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
