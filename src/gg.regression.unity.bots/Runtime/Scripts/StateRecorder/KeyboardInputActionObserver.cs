@@ -202,6 +202,7 @@ namespace RegressionGames.StateRecorder
         });
         
         // Key -> (without-Shift, with-Shift) values
+        // This is used to convert key presses into characters for text events, where shift can modify the character
         public static readonly IReadOnlyDictionary<Key, (char, char)> KeyboardKeyToValueMap = new ReadOnlyDictionary<Key, (char,char)>(new Dictionary<Key, (char,char)>()
         {
             // row 1 (top row) is generally function keys.
