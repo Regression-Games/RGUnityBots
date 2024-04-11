@@ -12,41 +12,41 @@
 
 ## What is Regression Games Unity Bots?
 
-Regression Games Unity Bots is an SDK that makes it easy to implement automated tests within your game.
-It provides a variety of tools, from robust session recording playback to LLM-powered behavior tree bots, 
-to help you quickly implement functional and regression tests within your game.
+Regression Games Unity Bots is an SDK that makes it easy to implement automated tests for your game.
+It provides a variety of tools for regression testing, from robust input playback to LLM-powered bot-creation interfaces.
 
 Some of the main features include:
 
-- Instant data extraction - begin analyzing game state immediately after adding our SDK, no coding required!
-- A variety of agent types are supported, from simple rule-based MonoBehaviours to LLM-powered behavior trees for low-code agent building
-- A Smart Playback tool can be used to record a game session and replay it later as a test scenario
-- Easily swap between AI implementations using our bot manager overlay
+- Instant data extraction - begin analyzing game state immediately, no coding required!
+- A variety of bot strategies, from simple rule-based MonoBehaviours to complex behavior trees
+- A Smart Playback tool that records gameplay and applies automated validations on replay
+- An in-game bot management overlay for easy control over bots and recording features
 
 _View the full documentation at [docs.regression.gg](https://docs.regression.gg)_
 
 ## Quick Start - Add the package
 
-In the Unity Editor, inside of **Window** > **Package Manager** > **+** > 
-**Add package from git URL**, enter this URL (and restart your IDE after adding):
+In the Unity Editor, open the Package Manager by navigating to  **Window** > **Package Manager**. 
+Then add a new package with  **+** > **Add package from git URL** and paste the following URL:
 
 ```
 https://github.com/Regression-Games/RGUnityBots.git?path=src/gg.regression.unity.bots#v0.0.18
 ```
 
-Once you add the package, create an account at https://play.regression.gg, then visit our [documentation site](https://docs.regression.gg) to get started!
-
-## Does this work with CI/CD pipelines?
-
-It does! Visit our [tutorial for using GitHub Actions and GameCI](https://docs.regression.gg/tutorials/github-actions) for more info.
+Once the package has been added, restart the Unity Editor and create an account at 
+https://play.regression.gg. Visit our [documentation site](https://docs.regression.gg) to get started!
 
 ## FAQ
 
+### Does this work with CI/CD pipelines?
+
+It does! Visit our [tutorial on using GitHub Actions and GameCI](https://docs.regression.gg/tutorials/github-actions) for more info.
+
 #### What languages do you support?
 
-If you'd like to write your own bots, we support C# MonoBehaviours as the basis of these agents.
+All of our tools are based in C#. Bots handwritten using our API are defined as C# Monobehaviours, and our various tools (code, low-code, and no-code) either present C# to the user or execute C# under-the-hood.
 
-#### Does the package cost money?
+#### Does this package cost money?
 
 This package is free to use, but this is also an early preview of a much
 grander vision for our bot/agent platform. Access to more advanced tools around
