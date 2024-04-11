@@ -311,16 +311,24 @@ namespace RegressionGames.StateRecorder
                     inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
                     InputSystem.QueueEvent(eventPtr);
                     
-                    // send a text event so that 'onChange' text events fire
-                    if (upOrDown == KeyState.Down)
+                    if (upOrDown == KeyState.Up)
                     {
-                        // convert key to text
-                        if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
+                        return;
+                    }
+                   
+                    // send a text event so that 'onChange' text events fire
+                    // convert key to text
+                    if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
+                    {
+                        value = _dataContainer.IsShiftDown ? possibleValues.Item2 : possibleValues.Item1;
+                        if (value == 0x00)
                         {
-                            value = _dataContainer.IsShiftDown ? possibleValues.Item2 : possibleValues.Item1;
-                            var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
-                            InputSystem.QueueEvent(ref inputEvent);
+                            RGDebug.LogError($"Found null value for keyboard input {key}");
+                            return;
                         }
+                        
+                        var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
+                        InputSystem.QueueEvent(ref inputEvent);
                     }
                 }
             }
