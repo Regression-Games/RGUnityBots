@@ -10,6 +10,7 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 namespace RegressionGames.StateRecorder
 {
@@ -75,7 +76,7 @@ namespace RegressionGames.StateRecorder
             }
             if (inputModule == null)
             {
-                throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
+                RGDebug.LogError("Regression Games Unity SDK only supports the new InputSystem, but did not detect an instance of InputSystemUIInputModule in the scene.  If you are using a 3rd party input module like Coherent GameFace this may be expected/ok.");
             }
         }
 
@@ -281,23 +282,54 @@ namespace RegressionGames.StateRecorder
             _keyboardQueue.RemoveAll(a => a.IsDone);
             _mouseQueue.RemoveAll(a => a.IsDone);
         }
-
+        
         private void SendKeyEvent(long tickNumber, Key key, KeyState upOrDown)
         {
             var keyboard = Keyboard.current;
+            
+            if (key == Key.LeftShift || key == Key.RightShift)
+            {
+                _dataContainer.IsShiftDown = upOrDown == KeyState.Down;
+            }
+            
             // 1f == true == pressed state
             // 0f == false == un-pressed state
             using (DeltaStateEvent.From(keyboard, out var eventPtr))
             {
-                eventPtr.time = InputState.currentTime;
+                var time = InputState.currentTime;
+                eventPtr.time = time;
+
+                char value = (char)0;
                 var inputControl = keyboard.allControls
                     .FirstOrDefault(a => a is KeyControl kc && kc.keyCode == key) ?? keyboard.anyKey;
 
                 if (inputControl != null)
                 {
-                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Up ? 1f : 0f, eventPtr);
                     RGDebug.LogInfo($"({tickNumber}) Sending Key Event: {key} - {upOrDown}");
+                    
+                    // queue input event
+                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
                     InputSystem.QueueEvent(eventPtr);
+                    
+                    if (upOrDown == KeyState.Up)
+                    {
+                        return;
+                    }
+                   
+                    // send a text event so that 'onChange' text events fire
+                    // convert key to text
+                    if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
+                    {
+                        value = _dataContainer.IsShiftDown ? possibleValues.Item2 : possibleValues.Item1;
+                        if (value == 0x00)
+                        {
+                            RGDebug.LogError($"Found null value for keyboard input {key}");
+                            return;
+                        }
+                        
+                        var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
+                        InputSystem.QueueEvent(ref inputEvent);
+                    }
                 }
             }
         }
