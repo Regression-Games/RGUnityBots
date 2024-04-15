@@ -63,10 +63,10 @@ namespace StateRecorder
 
         private void ComputeGameFaceDelta()
         {
-            if (_isRecording && _cothmlViewTexture != null)
+            if (_isRecording && _cohtmlViewTexture != null)
             {
                 // scale down the current UI texture to 256x256 using the GPU
-                var scaledTexture = TextureScaling_GPU.ScaleRenderTextureAsCopy(_cothmlViewTexture, _grayWidth, _grayHeight);
+                var scaledTexture = TextureScaling_GPU.ScaleRenderTextureAsCopy(_cohtmlViewTexture, _grayWidth, _grayHeight);
 
                 try
                 {
@@ -124,12 +124,12 @@ namespace StateRecorder
         private void Start()
         {
             // we normally can't do this in Start because gameface hasn't loaded, but since ScreenRecorder creates us during an Update pass after gameface is loaded, we can
-            if (CohtmlViewType != null && _cothmlViewTexture == null)
+            if (CohtmlViewType != null && _cohtmlViewTexture == null)
             {
                 var cohtmlViewInstance = GetComponent(CohtmlViewType);
                 if (cohtmlViewInstance != null)
                 {
-                    _cothmlViewTexture = (RenderTexture)CohtmlViewTextureProperty.GetValue(cohtmlViewInstance);
+                    _cohtmlViewTexture = (RenderTexture)CohtmlViewTextureProperty.GetValue(cohtmlViewInstance);
                     RenderPipelineManager.endFrameRendering += OnEndFrame;
                 }
             }
@@ -137,7 +137,7 @@ namespace StateRecorder
 
         private void OnDestroy()
         {
-            if (_cothmlViewTexture != null)
+            if (_cohtmlViewTexture != null)
             {
                 RenderPipelineManager.endFrameRendering -= OnEndFrame;
             }
