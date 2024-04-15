@@ -391,6 +391,8 @@ namespace RegressionGames.StateRecorder
 
         private static readonly RecordedGameObjectStatePathEqualityComparer _recordedGameObjectStatePathEqualityComparer = new();
 
+        private static Vector2? _lastMousePosition = null;
+
         public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> objectStates)
         {
             var screenWidth = Screen.width;
@@ -552,6 +554,18 @@ namespace RegressionGames.StateRecorder
                     var controlName = mouseControl.path.Substring(mouseControl.path.LastIndexOf('/') + 1);
                     switch (controlName)
                     {
+                        case "delta":
+                            if (_lastMousePosition == null)
+                            {
+                                _lastMousePosition = normalizedPosition;
+                            }
+                            else
+                            {
+                                var delta = normalizedPosition - _lastMousePosition.Value;
+                                mouseEventString += $"delta: {delta.x},{delta.y}  ";
+                                ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
+                            }
+                            break;
                         case "position":
                             mouseEventString += $"position: {normalizedPosition.x},{normalizedPosition.y}  ";
                             ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
