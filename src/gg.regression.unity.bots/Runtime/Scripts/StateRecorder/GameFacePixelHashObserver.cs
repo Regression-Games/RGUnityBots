@@ -9,18 +9,17 @@ using Object = UnityEngine.Object;
 
 namespace StateRecorder
 {
-    public class GameFaceDeltaObserver : MonoBehaviour
+    public class GameFacePixelHashObserver : MonoBehaviour
     {
-        private const int _grayWidth = 256;
-        private const int _grayHeight = 256;
+        private const int _grayWidth = 128;
+        private const int _grayHeight = 128;
         private byte[] _grayArray = new byte[_grayWidth * _grayHeight * 2];
 
         private bool _firstRun = true;
-        private bool _isRecording = false;
+        private bool _isActive = false;
 
-        [NonSerialized]
         // uses null or not-null to do interlocked threadsafe updates
-        public string _gameFaceDeltaHash;
+        private string _pixelHash;
 
         private RenderTexture _cohtmlViewTexture;
 
@@ -29,9 +28,9 @@ namespace StateRecorder
 
         public static readonly PropertyInfo CohtmlViewTextureProperty;
 
-        private static GameFaceDeltaObserver _instance;
+        private static GameFacePixelHashObserver _instance;
 
-        static GameFaceDeltaObserver()
+        static GameFacePixelHashObserver()
         {
             foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -55,30 +54,35 @@ namespace StateRecorder
             }
         }
 
-        public void StartRecording()
+        public void SetActive(bool active = true)
         {
-            _isRecording = true;
-        }
-
-        public void StopRecording()
-        {
-            _isRecording = false;
+            _isActive = active;
         }
 
         public int GrayScaleTiers = 255;
 
-        public static GameFaceDeltaObserver GetInstance()
+        public static GameFacePixelHashObserver GetInstance()
         {
             // can't do this in onEnable or Start as gameface doesn't load/initialize that early
             if (CohtmlViewType != null && _instance == null)
             {
-                var cothmlObject = FindAnyObjectByType(GameFaceDeltaObserver.CohtmlViewType) as MonoBehaviour;
+                var cothmlObject = FindAnyObjectByType(GameFacePixelHashObserver.CohtmlViewType) as MonoBehaviour;
                 if (cothmlObject != null)
                 {
-                    _instance = cothmlObject.gameObject.GetComponent<GameFaceDeltaObserver>();
+                    _instance = cothmlObject.gameObject.GetComponent<GameFacePixelHashObserver>();
                     if (_instance == null)
                     {
-                        _instance = cothmlObject.gameObject.AddComponent<GameFaceDeltaObserver>();
+                        _instance = cothmlObject.gameObject.AddComponent<GameFacePixelHashObserver>();
+                        // we normally can't do this in Start because gameface hasn't loaded, but since ScreenRecorder creates us during an Update pass after gameface is loaded, we can
+                        if (CohtmlViewType != null && _instance._cothmlViewTexture == null)
+                        {
+                            var cohtmlViewInstance = _instance.GetComponent(CohtmlViewType);
+                            if (cohtmlViewInstance != null)
+                            {
+                                _instance._cothmlViewTexture = (RenderTexture)CohtmlViewTextureProperty.GetValue(cohtmlViewInstance);
+                                RenderPipelineManager.endFrameRendering += _instance.OnEndFrame;
+                            }
+                        }
                     }
                 }
             }
@@ -86,12 +90,13 @@ namespace StateRecorder
             return _instance;
         }
 
-        private void ComputeGameFaceDelta()
+        private void UpdateGameFacePixelHash()
         {
-            if (_isRecording && _cohtmlViewTexture != null)
+
+            if (_isActive && _cothmlViewTexture != null)
             {
                 // scale down the current UI texture to 256x256 using the GPU
-                var scaledTexture = TextureScaling_GPU.ScaleRenderTextureAsCopy(_cohtmlViewTexture, _grayWidth, _grayHeight);
+                var scaledTexture = TextureScaling_GPU.ScaleRenderTextureAsCopy(_cothmlViewTexture, _grayWidth, _grayHeight);
 
                 try
                 {
@@ -136,7 +141,7 @@ namespace StateRecorder
                         }
 
                         var base64Hash = Convert.ToBase64String(hash);
-                        Interlocked.Exchange(ref _gameFaceDeltaHash, base64Hash);
+                        Interlocked.Exchange(ref _pixelHash, base64Hash);
                     }
                 }
                 finally
@@ -146,32 +151,25 @@ namespace StateRecorder
             }
             else
             {
-                Interlocked.Exchange(ref _gameFaceDeltaHash, null);
+                Interlocked.Exchange(ref _pixelHash, null);
             }
         }
 
-        public string GetPixelHash()
+        public string GetPixelHash(bool clearValueOnRead = false)
         {
-            return Interlocked.Exchange(ref _gameFaceDeltaHash, null);
-        }
-
-        private void Start()
-        {
-            // we normally can't do this in Start because gameface hasn't loaded, but since ScreenRecorder creates us during an Update pass after gameface is loaded, we can
-            if (CohtmlViewType != null && _cohtmlViewTexture == null)
+            if (clearValueOnRead)
             {
-                var cohtmlViewInstance = GetComponent(CohtmlViewType);
-                if (cohtmlViewInstance != null)
-                {
-                    _cohtmlViewTexture = (RenderTexture)CohtmlViewTextureProperty.GetValue(cohtmlViewInstance);
-                    RenderPipelineManager.endFrameRendering += OnEndFrame;
-                }
+                return Interlocked.Exchange(ref _pixelHash, null);
+            }
+            else
+            {
+                return Interlocked.CompareExchange(ref _pixelHash, null, null);
             }
         }
 
         private void OnDestroy()
         {
-            if (_cohtmlViewTexture != null)
+            if (_cothmlViewTexture != null)
             {
                 RenderPipelineManager.endFrameRendering -= OnEndFrame;
             }
@@ -180,7 +178,7 @@ namespace StateRecorder
 
         void OnEndFrame(ScriptableRenderContext ctx, Camera[] cameras)
         {
-            ComputeGameFaceDelta();
+            UpdateGameFacePixelHash();
         }
     }
 }

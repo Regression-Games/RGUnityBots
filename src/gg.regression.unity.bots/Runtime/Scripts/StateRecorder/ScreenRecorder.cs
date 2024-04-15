@@ -120,6 +120,11 @@ namespace RegressionGames.StateRecorder
             _priorFrame = null;
             if (_isRecording)
             {
+                var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
+                if (gameFaceDeltaObserver != null)
+                {
+                    gameFaceDeltaObserver.SetActive(false);
+                }
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
                 _isRecording = false;
@@ -284,10 +289,10 @@ namespace RegressionGames.StateRecorder
 
         public void StartRecording()
         {
-            var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
+            var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
             if (gameFaceDeltaObserver != null)
             {
-                gameFaceDeltaObserver.StartRecording();
+                gameFaceDeltaObserver.SetActive(true);
             }
             StartCoroutine(StartRecordingCoroutine());
 
@@ -358,11 +363,6 @@ namespace RegressionGames.StateRecorder
 
         public void StopRecording()
         {
-            var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
-            if (gameFaceDeltaObserver != null)
-            {
-                gameFaceDeltaObserver.StopRecording();
-            }
             OnDestroy();
         }
 
@@ -379,8 +379,8 @@ namespace RegressionGames.StateRecorder
                 var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
                 _mouseObserver.ObserveMouse(statefulObjects);
-                var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
-                var pixelHash = gameFaceDeltaObserver != null ? gameFaceDeltaObserver.GetPixelHash() : null;
+                var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
+                var pixelHash = gameFaceDeltaObserver != null ? gameFaceDeltaObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
                 var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects, pixelHash);

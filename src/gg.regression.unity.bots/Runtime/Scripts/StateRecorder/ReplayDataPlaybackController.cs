@@ -131,7 +131,7 @@ namespace RegressionGames.StateRecorder
 
         private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
 
-        private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates)
+        private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates, string pixelHash)
         {
             if (_isPlaying && _dataContainer != null)
             {
@@ -141,8 +141,6 @@ namespace RegressionGames.StateRecorder
                                                                      && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrame.time))
                                              && _mouseQueue.Count == 0
                         );
-                    var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
-                    var pixelHash = gameFaceDeltaObserver != null ? gameFaceDeltaObserver.GetPixelHash() : null;
                     WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates, pixelHash);
 
                     if (WaitingForKeyFrameConditions == null)
@@ -238,7 +236,7 @@ namespace RegressionGames.StateRecorder
                 {
                     if (_nextKeyFrame.pixelHash != pixelHash)
                     {
-                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - PixelHash {pixelHash} does not match expected {_nextKeyFrame.pixelHash}";
+                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - PixelHash '{pixelHash}' does not match expected '{_nextKeyFrame.pixelHash}'";
                     }
                 }
             }
@@ -292,16 +290,16 @@ namespace RegressionGames.StateRecorder
             _keyboardQueue.RemoveAll(a => a.IsDone);
             _mouseQueue.RemoveAll(a => a.IsDone);
         }
-        
+
         private void SendKeyEvent(long tickNumber, Key key, KeyState upOrDown)
         {
             var keyboard = Keyboard.current;
-            
+
             if (key == Key.LeftShift || key == Key.RightShift)
             {
                 _dataContainer.IsShiftDown = upOrDown == KeyState.Down;
             }
-            
+
             // 1f == true == pressed state
             // 0f == false == un-pressed state
             using (DeltaStateEvent.From(keyboard, out var eventPtr))
@@ -316,16 +314,16 @@ namespace RegressionGames.StateRecorder
                 if (inputControl != null)
                 {
                     RGDebug.LogInfo($"({tickNumber}) Sending Key Event: {key} - {upOrDown}");
-                    
+
                     // queue input event
                     inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
                     InputSystem.QueueEvent(eventPtr);
-                    
+
                     if (upOrDown == KeyState.Up)
                     {
                         return;
                     }
-                   
+
                     // send a text event so that 'onChange' text events fire
                     // convert key to text
                     if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
@@ -336,7 +334,7 @@ namespace RegressionGames.StateRecorder
                             RGDebug.LogError($"Found null value for keyboard input {key}");
                             return;
                         }
-                        
+
                         var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
                         InputSystem.QueueEvent(ref inputEvent);
                     }
@@ -629,7 +627,16 @@ namespace RegressionGames.StateRecorder
                 {
                     var objectStates = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
 
-                    CheckWaitForKeyStateMatch(objectStates);
+                    var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
+                    string pixelHash = null;
+                    if (gameFaceDeltaObserver != null)
+                    {
+                        gameFaceDeltaObserver.SetActive(true);
+                        // don't clear the value on read during playback
+                        pixelHash = gameFaceDeltaObserver.GetPixelHash(false);
+
+                    }
+                    CheckWaitForKeyStateMatch(objectStates, pixelHash);
 
                     PlayInputs(objectStates);
                 }
