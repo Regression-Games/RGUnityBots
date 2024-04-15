@@ -563,7 +563,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 var delta = normalizedPosition - _lastMousePosition.Value;
                                 mouseEventString += $"delta: {delta.x},{delta.y}  ";
-                                ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
+                                ((Vector2Control)mouseControl).WriteValueIntoEvent(delta, eventPtr);
                             }
                             break;
                         case "position":
