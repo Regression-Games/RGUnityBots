@@ -120,10 +120,10 @@ namespace RegressionGames.StateRecorder
             _priorFrame = null;
             if (_isRecording)
             {
-                var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
-                if (gameFaceDeltaObserver != null)
+                var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+                if (gameFacePixelHashObserver != null)
                 {
-                    gameFaceDeltaObserver.SetActive(false);
+                    gameFacePixelHashObserver.SetActive(false);
                 }
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
@@ -289,20 +289,20 @@ namespace RegressionGames.StateRecorder
 
         public void StartRecording()
         {
-            var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
-            if (gameFaceDeltaObserver != null)
+            var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+            if (gameFacePixelHashObserver != null)
             {
-                gameFaceDeltaObserver.SetActive(true);
+                gameFacePixelHashObserver.SetActive(true);
             }
             StartCoroutine(StartRecordingCoroutine());
 
         }
 
-        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState, string pixelDeltaHash)
+        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState, string pixelHash)
         {
             var result = new List<KeyFrameType>();
 
-            if (pixelDeltaHash != null)
+            if (pixelHash != null)
             {
                 result.Add(KeyFrameType.UI_PIXELHASH);
             }
@@ -379,8 +379,8 @@ namespace RegressionGames.StateRecorder
                 var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
                 _mouseObserver.ObserveMouse(statefulObjects);
-                var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
-                var pixelHash = gameFaceDeltaObserver != null ? gameFaceDeltaObserver.GetPixelHash(true) : null;
+                var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+                var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
                 var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects, pixelHash);

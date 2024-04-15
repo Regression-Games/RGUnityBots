@@ -627,13 +627,13 @@ namespace RegressionGames.StateRecorder
                 {
                     var objectStates = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
 
-                    var gameFaceDeltaObserver = GameFacePixelHashObserver.GetInstance();
+                    var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                     string pixelHash = null;
-                    if (gameFaceDeltaObserver != null)
+                    if (gameFacePixelHashObserver != null)
                     {
-                        gameFaceDeltaObserver.SetActive(true);
+                        gameFacePixelHashObserver.SetActive(true);
                         // don't clear the value on read during playback
-                        pixelHash = gameFaceDeltaObserver.GetPixelHash(false);
+                        pixelHash = gameFacePixelHashObserver.GetPixelHash(false);
 
                     }
                     CheckWaitForKeyStateMatch(objectStates, pixelHash);

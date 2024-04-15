@@ -21,7 +21,7 @@ namespace StateRecorder
         // uses null or not-null to do interlocked threadsafe updates
         private string _pixelHash;
 
-        private RenderTexture _cohtmlViewTexture;
+        internal RenderTexture _cohtmlViewTexture;
 
         [CanBeNull]
         public static readonly Type CohtmlViewType;
@@ -74,12 +74,12 @@ namespace StateRecorder
                     {
                         _instance = cothmlObject.gameObject.AddComponent<GameFacePixelHashObserver>();
                         // we normally can't do this in Start because gameface hasn't loaded, but since ScreenRecorder creates us during an Update pass after gameface is loaded, we can
-                        if (CohtmlViewType != null && _instance._cothmlViewTexture == null)
+                        if (CohtmlViewType != null && _instance._cohtmlViewTexture == null)
                         {
                             var cohtmlViewInstance = _instance.GetComponent(CohtmlViewType);
                             if (cohtmlViewInstance != null)
                             {
-                                _instance._cothmlViewTexture = (RenderTexture)CohtmlViewTextureProperty.GetValue(cohtmlViewInstance);
+                                _instance._cohtmlViewTexture = (RenderTexture)CohtmlViewTextureProperty.GetValue(cohtmlViewInstance);
                                 RenderPipelineManager.endFrameRendering += _instance.OnEndFrame;
                             }
                         }
@@ -93,10 +93,10 @@ namespace StateRecorder
         private void UpdateGameFacePixelHash()
         {
 
-            if (_isActive && _cothmlViewTexture != null)
+            if (_isActive && _cohtmlViewTexture != null)
             {
                 // scale down the current UI texture to 256x256 using the GPU
-                var scaledTexture = TextureScaling_GPU.ScaleRenderTextureAsCopy(_cothmlViewTexture, _grayWidth, _grayHeight);
+                var scaledTexture = TextureScaling_GPU.ScaleRenderTextureAsCopy(_cohtmlViewTexture, _grayWidth, _grayHeight);
 
                 try
                 {
@@ -169,7 +169,7 @@ namespace StateRecorder
 
         private void OnDestroy()
         {
-            if (_cothmlViewTexture != null)
+            if (_cohtmlViewTexture != null)
             {
                 RenderPipelineManager.endFrameRendering -= OnEndFrame;
             }
