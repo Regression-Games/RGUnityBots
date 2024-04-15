@@ -141,7 +141,9 @@ namespace RegressionGames.StateRecorder
                                                                      && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrame.time))
                                              && _mouseQueue.Count == 0
                         );
-                    WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates);
+                    var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
+                    var pixelHash = gameFaceDeltaObserver != null ? gameFaceDeltaObserver.GetPixelHash() : null;
+                    WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates, pixelHash);
 
                     if (WaitingForKeyFrameConditions == null)
                     {
@@ -174,7 +176,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private string CheckKeyFrameState(List<RecordedGameObjectState> objectStates)
+        private string CheckKeyFrameState(List<RecordedGameObjectState> objectStates, string pixelHash)
         {
             if (_nextKeyFrame != null)
             {
@@ -229,6 +231,14 @@ namespace RegressionGames.StateRecorder
                             // still missing something from the key frame
                             return missingConditions;
                         }
+                    }
+                }
+
+                if (_nextKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && _nextKeyFrame.pixelHash != null)
+                {
+                    if (_nextKeyFrame.pixelHash != pixelHash)
+                    {
+                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - PixelHash {pixelHash} does not match expected {_nextKeyFrame.pixelHash}";
                     }
                 }
             }

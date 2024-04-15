@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Threading;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
@@ -17,8 +18,9 @@ namespace StateRecorder
         private bool _firstRun = true;
         private bool _isRecording = false;
 
-        // uses 0=false, 1=true to do interlocked threadsafe updates
-        public int _gameFaceDelta;
+        [NonSerialized]
+        // uses null or not-null to do interlocked threadsafe updates
+        public string _gameFaceDeltaHash;
 
         private RenderTexture _cohtmlViewTexture;
 
@@ -26,6 +28,8 @@ namespace StateRecorder
         public static readonly Type CohtmlViewType;
 
         public static readonly PropertyInfo CohtmlViewTextureProperty;
+
+        private static GameFaceDeltaObserver _instance;
 
         static GameFaceDeltaObserver()
         {
@@ -61,6 +65,27 @@ namespace StateRecorder
             _isRecording = false;
         }
 
+        public int GrayScaleTiers = 255;
+
+        public static GameFaceDeltaObserver GetInstance()
+        {
+            // can't do this in onEnable or Start as gameface doesn't load/initialize that early
+            if (CohtmlViewType != null && _instance == null)
+            {
+                var cothmlObject = FindAnyObjectByType(GameFaceDeltaObserver.CohtmlViewType) as MonoBehaviour;
+                if (cothmlObject != null)
+                {
+                    _instance = cothmlObject.gameObject.GetComponent<GameFaceDeltaObserver>();
+                    if (_instance == null)
+                    {
+                        _instance = cothmlObject.gameObject.AddComponent<GameFaceDeltaObserver>();
+                    }
+                }
+            }
+
+            return _instance;
+        }
+
         private void ComputeGameFaceDelta()
         {
             if (_isRecording && _cohtmlViewTexture != null)
@@ -80,29 +105,38 @@ namespace StateRecorder
                     {
                         // update for current frame
                         // alpha value
-                        var newAlpha = (byte)(255 * TextureScaling_GPU.NTSC_Grayscale.a * pixel.a);
+                        var alphaTier = (int)((TextureScaling_GPU.NTSC_Grayscale.a * pixel.a) * GrayScaleTiers);
+                        var newAlpha = (byte)((255 * alphaTier) / GrayScaleTiers);
                         // gray value
-                        var newGray = (byte)((255 * TextureScaling_GPU.NTSC_Grayscale.r * pixel.r) + (255 * TextureScaling_GPU.NTSC_Grayscale.g * pixel.g) + (255 * TextureScaling_GPU.NTSC_Grayscale.b * pixel.b));
+                        var grayTier = (int)((TextureScaling_GPU.NTSC_Grayscale.r * pixel.r + TextureScaling_GPU.NTSC_Grayscale.g * pixel.g + TextureScaling_GPU.NTSC_Grayscale.b * pixel.b) * GrayScaleTiers);
+                        var newGray = (byte)((255 * grayTier) / GrayScaleTiers);
 
                         // check for differences to prior frame
                         if (!isDifferent)
                         {
-                            isDifferent |= _grayArray[index] != newAlpha;
+                            isDifferent |= _grayArray[index] != newGray;
                             if (!isDifferent)
                             {
-                                isDifferent |= _grayArray[index + 1] != newGray;
+                                isDifferent |= _grayArray[index + 1] != newAlpha;
                             }
                         }
 
-                        _grayArray[index] = newAlpha;
-                        _grayArray[index+1] = newGray;
+                        _grayArray[index] = newGray;
+                        _grayArray[index+1] = newAlpha;
 
                         index += 2;
                     }
 
                     if (isDifferent)
                     {
-                        Interlocked.Exchange(ref _gameFaceDelta, 1);
+                        byte[] hash;
+                        using (var sha256 = System.Security.Cryptography.SHA256.Create()) {
+                            sha256.TransformFinalBlock(_grayArray, 0, _grayArray.Length);
+                            hash = sha256.Hash;
+                        }
+
+                        var base64Hash = Convert.ToBase64String(hash);
+                        Interlocked.Exchange(ref _gameFaceDeltaHash, base64Hash);
                     }
                 }
                 finally
@@ -112,13 +146,13 @@ namespace StateRecorder
             }
             else
             {
-                Interlocked.Exchange(ref _gameFaceDelta, 0);
+                Interlocked.Exchange(ref _gameFaceDeltaHash, null);
             }
         }
 
-        public bool HadDelta()
+        public string GetPixelHash()
         {
-            return 1 == Interlocked.Exchange(ref _gameFaceDelta, 0);
+            return Interlocked.Exchange(ref _gameFaceDeltaHash, null);
         }
 
         private void Start()

@@ -62,8 +62,6 @@ namespace RegressionGames.StateRecorder
 
         private readonly List<(string, Task)> _fileWriteTasks = new();
 
-        private GameFaceDeltaObserver _gameFaceDeltaObserver = null;
-
 #if UNITY_EDITOR
         private MediaEncoder _encoder;
 #endif
@@ -101,24 +99,6 @@ namespace RegressionGames.StateRecorder
         public void OnEnable()
         {
             _this._mouseObserver = GetComponent<MouseInputActionObserver>();
-        }
-
-        private void Update()
-        {
-            // can't do this in onEnable or Start as gameface doesn't load/initialize that early
-            if (GameFaceDeltaObserver.CohtmlViewType != null && _gameFaceDeltaObserver == null)
-            {
-                var cothmlObject = FindAnyObjectByType(GameFaceDeltaObserver.CohtmlViewType) as MonoBehaviour;
-                if (cothmlObject != null)
-                {
-                    _gameFaceDeltaObserver = cothmlObject.gameObject.GetComponent<GameFaceDeltaObserver>();
-                    if (_gameFaceDeltaObserver == null)
-                    {
-                        _gameFaceDeltaObserver = cothmlObject.gameObject.AddComponent<GameFaceDeltaObserver>();
-                    }
-                }
-            }
-
         }
 
         private void OnDestroy()
@@ -304,20 +284,22 @@ namespace RegressionGames.StateRecorder
 
         public void StartRecording()
         {
-            if (_gameFaceDeltaObserver != null)
+            var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
+            if (gameFaceDeltaObserver != null)
             {
-                _gameFaceDeltaObserver.StartRecording();
+                gameFaceDeltaObserver.StartRecording();
             }
             StartCoroutine(StartRecordingCoroutine());
 
         }
 
-        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState)
+        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState, string pixelDeltaHash)
         {
             var result = new List<KeyFrameType>();
-            if (_gameFaceDeltaObserver != null && _gameFaceDeltaObserver.HadDelta())
+
+            if (pixelDeltaHash != null)
             {
-                result.Add(KeyFrameType.UI_GAMEFACE);
+                result.Add(KeyFrameType.UI_PIXELHASH);
             }
             if (priorState != null)
             {
@@ -376,9 +358,10 @@ namespace RegressionGames.StateRecorder
 
         public void StopRecording()
         {
-            if (_gameFaceDeltaObserver != null)
+            var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
+            if (gameFaceDeltaObserver != null)
             {
-                _gameFaceDeltaObserver.StopRecording();
+                gameFaceDeltaObserver.StopRecording();
             }
             OnDestroy();
         }
@@ -396,9 +379,11 @@ namespace RegressionGames.StateRecorder
                 var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
                 _mouseObserver.ObserveMouse(statefulObjects);
+                var gameFaceDeltaObserver = GameFaceDeltaObserver.GetInstance();
+                var pixelHash = gameFaceDeltaObserver != null ? gameFaceDeltaObserver.GetPixelHash() : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects);
+                var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects, pixelHash);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (keyFrameType.Length > 0
@@ -461,6 +446,7 @@ namespace RegressionGames.StateRecorder
                             timeScale = Time.timeScale,
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
+                            pixelHash = pixelHash,
                             state = statefulObjects,
                             inputs = new InputData()
                             {
