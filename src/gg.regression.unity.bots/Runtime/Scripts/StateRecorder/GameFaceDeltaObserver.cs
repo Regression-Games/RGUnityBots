@@ -20,7 +20,7 @@ namespace StateRecorder
         // uses 0=false, 1=true to do interlocked threadsafe updates
         public int _gameFaceDelta;
 
-        private RenderTexture _cothmlViewTexture;
+        private RenderTexture _cohtmlViewTexture;
 
         [CanBeNull]
         public static readonly Type CohtmlViewType;
