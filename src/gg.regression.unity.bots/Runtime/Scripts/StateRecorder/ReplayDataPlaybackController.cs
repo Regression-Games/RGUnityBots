@@ -555,11 +555,7 @@ namespace RegressionGames.StateRecorder
                     switch (controlName)
                     {
                         case "delta":
-                            if (_lastMousePosition == null)
-                            {
-                                _lastMousePosition = normalizedPosition;
-                            }
-                            else
+                            if (_lastMousePosition != null)
                             {
                                 var delta = normalizedPosition - _lastMousePosition.Value;
                                 mouseEventString += $"delta: {delta.x},{delta.y}  ";
@@ -620,6 +616,7 @@ namespace RegressionGames.StateRecorder
                             break;
                     }
                 }
+                _lastMousePosition = normalizedPosition;
 
                 RGDebug.LogInfo($"({tickNumber}) Sending Mouse Event - {mouseEventString}");
                 InputSystem.QueueEvent(eventPtr);
