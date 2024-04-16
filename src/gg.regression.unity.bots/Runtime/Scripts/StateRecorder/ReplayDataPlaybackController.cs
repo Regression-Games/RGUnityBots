@@ -10,7 +10,6 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
 
 namespace RegressionGames.StateRecorder
 {
@@ -29,7 +28,10 @@ namespace RegressionGames.StateRecorder
 
         private double? _priorKeyFrameTime;
 
-        private ReplayKeyFrameEntry _nextKeyFrame;
+        // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
+        // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
+        // This is done this way to allow situations like when loading screens (UI) are changing while game objects are loading in the background and the process is not consistent/deterministic between the 2
+        private List<ReplayKeyFrameEntry> _nextKeyFrames = new();
 
         private readonly List<ReplayKeyboardInputEntry> _keyboardQueue = new();
         private readonly List<ReplayMouseInputEntry> _mouseQueue = new();
@@ -96,7 +98,7 @@ namespace RegressionGames.StateRecorder
             }, new List<RecordedGameObjectState>());
 
             _dataContainer = dataContainer;
-            _nextKeyFrame = _dataContainer.DequeueKeyFrame();
+            _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
         }
 
         /**
@@ -122,7 +124,7 @@ namespace RegressionGames.StateRecorder
         {
             _mouseQueue.Clear();
             _keyboardQueue.Clear();
-            _nextKeyFrame = null;
+            _nextKeyFrames.Clear();
             _isPlaying = false;
             _dataContainer = null;
             WaitingForKeyFrameConditions = null;
@@ -135,40 +137,52 @@ namespace RegressionGames.StateRecorder
         {
             if (_isPlaying && _dataContainer != null)
             {
-                if (_nextKeyFrame != null)
+                if (_nextKeyFrames.Count > 0)
                 {
                     KeyFrameInputComplete = (_keyboardQueue.All(a => a.startEndSentFlags[0]
-                                                                     && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrame.time))
+                                                                     && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrames[0].time))
                                              && _mouseQueue.Count == 0
                         );
                     WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates, pixelHash);
 
-                    if (WaitingForKeyFrameConditions == null)
+                    var lastKeyFrameInList = _nextKeyFrames[^1];
+                    // if either the ui or the game objects are satisfied, add the next key frame to the list so we can start considering it
+                    if (lastKeyFrameInList.uiMatched || lastKeyFrameInList.gameMatched)
                     {
-                        RGDebug.LogInfo($"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - ConditionsMatched: true");
+                        var nextFrame = _dataContainer.DequeueKeyFrame();
+                        if (nextFrame != null)
+                        {
+                            // get the next key frame for future stuff
+                            _nextKeyFrames.Add(nextFrame);
+                        }
+                    }
 
-                        _priorKeyFrameTime = _nextKeyFrame?.time;
+                    while (_nextKeyFrames.Count > 0 && _nextKeyFrames[0].IsMatched)
+                    {
+                        RGDebug.LogInfo($"({_nextKeyFrames[0].tickNumber}) Wait for KeyFrame - ConditionsMatched: true");
 
-                        // get the next key frame for future stuff
-                        _nextKeyFrame = _dataContainer.DequeueKeyFrame();
+                        _priorKeyFrameTime = _nextKeyFrames[0]?.time;
+
+                        // first key frame is done, get it out of here
+                        _nextKeyFrames.RemoveAt(0);
 
                         // when we update the keyframe, re-sync our time point to avoid drifting off track
                         _lastStartTime = Time.unscaledTime;
+                    }
 
-                        if (_nextKeyFrame != null)
-                        {
-                            // get all the inputs starting before the next key frame time and add them to the queue
-                            // floating point hell.. give them 1ms tolerance to avoid fp comparison issues
-                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrame.time + 0.001));
-                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrame.time + 0.001));
-                        }
-                        else
-                        {
-                            WaitingForKeyFrameConditions = null;
-                            // get the rest
-                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime());
-                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime());
-                        }
+                    if (_nextKeyFrames.Count > 0)
+                    {
+                        // get all the inputs starting before the next key frame time and add them to the queue
+                        // floating point hell.. give them 1ms tolerance to avoid fp comparison issues
+                        _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrames[0].time + 0.001));
+                        _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrames[0].time + 0.001));
+                    }
+                    else
+                    {
+                        WaitingForKeyFrameConditions = null;
+                        // get the rest
+                        _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime());
+                        _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime());
                     }
                 }
             }
@@ -176,68 +190,115 @@ namespace RegressionGames.StateRecorder
 
         private string CheckKeyFrameState(List<RecordedGameObjectState> objectStates, string pixelHash)
         {
-            if (_nextKeyFrame != null)
+            if (_nextKeyFrames.Count > 0 && objectStates != null)
             {
-                if (_nextKeyFrame.specificObjectPaths.Length > 0
-                    || _nextKeyFrame.uiElements.Length > 0
-                    || _nextKeyFrame.scenes.Length > 0)
+                ReplayKeyFrameEntry gameObjectKeyFrame = null, uiObjectKeyFrame = null;
+                foreach (var nextKeyFrame in _nextKeyFrames)
                 {
-                    if (objectStates != null)
+                    if (gameObjectKeyFrame == null && nextKeyFrame.gameMatched == false)
                     {
-                        // copy these so we can remove from them
-                        var scenes = _nextKeyFrame.scenes.ToList();
-                        var uiElements = _nextKeyFrame.uiElements.ToList();
-                        var specificObjectPaths = _nextKeyFrame.specificObjectPaths.ToList();
-                        var gameElements = _nextKeyFrame.gameElements.ToList();
-                        foreach (var state in objectStates)
+                        gameObjectKeyFrame = nextKeyFrame;
+                    }
+
+                    if (uiObjectKeyFrame == null && nextKeyFrame.uiMatched == false)
+                    {
+                        uiObjectKeyFrame = nextKeyFrame;
+                    }
+
+                    if (gameObjectKeyFrame != null && uiObjectKeyFrame != null)
+                    {
+                        break;
+                    }
+                }
+
+                var eldestKeyFrame = uiObjectKeyFrame == null ? gameObjectKeyFrame : gameObjectKeyFrame == null ? uiObjectKeyFrame : uiObjectKeyFrame.tickNumber < gameObjectKeyFrame.tickNumber ? uiObjectKeyFrame : gameObjectKeyFrame;
+
+                // copy these with .ToList() so we can remove from them
+                var uiScenes = uiObjectKeyFrame != null ? uiObjectKeyFrame.uiScenes.ToList() : new();
+                var uiElements = uiObjectKeyFrame != null ? uiObjectKeyFrame.uiElements.ToList() : new();
+                var gameScenes = gameObjectKeyFrame != null ? gameObjectKeyFrame.gameScenes.ToList() : new();
+                var gameElements = gameObjectKeyFrame != null ? gameObjectKeyFrame.gameElements.ToList() : new();
+
+                foreach (var state in objectStates)
+                {
+                    if (state.worldSpaceBounds == null)
+                    {
+                        if (uiObjectKeyFrame != null)
                         {
-                            scenes.Remove(state.scene);
+                            uiScenes.Remove(state.scene);
 
-                            specificObjectPaths.Remove(state.path);
-
-                            if (state.worldSpaceBounds == null)
+                            if (uiElements.Count == 0)
                             {
-                                if (uiElements.Count == 0)
+                                // only bail out here if we're the ui is the oldest awaited key frame
+                                if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
-                                    return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
-                                }
-
-                                var didRemove = uiElements.Remove(state.path);
-                                if (!didRemove)
-                                {
-                                    return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                    return $"({uiObjectKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
                                 }
                             }
-                            else
+
+                            var didRemove = uiElements.Remove(state.path);
+                            if (!didRemove)
                             {
-                                // remove any matching game elements
-                                for (var i = gameElements.Count-1; i >= 0; i--)
+                                // only bail out here if we're the ui is the oldest awaited key frame
+                                if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
-                                    var element = gameElements[i];
-                                    if (element.Item1 == state.path && element.Item2 == state.rendererCount && element.Item3 == state.colliders.Count && element.Item4 == state.rigidbodies.Count)
-                                    {
-                                        gameElements.RemoveAt(i);
-                                        break;
-                                    }
+                                    return $"({uiObjectKeyFrame.tickNumber}) Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
                                 }
                             }
                         }
-
-                        if (scenes.Count != 0 || specificObjectPaths.Count != 0 || uiElements.Count != 0 || gameElements.Count != 0)
+                    }
+                    else
+                    {
+                        if (gameObjectKeyFrame != null)
                         {
-                            var missingConditions = $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Waiting for conditions...\r\nscenes:\r\n{string.Join("\r\n", scenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\ngameElements:\r\n{string.Join("\r\n", gameElements.Select(a=> $"({a.Item1}, {a.Item2}, {a.Item3}, {a.Item4})"))}\r\nspecificObjectPaths:\r\n{string.Join("\r\n", specificObjectPaths)}";
-                            // still missing something from the key frame
-                            return missingConditions;
+                            gameScenes.Remove(state.scene);
+                            // remove any matching game elements
+                            for (var i = gameElements.Count - 1; i >= 0; i--)
+                            {
+                                var element = gameElements[i];
+                                if (element.Item1 == state.path && element.Item2 == state.rendererCount && element.Item3 == state.colliders.Count && element.Item4 == state.rigidbodies.Count)
+                                {
+                                    gameElements.RemoveAt(i);
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
 
-                if (_nextKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && _nextKeyFrame.pixelHash != null)
+                if (uiObjectKeyFrame != null && uiScenes.Count == 0 && uiElements.Count == 0)
                 {
-                    if (_nextKeyFrame.pixelHash != pixelHash)
+                    if (uiObjectKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && uiObjectKeyFrame.pixelHash != null)
                     {
-                        return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - PixelHash '{pixelHash}' does not match expected '{_nextKeyFrame.pixelHash}'";
+                        if (uiObjectKeyFrame.pixelHash != pixelHash)
+                        {
+                            // only bail out here if we're the ui is the oldest awaited key frame
+                            if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
+                            {
+                                return $"({uiObjectKeyFrame.tickNumber}) Wait for KeyFrame - PixelHash '{pixelHash}' does not match expected '{uiObjectKeyFrame.pixelHash}'";
+                            }
+                        }
+                        else
+                        {
+                            uiObjectKeyFrame.uiMatched = true;
+                        }
                     }
+                    else
+                    {
+                        uiObjectKeyFrame.uiMatched = true;
+                    }
+                }
+
+                if (gameObjectKeyFrame != null && gameScenes.Count == 0 && gameElements.Count == 0)
+                {
+                    gameObjectKeyFrame.gameMatched = true;
+                }
+
+                if (!(uiObjectKeyFrame?.uiMatched == true && gameObjectKeyFrame?.gameMatched == true ))
+                {
+                    var missingConditions = $"({uiObjectKeyFrame?.tickNumber}:{gameObjectKeyFrame?.tickNumber}) Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n{string.Join("\r\n", uiScenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\ngameScenes:\r\n{string.Join("\r\n", gameScenes)}\r\ngameElements:\r\n{string.Join("\r\n", gameElements.Select(a => $"({a.Item1}, {a.Item2}, {a.Item3}, {a.Item4})"))}";
+                    // still missing something from the key frame
+                    return missingConditions;
                 }
             }
 
@@ -307,7 +368,6 @@ namespace RegressionGames.StateRecorder
                 var time = InputState.currentTime;
                 eventPtr.time = time;
 
-                char value = (char)0;
                 var inputControl = keyboard.allControls
                     .FirstOrDefault(a => a is KeyControl kc && kc.keyCode == key) ?? keyboard.anyKey;
 
@@ -328,7 +388,7 @@ namespace RegressionGames.StateRecorder
                     // convert key to text
                     if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
                     {
-                        value = _dataContainer.IsShiftDown ? possibleValues.Item2 : possibleValues.Item1;
+                        var value = _dataContainer.IsShiftDown ? possibleValues.Item2 : possibleValues.Item1;
                         if (value == 0x00)
                         {
                             RGDebug.LogError($"Found null value for keyboard input {key}");
@@ -380,7 +440,7 @@ namespace RegressionGames.StateRecorder
         {
             public bool Equals(RecordedGameObjectState x, RecordedGameObjectState y)
             {
-                return x.path == y.path;
+                return x?.path == y?.path;
             }
 
             public int GetHashCode(RecordedGameObjectState obj)
@@ -391,7 +451,7 @@ namespace RegressionGames.StateRecorder
 
         private static readonly RecordedGameObjectStatePathEqualityComparer _recordedGameObjectStatePathEqualityComparer = new();
 
-        private static Vector2? _lastMousePosition = null;
+        private static Vector2? _lastMousePosition;
 
         public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> objectStates)
         {
@@ -418,7 +478,7 @@ namespace RegressionGames.StateRecorder
                 {
                     var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
                     return (theNp - closestPointInA).sqrMagnitude;
-                }).Distinct(_recordedGameObjectStatePathEqualityComparer); // select only the first entry of each path
+                }).Distinct(_recordedGameObjectStatePathEqualityComparer).ToList(); // select only the first entry of each path; ToList due to multiple iterations of this structure
             foreach (var objectToCheck in possibleObjects)
             {
                 var size = objectToCheck.screenSpaceBounds.size.x * objectToCheck.screenSpaceBounds.size.y;
@@ -653,7 +713,7 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            if (_isPlaying && _nextKeyFrame == null && _keyboardQueue.Count == 0 && _mouseQueue.Count == 0)
+            if (_isPlaying && _nextKeyFrames.Count == 0 && _keyboardQueue.Count == 0 && _mouseQueue.Count == 0)
             {
                 SendMouseEvent(0, new ReplayMouseInputEntry()
                 {
