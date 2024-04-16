@@ -32,7 +32,7 @@ namespace RegressionGames.Editor
 
                     SerializedProperty hostField = settings.FindProperty("rgHostAddress");
                     hostField.stringValue = EditorGUILayout.TextField("RG Host URL", hostField.stringValue);
-                    
+
                     SerializedProperty apiKeyField = settings.FindProperty("apiKey");
                     apiKeyField.stringValue = EditorGUILayout.PasswordField("RG API Key", apiKeyField.stringValue);
 

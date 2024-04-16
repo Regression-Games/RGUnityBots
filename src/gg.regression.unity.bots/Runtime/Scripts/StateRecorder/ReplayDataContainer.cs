@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Playables;
 
 namespace RegressionGames.StateRecorder
 {
@@ -16,6 +15,8 @@ namespace RegressionGames.StateRecorder
     {
         public long tickNumber;
         public double time;
+
+        public KeyFrameType[] keyFrameTypes;
 
         /**
          * <summary>the scenes for objects set must match this list (no duplicates allowed in the list)</summary>
@@ -38,6 +39,11 @@ namespace RegressionGames.StateRecorder
          * <summary>used for mouse input events to confirm that what they clicked on path wise exists; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)</summary>
          */
         public string[] specificObjectPaths;
+
+        /**
+         * <summary>Hash value of the pixels on screen. (Used for GameFace or other objectless UI systems)</summary>
+         */
+        public string pixelHash;
     }
 
     [Serializable]
@@ -194,6 +200,8 @@ namespace RegressionGames.StateRecorder
                     keyFrame = new ReplayKeyFrameEntry()
                     {
                         tickNumber = frameData.tickNumber,
+                        pixelHash = frameData.pixelHash,
+                        keyFrameTypes = frameData.keyFrame,
                         time = frameData.time - firstFrame.time,
                         scenes = frameData.state.Select(a => a.scene).Distinct().ToArray(),
                         uiElements = frameData.state.Where(a => a.worldSpaceBounds == null).Select(a => a.path).ToArray(),
