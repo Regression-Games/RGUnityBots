@@ -25,7 +25,8 @@ namespace RegressionGames.StateRecorder
                                         + ",\n\"timeScale\":" + FloatJsonConverter.ToJsonString(timeScale)
                                         + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
                                         + ",\n\"performance\":" + performance.ToJson()
-                                        + ",\n\"state\":[\n" + string.Join(",\n", state.Select(a=>a.ToJson()))
+                                        + ",\n\"pixelHash\":\"" + pixelHash
+                                        + "\",\n\"state\":[\n" + string.Join(",\n", state.Select(a=>a.ToJson()))
                                         + "\n],\n\"inputs\":" + inputs.ToJson()
                                         + "\n}";
         }
@@ -117,6 +118,7 @@ namespace RegressionGames.StateRecorder
         public double time;
         public float timeScale;
         public Vector2Int screenSize;
+        public string pixelHash;
         public List<ReplayGameObjectState> state;
         public InputData inputs;
     }

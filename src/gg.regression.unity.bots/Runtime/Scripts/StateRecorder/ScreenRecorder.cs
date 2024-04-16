@@ -14,7 +14,6 @@ using Newtonsoft.Json.Serialization;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
 using TMPro;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Experimental.Rendering;
@@ -72,6 +71,7 @@ namespace RegressionGames.StateRecorder
 
         private MouseInputActionObserver _mouseObserver;
 
+
         public static ScreenRecorder GetInstance()
         {
             return _this;
@@ -95,6 +95,7 @@ namespace RegressionGames.StateRecorder
             DontDestroyOnLoad(gameObject);
             _this = this;
         }
+
         public void OnEnable()
         {
             _this._mouseObserver = GetComponent<MouseInputActionObserver>();
@@ -119,6 +120,11 @@ namespace RegressionGames.StateRecorder
             _priorFrame = null;
             if (_isRecording)
             {
+                var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+                if (gameFacePixelHashObserver != null)
+                {
+                    gameFacePixelHashObserver.SetActive(false);
+                }
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
                 _isRecording = false;
@@ -216,10 +222,10 @@ namespace RegressionGames.StateRecorder
         {
             _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
 
-            while (_texture2Ds.TryDequeue(out var text))
+            while (_texture2Ds.TryDequeue(out var tex))
             {
                 // have to destroy the textures on the main thread
-                Destroy(text);
+                Destroy(tex);
             }
 
             if (_isRecording)
@@ -283,13 +289,23 @@ namespace RegressionGames.StateRecorder
 
         public void StartRecording()
         {
+            var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+            if (gameFacePixelHashObserver != null)
+            {
+                gameFacePixelHashObserver.SetActive(true);
+            }
             StartCoroutine(StartRecordingCoroutine());
 
         }
 
-        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState)
+        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState, string pixelHash)
         {
             var result = new List<KeyFrameType>();
+
+            if (pixelHash != null)
+            {
+                result.Add(KeyFrameType.UI_PIXELHASH);
+            }
             if (priorState != null)
             {
                 // scene loaded or changed
@@ -363,9 +379,11 @@ namespace RegressionGames.StateRecorder
                 var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
                 _mouseObserver.ObserveMouse(statefulObjects);
+                var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+                var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects);
+                var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects, pixelHash);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (keyFrameType.Length > 0
@@ -428,6 +446,7 @@ namespace RegressionGames.StateRecorder
                             timeScale = Time.timeScale,
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
+                            pixelHash = pixelHash,
                             state = statefulObjects,
                             inputs = new InputData()
                             {
@@ -456,9 +475,12 @@ namespace RegressionGames.StateRecorder
 
                     if (jsonData != null)
                     {
-                        var screenShot = new Texture2D(screenWidth, screenHeight);
+
                         // wait for all frame rendering/etc to finish before taking the screenshot
                         yield return new WaitForEndOfFrame();
+
+                        var screenShot = new Texture2D(screenWidth, screenHeight);
+
                         try
                         {
                             screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
