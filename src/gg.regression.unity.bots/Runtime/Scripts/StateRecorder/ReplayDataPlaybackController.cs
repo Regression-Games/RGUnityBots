@@ -440,6 +440,11 @@ namespace RegressionGames.StateRecorder
         {
             public bool Equals(RecordedGameObjectState x, RecordedGameObjectState y)
             {
+                if (x?.worldSpaceBounds != null || y?.worldSpaceBounds != null)
+                {
+                    // for world space objects, we don't want to unique-ify based on path
+                    return false;
+                }
                 return x?.path == y?.path;
             }
 
@@ -478,7 +483,7 @@ namespace RegressionGames.StateRecorder
                 {
                     var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
                     return (theNp - closestPointInA).sqrMagnitude;
-                }).Distinct(_recordedGameObjectStatePathEqualityComparer).ToList(); // select only the first entry of each path; ToList due to multiple iterations of this structure
+                }).Distinct(_recordedGameObjectStatePathEqualityComparer).ToList(); // select only the first entry of each path for ui elements; uses ToList due to multiple iterations of this structure later in the code to avoid multiple enumeration
             foreach (var objectToCheck in possibleObjects)
             {
                 var size = objectToCheck.screenSpaceBounds.size.x * objectToCheck.screenSpaceBounds.size.y;
@@ -501,7 +506,8 @@ namespace RegressionGames.StateRecorder
                         {
                             // use the world space click location closest to the actual object location
                             var mouseWorldPosition = mouseInput.worldPosition.Value;
-                            if (objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition))
+                            // uses the collider bounds on that object as colliders are what would drive world space objects' click detection in scripts / etc
+                            if (objectToCheck.colliders.FirstOrDefault(a => a.bounds.Contains(mouseWorldPosition)) != null)
                             {
                                 var screenPoint = Camera.main.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
@@ -518,9 +524,7 @@ namespace RegressionGames.StateRecorder
                             }
                             else
                             {
-                                // TODO: Maybe??? , should we re-write this to be more like the non world position evaluation and evaluate the 'best' objects to see if we need to shift the world click position a tiny bit to hit our objects
-                                // for now, we let that fall back to the renderer bounds evaluation of best objects
-
+                                // didn't hit a collider on this object, we fall back to the renderer bounds bestObject evaluation method, similar to ui elements
 
                                 // compare elements bounds for best match
                                 // give some threshold variance here for floating point math on sizes
