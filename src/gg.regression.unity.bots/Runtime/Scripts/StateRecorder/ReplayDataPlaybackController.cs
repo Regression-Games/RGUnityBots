@@ -507,7 +507,7 @@ namespace RegressionGames.StateRecorder
                             // use the world space click location closest to the actual object location
                             var mouseWorldPosition = mouseInput.worldPosition.Value;
                             // uses the collider bounds on that object as colliders are what would drive world space objects' click detection in scripts / etc
-                            if (objectToCheck.colliders.FirstOrDefault(a => a.bounds.Contains(mouseWorldPosition)) != null)
+                            if ((objectToCheck.colliders.Count == 0 && objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition)) || objectToCheck.colliders.FirstOrDefault(a => a.bounds.Contains(mouseWorldPosition)) != null)
                             {
                                 var screenPoint = Camera.main.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
