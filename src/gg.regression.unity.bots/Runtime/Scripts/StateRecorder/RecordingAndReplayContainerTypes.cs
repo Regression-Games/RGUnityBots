@@ -169,6 +169,7 @@ namespace RegressionGames.StateRecorder
                                 + ",\n\"layer\":" + JsonConvert.ToString(layer)
                                 + ",\n\"rendererCount\":" + rendererCount
                                 + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
+                                + ",\n\"screenSpaceZOffset\":" + FloatJsonConverter.ToJsonString(screenSpaceZOffset)
                                 + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
                                 + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
                                 + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)

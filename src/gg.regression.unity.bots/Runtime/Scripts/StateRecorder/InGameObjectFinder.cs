@@ -175,8 +175,11 @@ namespace RegressionGames.StateRecorder
             var minWorldZ = float.MaxValue;
             var maxWorldZ = float.MinValue;
 
+            var hasVisibleRenderer = false;
+
             foreach (var nextRenderer in renderers)
             {
+                hasVisibleRenderer |= nextRenderer.isVisible;
                 if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
                 {
                     var theBounds = nextRenderer.bounds;
@@ -215,7 +218,7 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            var onCamera = minWorldX < float.MaxValue;
+            var onCamera = minWorldX < float.MaxValue && (replay || hasVisibleRenderer);
             if (onCamera)
             {
                 // convert world space to screen space
