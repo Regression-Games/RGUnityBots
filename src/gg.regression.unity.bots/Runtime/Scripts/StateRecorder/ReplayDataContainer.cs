@@ -19,26 +19,39 @@ namespace RegressionGames.StateRecorder
         public KeyFrameType[] keyFrameTypes;
 
         /**
-         * <summary>the scenes for objects set must match this list (no duplicates allowed in the list)</summary>
+         * <summary>Have the UI element/scene related conditions for this key frame been met</summary>
          */
-        public string[] scenes;
+        public bool uiMatched;
+
+        /**
+         * <summary>Have the game element/scene related conditions for this key frame been met</summary>
+         */
+        public bool gameMatched;
+
+        public bool IsMatched => uiMatched && gameMatched;
+
+        /**
+         * <summary>the scenes for ui elements must match this list (no duplicates allowed in the list)</summary>
+         */
+        public string[] uiScenes;
 
         /**
          * <summary>the ui elements visible must match this list exactly; (could be similar/duplicate paths in the list, need to match value + # of appearances)</summary>
          */
         public string[] uiElements;
 
+
+        /**
+         * <summary>the scenes for game elements must match this list (no duplicates allowed in the list)</summary>
+         */
+        public string[] gameScenes;
+
         /**
          * <summary>the in game elements visible must include everything in this list; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)
          * This will also try to match the number of renderers and colliders for each object</summary>
          */
         // (path, #renderers, #colliders, #rigidbodies)
-        public (string,int,int,int)[] gameElements;
-
-        /**
-         * <summary>used for mouse input events to confirm that what they clicked on path wise exists; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)</summary>
-         */
-        public string[] specificObjectPaths;
+        public (string, int,int,int)[] gameElements;
 
         /**
          * <summary>Hash value of the pixels on screen. (Used for GameFace or other objectless UI systems)</summary>
@@ -188,31 +201,46 @@ namespace RegressionGames.StateRecorder
                 using var sr = new StreamReader(entry.Open());
                 var frameData = JsonConvert.DeserializeObject<ReplayFrameStateData>(sr.ReadToEnd());
 
-                if (firstFrame == null)
-                {
-                    firstFrame = frameData;
-                }
+                firstFrame ??= frameData;
 
                 // process key frame info
                 ReplayKeyFrameEntry keyFrame = null;
                 if (frameData.keyFrame.Length > 0)
                 {
+                    var uiElements = new List<string>();
+                    var gameElements = new List<(string,int,int,int)>();
+                    var uiScenes = new HashSet<string>();
+                    var gameScenes = new HashSet<string>();
+                    foreach (var replayGameObjectState in frameData.state)
+                    {
+                        if (replayGameObjectState.worldSpaceBounds == null)
+                        {
+                            uiElements.Add(replayGameObjectState.path);
+                            uiScenes.Add(replayGameObjectState.scene);
+                        }
+                        else
+                        {
+                            gameElements.Add((replayGameObjectState.path, replayGameObjectState.rendererCount, replayGameObjectState.colliders.Count, replayGameObjectState.rigidbodies.Count));
+                            gameScenes.Add(replayGameObjectState.scene);
+                        }
+                    }
                     keyFrame = new ReplayKeyFrameEntry()
                     {
                         tickNumber = frameData.tickNumber,
                         pixelHash = frameData.pixelHash,
                         keyFrameTypes = frameData.keyFrame,
                         time = frameData.time - firstFrame.time,
-                        scenes = frameData.state.Select(a => a.scene).Distinct().ToArray(),
-                        uiElements = frameData.state.Where(a => a.worldSpaceBounds == null).Select(a => a.path).ToArray(),
-                        gameElements = frameData.state.Where(a=>a.worldSpaceBounds != null).Select(a => (a.path, a.rendererCount, a.colliders.Count, a.rigidbodies.Count)).ToArray()
+                        uiScenes = uiScenes.ToArray(),
+                        uiElements = uiElements.ToArray(),
+                        gameScenes = gameScenes.ToArray(),
+                        gameElements = gameElements.ToArray()
                     };
                     _keyFrames.Enqueue(keyFrame);
                 }
 
                 foreach (var inputData in frameData.inputs.keyboard)
                 {
-                    if (inputData is KeyboardInputActionData keyboardInputData)
+                    if (inputData is { } keyboardInputData)
                     {
                         if (_pendingEndKeyboardInputs.TryGetValue(keyboardInputData.binding, out var theData))
                         {
@@ -244,18 +272,18 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                // go through the mouse input data and setup the different entries
-                // if they are a new button, add that to the key frame data
-                List<string> specificGameObjectPaths = new();
 
                 foreach (var inputData in frameData.inputs.mouse)
                 {
-                    if (inputData is MouseInputActionData mouseInputData)
+                    if (inputData is { } mouseInputData)
                     {
-                        // in the future, we may validate the object ids on mouse release.. but in early testing this had timing issues
+                        // go through the mouse input data and setup the different entries
+                        string[] specificGameObjectPaths = Array.Empty<string>();
+
+                        // in the future, we may validate the object ids on mouse release.. but in early testing this creating some very bad timing issues
                         if (keyFrame != null && mouseInputData.clickedObjectIds != null && mouseInputData.IsButtonClicked)
                         {
-                            specificGameObjectPaths = FindObjectsWithIds(mouseInputData.clickedObjectIds, frameData.state);
+                            specificGameObjectPaths = FindObjectsWithIds(mouseInputData.clickedObjectIds, frameData.state).ToArray();
                         }
 
                         _mouseData.Enqueue(new ReplayMouseInputEntry()
@@ -263,7 +291,7 @@ namespace RegressionGames.StateRecorder
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
-                            clickedObjectPaths = specificGameObjectPaths.ToArray(),
+                            clickedObjectPaths = specificGameObjectPaths,
                             position = mouseInputData.position,
                             worldPosition = mouseInputData.worldPosition,
                             leftButton = mouseInputData.leftButton,
@@ -275,11 +303,6 @@ namespace RegressionGames.StateRecorder
                         });
                     }
                 }
-
-                if (keyFrame != null)
-                {
-                    keyFrame.specificObjectPaths = specificGameObjectPaths.ToArray();
-                }
             }
 
             if (firstFrame == null)
@@ -289,10 +312,10 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private List<string> FindObjectsWithIds(int[] objectIds, List<ReplayGameObjectState> state)
+        private IEnumerable<string> FindObjectsWithIds(int[] objectIds, List<ReplayGameObjectState> state)
         {
             var currentStateEntries = state.Where(a => objectIds.Contains(a.id)).Select(a => a.path);
-            return currentStateEntries.ToList();
+            return currentStateEntries;
         }
     }
 }
