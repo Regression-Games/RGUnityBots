@@ -329,7 +329,7 @@ namespace RegressionGames.StateRecorder
                             }
                         }
                     }
-                    else
+                    if (resultObject == null)
                     {
                         resultObject = new RecordedGameObjectState()
                         {
@@ -557,7 +557,8 @@ namespace RegressionGames.StateRecorder
                                     }
                                 }
                             }
-                            else
+
+                            if (resultObject == null)
                             {
                                 resultObject = new RecordedGameObjectState()
                                 {
