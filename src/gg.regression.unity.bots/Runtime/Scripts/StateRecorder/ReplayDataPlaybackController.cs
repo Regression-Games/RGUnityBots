@@ -687,6 +687,8 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        private List<RecordedGameObjectState> _priorStates = null;
+
         public void Update()
         {
             if (_dataContainer != null)
@@ -700,7 +702,7 @@ namespace RegressionGames.StateRecorder
 
                 if (_isPlaying)
                 {
-                    var objectStates = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
+                    var objectStates = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(_priorStates, true);
 
                     var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                     string pixelHash = null;
@@ -714,6 +716,8 @@ namespace RegressionGames.StateRecorder
                     CheckWaitForKeyStateMatch(objectStates, pixelHash);
 
                     PlayInputs(objectStates);
+
+                    _priorStates = objectStates;
                 }
             }
 

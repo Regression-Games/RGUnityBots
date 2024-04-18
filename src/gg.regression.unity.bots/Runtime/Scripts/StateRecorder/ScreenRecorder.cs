@@ -298,67 +298,190 @@ namespace RegressionGames.StateRecorder
 
         }
 
-        private KeyFrameType[] GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState, string pixelHash)
+        private bool OptimizedContainsStringInList(List<string> list, string theString)
         {
-            var result = new List<KeyFrameType>();
+            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
+            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
+            for (var i=0; i<list.Count; i++)
+            {
+                if (string.CompareOrdinal(list[i], theString) == 0)
+                {
+                    return true;
+                }
+            }
 
+            return false;
+        }
+
+        private bool OptimizedRemoveIntFromList(List<int> list, int theInt)
+        {
+            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
+            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
+            for (var i=0; i<list.Count; i++)
+            {
+                if (list[i] == theInt)
+                {
+                    list.RemoveAt(i);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * <summary>Modifies the string lists with removal leaving only the unique entries in each list.  Assumes lists have unique entries as though created from a hashset</summary>
+         */
+        private bool StringListsMatch(List<string> priorScenes, List<string> currentScenes)
+        {
+            if (priorScenes.Count != currentScenes.Count)
+            {
+                return false;
+            }
+            for (var i = 0; i < priorScenes.Count;)
+            {
+                var priorScene = priorScenes[i];
+                var found = false;
+                for (var j = 0; j < currentScenes.Count; j++)
+                {
+                    var currentScene = currentScenes[j];
+                    if (string.CompareOrdinal(priorScene, currentScene) == 0)
+                    {
+                        priorScenes.RemoveAt(i);
+                        currentScenes.RemoveAt(j);
+                        found = true;
+                        break; // inner for loop
+                    }
+                }
+
+                if (!found)
+                {
+                    i++;
+                }
+            }
+
+            return priorScenes.Count == 0 && currentScenes.Count == 0;
+        }
+
+
+        private List<KeyFrameType> GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState, string pixelHash)
+        {
+            if (priorState == null)
+            {
+                return new List<KeyFrameType> { KeyFrameType.FIRST_FRAME };
+            }
+
+            // number of unique types (minus FIRST_FRAME) in KeyFrameType enum to avoid list resizing
+            var result = new List<KeyFrameType>(5);
             if (pixelHash != null)
             {
                 result.Add(KeyFrameType.UI_PIXELHASH);
             }
-            if (priorState != null)
+
+            // avoid dynamic resizing of structures
+            var scenesInPriorFrame = new List<string>(10);
+            var scenesInCurrentFrame = new List<string>(10);
+
+            var uiElementsInCurrentFrame = new List<int>(currentState.Count);
+
+            var worldElementsInCurrentFrame = new Dictionary<int, RecordedGameObjectState>(currentState.Count);
+
+            // need to do current before previous due to the world element renderers comparisons
+
+            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
+            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
+            for (var i = 0; i < currentState.Count; i++)
             {
-                // scene loaded or changed
-                var scenesInPriorFrame = priorState.Select(s => s.scene).Distinct().ToList();
-                var scenesInCurrentFrame = currentState.Select(s => s.scene).Distinct().ToList();
-                if (scenesInPriorFrame.Count != scenesInCurrentFrame.Count ||
-                    !scenesInPriorFrame.All(scenesInCurrentFrame.Contains))
+                var recordedGameObjectState = currentState[i];
+
+                // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
+                if (!OptimizedContainsStringInList(scenesInCurrentFrame, recordedGameObjectState.scene))
                 {
-                    // elements from scenes changed this frame
-                    result.Add(KeyFrameType.SCENE);
+                    scenesInCurrentFrame.Add(recordedGameObjectState.scene);
                 }
 
-                // visible UI elements changed
-                var uiElementsInPriorFrame = priorState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
-                var uiElementsInCurrentFrame = currentState.Where(s => s.worldSpaceBounds == null).Select(s => s.id).Distinct().ToList();
-                if (uiElementsInPriorFrame.Count != uiElementsInCurrentFrame.Count ||
-                    !uiElementsInPriorFrame.All(uiElementsInCurrentFrame.Contains))
+                if (recordedGameObjectState.worldSpaceBounds == null)
                 {
-                    // visible UI elements changed this frame
-                    result.Add(KeyFrameType.UI_ELEMENT);
+                    uiElementsInCurrentFrame.Add(recordedGameObjectState.id);
                 }
-
-                // visible game elements changed
-                var worldElementsInPriorFrame = priorState.Where(s => s.worldSpaceBounds != null);
-                var worldElementsInCurrentFrame = currentState.Where(s => s.worldSpaceBounds != null).ToDictionary(a => a.id);
-
-                var count = 0;
-                foreach (var elementInPriorFrame in worldElementsInPriorFrame)
+                else
                 {
-                    ++count;
-                    if (worldElementsInCurrentFrame.TryGetValue(elementInPriorFrame.id, out var elementInCurrentFrame))
-                    {
-                        if (elementInCurrentFrame.rendererCount != elementInPriorFrame.rendererCount)
-                        {
-                            // if an element changed its renderer count
-                            result.Add(KeyFrameType.GAME_ELEMENT_RENDERER_COUNT);
-                        }
-                    }
-                    else
-                    {
-                        // if we had an element disappear
-                        result.Add(KeyFrameType.GAME_ELEMENT);
-                    }
-                }
-
-                if (count != worldElementsInCurrentFrame.Count() && !result.Contains(KeyFrameType.GAME_ELEMENT))
-                {
-                    // if we had a new element appear
-                    result.Add(KeyFrameType.GAME_ELEMENT);
+                    worldElementsInCurrentFrame[recordedGameObjectState.id] = recordedGameObjectState;
                 }
             }
 
-            return result.ToArray();
+            // performance optimization to avoid using hashing checks on every element
+            bool addedRendererCount = false, addedGameElement = false;
+            var worldElementsCount = 0;
+            var hadDifferentUIElements = false;
+            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
+            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
+            for (var i = 0; i < priorState.Count; i++)
+            {
+                var recordedGameObjectState = priorState[i];
+                // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
+                if (!OptimizedContainsStringInList(scenesInPriorFrame, recordedGameObjectState.scene))
+                {
+                    scenesInPriorFrame.Add(recordedGameObjectState.scene);
+                }
+
+                if (recordedGameObjectState.worldSpaceBounds == null)
+                {
+                    if (!hadDifferentUIElements)
+                    {
+                        hadDifferentUIElements |= !OptimizedRemoveIntFromList(uiElementsInCurrentFrame, recordedGameObjectState.id);
+                    }
+                }
+                else
+                {
+                    ++worldElementsCount;
+                    // once we've added both of these.. skip some checks
+                    if (!addedRendererCount || !addedGameElement)
+                    {
+                        if (worldElementsInCurrentFrame.TryGetValue(recordedGameObjectState.id, out var elementInCurrentFrame))
+                        {
+                            if (!addedRendererCount && elementInCurrentFrame.rendererCount != recordedGameObjectState.rendererCount)
+                            {
+                                // if an element changed its renderer count
+                                result.Add(KeyFrameType.GAME_ELEMENT_RENDERER_COUNT);
+                                addedRendererCount = true;
+                            }
+                        }
+                        else
+                        {
+                            if (!addedGameElement)
+                            {
+                                // if we had an element disappear
+                                result.Add(KeyFrameType.GAME_ELEMENT);
+                                addedGameElement = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // scene loaded or changed
+            if (!StringListsMatch(scenesInPriorFrame, scenesInCurrentFrame))
+            {
+                // elements from scenes changed this frame
+                result.Add(KeyFrameType.SCENE);
+            }
+
+            // visible UI elements changed
+            if (hadDifferentUIElements || uiElementsInCurrentFrame.Count != 0)
+            {
+                // visible UI elements changed this frame
+                result.Add(KeyFrameType.UI_ELEMENT);
+            }
+
+            // visible game elements changed
+            if (worldElementsCount != worldElementsInCurrentFrame.Count && !addedGameElement)
+            {
+                // if we had a new element appear
+                result.Add(KeyFrameType.GAME_ELEMENT);
+            }
+
+            return result;
         }
 
         public void StopRecording()
@@ -376,17 +499,17 @@ namespace RegressionGames.StateRecorder
 
                 byte[] jsonData = null;
 
-                var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
+                var statefulObjects = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(_priorFrame?.state);
 
                 _mouseObserver.ObserveMouse(statefulObjects);
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                var keyFrameType = (_priorFrame == null) ? new KeyFrameType[] {KeyFrameType.FIRST_FRAME} : GetKeyFrameType(_priorFrame.state, statefulObjects, pixelHash);
+                var keyFrameType = GetKeyFrameType(_priorFrame?.state, statefulObjects, pixelHash);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
-                if (keyFrameType.Length > 0
+                if (keyFrameType.Count > 0
                     || (recordingMinFPS > 0 && (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
                    )
                 {
@@ -440,7 +563,7 @@ namespace RegressionGames.StateRecorder
 
                         var frameState = new FrameStateData()
                         {
-                            keyFrame = keyFrameType,
+                            keyFrame = keyFrameType.ToArray(),
                             tickNumber = _tickNumber,
                             time = frameTime,
                             timeScale = Time.timeScale,
