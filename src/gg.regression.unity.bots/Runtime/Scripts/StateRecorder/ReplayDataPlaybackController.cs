@@ -594,11 +594,12 @@ namespace RegressionGames.StateRecorder
                                 var screenPoint = mainCamera.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
                                 {
-                                    RGDebug.LogError($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
+                                    RGDebug.LogWarning($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
                                 }
                                 else
                                 {
                                     bestObject = null;
+                                    RGDebug.LogInfo($"({tickNumber}) Adjusting world click location to ensure hit on object: " + objectToCheck.path);
                                     // we hit one of our world objects, set the normalized position and stop looping
                                     normalizedPosition = new Vector2((int)screenPoint.x, (int)screenPoint.y);
                                     break; // end the for
@@ -678,10 +679,7 @@ namespace RegressionGames.StateRecorder
                 // make sure our click is on that object
                 if (!clickBounds.Contains(normalizedPosition))
                 {
-                    if (RGDebug.IsDebugEnabled)
-                    {
-                        RGDebug.LogDebug($"({tickNumber}) Adjusting click location to ensure hit on object path: " + bestObject.path);
-                    }
+                    RGDebug.LogInfo($"({tickNumber}) Adjusting click location to ensure hit on object path: " + bestObject.path);
 
                     // use the center of these bounds as our best point to click
                     normalizedPosition = new Vector2((int)clickBounds.center.x, (int)clickBounds.center.y);

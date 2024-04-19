@@ -188,7 +188,7 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private void ParseReplayZip(string zipFilePath)
+        public void ParseReplayZip(string zipFilePath)
         {
             using var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Read);
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading.Tasks;
 using RegressionGames;
 using SimpleFileBrowser;
 using RegressionGames.StateRecorder;
@@ -50,8 +51,11 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         public void ChooseReplay()
         {
-            //File choose and load the replay
-            StartCoroutine(ShowFileLoadDialog());
+            if (!_parsingZipFile)
+            {
+                //File choose and load the replay
+                StartCoroutine(ShowFileLoadDialog());
+            }
         }
 
         private IEnumerator ShowFileLoadDialog()
@@ -76,26 +80,59 @@ namespace Unity.Multiplayer.Samples.BossRoom
             }
         }
 
+        private volatile bool _parsingZipFile = false;
+
         void OnFilesSelected(string[] filePaths)
         {
             // Get the file path of the first selected file
             var filePath = filePaths[0];
 
+            _parsingZipFile = true;
+            recordButton.SetActive(false);
+
+            // do this on background thread
+            Task.Run(() => ProcessDataContainerZipAndSetup(filePath));
+        }
+
+        private void ProcessDataContainerZipAndSetup(String filePath)
+        {
             try
             {
-                // setup the new replay data
-                _replayDataController.SetDataContainer(new ReplayDataContainer(filePath));
-
-                SetDefaultButtonStates();
-                // set button states
-                playButton.SetActive(true);
-                stopButton.SetActive(true);
-                recordButton.SetActive(false);
+                // do this on background thread
+                var dataContainer = new ReplayDataContainer(filePath);
+                _replayLoadedNextUpdate = dataContainer;
             }
             catch (Exception e)
             {
                 RGDebug.LogException(e);
             }
+            finally
+            {
+                _parsingZipFile = false;
+            }
+        }
+
+        private volatile ReplayDataContainer _replayLoadedNextUpdate = null;
+
+        private void Update()
+        {
+            if (_replayLoadedNextUpdate != null)
+            {
+                EndProcessContainer(_replayLoadedNextUpdate);
+                _replayLoadedNextUpdate = null;
+            }
+        }
+
+        private void EndProcessContainer(ReplayDataContainer dataContainer)
+        {
+            // setup the new replay data
+            _replayDataController.SetDataContainer(dataContainer);
+
+            SetDefaultButtonStates();
+            // set button states
+            playButton.SetActive(true);
+            stopButton.SetActive(true);
+            recordButton.SetActive(false);
         }
 
         public void PlayReplay()

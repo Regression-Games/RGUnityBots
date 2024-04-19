@@ -501,8 +501,8 @@ namespace RegressionGames.StateRecorder
                 {
                     BehaviourState cObject = new BehaviourState
                     {
-                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                        name = (ts ??= GetUniqueTransformPath(childTransform)).TypeFullName,
+                        path = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).Path,
+                        name = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).TypeFullName,
                         state = childBehaviour
                     };
 
