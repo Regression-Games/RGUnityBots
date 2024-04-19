@@ -5,6 +5,7 @@ using StateRecorder.Types;
 using UnityEngine;
 using Component = UnityEngine.Component;
 // ReSharper disable ForCanBeConvertedToForeach - indexed for is faster and has less allocs than enumerator
+// ReSharper disable LoopCanBeConvertedToQuery
 
 namespace RegressionGames.StateRecorder
 {
@@ -21,8 +22,8 @@ namespace RegressionGames.StateRecorder
 
     public class InGameObjectFinder : MonoBehaviour
     {
-        private static readonly List<ColliderState> _emptyColliderStateList = new(0);
-        private static readonly List<RigidbodyState> _emptyRigidbodyStateList = new(0);
+        private static readonly List<ColliderRecordState> _emptyColliderStateList = new(0);
+        private static readonly List<RigidbodyRecordState> _emptyRigidbodyStateList = new(0);
 
         private static InGameObjectFinder _this;
 
@@ -150,24 +151,17 @@ namespace RegressionGames.StateRecorder
             return status;
         }
 
-        // allow passing in TransformStatus to minimize the number of times we call GetUniqueTransformPath
-        private BehaviourState GetStateForBehaviour(Behaviour behaviour, TransformStatus tStatus = null)
-        {
-            tStatus ??= GetUniqueTransformPath(behaviour.transform, behaviour);
-            return new BehaviourState
-            {
-                path = tStatus.Path,
-                name = tStatus.TypeFullName,
-                state = behaviour
-            };
-        }
+        // allocate this rather large list 1 time to avoid realloc on each tick object
+        private readonly List<Renderer> _rendererQueryList = new(100);
 
         private RecordedGameObjectState CreateStateForTransform(List<RecordedGameObjectState> priorState, Camera mainCamera, bool replay, int screenWidth, int screenHeight, Transform t)
         {
             // All of this code is verbose in order to optimize performance by avoiding using the Bounds APIs
             // find the full bounds of the statefulGameObject
             var statefulGameObject = t.gameObject;
-            var renderers = statefulGameObject.GetComponentsInChildren<Renderer>();
+
+            _rendererQueryList.Clear();
+            statefulGameObject.GetComponentsInChildren(_rendererQueryList);
 
             var minWorldX = float.MaxValue;
             var maxWorldX = float.MinValue;
@@ -182,10 +176,11 @@ namespace RegressionGames.StateRecorder
 
             var psCount = priorState?.Count ?? -1;
 
+            var rendererListLength = _rendererQueryList.Count;
             // ReSharper disable once ForCanBeConvertedToForeach - faster by index; avoids enumerator
-            for (var i = 0; i < renderers.Length; i++)
+            for (var i = 0; i < rendererListLength; i++)
             {
-                var nextRenderer = renderers[i];
+                var nextRenderer = _rendererQueryList[i];
                 hasVisibleRenderer |= nextRenderer.isVisible;
                 if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
                 {
@@ -334,14 +329,15 @@ namespace RegressionGames.StateRecorder
                         resultObject = new RecordedGameObjectState()
                         {
                             id = objectTransformId,
+                            transform = t,
                             path = GetUniqueTransformPath(t).Path,
                             tag = statefulGameObject.tag,
                             layer = LayerMask.LayerToName(statefulGameObject.layer),
                             scene = statefulGameObject.scene.name,
                             behaviours = new List<BehaviourState>(),
-                            colliders = new List<ColliderState>(),
+                            colliders = new List<ColliderRecordState>(),
                             worldSpaceBounds = null,
-                            rigidbodies = new List<RigidbodyState>()
+                            rigidbodies = new List<RigidbodyRecordState>()
                         };
                     }
 
@@ -354,9 +350,7 @@ namespace RegressionGames.StateRecorder
                     var worldCenter = new Vector3(minWorldX + worldSize.x / 2, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
 
                     // update some fields
-                    resultObject.position = t.position;
-                    resultObject.rotation = t.rotation;
-                    resultObject.rendererCount = renderers.Length;
+                    resultObject.rendererCount = rendererListLength;
 
                     if (usingOldObject)
                     {
@@ -375,12 +369,12 @@ namespace RegressionGames.StateRecorder
                     resultObject.screenSpaceZOffset = maxZ;
 
 
+                    var newBehaviours = new List<BehaviourState>();
+                    var newColliders = new List<ColliderRecordState>();
+                    var newRigidbodies = new List<RigidbodyRecordState>();
                     var behaviours = resultObject.behaviours;
-                    behaviours.Clear();
                     var collidersState = resultObject.colliders;
-                    collidersState.Clear();
                     var rigidbodiesState = resultObject.rigidbodies;
-                    rigidbodiesState.Clear();
 
                     // instead of searching for child components, we instead walk child tree of transforms and check each for components
                     // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
@@ -398,11 +392,15 @@ namespace RegressionGames.StateRecorder
                             for (var j = 0; j < childCount; j++)
                             {
                                 var currentChildTransform = currentParentTransform.GetChild(j);
-                                ProcessChildTransformComponents(currentChildTransform, behaviours, collidersState, rigidbodiesState);
+                                ProcessChildTransformComponents(currentChildTransform, behaviours, collidersState, rigidbodiesState, newBehaviours, newColliders, newRigidbodies);
                                 nextParentTransforms.Add(currentChildTransform);
                             }
                         }
                     }
+
+                    resultObject.behaviours = newBehaviours;
+                    resultObject.colliders = newColliders;
+                    resultObject.rigidbodies = newRigidbodies;
 
                     return resultObject;
                 }
@@ -411,71 +409,161 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private void ProcessChildTransformComponents(Transform childTransform, List<BehaviourState> behaviours, List<ColliderState> collidersState, List<RigidbodyState> rigidbodiesState)
-        {
-            var childComponents = childTransform.GetComponents<Component>();
-            TransformStatus ts = null;
-            if (childComponents.Length > 0)
-            {
-                ts = GetUniqueTransformPath(childTransform);
-            }
+        // pre-allocate this rather large list 1 time to avoid memory stuff on each stick
+        private readonly List<Component> _childComponentsQueryList = new(100);
 
-            var transformPath = ts?.Path;
-            for (var i = 0; i < childComponents.Length; i++)
+        private void ProcessChildTransformComponents(Transform childTransform, List<BehaviourState> priorBehaviours, List<ColliderRecordState> priorCollidersState, List<RigidbodyRecordState> priorRigidbodiesState, List<BehaviourState> behaviours, List<ColliderRecordState> collidersState, List<RigidbodyRecordState> rigidbodiesState)
+        {
+            _childComponentsQueryList.Clear();
+            childTransform.GetComponents(_childComponentsQueryList);
+            TransformStatus ts = null;
+
+            var priorBehavioursCount = priorBehaviours?.Count ?? -1;
+            var priorCollidersCount = priorCollidersState?.Count ?? -1;
+            var priorRigidbodiesCount = priorRigidbodiesState?.Count?? -1;
+
+            // This code re-uses the objects from the prior state as much as possible to avoid allocations
+            // we try to minimize calls to GetUniqueTransformPath whenever possible
+            var listLength = _childComponentsQueryList.Count;
+            for (var i = 0; i < listLength; i++)
             {
-                var childComponent = childComponents[i];
-                // we try to minimize calls to GetUniqueTransformPath whenever possible
-                var childComponentTransform = childComponent.transform;
+                var childComponent = _childComponentsQueryList[i];
                 if (childComponent is Collider colliderEntry)
                 {
-                    collidersState.Add(new ColliderState
+                    ColliderRecordState cObject = null;
+                    var instanceId = colliderEntry.GetInstanceID();
+                    if (priorCollidersState != null)
                     {
-                        path = transformPath,
-                        bounds = colliderEntry.bounds,
-                        isTrigger = colliderEntry.isTrigger
-                    });
+                        for (var j = 0; j < priorCollidersCount; j++)
+                        {
+                            var priorCollider = priorCollidersState[j];
+                            if (priorCollider.id == instanceId)
+                            {
+                                cObject = priorCollider;
+                                break;
+                            }
+                        }
+                    }
+
+                    cObject ??= new ColliderRecordState
+                    {
+                        id = instanceId,
+                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                        collider = colliderEntry
+                    };
+
+                    collidersState.Add(cObject);
                 }
                 else if (childComponent is Collider2D colliderEntry2D)
                 {
-                    collidersState.Add(new ColliderState
+                    ColliderRecordState cObject = null;
+                    var instanceId = colliderEntry2D.GetInstanceID();
+                    if (priorCollidersState != null)
                     {
-                        path = transformPath,
-                        bounds = colliderEntry2D.bounds,
-                        isTrigger = colliderEntry2D.isTrigger
-                    });
+                        for (var j = 0; j < priorCollidersCount; j++)
+                        {
+                            var priorCollider = priorCollidersState[j];
+                            if (priorCollider.id == instanceId)
+                            {
+                                cObject = priorCollider;
+                                break;
+                            }
+                        }
+                    }
+
+                    cObject ??= new Collider2DRecordState
+                    {
+                        id = instanceId,
+                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                        collider = colliderEntry2D
+                    };
+
+                    collidersState.Add(cObject);
                 }
                 else if (childComponent is Rigidbody myRigidbody)
                 {
-                    rigidbodiesState.Add(new RigidbodyState
+                    RigidbodyRecordState cObject = null;
+                    var instanceId = myRigidbody.GetInstanceID();
+                    if (priorRigidbodiesState != null)
+                    {
+                        for (var j = 0; j < priorRigidbodiesCount; j++)
                         {
-                            path = transformPath,
-                            position = myRigidbody.position,
-                            rotation = myRigidbody.rotation,
-                            velocity = myRigidbody.velocity,
-                            drag = myRigidbody.drag,
-                            angularDrag = myRigidbody.angularDrag,
-                            useGravity = myRigidbody.useGravity,
-                            isKinematic = myRigidbody.isKinematic
+                            var priorRigidbody = priorRigidbodiesState[j];
+                            if (priorRigidbody.id == instanceId)
+                            {
+                                cObject = priorRigidbody;
+                                break;
+                            }
                         }
-                    );
+                    }
+
+                    cObject ??= new RigidbodyRecordState
+                    {
+                        id = instanceId,
+                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                        rigidbody = myRigidbody
+                    };
+
+                    rigidbodiesState.Add(cObject);
                 }
                 else if (childComponent is Rigidbody2D myRigidbody2D)
                 {
-                    rigidbodiesState.Add(new RigidbodyState
+                    RigidbodyRecordState cObject = null;
+                    var instanceId = myRigidbody2D.GetInstanceID();
+                    if (priorRigidbodiesState != null)
+                    {
+                        for (var j = 0; j < priorRigidbodiesCount; j++)
                         {
-                            path = transformPath,
-                            position = myRigidbody2D.position,
-                            rotation = Quaternion.Euler(0, 0, myRigidbody2D.rotation),
-                            velocity = myRigidbody2D.velocity
+                            var priorRigidbody = priorRigidbodiesState[j];
+                            if (priorRigidbody.id == instanceId)
+                            {
+                                cObject = priorRigidbody;
+                                break;
+                            }
                         }
-                    );
+                    }
+
+                    cObject ??= new Rigidbody2DRecordState
+                    {
+                        id = instanceId,
+                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                        rigidbody = myRigidbody2D
+                    };
+
+                    rigidbodiesState.Add(cObject);
                 }
                 else if (childComponent is MonoBehaviour childBehaviour)
                 {
-                    behaviours.Add(GetStateForBehaviour(childBehaviour, ts));
+                    BehaviourState cObject = null;
+                    var instanceId = childBehaviour.GetInstanceID();
+                    if (priorBehaviours != null)
+                    {
+                        for (var j = 0; j < priorBehavioursCount; j++)
+                        {
+                            var priorBehaviour = priorBehaviours[j];
+                            if (priorBehaviour.id == instanceId)
+                            {
+                                cObject = priorBehaviour;
+                                break;
+                            }
+                        }
+                    }
+
+                    cObject ??= new BehaviourState
+                    {
+                        id = instanceId,
+                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                        name = (ts ??= GetUniqueTransformPath(childTransform)).TypeFullName,
+                        state = childBehaviour
+                    };
+
+                    behaviours.Add(cObject);
                 }
             }
         }
+
+        // allocate this rather large list 1 time to save allocations on each tick object
+        private readonly List<RectTransform> _rectTransformsList = new(100);
 
         public List<RecordedGameObjectState> GetStateForCurrentFrame(List<RecordedGameObjectState> priorState = null, bool replay = false)
         {
@@ -514,20 +602,22 @@ namespace RegressionGames.StateRecorder
 
                     if (cgEnabled)
                     {
-                        var rectTransforms = statefulUIObject.GetComponentsInChildren<RectTransform>();
-                        if (rectTransforms.Length > 0)
+                        _rectTransformsList.Clear();
+                        statefulUIObject.GetComponentsInChildren(_rectTransformsList);
+                        var rectTransformsListLength = _rectTransformsList.Count;
+                        if (rectTransformsListLength > 0)
                         {
                             //The returned array of 4 vertices is clockwise.
                             //It starts bottom left and rotates to top left, then top right, and finally bottom right.
                             //Note that bottom left, for example, is an (x, y, z) vector with x being left and y being bottom.
-                            rectTransforms[0].GetWorldCorners(screenSpaceCorners);
+                            _rectTransformsList[0].GetWorldCorners(screenSpaceCorners);
 
                             var min = screenSpaceCorners[0];
                             var max = screenSpaceCorners[2];
 
-                            for (var i = 1; i < rectTransforms.Length; ++i)
+                            for (var i = 1; i < rectTransformsListLength; ++i)
                             {
-                                rectTransforms[i].GetWorldCorners(screenSpaceCorners);
+                                _rectTransformsList[i].GetWorldCorners(screenSpaceCorners);
                                 // Vector3.min and Vector3.max re-allocate new vectors on each call, avoid using them
                                 min.x = Mathf.Min(min.x, screenSpaceCorners[0].x);
                                 min.y = Mathf.Min(min.y, screenSpaceCorners[0].y);
@@ -563,6 +653,7 @@ namespace RegressionGames.StateRecorder
                                 resultObject = new RecordedGameObjectState()
                                 {
                                     id = objectTransformId,
+                                    transform = objectTransform,
                                     path = GetUniqueTransformPath(objectTransform).Path,
                                     tag = statefulUIObject.tag,
                                     layer = LayerMask.LayerToName(statefulUIObject.layer),
@@ -581,7 +672,8 @@ namespace RegressionGames.StateRecorder
                             var size = new Vector3(max.x - min.x, max.y-min.y, 0.1f);
                             var center = new Vector3(min.x + (size.x / 2), min.y + (size.y / 2), 0f);
 
-                            List<BehaviourState> behaviours = resultObject.behaviours;
+                            List<BehaviourState> priorBehaviours = resultObject.behaviours;
+                            List<BehaviourState> newBehaviours = new();
 
                             if (usingOldObject)
                             {
@@ -594,11 +686,7 @@ namespace RegressionGames.StateRecorder
                             }
 
                             // need to update some fields
-                            resultObject.rendererCount = rectTransforms.Length;
-                            resultObject.position = objectTransform.position;
-                            resultObject.rotation = objectTransform.rotation;
-
-                            behaviours.Clear();
+                            resultObject.rendererCount = rectTransformsListLength;
 
                             // instead of searching for child Behaviours, we instead walk child tree of transforms and check each for Behaviours
                             // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
@@ -616,11 +704,13 @@ namespace RegressionGames.StateRecorder
                                     for (var k = 0; k < childCount; k++)
                                     {
                                         var currentChildTransform = currentParentTransform.GetChild(k);
-                                        ProcessChildTransformComponents(currentChildTransform, behaviours, null, null);
+                                        ProcessChildTransformComponents(currentChildTransform, priorBehaviours, null, null, newBehaviours, null, null);
                                         nextParentTransforms.Add(currentChildTransform);
                                     }
                                 }
                             }
+
+                            resultObject.behaviours = newBehaviours;
                         }
                     }
                 }
@@ -684,6 +774,9 @@ namespace RegressionGames.StateRecorder
             return resultList;
         }
 
+        // allocate this rather large list 1 time to avoid realloc on each tick object
+        private readonly List<Component> _componentsInParentList = new(100);
+
 
         private void ProcessTransform(Transform theTransform, HashSet<Transform> transformsForThisFrame)
         {
@@ -732,13 +825,15 @@ namespace RegressionGames.StateRecorder
                     }
                     else
                     {
+                        _componentsInParentList.Clear();
                         // if we already saw that parent before, this frame or otherwise, we won't do this again
-                        var componentsInParent = nextParent.GetComponentsInParent<Component>();
+                        nextParent.GetComponentsInParent(false, _componentsInParentList);
                         // ReSharper disable once ForCanBeConvertedToForeach - index iteration faster with less enumerator allocs
                         // ReSharper disable once LoopCanBeConvertedToQuery - index iteration faster with less enumerator allocs
-                        for (var i = 0; i < componentsInParent.Length; i++)
+                        var componentsInParentListLength = _componentsInParentList.Count;
+                        for (var i = 0; i < componentsInParentListLength; i++)
                         {
-                            if (componentsInParent[i] is Renderer or Collider or Collider2D or Rigidbody or Rigidbody2D or Animator
+                            if (_componentsInParentList[i] is Renderer or Collider or Collider2D or Rigidbody or Rigidbody2D or Animator
                                 or ParticleSystem or RGIncludeInState)
                             {
                                 parentHasKeyTypes = true;

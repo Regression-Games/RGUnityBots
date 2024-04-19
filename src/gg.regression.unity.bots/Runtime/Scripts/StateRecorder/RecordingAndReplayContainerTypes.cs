@@ -134,8 +134,8 @@ namespace RegressionGames.StateRecorder
 
         public int rendererCount;
 
-        public List<RigidbodyState> rigidbodies;
-        public List<ColliderState> colliders;
+        public List<RigidbodyReplayState> rigidbodies;
+        public List<ColliderReplayState> colliders;
 
         public Bounds screenSpaceBounds;
 
@@ -156,8 +156,29 @@ namespace RegressionGames.StateRecorder
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RecordedGameObjectState : BaseReplayObjectState
+    public class RecordedGameObjectState
     {
+        public int id;
+
+        public string path;
+        public string scene;
+        public string tag;
+        public string layer;
+
+        public int rendererCount;
+
+        public Bounds screenSpaceBounds;
+
+        public float screenSpaceZOffset;
+
+        [NonSerialized]
+        // keep reference to this instead of updating its fields every tick
+        public Transform transform;
+
+        public Bounds? worldSpaceBounds;
+
+        public List<RigidbodyRecordState> rigidbodies;
+        public List<ColliderRecordState> colliders;
         public List<BehaviourState> behaviours;
 
         public string ToJson()
@@ -171,8 +192,8 @@ namespace RegressionGames.StateRecorder
                                 + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
                                 + ",\n\"screenSpaceZOffset\":" + FloatJsonConverter.ToJsonString(screenSpaceZOffset)
                                 + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
-                                + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
-                                + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
+                                + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(transform.position)
+                                + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(transform.rotation)
                                 + ",\n\"rigidbodies\":[\n" + string.Join(",\n", rigidbodies.Select(a=>a.ToJson()))
                                 + "\n],\n\"colliders\":[\n" + string.Join(",\n", colliders.Select(a=>a.ToJson()))
                                 + "\n],\n\"behaviours\":[\n" + string.Join(",\n", behaviours.Select(a=>a.ToJson()))
@@ -184,6 +205,10 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class BehaviourState
     {
+        // used as an optimization for comparing objects from tick to tick
+        [NonSerialized]
+        public int id;
+
         public string name;
         public string path;
         public Behaviour state;
@@ -195,7 +220,7 @@ namespace RegressionGames.StateRecorder
 
         public string ToJson()
         {
-            var stateJson = "{}";
+            string stateJson;
             try
             {
                 stateJson = JsonConvert.SerializeObject(state, Formatting.None, ScreenRecorder.JsonSerializerSettings);
@@ -208,6 +233,7 @@ namespace RegressionGames.StateRecorder
             catch (Exception ex)
             {
                 RGDebug.LogException(ex, "Error converting behaviour to JSON - " + state.name);
+                stateJson = "{}";
             }
 
             return "{\"name\":" + JsonConvert.ToString(name)
@@ -220,29 +246,114 @@ namespace RegressionGames.StateRecorder
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class ColliderState
+    public class ColliderRecordState
     {
-        public string path;
-        public Bounds bounds;
-        public bool isTrigger;
+        // used as an optimization for comparing objects from tick to tick
+        [NonSerialized]
+        public int id;
 
-        public string ToJson()
+        public string path;
+        public Collider collider;
+
+        public virtual string ToJson()
         {
             return "{\"path\":" + JsonConvert.ToString(path)
-                                + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(bounds)
-                                + ",\"isTrigger\":" + (isTrigger ? "true" : "false")
+                                + ",\"is2D\":false"
+                                + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(collider.bounds)
+                                + ",\"isTrigger\":" + (collider.isTrigger ? "true" : "false")
                                 + "}";
         }
     }
 
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class Collider2DRecordState : ColliderRecordState
+    {
+        public new Collider2D collider;
+
+        public override string ToJson()
+        {
+            return "{\"path\":" + JsonConvert.ToString(path)
+                                + ",\"is2D\":true"
+                                + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(collider.bounds)
+                                + ",\"isTrigger\":" + (collider.isTrigger ? "true" : "false")
+                                + "}";
+        }
+    }
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RigidbodyState
+    public class ColliderReplayState
+    {
+        public string path;
+        public bool is2D;
+        public Bounds bounds;
+        public bool isTrigger;
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class RigidbodyRecordState
+    {
+        // used as an optimization for comparing objects from tick to tick
+        [NonSerialized]
+        public int id;
+
+        public string path;
+
+        // keep a ref to this instead of updating fields every tick
+        public Rigidbody rigidbody;
+
+        public virtual string ToJson()
+        {
+            return "{\"path\":" + JsonConvert.ToString(path)
+                                + ",\"is2D\":false"
+                                + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(rigidbody.position)
+                                + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rigidbody.rotation)
+                                + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(rigidbody.velocity)
+                                + ",\"mass\":" + FloatJsonConverter.ToJsonString(rigidbody.mass)
+                                + ",\"drag\":" + FloatJsonConverter.ToJsonString(rigidbody.drag)
+                                + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(rigidbody.angularDrag)
+                                + ",\"useGravity\":" + (rigidbody.useGravity ? "true" : "false")
+                                + ",\"isKinematic\":" + (rigidbody.isKinematic ? "true" : "false")
+                                + "}";
+        }
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class Rigidbody2DRecordState: RigidbodyRecordState
+    {
+
+        // keep a ref to this instead of updating fields every tick
+        public new Rigidbody2D rigidbody;
+
+        public override string ToJson()
+        {
+            return "{\"path\":" + JsonConvert.ToString(path)
+                                + ",\"is2D\":true"
+                                + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(rigidbody.position)
+                                // rotation around Z
+                                + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(Quaternion.Euler(0, 0, rigidbody.rotation))
+                                + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(rigidbody.velocity)
+                                + ",\"mass\":" + FloatJsonConverter.ToJsonString(rigidbody.mass)
+                                + ",\"drag\":" + FloatJsonConverter.ToJsonString(rigidbody.drag)
+                                + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(rigidbody.angularDrag)
+                                + ",\"gravityScale\":" + FloatJsonConverter.ToJsonString(rigidbody.gravityScale)
+                                + ",\"isKinematic\":" + (rigidbody.isKinematic ? "true" : "false")
+                                + "}";
+        }
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class RigidbodyReplayState
     {
         public string path;
 
         public Vector3 position;
+
+        public bool is2D;
 
         // for 3D this is rotation on Z axis
         public Quaternion rotation;
@@ -251,20 +362,7 @@ namespace RegressionGames.StateRecorder
         public float drag;
         public float angularDrag;
         public bool useGravity;
+        public float gravityScale;
         public bool isKinematic;
-
-        public string ToJson()
-        {
-            return "{\"path\":" + JsonConvert.ToString(path)
-                                + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
-                                + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
-                                + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(velocity)
-                                + ",\"mass\":" + FloatJsonConverter.ToJsonString(mass)
-                                + ",\"drag\":" + FloatJsonConverter.ToJsonString(drag)
-                                + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(angularDrag)
-                                + ",\"useGravity\":" + (useGravity ? "true" : "false")
-                                + ",\"isKinematic\":" + (isKinematic ? "true" : "false")
-                                + "}";
-        }
     }
 }
