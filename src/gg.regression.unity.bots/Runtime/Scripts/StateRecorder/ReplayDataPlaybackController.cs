@@ -10,6 +10,7 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
+// ReSharper disable MergeIntoPattern
 
 namespace RegressionGames.StateRecorder
 {
@@ -190,10 +191,10 @@ namespace RegressionGames.StateRecorder
 
         private string CheckKeyFrameState(List<RecordedGameObjectState> objectStates, string pixelHash)
         {
-            if (_nextKeyFrames.Count > 0 && objectStates != null)
+            var nextKeyFramesCount = _nextKeyFrames.Count;
+            if (nextKeyFramesCount > 0 && objectStates != null)
             {
                 ReplayKeyFrameEntry gameObjectKeyFrame = null, uiObjectKeyFrame = null;
-                var nextKeyFramesCount = _nextKeyFrames.Count;
                 for (var index = 0; index < nextKeyFramesCount; index++)
                 {
                     var nextKeyFrame = _nextKeyFrames[index];
@@ -216,56 +217,70 @@ namespace RegressionGames.StateRecorder
                 var eldestKeyFrame = uiObjectKeyFrame == null ? gameObjectKeyFrame : gameObjectKeyFrame == null ? uiObjectKeyFrame : uiObjectKeyFrame.tickNumber < gameObjectKeyFrame.tickNumber ? uiObjectKeyFrame : gameObjectKeyFrame;
 
                 // copy these with .ToList() so we can remove from them
-                var uiScenes = uiObjectKeyFrame != null ? uiObjectKeyFrame.uiScenes.ToList() : new();
-                var uiElements = uiObjectKeyFrame != null ? uiObjectKeyFrame.uiElements.ToList() : new();
-                var gameScenes = gameObjectKeyFrame != null ? gameObjectKeyFrame.gameScenes.ToList() : new();
-                var gameElements = gameObjectKeyFrame != null ? gameObjectKeyFrame.gameElements.ToList() : new();
+                var uiScenes = uiObjectKeyFrame?.uiScenes.ToList();
+                var uiElements = uiObjectKeyFrame?.uiElements.ToList();
+                var gameScenes = gameObjectKeyFrame?.gameScenes.ToList();
+                var gameElements = gameObjectKeyFrame?.gameElements.ToList();
 
-                foreach (var state in objectStates)
+                var objectStatesCount = objectStates.Count;
+                for (var j = 0; j < objectStatesCount; j++)
                 {
+                    var state = objectStates[j];
+                    var collidersCount = state.colliders.Count;
+                    var rigidbodiesCount = state.rigidbodies.Count;
                     if (state.worldSpaceBounds == null)
                     {
                         if (uiObjectKeyFrame != null)
                         {
-                            if (uiScenes.Count > 0)
+                            if (uiScenes != null && uiScenes.Count > 0 )
                             {
                                 OptimizedRemoveStringFromList(uiScenes, state.scene.name);
                             }
-
-                            if (uiElements.Count == 0)
+                            else
                             {
-                                // only bail out here if we're the ui is the oldest awaited key frame
+                                uiScenes = null;
+                            }
+
+                            if (uiElements == null || uiElements.Count == 0)
+                            {
+                                // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
-                                    return $"({uiObjectKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
+                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
                                 }
+                                uiElements = null;
                             }
 
                             var didRemove = OptimizedRemoveStringFromList(uiElements, state.path);
                             if (!didRemove)
                             {
-                                // only bail out here if we're the ui is the oldest awaited key frame
+                                // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
-                                    return $"({uiObjectKeyFrame.tickNumber}) Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
                                 }
                             }
+
                         }
                     }
                     else
                     {
                         if (gameObjectKeyFrame != null)
                         {
-                            if (gameScenes.Count > 0)
+                            if (gameScenes != null && gameScenes.Count > 0 )
                             {
                                 OptimizedRemoveStringFromList(gameScenes, state.scene.name);
+                            }
+                            else
+                            {
+                                gameScenes = null;
                             }
 
                             // remove any matching game elements
                             for (var i = gameElements.Count - 1; i >= 0; i--)
                             {
                                 var element = gameElements[i];
-                                if (string.CompareOrdinal(element.Item1, state.path) == 0 && element.Item2 == state.rendererCount && element.Item3 == state.colliders.Count && element.Item4 == state.rigidbodies.Count)
+                                if (element.Item2 == state.rendererCount && element.Item3 == collidersCount && element.Item4 == rigidbodiesCount && string.CompareOrdinal(element.Item1, state.path) == 0)
                                 {
                                     gameElements.RemoveAt(i);
                                     break;
@@ -275,7 +290,7 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                if (uiObjectKeyFrame != null && uiScenes.Count == 0 && uiElements.Count == 0)
+                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && uiElements.Count == 0)
                 {
                     if (uiObjectKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && uiObjectKeyFrame.pixelHash != null)
                     {
@@ -284,7 +299,7 @@ namespace RegressionGames.StateRecorder
                             // only bail out here if we're the ui is the oldest awaited key frame
                             if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                             {
-                                return $"({uiObjectKeyFrame.tickNumber}) Wait for KeyFrame - PixelHash '{pixelHash}' does not match expected '{uiObjectKeyFrame.pixelHash}'";
+                                return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - PixelHash '"+ pixelHash +"' does not match expected '" + uiObjectKeyFrame.pixelHash +"'";
                             }
                         }
                         else
@@ -298,14 +313,14 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                if (gameObjectKeyFrame != null && gameScenes.Count == 0 && gameElements.Count == 0)
+                if (gameObjectKeyFrame != null && (gameScenes == null || gameScenes.Count == 0) && gameElements.Count == 0)
                 {
                     gameObjectKeyFrame.gameMatched = true;
                 }
 
                 if (!(uiObjectKeyFrame?.uiMatched == true && gameObjectKeyFrame?.gameMatched == true ))
                 {
-                    var missingConditions = $"({uiObjectKeyFrame?.tickNumber}:{gameObjectKeyFrame?.tickNumber}) Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n{string.Join("\r\n", uiScenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\ngameScenes:\r\n{string.Join("\r\n", gameScenes)}\r\ngameElements:\r\n{string.Join("\r\n", gameElements.Select(a => $"({a.Item1}, {a.Item2}, {a.Item3}, {a.Item4})"))}";
+                    var missingConditions = "" + uiObjectKeyFrame?.tickNumber + ":"+ gameObjectKeyFrame?.tickNumber + " Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n" + (uiScenes != null ? string.Join("\r\n", uiScenes):null) + "\r\nuiElements:\r\n" + (uiElements != null ? string.Join("\r\n", uiElements) : null) + "\r\ngameScenes:\r\n" + (gameScenes != null ? string.Join("\r\n", gameScenes) : null) + "\r\ngameElements:\r\n" + (gameElements!= null ? string.Join("\r\n", gameElements.Select(a => "" + a.Item1+","+a.Item2+","+a.Item3+","+a.Item4)):null);
                     // still missing something from the key frame
                     return missingConditions;
                 }
@@ -314,17 +329,52 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private bool OptimizedRemoveStringFromList(List<string> list, string theString)
+        private static bool OptimizedContainsStringInArray(string[] list, string theString)
         {
-            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
-            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
-            var listCount = list.Count;
-            for (var i=0; i<listCount; i++)
+            if (list != null)
             {
-                if (string.CompareOrdinal(list[i], theString) == 0 )
+                var listCount = list.Length;
+                for (var i = 0; i < listCount; i++)
                 {
-                    list.RemoveAt(i);
-                    return true;
+                    if (string.CompareOrdinal(list[i], theString) == 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool OptimizedContainsStringInList(List<string> list, string theString)
+        {
+            if (list != null)
+            {
+                var listCount = list.Count;
+                for (var i = 0; i < listCount; i++)
+                {
+                    if (string.CompareOrdinal(list[i], theString) == 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool OptimizedRemoveStringFromList(List<string> list, string theString)
+        {
+            if (list != null)
+            {
+                var listCount = list.Count;
+                for (var i = 0; i < listCount; i++)
+                {
+                    if (string.CompareOrdinal(list[i], theString) == 0)
+                    {
+                        list.RemoveAt(i);
+                        return true;
+                    }
                 }
             }
 
@@ -486,6 +536,8 @@ namespace RegressionGames.StateRecorder
 
         public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> objectStates)
         {
+            var mainCamera = Camera.main;
+
             var screenWidth = Screen.width;
             var screenHeight = Screen.height;
 
@@ -502,16 +554,20 @@ namespace RegressionGames.StateRecorder
 
             // find the most precise object clicked on based on paths
             // sorted by relative distance to our normalized position
+
             var possibleObjects = objectStates
-                .Where(a => mouseInput.clickedObjectPaths.Contains(a.path))
-                // sort by nearest
-                .OrderBy(a =>
-                {
+                .Where(a=>OptimizedContainsStringInArray(mouseInput.clickedObjectPaths, a.path))
+                .OrderBy(a => {
                     var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
                     return (theNp - closestPointInA).sqrMagnitude;
-                }).Distinct(_recordedGameObjectStatePathEqualityComparer).ToList(); // select only the first entry of each path for ui elements; uses ToList due to multiple iterations of this structure later in the code to avoid multiple enumeration
-            foreach (var objectToCheck in possibleObjects)
+                })
+                .Distinct(_recordedGameObjectStatePathEqualityComparer)
+                .ToList(); // select only the first entry of each path for ui elements; uses ToList due to multiple iterations of this structure later in the code to avoid multiple enumeration
+
+            var possibleObjectsCount = possibleObjects.Count;
+            for (var j = 0; j < possibleObjectsCount; j++)
             {
+                var objectToCheck = possibleObjects[j];
                 var size = objectToCheck.screenSpaceBounds.size.x * objectToCheck.screenSpaceBounds.size.y;
 
                 if (bestObject == null)
@@ -535,7 +591,7 @@ namespace RegressionGames.StateRecorder
                             // uses the collider bounds on that object as colliders are what would drive world space objects' click detection in scripts / etc
                             if ((objectToCheck.colliders.Count == 0 && objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition)) || objectToCheck.colliders.FirstOrDefault(a => a.collider.bounds.Contains(mouseWorldPosition)) != null)
                             {
-                                var screenPoint = Camera.main.WorldToScreenPoint(mouseWorldPosition);
+                                var screenPoint = mainCamera.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
                                 {
                                     RGDebug.LogError($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
@@ -545,7 +601,7 @@ namespace RegressionGames.StateRecorder
                                     bestObject = null;
                                     // we hit one of our world objects, set the normalized position and stop looping
                                     normalizedPosition = new Vector2((int)screenPoint.x, (int)screenPoint.y);
-                                    break; // end the foreach
+                                    break; // end the for
                                 }
                             }
                             else
@@ -575,7 +631,6 @@ namespace RegressionGames.StateRecorder
                                 smallestSize = size;
                             }
                         }
-
                     }
                 }
                 else // objectToCheck.worldSpaceBounds == null
@@ -598,7 +653,6 @@ namespace RegressionGames.StateRecorder
                         bestObject = objectToCheck;
                         smallestSize = size;
                     }
-
                 }
             }
 
@@ -608,10 +662,12 @@ namespace RegressionGames.StateRecorder
 
                 // evaluate the bounds of the possible objects and narrow our bounding box for any that intersect these bounds
                 // ReSharper disable once PossibleMultipleEnumeration
-                foreach (var objectToCheck in possibleObjects)
+                for (var j = 0; j < possibleObjectsCount; j++)
                 {
+                    var objectToCheck = possibleObjects[j];
                     if (clickBounds.Intersects(objectToCheck.screenSpaceBounds))
                     {
+                        // max of the mins; and min of the maxes
                         clickBounds.SetMinMax(
                             Vector3.Max(clickBounds.min, objectToCheck.screenSpaceBounds.min),
                             Vector3.Min(clickBounds.max, objectToCheck.screenSpaceBounds.max)
@@ -645,8 +701,7 @@ namespace RegressionGames.StateRecorder
                 // 0f == false == un-clicked state
                 foreach (var mouseControl in mouseControls)
                 {
-                    var controlName = mouseControl.path.Substring(mouseControl.path.LastIndexOf('/') + 1);
-                    switch (controlName)
+                    switch (mouseControl.name)
                     {
                         case "delta":
                             if (_lastMousePosition != null)

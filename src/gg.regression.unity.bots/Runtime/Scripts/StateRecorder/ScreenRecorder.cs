@@ -17,7 +17,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 
@@ -27,6 +26,8 @@ using UnityEditor.Media;
 #endif
 
 
+// ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
+// ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
 namespace RegressionGames.StateRecorder
 {
     public class ScreenRecorder : MonoBehaviour
@@ -299,8 +300,6 @@ namespace RegressionGames.StateRecorder
 
         private bool OptimizedContainsIntInList(List<int> list, int theScene)
         {
-            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
-            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
             var listCount = list.Count;
             for (var i=0; i<listCount; i++)
             {
@@ -315,8 +314,6 @@ namespace RegressionGames.StateRecorder
 
         private bool OptimizedRemoveIntFromList(List<int> list, int theInt)
         {
-            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
-            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
             var listCount = list.Count;
             for (var i=0; i<listCount; i++)
             {
@@ -394,8 +391,6 @@ namespace RegressionGames.StateRecorder
 
             // need to do current before previous due to the world element renderers comparisons
 
-            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
-            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
             var currentStateCount = currentState.Count;
             for (var i = 0; i < currentStateCount; i++)
             {
@@ -422,8 +417,6 @@ namespace RegressionGames.StateRecorder
             bool addedRendererCount = false, addedGameElement = false;
             var worldElementsCount = 0;
             var hadDifferentUIElements = false;
-            // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
-            // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
             var priorStateCount = priorState.Count;
             for (var i = 0; i < priorStateCount; i++)
             {

@@ -190,7 +190,6 @@ namespace RegressionGames.StateRecorder
             var psCount = priorState?.Count ?? -1;
 
             var rendererListLength = _rendererQueryList.Count;
-            // ReSharper disable once ForCanBeConvertedToForeach - faster by index; avoids enumerator
             for (var i = 0; i < rendererListLength; i++)
             {
                 var nextRenderer = _rendererQueryList[i];
@@ -279,7 +278,6 @@ namespace RegressionGames.StateRecorder
                 var minZ = float.MaxValue;
                 var maxZ = float.MinValue;
 
-                // ReSharper disable once ForCanBeConvertedToForeach - faster by index, avoids enumerator
                 var worldCornersLength = _worldCorners.Length;
                 for (var i=0; i< worldCornersLength; i++)
                 {
@@ -528,8 +526,8 @@ namespace RegressionGames.StateRecorder
             var psCount = priorState?.Count ?? -1;
 
              // we re-use this over and over instead of allocating multiple times
-            // ReSharper disable once ForCanBeConvertedToForeach - index is faster with less allocs than enumerator
-            for (var j = 0; j < canvasRenderers.Length; j++)
+            var canvasRenderersLength = canvasRenderers.Length;
+            for (var j = 0; j < canvasRenderersLength; j++)
             {
                 var canvasRenderer = canvasRenderers[j];
                 var statefulUIObject = ((CanvasRenderer)canvasRenderer).gameObject;
@@ -780,8 +778,6 @@ namespace RegressionGames.StateRecorder
                         _componentsInParentList.Clear();
                         // if we already saw that parent before, this frame or otherwise, we won't do this again
                         nextParent.GetComponentsInParent(false, _componentsInParentList);
-                        // ReSharper disable once ForCanBeConvertedToForeach - index iteration faster with less enumerator allocs
-                        // ReSharper disable once LoopCanBeConvertedToQuery - index iteration faster with less enumerator allocs
                         var componentsInParentListLength = _componentsInParentList.Count;
                         for (var i = 0; i < componentsInParentListLength; i++)
                         {
