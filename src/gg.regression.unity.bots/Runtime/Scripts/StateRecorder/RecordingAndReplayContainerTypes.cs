@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder
 {
@@ -161,7 +162,9 @@ namespace RegressionGames.StateRecorder
         public int id;
 
         public string path;
-        public string scene;
+        [NonSerialized] // used internally for performance, but serialized as the name
+        public Scene scene;
+
         public string tag;
         public string layer;
 
@@ -185,7 +188,7 @@ namespace RegressionGames.StateRecorder
         {
             return "{\n\"id\":" + id
                                 + ",\n\"path\":" + JsonConvert.ToString(path)
-                                + ",\n\"scene\":" + JsonConvert.ToString(scene)
+                                + ",\n\"scene\":" + JsonConvert.ToString(scene.name)
                                 + ",\n\"tag\":" + JsonConvert.ToString(tag)
                                 + ",\n\"layer\":" + JsonConvert.ToString(layer)
                                 + ",\n\"rendererCount\":" + rendererCount
@@ -205,10 +208,6 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class BehaviourState
     {
-        // used as an optimization for comparing objects from tick to tick
-        [NonSerialized]
-        public int id;
-
         public string name;
         public string path;
         public Behaviour state;
@@ -248,10 +247,6 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class ColliderRecordState
     {
-        // used as an optimization for comparing objects from tick to tick
-        [NonSerialized]
-        public int id;
-
         public string path;
         public Collider collider;
 
@@ -295,9 +290,6 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RigidbodyRecordState
     {
-        // used as an optimization for comparing objects from tick to tick
-        [NonSerialized]
-        public int id;
 
         public string path;
 
