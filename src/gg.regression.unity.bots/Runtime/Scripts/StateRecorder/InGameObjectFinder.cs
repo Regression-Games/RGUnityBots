@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using JetBrains.Annotations;
 using StateRecorder.Types;
@@ -418,19 +419,23 @@ namespace RegressionGames.StateRecorder
                     _currentParentTransforms.Clear();
                     while (_nextParentTransforms.Count > 0)
                     {
-                        // swap the list references
+                        var nptCount = _nextParentTransforms.Count;
+                        for (var i = 0; i < nptCount; i++)
+                        {
+                            var currentTransform = _nextParentTransforms[i];
+                            ProcessChildTransformComponents(currentTransform, behaviours, collidersState, rigidbodiesState);
+                        }
+                        // swap the list references and load the next layer
                         (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
                         _nextParentTransforms.Clear();
                         var currentCount = _currentParentTransforms.Count;
                         for (var i = 0; i < currentCount; i++)
                         {
                             var currentParentTransform = _currentParentTransforms[i];
-                            var childCount = _currentParentTransforms[i].childCount;
+                            var childCount = currentParentTransform.childCount;
                             for (var j = 0; j < childCount; j++)
                             {
-                                var currentChildTransform = currentParentTransform.GetChild(j);
-                                ProcessChildTransformComponents(currentChildTransform, behaviours, collidersState, rigidbodiesState);
-                                _nextParentTransforms.Add(currentChildTransform);
+                                _nextParentTransforms.Add(currentParentTransform.GetChild(j));
                             }
                         }
                     }
@@ -646,18 +651,24 @@ namespace RegressionGames.StateRecorder
                             _currentParentTransforms.Clear();
                             while (_nextParentTransforms.Count > 0)
                             {
-                                // swap the list references
+                                var nptCount = _nextParentTransforms.Count;
+                                for (var i = 0; i < nptCount; i++)
+                                {
+                                    var currentTransform = _nextParentTransforms[i];
+                                    ProcessChildTransformComponents(currentTransform, behaviours, null, null);
+                                }
+
+                                // swap the list references and load the next layer
                                 (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
                                 _nextParentTransforms.Clear();
                                 var currentCount = _currentParentTransforms.Count;
                                 for (var i = 0; i < currentCount; i++)
                                 {
                                     var currentParentTransform = _currentParentTransforms[i];
-                                    var childCount = _currentParentTransforms[i].childCount;
+                                    var childCount = currentParentTransform.childCount;
                                     for (var k = 0; k < childCount; k++)
                                     {
                                         var currentChildTransform = currentParentTransform.GetChild(k);
-                                        ProcessChildTransformComponents(currentChildTransform, behaviours, null, null);
                                         _nextParentTransforms.Add(currentChildTransform);
                                     }
                                 }

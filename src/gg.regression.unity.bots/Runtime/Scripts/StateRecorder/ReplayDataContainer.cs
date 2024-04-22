@@ -280,8 +280,8 @@ namespace RegressionGames.StateRecorder
                         // go through the mouse input data and setup the different entries
                         string[] specificGameObjectPaths = Array.Empty<string>();
 
-                        // in the future, we may validate the object ids on mouse release.. but in early testing this creating some very bad timing issues
-                        if (keyFrame != null && mouseInputData.clickedObjectIds != null && mouseInputData.IsButtonClicked)
+                        // we also validate the object ids on mouse release to adjust click positions
+                        if (keyFrame != null && mouseInputData.clickedObjectIds != null )
                         {
                             specificGameObjectPaths = FindObjectsWithIds(mouseInputData.clickedObjectIds, frameData.state).ToArray();
                         }

@@ -89,10 +89,13 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
             _parsingZipFile = true;
             recordButton.SetActive(false);
+            chooseReplayButton.SetActive(false);
 
             // do this on background thread
             Task.Run(() => ProcessDataContainerZipAndSetup(filePath));
         }
+
+        private bool _justLoaded = false;
 
         private void ProcessDataContainerZipAndSetup(String filePath)
         {
@@ -109,6 +112,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             finally
             {
                 _parsingZipFile = false;
+                _justLoaded = true;
             }
         }
 
@@ -116,23 +120,28 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         private void Update()
         {
-            if (_replayLoadedNextUpdate != null)
+            if (_justLoaded)
             {
-                EndProcessContainer(_replayLoadedNextUpdate);
-                _replayLoadedNextUpdate = null;
+                _justLoaded = false;
+                if (_replayLoadedNextUpdate != null)
+                {
+                    // setup the new replay data
+                    _replayDataController.SetDataContainer(_replayLoadedNextUpdate);
+                    _replayLoadedNextUpdate = null;
+                    SetDefaultButtonStates();
+                    // set button states
+                    chooseReplayButton.SetActive(false);
+                    playButton.SetActive(true);
+                    stopButton.SetActive(true);
+                    recordButton.SetActive(false);
+                }
+                else
+                {
+                    // failed to load
+                    SetDefaultButtonStates();
+                }
+
             }
-        }
-
-        private void EndProcessContainer(ReplayDataContainer dataContainer)
-        {
-            // setup the new replay data
-            _replayDataController.SetDataContainer(dataContainer);
-
-            SetDefaultButtonStates();
-            // set button states
-            playButton.SetActive(true);
-            stopButton.SetActive(true);
-            recordButton.SetActive(false);
         }
 
         public void PlayReplay()
