@@ -249,7 +249,7 @@ namespace RegressionGames.StateRecorder
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
                     position = new Vector2Int(Screen.width +20, -20)
-                }, new List<RecordedGameObjectState>());
+                }, null, new List<RecordedGameObjectState>());
 
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _mouseObserver.ClearBuffer();
@@ -296,35 +296,6 @@ namespace RegressionGames.StateRecorder
             }
             StartCoroutine(StartRecordingCoroutine());
 
-        }
-
-        private bool OptimizedContainsIntInList(List<int> list, int theScene)
-        {
-            var listCount = list.Count;
-            for (var i=0; i<listCount; i++)
-            {
-                if (list[i] == theScene)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool OptimizedRemoveIntFromList(List<int> list, int theInt)
-        {
-            var listCount = list.Count;
-            for (var i=0; i<listCount; i++)
-            {
-                if (list[i] == theInt)
-                {
-                    list.RemoveAt(i);
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         /**
@@ -398,7 +369,7 @@ namespace RegressionGames.StateRecorder
 
                 var sceneHandle = recordedGameObjectState.scene.handle;
                 // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
-                if (!OptimizedContainsIntInList(_sceneHandlesInCurrentFrame, sceneHandle))
+                if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInCurrentFrame, sceneHandle))
                 {
                     _sceneHandlesInCurrentFrame.Add(sceneHandle);
                 }
@@ -424,7 +395,7 @@ namespace RegressionGames.StateRecorder
 
                 var sceneHandle = recordedGameObjectState.scene.handle;
                 // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
-                if (!OptimizedContainsIntInList(_sceneHandlesInPriorFrame, sceneHandle))
+                if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInPriorFrame, sceneHandle))
                 {
                     _sceneHandlesInPriorFrame.Add(sceneHandle);
                 }
@@ -433,7 +404,7 @@ namespace RegressionGames.StateRecorder
                 {
                     if (!hadDifferentUIElements)
                     {
-                        hadDifferentUIElements |= !OptimizedRemoveIntFromList(_uiElementsInCurrentFrame, recordedGameObjectState.id);
+                        hadDifferentUIElements |= !StateRecorderUtils.OptimizedRemoveIntFromList(_uiElementsInCurrentFrame, recordedGameObjectState.id);
                     }
                 }
                 else
@@ -508,7 +479,17 @@ namespace RegressionGames.StateRecorder
                 _newStates.Clear();
                 InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(_priorStates, _newStates);
 
-                _mouseObserver.ObserveMouse(_newStates);
+                // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
+                // what it clicked on normally isn't in the new state (button was in the old state)
+                if (_priorStates != null)
+                {
+                    _mouseObserver.ObserveMouse(_priorStates);
+                }
+                else
+                {
+                    _mouseObserver.ObserveMouse(_newStates);
+                }
+
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 

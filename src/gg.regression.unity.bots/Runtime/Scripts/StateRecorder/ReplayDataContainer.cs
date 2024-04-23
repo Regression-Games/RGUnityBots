@@ -196,6 +196,7 @@ namespace RegressionGames.StateRecorder
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
             ReplayFrameStateData firstFrame = null;
+            ReplayFrameStateData priorFrame = null;
             foreach (var entry in entries)
             {
                 using var sr = new StreamReader(entry.Open());
@@ -283,7 +284,7 @@ namespace RegressionGames.StateRecorder
                         // we also validate the object ids on mouse release to adjust click positions
                         if (keyFrame != null && mouseInputData.clickedObjectIds != null )
                         {
-                            specificGameObjectPaths = FindObjectsWithIds(mouseInputData.clickedObjectIds, frameData.state).ToArray();
+                            specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state).ToArray();
                         }
 
                         _mouseData.Enqueue(new ReplayMouseInputEntry()
@@ -303,6 +304,8 @@ namespace RegressionGames.StateRecorder
                         });
                     }
                 }
+
+                priorFrame = frameData;
             }
 
             if (firstFrame == null)
@@ -312,10 +315,36 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private IEnumerable<string> FindObjectsWithIds(int[] objectIds, List<ReplayGameObjectState> state)
+        private List<string> FindObjectPathsWithIds(int[] objectIds, List<ReplayGameObjectState> priorState, List<ReplayGameObjectState> state)
         {
-            var currentStateEntries = state.Where(a => objectIds.Contains(a.id)).Select(a => a.path);
-            return currentStateEntries;
+            // look in current state first, then fall back to prior state
+            // copy me
+            var objectIdsToFind = objectIds.ToList();
+            List<string> objectPathsFound = new();
+
+            var stateCount = state.Count;
+            for (var i = 0; i < stateCount; i++)
+            {
+                var so = state[i];
+                if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
+                {
+                    objectPathsFound.Add(so.path);
+                }
+            }
+
+            if (objectIdsToFind.Count > 0 && priorState != null)
+            {
+                stateCount = priorState.Count;
+                for (var i = 0; i < stateCount; i++)
+                {
+                    var so = priorState[i];
+                    if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
+                    {
+                        objectPathsFound.Add(so.path);
+                    }
+                }
+            }
+            return objectPathsFound;
         }
     }
 }

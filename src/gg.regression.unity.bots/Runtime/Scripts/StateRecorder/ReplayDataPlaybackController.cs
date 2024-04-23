@@ -96,7 +96,7 @@ namespace RegressionGames.StateRecorder
             {
                 // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
                 position = new Vector2Int(Screen.width +20, -20)
-            }, new List<RecordedGameObjectState>());
+            }, null, new List<RecordedGameObjectState>());
 
             _dataContainer = dataContainer;
             _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
@@ -234,7 +234,7 @@ namespace RegressionGames.StateRecorder
                         {
                             if (uiScenes != null && uiScenes.Count > 0 )
                             {
-                                OptimizedRemoveStringFromList(uiScenes, state.scene.name);
+                                StateRecorderUtils.OptimizedRemoveStringFromList(uiScenes, state.scene.name);
                             }
                             else
                             {
@@ -251,7 +251,7 @@ namespace RegressionGames.StateRecorder
                                 uiElements = null;
                             }
 
-                            var didRemove = OptimizedRemoveStringFromList(uiElements, state.path);
+                            var didRemove = StateRecorderUtils.OptimizedRemoveStringFromList(uiElements, state.path);
                             if (!didRemove)
                             {
                                 // only bail out here if we are where the ui is the oldest awaited key frame
@@ -269,7 +269,7 @@ namespace RegressionGames.StateRecorder
                         {
                             if (gameScenes != null && gameScenes.Count > 0 )
                             {
-                                OptimizedRemoveStringFromList(gameScenes, state.scene.name);
+                                StateRecorderUtils.OptimizedRemoveStringFromList(gameScenes, state.scene.name);
                             }
                             else
                             {
@@ -290,7 +290,7 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && uiElements.Count == 0)
+                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && (uiElements == null || uiElements.Count == 0))
                 {
                     if (uiObjectKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && uiObjectKeyFrame.pixelHash != null)
                     {
@@ -329,65 +329,13 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private static bool OptimizedContainsStringInArray(string[] list, string theString)
-        {
-            if (list != null)
-            {
-                var listCount = list.Length;
-                for (var i = 0; i < listCount; i++)
-                {
-                    if (string.CompareOrdinal(list[i], theString) == 0)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private static bool OptimizedContainsStringInList(List<string> list, string theString)
-        {
-            if (list != null)
-            {
-                var listCount = list.Count;
-                for (var i = 0; i < listCount; i++)
-                {
-                    if (string.CompareOrdinal(list[i], theString) == 0)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private static bool OptimizedRemoveStringFromList(List<string> list, string theString)
-        {
-            if (list != null)
-            {
-                var listCount = list.Count;
-                for (var i = 0; i < listCount; i++)
-                {
-                    if (string.CompareOrdinal(list[i], theString) == 0)
-                    {
-                        list.RemoveAt(i);
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
         private enum KeyState
         {
             Up,
             Down
         }
 
-        private void PlayInputs(List<RecordedGameObjectState> objectStates)
+        private void PlayInputs(List<RecordedGameObjectState> priorStates, List<RecordedGameObjectState> objectStates)
         {
             var currentTime = CurrentTimePoint;
             if (_keyboardQueue.Count > 0)
@@ -417,7 +365,7 @@ namespace RegressionGames.StateRecorder
                     if (currentTime >= replayMouseInputEntry.startTime)
                     {
                         // send event
-                        SendMouseEvent(replayMouseInputEntry.tickNumber, replayMouseInputEntry, objectStates);
+                        SendMouseEvent(replayMouseInputEntry.tickNumber, replayMouseInputEntry, priorStates, objectStates);
                         replayMouseInputEntry.IsDone = true;
                     }
                 }
@@ -534,35 +482,70 @@ namespace RegressionGames.StateRecorder
 
         private static Vector2? _lastMousePosition;
 
-        public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> objectStates)
+        // Finds the best object to adjust our click position to for a given mouse input
+        // Returns (the object, whether it was world space, the suggested mouse position, and the states list as a convenience)
+        private static (RecordedGameObjectState, bool, Vector2, List<RecordedGameObjectState>) FindBestClickObject(Camera mainCamera, long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> priorStates, List<RecordedGameObjectState> objectStates)
         {
-            var mainCamera = Camera.main;
-
-            var screenWidth = Screen.width;
-            var screenHeight = Screen.height;
 
             // Mouse is hard... we can't use the raw position, we need to use the position relative to the current resolution
             // but.. it gets tougher than that.  Some UI elements scale differently with resolution (only horizontal, only vertical, preserve aspect, expand, etc)
             // so we have to take the bounding space of the original object(s) clicked on into consideration
             var normalizedPosition = mouseInput.NormalizedPosition;
 
+            // note that if this mouse input wasn't a click, there will be no possible objects
+            if (mouseInput.clickedObjectPaths == null || mouseInput.clickedObjectPaths.Length == 0)
+            {
+                // bail out early, no click
+                return (null, false, normalizedPosition, objectStates);
+            }
+
             var theNp = new Vector3(normalizedPosition.x, normalizedPosition.y, 0f);
 
-            float smallestSize = Screen.width * Screen.height;
+            // find possible objects prioritizing the currentState, falling back to the priorState
 
-            RecordedGameObjectState bestObject = null;
+            // copy so we can remove
+            var pathsToFind = mouseInput.clickedObjectPaths.ToList();
 
-            // find the most precise object clicked on based on paths
-            // sorted by relative distance to our normalized position
+            var possibleObjects = new List<RecordedGameObjectState>();
 
-            var possibleObjects = objectStates
-                .Where(a=>OptimizedContainsStringInArray(mouseInput.clickedObjectPaths, a.path))
-                .OrderBy(a => {
+            var objectStatesCount = objectStates.Count;
+            for (var i = 0; i < objectStatesCount; i++)
+            {
+                var os = objectStates[i];
+                if (StateRecorderUtils.OptimizedContainsStringInArray(mouseInput.clickedObjectPaths, os.path))
+                {
+                    possibleObjects.Add(objectStates[i]);
+                    StateRecorderUtils.OptimizedRemoveStringFromList(pathsToFind, os.path);
+                }
+            }
+
+            // still have some objects we didnt' find in the current state, check previous state
+            if (pathsToFind.Count > 0)
+            {
+                objectStatesCount = priorStates.Count;
+                for (var i = 0; i < objectStatesCount; i++)
+                {
+                    var os = priorStates[i];
+                    if (StateRecorderUtils.OptimizedContainsStringInList(pathsToFind, os.path))
+                    {
+                        possibleObjects.Add(objectStates[i]);
+                    }
+                }
+            }
+
+            possibleObjects = possibleObjects.OrderBy(a => {
                     var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
                     return (theNp - closestPointInA).sqrMagnitude;
                 })
                 .Distinct(_recordedGameObjectStatePathEqualityComparer)
                 .ToList(); // select only the first entry of each path for ui elements; uses ToList due to multiple iterations of this structure later in the code to avoid multiple enumeration
+
+            var screenWidth = Screen.width;
+            var screenHeight = Screen.height;
+            float smallestSize = screenWidth * screenHeight;
+
+            RecordedGameObjectState bestObject = null;
+            var worldSpaceObject = false;
 
             var possibleObjectsCount = possibleObjects.Count;
             for (var j = 0; j < possibleObjectsCount; j++)
@@ -598,7 +581,8 @@ namespace RegressionGames.StateRecorder
                                 }
                                 else
                                 {
-                                    bestObject = null;
+                                    bestObject = objectToCheck;
+                                    worldSpaceObject = true;
                                     RGDebug.LogInfo($"({tickNumber}) Adjusting world click location to ensure hit on object: " + objectToCheck.path);
                                     // we hit one of our world objects, set the normalized position and stop looping
                                     normalizedPosition = new Vector2((int)screenPoint.x, (int)screenPoint.y);
@@ -622,14 +606,18 @@ namespace RegressionGames.StateRecorder
                         }
                         else
                         {
-                            // compare elements bounds for best match
-                            // give some threshold variance here for floating point math on sizes
-                            // if 2 objects are very similarly sized, we want the one closest, not picking
-                            // one based on some floating point rounding error
-                            if (size * 1.02f < smallestSize)
+                            // mouse input didn't capture a world position, so we weren't clicking on a world space object.. ignore anything not UI related from consideration
+                            if (objectToCheck.worldSpaceBounds == null)
                             {
-                                bestObject = objectToCheck;
-                                smallestSize = size;
+                                // compare elements bounds for best match
+                                // give some threshold variance here for floating point math on sizes
+                                // if 2 objects are very similarly sized, we want the one closest, not picking
+                                // one based on some floating point rounding error
+                                if (size * 1.02f < smallestSize)
+                                {
+                                    bestObject = objectToCheck;
+                                    smallestSize = size;
+                                }
                             }
                         }
                     }
@@ -657,10 +645,23 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            if (bestObject != null)
+            return (bestObject, worldSpaceObject, normalizedPosition, possibleObjects);
+        }
+
+        public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> priorStates, List<RecordedGameObjectState> objectStates)
+        {
+            var clickObjectResult = FindBestClickObject(Camera.main, tickNumber, mouseInput, priorStates, objectStates);
+
+            var bestObject = clickObjectResult.Item1;
+            var normalizedPosition = clickObjectResult.Item3;
+
+            // non-world space object found, make sure we hit the object
+            if (bestObject != null && !clickObjectResult.Item2)
             {
                 var clickBounds = bestObject.screenSpaceBounds;
 
+                var possibleObjects = clickObjectResult.Item4;
+                var possibleObjectsCount = possibleObjects.Count;
                 // evaluate the bounds of the possible objects and narrow our bounding box for any that intersect these bounds
                 // ReSharper disable once PossibleMultipleEnumeration
                 for (var j = 0; j < possibleObjectsCount; j++)
@@ -829,7 +830,7 @@ namespace RegressionGames.StateRecorder
                     }
                     CheckWaitForKeyStateMatch(_newStates, pixelHash);
 
-                    PlayInputs(_newStates);
+                    PlayInputs(_priorStates, _newStates);
 
                     // toggle which list we use next
                     (_priorStates, _newStates) = (_newStates, _priorStates);
@@ -843,7 +844,7 @@ namespace RegressionGames.StateRecorder
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure
                     position = new Vector2Int(Screen.width +20, -20)
-                }, new List<RecordedGameObjectState>());
+                }, null, new List<RecordedGameObjectState>());
                 // we hit the end of the replay
                 Stop();
                 _replaySuccessful = true;
