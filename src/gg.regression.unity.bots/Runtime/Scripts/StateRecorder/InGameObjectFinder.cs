@@ -23,6 +23,13 @@ namespace RegressionGames.StateRecorder
 
     public class InGameObjectFinder : MonoBehaviour
     {
+        // this is only a safe pooling optimization because we don't compare colliders/behaviours/rigidbodies between prior frame and current frame state.  If we do, this optimization will become unsafe
+        private static readonly List<BehaviourState> _behaviourStateObjectPool = new (100);
+        private static readonly List<ColliderRecordState> _colliderStateObjectPool = new (100);
+        private static readonly List<Collider2DRecordState> _collider2DStateObjectPool = new (100);
+        private static readonly List<RigidbodyRecordState> _rigidbodyStateObjectPool = new (100);
+        private static readonly List<Rigidbody2DRecordState> _rigidbody2DStateObjectPool = new (100);
+
         private static readonly List<ColliderRecordState> _emptyColliderStateList = new(0);
         private static readonly List<RigidbodyRecordState> _emptyRigidbodyStateList = new(0);
 
@@ -406,10 +413,37 @@ namespace RegressionGames.StateRecorder
 
 
                     var behaviours = resultObject.behaviours;
+                    _behaviourStateObjectPool.AddRange(behaviours);
                     behaviours.Clear();
                     var collidersState = resultObject.colliders;
+                    var collidersStateCount = collidersState.Count;
+                    for (var i = 0; i < collidersStateCount; i++)
+                    {
+                        var cs = collidersState[i];
+                        if (cs is Collider2DRecordState c2d)
+                        {
+                            _collider2DStateObjectPool.Add(c2d);
+                        }
+                        else
+                        {
+                            _colliderStateObjectPool.Add(cs);
+                        }
+                    }
                     collidersState.Clear();
                     var rigidbodiesState = resultObject.rigidbodies;
+                    var rigidbodiesStateCount = rigidbodiesState.Count;
+                    for (var i = 0; i < rigidbodiesStateCount; i++)
+                    {
+                        var rs = rigidbodiesState[i];
+                        if (rs is Rigidbody2DRecordState r2d)
+                        {
+                            _rigidbody2DStateObjectPool.Add(r2d);
+                        }
+                        else
+                        {
+                            _rigidbodyStateObjectPool.Add(rs);
+                        }
+                    }
                     rigidbodiesState.Clear();
 
                     // instead of searching for child components, we instead walk child tree of transforms and check each for components
@@ -456,6 +490,8 @@ namespace RegressionGames.StateRecorder
             childTransform.GetComponents(_childComponentsQueryList);
             TransformStatus ts = null;
 
+            // uses object pools to minimize new allocations and GCs
+
             // This code re-uses the objects from the prior state as much as possible to avoid allocations
             // we try to minimize calls to GetUniqueTransformPath whenever possible
             var listLength = _childComponentsQueryList.Count;
@@ -464,52 +500,107 @@ namespace RegressionGames.StateRecorder
                 var childComponent = _childComponentsQueryList[i];
                 if (childComponent is Collider colliderEntry)
                 {
-                    ColliderRecordState cObject = new ColliderRecordState
+                    ColliderRecordState cObject;
+                    var poolCount = _colliderStateObjectPool.Count;
+                    if (poolCount > 0)
                     {
-                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                        collider = colliderEntry
-                    };
+                        // remove from end of list
+                        cObject = _colliderStateObjectPool[poolCount - 1];
+                        _colliderStateObjectPool.RemoveAt(poolCount - 1);
+                    }
+                    else
+                    {
+                        cObject = new ColliderRecordState
+                        {
+                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                            collider = colliderEntry
+                        };
+                    }
 
                     collidersState.Add(cObject);
                 }
                 else if (childComponent is Collider2D colliderEntry2D)
                 {
-                    ColliderRecordState cObject = new Collider2DRecordState
+                    Collider2DRecordState cObject;
+                    var poolCount = _collider2DStateObjectPool.Count;
+                    if (poolCount > 0)
                     {
-                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                        collider = colliderEntry2D
-                    };
+                        // remove from end of list
+                        cObject = _collider2DStateObjectPool[poolCount - 1];
+                        _collider2DStateObjectPool.RemoveAt(poolCount - 1);
+                    }
+                    else
+                    {
+                        cObject = new Collider2DRecordState
+                        {
+                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                            collider = colliderEntry2D
+                        };
+                    }
 
                     collidersState.Add(cObject);
                 }
                 else if (childComponent is Rigidbody myRigidbody)
                 {
-                    RigidbodyRecordState cObject = new RigidbodyRecordState
+                    RigidbodyRecordState cObject;
+                    var poolCount = _rigidbodyStateObjectPool.Count;
+                    if (poolCount > 0)
                     {
-                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                        rigidbody = myRigidbody
-                    };
+                        // remove from end of list
+                        cObject = _rigidbodyStateObjectPool[poolCount - 1];
+                        _rigidbodyStateObjectPool.RemoveAt(poolCount - 1);
+                    }
+                    else
+                    {
+                        cObject = new RigidbodyRecordState
+                        {
+                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                            rigidbody = myRigidbody
+                        };
+                    }
 
                     rigidbodiesState.Add(cObject);
                 }
                 else if (childComponent is Rigidbody2D myRigidbody2D)
                 {
-                    RigidbodyRecordState cObject = new Rigidbody2DRecordState
+                    Rigidbody2DRecordState cObject;
+                    var poolCount = _rigidbody2DStateObjectPool.Count;
+                    if (poolCount > 0)
                     {
-                        path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                        rigidbody = myRigidbody2D
-                    };
+                        // remove from end of list
+                        cObject = _rigidbody2DStateObjectPool[poolCount - 1];
+                        _rigidbody2DStateObjectPool.RemoveAt(poolCount - 1);
+                    }
+                    else
+                    {
+                        cObject = new Rigidbody2DRecordState
+                        {
+                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
+                            rigidbody = myRigidbody2D
+                        };
+                    }
 
                     rigidbodiesState.Add(cObject);
                 }
                 else if (childComponent is MonoBehaviour childBehaviour)
                 {
-                    BehaviourState cObject = new BehaviourState
+                    BehaviourState cObject;
+                    var poolCount = _behaviourStateObjectPool.Count;
+                    if (poolCount > 0)
                     {
-                        path = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).Path,
-                        name = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).TypeFullName,
-                        state = childBehaviour
-                    };
+                        // remove from end of list
+                        cObject = _behaviourStateObjectPool[poolCount - 1];
+                        _behaviourStateObjectPool.RemoveAt(poolCount - 1);
+                    }
+                    else
+                    {
+                        cObject = new BehaviourState
+                        {
+                            path = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).Path,
+                            name = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).TypeFullName,
+                            state = childBehaviour
+                        };
+                    }
 
                     behaviours.Add(cObject);
                 }
@@ -628,6 +719,7 @@ namespace RegressionGames.StateRecorder
                             var center = new Vector3(min.x + extents.x, min.y + extents.y, 0f);
 
                             List<BehaviourState> behaviours = resultObject.behaviours;
+                            _behaviourStateObjectPool.AddRange(behaviours);
                             behaviours.Clear();
 
                             if (usingOldObject)
