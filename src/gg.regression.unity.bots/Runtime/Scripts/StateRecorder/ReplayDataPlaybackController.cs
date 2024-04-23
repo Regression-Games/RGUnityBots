@@ -134,6 +134,9 @@ namespace RegressionGames.StateRecorder
 
         private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
 
+        // used to avoid spam building/showing the keyframe text until at least 1 frame has gone past
+        private bool _firstCheckOfKeyFrame = true;
+
         private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates, string pixelHash)
         {
             if (_isPlaying && _dataContainer != null)
@@ -144,7 +147,8 @@ namespace RegressionGames.StateRecorder
                                                                      && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrames[0].time))
                                              && _mouseQueue.Count == 0
                         );
-                    WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates, pixelHash);
+                    WaitingForKeyFrameConditions = CheckKeyFrameState(_firstCheckOfKeyFrame, objectStates, pixelHash);
+                    _firstCheckOfKeyFrame = false;
 
                     var lastKeyFrameInList = _nextKeyFrames[^1];
                     // if either the ui or the game objects are satisfied, add the next key frame to the list so we can start considering it
@@ -155,6 +159,7 @@ namespace RegressionGames.StateRecorder
                         {
                             // get the next key frame for future stuff
                             _nextKeyFrames.Add(nextFrame);
+                            _firstCheckOfKeyFrame = true;
                         }
                     }
 
@@ -189,7 +194,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private string CheckKeyFrameState(List<RecordedGameObjectState> objectStates, string pixelHash)
+        private string CheckKeyFrameState(bool firstCheck, List<RecordedGameObjectState> objectStates, string pixelHash)
         {
             var nextKeyFramesCount = _nextKeyFrames.Count;
             if (nextKeyFramesCount > 0 && objectStates != null)
@@ -246,6 +251,10 @@ namespace RegressionGames.StateRecorder
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
+                                    if (firstCheck)
+                                    {
+                                        return null;
+                                    }
                                     return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
                                 }
                                 uiElements = null;
@@ -257,7 +266,12 @@ namespace RegressionGames.StateRecorder
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
+                                    if (firstCheck)
+                                    {
+                                        return null;
+                                    }
                                     return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+
                                 }
                             }
 
@@ -299,6 +313,10 @@ namespace RegressionGames.StateRecorder
                             // only bail out here if we're the ui is the oldest awaited key frame
                             if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                             {
+                                if (firstCheck)
+                                {
+                                    return null;
+                                }
                                 return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - PixelHash '"+ pixelHash +"' does not match expected '" + uiObjectKeyFrame.pixelHash +"'";
                             }
                         }
@@ -320,6 +338,10 @@ namespace RegressionGames.StateRecorder
 
                 if (!(uiObjectKeyFrame?.uiMatched == true && gameObjectKeyFrame?.gameMatched == true ))
                 {
+                    if (firstCheck)
+                    {
+                        return null;
+                    }
                     var missingConditions = "" + uiObjectKeyFrame?.tickNumber + ":"+ gameObjectKeyFrame?.tickNumber + " Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n" + (uiScenes != null ? string.Join("\r\n", uiScenes):null) + "\r\nuiElements:\r\n" + (uiElements != null ? string.Join("\r\n", uiElements) : null) + "\r\ngameScenes:\r\n" + (gameScenes != null ? string.Join("\r\n", gameScenes) : null) + "\r\ngameElements:\r\n" + (gameElements!= null ? string.Join("\r\n", gameElements.Select(a => "" + a.Item1+","+a.Item2+","+a.Item3+","+a.Item4)):null);
                     // still missing something from the key frame
                     return missingConditions;
