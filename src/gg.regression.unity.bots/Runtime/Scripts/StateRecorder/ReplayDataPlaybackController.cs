@@ -134,8 +134,11 @@ namespace RegressionGames.StateRecorder
 
         private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
 
-        // used to avoid spam building/showing the keyframe text until at least 1 frame has gone past
-        private bool _firstCheckOfKeyFrame = true;
+        // used to avoid spam building/showing the keyframe text until at least a few frames have gone past
+        private int _checkOfKeyFrameCount = 0;
+
+        // allow up to 360 frames before saying it failed, at 120 fps this is 3 seconds, at 100fps this is ~3.6 seconds , at 60fps this is 6 seconds , at 50 fps this is ~7.2 seconds, at 30 fps this is 12 seconds
+        private const int KeyFrameChecksBeforePrompting = 360;
 
         private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates, string pixelHash)
         {
@@ -147,8 +150,8 @@ namespace RegressionGames.StateRecorder
                                                                      && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrames[0].time))
                                              && _mouseQueue.Count == 0
                         );
-                    WaitingForKeyFrameConditions = CheckKeyFrameState(_firstCheckOfKeyFrame, objectStates, pixelHash);
-                    _firstCheckOfKeyFrame = false;
+                    WaitingForKeyFrameConditions = CheckKeyFrameState(_checkOfKeyFrameCount, objectStates, pixelHash);
+                    ++_checkOfKeyFrameCount;
 
                     var lastKeyFrameInList = _nextKeyFrames[^1];
                     // if either the ui or the game objects are satisfied, add the next key frame to the list so we can start considering it
@@ -159,7 +162,7 @@ namespace RegressionGames.StateRecorder
                         {
                             // get the next key frame for future stuff
                             _nextKeyFrames.Add(nextFrame);
-                            _firstCheckOfKeyFrame = true;
+                            _checkOfKeyFrameCount = 0;
                         }
                     }
 
@@ -194,7 +197,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private string CheckKeyFrameState(bool firstCheck, List<RecordedGameObjectState> objectStates, string pixelHash)
+        private string CheckKeyFrameState(int keyFrameCheckCount, List<RecordedGameObjectState> objectStates, string pixelHash)
         {
             var nextKeyFramesCount = _nextKeyFrames.Count;
             if (nextKeyFramesCount > 0 && objectStates != null)
@@ -251,7 +254,7 @@ namespace RegressionGames.StateRecorder
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
-                                    if (firstCheck)
+                                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                     {
                                         return null;
                                     }
@@ -266,7 +269,7 @@ namespace RegressionGames.StateRecorder
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                                 {
-                                    if (firstCheck)
+                                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                     {
                                         return null;
                                     }
@@ -313,7 +316,7 @@ namespace RegressionGames.StateRecorder
                             // only bail out here if we're the ui is the oldest awaited key frame
                             if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
                             {
-                                if (firstCheck)
+                                if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                 {
                                     return null;
                                 }
@@ -338,7 +341,7 @@ namespace RegressionGames.StateRecorder
 
                 if (!(uiObjectKeyFrame?.uiMatched == true && gameObjectKeyFrame?.gameMatched == true ))
                 {
-                    if (firstCheck)
+                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                     {
                         return null;
                     }
