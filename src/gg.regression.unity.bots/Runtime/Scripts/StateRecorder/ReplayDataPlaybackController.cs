@@ -32,7 +32,7 @@ namespace RegressionGames.StateRecorder
         // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
         // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
         // This is done this way to allow situations like when loading screens (UI) are changing while game objects are loading in the background and the process is not consistent/deterministic between the 2
-        private List<ReplayKeyFrameEntry> _nextKeyFrames = new();
+        private readonly List<ReplayKeyFrameEntry> _nextKeyFrames = new();
 
         private readonly List<ReplayKeyboardInputEntry> _keyboardQueue = new();
         private readonly List<ReplayMouseInputEntry> _mouseQueue = new();
@@ -45,6 +45,8 @@ namespace RegressionGames.StateRecorder
         public string WaitingForKeyFrameConditions { get; private set; }
 
         public bool KeyFrameInputComplete { get; private set; }
+
+        private ScreenRecorder _screenRecorder;
 
         private void Start()
         {
@@ -85,6 +87,7 @@ namespace RegressionGames.StateRecorder
 
         void OnEnable()
         {
+            _screenRecorder = GetComponentInParent<ScreenRecorder>();
             SetupEventSystem();
         }
 
@@ -130,12 +133,13 @@ namespace RegressionGames.StateRecorder
             _dataContainer = null;
             WaitingForKeyFrameConditions = null;
             _replaySuccessful = null;
+            _screenRecorder.StopRecording();
         }
 
         private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
 
         // used to avoid spam building/showing the keyframe text until at least a few frames have gone past
-        private int _checkOfKeyFrameCount = 0;
+        private int _checkOfKeyFrameCount;
 
         // allow up to 360 frames before saying it failed, at 120 fps this is 3 seconds, at 100fps this is ~3.6 seconds , at 60fps this is 6 seconds , at 50 fps this is ~7.2 seconds, at 30 fps this is 12 seconds
         private const int KeyFrameChecksBeforePrompting = 360;
@@ -252,7 +256,7 @@ namespace RegressionGames.StateRecorder
                             if (uiElements == null || uiElements.Count == 0)
                             {
                                 // only bail out here if we are where the ui is the oldest awaited key frame
-                                if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
+                                if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
                                 {
                                     if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                     {
@@ -267,7 +271,7 @@ namespace RegressionGames.StateRecorder
                             if (!didRemove)
                             {
                                 // only bail out here if we are where the ui is the oldest awaited key frame
-                                if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
+                                if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
                                 {
                                     if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                     {
@@ -314,7 +318,7 @@ namespace RegressionGames.StateRecorder
                         if (uiObjectKeyFrame.pixelHash != pixelHash)
                         {
                             // only bail out here if we're the ui is the oldest awaited key frame
-                            if (eldestKeyFrame?.tickNumber == uiObjectKeyFrame?.tickNumber)
+                            if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
                             {
                                 if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                 {
@@ -503,6 +507,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        // ReSharper disable once InconsistentNaming
         private static readonly RecordedGameObjectStatePathEqualityComparer _recordedGameObjectStatePathEqualityComparer = new();
 
         private static Vector2? _lastMousePosition;
@@ -825,9 +830,6 @@ namespace RegressionGames.StateRecorder
                 InputSystem.QueueEvent(eventPtr);
             }
         }
-        // pre-allocate a big list we can re-use
-        private List<RecordedGameObjectState> _priorStates = new(1000);
-        private List<RecordedGameObjectState> _newStates = new(1000);
 
         public void Update()
         {
@@ -838,11 +840,14 @@ namespace RegressionGames.StateRecorder
                     _lastStartTime = Time.unscaledTime;
                     _startPlaying = false;
                     _isPlaying = true;
+                    _screenRecorder.StartRecording();
                 }
 
                 if (_isPlaying)
                 {
-                    InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(_priorStates, _newStates, true);
+                    var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
+                    var priorStates = states?.Item1;
+                    var currentStates = states?.Item2;
 
                     var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                     string pixelHash = null;
@@ -853,13 +858,9 @@ namespace RegressionGames.StateRecorder
                         pixelHash = gameFacePixelHashObserver.GetPixelHash(false);
 
                     }
-                    CheckWaitForKeyStateMatch(_newStates, pixelHash);
+                    CheckWaitForKeyStateMatch(currentStates, pixelHash);
 
-                    PlayInputs(_priorStates, _newStates);
-
-                    // toggle which list we use next
-                    (_priorStates, _newStates) = (_newStates, _priorStates);
-                    _newStates.Clear();
+                    PlayInputs(priorStates, currentStates);
                 }
             }
 

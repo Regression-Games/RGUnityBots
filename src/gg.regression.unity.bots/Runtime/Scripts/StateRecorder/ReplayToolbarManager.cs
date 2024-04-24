@@ -80,7 +80,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             }
         }
 
-        private volatile bool _parsingZipFile = false;
+        private volatile bool _parsingZipFile;
 
         void OnFilesSelected(string[] filePaths)
         {
@@ -95,7 +95,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             Task.Run(() => ProcessDataContainerZipAndSetup(filePath));
         }
 
-        private bool _justLoaded = false;
+        private bool _justLoaded;
 
         private void ProcessDataContainerZipAndSetup(String filePath)
         {
@@ -116,7 +116,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             }
         }
 
-        private volatile ReplayDataContainer _replayLoadedNextUpdate = null;
+        private volatile ReplayDataContainer _replayLoadedNextUpdate;
 
         private void Update()
         {
@@ -167,6 +167,8 @@ namespace Unity.Multiplayer.Samples.BossRoom
             _recording = !_recording;
             if (!_recording)
             {
+                recordingPulse.Stop();
+                ScreenRecorder.GetInstance()?.StopRecording();
                 SetDefaultButtonStates();
             }
             else
@@ -174,10 +176,12 @@ namespace Unity.Multiplayer.Samples.BossRoom
                 SetDefaultButtonStates();
                 chooseReplayButton.SetActive(false);
                 recordButton.SetActive(true);
+                recordingPulse.Fast();
+                ScreenRecorder.GetInstance()?.StartRecording();
             }
         }
 
-        private string _lastKeyFrameError = null;
+        private string _lastKeyFrameError;
 
         private void LateUpdate()
         {
@@ -207,17 +211,6 @@ namespace Unity.Multiplayer.Samples.BossRoom
             {
                 _lastKeyFrameError = null;
                 warningIcon.SetActive(false);
-            }
-
-            if (_recording)
-            {
-                recordingPulse.Fast();
-                ScreenRecorder.GetInstance()?.StartRecording();
-            }
-            else
-            {
-                recordingPulse.Stop();
-                ScreenRecorder.GetInstance()?.StopRecording();
             }
         }
     }

@@ -33,7 +33,7 @@ namespace RegressionGames.StateRecorder
     public class ScreenRecorder : MonoBehaviour
     {
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
-        public int recordingMinFPS = 0;
+        public int recordingMinFPS;
 
         [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
         public string stateRecordingsDirectory = "";
@@ -253,8 +253,7 @@ namespace RegressionGames.StateRecorder
 
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _mouseObserver.ClearBuffer();
-                _priorStates?.Clear();
-                _newStates.Clear();
+                InGameObjectFinder.GetInstance()?.Cleanup();
                 _isRecording = true;
                 _tickNumber = 0;
                 _startTime = DateTime.Now;
@@ -462,10 +461,6 @@ namespace RegressionGames.StateRecorder
             OnDestroy();
         }
 
-        // pre-allocate a big list we can re-use
-        private List<RecordedGameObjectState> _priorStates = null;
-        private List<RecordedGameObjectState> _newStates = new(1000);
-
         private IEnumerator RecordFrame()
         {
             if (!_frameQueue.IsCompleted)
@@ -476,25 +471,26 @@ namespace RegressionGames.StateRecorder
 
                 byte[] jsonData = null;
 
-                _newStates.Clear();
-                InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(_priorStates, _newStates);
+                var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
 
                 // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
                 // what it clicked on normally isn't in the new state (button was in the old state)
-                if (_priorStates != null)
+                var priorStates = states?.Item1;
+                var currentStates = states?.Item2;
+                if (priorStates?.Count > 0)
                 {
-                    _mouseObserver.ObserveMouse(_priorStates);
+                    _mouseObserver.ObserveMouse(priorStates);
                 }
                 else
                 {
-                    _mouseObserver.ObserveMouse(_newStates);
+                    _mouseObserver.ObserveMouse(currentStates);
                 }
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_priorStates, _newStates, pixelHash);
+                GetKeyFrameType(priorStates, currentStates, pixelHash);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
@@ -558,7 +554,7 @@ namespace RegressionGames.StateRecorder
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
-                            state = _newStates,
+                            state = currentStates,
                             inputs = new InputData()
                             {
                                 keyboard = keyboardInputData,
@@ -575,19 +571,6 @@ namespace RegressionGames.StateRecorder
                         jsonData = Encoding.UTF8.GetBytes(
                             frameState.ToJson()
                         );
-
-                        if (_priorStates == null)
-                        {
-                            // after the first pass, we need to allocate the prior.. we use null of this to indicate the first frame though so have to do it here at end of first tick
-                            _priorStates = _newStates;
-                            _newStates = new(1000);
-                        }
-                        else
-                        {
-                            // switch the list references
-                            (_priorStates, _newStates) = (_newStates, _priorStates);
-                        }
-
                     }
                     catch (Exception e)
                     {
@@ -669,7 +652,7 @@ namespace RegressionGames.StateRecorder
         private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height,
             GraphicsFormat graphicsFormat, byte[] frameData)
         {
-            RecordJSON(directoryPath, frameNumber, jsonData);
+            RecordJson(directoryPath, frameNumber, jsonData);
             RecordJPG(directoryPath, frameNumber, width, height, graphicsFormat, frameData);
         }
 
@@ -701,7 +684,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void RecordJSON(string directoryPath, long frameNumber, byte[] jsonData)
+        private void RecordJson(string directoryPath, long frameNumber, byte[] jsonData)
         {
             try
             {
