@@ -188,7 +188,7 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private void ParseReplayZip(string zipFilePath)
+        public void ParseReplayZip(string zipFilePath)
         {
             using var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Read);
 
@@ -196,6 +196,7 @@ namespace RegressionGames.StateRecorder
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
             ReplayFrameStateData firstFrame = null;
+            ReplayFrameStateData priorFrame = null;
             foreach (var entry in entries)
             {
                 using var sr = new StreamReader(entry.Open());
@@ -280,10 +281,10 @@ namespace RegressionGames.StateRecorder
                         // go through the mouse input data and setup the different entries
                         string[] specificGameObjectPaths = Array.Empty<string>();
 
-                        // in the future, we may validate the object ids on mouse release.. but in early testing this creating some very bad timing issues
-                        if (keyFrame != null && mouseInputData.clickedObjectIds != null && mouseInputData.IsButtonClicked)
+                        // we also validate the object ids on mouse release to adjust click positions
+                        if (keyFrame != null && mouseInputData.clickedObjectIds != null )
                         {
-                            specificGameObjectPaths = FindObjectsWithIds(mouseInputData.clickedObjectIds, frameData.state).ToArray();
+                            specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state).ToArray();
                         }
 
                         _mouseData.Enqueue(new ReplayMouseInputEntry()
@@ -303,6 +304,8 @@ namespace RegressionGames.StateRecorder
                         });
                     }
                 }
+
+                priorFrame = frameData;
             }
 
             if (firstFrame == null)
@@ -312,10 +315,36 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private IEnumerable<string> FindObjectsWithIds(int[] objectIds, List<ReplayGameObjectState> state)
+        private List<string> FindObjectPathsWithIds(int[] objectIds, List<ReplayGameObjectState> priorState, List<ReplayGameObjectState> state)
         {
-            var currentStateEntries = state.Where(a => objectIds.Contains(a.id)).Select(a => a.path);
-            return currentStateEntries;
+            // look in current state first, then fall back to prior state
+            // copy me
+            var objectIdsToFind = objectIds.ToList();
+            List<string> objectPathsFound = new();
+
+            var stateCount = state.Count;
+            for (var i = 0; i < stateCount; i++)
+            {
+                var so = state[i];
+                if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
+                {
+                    objectPathsFound.Add(so.path);
+                }
+            }
+
+            if (objectIdsToFind.Count > 0 && priorState != null)
+            {
+                stateCount = priorState.Count;
+                for (var i = 0; i < stateCount; i++)
+                {
+                    var so = priorState[i];
+                    if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
+                    {
+                        objectPathsFound.Add(so.path);
+                    }
+                }
+            }
+            return objectPathsFound;
         }
     }
 }
