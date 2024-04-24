@@ -640,7 +640,7 @@ namespace RegressionGames.StateRecorder
                 }
                 catch (Exception e)
                 {
-                    if (e is not OperationCanceledException or InvalidOperationException)
+                    if (e is not OperationCanceledException && e is not InvalidOperationException)
                     {
                         RGDebug.LogException(e, "Error Processing Frames");
                     }

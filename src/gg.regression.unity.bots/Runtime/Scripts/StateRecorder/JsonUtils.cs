@@ -9,28 +9,17 @@ namespace StateRecorder
     public static class JsonUtils
     {
 
-        private static readonly bool[] EscapeChars = new bool[128];
-
-        private const int UnicodeTextLength = 6;
+        private static readonly char[] EscapeCharReplacements = new char[128];
 
         static JsonUtils()
         {
-            IList<char> escapeChars = new List<char>
-            {
-                '\n', '\r', '\t', '\\', '\f', '\b',
-            };
-            for (int i = 0; i < ' '; i++)
-            {
-                escapeChars.Add((char)i);
-            }
-
-            var union = escapeChars.Union(new[] { '"' });
-
-            foreach (char escapeChar in union)
-            {
-                EscapeChars[escapeChar] = true;
-            }
-
+            EscapeCharReplacements['\n'] = 'n';
+            EscapeCharReplacements['\r'] = 'r';
+            EscapeCharReplacements['\t'] = 't';
+            EscapeCharReplacements['\f'] = 'f';
+            EscapeCharReplacements['\b'] = 'b';
+            EscapeCharReplacements['\\'] = '\\';
+            EscapeCharReplacements['"'] = '"';
         }
 
         // supports up to 100k char length escaped strings
@@ -55,7 +44,8 @@ namespace StateRecorder
             for (var i = 0; i < inputLength; i++)
             {
                 var ch = input[i];
-                if (!EscapeChars[ch])
+                var escapeReplacement = EscapeCharReplacements[ch];
+                if (escapeReplacement == 0)
                 {
                     // don't need to escape
                     endIndex = i;
@@ -71,7 +61,7 @@ namespace StateRecorder
                     startIndex = i + 1;
                     // write the escaped value to the buffer
                     _bufferArray[_currentNextIndex++] = '\\';
-                    _bufferArray[_currentNextIndex++] = ch;
+                    _bufferArray[_currentNextIndex++] = escapeReplacement;
                 }
             }
 
