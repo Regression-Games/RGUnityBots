@@ -563,7 +563,10 @@ namespace RegressionGames.StateRecorder
 
                         if (frameState.keyFrame != null)
                         {
-                            RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',', frameState.keyFrame) + "]");
+                            if (RGDebug.IsDebugEnabled)
+                            {
+                                RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',', frameState.keyFrame) + "]");
+                            }
                         }
 
                         // serialize to json byte[]

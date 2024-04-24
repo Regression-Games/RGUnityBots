@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -7,19 +8,29 @@ namespace RegressionGames.StateRecorder.JsonConverters
     // NOTE: This class exists as a performance optimization as JsonConverters list model for JsonSerializerSettings scales very very poorly
     public class ColorJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        // re-usable and large enough to fit colors of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+
         public static string ToJsonString(Color? val)
         {
-            if (val != null)
+            if (val == null)
             {
-                var value = val.Value;
-                return "{\"r\":" + FloatJsonConverter.ToJsonString(value.r)
-                                 + ",\"g\":" + FloatJsonConverter.ToJsonString(value.g)
-                                 + ",\"b\":" + FloatJsonConverter.ToJsonString(value.b)
-                                 + ",\"a\":" + FloatJsonConverter.ToJsonString(value.a)
-                                 + "}";
+                return "null";
             }
 
-            return "null";
+            var value = val.Value;
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\"r\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.r));
+            _stringBuilder.Append(",\"g\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.g));
+            _stringBuilder.Append(",\"b\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.b));
+            _stringBuilder.Append(",\"a\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.a));
+            _stringBuilder.Append("}");
+            return _stringBuilder.ToString();
+
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

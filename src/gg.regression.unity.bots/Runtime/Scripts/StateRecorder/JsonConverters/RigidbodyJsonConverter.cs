@@ -16,9 +16,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (Rigidbody)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"position\":" + val.position
-                                                      + ",\"rotation\":" + val.rotation
-                                                      + ",\"velocity\":" + val.velocity
+                writer.WriteRawValue("{\"position\":" + VectorJsonConverter.ToJsonStringVector3(val.position)
+                                                      + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(val.rotation)
+                                                      + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(val.velocity)
                                                       + ",\"mass\":" + FloatJsonConverter.ToJsonString(val.mass)
                                                       + ",\"drag\":" + FloatJsonConverter.ToJsonString(val.drag)
                                                       + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(val.angularDrag)

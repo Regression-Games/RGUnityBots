@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -6,25 +7,35 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class BoundsJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        // re-usable and large enough to fit bounds vectors of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+
         public static string ToJsonString(Bounds? val)
         {
-            if (val != null)
+            if (val == null)
             {
-                var value = val.Value;
-                var center = value.center;
-                var extents = value.extents;
-                return "{\"center\":{\"x\":"
-                       + FloatJsonConverter.ToJsonString(center.x)
-                       + ",\"y\":" + FloatJsonConverter.ToJsonString(center.y)
-                       + ",\"z\":" + FloatJsonConverter.ToJsonString(center.z)
-                       + "},\"extents\":{\"x\":"
-                       + FloatJsonConverter.ToJsonString(extents.x)
-                       + ",\"y\":" + FloatJsonConverter.ToJsonString(extents.y)
-                       + ",\"z\":" + FloatJsonConverter.ToJsonString(extents.z)
-                       + "}}";
+                return "null";
             }
 
-            return "null";
+            var value = val.Value;
+            var center = value.center;
+            var extents = value.extents;
+
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\"center\":{\"x\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(center.x));
+            _stringBuilder.Append(",\"y\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(center.y));
+            _stringBuilder.Append(",\"z\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(center.z));
+            _stringBuilder.Append("},\"extents\":{\"x\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(extents.x));
+            _stringBuilder.Append(",\"y\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(extents.y));
+            _stringBuilder.Append(",\"z\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(extents.z));
+            _stringBuilder.Append("}}");
+            return _stringBuilder.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

@@ -17,23 +17,52 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class FrameStateData : ReplayFrameStateData
     {
+
+        // re-usable and hopefully large enough to fit objects of all sizes, it not, it will resize
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(1_000_000);
+
         public PerformanceMetricData performance;
         public new List<RecordedGameObjectState> state;
 
-
-
         public string ToJson()
         {
-            return "{\n\"tickNumber\":" + tickNumber
-                                        + ",\n\"keyFrame\":[" + string.Join(",",keyFrame.Select(a=>"\"" + a + "\""))
-                                        + "],\n\"time\":" + DoubleJsonConverter.ToJsonString(time)
-                                        + ",\n\"timeScale\":" + FloatJsonConverter.ToJsonString(timeScale)
-                                        + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
-                                        + ",\n\"performance\":" + performance.ToJson()
-                                        + ",\n\"pixelHash\":\"" + pixelHash
-                                        + "\",\n\"state\":[\n" + string.Join(",\n", state.Select(a=>a.ToJson()))
-                                        + "\n],\n\"inputs\":" + inputs.ToJson()
-                                        + "\n}";
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\n\"tickNumber\":");
+            _stringBuilder.Append(tickNumber);
+            _stringBuilder.Append(",\n\"keyFrame\":[");
+            var keyFrameLength = keyFrame.Length;
+            for (var i = 0; i < keyFrameLength; i++)
+            {
+                _stringBuilder.Append("\"").Append(keyFrame[i].ToString()).Append("\"");
+                if (i + 1 < keyFrameLength)
+                {
+                    _stringBuilder.Append(",");
+                }
+            }
+            _stringBuilder.Append("],\n\"time\":");
+            _stringBuilder.Append(DoubleJsonConverter.ToJsonString(time));
+            _stringBuilder.Append(",\n\"timeScale\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(timeScale));
+            _stringBuilder.Append(",\n\"screenSize\":");
+            _stringBuilder.Append(VectorIntJsonConverter.ToJsonString(screenSize));
+            _stringBuilder.Append(",\n\"performance\":");
+            _stringBuilder.Append(performance.ToJson());
+            _stringBuilder.Append(",\n\"pixelHash\":\"");
+            _stringBuilder.Append(pixelHash);
+            _stringBuilder.Append("\",\n\"state\":[\n");
+            var stateCount = state.Count;
+            for (var i = 0; i < stateCount; i++)
+            {
+                _stringBuilder.Append(state[i].ToJson());
+                if (i + 1 < stateCount)
+                {
+                    _stringBuilder.Append(",\n");
+                }
+            }
+            _stringBuilder.Append("\n],\n\"inputs\":");
+            _stringBuilder.Append(inputs.ToJson());
+            _stringBuilder.Append("\n}");
+            return _stringBuilder.ToString();
         }
 
     }
@@ -42,15 +71,37 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class InputData
     {
+        // re-usable and hopefully large enough to fit objects of all sizes, if not, it will resize
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(100_000);
+
         public List<KeyboardInputActionData> keyboard;
         public List<MouseInputActionData> mouse;
 
         public string ToJson()
         {
-            return "{\n\"keyboard\":[\n" + string.Join(",\n", keyboard.Select(a=>a.ToJson()))
-                   + "\n],\n\"mouse\":[\n" + string.Join(",\n", mouse.Select(a=>a.ToJson()))
-                   + "\n]"
-                   + "\n}";
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\n\"keyboard\":[\n");
+            var keyboardCount = keyboard.Count;
+            for (var i = 0; i < keyboardCount; i++)
+            {
+                _stringBuilder.Append(keyboard[i].ToJson());
+                if (i + 1 < keyboardCount)
+                {
+                    _stringBuilder.Append(",\n");
+                }
+            }
+            _stringBuilder.Append("\n],\n\"mouse\":[\n");
+            var mouseCount = mouse.Count;
+            for (var i = 0; i < mouseCount; i++)
+            {
+                _stringBuilder.Append(mouse[i].ToJson());
+                if (i + 1 < mouseCount)
+                {
+                    _stringBuilder.Append(",\n");
+                }
+            }
+            _stringBuilder.Append("\n]\n}");
+            return _stringBuilder.ToString();
         }
     }
 
@@ -164,6 +215,9 @@ namespace RegressionGames.StateRecorder
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RecordedGameObjectState
     {
+        // re-usable and large enough to fit objects of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(100_000);
+
         public int id;
 
         public string path;
@@ -191,21 +245,61 @@ namespace RegressionGames.StateRecorder
 
         public string ToJson()
         {
-            return "{\n\"id\":" + id
-                                + ",\n\"path\":" + JsonUtils.EscapeJsonString(path)
-                                + ",\n\"scene\":" + JsonUtils.EscapeJsonString(scene.name)
-                                + ",\n\"tag\":" + JsonUtils.EscapeJsonString(tag)
-                                + ",\n\"layer\":" + JsonUtils.EscapeJsonString(layer)
-                                + ",\n\"rendererCount\":" + rendererCount
-                                + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
-                                + ",\n\"screenSpaceZOffset\":" + FloatJsonConverter.ToJsonString(screenSpaceZOffset)
-                                + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
-                                + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(transform.position)
-                                + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(transform.rotation)
-                                + ",\n\"rigidbodies\":[\n" + string.Join(",\n", rigidbodies.Select(a=>a.ToJson()))
-                                + "\n],\n\"colliders\":[\n" + string.Join(",\n", colliders.Select(a=>a.ToJson()))
-                                + "\n],\n\"behaviours\":[\n" + string.Join(",\n", behaviours.Select(a=>a.ToJson()))
-                                + "\n]\n}";
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\n\"id\":");
+            _stringBuilder.Append(id);
+            _stringBuilder.Append(",\n\"path\":");
+            _stringBuilder.Append(JsonUtils.EscapeJsonString(path));
+            _stringBuilder.Append(",\n\"scene\":");
+            _stringBuilder.Append(JsonUtils.EscapeJsonString(scene.name));
+            _stringBuilder.Append(",\n\"tag\":");
+            _stringBuilder.Append(JsonUtils.EscapeJsonString(tag));
+            _stringBuilder.Append(",\n\"layer\":");
+            _stringBuilder.Append(JsonUtils.EscapeJsonString(layer));
+            _stringBuilder.Append(",\n\"rendererCount\":");
+            _stringBuilder.Append(rendererCount);
+            _stringBuilder.Append(",\n\"screenSpaceBounds\":");
+            _stringBuilder.Append(BoundsJsonConverter.ToJsonString(screenSpaceBounds));
+            _stringBuilder.Append(",\n\"screenSpaceZOffset\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(screenSpaceZOffset));
+            _stringBuilder.Append(",\n\"worldSpaceBounds\":");
+            _stringBuilder.Append(BoundsJsonConverter.ToJsonString(worldSpaceBounds));
+            _stringBuilder.Append(",\n\"position\":");
+            _stringBuilder.Append(VectorJsonConverter.ToJsonStringVector3(transform.position));
+            _stringBuilder.Append(",\n\"rotation\":");
+            _stringBuilder.Append(QuaternionJsonConverter.ToJsonString(transform.rotation));
+            _stringBuilder.Append(",\n\"rigidbodies\":[\n");
+            var rigidbodiesCount = rigidbodies.Count;
+            for (var i = 0; i < rigidbodiesCount; i++)
+            {
+                _stringBuilder.Append(rigidbodies[i].ToJson());
+                if (i + 1 < rigidbodiesCount)
+                {
+                    _stringBuilder.Append(",\n");
+                }
+            }
+            _stringBuilder.Append("\n],\n\"colliders\":[\n");
+            var collidersCount = colliders.Count;
+            for (var i = 0; i < collidersCount; i++)
+            {
+                _stringBuilder.Append(colliders[i].ToJson());
+                if (i + 1 < collidersCount)
+                {
+                    _stringBuilder.Append(",\n");
+                }
+            }
+            _stringBuilder.Append("\n],\n\"behaviours\":[\n");
+            var behavioursCount = behaviours.Count;
+            for (var i = 0; i < behavioursCount; i++)
+            {
+                _stringBuilder.Append(behaviours[i].ToJson());
+                if (i + 1 < behavioursCount)
+                {
+                    _stringBuilder.Append(",\n");
+                }
+            }
+            _stringBuilder.Append("\n]\n}");
+            return _stringBuilder.ToString();
         }
     }
 

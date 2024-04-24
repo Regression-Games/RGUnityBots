@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
@@ -80,17 +81,37 @@ namespace RegressionGames.StateRecorder
 
         public string ToJson()
         {
-            return "{\"startTime\":" + DoubleJsonConverter.ToJsonString(startTime)
-                                     + ",\"position\":" + VectorIntJsonConverter.ToJsonString(position)
-                                     + ",\"worldPosition\":" + VectorJsonConverter.ToJsonStringVector3(worldPosition)
-                                     + ",\"leftButton\":" + (leftButton ? "true" : "false")
-                                     + ",\"middleButton\":" + (middleButton ? "true" : "false")
-                                     + ",\"rightButton\":" + (rightButton ? "true" : "false")
-                                     + ",\"forwardButton\":" + (forwardButton ? "true" : "false")
-                                     + ",\"backButton\":" + (backButton ? "true" : "false")
-                                     + ",\"scroll\":" + VectorJsonConverter.ToJsonStringVector2(scroll)
-                                     + ",\"clickedObjectIds\":[" + string.Join(",", clickedObjectIds)
-                                     + "]}";
+            var result = new StringBuilder();
+            result.Append("{\"startTime\":");
+            result.Append(DoubleJsonConverter.ToJsonString(startTime));
+            result.Append(",\"position\":");
+            result.Append( VectorIntJsonConverter.ToJsonString(position));
+            result.Append(",\"worldPosition\":");
+            result.Append( VectorJsonConverter.ToJsonStringVector3(worldPosition));
+            result.Append(",\"leftButton\":");
+            result.Append( (leftButton ? "true" : "false"));
+            result.Append(",\"middleButton\":");
+            result.Append( (middleButton ? "true" : "false"));
+            result.Append(",\"rightButton\":");
+            result.Append( (rightButton ? "true" : "false"));
+            result.Append(",\"forwardButton\":");
+            result.Append( (forwardButton ? "true" : "false"));
+            result.Append(",\"backButton\":");
+            result.Append( (backButton ? "true" : "false"));
+            result.Append(",\"scroll\":");
+            result.Append(VectorJsonConverter.ToJsonStringVector2(scroll));
+            result.Append(",\"clickedObjectIds\":[");
+            var clickedObjectIdsLength = clickedObjectIds.Length;
+            for (var i = 0; i < clickedObjectIdsLength; i++)
+            {
+                result.Append(clickedObjectIds[i]);
+                if (i + 1 < clickedObjectIdsLength)
+                {
+                    result.Append(",");
+                }
+            }
+            result.Append("]}");
+            return result.ToString();
         }
     }
 

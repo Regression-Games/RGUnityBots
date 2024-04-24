@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using StateRecorder;
 using UnityEngine;
@@ -8,6 +9,27 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class ImageJsonConverter : Newtonsoft.Json.JsonConverter
     {
+
+        // re-usable and large enough to fit images of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
+
+        public static string ToJsonString(Image val)
+        {
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\"sourceImage\":");
+            _stringBuilder.Append((val.sprite == null ? "null":JsonUtils.EscapeJsonString(val.sprite.name)));
+            _stringBuilder.Append(",\"color\":");
+            _stringBuilder.Append(ColorJsonConverter.ToJsonString(val.color));
+            _stringBuilder.Append(",\"material\":");
+            _stringBuilder.Append((val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name)));
+            _stringBuilder.Append(",\"raycastTarget\":");
+            _stringBuilder.Append((val.raycastTarget ? "true" : "false"));
+            _stringBuilder.Append(",\"preserveAspect\":");
+            _stringBuilder.Append((val.preserveAspect ? "true" : "false"));
+            _stringBuilder.Append("}}");
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -16,14 +38,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Image)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"sourceImage\":" + (val.sprite == null ? "null":JsonUtils.EscapeJsonString(val.sprite.name))
-                                                         + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                         + ",\"material\":" + (val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name))
-                                                         + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false")
-                                                         + ",\"preserveAspect\":" + (val.preserveAspect ? "true" : "false")
-                                                         + "}");
+                writer.WriteRawValue(ToJsonString((Image)value));
             }
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -6,26 +7,44 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class VectorIntJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        // re-usable and large enough to fit vectors of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+
         public static string ToJsonString(Vector2Int? val)
         {
-            if (val != null)
+            if (val == null)
             {
-                var value = val.Value;
-                return "{\"x\":" + value.x + ",\"y\":" + value.y + "}";
+                return "null";
             }
 
-            return "null";
+            var value = val.Value;
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\"x\":");
+            _stringBuilder.Append(value.x.ToString());
+            _stringBuilder.Append(",\"y\":");
+            _stringBuilder.Append(value.y.ToString());
+            _stringBuilder.Append("}");
+            return _stringBuilder.ToString();
+
         }
 
         public static string ToJsonString(Vector3Int? val)
         {
-            if (val != null)
+            if (val == null)
             {
-                var value = val.Value;
-                return "{\"x\":" + value.x + ",\"y\":" + value.y + ",\"z\":" + value.z + "}";
+                return "null";
             }
 
-            return "null";
+            var value = val.Value;
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\"x\":");
+            _stringBuilder.Append(value.x.ToString());
+            _stringBuilder.Append(",\"y\":");
+            _stringBuilder.Append(value.y.ToString());
+            _stringBuilder.Append(",\"z\":");
+            _stringBuilder.Append(value.z.ToString());
+            _stringBuilder.Append("}");
+            return _stringBuilder.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

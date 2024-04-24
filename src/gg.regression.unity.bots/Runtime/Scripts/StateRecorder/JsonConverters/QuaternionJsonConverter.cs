@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -6,15 +7,28 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class QuaternionJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        // re-usable and large enough to fit quaternions of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+
         public static string ToJsonString(Quaternion? val)
         {
-            if (val != null)
+            if (val == null)
             {
-                var value = val.Value;
-                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + ",\"z\":" + FloatJsonConverter.ToJsonString(value.z) + ",\"w\":" + FloatJsonConverter.ToJsonString(value.w) + "}";
+                return "null";
             }
 
-            return "null";
+            var value = val.Value;
+            _stringBuilder.Clear();
+            _stringBuilder.Append("{\"x\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.x));
+            _stringBuilder.Append(",\"y\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.y));
+            _stringBuilder.Append(",\"z\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.z));
+            _stringBuilder.Append(",\"w\":");
+            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.w));
+            _stringBuilder.Append("}");
+            return _stringBuilder.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

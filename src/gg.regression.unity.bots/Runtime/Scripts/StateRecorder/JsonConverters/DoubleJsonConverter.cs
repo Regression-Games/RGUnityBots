@@ -1,16 +1,29 @@
 ﻿using System;
+using System.Globalization;
+using System.Text;
 using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class DoubleJsonConverter: JsonConverter
     {
+        // re-usable and large enough to fit objects of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(40);
+
+        private static readonly NumberFormatInfo NumberFormatInfo = new ()
+        {
+            NumberDecimalDigits = 7
+        };
+
         public static string ToJsonString(double? f)
         {
             if (f == null)
             {
                 return "null";
             }
+
+            _stringBuilder.Clear();
+
             var val = (int)f;
             var remainder = (int)((f % 1) * 10_000_000);
             // write to fixed precision of up to 7 decimal places
@@ -26,26 +39,29 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 if (remainder > 0)
                 {
                     // 0.xxx
-                    return "0." + remainder.ToString(FloatJsonConverter.NumberFormatInfo);
+                    _stringBuilder.Append("0.");
+                    _stringBuilder.Append(remainder.ToString(NumberFormatInfo));
+                    return _stringBuilder.ToString();
                 }
 
                 // -0.xx
-                return "-0." + (remainder * -1).ToString(FloatJsonConverter.NumberFormatInfo);
+                _stringBuilder.Append("-0.");
+                _stringBuilder.Append((remainder * -1).ToString(NumberFormatInfo));
+                return _stringBuilder.ToString();
             }
 
             if (remainder == 0)
             {
                 // xx.0 or -xx.0
-                return val.ToString(FloatJsonConverter.NumberFormatInfo);
+                return val.ToString(NumberFormatInfo);
             }
 
-            if (remainder < 0)
-            {
-                // -xx.xx
-                return val.ToString(FloatJsonConverter.NumberFormatInfo) + "." + (remainder * -1).ToString(FloatJsonConverter.NumberFormatInfo);
-            }
+            _stringBuilder.Append(val.ToString(NumberFormatInfo));
+            _stringBuilder.Append(".");
+            // -xx.xx : xx.xx
+            _stringBuilder.Append(remainder < 0 ? (remainder * -1).ToString(NumberFormatInfo) : remainder.ToString(NumberFormatInfo));
 
-            return val.ToString(FloatJsonConverter.NumberFormatInfo) + "." + remainder.ToString(FloatJsonConverter.NumberFormatInfo);
+            return _stringBuilder.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
