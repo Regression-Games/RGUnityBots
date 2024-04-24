@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using Newtonsoft.Json;
@@ -7,6 +8,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class FloatJsonConverter: JsonConverter
     {
+
+        public static readonly NumberFormatInfo NumberFormatInfo = new NumberFormatInfo()
+        {
+            NumberDecimalDigits = 7
+        };
         public static string ToJsonString(float? f)
         {
             if (f == null)
@@ -28,26 +34,26 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 if (remainder > 0)
                 {
                     // 0.xxx
-                    return "0." + remainder.ToString("D7");
+                    return "0." + remainder.ToString(NumberFormatInfo);
                 }
 
                 // -0.xx
-                return "-0." + (remainder * -1).ToString("D7");
+                return "-0." + (remainder * -1).ToString(NumberFormatInfo);
             }
 
             if (remainder == 0)
             {
                 // xx.0 or -xx.0
-                return val.ToString();
+                return val.ToString(NumberFormatInfo);
             }
 
             if (remainder < 0)
             {
                 // -xx.xx
-                return val + "." + (remainder * -1).ToString("D7");
+                return val.ToString(NumberFormatInfo) + "." + (remainder * -1).ToString(NumberFormatInfo);
             }
 
-            return val + "." + remainder.ToString("D7");
+            return val.ToString(NumberFormatInfo) + "." + remainder.ToString(NumberFormatInfo);
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

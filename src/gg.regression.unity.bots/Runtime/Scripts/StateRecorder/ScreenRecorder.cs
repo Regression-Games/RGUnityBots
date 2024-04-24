@@ -756,6 +756,10 @@ namespace RegressionGames.StateRecorder
             {
                 contract.Converter = new DecimalJsonConverter();
             }
+            else if (objectType == typeof(string) || objectType == typeof(String))
+            {
+                contract.Converter = new StringJsonConverter();
+            }
             else if (objectType == typeof(Color))
             {
                 contract.Converter = new ColorJsonConverter();
