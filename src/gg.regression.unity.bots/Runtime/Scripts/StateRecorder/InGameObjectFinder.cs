@@ -479,7 +479,7 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        // pre-allocate this rather large list 1 time to avoid memory stuff on each stick
+        // pre-allocate this rather large list 1 time to avoid memory stuff on each tick
         private readonly List<Component> _childComponentsQueryList = new(100);
 
         private void ProcessChildTransformComponents(Transform childTransform, List<BehaviourState> behaviours, List<ColliderRecordState> collidersState, List<RigidbodyRecordState> rigidbodiesState)
