@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using StateRecorder;
 using TMPro;
 using UnityEngine;
 
@@ -17,9 +18,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (TextMeshProUGUI)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"text\":" + JsonConvert.ToString(val.text)
-                                                  + ",\"textStyle\":" + JsonConvert.ToString(val.textStyle.name)
-                                                  + ",\"font\":" + JsonConvert.ToString(val.font.name)
+                writer.WriteRawValue("{\"text\":" + JsonUtils.EscapeJsonString(val.text)
+                                                  + ",\"textStyle\":" + JsonUtils.EscapeJsonString(val.textStyle.name)
+                                                  + ",\"font\":" + JsonUtils.EscapeJsonString(val.font.name)
                                                   // enum doesn't need json escaping
                                                   + ",\"fontStyle\":\"" + val.fontStyle
                                                   + "\",\"fontSize\":" + val.fontSize

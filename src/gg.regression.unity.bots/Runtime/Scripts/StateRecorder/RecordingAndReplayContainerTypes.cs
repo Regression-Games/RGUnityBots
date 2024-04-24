@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
@@ -18,10 +20,12 @@ namespace RegressionGames.StateRecorder
         public PerformanceMetricData performance;
         public new List<RecordedGameObjectState> state;
 
+
+
         public string ToJson()
         {
             return "{\n\"tickNumber\":" + tickNumber
-                                        + ",\n\"keyFrame\":[" + string.Join(",",keyFrame.Select(a=>a.ToJson()))
+                                        + ",\n\"keyFrame\":[" + string.Join(",",keyFrame.Select(a=>"\"" + a + "\""))
                                         + "],\n\"time\":" + DoubleJsonConverter.ToJsonString(time)
                                         + ",\n\"timeScale\":" + FloatJsonConverter.ToJsonString(timeScale)
                                         + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
@@ -31,6 +35,7 @@ namespace RegressionGames.StateRecorder
                                         + "\n],\n\"inputs\":" + inputs.ToJson()
                                         + "\n}";
         }
+
     }
 
     [Serializable]
@@ -187,10 +192,10 @@ namespace RegressionGames.StateRecorder
         public string ToJson()
         {
             return "{\n\"id\":" + id
-                                + ",\n\"path\":" + JsonConvert.ToString(path)
-                                + ",\n\"scene\":" + JsonConvert.ToString(scene.name)
-                                + ",\n\"tag\":" + JsonConvert.ToString(tag)
-                                + ",\n\"layer\":" + JsonConvert.ToString(layer)
+                                + ",\n\"path\":" + JsonUtils.EscapeJsonString(path)
+                                + ",\n\"scene\":" + JsonUtils.EscapeJsonString(scene.name)
+                                + ",\n\"tag\":" + JsonUtils.EscapeJsonString(tag)
+                                + ",\n\"layer\":" + JsonUtils.EscapeJsonString(layer)
                                 + ",\n\"rendererCount\":" + rendererCount
                                 + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
                                 + ",\n\"screenSpaceZOffset\":" + FloatJsonConverter.ToJsonString(screenSpaceZOffset)
@@ -235,8 +240,8 @@ namespace RegressionGames.StateRecorder
                 stateJson = "{}";
             }
 
-            return "{\"name\":" + JsonConvert.ToString(name)
-                                     + ",\"path\":" + JsonConvert.ToString(path)
+            return "{\"name\":" + JsonUtils.EscapeJsonString(name)
+                                     + ",\"path\":" + JsonUtils.EscapeJsonString(path)
                                      // have to use JsonConvert to serialize here as Behaviours are the wild wild west of contents
                                      + ",\"state\":" + stateJson
                                      + "}";
@@ -252,7 +257,7 @@ namespace RegressionGames.StateRecorder
 
         public virtual string ToJson()
         {
-            return "{\"path\":" + JsonConvert.ToString(path)
+            return "{\"path\":" + JsonUtils.EscapeJsonString(path)
                                 + ",\"is2D\":false"
                                 + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(collider.bounds)
                                 + ",\"isTrigger\":" + (collider.isTrigger ? "true" : "false")
@@ -268,7 +273,7 @@ namespace RegressionGames.StateRecorder
 
         public override string ToJson()
         {
-            return "{\"path\":" + JsonConvert.ToString(path)
+            return "{\"path\":" + JsonUtils.EscapeJsonString(path)
                                 + ",\"is2D\":true"
                                 + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(collider.bounds)
                                 + ",\"isTrigger\":" + (collider.isTrigger ? "true" : "false")
@@ -298,7 +303,7 @@ namespace RegressionGames.StateRecorder
 
         public virtual string ToJson()
         {
-            return "{\"path\":" + JsonConvert.ToString(path)
+            return "{\"path\":" + JsonUtils.EscapeJsonString(path)
                                 + ",\"is2D\":false"
                                 + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(rigidbody.position)
                                 + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rigidbody.rotation)
@@ -322,7 +327,7 @@ namespace RegressionGames.StateRecorder
 
         public override string ToJson()
         {
-            return "{\"path\":" + JsonConvert.ToString(path)
+            return "{\"path\":" + JsonUtils.EscapeJsonString(path)
                                 + ",\"is2D\":true"
                                 + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(rigidbody.position)
                                 // rotation around Z

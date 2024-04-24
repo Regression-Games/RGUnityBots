@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
@@ -16,8 +17,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (Animator)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"controller\":" + JsonConvert.ToString(val.runtimeAnimatorController.name)
-                                                        + ",\"avatar\":" + JsonConvert.ToString(val.avatar.name)
+                writer.WriteRawValue("{\"controller\":" + JsonUtils.EscapeJsonString(val.runtimeAnimatorController.name)
+                                                        + ",\"avatar\":" + JsonUtils.EscapeJsonString(val.avatar.name)
                                                         + ",\"applyRootMotion\":" + (val.applyRootMotion ? "true" : "false")
                                                         // enum doesn't need json escaping
                                                         + ",\"updateMode\":\"" + val.updateMode

@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,9 +18,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (RawImage)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"texture\":" + (val.texture == null ? "null":JsonConvert.ToString(val.texture.name))
+                writer.WriteRawValue("{\"texture\":" + (val.texture == null ? "null":JsonUtils.EscapeJsonString(val.texture.name))
                                                      + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                     + ",\"material\":" + (val.material == null ? "null":JsonConvert.ToString(val.material.name))
+                                                     + ",\"material\":" + (val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name))
                                                      + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false")
                                                      + ",\"uvRect\":" + RectJsonConverter.ToJsonString(val.uvRect) + "}");
             }

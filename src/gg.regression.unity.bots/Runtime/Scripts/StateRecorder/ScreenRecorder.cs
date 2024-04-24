@@ -498,10 +498,6 @@ namespace RegressionGames.StateRecorder
                    )
                 {
 
-                    _lastCvFrameTime = time;
-
-                    _frameCountSinceLastTick = 0;
-
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
@@ -533,6 +529,9 @@ namespace RegressionGames.StateRecorder
 #endif
                             }
                         };
+
+                        _lastCvFrameTime = time;
+                        _frameCountSinceLastTick = 0;
 
                         var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
                         var mouseInputData = _mouseObserver.FlushInputDataBuffer(true);

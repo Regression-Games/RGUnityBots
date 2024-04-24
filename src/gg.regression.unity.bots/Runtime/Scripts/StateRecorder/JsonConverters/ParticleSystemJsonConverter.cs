@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
@@ -16,7 +17,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (ParticleSystem)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"name\":" + JsonConvert.ToString(val.name)
+                writer.WriteRawValue("{\"name\":" + JsonUtils.EscapeJsonString(val.name)
                                                   + ",\"isPlaying\":" + (val.isPlaying ? "true" : "false") + "}");
             }
         }

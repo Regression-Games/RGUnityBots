@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,8 +18,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (Text)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"text\":" + JsonConvert.ToString(val.text)
-                                                  + ",\"font\":" + JsonConvert.ToString(val.font.name)
+                writer.WriteRawValue("{\"text\":" + JsonUtils.EscapeJsonString(val.text)
+                                                  + ",\"font\":" + JsonUtils.EscapeJsonString(val.font.name)
                                                   // enum doesn't need json escaping
                                                   + ",\"fontStyle\":\"" + val.fontStyle
                                                   + "\",\"fontSize\":" + val.fontSize

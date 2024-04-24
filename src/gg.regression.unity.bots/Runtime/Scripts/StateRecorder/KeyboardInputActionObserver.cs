@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -51,8 +52,8 @@ namespace RegressionGames.StateRecorder
         public string ToJson()
         {
             return "{\"startTime\":" + DoubleJsonConverter.ToJsonString(startTime)
-                                               + ",\"action\":" + JsonConvert.ToString(action)
-                                               + ",\"binding\":" + JsonConvert.ToString(binding)
+                                               + ",\"action\":" + JsonUtils.EscapeJsonString(action)
+                                               + ",\"binding\":" + JsonUtils.EscapeJsonString(binding)
                                                + ",\"endTime\":" + DoubleJsonConverter.ToJsonString(endTime)
                                                + ",\"isPressed\":" + (isPressed ? "true" : "false")
                                                + "}";
@@ -200,7 +201,7 @@ namespace RegressionGames.StateRecorder
             { "OEM4", Key.OEM4 },
             { "OEM5", Key.OEM5 },
         });
-        
+
         // Key -> (without-Shift, with-Shift) values
         // This is used to convert key presses into characters for text events, where shift can modify the character
         public static readonly IReadOnlyDictionary<Key, (char, char)> KeyboardKeyToValueMap = new ReadOnlyDictionary<Key, (char,char)>(new Dictionary<Key, (char,char)>()
@@ -208,7 +209,7 @@ namespace RegressionGames.StateRecorder
             // row 1 (top row) is generally function keys.
             // ignore these since they don't have ascii characters associated with them
             { Key.Delete, ((char)127, (char)127) },
-            
+
             // row 2 - numbers and symbols
             { Key.Backquote, ('`', '~') },
             { Key.Digit1, ('1','!') },
@@ -240,7 +241,7 @@ namespace RegressionGames.StateRecorder
             { Key.LeftBracket, ('[','{') },
             { Key.RightBracket, (']','}') },
             { Key.Backslash, ('\\','|') },
-            
+
             // row 4 - asdf
             { Key.A, ('a','A') },
             { Key.S, ('s','S') },
@@ -254,7 +255,7 @@ namespace RegressionGames.StateRecorder
             { Key.Semicolon, (';',':') },
             { Key.Quote, ('\'','"') },
             { Key.Enter, ('\n','\n') },
-            
+
             // row 5 - zxcv
             // left shift modifies each of these so doesn't need its own entry
             { Key.Z, ('z','Z') },
@@ -268,11 +269,11 @@ namespace RegressionGames.StateRecorder
             { Key.Period, ('.','>') },
             { Key.Slash, ('/','?') },
             // same for right shift
-            
+
             // row 6 - bottom row with space bar
             // ignore ctrl. alt, other modifier keys
             { Key.Space, (' ', ' ') },
-            
+
             // numpad
             { Key.NumpadMultiply, ('*','*') },
             { Key.NumpadDivide, ('/', '/') },

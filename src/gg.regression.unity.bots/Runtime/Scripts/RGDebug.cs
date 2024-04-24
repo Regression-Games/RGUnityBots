@@ -103,9 +103,15 @@ namespace RegressionGames
         public static bool IsWarningEnabled => CheckLogLevel(RGLogLevel.Warning);
         public static bool IsErrorEnabled => CheckLogLevel(RGLogLevel.Error);
 
-        private static string BuildPrefix(RGLogLevel logLevel)
+        private static string GetDateString()
         {
-            return $"{{RG}} {DateTime.Now:yyyy-MM-ddTHH:mm:ss:ffff}  {logLevel.ToString().ToUpperInvariant()} [{Thread.CurrentThread.ManagedThreadId}] --- ";
+            // ReSharper disable once StringLiteralTypo
+            return DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss:ffff ");
+        }
+
+        private static string CreateLogMessageWithPrefix(RGLogLevel logLevel, string message)
+        {
+            return "{{RG}} " + GetDateString() + logLevel.ToString().ToUpperInvariant() + " [" + Thread.CurrentThread.ManagedThreadId + "] --- " + message;
         }
 
         // Log the given message to the console
@@ -116,7 +122,7 @@ namespace RegressionGames
                 return;
             }
 
-            var logMessage = BuildPrefix(logLevel) + message;
+            var logMessage = CreateLogMessageWithPrefix(logLevel, message);
 
             switch (logLevel)
             {

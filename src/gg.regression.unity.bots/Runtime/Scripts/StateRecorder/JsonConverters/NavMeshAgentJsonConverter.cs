@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine.AI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
@@ -16,7 +17,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (NavMeshAgent)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"agentType\":" + JsonConvert.ToString(NavMesh.GetSettingsNameFromID(val.agentTypeID)) + "}");
+                writer.WriteRawValue("{\"agentType\":" + JsonUtils.EscapeJsonString(NavMesh.GetSettingsNameFromID(val.agentTypeID)) + "}");
             }
         }
 
