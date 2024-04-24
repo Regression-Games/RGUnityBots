@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using JetBrains.Annotations;
 using StateRecorder.Types;
 using UnityEngine;
@@ -510,12 +508,11 @@ namespace RegressionGames.StateRecorder
                     }
                     else
                     {
-                        cObject = new ColliderRecordState
-                        {
-                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                            collider = colliderEntry
-                        };
+                        cObject = new ColliderRecordState();
                     }
+
+                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.collider = colliderEntry;
 
                     collidersState.Add(cObject);
                 }
@@ -531,12 +528,11 @@ namespace RegressionGames.StateRecorder
                     }
                     else
                     {
-                        cObject = new Collider2DRecordState
-                        {
-                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                            collider = colliderEntry2D
-                        };
+                        cObject = new Collider2DRecordState();
                     }
+
+                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.collider = colliderEntry2D;
 
                     collidersState.Add(cObject);
                 }
@@ -552,12 +548,11 @@ namespace RegressionGames.StateRecorder
                     }
                     else
                     {
-                        cObject = new RigidbodyRecordState
-                        {
-                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                            rigidbody = myRigidbody
-                        };
+                        cObject = new RigidbodyRecordState();
                     }
+
+                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.rigidbody = myRigidbody;
 
                     rigidbodiesState.Add(cObject);
                 }
@@ -573,12 +568,11 @@ namespace RegressionGames.StateRecorder
                     }
                     else
                     {
-                        cObject = new Rigidbody2DRecordState
-                        {
-                            path = (ts ??= GetUniqueTransformPath(childTransform)).Path,
-                            rigidbody = myRigidbody2D
-                        };
+                        cObject = new Rigidbody2DRecordState();
                     }
+
+                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.rigidbody = myRigidbody2D;
 
                     rigidbodiesState.Add(cObject);
                 }
@@ -594,13 +588,12 @@ namespace RegressionGames.StateRecorder
                     }
                     else
                     {
-                        cObject = new BehaviourState
-                        {
-                            path = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).Path,
-                            name = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).TypeFullName,
-                            state = childBehaviour
-                        };
+                        cObject = new BehaviourState();
                     }
+
+                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).Path;
+                    cObject.name = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).TypeFullName;
+                    cObject.state = childBehaviour;
 
                     behaviours.Add(cObject);
                 }
