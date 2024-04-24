@@ -830,9 +830,6 @@ namespace RegressionGames.StateRecorder
                 InputSystem.QueueEvent(eventPtr);
             }
         }
-        // pre-allocate a big list we can re-use
-        private List<RecordedGameObjectState> _priorStates = new(1000);
-        private List<RecordedGameObjectState> _newStates = new(1000);
 
         public void Update()
         {

@@ -461,10 +461,6 @@ namespace RegressionGames.StateRecorder
             OnDestroy();
         }
 
-        // pre-allocate a big list we can re-use
-        private List<RecordedGameObjectState> _priorStates = null;
-        private List<RecordedGameObjectState> _newStates = new(1000);
-
         private IEnumerator RecordFrame()
         {
             if (!_frameQueue.IsCompleted)

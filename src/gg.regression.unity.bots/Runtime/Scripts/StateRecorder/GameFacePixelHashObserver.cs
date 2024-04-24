@@ -34,22 +34,11 @@ namespace StateRecorder
         {
             foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
             {
+                CohtmlViewType = a.GetType("cohtml.CohtmlView", false);
                 if (CohtmlViewType != null)
                 {
+                    CohtmlViewTextureProperty = CohtmlViewType.GetProperty("ViewTexture");
                     break;
-                }
-                foreach (Type t in a.GetTypes())
-                {
-                    if (CohtmlViewType != null)
-                    {
-                        break;
-                    }
-                    if (t.FullName == "cohtml.CohtmlView")
-                    {
-                        // we are running in an environment with GameFace UI libraries
-                        CohtmlViewType = t;
-                        CohtmlViewTextureProperty = t.GetProperty("ViewTexture");
-                    }
                 }
             }
         }
