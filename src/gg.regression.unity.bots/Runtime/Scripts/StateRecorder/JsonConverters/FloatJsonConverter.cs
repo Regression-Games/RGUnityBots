@@ -13,7 +13,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static readonly NumberFormatInfo NumberFormatInfo = new ()
         {
-            NumberDecimalDigits = 0
+            NumberDecimalDigits = 0,
+
         };
 
         public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, float? f)
@@ -45,13 +46,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 {
                     // 0.xxx
                     stringBuilder.Append("0.");
-                    stringBuilder.Append(remainder.ToString(NumberFormatInfo));
+                    DecimalJsonConverter.OptimizedZeroPadTo7Digits(stringBuilder, remainder);
                     return;
                 }
 
                 // -0.xx
                 stringBuilder.Append("-0.");
-                stringBuilder.Append((remainder * -1).ToString(NumberFormatInfo));
+                DecimalJsonConverter.OptimizedZeroPadTo7Digits(stringBuilder, remainder * -1);
                 return;
             }
 
@@ -65,7 +66,14 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append(val.ToString(NumberFormatInfo));
             stringBuilder.Append(".");
             // -xx.xx : xx.xx
-            stringBuilder.Append(remainder < 0 ? (remainder * -1).ToString(NumberFormatInfo) : remainder.ToString(NumberFormatInfo));
+            if (remainder < 0)
+            {
+                DecimalJsonConverter.OptimizedZeroPadTo7Digits(stringBuilder, remainder * -1);
+            }
+            else
+            {
+                DecimalJsonConverter.OptimizedZeroPadTo7Digits(stringBuilder, remainder);
+            }
 
         }
 

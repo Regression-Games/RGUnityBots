@@ -138,7 +138,7 @@ namespace RegressionGames.StateRecorder
             var newMouseState = GetCurrentMouseState(mousePosition);
             if (newMouseState != null)
             {
-                if (_priorMouseState?.ButtonStatesEqual(newMouseState) != true)
+                if (_priorMouseState == null && newMouseState.IsButtonClicked || _priorMouseState != null && !_priorMouseState.ButtonStatesEqual(newMouseState))
                 {
                     Vector3? worldPosition = null;
                     var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -469,7 +470,7 @@ namespace RegressionGames.StateRecorder
             {
                 _mouseEventHandler = InputSystem.onEvent.ForDevice(mouse).Call(e =>
                 {
-                    var positionControl = mouse.allControls.First(a => a.name == "position") as Vector2Control;
+                    var positionControl = mouse.allControls.First(a => a is Vector2Control && a.name == "position") as Vector2Control;
                     var position = positionControl.ReadValueFromEvent(e);
 
                     var buttonsClicked = mouse.allControls.FirstOrDefault(a =>
@@ -613,9 +614,10 @@ namespace RegressionGames.StateRecorder
                                 {
                                     bestObject = objectToCheck;
                                     worldSpaceObject = true;
-                                    RGDebug.LogInfo($"({tickNumber}) Adjusting world click location to ensure hit on object: " + objectToCheck.path);
+                                    var old = normalizedPosition;
                                     // we hit one of our world objects, set the normalized position and stop looping
                                     normalizedPosition = new Vector2((int)screenPoint.x, (int)screenPoint.y);
+                                    RGDebug.LogInfo($"({tickNumber}) Adjusting world click location to ensure hit on object: " + objectToCheck.path + " oldPosition: (" + old.x + "," + old.y + "), newPosition: (" + normalizedPosition.x + "," + normalizedPosition.y + ")");
                                     break; // end the for
                                 }
                             }
@@ -710,10 +712,13 @@ namespace RegressionGames.StateRecorder
                 // make sure our click is on that object
                 if (!clickBounds.Contains(normalizedPosition))
                 {
-                    RGDebug.LogInfo($"({tickNumber}) Adjusting click location to ensure hit on object path: " + bestObject.path);
-
+                    var old = normalizedPosition;
                     // use the center of these bounds as our best point to click
                     normalizedPosition = new Vector2((int)clickBounds.center.x, (int)clickBounds.center.y);
+
+                    RGDebug.LogInfo($"({tickNumber}) Adjusting click location to ensure hit on object path: " + bestObject.path + " oldPosition: (" + old.x + "," + old.y + "), newPosition: (" + normalizedPosition.x + "," + normalizedPosition.y + ")");
+
+
                 }
             }
 

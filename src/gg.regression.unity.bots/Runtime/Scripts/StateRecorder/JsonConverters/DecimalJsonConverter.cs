@@ -43,13 +43,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 {
                     // 0.xxx
                     stringBuilder.Append("0.");
-                    stringBuilder.Append(remainder.ToString(NumberFormatInfo));
+                    OptimizedZeroPadTo7Digits(stringBuilder, remainder);
                     return;
                 }
 
                 // -0.xx
                 stringBuilder.Append("-0.");
-                stringBuilder.Append((remainder * -1).ToString(NumberFormatInfo));
+                OptimizedZeroPadTo7Digits(stringBuilder, remainder * -1);
                 return;
             }
 
@@ -63,8 +63,56 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append(val.ToString(NumberFormatInfo));
             stringBuilder.Append(".");
             // -xx.xx : xx.xx
-            stringBuilder.Append(remainder < 0 ? (remainder * -1).ToString(NumberFormatInfo) : remainder.ToString(NumberFormatInfo));
+            if (remainder < 0)
+            {
+                OptimizedZeroPadTo7Digits(stringBuilder, remainder * -1);
+            }
+            else
+            {
+                OptimizedZeroPadTo7Digits(stringBuilder, remainder);
+            }
 
+        }
+
+        public static void OptimizedZeroPadTo7Digits(StringBuilder stringBuilder, int value)
+        {
+            if (value == 0)
+            {
+                stringBuilder.Append("0000000");
+                return;
+            }
+
+
+            if (value > 999_999)
+            {
+                // no padding
+            }
+            else if (value > 99_999)
+            {
+                stringBuilder.Append("0");
+            }
+            else if (value > 9_999)
+            {
+                stringBuilder.Append("00");
+            }
+            else if (value > 999)
+            {
+                stringBuilder.Append("000");
+            }
+            else if (value > 99)
+            {
+                stringBuilder.Append("0000");
+            }
+            else if (value > 9)
+            {
+                stringBuilder.Append("00000");
+            }
+            else
+            {
+                stringBuilder.Append("000000");
+            }
+
+            stringBuilder.Append(value.ToString(NumberFormatInfo));
         }
 
         private static string ToJsonString(decimal f)
