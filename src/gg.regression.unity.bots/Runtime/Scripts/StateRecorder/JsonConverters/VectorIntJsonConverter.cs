@@ -10,40 +10,57 @@ namespace RegressionGames.StateRecorder.JsonConverters
         // re-usable and large enough to fit vectors of all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
 
-        public static string ToJsonString(Vector2Int? val)
+        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Vector2Int? f)
         {
-            if (val == null)
+            if (!f.HasValue)
             {
-                return "null";
+                stringBuilder.Append("null");
+                return;
             }
-
-            var value = val.Value;
-            _stringBuilder.Clear();
-            _stringBuilder.Append("{\"x\":");
-            _stringBuilder.Append(value.x.ToString());
-            _stringBuilder.Append(",\"y\":");
-            _stringBuilder.Append(value.y.ToString());
-            _stringBuilder.Append("}");
-            return _stringBuilder.ToString();
-
+            WriteToStringBuilder(stringBuilder, f.Value);
         }
 
-        public static string ToJsonString(Vector3Int? val)
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Vector2Int value)
         {
-            if (val == null)
-            {
-                return "null";
-            }
+            stringBuilder.Append("{\"x\":");
+            stringBuilder.Append(value.x.ToString());
+            stringBuilder.Append(",\"y\":");
+            stringBuilder.Append(value.y.ToString());
+            stringBuilder.Append("}");
+        }
 
-            var value = val.Value;
+        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Vector3Int? f)
+        {
+            if (!f.HasValue)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+            WriteToStringBuilder(stringBuilder, f.Value);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Vector3Int value)
+        {
+            stringBuilder.Append("{\"x\":");
+            stringBuilder.Append(value.x.ToString());
+            stringBuilder.Append(",\"y\":");
+            stringBuilder.Append(value.y.ToString());
+            stringBuilder.Append(",\"z\":");
+            stringBuilder.Append(value.z.ToString());
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Vector2Int val)
+        {
             _stringBuilder.Clear();
-            _stringBuilder.Append("{\"x\":");
-            _stringBuilder.Append(value.x.ToString());
-            _stringBuilder.Append(",\"y\":");
-            _stringBuilder.Append(value.y.ToString());
-            _stringBuilder.Append(",\"z\":");
-            _stringBuilder.Append(value.z.ToString());
-            _stringBuilder.Append("}");
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
+        private static string ToJsonString(Vector3Int val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
             return _stringBuilder.ToString();
         }
 
@@ -62,9 +79,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 }
                 else
                 {
-                    var valZ = (Vector3Int)value;
                     // raw is way faster than using the libraries
-                    writer.WriteRawValue(ToJsonString(valZ));
+                    writer.WriteRawValue(ToJsonString((Vector3Int)value));
                 }
             }
         }

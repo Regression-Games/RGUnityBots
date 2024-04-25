@@ -571,7 +571,7 @@ namespace RegressionGames.StateRecorder
 
                         // serialize to json byte[]
                         jsonData = Encoding.UTF8.GetBytes(
-                            frameState.ToJson()
+                            frameState.ToJsonString()
                         );
                     }
                     catch (Exception e)
@@ -758,6 +758,18 @@ namespace RegressionGames.StateRecorder
             else if (objectType == typeof(decimal) || objectType == typeof(Decimal))
             {
                 contract.Converter = new DecimalJsonConverter();
+            }
+            else if (objectType == typeof(int) || objectType == typeof(Int32))
+            {
+                contract.Converter = new IntJsonConverter();
+            }
+            else if (objectType == typeof(long) || objectType == typeof(Int64))
+            {
+                contract.Converter = new FloatJsonConverter();
+            }
+            else if (objectType == typeof(short) || objectType == typeof(Int16))
+            {
+                contract.Converter = new FloatJsonConverter();
             }
             else if (objectType == typeof(string) || objectType == typeof(String))
             {

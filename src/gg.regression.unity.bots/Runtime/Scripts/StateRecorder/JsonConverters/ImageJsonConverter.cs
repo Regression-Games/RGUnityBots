@@ -13,20 +13,31 @@ namespace RegressionGames.StateRecorder.JsonConverters
         // re-usable and large enough to fit images of all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
 
-        public static string ToJsonString(Image val)
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Image val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"sourceImage\":");
+            stringBuilder.Append((val.sprite == null ? "null":JsonUtils.EscapeJsonString(val.sprite.name)));
+            stringBuilder.Append(",\"color\":");
+            ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
+            stringBuilder.Append(",\"material\":");
+            stringBuilder.Append((val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name)));
+            stringBuilder.Append(",\"raycastTarget\":");
+            stringBuilder.Append((val.raycastTarget ? "true" : "false"));
+            stringBuilder.Append(",\"preserveAspect\":");
+            stringBuilder.Append((val.preserveAspect ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Image val)
         {
             _stringBuilder.Clear();
-            _stringBuilder.Append("{\"sourceImage\":");
-            _stringBuilder.Append((val.sprite == null ? "null":JsonUtils.EscapeJsonString(val.sprite.name)));
-            _stringBuilder.Append(",\"color\":");
-            _stringBuilder.Append(ColorJsonConverter.ToJsonString(val.color));
-            _stringBuilder.Append(",\"material\":");
-            _stringBuilder.Append((val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name)));
-            _stringBuilder.Append(",\"raycastTarget\":");
-            _stringBuilder.Append((val.raycastTarget ? "true" : "false"));
-            _stringBuilder.Append(",\"preserveAspect\":");
-            _stringBuilder.Append((val.preserveAspect ? "true" : "false"));
-            _stringBuilder.Append("}}");
+            WriteToStringBuilder(_stringBuilder, val);
             return _stringBuilder.ToString();
         }
 

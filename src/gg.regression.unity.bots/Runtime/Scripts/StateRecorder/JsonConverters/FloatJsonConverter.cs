@@ -13,18 +13,21 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static readonly NumberFormatInfo NumberFormatInfo = new ()
         {
-            NumberDecimalDigits = 7
+            NumberDecimalDigits = 0
         };
 
-        public static string ToJsonString(float? f)
+        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, float? f)
         {
-            if (f == null)
+            if (!f.HasValue)
             {
-                return "null";
+                stringBuilder.Append("null");
+                return;
             }
+            WriteToStringBuilder(stringBuilder, f.Value);
+        }
 
-            _stringBuilder.Clear();
-
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, float f)
+        {
             var val = (int)f;
             var remainder = (int)((f % 1) * 10_000_000);
             // write to fixed precision of up to 7 decimal places
@@ -34,41 +37,53 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 if (remainder == 0)
                 {
                     // 0.0
-                    return "0";
+                    stringBuilder.Append("0");
+                    return;
                 }
 
                 if (remainder > 0)
                 {
                     // 0.xxx
-                    _stringBuilder.Append("0.");
-                    _stringBuilder.Append(remainder.ToString(NumberFormatInfo));
-                    return _stringBuilder.ToString();
+                    stringBuilder.Append("0.");
+                    stringBuilder.Append(remainder.ToString(NumberFormatInfo));
+                    return;
                 }
 
                 // -0.xx
-                _stringBuilder.Append("-0.");
-                _stringBuilder.Append((remainder * -1).ToString(NumberFormatInfo));
-                return _stringBuilder.ToString();
+                stringBuilder.Append("-0.");
+                stringBuilder.Append((remainder * -1).ToString(NumberFormatInfo));
+                return;
             }
 
             if (remainder == 0)
             {
                 // xx.0 or -xx.0
-                return val.ToString(NumberFormatInfo);
+                stringBuilder.Append(val.ToString(NumberFormatInfo));
+                return;
             }
 
-            _stringBuilder.Append(val.ToString(NumberFormatInfo));
-            _stringBuilder.Append(".");
+            stringBuilder.Append(val.ToString(NumberFormatInfo));
+            stringBuilder.Append(".");
             // -xx.xx : xx.xx
-            _stringBuilder.Append(remainder < 0 ? (remainder * -1).ToString(NumberFormatInfo) : remainder.ToString(NumberFormatInfo));
+            stringBuilder.Append(remainder < 0 ? (remainder * -1).ToString(NumberFormatInfo) : remainder.ToString(NumberFormatInfo));
 
+        }
+
+        private static string ToJsonString(float f)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, f);
             return _stringBuilder.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            var f = (float)value;
-            writer.WriteRawValue(ToJsonString(f));
+            if (value == null)
+            {
+                writer.WriteNull();
+                return;
+            }
+            writer.WriteRawValue(ToJsonString((float)value));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)

@@ -8,35 +8,48 @@ namespace RegressionGames.StateRecorder.JsonConverters
     // NOTE: This class exists as a performance optimization as JsonConverters list model for JsonSerializerSettings scales very very poorly
     public class ColorJsonConverter : Newtonsoft.Json.JsonConverter
     {
-        // re-usable and large enough to fit colors of all sizes
+        // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
 
-        public static string ToJsonString(Color? val)
+        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Color? f)
         {
-            if (val == null)
+            if (!f.HasValue)
             {
-                return "null";
+                stringBuilder.Append("null");
+                return;
             }
+            WriteToStringBuilder(stringBuilder, f.Value);
+        }
 
-            var value = val.Value;
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Color value)
+        {
+            stringBuilder.Append("{\"r\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.r);
+            stringBuilder.Append(",\"g\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.g);
+            stringBuilder.Append(",\"b\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.b);
+            stringBuilder.Append(",\"a\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.a);
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Color val)
+        {
             _stringBuilder.Clear();
-            _stringBuilder.Append("{\"r\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.r));
-            _stringBuilder.Append(",\"g\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.g));
-            _stringBuilder.Append(",\"b\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.b));
-            _stringBuilder.Append(",\"a\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.a));
-            _stringBuilder.Append("}");
+            WriteToStringBuilder(_stringBuilder, val);
             return _stringBuilder.ToString();
-
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
+            if (value == null)
+            {
+                writer.WriteNull();
+                return;
+            }
             // raw is way faster than using the libraries
-            writer.WriteRawValue(ToJsonString((Color?)value));
+            writer.WriteRawValue(ToJsonString((Color)value));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -46,7 +59,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(Color);
+            return objectType == typeof(Color) || objectType == typeof(Color?);
         }
 
         public override bool CanRead => false;

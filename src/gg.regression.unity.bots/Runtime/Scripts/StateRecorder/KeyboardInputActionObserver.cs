@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
@@ -17,7 +18,7 @@ namespace RegressionGames.StateRecorder
     {
         public override void WriteJson(JsonWriter writer, KeyboardInputActionData value, JsonSerializer serializer)
         {
-            writer.WriteRawValue(value.ToJson());
+            writer.WriteRawValue(value.ToJsonString());
         }
 
         public override bool CanRead => false;
@@ -49,14 +50,30 @@ namespace RegressionGames.StateRecorder
 
         public bool isPressed => duration > 0 && endTime == null;
 
-        public string ToJson()
+        // re-usable and large enough to fit ball sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(2_000);
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\"startTime\":" + DoubleJsonConverter.ToJsonString(startTime)
-                                               + ",\"action\":" + JsonUtils.EscapeJsonString(action)
-                                               + ",\"binding\":" + JsonUtils.EscapeJsonString(binding)
-                                               + ",\"endTime\":" + DoubleJsonConverter.ToJsonString(endTime)
-                                               + ",\"isPressed\":" + (isPressed ? "true" : "false")
-                                               + "}";
+            stringBuilder.Append("{\"startTime\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
+            stringBuilder.Append(",\"action\":");
+            stringBuilder.Append(JsonUtils.EscapeJsonString(action));
+            stringBuilder.Append(",\"binding\":");
+            stringBuilder.Append(JsonUtils.EscapeJsonString(binding));
+            stringBuilder.Append(",\"endTime\":");
+            stringBuilder.Append(JsonUtils.EscapeJsonString(action));
+            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, endTime);
+            stringBuilder.Append(",\"isPressed\":");
+            stringBuilder.Append((isPressed ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+
+        internal string ToJsonString()
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder);
+            return _stringBuilder.ToString();
         }
     }
 

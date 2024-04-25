@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using StateRecorder;
 using UnityEngine;
@@ -8,6 +9,37 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class RawImageJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(2_000);
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, RawImage val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"texture\":");
+            stringBuilder.Append((val.texture == null ? "null":JsonUtils.EscapeJsonString(val.texture.name)));
+            stringBuilder.Append(",\"color\":");
+            ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
+            stringBuilder.Append(",\"material\":");
+            stringBuilder.Append((val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name)));
+            stringBuilder.Append(",\"raycastTarget\":");
+            stringBuilder.Append((val.raycastTarget ? "true" : "false"));
+            stringBuilder.Append(",\"uvRect\":");
+            RectJsonConverter.WriteToStringBuilder(stringBuilder, val.uvRect);
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(RawImage val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -16,13 +48,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (RawImage)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"texture\":" + (val.texture == null ? "null":JsonUtils.EscapeJsonString(val.texture.name))
-                                                     + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                     + ",\"material\":" + (val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name))
-                                                     + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false")
-                                                     + ",\"uvRect\":" + RectJsonConverter.ToJsonString(val.uvRect) + "}");
+                writer.WriteRawValue(ToJsonString((RawImage)value));
             }
         }
 

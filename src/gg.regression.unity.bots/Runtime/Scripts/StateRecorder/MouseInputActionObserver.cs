@@ -15,7 +15,7 @@ namespace RegressionGames.StateRecorder
     {
         public override void WriteJson(JsonWriter writer, MouseInputActionData value, JsonSerializer serializer)
         {
-            writer.WriteRawValue(value.ToJson());
+            writer.WriteRawValue(value.ToJsonString());
         }
 
         public override bool CanRead => false;
@@ -79,39 +79,47 @@ namespace RegressionGames.StateRecorder
             return false;
         }
 
-        public string ToJson()
+        // re-usable and large enough to fit ball sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(5_000);
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            var result = new StringBuilder();
-            result.Append("{\"startTime\":");
-            result.Append(DoubleJsonConverter.ToJsonString(startTime));
-            result.Append(",\"position\":");
-            result.Append( VectorIntJsonConverter.ToJsonString(position));
-            result.Append(",\"worldPosition\":");
-            result.Append( VectorJsonConverter.ToJsonStringVector3(worldPosition));
-            result.Append(",\"leftButton\":");
-            result.Append( (leftButton ? "true" : "false"));
-            result.Append(",\"middleButton\":");
-            result.Append( (middleButton ? "true" : "false"));
-            result.Append(",\"rightButton\":");
-            result.Append( (rightButton ? "true" : "false"));
-            result.Append(",\"forwardButton\":");
-            result.Append( (forwardButton ? "true" : "false"));
-            result.Append(",\"backButton\":");
-            result.Append( (backButton ? "true" : "false"));
-            result.Append(",\"scroll\":");
-            result.Append(VectorJsonConverter.ToJsonStringVector2(scroll));
-            result.Append(",\"clickedObjectIds\":[");
+            stringBuilder.Append("{\"startTime\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
+            stringBuilder.Append(",\"position\":");
+            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, position);
+            stringBuilder.Append(",\"worldPosition\":");
+            VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, worldPosition);
+            stringBuilder.Append(",\"leftButton\":");
+            stringBuilder.Append( (leftButton ? "true" : "false"));
+            stringBuilder.Append(",\"middleButton\":");
+            stringBuilder.Append( (middleButton ? "true" : "false"));
+            stringBuilder.Append(",\"rightButton\":");
+            stringBuilder.Append( (rightButton ? "true" : "false"));
+            stringBuilder.Append(",\"forwardButton\":");
+            stringBuilder.Append( (forwardButton ? "true" : "false"));
+            stringBuilder.Append(",\"backButton\":");
+            stringBuilder.Append( (backButton ? "true" : "false"));
+            stringBuilder.Append(",\"scroll\":");
+            VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
+            stringBuilder.Append(",\"clickedObjectIds\":[");
             var clickedObjectIdsLength = clickedObjectIds.Length;
             for (var i = 0; i < clickedObjectIdsLength; i++)
             {
-                result.Append(clickedObjectIds[i]);
+                stringBuilder.Append(clickedObjectIds[i]);
                 if (i + 1 < clickedObjectIdsLength)
                 {
-                    result.Append(",");
+                    stringBuilder.Append(",");
                 }
             }
-            result.Append("]}");
-            return result.ToString();
+            stringBuilder.Append("]}");
+        }
+
+        internal string ToJsonString()
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder);
+            return _stringBuilder.ToString();
         }
     }
 

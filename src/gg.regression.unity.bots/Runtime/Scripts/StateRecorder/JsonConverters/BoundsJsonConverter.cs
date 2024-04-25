@@ -8,33 +8,42 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class BoundsJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit bounds vectors of all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(1000);
 
-        public static string ToJsonString(Bounds? val)
+        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Bounds? f)
         {
-            if (val == null)
+            if (!f.HasValue)
             {
-                return "null";
+                stringBuilder.Append("null");
+                return;
             }
+            WriteToStringBuilder(stringBuilder, f.Value);
+        }
 
-            var value = val.Value;
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Bounds value)
+        {
             var center = value.center;
             var extents = value.extents;
 
+            stringBuilder.Append("{\"center\":{\"x\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, center.x);
+            stringBuilder.Append(",\"y\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, center.y);
+            stringBuilder.Append(",\"z\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, center.z);
+            stringBuilder.Append("},\"extents\":{\"x\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, extents.x);
+            stringBuilder.Append(",\"y\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, extents.y);
+            stringBuilder.Append(",\"z\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, extents.z);
+            stringBuilder.Append("}}");
+        }
+
+        private static string ToJsonString(Bounds val)
+        {
             _stringBuilder.Clear();
-            _stringBuilder.Append("{\"center\":{\"x\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(center.x));
-            _stringBuilder.Append(",\"y\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(center.y));
-            _stringBuilder.Append(",\"z\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(center.z));
-            _stringBuilder.Append("},\"extents\":{\"x\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(extents.x));
-            _stringBuilder.Append(",\"y\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(extents.y));
-            _stringBuilder.Append(",\"z\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(extents.z));
-            _stringBuilder.Append("}}");
+            WriteToStringBuilder(_stringBuilder, val);
             return _stringBuilder.ToString();
         }
 

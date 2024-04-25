@@ -10,24 +10,34 @@ namespace RegressionGames.StateRecorder.JsonConverters
         // re-usable and large enough to fit quaternions of all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
 
-        public static string ToJsonString(Quaternion? val)
+        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Quaternion? f)
         {
-            if (val == null)
+            if (!f.HasValue)
             {
-                return "null";
+                stringBuilder.Append("null");
+                return;
             }
+            WriteToStringBuilder(stringBuilder, f.Value);
+        }
 
-            var value = val.Value;
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Quaternion value)
+        {
+
+            stringBuilder.Append("{\"x\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.x);
+            stringBuilder.Append(",\"y\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.y);
+            stringBuilder.Append(",\"z\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.z);
+            stringBuilder.Append(",\"w\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.w);
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Quaternion val)
+        {
             _stringBuilder.Clear();
-            _stringBuilder.Append("{\"x\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.x));
-            _stringBuilder.Append(",\"y\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.y));
-            _stringBuilder.Append(",\"z\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.z));
-            _stringBuilder.Append(",\"w\":");
-            _stringBuilder.Append(FloatJsonConverter.ToJsonString(value.w));
-            _stringBuilder.Append("}");
+            WriteToStringBuilder(_stringBuilder, val);
             return _stringBuilder.ToString();
         }
 
@@ -39,9 +49,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Quaternion)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue(ToJsonString(val));
+                writer.WriteRawValue(ToJsonString((Quaternion)value));
             }
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using StateRecorder;
 using TMPro;
@@ -8,6 +9,41 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class TextMeshProJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, TextMeshPro val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"text\":");
+            stringBuilder.Append(JsonUtils.EscapeJsonString(val.text));
+            stringBuilder.Append(",\"textStyle\":");
+            stringBuilder.Append(JsonUtils.EscapeJsonString(val.textStyle.name));
+            stringBuilder.Append(",\"font\":");
+            stringBuilder.Append(JsonUtils.EscapeJsonString(val.font.name));
+            stringBuilder.Append(",\"fontStyle\":\"");
+            stringBuilder.Append(val.fontStyle.ToString());
+            stringBuilder.Append("\",\"fontSize\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.fontSize);
+            stringBuilder.Append(",\"color\":");
+            ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
+            stringBuilder.Append(",\"raycastTarget\":");
+            stringBuilder.Append((val.raycastTarget ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(TextMeshPro val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -16,17 +52,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (TextMeshPro)value;
-
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"text\":" + JsonUtils.EscapeJsonString(val.text)
-                                                  + ",\"textStyle\":" + JsonUtils.EscapeJsonString(val.textStyle.name)
-                                                  + ",\"font\":" + JsonUtils.EscapeJsonString(val.font.name)
-                                                  // enum doesn't need json escaping
-                                                  + ",\"fontStyle\":\"" + val.fontStyle
-                                                  + "\",\"fontSize\":" + val.fontSize
-                                                  + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                  + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false") + "}");
+                writer.WriteRawValue(ToJsonString((TextMeshPro)value));
             }
         }
 

@@ -12,7 +12,7 @@ namespace RegressionGames.StateRecorder
     {
         public bool? HasKeyTypes;
         public string Path;
-        public string TypeFullName;
+
         /**
          * <summary>cached pointer to the top level transform of this transform.. must check != null to avoid stale unity object references</summary>
          */
@@ -109,7 +109,7 @@ namespace RegressionGames.StateRecorder
             return objectName;
         }
 
-        private TransformStatus GetUniqueTransformPath(Transform theTransform, [CanBeNull] Behaviour behaviour = null)
+        private TransformStatus GetUniqueTransformPath(Transform theTransform)
         {
             string tPath = null;
 
@@ -151,8 +151,6 @@ namespace RegressionGames.StateRecorder
                     _transformsIveSeen[theTransform] = status;
                 }
             }
-
-            status.TypeFullName = behaviour != null ? behaviour.GetType().FullName : null;
 
             return status;
         }
@@ -591,8 +589,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new BehaviourState();
                     }
 
-                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).Path;
-                    cObject.name = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).TypeFullName;
+                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.name = childBehaviour.GetType().FullName;
                     cObject.state = childBehaviour;
 
                     behaviours.Add(cObject);

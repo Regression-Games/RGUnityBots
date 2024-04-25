@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
@@ -16,7 +17,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             {
                 var val = (MeshFilter)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"mesh\":" + (val.mesh != null ? "\"" + val.mesh.name + "\"" : "null") + "}");
+                writer.WriteRawValue("{\"mesh\":" + (val.mesh != null ? "\"" + JsonUtils.EscapeJsonString(val.mesh.name) + "\"" : "null") + "}");
             }
         }
 
