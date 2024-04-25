@@ -1,11 +1,51 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class SkinnedMeshRendererJsonConverter : Newtonsoft.Json.JsonConverter
     {
+
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(1_000);
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, SkinnedMeshRenderer val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"materials\":[");
+
+            var valMaterialLength = val.materials.Length;
+            for (var i = 0; i < valMaterialLength; i++)
+            {
+                JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.materials[i].name);
+                if (i + 1 < valMaterialLength)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\"dynamicOcclusion\":");
+            stringBuilder.Append((val.allowOcclusionWhenDynamic ? "true" : "false"));
+            // TODO: Include Lighting/Lightmapping/Probes
+            stringBuilder.Append(",\"renderingLayerMask\":\"");
+            stringBuilder.Append(val.renderingLayerMask).Append(": ").Append(LayerMask.LayerToName((int)val.renderingLayerMask));
+            stringBuilder.Append("\"}");
+        }
+
+        private static string ToJsonString(SkinnedMeshRenderer val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,26 +54,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                // TODO: Include Lighting/Lightmapping/Probes
-                var val = (SkinnedMeshRenderer)value;
-                var strValue = "{\"materials\":[";
-
-                bool first = true;
-                foreach (var valMaterial in val.materials)
-                {
-                    if (!first)
-                    {
-                        strValue += ",";
-                    }
-
-                    strValue += "\"" + valMaterial.name + "\"";
-                    first = false;
-                }
-
-                strValue += "],\"dynamicOcclusion\":" + (val.allowOcclusionWhenDynamic ? "true" : "false")
-                                                      + ",\"renderingLayerMask\":\"" + val.renderingLayerMask + ": " + LayerMask.LayerToName((int)val.renderingLayerMask)
-                                                      + "\"}";
-                writer.WriteRawValue(strValue);
+                writer.WriteRawValue(ToJsonString((SkinnedMeshRenderer)value));
             }
         }
 

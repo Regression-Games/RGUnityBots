@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -264,13 +265,13 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append("{\n\"id\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, id);
             stringBuilder.Append(",\n\"path\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(path));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,path);
             stringBuilder.Append(",\n\"scene\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(scene.name));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,scene.name);
             stringBuilder.Append(",\n\"tag\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(tag));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,tag);
             stringBuilder.Append(",\n\"layer\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(layer));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,layer);
             stringBuilder.Append(",\n\"rendererCount\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, rendererCount);
             stringBuilder.Append(",\n\"screenSpaceBounds\":");
@@ -334,28 +335,11 @@ namespace RegressionGames.StateRecorder
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"name\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(name));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,name);
             stringBuilder.Append(",\"path\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(path));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,path);
             stringBuilder.Append(",\"state\":");
-            try
-            {
-                var stateJson = JsonConvert.SerializeObject(state, Formatting.None, ScreenRecorder.JsonSerializerSettings);
-                if (string.IsNullOrEmpty(stateJson))
-                {
-                    // shouldn't happen... but keeps us running if it does
-                    stringBuilder.Append("{\"EXCEPTION\":\"Could not convert Behaviour to JSON\"}");
-                }
-                else
-                {
-                    stringBuilder.Append(stateJson);
-                }
-            }
-            catch (Exception ex)
-            {
-                RGDebug.LogException(ex, "Error converting behaviour to JSON - " + state.name);
-                stringBuilder.Append("{}");
-            }
+            JsonUtils.WriteBehaviourStateToStringBuilder(stringBuilder, state);
             stringBuilder.Append("}");
         }
     }
@@ -370,7 +354,7 @@ namespace RegressionGames.StateRecorder
         public virtual void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"path\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(path));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,path);
             stringBuilder.Append(",\"is2D\":false");
             stringBuilder.Append(",\"bounds\":");
             BoundsJsonConverter.WriteToStringBuilder(stringBuilder, collider.bounds);
@@ -389,7 +373,7 @@ namespace RegressionGames.StateRecorder
         public override void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"path\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(path));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,path);
             stringBuilder.Append(",\"is2D\":true");
             stringBuilder.Append(",\"bounds\":");
             BoundsJsonConverter.WriteToStringBuilder(stringBuilder, collider.bounds);
@@ -423,7 +407,7 @@ namespace RegressionGames.StateRecorder
         public virtual void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"path\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(path));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,path);
             stringBuilder.Append(",\"is2D\":false");
             stringBuilder.Append(",\"position\":");
             VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.position);
@@ -456,7 +440,7 @@ namespace RegressionGames.StateRecorder
         public override void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"path\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(path));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,path);
             stringBuilder.Append(",\"is2D\":true");
             stringBuilder.Append(",\"position\":");
             VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.position);

@@ -7,10 +7,15 @@ using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class TextJsonConverter : Newtonsoft.Json.JsonConverter
+    public class TextJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (Text)behaviour);
+        }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Text val)
         {
@@ -21,9 +26,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
 
             stringBuilder.Append("{\"text\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(val.text));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.text);
             stringBuilder.Append(",\"font\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(val.font.name));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.font.name);
             stringBuilder.Append(",\"fontStyle\":\"");
             stringBuilder.Append(val.fontStyle.ToString());
             stringBuilder.Append("\",\"fontSize\":");

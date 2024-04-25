@@ -7,10 +7,15 @@ using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class RawImageJsonConverter : Newtonsoft.Json.JsonConverter
+    public class RawImageJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(2_000);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (RawImage)behaviour);
+        }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, RawImage val)
         {

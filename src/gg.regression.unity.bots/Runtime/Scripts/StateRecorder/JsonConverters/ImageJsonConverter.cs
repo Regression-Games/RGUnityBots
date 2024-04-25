@@ -7,11 +7,16 @@ using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class ImageJsonConverter : Newtonsoft.Json.JsonConverter
+    public class ImageJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
 
-        // re-usable and large enough to fit images of all sizes
+        // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (Image)behaviour);
+        }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Image val)
         {

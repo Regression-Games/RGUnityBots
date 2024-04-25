@@ -7,10 +7,15 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class TextMeshProUGUIJsonConverter : Newtonsoft.Json.JsonConverter
+    public class TextMeshProUGUIJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (TextMeshProUGUI)behaviour);
+        }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, TextMeshProUGUI val)
         {
@@ -21,11 +26,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
 
             stringBuilder.Append("{\"text\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(val.text));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.text);
             stringBuilder.Append(",\"textStyle\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(val.textStyle.name));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.textStyle.name);
             stringBuilder.Append(",\"font\":");
-            stringBuilder.Append(JsonUtils.EscapeJsonString(val.font.name));
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.font.name);
             stringBuilder.Append(",\"fontStyle\":\"");
             stringBuilder.Append(val.fontStyle.ToString());
             stringBuilder.Append("\",\"fontSize\":");

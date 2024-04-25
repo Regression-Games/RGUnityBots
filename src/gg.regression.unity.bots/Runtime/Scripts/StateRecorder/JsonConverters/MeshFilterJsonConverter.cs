@@ -1,12 +1,31 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using StateRecorder;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class MeshFilterJsonConverter : Newtonsoft.Json.JsonConverter
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, MeshFilter val)
+        {
+            stringBuilder.Append("{\"mesh\":");
+            stringBuilder.Append((val.mesh != null ? JsonUtils.EscapeJsonString(val.mesh.name) : "null"));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(MeshFilter value)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, value);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -15,9 +34,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (MeshFilter)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"mesh\":" + (val.mesh != null ? "\"" + JsonUtils.EscapeJsonString(val.mesh.name) + "\"" : "null") + "}");
+                writer.WriteRawValue(ToJsonString((MeshFilter)value));
             }
         }
 

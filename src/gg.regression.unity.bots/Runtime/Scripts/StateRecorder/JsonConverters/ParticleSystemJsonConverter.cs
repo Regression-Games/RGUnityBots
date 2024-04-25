@@ -1,12 +1,34 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using StateRecorder;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class ParticleSystemJsonConverter : Newtonsoft.Json.JsonConverter
     {
+
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, ParticleSystem val)
+        {
+            stringBuilder.Append("{\"name\":");
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.name);
+            stringBuilder.Append(",\"isPlaying\":");
+            stringBuilder.Append((val.isPlaying ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(ParticleSystem value)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, value);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -15,10 +37,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (ParticleSystem)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"name\":" + JsonUtils.EscapeJsonString(val.name)
-                                                  + ",\"isPlaying\":" + (val.isPlaying ? "true" : "false") + "}");
+                writer.WriteRawValue(ToJsonString((ParticleSystem)value));
             }
         }
 
