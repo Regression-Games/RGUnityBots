@@ -106,7 +106,7 @@ namespace RegressionGames.StateRecorder
             var clickedObjectIdsLength = clickedObjectIds.Length;
             for (var i = 0; i < clickedObjectIdsLength; i++)
             {
-                stringBuilder.Append(clickedObjectIds[i]);
+                IntJsonConverter.WriteToStringBuilder(stringBuilder, clickedObjectIds[i]);
                 if (i + 1 < clickedObjectIdsLength)
                 {
                     stringBuilder.Append(",");

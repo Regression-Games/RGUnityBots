@@ -262,7 +262,7 @@ namespace RegressionGames.StateRecorder
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\n\"id\":");
-            stringBuilder.Append(id);
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, id);
             stringBuilder.Append(",\n\"path\":");
             stringBuilder.Append(JsonUtils.EscapeJsonString(path));
             stringBuilder.Append(",\n\"scene\":");
@@ -272,7 +272,7 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append(",\n\"layer\":");
             stringBuilder.Append(JsonUtils.EscapeJsonString(layer));
             stringBuilder.Append(",\n\"rendererCount\":");
-            stringBuilder.Append(rendererCount);
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, rendererCount);
             stringBuilder.Append(",\n\"screenSpaceBounds\":");
             BoundsJsonConverter.WriteToStringBuilder(stringBuilder, screenSpaceBounds);
             stringBuilder.Append(",\n\"screenSpaceZOffset\":");

@@ -23,9 +23,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Vector2Int value)
         {
             stringBuilder.Append("{\"x\":");
-            stringBuilder.Append(value.x.ToString());
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, value.x);
             stringBuilder.Append(",\"y\":");
-            stringBuilder.Append(value.y.ToString());
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, value.y);
             stringBuilder.Append("}");
         }
 
@@ -42,11 +42,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Vector3Int value)
         {
             stringBuilder.Append("{\"x\":");
-            stringBuilder.Append(value.x.ToString());
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, value.x);
             stringBuilder.Append(",\"y\":");
-            stringBuilder.Append(value.y.ToString());
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, value.y);
             stringBuilder.Append(",\"z\":");
-            stringBuilder.Append(value.z.ToString());
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, value.z);
             stringBuilder.Append("}");
         }
 
