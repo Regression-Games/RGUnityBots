@@ -62,7 +62,5 @@ namespace RegressionGames.StateRecorder.JsonConverters
         {
             return objectType == typeof(Animator);
         }
-
-
     }
 }
