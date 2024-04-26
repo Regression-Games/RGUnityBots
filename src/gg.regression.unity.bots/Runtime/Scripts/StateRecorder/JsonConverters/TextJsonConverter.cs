@@ -36,7 +36,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append(",\"color\":");
             ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
             stringBuilder.Append(",\"raycastTarget\":");
-            stringBuilder.Append((val.raycastTarget ? "true" : "false"));
+            stringBuilder.Append(val.raycastTarget ? "true" : "false");
             stringBuilder.Append("}");
         }
 
