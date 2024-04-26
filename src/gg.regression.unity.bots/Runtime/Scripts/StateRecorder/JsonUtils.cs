@@ -166,8 +166,6 @@ namespace StateRecorder
                     args.ErrorContext.Handled = true;
                 }
             },
-            // state, behaviours, state, field, child field ... so we can basically see the vector values of a field on a behaviour on an object, but stop there
-            //MaxDepth = 5
         };
     }
 
