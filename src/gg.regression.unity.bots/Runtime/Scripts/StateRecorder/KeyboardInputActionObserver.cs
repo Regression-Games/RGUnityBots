@@ -65,7 +65,7 @@ namespace RegressionGames.StateRecorder
             JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,action);
             DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, endTime);
             stringBuilder.Append(",\"isPressed\":");
-            stringBuilder.Append((isPressed ? "true" : "false"));
+            stringBuilder.Append(isPressed ? "true" : "false");
             stringBuilder.Append("}");
         }
 
