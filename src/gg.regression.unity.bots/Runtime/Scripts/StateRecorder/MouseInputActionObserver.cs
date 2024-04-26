@@ -91,7 +91,7 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append(",\"worldPosition\":");
             VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, worldPosition);
             stringBuilder.Append(",\"leftButton\":");
-            stringBuilder.Append( (leftButton ? "true" : "false"));
+            stringBuilder.Append(leftButton ? "true" : "false");
             stringBuilder.Append(",\"middleButton\":");
             stringBuilder.Append( (middleButton ? "true" : "false"));
             stringBuilder.Append(",\"rightButton\":");
