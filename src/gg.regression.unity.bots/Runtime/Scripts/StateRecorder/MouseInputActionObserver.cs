@@ -99,7 +99,7 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append(",\"forwardButton\":");
             stringBuilder.Append(forwardButton ? "true" : "false");
             stringBuilder.Append(",\"backButton\":");
-            stringBuilder.Append( (backButton ? "true" : "false"));
+            stringBuilder.Append(backButton ? "true" : "false");
             stringBuilder.Append(",\"scroll\":");
             VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
             stringBuilder.Append(",\"clickedObjectIds\":[");
