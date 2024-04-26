@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append("{\"bounds\":");
             BoundsJsonConverter.WriteToStringBuilder(stringBuilder, val.bounds);
             stringBuilder.Append(",\"isTrigger\":");
-            stringBuilder.Append((val.isTrigger ? "true" : "false"));
+            stringBuilder.Append(val.isTrigger ? "true" : "false");
             stringBuilder.Append("}");
         }
 
