@@ -32,7 +32,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append(",\"angularDrag\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.angularDrag);
             stringBuilder.Append(",\"useGravity\":");
-            stringBuilder.Append((val.useGravity ? "true" : "false"));
+            stringBuilder.Append(val.useGravity ? "true" : "false");
             stringBuilder.Append(",\"isKinematic\":");
             stringBuilder.Append((val.isKinematic ? "true" : "false"));
             stringBuilder.Append("}");
