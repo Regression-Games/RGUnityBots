@@ -34,7 +34,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append(",\"useGravity\":");
             stringBuilder.Append(val.useGravity ? "true" : "false");
             stringBuilder.Append(",\"isKinematic\":");
-            stringBuilder.Append((val.isKinematic ? "true" : "false"));
+            stringBuilder.Append(val.isKinematic ? "true" : "false");
             stringBuilder.Append("}");
         }
 
