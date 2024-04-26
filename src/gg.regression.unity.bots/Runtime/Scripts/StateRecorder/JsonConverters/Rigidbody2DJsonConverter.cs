@@ -33,7 +33,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append(",\"gravityScale\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.gravityScale);
             stringBuilder.Append(",\"isKinematic\":");
-            stringBuilder.Append((val.isKinematic ? "true" : "false"));
+            stringBuilder.Append(val.isKinematic ? "true" : "false");
             stringBuilder.Append("}");
         }
 
