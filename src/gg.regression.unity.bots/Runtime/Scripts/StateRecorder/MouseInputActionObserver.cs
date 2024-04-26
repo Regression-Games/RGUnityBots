@@ -93,7 +93,7 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append(",\"leftButton\":");
             stringBuilder.Append(leftButton ? "true" : "false");
             stringBuilder.Append(",\"middleButton\":");
-            stringBuilder.Append( (middleButton ? "true" : "false"));
+            stringBuilder.Append(middleButton ? "true" : "false");
             stringBuilder.Append(",\"rightButton\":");
             stringBuilder.Append( (rightButton ? "true" : "false"));
             stringBuilder.Append(",\"forwardButton\":");
