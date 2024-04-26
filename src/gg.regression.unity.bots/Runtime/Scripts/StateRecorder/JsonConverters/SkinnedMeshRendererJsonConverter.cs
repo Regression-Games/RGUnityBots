@@ -32,7 +32,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 }
             }
             stringBuilder.Append("],\"dynamicOcclusion\":");
-            stringBuilder.Append((val.allowOcclusionWhenDynamic ? "true" : "false"));
+            stringBuilder.Append(val.allowOcclusionWhenDynamic ? "true" : "false");
+
             // TODO: Include Lighting/Lightmapping/Probes
             stringBuilder.Append(",\"renderingLayerMask\":\"");
             stringBuilder.Append(val.renderingLayerMask).Append(": ").Append(LayerMask.LayerToName((int)val.renderingLayerMask));
