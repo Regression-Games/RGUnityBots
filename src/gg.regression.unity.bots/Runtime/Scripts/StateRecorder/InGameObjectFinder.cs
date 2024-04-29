@@ -171,7 +171,7 @@ namespace RegressionGames.StateRecorder
             new(0, 0, 0),
         };
 
-        private RecordedGameObjectState CreateStateForTransform(List<RecordedGameObjectState> priorState, Camera mainCamera, bool replay, int screenWidth, int screenHeight, Transform t)
+        private RecordedGameObjectState CreateStateForWorldSpaceTransform(Dictionary<int,RecordedGameObjectState> priorState, Camera mainCamera, bool replay, int screenWidth, int screenHeight, Transform t)
         {
             // All of this code is verbose in order to optimize performance by avoiding using the Bounds APIs
             // find the full bounds of the statefulGameObject
@@ -190,8 +190,6 @@ namespace RegressionGames.StateRecorder
             var maxWorldZ = float.MinValue;
 
             var hasVisibleRenderer = false;
-
-            var psCount = priorState?.Count ?? -1;
 
             var rendererListLength = _rendererQueryList.Count;
             for (var i = 0; i < rendererListLength; i++)
@@ -346,21 +344,8 @@ namespace RegressionGames.StateRecorder
                 {
                     var objectTransformId = t.GetInstanceID();
 
-                    RecordedGameObjectState resultObject = null;
-                    var usingOldObject = false;
-                    if (priorState != null)
-                    {
-                        for (var i = 0; i < psCount; i++)
-                        {
-                            var priorObject = priorState[i];
-                            if (priorObject.id == objectTransformId)
-                            {
-                                resultObject = priorObject;
-                                usingOldObject = true;
-                                break;
-                            }
-                        }
-                    }
+                    var usingOldObject = priorState.TryGetValue(objectTransformId, out var resultObject);
+
                     if (resultObject == null)
                     {
                         resultObject = new RecordedGameObjectState()
@@ -442,32 +427,47 @@ namespace RegressionGames.StateRecorder
                     }
                     rigidbodiesState.Clear();
 
-                    // instead of searching for child components, we instead walk child tree of transforms and check each for components
+
+                    // instead of searching for child Behaviours, we instead walk child tree of transforms and check each for Behaviours
                     // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
                     _nextParentTransforms.Clear();
-                    _nextParentTransforms.Add(t);
                     _currentParentTransforms.Clear();
+
+                    // process the first object here, then evaluate its children
+                    ProcessChildTransformComponents(t, behaviours, null, null);
+                    var childCount = t.childCount;
+                    for (var k = 0; k < childCount; k++)
+                    {
+                        var currentChildTransform = t.GetChild(k);
+                        _nextParentTransforms.Add(currentChildTransform);
+                    }
+
+                    // evaluate the children
                     while (_nextParentTransforms.Count > 0)
                     {
-                        var nptCount = _nextParentTransforms.Count;
-                        for (var i = 0; i < nptCount; i++)
-                        {
-                            var currentTransform = _nextParentTransforms[i];
-                            ProcessChildTransformComponents(currentTransform, behaviours, collidersState, rigidbodiesState);
-                        }
-                        // swap the list references and load the next layer
+                        // swap the list references so we can process from 'current' and be able to setup 'next'
                         (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
                         _nextParentTransforms.Clear();
+
+                        // load the next layer as we go
                         var currentCount = _currentParentTransforms.Count;
                         for (var i = 0; i < currentCount; i++)
                         {
-                            var currentParentTransform = _currentParentTransforms[i];
-                            var childCount = currentParentTransform.childCount;
-                            for (var j = 0; j < childCount; j++)
+                            var currentTransform = _currentParentTransforms[i];
+                            // only process down so far.. if we hit another rendered component.. stop traversing that part of the tree
+                            var hasRenderer = currentTransform.GetComponent(typeof(Renderer)) != null;
+                            if (!hasRenderer)
                             {
-                                _nextParentTransforms.Add(currentParentTransform.GetChild(j));
+                                ProcessChildTransformComponents(currentTransform, behaviours, collidersState, rigidbodiesState);
+                                childCount = currentTransform.childCount;
+                                for (var k = 0; k < childCount; k++)
+                                {
+                                    var currentChildTransform = currentTransform.GetChild(k);
+                                    _nextParentTransforms.Add(currentChildTransform);
+                                }
                             }
                         }
+
                     }
 
                     return resultObject;
@@ -608,8 +608,8 @@ namespace RegressionGames.StateRecorder
         private int _frameNumber = -1;
 
         // pre-allocate a big list we can re-use
-        private List<RecordedGameObjectState> _priorStates = new(1000);
-        private List<RecordedGameObjectState> _newStates = new(1000);
+        private Dictionary<int,RecordedGameObjectState> _priorStates = new (1000);
+        private Dictionary<int,RecordedGameObjectState> _newStates = new(1000);
 
         public void Cleanup()
         {
@@ -620,7 +620,7 @@ namespace RegressionGames.StateRecorder
         /**
          * <returns>(priorState, currentState)</returns>
          */
-        public (List<RecordedGameObjectState>, List<RecordedGameObjectState>) GetStateForCurrentFrame(bool replay = false)
+        public (Dictionary<int, RecordedGameObjectState>, Dictionary<int, RecordedGameObjectState>) GetStateForCurrentFrame(bool replay = false)
         {
             var frameCount = Time.frameCount;
             if (frameCount == _frameNumber)
@@ -635,10 +635,8 @@ namespace RegressionGames.StateRecorder
             (_priorStates, _newStates) = (_newStates, _priorStates);
             _newStates.Clear();
 
-            //find any gameObject with a canvas renderer (rect transform)
+            //find any gameObject with a canvas renderer (rect transform)... these are UI elements
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
-
-            var psCount = _priorStates.Count;
 
              // we re-use this over and over instead of allocating multiple times
             var canvasRenderersLength = canvasRenderers.Length;
@@ -697,18 +695,7 @@ namespace RegressionGames.StateRecorder
                             var objectTransform = statefulUIObject.transform;
                             var objectTransformId = objectTransform.GetInstanceID();
 
-                            RecordedGameObjectState resultObject = null;
-                            var usingOldObject = false;
-                            for (var i = 0; i < psCount; i++)
-                            {
-                                var priorObject = _priorStates[i];
-                                if (priorObject.id == objectTransformId)
-                                {
-                                    resultObject = priorObject;
-                                    usingOldObject = true;
-                                    break;
-                                }
-                            }
+                            var usingOldObject = _priorStates.TryGetValue(objectTransformId, out var resultObject);
 
                             if (resultObject == null)
                             {
@@ -728,7 +715,7 @@ namespace RegressionGames.StateRecorder
                                 };
                             }
 
-                            _newStates.Add(resultObject);
+                            _newStates[resultObject.id] = resultObject;
 
                             // make sure the screen space bounds has a non-zero Z size around 0
                             var extents = new Vector3((max.x - min.x)/2, (max.y-min.y)/2, 0.05f);
@@ -755,31 +742,43 @@ namespace RegressionGames.StateRecorder
                             // instead of searching for child Behaviours, we instead walk child tree of transforms and check each for Behaviours
                             // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
                             _nextParentTransforms.Clear();
-                            _nextParentTransforms.Add(objectTransform);
                             _currentParentTransforms.Clear();
+
+                            // process the first object here, then evaluate its children
+                            ProcessChildTransformComponents(objectTransform, behaviours, null, null);
+                            var childCount = objectTransform.childCount;
+                            for (var k = 0; k < childCount; k++)
+                            {
+                                var currentChildTransform = objectTransform.GetChild(k);
+                                _nextParentTransforms.Add(currentChildTransform);
+                            }
+
+                            // evaluate the children
                             while (_nextParentTransforms.Count > 0)
                             {
-                                var nptCount = _nextParentTransforms.Count;
-                                for (var i = 0; i < nptCount; i++)
-                                {
-                                    var currentTransform = _nextParentTransforms[i];
-                                    ProcessChildTransformComponents(currentTransform, behaviours, null, null);
-                                }
-
-                                // swap the list references and load the next layer
+                                // swap the list references so we can process from 'current' and be able to setup 'next'
                                 (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
                                 _nextParentTransforms.Clear();
+
+                                // load the next layer as we go
                                 var currentCount = _currentParentTransforms.Count;
                                 for (var i = 0; i < currentCount; i++)
                                 {
-                                    var currentParentTransform = _currentParentTransforms[i];
-                                    var childCount = currentParentTransform.childCount;
-                                    for (var k = 0; k < childCount; k++)
+                                    var currentTransform = _currentParentTransforms[i];
+                                    // only process down so far.. if we hit another ui component.. stop traversing that part of the tree
+                                    var hasRenderer = currentTransform.GetComponent(typeof(CanvasRenderer)) != null;
+                                    if (!hasRenderer)
                                     {
-                                        var currentChildTransform = currentParentTransform.GetChild(k);
-                                        _nextParentTransforms.Add(currentChildTransform);
+                                        ProcessChildTransformComponents(currentTransform, behaviours, null, null);
+                                        childCount = currentTransform.childCount;
+                                        for (var k = 0; k < childCount; k++)
+                                        {
+                                            var currentChildTransform = currentTransform.GetChild(k);
+                                            _nextParentTransforms.Add(currentChildTransform);
+                                        }
                                     }
                                 }
+
                             }
                         }
                     }
@@ -815,13 +814,13 @@ namespace RegressionGames.StateRecorder
                 for (var i = 0; i < renderers.Length; i++)
                 {
                     var renderer1 = (Renderer)renderers[i];
-                    ProcessTransform(renderer1.transform, _transformsForThisFrame);
+                    FindTransformsForThisFrame(renderer1.transform, _transformsForThisFrame);
                 }
 
                 for (var i = 0; i < includeInStateObjects.Length; i++)
                 {
                     var includeInStateObject = (RGIncludeInState)includeInStateObjects[i];
-                    ProcessTransform(includeInStateObject.transform, _transformsForThisFrame);
+                    FindTransformsForThisFrame(includeInStateObject.transform, _transformsForThisFrame);
                 }
             }
 
@@ -833,26 +832,25 @@ namespace RegressionGames.StateRecorder
             {
                 if (statefulTransform != null)
                 {
-                    var stateEntry = CreateStateForTransform(_priorStates, mainCamera, replay, screenWidth, screenHeight, statefulTransform);
+                    var stateEntry = CreateStateForWorldSpaceTransform(_priorStates, mainCamera, replay, screenWidth, screenHeight, statefulTransform);
                     // depending on the include only on camera setting, this object may be null
                     if (stateEntry != null)
                     {
-                        _newStates.Add(stateEntry);
+                        _newStates[stateEntry.id] = stateEntry;
                     }
                 }
             }
             return (_priorStates, _newStates);
         }
 
-        // allocate this rather large list 1 time to avoid realloc on each tick object
+        // allocate this rather large list 1 time to avoid re-allocation on each tick object
         private readonly List<Component> _componentsInParentList = new(100);
 
-
-        private void ProcessTransform(Transform theTransform, HashSet<Transform> transformsForThisFrame)
+        private void FindTransformsForThisFrame(Transform startingTransform, HashSet<Transform> transformsForThisFrame)
         {
 
             // we walk all the way to the root and record which ones had key types to find the 'parent'
-            if (_transformsIveSeen.TryGetValue(theTransform, out var tStatus))
+            if (_transformsIveSeen.TryGetValue(startingTransform, out var tStatus))
             {
                 tStatus.HasKeyTypes = true;
             }
@@ -862,10 +860,10 @@ namespace RegressionGames.StateRecorder
                 {
                     HasKeyTypes = true
                 };
-                _transformsIveSeen[theTransform] = tStatus;
+                _transformsIveSeen[startingTransform] = tStatus;
             }
 
-            var maybeTopLevel = theTransform;
+            var maybeTopLevel = startingTransform;
 
 
             if (tStatus is { TopLevelForThisTransform: not null})
@@ -875,7 +873,7 @@ namespace RegressionGames.StateRecorder
             else
             {
                 // find any parents we need to evaluate
-                var nextParent = theTransform.parent;
+                var nextParent = startingTransform.parent;
 
                 // go until the root of the tree
                 while (nextParent != null)

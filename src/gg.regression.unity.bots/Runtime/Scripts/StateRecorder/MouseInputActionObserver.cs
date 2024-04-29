@@ -132,7 +132,7 @@ namespace RegressionGames.StateRecorder
         // based on a few pixel shift in relative camera position
         private readonly RaycastHit[] _cachedRaycastHits = new RaycastHit[5];
 
-        public void ObserveMouse(List<RecordedGameObjectState> statefulObjects)
+        public void ObserveMouse(Dictionary<int,RecordedGameObjectState> statefulObjects)
         {
             var mousePosition = Mouse.current.position.ReadValue();
             var newMouseState = GetCurrentMouseState(mousePosition);
@@ -274,14 +274,14 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        private IEnumerable<RecordedGameObjectState> FindObjectsAtPosition(Vector2 position, List<RecordedGameObjectState> state, out float maxZDepth)
+        private IEnumerable<RecordedGameObjectState> FindObjectsAtPosition(Vector2 position, Dictionary<int,RecordedGameObjectState> state, out float maxZDepth)
         {
             // make sure screen space position Z is around 0
             var vec3Position = new Vector3(position.x, position.y, 0);
             List<RecordedGameObjectState> result = new();
             maxZDepth = 0f;
             var hitUIElement = false;
-            foreach (var recordedGameObjectState in state)
+            foreach (var recordedGameObjectState in state.Values)
             {
                 if (recordedGameObjectState.screenSpaceBounds.Contains(vec3Position))
                 {

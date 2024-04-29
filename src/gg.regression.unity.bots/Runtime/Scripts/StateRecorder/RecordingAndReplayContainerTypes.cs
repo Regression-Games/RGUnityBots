@@ -20,7 +20,7 @@ namespace RegressionGames.StateRecorder
     {
 
         public PerformanceMetricData performance;
-        public new List<RecordedGameObjectState> state;
+        public new IEnumerable<RecordedGameObjectState> state;
 
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000_000);
@@ -50,11 +50,12 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append(",\n\"pixelHash\":\"");
             stringBuilder.Append(pixelHash);
             stringBuilder.Append("\",\n\"state\":[\n");
-            var stateCount = state.Count;
-            for (var i = 0; i < stateCount; i++)
+            var counter = 0;
+            var stateCount = state.Count();
+            foreach( var stateEntry in state)
             {
-                state[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < stateCount)
+                stateEntry.WriteToStringBuilder(stringBuilder);
+                if (++counter < stateCount)
                 {
                     stringBuilder.Append(",\n");
                 }
