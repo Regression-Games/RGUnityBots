@@ -1,12 +1,51 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class ImageJsonConverter : Newtonsoft.Json.JsonConverter
+    public class ImageJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
+
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (Image)behaviour);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Image val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"sourceImage\":");
+            stringBuilder.Append((val.sprite == null ? "null":JsonUtils.EscapeJsonString(val.sprite.name)));
+            stringBuilder.Append(",\"color\":");
+            ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
+            stringBuilder.Append(",\"material\":");
+            stringBuilder.Append((val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name)));
+            stringBuilder.Append(",\"raycastTarget\":");
+            stringBuilder.Append((val.raycastTarget ? "true" : "false"));
+            stringBuilder.Append(",\"preserveAspect\":");
+            stringBuilder.Append((val.preserveAspect ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Image val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -15,14 +54,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Image)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"sourceImage\":" + (val.sprite == null ? "null":JsonConvert.ToString(val.sprite.name))
-                                                         + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                         + ",\"material\":" + (val.material == null ? "null":JsonConvert.ToString(val.material.name))
-                                                         + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false")
-                                                         + ",\"preserveAspect\":" + (val.preserveAspect ? "true" : "false")
-                                                         + "}");
+                writer.WriteRawValue(ToJsonString((Image)value));
             }
         }
 

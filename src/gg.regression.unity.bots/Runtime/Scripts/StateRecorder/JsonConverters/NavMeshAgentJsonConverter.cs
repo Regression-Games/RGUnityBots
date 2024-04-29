@@ -1,11 +1,37 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
+using StateRecorder;
+using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class NavMeshAgentJsonConverter : Newtonsoft.Json.JsonConverter
+    public class NavMeshAgentJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (NavMeshAgent)behaviour);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, NavMeshAgent val)
+        {
+            stringBuilder.Append("{\"agentType\":");
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,NavMesh.GetSettingsNameFromID(val.agentTypeID));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(NavMeshAgent value)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, value);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,9 +40,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (NavMeshAgent)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"agentType\":" + JsonConvert.ToString(NavMesh.GetSettingsNameFromID(val.agentTypeID)) + "}");
+                writer.WriteRawValue(ToJsonString((NavMeshAgent)value));
             }
         }
 

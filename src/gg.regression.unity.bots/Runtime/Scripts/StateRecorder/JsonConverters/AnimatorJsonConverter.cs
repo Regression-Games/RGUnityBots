@@ -1,11 +1,43 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class AnimatorJsonConverter : Newtonsoft.Json.JsonConverter
+    public class AnimatorJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(1_000);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (Animator)behaviour);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Animator val)
+        {
+            stringBuilder.Append("{\"controller\":{\"x\":");
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.runtimeAnimatorController.name);
+            stringBuilder.Append(",\"avatar\":");
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.avatar.name);
+            stringBuilder.Append(",\"applyRootMotion\":");
+            stringBuilder.Append((val.applyRootMotion ? "true" : "false"));
+            stringBuilder.Append(",\"updateMode\":\"");
+            stringBuilder.Append(val.updateMode.ToString());
+            stringBuilder.Append("\",\"cullingMode\":\"");
+            stringBuilder.Append(val.cullingMode.ToString());
+            stringBuilder.Append("\"}");
+        }
+
+        private static string ToJsonString(Animator value)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, value);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,16 +46,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Animator)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"controller\":" + JsonConvert.ToString(val.runtimeAnimatorController.name)
-                                                        + ",\"avatar\":" + JsonConvert.ToString(val.avatar.name)
-                                                        + ",\"applyRootMotion\":" + (val.applyRootMotion ? "true" : "false")
-                                                        // enum doesn't need json escaping
-                                                        + ",\"updateMode\":\"" + val.updateMode
-                                                        // enum doesn't need json escaping
-                                                        + "\",\"cullingMode\":\"" + val.cullingMode
-                                                        + "\"}");
+                writer.WriteRawValue(ToJsonString((Animator)value));
             }
         }
 

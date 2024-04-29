@@ -30,9 +30,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
         // optimize to avoid string comparisons on every object
         // our primary testing project, bossroom, is from 'Unity' so we need to clarify our exclusions
         // (isBossRoom, isUnity)
-        private readonly Dictionary<Assembly, (bool, bool)> _unityAssemblies = new();
+        private static readonly Dictionary<Assembly, (bool, bool)> _unityAssemblies = new();
 
-        public override bool CanConvert(Type objectType)
+        public static bool Convertable(Type objectType)
         {
             if (InGameObjectFinder.GetInstance().collectStateFromBehaviours == false &&
                 objectType == typeof(Behaviour))
@@ -62,7 +62,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 return isUnityType.Item2;
             }
 
+            // let the default object serializer do its thing
             return false;
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return Convertable(objectType);
         }
     }
 }

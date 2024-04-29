@@ -12,7 +12,7 @@ namespace RegressionGames.StateRecorder
     {
         public bool? HasKeyTypes;
         public string Path;
-        public string TypeFullName;
+
         /**
          * <summary>cached pointer to the top level transform of this transform.. must check != null to avoid stale unity object references</summary>
          */
@@ -109,7 +109,7 @@ namespace RegressionGames.StateRecorder
             return objectName;
         }
 
-        private TransformStatus GetUniqueTransformPath(Transform theTransform, [CanBeNull] Behaviour behaviour = null)
+        private TransformStatus GetUniqueTransformPath(Transform theTransform)
         {
             string tPath = null;
 
@@ -151,8 +151,6 @@ namespace RegressionGames.StateRecorder
                     _transformsIveSeen[theTransform] = status;
                 }
             }
-
-            status.TypeFullName = behaviour != null ? behaviour.GetType().FullName : null;
 
             return status;
         }
@@ -591,8 +589,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new BehaviourState();
                     }
 
-                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).Path;
-                    cObject.name = (ts ??= GetUniqueTransformPath(childTransform, childBehaviour)).TypeFullName;
+                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.name = childBehaviour.GetType().FullName;
                     cObject.state = childBehaviour;
 
                     behaviours.Add(cObject);
@@ -607,12 +605,40 @@ namespace RegressionGames.StateRecorder
         private List<Transform> _nextParentTransforms = new(100);
         private List<Transform> _currentParentTransforms = new(100);
 
-        public void GetStateForCurrentFrame(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> newState, bool replay = false)
+        private int _frameNumber = -1;
+
+        // pre-allocate a big list we can re-use
+        private List<RecordedGameObjectState> _priorStates = new(1000);
+        private List<RecordedGameObjectState> _newStates = new(1000);
+
+        public void Cleanup()
         {
+            _priorStates.Clear();
+            _newStates.Clear();
+        }
+
+        /**
+         * <returns>(priorState, currentState)</returns>
+         */
+        public (List<RecordedGameObjectState>, List<RecordedGameObjectState>) GetStateForCurrentFrame(bool replay = false)
+        {
+            var frameCount = Time.frameCount;
+            if (frameCount == _frameNumber)
+            {
+                // we already processed this frame (happens when recording during replay and they both call this
+                return (_priorStates, _newStates);
+            }
+
+            _frameNumber = frameCount;
+
+            // switch the list references
+            (_priorStates, _newStates) = (_newStates, _priorStates);
+            _newStates.Clear();
+
             //find any gameObject with a canvas renderer (rect transform)
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
 
-            var psCount = priorState?.Count ?? -1;
+            var psCount = _priorStates.Count;
 
              // we re-use this over and over instead of allocating multiple times
             var canvasRenderersLength = canvasRenderers.Length;
@@ -673,17 +699,14 @@ namespace RegressionGames.StateRecorder
 
                             RecordedGameObjectState resultObject = null;
                             var usingOldObject = false;
-                            if (priorState != null)
+                            for (var i = 0; i < psCount; i++)
                             {
-                                for (var i = 0; i < psCount; i++)
+                                var priorObject = _priorStates[i];
+                                if (priorObject.id == objectTransformId)
                                 {
-                                    var priorObject = priorState[i];
-                                    if (priorObject.id == objectTransformId)
-                                    {
-                                        resultObject = priorObject;
-                                        usingOldObject = true;
-                                        break;
-                                    }
+                                    resultObject = priorObject;
+                                    usingOldObject = true;
+                                    break;
                                 }
                             }
 
@@ -705,7 +728,7 @@ namespace RegressionGames.StateRecorder
                                 };
                             }
 
-                            newState.Add(resultObject);
+                            _newStates.Add(resultObject);
 
                             // make sure the screen space bounds has a non-zero Z size around 0
                             var extents = new Vector3((max.x - min.x)/2, (max.y-min.y)/2, 0.05f);
@@ -810,14 +833,15 @@ namespace RegressionGames.StateRecorder
             {
                 if (statefulTransform != null)
                 {
-                    var stateEntry = CreateStateForTransform(priorState, mainCamera, replay, screenWidth, screenHeight, statefulTransform);
+                    var stateEntry = CreateStateForTransform(_priorStates, mainCamera, replay, screenWidth, screenHeight, statefulTransform);
                     // depending on the include only on camera setting, this object may be null
                     if (stateEntry != null)
                     {
-                        newState.Add(stateEntry);
+                        _newStates.Add(stateEntry);
                     }
                 }
             }
+            return (_priorStates, _newStates);
         }
 
         // allocate this rather large list 1 time to avoid realloc on each tick object

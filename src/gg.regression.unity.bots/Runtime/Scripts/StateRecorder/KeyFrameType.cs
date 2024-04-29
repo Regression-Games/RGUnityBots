@@ -9,11 +9,4 @@
         UI_ELEMENT,
         UI_PIXELHASH
     }
-
-    public static class KeyFrameTypeExtensions
-    {
-        public static string ToJson(this KeyFrameType _this) {
-            return "\"" + _this.ToString() + "\"";
-        }
-    }
 }

@@ -1,11 +1,36 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
+using StateRecorder;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class ButtonJsonConverter : Newtonsoft.Json.JsonConverter
+    public class ButtonJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(100);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (Button)behaviour);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Button val)
+        {
+            stringBuilder.Append("{\"interactable\":");
+            stringBuilder.Append((val.interactable ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Button value)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, value);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,9 +39,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Button)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"interactable\":" + (val.interactable ? "true" : "false") + "}");
+                writer.WriteRawValue(ToJsonString((Button)value));
             }
         }
 
