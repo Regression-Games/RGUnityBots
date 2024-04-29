@@ -71,6 +71,9 @@ namespace RegressionGames.StateRecorder
         private MouseInputActionObserver _mouseObserver;
 
 
+        public static readonly Dictionary<int, RecordedGameObjectState> _emptyStateDictionary = new(0);
+
+
         public static ScreenRecorder GetInstance()
         {
             return _this;
@@ -249,7 +252,7 @@ namespace RegressionGames.StateRecorder
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
                     position = new Vector2Int(Screen.width +20, -20)
-                }, null, new List<RecordedGameObjectState>());
+                }, null, _emptyStateDictionary);
 
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _mouseObserver.ClearBuffer();
@@ -339,7 +342,7 @@ namespace RegressionGames.StateRecorder
         private readonly List<int> _uiElementsInCurrentFrame = new(1000);
         private readonly Dictionary<int, RecordedGameObjectState> _worldElementsInCurrentFrame = new(1000);
 
-        private void GetKeyFrameType(List<RecordedGameObjectState> priorState, List<RecordedGameObjectState> currentState, string pixelHash)
+        private void GetKeyFrameType(Dictionary<int,RecordedGameObjectState> priorState, Dictionary<int,RecordedGameObjectState> currentState, string pixelHash)
         {
             _keyFrameTypeList.Clear();
             if (priorState == null)
@@ -361,11 +364,8 @@ namespace RegressionGames.StateRecorder
 
             // need to do current before previous due to the world element renderers comparisons
 
-            var currentStateCount = currentState.Count;
-            for (var i = 0; i < currentStateCount; i++)
+            foreach(var recordedGameObjectState in currentState.Values)
             {
-                var recordedGameObjectState = currentState[i];
-
                 var sceneHandle = recordedGameObjectState.scene.handle;
                 // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
                 if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInCurrentFrame, sceneHandle))
@@ -387,11 +387,8 @@ namespace RegressionGames.StateRecorder
             bool addedRendererCount = false, addedGameElement = false;
             var worldElementsCount = 0;
             var hadDifferentUIElements = false;
-            var priorStateCount = priorState.Count;
-            for (var i = 0; i < priorStateCount; i++)
+            foreach(var recordedGameObjectState in priorState.Values)
             {
-                var recordedGameObjectState = priorState[i];
-
                 var sceneHandle = recordedGameObjectState.scene.handle;
                 // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
                 if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInPriorFrame, sceneHandle))
@@ -553,7 +550,7 @@ namespace RegressionGames.StateRecorder
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
-                            state = currentStates,
+                            state = currentStates.Values,
                             inputs = new InputData()
                             {
                                 keyboard = keyboardInputData,
