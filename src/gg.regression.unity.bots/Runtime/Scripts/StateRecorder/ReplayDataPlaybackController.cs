@@ -100,7 +100,7 @@ namespace RegressionGames.StateRecorder
             {
                 // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
                 position = new Vector2Int(Screen.width +20, -20)
-            }, null, new List<RecordedGameObjectState>());
+            }, null, ScreenRecorder._emptyStateDictionary);
 
             _dataContainer = dataContainer;
             _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
@@ -145,7 +145,7 @@ namespace RegressionGames.StateRecorder
         // allow up to 360 frames before saying it failed, at 120 fps this is 3 seconds, at 100fps this is ~3.6 seconds , at 60fps this is 6 seconds , at 50 fps this is ~7.2 seconds, at 30 fps this is 12 seconds
         private const int KeyFrameChecksBeforePrompting = 360;
 
-        private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates, string pixelHash)
+        private void CheckWaitForKeyStateMatch(Dictionary<int,RecordedGameObjectState> objectStates, string pixelHash)
         {
             if (_isPlaying && _dataContainer != null)
             {
@@ -202,7 +202,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private string CheckKeyFrameState(int keyFrameCheckCount, List<RecordedGameObjectState> objectStates, string pixelHash)
+        private string CheckKeyFrameState(int keyFrameCheckCount, Dictionary<int,RecordedGameObjectState> objectStates, string pixelHash)
         {
             var nextKeyFramesCount = _nextKeyFrames.Count;
             if (nextKeyFramesCount > 0 && objectStates != null)
@@ -235,10 +235,8 @@ namespace RegressionGames.StateRecorder
                 var gameScenes = gameObjectKeyFrame?.gameScenes.ToList();
                 var gameElements = gameObjectKeyFrame?.gameElements.ToList();
 
-                var objectStatesCount = objectStates.Count;
-                for (var j = 0; j < objectStatesCount; j++)
+                foreach (var state in objectStates.Values)
                 {
-                    var state = objectStates[j];
                     var collidersCount = state.colliders.Count;
                     var rigidbodiesCount = state.rigidbodies.Count;
                     if (state.worldSpaceBounds == null)
@@ -365,7 +363,7 @@ namespace RegressionGames.StateRecorder
             Down
         }
 
-        private void PlayInputs(List<RecordedGameObjectState> priorStates, List<RecordedGameObjectState> objectStates)
+        private void PlayInputs(Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
             var currentTime = CurrentTimePoint;
             if (_keyboardQueue.Count > 0)
@@ -515,7 +513,7 @@ namespace RegressionGames.StateRecorder
 
         // Finds the best object to adjust our click position to for a given mouse input
         // Returns (the object, whether it was world space, the suggested mouse position, and the states list as a convenience)
-        private static (RecordedGameObjectState, bool, Vector2, List<RecordedGameObjectState>) FindBestClickObject(Camera mainCamera, long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> priorStates, List<RecordedGameObjectState> objectStates)
+        private static (RecordedGameObjectState, bool, Vector2, IEnumerable<RecordedGameObjectState>) FindBestClickObject(Camera mainCamera, long tickNumber, ReplayMouseInputEntry mouseInput, Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
 
             // Mouse is hard... we can't use the raw position, we need to use the position relative to the current resolution
@@ -527,7 +525,7 @@ namespace RegressionGames.StateRecorder
             if (mouseInput.clickedObjectPaths == null || mouseInput.clickedObjectPaths.Length == 0)
             {
                 // bail out early, no click
-                return (null, false, normalizedPosition, objectStates);
+                return (null, false, normalizedPosition, objectStates.Values);
             }
 
             var theNp = new Vector3(normalizedPosition.x, normalizedPosition.y, 0f);
@@ -539,13 +537,12 @@ namespace RegressionGames.StateRecorder
 
             var possibleObjects = new List<RecordedGameObjectState>();
 
-            var objectStatesCount = objectStates.Count;
-            for (var i = 0; i < objectStatesCount; i++)
+
+            foreach (var os in objectStates.Values)
             {
-                var os = objectStates[i];
                 if (StateRecorderUtils.OptimizedContainsStringInArray(mouseInput.clickedObjectPaths, os.path))
                 {
-                    possibleObjects.Add(objectStates[i]);
+                    possibleObjects.Add(os);
                     StateRecorderUtils.OptimizedRemoveStringFromList(pathsToFind, os.path);
                 }
             }
@@ -553,13 +550,11 @@ namespace RegressionGames.StateRecorder
             // still have some objects we didnt' find in the current state, check previous state
             if (pathsToFind.Count > 0)
             {
-                objectStatesCount = priorStates.Count;
-                for (var i = 0; i < objectStatesCount; i++)
+                foreach (var os in objectStates.Values)
                 {
-                    var os = priorStates[i];
                     if (StateRecorderUtils.OptimizedContainsStringInList(pathsToFind, os.path))
                     {
-                        possibleObjects.Add(objectStates[i]);
+                        possibleObjects.Add(os);
                     }
                 }
             }
@@ -680,7 +675,7 @@ namespace RegressionGames.StateRecorder
             return (bestObject, worldSpaceObject, normalizedPosition, possibleObjects);
         }
 
-        public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> priorStates, List<RecordedGameObjectState> objectStates)
+        public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
             var clickObjectResult = FindBestClickObject(Camera.main, tickNumber, mouseInput, priorStates, objectStates);
 
@@ -693,12 +688,8 @@ namespace RegressionGames.StateRecorder
                 var clickBounds = bestObject.screenSpaceBounds;
 
                 var possibleObjects = clickObjectResult.Item4;
-                var possibleObjectsCount = possibleObjects.Count;
-                // evaluate the bounds of the possible objects and narrow our bounding box for any that intersect these bounds
-                // ReSharper disable once PossibleMultipleEnumeration
-                for (var j = 0; j < possibleObjectsCount; j++)
+                foreach(var objectToCheck in possibleObjects)
                 {
-                    var objectToCheck = possibleObjects[j];
                     if (clickBounds.Intersects(objectToCheck.screenSpaceBounds))
                     {
                         // max of the mins; and min of the maxes
@@ -875,7 +866,7 @@ namespace RegressionGames.StateRecorder
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure
                     position = new Vector2Int(Screen.width +20, -20)
-                }, null, new List<RecordedGameObjectState>());
+                }, null, ScreenRecorder._emptyStateDictionary);
                 // we hit the end of the replay
                 Stop();
                 _replaySuccessful = true;
