@@ -16,8 +16,12 @@ namespace RegressionGames.StateRecorder
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class FrameStateData : ReplayFrameStateData
+    public class RecordingFrameStateData : BaseFrameStateData
     {
+        /**
+         * <summary>Reference to the original recording this was created from during replay, possibly null</summary>
+         */
+        public string referenceSessionId = null;
 
         public PerformanceMetricData performance;
         public new IEnumerable<RecordedGameObjectState> state;
@@ -27,7 +31,11 @@ namespace RegressionGames.StateRecorder
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"tickNumber\":");
+            stringBuilder.Append("{\n\"sessionId\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
+            stringBuilder.Append(",\n\"referenceSessionId\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, referenceSessionId);
+            stringBuilder.Append(",\n\"tickNumber\":");
             LongJsonConverter.WriteToStringBuilder(stringBuilder, tickNumber);
             stringBuilder.Append(",\n\"keyFrame\":[");
             var keyFrameLength = keyFrame.Length;
@@ -188,8 +196,12 @@ namespace RegressionGames.StateRecorder
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     // replay doesn't need to deserialize everything we record
-    public class ReplayFrameStateData
+    public class BaseFrameStateData
     {
+        /**
+         * <summary>UUID of the session</summary>
+         */
+        public string sessionId;
         public long tickNumber;
         public KeyFrameType[] keyFrame;
         public double time;
@@ -198,6 +210,17 @@ namespace RegressionGames.StateRecorder
         public string pixelHash;
         public List<ReplayGameObjectState> state;
         public InputData inputs;
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    // replay doesn't need to deserialize everything we record
+    public class ReplayFrameStateData :BaseFrameStateData
+    {
+        /**
+         * <summary>UUID of the session</summary>
+         */
+        public long recordingSessionId;
     }
 
     public abstract class BaseReplayObjectState

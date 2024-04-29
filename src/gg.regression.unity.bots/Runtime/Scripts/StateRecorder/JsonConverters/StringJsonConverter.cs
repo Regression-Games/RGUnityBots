@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using StateRecorder;
 using UnityEngine;
@@ -7,6 +8,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class StringJsonConverter : Newtonsoft.Json.JsonConverter
     {
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, string val)
+        {
+            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder, val);
+        }
 
         public static string ToJsonString(string val)
         {
