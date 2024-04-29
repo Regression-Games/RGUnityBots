@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -6,37 +7,92 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class VectorJsonConverter : Newtonsoft.Json.JsonConverter
     {
-        public static string ToJsonStringVector2(Vector2? val)
-        {
-            if (val != null)
-            {
-                var value = val.Value;
-                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + "}";
-            }
+        // re-usable and large enough to fit vectors of all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
 
-            return "null";
+        public static void WriteToStringBuilderVector2Nullable(StringBuilder stringBuilder, Vector2? f)
+        {
+            if (!f.HasValue)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+            WriteToStringBuilderVector2(stringBuilder, f.Value);
         }
 
-        public static string ToJsonStringVector3(Vector3? val)
+        public static void WriteToStringBuilderVector2(StringBuilder stringBuilder, Vector2 value)
         {
-            if (val != null)
-            {
-                var value = val.Value;
-                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + ",\"z\":" + FloatJsonConverter.ToJsonString(value.z) + "}";
-            }
 
-            return "null";
+            stringBuilder.Append("{\"x\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.x);
+            stringBuilder.Append(",\"y\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.y);
+            stringBuilder.Append("}");
         }
 
-        public static string ToJsonStringVector4(Vector4? val)
+        private static string ToJsonStringVector2(Vector2 val)
         {
-            if (val != null)
-            {
-                var value = val.Value;
-                return "{\"x\":" + FloatJsonConverter.ToJsonString(value.x) + ",\"y\":" + FloatJsonConverter.ToJsonString(value.y) + ",\"z\":" + FloatJsonConverter.ToJsonString(value.z) + ",\"w\":" + FloatJsonConverter.ToJsonString(value.w) + "}";
-            }
+            _stringBuilder.Clear();
+            WriteToStringBuilderVector2(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
 
-            return "null";
+        public static void WriteToStringBuilderVector3Nullable(StringBuilder stringBuilder, Vector3? f)
+        {
+            if (!f.HasValue)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+            WriteToStringBuilderVector3(stringBuilder, f.Value);
+        }
+
+        public static void WriteToStringBuilderVector3(StringBuilder stringBuilder, Vector3 value)
+        {
+            stringBuilder.Append("{\"x\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.x);
+            stringBuilder.Append(",\"y\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.y);
+            stringBuilder.Append(",\"z\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.z);
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonStringVector3(Vector3 val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilderVector3(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
+        public static void WriteToStringBuilderVector4Nullable(StringBuilder stringBuilder, Vector4? f)
+        {
+            if (!f.HasValue)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+            WriteToStringBuilderVector4(stringBuilder, f.Value);
+        }
+
+        public static void WriteToStringBuilderVector4(StringBuilder stringBuilder, Vector4 value)
+        {
+            stringBuilder.Append("{\"x\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.x);
+            stringBuilder.Append(",\"y\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.y);
+            stringBuilder.Append(",\"z\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.z);
+            stringBuilder.Append(",\"w\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.w);
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonStringVector4(Vector4 val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilderVector4(_stringBuilder, val);
+            return _stringBuilder.ToString();
         }
 
 

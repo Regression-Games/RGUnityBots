@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -6,6 +7,44 @@ namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class RigidbodyJsonConverter : Newtonsoft.Json.JsonConverter
     {
+
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(4_000);
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Rigidbody val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"position\":");
+            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.position);
+            stringBuilder.Append(",\"rotation\":");
+            QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, val.rotation);
+            stringBuilder.Append(",\"velocity\":");
+            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.velocity);
+            stringBuilder.Append(",\"mass\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.mass);
+            stringBuilder.Append(",\"drag\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.drag);
+            stringBuilder.Append(",\"angularDrag\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.angularDrag);
+            stringBuilder.Append(",\"useGravity\":");
+            stringBuilder.Append(val.useGravity ? "true" : "false");
+            stringBuilder.Append(",\"isKinematic\":");
+            stringBuilder.Append(val.isKinematic ? "true" : "false");
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Rigidbody val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,16 +53,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Rigidbody)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"position\":" + val.position
-                                                      + ",\"rotation\":" + val.rotation
-                                                      + ",\"velocity\":" + val.velocity
-                                                      + ",\"mass\":" + FloatJsonConverter.ToJsonString(val.mass)
-                                                      + ",\"drag\":" + FloatJsonConverter.ToJsonString(val.drag)
-                                                      + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(val.angularDrag)
-                                                      + ",\"useGravity\":" + (val.useGravity ? "true" : "false")
-                                                      + ",\"isKinematic\":" + (val.isKinematic ? "true" : "false") + "}");
+                writer.WriteRawValue(ToJsonString((Rigidbody)value));
             }
         }
 

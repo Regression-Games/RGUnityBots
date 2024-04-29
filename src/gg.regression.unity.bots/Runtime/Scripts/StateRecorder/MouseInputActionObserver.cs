@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
@@ -14,7 +15,7 @@ namespace RegressionGames.StateRecorder
     {
         public override void WriteJson(JsonWriter writer, MouseInputActionData value, JsonSerializer serializer)
         {
-            writer.WriteRawValue(value.ToJson());
+            writer.WriteRawValue(value.ToJsonString());
         }
 
         public override bool CanRead => false;
@@ -78,19 +79,47 @@ namespace RegressionGames.StateRecorder
             return false;
         }
 
-        public string ToJson()
+        // re-usable and large enough to fit ball sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(5_000);
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\"startTime\":" + DoubleJsonConverter.ToJsonString(startTime)
-                                     + ",\"position\":" + VectorIntJsonConverter.ToJsonString(position)
-                                     + ",\"worldPosition\":" + VectorJsonConverter.ToJsonStringVector3(worldPosition)
-                                     + ",\"leftButton\":" + (leftButton ? "true" : "false")
-                                     + ",\"middleButton\":" + (middleButton ? "true" : "false")
-                                     + ",\"rightButton\":" + (rightButton ? "true" : "false")
-                                     + ",\"forwardButton\":" + (forwardButton ? "true" : "false")
-                                     + ",\"backButton\":" + (backButton ? "true" : "false")
-                                     + ",\"scroll\":" + VectorJsonConverter.ToJsonStringVector2(scroll)
-                                     + ",\"clickedObjectIds\":[" + string.Join(",", clickedObjectIds)
-                                     + "]}";
+            stringBuilder.Append("{\"startTime\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
+            stringBuilder.Append(",\"position\":");
+            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, position);
+            stringBuilder.Append(",\"worldPosition\":");
+            VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, worldPosition);
+            stringBuilder.Append(",\"leftButton\":");
+            stringBuilder.Append(leftButton ? "true" : "false");
+            stringBuilder.Append(",\"middleButton\":");
+            stringBuilder.Append(middleButton ? "true" : "false");
+            stringBuilder.Append(",\"rightButton\":");
+            stringBuilder.Append(rightButton ? "true" : "false");
+            stringBuilder.Append(",\"forwardButton\":");
+            stringBuilder.Append(forwardButton ? "true" : "false");
+            stringBuilder.Append(",\"backButton\":");
+            stringBuilder.Append(backButton ? "true" : "false");
+            stringBuilder.Append(",\"scroll\":");
+            VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
+            stringBuilder.Append(",\"clickedObjectIds\":[");
+            var clickedObjectIdsLength = clickedObjectIds.Length;
+            for (var i = 0; i < clickedObjectIdsLength; i++)
+            {
+                IntJsonConverter.WriteToStringBuilder(stringBuilder, clickedObjectIds[i]);
+                if (i + 1 < clickedObjectIdsLength)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("]}");
+        }
+
+        internal string ToJsonString()
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder);
+            return _stringBuilder.ToString();
         }
     }
 
@@ -109,7 +138,7 @@ namespace RegressionGames.StateRecorder
             var newMouseState = GetCurrentMouseState(mousePosition);
             if (newMouseState != null)
             {
-                if (_priorMouseState?.ButtonStatesEqual(newMouseState) != true)
+                if (_priorMouseState == null && newMouseState.IsButtonClicked || _priorMouseState != null && !_priorMouseState.ButtonStatesEqual(newMouseState))
                 {
                     Vector3? worldPosition = null;
                     var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);
