@@ -836,7 +836,7 @@ namespace RegressionGames.StateRecorder
                     _lastStartTime = Time.unscaledTime;
                     _startPlaying = false;
                     _isPlaying = true;
-                    _screenRecorder.StartRecording();
+                    _screenRecorder.StartRecording(_dataContainer.SessionId);
                 }
 
                 if (_isPlaying)

@@ -5,20 +5,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
-using TMPro;
 using UnityEngine;
-using UnityEngine.AI;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.UI;
-using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -41,6 +33,9 @@ namespace RegressionGames.StateRecorder
         private double _lastCvFrameTime = -1.0;
 
         private int _frameCountSinceLastTick;
+
+        private string _currentSessionId;
+        private string _referenceSessionId;
 
         private string _currentGameplaySessionDirectoryPrefix;
         private string _currentGameplaySessionScreenshotsDirectoryPrefix;
@@ -242,7 +237,7 @@ namespace RegressionGames.StateRecorder
             RGBotManager.GetInstance().ShowUploadingIndicator(shouldShow);
         }
 
-        private IEnumerator StartRecordingCoroutine()
+        private IEnumerator StartRecordingCoroutine(string referenceSessionId)
         {
             // Do this 1 frame after the request so that the click action of starting the recording itself isn't captured
             yield return null;
@@ -259,6 +254,8 @@ namespace RegressionGames.StateRecorder
                 InGameObjectFinder.GetInstance()?.Cleanup();
                 _isRecording = true;
                 _tickNumber = 0;
+                _currentSessionId = Guid.NewGuid().ToString("n");
+                _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _frameQueue =
                     new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, byte[], Action))>(
@@ -289,14 +286,14 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public void StartRecording()
+        public void StartRecording(string referenceSessionId)
         {
             var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
             if (gameFacePixelHashObserver != null)
             {
                 gameFacePixelHashObserver.SetActive(true);
             }
-            StartCoroutine(StartRecordingCoroutine());
+            StartCoroutine(StartRecordingCoroutine(referenceSessionId));
 
         }
 
@@ -541,8 +538,10 @@ namespace RegressionGames.StateRecorder
                         var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
                         var frameTime = Math.Max(time, mostRecentDeviceEventTime);
 
-                        var frameState = new FrameStateData()
+                        var frameState = new RecordingFrameStateData()
                         {
+                            sessionId = _currentSessionId,
+                            referenceSessionId = _referenceSessionId,
                             keyFrame = _keyFrameTypeList.ToArray(),
                             tickNumber = _tickNumber,
                             time = frameTime,
