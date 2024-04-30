@@ -111,6 +111,8 @@ namespace RegressionGames.StateRecorder
 
     public class ReplayDataContainer
     {
+        public string SessionId { get; private set; } = null;
+
         private readonly Queue<ReplayKeyFrameEntry> _keyFrames = new();
 
         private readonly Queue<ReplayKeyboardInputEntry> _keyboardData = new();
@@ -203,6 +205,11 @@ namespace RegressionGames.StateRecorder
                 var frameData = JsonConvert.DeserializeObject<ReplayFrameStateData>(sr.ReadToEnd());
 
                 firstFrame ??= frameData;
+
+                if (SessionId == null)
+                {
+                    SessionId = frameData.sessionId;
+                }
 
                 // process key frame info
                 ReplayKeyFrameEntry keyFrame = null;
