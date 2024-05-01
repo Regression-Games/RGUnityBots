@@ -16,7 +16,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public static void WriteToStringBuilder(StringBuilder stringBuilder, ParticleSystem val)
         {
             stringBuilder.Append("{\"name\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.name);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.name);
             stringBuilder.Append(",\"isPlaying\":");
             stringBuilder.Append((val.isPlaying ? "true" : "false"));
             stringBuilder.Append("}");

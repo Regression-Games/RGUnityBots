@@ -26,11 +26,25 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
 
             stringBuilder.Append("{\"texture\":");
-            stringBuilder.Append((val.texture == null ? "null":JsonUtils.EscapeJsonString(val.texture.name)));
+            if (val.texture == null)
+            {
+                stringBuilder.Append("null");
+            }
+            else
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, val.texture.name);
+            }
             stringBuilder.Append(",\"color\":");
             ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
             stringBuilder.Append(",\"material\":");
-            stringBuilder.Append((val.material == null ? "null":JsonUtils.EscapeJsonString(val.material.name)));
+            if (val.material == null)
+            {
+                stringBuilder.Append("null");
+            }
+            else
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, val.material.name);
+            }
             stringBuilder.Append(",\"raycastTarget\":");
             stringBuilder.Append((val.raycastTarget ? "true" : "false"));
             stringBuilder.Append(",\"uvRect\":");

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using JetBrains.Annotations;
 using StateRecorder.Types;
 using UnityEngine;
@@ -12,6 +13,10 @@ namespace RegressionGames.StateRecorder
     {
         public bool? HasKeyTypes;
         public string Path;
+        /**
+         * <summary>Has things like ' (1)' and ' (Clone)' stripped off of object names.</summary>
+         */
+        public string NormalizedPath;
 
         /**
          * <summary>cached pointer to the top level transform of this transform.. must check != null to avoid stale unity object references</summary>
@@ -95,8 +100,8 @@ namespace RegressionGames.StateRecorder
         private string SanitizeObjectName(string objectName)
         {
             objectName = FastTrim(objectName);
-            //Removes '(Clone)' and ' (1)' uniqueness numbers for copies
-            // may also remove some valid naming pieces like (TMP).. but oh well REGEX for this performed horribly
+            // Removes '(Clone)' and ' (1)' uniqueness numbers for copies
+            // may also remove some valid naming pieces like (TMP).. but oh well, REGEX for this performed horribly
             while (objectName.EndsWith(')'))
             {
                 var li = objectName.LastIndexOf('(');
@@ -109,9 +114,13 @@ namespace RegressionGames.StateRecorder
             return objectName;
         }
 
-        private TransformStatus GetUniqueTransformPath(Transform theTransform)
+        // re-use these objects
+        private static readonly StringBuilder _tPathBuilder = new StringBuilder(500);
+
+        private TransformStatus GetOrCreateTransformStatus(Transform theTransform)
         {
             string tPath = null;
+            string tPathNormalized = null;
 
             if (_transformsIveSeen.TryGetValue(theTransform, out var status))
             {
@@ -119,20 +128,30 @@ namespace RegressionGames.StateRecorder
                 {
                     tPath = status.Path;
                 }
+
+                if (status.NormalizedPath != null)
+                {
+                    tPathNormalized = status.NormalizedPath;
+                }
             }
 
-            if (tPath == null)
+            if (tPath == null || tPathNormalized == null)
             {
                 // now .. get the path in the scene.. but only from 1 level down
                 // iow.. ignore the name of the scene itself for cases where many scenes are loaded together like bossroom
-                var tName = SanitizeObjectName(theTransform.name);
+                var tName = theTransform.name;
+                var tNameNormalized = SanitizeObjectName(theTransform.name);
 
                 tPath = tName;
+                tPathNormalized = tNameNormalized;
                 var parent = theTransform.parent;
                 // don't need overloaded unity != null-ness check as if we were found alive, our parent is alive
                 while (parent is not null)
                 {
-                    tPath = string.Concat(SanitizeObjectName(parent.gameObject.name), "/", tPath);
+                    _tPathBuilder.Clear();
+                    tPath = _tPathBuilder.Append(parent.gameObject.name).Append("/").Append(tPath).ToString();
+                    _tPathBuilder.Clear();
+                    tPathNormalized = _tPathBuilder.Append(SanitizeObjectName(parent.gameObject.name)).Append("/").Append(tPathNormalized).ToString();
                     parent = parent.transform.parent;
                 }
 
@@ -140,12 +159,14 @@ namespace RegressionGames.StateRecorder
                 {
                     // update the cache our result
                     status.Path = tPath;
+                    status.NormalizedPath = tPathNormalized;
                 }
                 else
                 {
                     status = new TransformStatus
                     {
                         Path = tPath,
+                        NormalizedPath = tPathNormalized
                     };
                     // add our result to the cache
                     _transformsIveSeen[theTransform] = status;
@@ -346,13 +367,16 @@ namespace RegressionGames.StateRecorder
 
                     var usingOldObject = priorState.TryGetValue(objectTransformId, out var resultObject);
 
+                    var tStatus = GetOrCreateTransformStatus(t);
+
                     if (resultObject == null)
                     {
                         resultObject = new RecordedGameObjectState()
                         {
                             id = objectTransformId,
                             transform = t,
-                            path = GetUniqueTransformPath(t).Path,
+                            path = tStatus.Path,
+                            normalizedPath = tStatus.NormalizedPath,
                             tag = statefulGameObject.tag,
                             layer = LayerMask.LayerToName(statefulGameObject.layer),
                             scene = statefulGameObject.scene,
@@ -434,7 +458,7 @@ namespace RegressionGames.StateRecorder
                     _currentParentTransforms.Clear();
 
                     // process the first object here, then evaluate its children
-                    ProcessChildTransformComponents(t, behaviours, null, null);
+                    ProcessChildTransformComponents(t, behaviours, collidersState, rigidbodiesState);
                     var childCount = t.childCount;
                     for (var k = 0; k < childCount; k++)
                     {
@@ -509,7 +533,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new ColliderRecordState();
                     }
 
-                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.collider = colliderEntry;
 
                     collidersState.Add(cObject);
@@ -529,7 +554,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new Collider2DRecordState();
                     }
 
-                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.collider = colliderEntry2D;
 
                     collidersState.Add(cObject);
@@ -549,7 +575,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new RigidbodyRecordState();
                     }
 
-                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.rigidbody = myRigidbody;
 
                     rigidbodiesState.Add(cObject);
@@ -569,7 +596,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new Rigidbody2DRecordState();
                     }
 
-                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.rigidbody = myRigidbody2D;
 
                     rigidbodiesState.Add(cObject);
@@ -589,7 +617,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new BehaviourState();
                     }
 
-                    cObject.path = (ts ??= GetUniqueTransformPath(childTransform)).Path;
+                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.name = childBehaviour.GetType().FullName;
                     cObject.state = childBehaviour;
 
@@ -697,13 +726,16 @@ namespace RegressionGames.StateRecorder
 
                             var usingOldObject = _priorStates.TryGetValue(objectTransformId, out var resultObject);
 
+                            var tStatus = GetOrCreateTransformStatus(objectTransform);
+
                             if (resultObject == null)
                             {
                                 resultObject = new RecordedGameObjectState()
                                 {
                                     id = objectTransformId,
                                     transform = objectTransform,
-                                    path = GetUniqueTransformPath(objectTransform).Path,
+                                    path = tStatus.Path,
+                                    normalizedPath = tStatus.NormalizedPath,
                                     tag = statefulUIObject.tag,
                                     layer = LayerMask.LayerToName(statefulUIObject.layer),
                                     scene = statefulUIObject.scene,

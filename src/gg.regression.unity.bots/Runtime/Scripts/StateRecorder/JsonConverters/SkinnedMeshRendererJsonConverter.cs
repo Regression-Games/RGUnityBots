@@ -25,7 +25,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             var valMaterialLength = val.materials.Length;
             for (var i = 0; i < valMaterialLength; i++)
             {
-                JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.materials[i].name);
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, val.materials[i].name);
                 if (i + 1 < valMaterialLength)
                 {
                     stringBuilder.Append(",");
