@@ -2,31 +2,30 @@ using System;
 using System.Reflection;
 using System.Threading;
 using JetBrains.Annotations;
+using RegressionGames;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 
 namespace StateRecorder
 {
     public class GameFacePixelHashObserver : MonoBehaviour
     {
-        private const int _grayWidth = 128;
-        private const int _grayHeight = 128;
-        private byte[] _grayArray = new byte[_grayWidth * _grayHeight * 2];
+        private Color32[] _priorPixels;
 
         private bool _firstRun = true;
-        private bool _isActive = false;
+        private bool _isActive;
 
         // uses null or not-null to do interlocked threadsafe updates
         private string _pixelHash;
+        private string _requestInProgress;
 
-        internal RenderTexture _cohtmlViewTexture;
+        [NonSerialized]
+        private Component _cohtmlViewInstance;
 
         [CanBeNull]
-        public static readonly Type CohtmlViewType;
+        private static readonly Type CohtmlViewType;
 
-        public static readonly PropertyInfo CohtmlViewTextureProperty;
+        private static readonly PropertyInfo CohtmlViewTextureProperty;
 
         private static GameFacePixelHashObserver _instance;
 
@@ -48,8 +47,6 @@ namespace StateRecorder
             _isActive = active;
         }
 
-        public int GrayScaleTiers = 255;
-
         public static GameFacePixelHashObserver GetInstance()
         {
             // can't do this in onEnable or Start as gameface doesn't load/initialize that early
@@ -63,12 +60,12 @@ namespace StateRecorder
                     {
                         _instance = cothmlObject.gameObject.AddComponent<GameFacePixelHashObserver>();
                         // we normally can't do this in Start because gameface hasn't loaded, but since ScreenRecorder creates us during an Update pass after gameface is loaded, we can
-                        if (CohtmlViewType != null && _instance._cohtmlViewTexture == null)
+                        if (CohtmlViewType != null && _instance._cohtmlViewInstance == null)
                         {
-                            var cohtmlViewInstance = _instance.GetComponent(CohtmlViewType);
-                            if (cohtmlViewInstance != null)
+                            _instance._cohtmlViewInstance = _instance.GetComponent(CohtmlViewType);
+                            if (_instance._cohtmlViewInstance != null)
                             {
-                                _instance._cohtmlViewTexture = (RenderTexture)CohtmlViewTextureProperty.GetValue(cohtmlViewInstance);
+                                GetRenderTexture(); // just to force loading of any refs just in case
                                 RenderPipelineManager.endFrameRendering += _instance.OnEndFrame;
                             }
                         }
@@ -79,63 +76,70 @@ namespace StateRecorder
             return _instance;
         }
 
+        private static RenderTexture GetRenderTexture()
+        {
+            if (_instance != null && _instance._cohtmlViewInstance != null)
+            {
+                return (RenderTexture)CohtmlViewTextureProperty.GetValue(_instance._cohtmlViewInstance);
+            }
+
+            return null;
+        }
+
         private void UpdateGameFacePixelHash()
         {
-
-            if (_isActive && _cohtmlViewTexture != null)
+            if (_isActive)
             {
-                // scale down the current UI texture to 256x256 using the GPU
-                var scaledTexture = TextureScaling_GPU.ScaleRenderTextureAsCopy(_cohtmlViewTexture, _grayWidth, _grayHeight);
-
-                try
+                // have to re-get this every time because it changes on resolution and other screen changes that update the gameface render target
+                var cohtmlViewTexture = GetRenderTexture();
+                if (cohtmlViewTexture != null)
                 {
-                    // TODO: We should probably also be able to do the grayscale computation part on the GPU to save CPU cycles; tbd if its really necessary as this is fairly light lifting even on the cpu and we need to iteratively compare anyway
-                    var pixels = scaledTexture.GetPixels();
-
-                    var index = 0;
-                    var isDifferent = _firstRun; // start false unless _firstRun
-                    _firstRun = false;
-                    foreach (var pixel in pixels)
+                    var wasActive = Interlocked.CompareExchange(ref _requestInProgress, string.Empty, null);
+                    if (wasActive == null)
                     {
-                        // update for current frame
-                        // alpha value
-                        var alphaTier = (int)((TextureScaling_GPU.NTSC_Grayscale.a * pixel.a) * GrayScaleTiers);
-                        var newAlpha = (byte)((255 * alphaTier) / GrayScaleTiers);
-                        // gray value
-                        var grayTier = (int)((TextureScaling_GPU.NTSC_Grayscale.r * pixel.r + TextureScaling_GPU.NTSC_Grayscale.g * pixel.g + TextureScaling_GPU.NTSC_Grayscale.b * pixel.b) * GrayScaleTiers);
-                        var newGray = (byte)((255 * grayTier) / GrayScaleTiers);
-
-                        // check for differences to prior frame
-                        if (!isDifferent)
+                        AsyncGPUReadback.Request(cohtmlViewTexture, 0, (request =>
                         {
-                            isDifferent |= _grayArray[index] != newGray;
-                            if (!isDifferent)
+                            try
                             {
-                                isDifferent |= _grayArray[index + 1] != newAlpha;
+                                if (!request.hasError)
+                                {
+                                    var data = request.GetData<Color32>();
+                                    var pixels = new Color32[data.Length];
+                                    data.CopyTo(pixels);
+
+                                    string newHash = _firstRun ? "FirstPass" : null;
+
+                                    if (_priorPixels == null || pixels.Length != _priorPixels.Length)
+                                    {
+                                        // different size image or first pass
+                                        newHash = "NewResolution";
+                                    }
+                                    else
+                                    {
+                                        _firstRun = false;
+                                        var pixelsLength = pixels.Length;
+                                        for (var i = 0; i < pixelsLength; i++)
+                                        {
+                                            if (pixels[i].r != _priorPixels[i].r || pixels[i].g != _priorPixels[i].g || pixels[i].b != _priorPixels[i].b || pixels[i].a != _priorPixels[i].a)
+                                            {
+                                                newHash = $"{i} - ({pixels[i].r},{pixels[i].g},{pixels[i].b},{pixels[i].a})";
+                                                RGDebug.LogDebug($"Different GameFace UI pixel at index {i}");
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    Interlocked.Exchange(ref _pixelHash, newHash);
+
+                                    _priorPixels = pixels;
+                                }
                             }
-                        }
-
-                        _grayArray[index] = newGray;
-                        _grayArray[index+1] = newAlpha;
-
-                        index += 2;
+                            finally
+                            {
+                                Interlocked.Exchange(ref _requestInProgress, null);
+                            }
+                        }));
                     }
-
-                    if (isDifferent)
-                    {
-                        byte[] hash;
-                        using (var sha256 = System.Security.Cryptography.SHA256.Create()) {
-                            sha256.TransformFinalBlock(_grayArray, 0, _grayArray.Length);
-                            hash = sha256.Hash;
-                        }
-
-                        var base64Hash = Convert.ToBase64String(hash);
-                        Interlocked.Exchange(ref _pixelHash, base64Hash);
-                    }
-                }
-                finally
-                {
-                    Object.Destroy(scaledTexture);
                 }
             }
             else
@@ -158,7 +162,7 @@ namespace StateRecorder
 
         private void OnDestroy()
         {
-            if (_cohtmlViewTexture != null)
+            if (_cohtmlViewInstance != null)
             {
                 RenderPipelineManager.endFrameRendering -= OnEndFrame;
             }
