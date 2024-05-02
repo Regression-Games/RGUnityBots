@@ -84,10 +84,11 @@ namespace RegressionGames.StateRecorder
         // scroll wheel
         public Vector2 scroll;
         public string[] clickedObjectPaths;
+        public string[] clickedObjectNormalizedPaths;
         public bool IsDone;
 
         // gives the position relative to the current screen size
-        public Vector2 NormalizedPosition => new()
+        public Vector2Int NormalizedPosition => new()
         {
             x = (int)(position.x * (Screen.width / (float)screenSize.x)),
             y = (int)(position.y * (Screen.height / (float)screenSize.y))
@@ -286,12 +287,12 @@ namespace RegressionGames.StateRecorder
                     if (inputData is { } mouseInputData)
                     {
                         // go through the mouse input data and setup the different entries
-                        string[] specificGameObjectPaths = Array.Empty<string>();
+                        (List<string>,List<string>) specificGameObjectPaths = (null,null);
 
                         // we also validate the object ids on mouse release to adjust click positions
                         if (keyFrame != null && mouseInputData.clickedObjectIds != null )
                         {
-                            specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state).ToArray();
+                            specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state);
                         }
 
                         _mouseData.Enqueue(new ReplayMouseInputEntry()
@@ -299,7 +300,8 @@ namespace RegressionGames.StateRecorder
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
-                            clickedObjectPaths = specificGameObjectPaths,
+                            clickedObjectPaths = specificGameObjectPaths.Item1?.ToArray() ?? Array.Empty<string>(),
+                            clickedObjectNormalizedPaths = specificGameObjectPaths.Item2?.ToArray() ?? Array.Empty<string>(),
                             position = mouseInputData.position,
                             worldPosition = mouseInputData.worldPosition,
                             leftButton = mouseInputData.leftButton,
@@ -322,12 +324,13 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private List<string> FindObjectPathsWithIds(int[] objectIds, List<ReplayGameObjectState> priorState, List<ReplayGameObjectState> state)
+        private (List<string>,List<string>) FindObjectPathsWithIds(int[] objectIds, List<ReplayGameObjectState> priorState, List<ReplayGameObjectState> state)
         {
             // look in current state first, then fall back to prior state
             // copy me
             var objectIdsToFind = objectIds.ToList();
             List<string> objectPathsFound = new();
+            List<string> objectPathsNormalizedFound = new();
 
             var stateCount = state.Count;
             for (var i = 0; i < stateCount; i++)
@@ -336,6 +339,7 @@ namespace RegressionGames.StateRecorder
                 if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
                 {
                     objectPathsFound.Add(so.path);
+                    objectPathsNormalizedFound.Add(so.normalizedPath);
                 }
             }
 
@@ -348,10 +352,11 @@ namespace RegressionGames.StateRecorder
                     if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
                     {
                         objectPathsFound.Add(so.path);
+                        objectPathsNormalizedFound.Add(so.normalizedPath);
                     }
                 }
             }
-            return objectPathsFound;
+            return (objectPathsFound, objectPathsNormalizedFound);
         }
     }
 }

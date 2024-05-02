@@ -339,10 +339,10 @@ namespace RegressionGames.StateRecorder
         private readonly List<int> _uiElementsInCurrentFrame = new(1000);
         private readonly Dictionary<int, RecordedGameObjectState> _worldElementsInCurrentFrame = new(1000);
 
-        private void GetKeyFrameType(Dictionary<int,RecordedGameObjectState> priorState, Dictionary<int,RecordedGameObjectState> currentState, string pixelHash)
+        private void GetKeyFrameType(bool firstFrame, Dictionary<int,RecordedGameObjectState> priorState, Dictionary<int,RecordedGameObjectState> currentState, string pixelHash)
         {
             _keyFrameTypeList.Clear();
-            if (priorState == null)
+            if (firstFrame)
             {
                 _keyFrameTypeList.Add(KeyFrameType.FIRST_FRAME );
                 return;
@@ -484,7 +484,7 @@ namespace RegressionGames.StateRecorder
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(priorStates, currentStates, pixelHash);
+                GetKeyFrameType(_tickNumber ==0, priorStates, currentStates, pixelHash);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0

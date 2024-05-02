@@ -58,11 +58,10 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append("{\"startTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
             stringBuilder.Append(",\"action\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,action);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, action);
             stringBuilder.Append(",\"binding\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,binding);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, binding);
             stringBuilder.Append(",\"endTime\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,action);
             DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, endTime);
             stringBuilder.Append(",\"isPressed\":");
             stringBuilder.Append(isPressed ? "true" : "false");
