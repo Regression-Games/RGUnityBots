@@ -15,7 +15,14 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public static void WriteToStringBuilder(StringBuilder stringBuilder, MeshFilter val)
         {
             stringBuilder.Append("{\"mesh\":");
-            stringBuilder.Append((val.mesh != null ? JsonUtils.EscapeJsonString(val.mesh.name) : "null"));
+            if (val.mesh == null)
+            {
+                stringBuilder.Append("null");
+            }
+            else
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, val.mesh.name);
+            }
             stringBuilder.Append("}");
         }
 

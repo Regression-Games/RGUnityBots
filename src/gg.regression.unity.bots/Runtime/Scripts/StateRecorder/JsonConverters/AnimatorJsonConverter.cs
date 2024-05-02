@@ -19,9 +19,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Animator val)
         {
             stringBuilder.Append("{\"controller\":{\"x\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.runtimeAnimatorController.name);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.runtimeAnimatorController.name);
             stringBuilder.Append(",\"avatar\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.avatar.name);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.avatar.name);
             stringBuilder.Append(",\"applyRootMotion\":");
             stringBuilder.Append((val.applyRootMotion ? "true" : "false"));
             stringBuilder.Append(",\"updateMode\":\"");

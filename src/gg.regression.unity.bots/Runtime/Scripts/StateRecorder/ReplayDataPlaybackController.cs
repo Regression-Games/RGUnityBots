@@ -512,6 +512,7 @@ namespace RegressionGames.StateRecorder
         private static Vector2? _lastMousePosition;
 
         // Finds the best object to adjust our click position to for a given mouse input
+        // Uses the exact path for UI clicks, but the normalized path for world space clicks
         // Returns (the object, whether it was world space, the suggested mouse position, and the states list as a convenience)
         private static (RecordedGameObjectState, bool, Vector2, IEnumerable<RecordedGameObjectState>) FindBestClickObject(Camera mainCamera, long tickNumber, ReplayMouseInputEntry mouseInput, Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
@@ -530,20 +531,33 @@ namespace RegressionGames.StateRecorder
 
             var theNp = new Vector3(normalizedPosition.x, normalizedPosition.y, 0f);
 
+            var originalPosition = mouseInput.position;
+
             // find possible objects prioritizing the currentState, falling back to the priorState
 
             // copy so we can remove
-            var pathsToFind = mouseInput.clickedObjectPaths.ToList();
+            var mousePaths = mouseInput.worldPosition != null ? mouseInput.clickedObjectNormalizedPaths : mouseInput.clickedObjectPaths;
+            var pathsToFind = mousePaths.ToList();
 
             var possibleObjects = new List<RecordedGameObjectState>();
 
-
             foreach (var os in objectStates.Values)
             {
-                if (StateRecorderUtils.OptimizedContainsStringInArray(mouseInput.clickedObjectPaths, os.path))
+                if (mouseInput.worldPosition != null)
                 {
-                    possibleObjects.Add(os);
-                    StateRecorderUtils.OptimizedRemoveStringFromList(pathsToFind, os.path);
+                    if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, os.normalizedPath))
+                    {
+                        possibleObjects.Add(os);
+                        StateRecorderUtils.OptimizedRemoveStringFromList(pathsToFind, os.normalizedPath);
+                    }
+                }
+                else
+                {
+                    if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, os.path))
+                    {
+                        possibleObjects.Add(os);
+                        StateRecorderUtils.OptimizedRemoveStringFromList(pathsToFind, os.path);
+                    }
                 }
             }
 
@@ -552,18 +566,29 @@ namespace RegressionGames.StateRecorder
             {
                 foreach (var os in objectStates.Values)
                 {
-                    if (StateRecorderUtils.OptimizedContainsStringInList(pathsToFind, os.path))
+                    if (mouseInput.worldPosition != null)
                     {
-                        possibleObjects.Add(os);
+                        if (StateRecorderUtils.OptimizedContainsStringInList(pathsToFind, os.normalizedPath))
+                        {
+                            possibleObjects.Add(os);
+                        }
+                    }
+                    else
+                    {
+                        if (StateRecorderUtils.OptimizedContainsStringInList(pathsToFind, os.path))
+                        {
+                            possibleObjects.Add(os);
+                        }
                     }
                 }
             }
 
-            possibleObjects = possibleObjects.OrderBy(a => {
-                    var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
-                    return (theNp - closestPointInA).sqrMagnitude;
-                })
-                .Distinct(_recordedGameObjectStatePathEqualityComparer)
+            var cos = possibleObjects.OrderBy(a =>
+            {
+                var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
+                return (theNp - closestPointInA).sqrMagnitude;
+            });
+            possibleObjects = cos.Distinct(_recordedGameObjectStatePathEqualityComparer)
                 .ToList(); // select only the first entry of each path for ui elements; uses ToList due to multiple iterations of this structure later in the code to avoid multiple enumeration
 
             var screenWidth = Screen.width;
@@ -611,7 +636,7 @@ namespace RegressionGames.StateRecorder
                                     worldSpaceObject = true;
                                     var old = normalizedPosition;
                                     // we hit one of our world objects, set the normalized position and stop looping
-                                    normalizedPosition = new Vector2((int)screenPoint.x, (int)screenPoint.y);
+                                    normalizedPosition = new Vector2Int((int)screenPoint.x, (int)screenPoint.y);
                                     RGDebug.LogInfo($"({tickNumber}) Adjusting world click location to ensure hit on object: " + objectToCheck.path + " oldPosition: (" + old.x + "," + old.y + "), newPosition: (" + normalizedPosition.x + "," + normalizedPosition.y + ")");
                                     break; // end the for
                                 }

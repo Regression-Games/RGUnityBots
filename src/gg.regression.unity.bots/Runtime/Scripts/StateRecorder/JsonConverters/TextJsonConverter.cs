@@ -26,9 +26,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
 
             stringBuilder.Append("{\"text\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.text);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.text);
             stringBuilder.Append(",\"font\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,val.font.name);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.font.name);
             stringBuilder.Append(",\"fontStyle\":\"");
             stringBuilder.Append(val.fontStyle.ToString());
             stringBuilder.Append("\",\"fontSize\":");

@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public static void WriteToStringBuilder(StringBuilder stringBuilder, NavMeshAgent val)
         {
             stringBuilder.Append("{\"agentType\":");
-            JsonUtils.EscapeJsonStringIntoStringBuilder(stringBuilder,NavMesh.GetSettingsNameFromID(val.agentTypeID));
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, NavMesh.GetSettingsNameFromID(val.agentTypeID));
             stringBuilder.Append("}");
         }
 

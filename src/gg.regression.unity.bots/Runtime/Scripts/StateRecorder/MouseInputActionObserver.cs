@@ -253,6 +253,7 @@ namespace RegressionGames.StateRecorder
 
         public void ClearBuffer()
         {
+            _priorMouseState = null;
             _mouseInputActions.Clear();
         }
 
