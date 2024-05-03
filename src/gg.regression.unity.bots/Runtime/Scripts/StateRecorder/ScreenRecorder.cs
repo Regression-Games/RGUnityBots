@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using StateRecorder;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -455,6 +457,8 @@ namespace RegressionGames.StateRecorder
             OnDestroy();
         }
 
+        private RenderTexture _screenShotTexture = null;
+
         private IEnumerator RecordFrame()
         {
             if (!_frameQueue.IsCompleted)
@@ -577,49 +581,47 @@ namespace RegressionGames.StateRecorder
 
                     if (jsonData != null)
                     {
-
-                        // wait for all frame rendering/etc to finish before taking the screenshot
-                        yield return new WaitForEndOfFrame();
-
-                        var screenShot = new Texture2D(screenWidth, screenHeight);
-
-                        try
+                        if (_screenShotTexture == null || _screenShotTexture.width != screenWidth || _screenShotTexture.height != screenHeight)
                         {
-                            screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
-                            screenShot.Apply();
-
-                            // queue up writing the frame data to disk async
-                            _frameQueue.Add((
-                                (_currentGameplaySessionDirectoryPrefix, _tickNumber),
-                                (
-                                    jsonData,
-                                    screenShot.width,
-                                    screenShot.height,
-                                    screenShot.graphicsFormat,
-                                    screenShot.GetRawTextureData(),
-                                    () =>
-                                    {
-                                        // MUST happen on main thread
-                                        // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
-                                        _texture2Ds.Enqueue(screenShot);
-                                    }
-                                )
-                            ));
-                            // null this out so the queue can clean it up, not this code...
-                            screenShot = null;
-                        }
-                        catch (Exception e)
-                        {
-                            RGDebug.LogException(e, "Exception capturing screenshot for frame");
-                        }
-                        finally
-                        {
-                            if (screenShot != null)
+                            if (_screenShotTexture != null)
                             {
-                                // Destroy the texture to free up memory
-                                _texture2Ds.Enqueue(screenShot);
+                                Object.Destroy(_screenShotTexture);
                             }
+
+                            _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
                         }
+
+                        // wait for end of frame before capturing screenshot
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
+                        AsyncGPUReadback.Request(_screenShotTexture, 0, TextureFormat.RGBA32, request =>
+                        {
+                            if (!request.hasError)
+                            {
+                                var data = request.GetData<byte>();
+                                var pixels = new byte[data.Length];
+                                data.CopyTo(pixels);
+
+                                // queue up writing the frame data to disk async
+                                _frameQueue.Add((
+                                    (_currentGameplaySessionDirectoryPrefix, _tickNumber),
+                                    (
+                                        jsonData,
+                                        screenWidth,
+                                        screenHeight,
+                                        _screenShotTexture.graphicsFormat,
+                                        pixels,
+                                        () =>
+                                        { }
+                                    )
+                                ));
+                            }
+                            else
+                            {
+                                RGDebug.LogError("Error capturing screenshot for frame");
+                            }
+
+                        });
                     }
                 }
             }
@@ -647,15 +649,14 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height,
-            GraphicsFormat graphicsFormat, byte[] frameData)
+        private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, byte[] frameData)
         {
             RecordJson(directoryPath, frameNumber, jsonData);
             RecordJPG(directoryPath, frameNumber, width, height, graphicsFormat, frameData);
         }
 
-        private void RecordJPG(string directoryPath, long frameNumber,int width, int height,
-            GraphicsFormat graphicsFormat, byte[] frameData)
+        private void RecordJPG(string directoryPath, long frameNumber, int width, int height, GraphicsFormat graphicsFormat,
+            byte[] frameData)
         {
             try
             {
