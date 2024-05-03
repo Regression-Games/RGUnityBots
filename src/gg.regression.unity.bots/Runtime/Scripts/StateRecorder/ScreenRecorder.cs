@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using StateRecorder;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -54,7 +56,7 @@ namespace RegressionGames.StateRecorder
         private long _tickNumber;
         private DateTime _startTime;
 
-        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, byte[], Action))>
+        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, Color32[], Action))>
             _frameQueue;
 
         private readonly List<(string, Task)> _fileWriteTasks = new();
@@ -210,7 +212,14 @@ namespace RegressionGames.StateRecorder
             }
             finally
             {
-                StartCoroutine(ShowUploadingIndicator(false));
+                try
+                {
+                    StartCoroutine(ShowUploadingIndicator(false));
+                }
+                catch (Exception)
+                {
+                    // on destroy, this throws an error because the overlay is going away.. don't need to log that and mess-up/crash people's game
+                }
             }
         }
 
@@ -258,8 +267,8 @@ namespace RegressionGames.StateRecorder
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _frameQueue =
-                    new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, byte[], Action))>(
-                        new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, byte[],
+                    new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, Color32[], Action))>(
+                        new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, Color32[],
                             Action)
                             )>());
 
@@ -455,6 +464,8 @@ namespace RegressionGames.StateRecorder
             OnDestroy();
         }
 
+        private RenderTexture _screenShotTexture = null;
+
         private IEnumerator RecordFrame()
         {
             if (!_frameQueue.IsCompleted)
@@ -577,49 +588,65 @@ namespace RegressionGames.StateRecorder
 
                     if (jsonData != null)
                     {
-
-                        // wait for all frame rendering/etc to finish before taking the screenshot
-                        yield return new WaitForEndOfFrame();
-
-                        var screenShot = new Texture2D(screenWidth, screenHeight);
-
-                        try
+                        if (_screenShotTexture == null || _screenShotTexture.width != screenWidth || _screenShotTexture.height != screenHeight)
                         {
-                            screenShot.ReadPixels(new Rect(0, 0, screenWidth, screenHeight), 0, 0);
-                            screenShot.Apply();
-
-                            // queue up writing the frame data to disk async
-                            _frameQueue.Add((
-                                (_currentGameplaySessionDirectoryPrefix, _tickNumber),
-                                (
-                                    jsonData,
-                                    screenShot.width,
-                                    screenShot.height,
-                                    screenShot.graphicsFormat,
-                                    screenShot.GetRawTextureData(),
-                                    () =>
-                                    {
-                                        // MUST happen on main thread
-                                        // but, we can't cleanup the texture until we've finished processing or unity goes BOOM/poof/dead
-                                        _texture2Ds.Enqueue(screenShot);
-                                    }
-                                )
-                            ));
-                            // null this out so the queue can clean it up, not this code...
-                            screenShot = null;
-                        }
-                        catch (Exception e)
-                        {
-                            RGDebug.LogException(e, "Exception capturing screenshot for frame");
-                        }
-                        finally
-                        {
-                            if (screenShot != null)
+                            if (_screenShotTexture != null)
                             {
-                                // Destroy the texture to free up memory
-                                _texture2Ds.Enqueue(screenShot);
+                                Object.Destroy(_screenShotTexture);
                             }
+
+                            _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
                         }
+
+                        var graphicsFormat = _screenShotTexture.graphicsFormat;
+
+                        // wait for end of frame before capturing screenshot
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
+                        AsyncGPUReadback.Request(_screenShotTexture, 0, TextureFormat.RGBA32, request =>
+                        {
+                            if (!request.hasError)
+                            {
+                                var data = request.GetData<Color32>();
+                                var pixels = new Color32[data.Length];
+                                var copyBuffer = new Color32[screenWidth];
+                                data.CopyTo(pixels);
+                                if (SystemInfo.graphicsUVStartsAtTop)
+                                {
+                                    // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
+                                    var halfHeight = screenHeight / 2;
+                                    for (var i = 0; i <= halfHeight; i++)
+                                    {
+                                        // swap rows
+                                        // bottom row to buffer
+                                        Array.Copy(pixels, i*screenWidth, copyBuffer,0, screenWidth );
+                                        // top row to bottom
+                                        Array.Copy(pixels, (screenHeight-i-1)*screenWidth, pixels,i*screenWidth, screenWidth );
+                                        // buffer to top row
+                                        Array.Copy(copyBuffer, 0, pixels,(screenHeight-i-1)*screenWidth, screenWidth );
+                                    }
+                                } //else.. we're fine
+
+                                // queue up writing the frame data to disk async
+                                _frameQueue.Add((
+                                    (_currentGameplaySessionDirectoryPrefix, _tickNumber),
+                                    (
+                                        jsonData,
+                                        screenWidth,
+                                        screenHeight,
+                                        graphicsFormat,
+                                        pixels,
+                                        () =>
+                                        { }
+                                    )
+                                ));
+                            }
+                            else
+                            {
+                                RGDebug.LogError("Error capturing screenshot for frame");
+                            }
+
+                        });
                     }
                 }
             }
@@ -647,15 +674,14 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height,
-            GraphicsFormat graphicsFormat, byte[] frameData)
+        private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] frameData)
         {
             RecordJson(directoryPath, frameNumber, jsonData);
             RecordJPG(directoryPath, frameNumber, width, height, graphicsFormat, frameData);
         }
 
-        private void RecordJPG(string directoryPath, long frameNumber,int width, int height,
-            GraphicsFormat graphicsFormat, byte[] frameData)
+        private void RecordJPG(string directoryPath, long frameNumber, int width, int height, GraphicsFormat graphicsFormat,
+            Color32[] frameData)
         {
             try
             {
