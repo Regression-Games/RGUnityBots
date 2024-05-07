@@ -143,7 +143,10 @@ namespace RegressionGames.StateRecorder
 
         private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
         {
-            StartCoroutine(ShowUploadingIndicator(true));
+            if (!onDestroy)
+            {
+                StartCoroutine(ShowUploadingIndicator(true));
+            }
 
             var zipTask1 = Task.Run(() =>
             {
