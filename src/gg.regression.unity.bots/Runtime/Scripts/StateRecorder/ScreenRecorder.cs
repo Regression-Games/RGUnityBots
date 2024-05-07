@@ -50,6 +50,8 @@ namespace RegressionGames.StateRecorder
 
         private bool _isRecording;
 
+        private bool _usingIOSMetalGraphics = false;
+
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
         private long _videoNumber;
@@ -78,6 +80,7 @@ namespace RegressionGames.StateRecorder
 
         public void Awake()
         {
+            _usingIOSMetalGraphics = (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal);
             // only allow 1 of these to be alive
             if (_this != null && _this.gameObject != gameObject)
             {
@@ -128,6 +131,14 @@ namespace RegressionGames.StateRecorder
                 _isRecording = false;
                 _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath);
             }
+        }
+
+        private void Start()
+        {
+            var read_formats = System.Enum.GetValues( typeof( GraphicsFormat ) ).Cast<GraphicsFormat>()
+                .Where( f => SystemInfo.IsFormatSupported( f, FormatUsage.ReadPixels ) )
+                .ToArray();
+            RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
         private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath)
@@ -597,13 +608,13 @@ namespace RegressionGames.StateRecorder
 
                             _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
                         }
-
+                        
                         var graphicsFormat = _screenShotTexture.graphicsFormat;
 
                         // wait for end of frame before capturing screenshot
                         yield return new WaitForEndOfFrame();
                         ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
-                        AsyncGPUReadback.Request(_screenShotTexture, 0, TextureFormat.RGBA32, request =>
+                        AsyncGPUReadback.Request(_screenShotTexture, 0, GraphicsFormat.R8G8B8A8_SRGB, request =>
                         {
                             if (!request.hasError)
                             {
@@ -685,6 +696,12 @@ namespace RegressionGames.StateRecorder
         {
             try
             {
+                if (_usingIOSMetalGraphics)
+                {
+                    // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
+                    graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
+                }
+
                 var imageOutput =
                     ImageConversion.EncodeArrayToJPG(frameData, graphicsFormat, (uint)width, (uint)height);
 
