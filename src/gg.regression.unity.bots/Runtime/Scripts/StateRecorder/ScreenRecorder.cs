@@ -129,7 +129,7 @@ namespace RegressionGames.StateRecorder
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
                 _isRecording = false;
-                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath);
+                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath, true);
             }
         }
 
@@ -141,7 +141,7 @@ namespace RegressionGames.StateRecorder
             RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
-        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath)
+        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
         {
             StartCoroutine(ShowUploadingIndicator(true));
 
@@ -172,10 +172,10 @@ namespace RegressionGames.StateRecorder
             Directory.Delete(dataDirectoryPrefix, true);
             Directory.Delete(screenshotsDirectoryPrefix, true);
 
-            await CreateAndUploadGameplaySession(tickCount, startTime, endTime, dataDirectoryPrefix, screenshotsDirectoryPrefix, thumbnailPath);
+            await CreateAndUploadGameplaySession(tickCount, startTime, endTime, dataDirectoryPrefix, screenshotsDirectoryPrefix, thumbnailPath, onDestroy);
         }
 
-        private async Task CreateAndUploadGameplaySession(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath)
+        private async Task CreateAndUploadGameplaySession(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
         {
 
             try
@@ -223,13 +223,10 @@ namespace RegressionGames.StateRecorder
             }
             finally
             {
-                try
+                if (!onDestroy)
                 {
+                    // only do this when the game object is still alive :D
                     StartCoroutine(ShowUploadingIndicator(false));
-                }
-                catch (Exception)
-                {
-                    // on destroy, this throws an error because the overlay is going away.. don't need to log that and mess-up/crash people's game
                 }
             }
         }
@@ -608,7 +605,7 @@ namespace RegressionGames.StateRecorder
 
                             _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
                         }
-                        
+
                         var graphicsFormat = _screenShotTexture.graphicsFormat;
 
                         // wait for end of frame before capturing screenshot
