@@ -297,15 +297,15 @@ public class RegressionPackagePopup : EditorWindow
         GUI.color = prevColor;
 
         // Draw the quick start title
-        GUI.Label(new Rect(20, 170, 580, 20), "Quick Start with Local Bots", titleStyle);
+        GUI.Label(new Rect(20, 170, 580, 20), "Quick Start with Automated Recordings", titleStyle);
 
         // Draw the description
-        GUI.Label(new Rect(20, 170, 580, 100), "Jump into creating your first bot using C# by following this Local Unity Bot guide. Regression Games Bots are flexible and highly customizable. Bots can simulate players, function as NPCs, interact with menus and UIs, validate gameplay, and more.", descriptionStyle);
+        GUI.Label(new Rect(20, 170, 580, 100), "Jump into creating your first first automated test using our Gameplay Session recording and playback system. Record gameplay, automatically extract game state, and use our web UI to build functional tests for your game.", descriptionStyle);
 
         // Draw the docs button
         if (GUI.Button(new Rect(20, 250, 100, 30), "View Docs"))
         {
-            Application.OpenURL("https://docs.regression.gg/creating-bots/csharp/configuration");
+            Application.OpenURL("https://docs.regression.gg/tutorials/building-your-first-bot");
         }
     }
 
