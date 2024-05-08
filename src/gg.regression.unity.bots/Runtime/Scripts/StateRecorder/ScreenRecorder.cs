@@ -59,7 +59,7 @@ namespace RegressionGames.StateRecorder
         private DateTime _startTime;
 
         private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, Color32[], Action))>
-            _frameQueue;
+            _tickQueue;
 
         private readonly List<(string, Task)> _fileWriteTasks = new();
 
@@ -105,7 +105,7 @@ namespace RegressionGames.StateRecorder
 
         private void OnDestroy()
         {
-            _frameQueue?.CompleteAdding();
+            _tickQueue?.CompleteAdding();
             if (_fileWriteTasks.Count > 0)
             {
                 RGDebug.LogInfo($"Waiting for unfinished file write tasks before stopping ["+ string.Join(",", _fileWriteTasks.Select(a=>a.Item1).ToArray())+ "]");
@@ -277,7 +277,7 @@ namespace RegressionGames.StateRecorder
                 _currentSessionId = Guid.NewGuid().ToString("n");
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
-                _frameQueue =
+                _tickQueue =
                     new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, Color32[], Action))>(
                         new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, Color32[],
                             Action)
@@ -300,8 +300,8 @@ namespace RegressionGames.StateRecorder
                 Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
 
-                // run the frame processor in the background
-                Task.Run(ProcessFrames, _tokenSource.Token);
+                // run the tick processor in the background
+                Task.Run(ProcessTicks, _tokenSource.Token);
                 RGDebug.LogInfo($"Recording replay screenshots and data to directories inside {_currentGameplaySessionDirectoryPrefix}");
             }
         }
@@ -479,7 +479,7 @@ namespace RegressionGames.StateRecorder
 
         private IEnumerator RecordFrame()
         {
-            if (!_frameQueue.IsCompleted)
+            if (!_tickQueue.IsCompleted)
             {
                 ++_frameCountSinceLastTick;
                 // handle recording ... uses unscaled time for real framerate calculations
@@ -594,11 +594,16 @@ namespace RegressionGames.StateRecorder
                     }
                     catch (Exception e)
                     {
-                        RGDebug.LogException(e, "Exception capturing state for frame");
+                        RGDebug.LogException(e, $"Exception capturing state for tick # {_tickNumber}");
                     }
+
+                    var didQueue = 0;
 
                     if (jsonData != null)
                     {
+                        // save this off because we're about to operate on a different thread :)
+                        var currentTickNumber = _tickNumber;
+
                         if (_screenShotTexture == null || _screenShotTexture.width != screenWidth || _screenShotTexture.height != screenHeight)
                         {
                             if (_screenShotTexture != null)
@@ -613,64 +618,123 @@ namespace RegressionGames.StateRecorder
 
                         // wait for end of frame before capturing screenshot
                         yield return new WaitForEndOfFrame();
-                        ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
-                        AsyncGPUReadback.Request(_screenShotTexture, 0, GraphicsFormat.R8G8B8A8_SRGB, request =>
+                        try
                         {
-                            if (!request.hasError)
+                            ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
+                            var readbackRequest = AsyncGPUReadback.Request(_screenShotTexture, 0, GraphicsFormat.R8G8B8A8_SRGB, request =>
                             {
-                                var data = request.GetData<Color32>();
-                                var pixels = new Color32[data.Length];
-                                var copyBuffer = new Color32[screenWidth];
-                                data.CopyTo(pixels);
-                                if (SystemInfo.graphicsUVStartsAtTop)
+                                if (!request.hasError)
                                 {
-                                    // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
-                                    var halfHeight = screenHeight / 2;
-                                    for (var i = 0; i <= halfHeight; i++)
+                                    //RGDebug.LogDebug("Tick " + currentTickNumber + " Got Back Screenshot Data From GPU");
+                                    var data = request.GetData<Color32>();
+                                    var pixels = new Color32[data.Length];
+                                    var copyBuffer = new Color32[screenWidth];
+                                    data.CopyTo(pixels);
+                                    if (SystemInfo.graphicsUVStartsAtTop)
                                     {
-                                        // swap rows
-                                        // bottom row to buffer
-                                        Array.Copy(pixels, i*screenWidth, copyBuffer,0, screenWidth );
-                                        // top row to bottom
-                                        Array.Copy(pixels, (screenHeight-i-1)*screenWidth, pixels,i*screenWidth, screenWidth );
-                                        // buffer to top row
-                                        Array.Copy(copyBuffer, 0, pixels,(screenHeight-i-1)*screenWidth, screenWidth );
+                                        // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
+                                        var halfHeight = screenHeight / 2;
+                                        for (var i = 0; i <= halfHeight; i++)
+                                        {
+                                            // swap rows
+                                            // bottom row to buffer
+                                            Array.Copy(pixels, i * screenWidth, copyBuffer, 0, screenWidth);
+                                            // top row to bottom
+                                            Array.Copy(pixels, (screenHeight - i - 1) * screenWidth, pixels, i * screenWidth, screenWidth);
+                                            // buffer to top row
+                                            Array.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
+                                        }
+                                    } //else.. we're fine
+
+                                    if (Interlocked.CompareExchange(ref didQueue, 1, 0) == 0)
+                                    {
+                                        // queue up writing the tick data to disk async
+                                        _tickQueue.Add((
+                                            (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
+                                            (
+                                                jsonData,
+                                                screenWidth,
+                                                screenHeight,
+                                                graphicsFormat,
+                                                pixels,
+                                                () => { }
+                                            )
+                                        ));
+                                        if (RGDebug.IsDebugEnabled)
+                                        {
+                                            RGDebug.LogDebug($"Queued data to write for tick # {currentTickNumber}");
+                                        }
                                     }
-                                } //else.. we're fine
+                                }
+                                else
+                                {
+                                    RGDebug.LogError($"Error capturing screenshot for tick # {currentTickNumber}");
 
-                                // queue up writing the frame data to disk async
-                                _frameQueue.Add((
-                                    (_currentGameplaySessionDirectoryPrefix, _tickNumber),
-                                    (
-                                        jsonData,
-                                        screenWidth,
-                                        screenHeight,
-                                        graphicsFormat,
-                                        pixels,
-                                        () =>
-                                        { }
-                                    )
-                                ));
-                            }
-                            else
+                                    if (Interlocked.CompareExchange(ref didQueue, 1, 0) == 0)
+                                    {
+                                        // queue up writing the tick data to disk async
+                                        _tickQueue.Add((
+                                            (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
+                                            (
+                                                jsonData,
+                                                screenWidth,
+                                                screenHeight,
+                                                graphicsFormat,
+                                                null,
+                                                () => { }
+                                            )
+                                        ));
+                                        if (RGDebug.IsDebugEnabled)
+                                        {
+                                            RGDebug.LogDebug($"Queued data to write without screenshot for tick # {currentTickNumber}");
+                                        }
+                                    }
+                                }
+
+                            });
+
+                            if (readbackRequest.hasError)
                             {
-                                RGDebug.LogError("Error capturing screenshot for frame");
-                            }
+                                RGDebug.LogError($"Error starting to capture screenshot for tick # {currentTickNumber}");
 
-                        });
+                                if (Interlocked.CompareExchange(ref didQueue, 1, 0) == 0)
+                                {
+                                    // queue up writing the tick data to disk async
+                                    _tickQueue.Add((
+                                        (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
+                                        (
+                                            jsonData,
+                                            screenWidth,
+                                            screenHeight,
+                                            graphicsFormat,
+                                            null,
+                                            () => { }
+                                        )
+                                    ));
+                                    if (RGDebug.IsDebugEnabled)
+                                    {
+                                        RGDebug.LogDebug($"Queued data to write without screenshot for tick # {currentTickNumber}");
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            RGDebug.LogException(e, $"Exception starting to capture screenshot for tick # {currentTickNumber}");
+                        }
                     }
                 }
             }
         }
 
-        private void ProcessFrames()
+        private void ProcessTicks()
         {
-            while (!_frameQueue.IsCompleted && _tokenSource is { IsCancellationRequested: false })
+            while (!_tickQueue.IsCompleted && _tokenSource is { IsCancellationRequested: false })
             {
                 try
                 {
-                    var tuple = _frameQueue.Take(_tokenSource.Token);
-                    ProcessFrame(tuple.Item1.Item1, tuple.Item1.Item2, tuple.Item2.Item1, tuple.Item2.Item2,
+                    var tuple = _tickQueue.Take(_tokenSource.Token);
+                    ProcessTick(tuple.Item1.Item1, tuple.Item1.Item2, tuple.Item2.Item1, tuple.Item2.Item2,
                         tuple.Item2.Item3, tuple.Item2.Item4, tuple.Item2.Item5);
                     // invoke the cleanup callback function
                     tuple.Item2.Item6();
@@ -679,61 +743,64 @@ namespace RegressionGames.StateRecorder
                 {
                     if (e is not OperationCanceledException && e is not InvalidOperationException)
                     {
-                        RGDebug.LogException(e, "Error Processing Frames");
+                        RGDebug.LogException(e, "Error Processing Ticks");
                     }
                 }
             }
         }
 
-        private void ProcessFrame(string directoryPath, long frameNumber, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] frameData)
+        private void ProcessTick(string directoryPath, long tickNumber, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
         {
-            RecordJson(directoryPath, frameNumber, jsonData);
-            RecordJPG(directoryPath, frameNumber, width, height, graphicsFormat, frameData);
+            RecordJson(directoryPath, tickNumber, jsonData);
+            RecordJPG(directoryPath, tickNumber, width, height, graphicsFormat, tickScreenshotData);
         }
 
-        private void RecordJPG(string directoryPath, long frameNumber, int width, int height, GraphicsFormat graphicsFormat,
-            Color32[] frameData)
+        private void RecordJPG(string directoryPath, long tickNumber, int width, int height, GraphicsFormat graphicsFormat,
+            Color32[] tickScreenshotData)
         {
-            try
+            if (tickScreenshotData != null)
             {
-                if (_usingIOSMetalGraphics)
+                try
                 {
-                    // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
-                    graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
-                }
-
-                var imageOutput =
-                    ImageConversion.EncodeArrayToJPG(frameData, graphicsFormat, (uint)width, (uint)height);
-
-                // write out the image to file
-                var path = $"{directoryPath}/screenshots/{frameNumber}".PadLeft(9, '0') + ".jpg";
-                // Save the byte array as a file
-                var fileWriteTask = File.WriteAllBytesAsync(path, imageOutput.ToArray(), _tokenSource.Token);
-                fileWriteTask.ContinueWith((nextTask) =>
-                {
-                    if (nextTask.Exception != null)
+                    if (_usingIOSMetalGraphics)
                     {
-                        RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record JPG for frame # {frameNumber}");
+                        // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
+                        graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
                     }
 
-                });
-                _fileWriteTasks.Add((path,fileWriteTask));
-            }
-            catch (Exception e)
-            {
-                RGDebug.LogException(e, $"WARNING: Unable to record JPG for frame # {frameNumber}");
+                    var imageOutput =
+                        ImageConversion.EncodeArrayToJPG(tickScreenshotData, graphicsFormat, (uint)width, (uint)height);
+
+                    // write out the image to file
+                    var path = $"{directoryPath}/screenshots/{tickNumber}".PadLeft(9, '0') + ".jpg";
+                    // Save the byte array as a file
+                    var fileWriteTask = File.WriteAllBytesAsync(path, imageOutput.ToArray(), _tokenSource.Token);
+                    fileWriteTask.ContinueWith((nextTask) =>
+                    {
+                        if (nextTask.Exception != null)
+                        {
+                            RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record JPG for tick # {tickNumber}");
+                        }
+
+                    });
+                    _fileWriteTasks.Add((path, fileWriteTask));
+                }
+                catch (Exception e)
+                {
+                    RGDebug.LogException(e, $"WARNING: Unable to record JPG for tick # {tickNumber}");
+                }
             }
         }
 
-        private void RecordJson(string directoryPath, long frameNumber, byte[] jsonData)
+        private void RecordJson(string directoryPath, long tickNumber, byte[] jsonData)
         {
             try
             {
                 // write out the json to file
-                var path = $"{directoryPath}/data/{frameNumber}".PadLeft(9, '0') + ".json";
+                var path = $"{directoryPath}/data/{tickNumber}".PadLeft(9, '0') + ".json";
                 if (jsonData.Length == 0)
                 {
-                    RGDebug.LogError($"ERROR: Empty JSON data for frame # {frameNumber}");
+                    RGDebug.LogError($"ERROR: Empty JSON data for tick # {tickNumber}");
                 }
 
                 // Save the byte array as a file
@@ -742,7 +809,7 @@ namespace RegressionGames.StateRecorder
                 {
                     if (nextTask.Exception != null)
                     {
-                        RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record JSON for frame # {frameNumber}");
+                        RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record JSON for tick # {tickNumber}");
                     }
 
                 });
@@ -750,7 +817,7 @@ namespace RegressionGames.StateRecorder
             }
             catch (Exception e)
             {
-                RGDebug.LogException(e, $"ERROR: Unable to record JSON for frame # {frameNumber}");
+                RGDebug.LogException(e, $"ERROR: Unable to record JSON for tick # {tickNumber}");
             }
         }
     }
