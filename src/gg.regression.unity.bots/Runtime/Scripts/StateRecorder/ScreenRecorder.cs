@@ -359,7 +359,7 @@ namespace RegressionGames.StateRecorder
         private readonly List<int> _uiElementsInCurrentFrame = new(1000);
         private readonly Dictionary<int, RecordedGameObjectState> _worldElementsInCurrentFrame = new(1000);
 
-        private void GetKeyFrameType(bool firstFrame, Dictionary<int,RecordedGameObjectState> priorState, Dictionary<int,RecordedGameObjectState> currentState, string pixelHash)
+        private void GetKeyFrameType(bool firstFrame, Dictionary<int,RecordedGameObjectState> priorState, Dictionary<int,RecordedGameObjectState> currentState, string pixelHash, (string, Bounds?)[] uiTexts)
         {
             _keyFrameTypeList.Clear();
             if (firstFrame)
@@ -371,6 +371,11 @@ namespace RegressionGames.StateRecorder
             if (pixelHash != null)
             {
                 _keyFrameTypeList.Add(KeyFrameType.UI_PIXELHASH);
+            }
+
+            if (uiTexts != null)
+            {
+                _keyFrameTypeList.Add(KeyFrameType.UI_TEXTS);
             }
 
             // avoid dynamic resizing of structures
@@ -504,9 +509,10 @@ namespace RegressionGames.StateRecorder
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
+                var uiTexts = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetUITexts(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, priorStates, currentStates, pixelHash);
+                GetKeyFrameType(_tickNumber ==0, priorStates, currentStates, pixelHash, uiTexts);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
@@ -571,6 +577,7 @@ namespace RegressionGames.StateRecorder
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
+                            uiTexts = uiTexts,
                             state = currentStates.Values,
                             inputs = new InputData()
                             {
@@ -774,7 +781,7 @@ namespace RegressionGames.StateRecorder
                     // write out the image to file
                     var path = $"{directoryPath}/screenshots/{tickNumber}".PadLeft(9, '0') + ".jpg";
                     // Save the byte array as a file
-                    var fileWriteTask = File.WriteAllBytesAsync(path, imageOutput.ToArray(), _tokenSource.Token);
+                    var fileWriteTask = File.WriteAllBytesAsync(path, imageOutput, _tokenSource.Token);
                     fileWriteTask.ContinueWith((nextTask) =>
                     {
                         if (nextTask.Exception != null)

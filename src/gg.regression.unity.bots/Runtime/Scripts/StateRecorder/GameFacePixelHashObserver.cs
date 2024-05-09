@@ -1,10 +1,16 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using JetBrains.Annotations;
 using RegressionGames;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
+using Rect = UnityEngine.Rect;
 
 namespace StateRecorder
 {
@@ -19,6 +25,8 @@ namespace StateRecorder
         private string _pixelHash;
         private string _requestInProgress;
 
+        private (string, Bounds?)[] _uiTexts = null;
+
         [NonSerialized]
         private Component _cohtmlViewInstance;
 
@@ -28,6 +36,33 @@ namespace StateRecorder
         private static readonly PropertyInfo CohtmlViewTextureProperty;
 
         private static GameFacePixelHashObserver _instance;
+
+        private TesseractDriver _tesseractEngine = null;
+
+        void Awake()
+        {
+            if (_tesseractEngine == null)
+            {
+                _tesseractEngine = new TesseractDriver();
+
+                if (_tesseractEngine.CheckTessVersion())
+                {
+                    if (!_tesseractEngine.Setup(OnTesseractSetupComplete))
+                    {
+                        _tesseractEngine = null;
+                    }
+                }
+                else
+                {
+                    _tesseractEngine = null;
+                }
+            }
+        }
+
+        void OnTesseractSetupComplete()
+        {
+
+        }
 
         static GameFacePixelHashObserver()
         {
@@ -86,6 +121,23 @@ namespace StateRecorder
             return null;
         }
 
+        public static Texture2D ResizeTexture(Texture2D source, int newWidth, int newHeight)
+        {
+            RenderTexture renderTexture = RenderTexture.GetTemporary(newWidth, newHeight);
+            Graphics.Blit(source, renderTexture);
+
+            Texture2D texture = new Texture2D(newWidth, newHeight, TextureFormat.ARGB32, false);
+            texture.filterMode = FilterMode.Trilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            RenderTexture.active = renderTexture;
+            texture.ReadPixels(new Rect(Vector2.zero, new Vector2(newWidth, newHeight)), 0, 0);
+            RenderTexture.active = null;
+            RenderTexture.ReleaseTemporary(renderTexture);
+
+            texture.Apply();
+            return texture;
+        }
+
         private void UpdateGameFacePixelHash()
         {
             if (_isActive)
@@ -94,6 +146,8 @@ namespace StateRecorder
                 var cohtmlViewTexture = GetRenderTexture();
                 if (cohtmlViewTexture != null)
                 {
+                    var screenWidth = cohtmlViewTexture.width;
+                    var screenHeight = cohtmlViewTexture.height;
                     var wasActive = Interlocked.CompareExchange(ref _requestInProgress, string.Empty, null);
                     if (wasActive == null)
                     {
@@ -106,6 +160,23 @@ namespace StateRecorder
                                     var data = request.GetData<Color32>();
                                     var pixels = new Color32[data.Length];
                                     data.CopyTo(pixels);
+
+                                    if (SystemInfo.graphicsUVStartsAtTop)
+                                    {
+                                        var copyBuffer = new Color32[screenWidth];
+                                        // the pixels from the GPU are upside down, we need to reverse this for it to be right side up or OCR won't work
+                                        var halfHeight = screenHeight / 2;
+                                        for (var i = 0; i <= halfHeight; i++)
+                                        {
+                                            // swap rows
+                                            // bottom row to buffer
+                                            Array.Copy(pixels, i * screenWidth, copyBuffer, 0, screenWidth);
+                                            // top row to bottom
+                                            Array.Copy(pixels, (screenHeight - i - 1) * screenWidth, pixels, i * screenWidth, screenWidth);
+                                            // buffer to top row
+                                            Array.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
+                                        }
+                                    } //else.. we're fine
 
                                     string newHash = _firstRun ? "FirstPass" : null;
 
@@ -120,7 +191,7 @@ namespace StateRecorder
                                         var pixelsLength = pixels.Length;
                                         for (var i = 0; i < pixelsLength; i++)
                                         {
-                                            if (pixels[i].r != _priorPixels[i].r || pixels[i].g != _priorPixels[i].g || pixels[i].b != _priorPixels[i].b || pixels[i].a != _priorPixels[i].a)
+                                            if (newHash != null && pixels[i].r != _priorPixels[i].r || pixels[i].g != _priorPixels[i].g || pixels[i].b != _priorPixels[i].b || pixels[i].a != _priorPixels[i].a)
                                             {
                                                 newHash = $"{i} - ({pixels[i].r},{pixels[i].g},{pixels[i].b},{pixels[i].a})";
                                                 RGDebug.LogDebug($"Different GameFace UI pixel at index {i}");
@@ -129,7 +200,41 @@ namespace StateRecorder
                                         }
                                     }
 
-                                    Interlocked.Exchange(ref _pixelHash, newHash);
+                                    if (newHash != null)
+                                    {
+
+                                        if (_tesseractEngine != null)
+                                        {
+                                            try
+                                            {
+                                                // triple the texture size before analyzing for OCR
+                                                var tex = new Texture2D(screenWidth, screenHeight, TextureFormat.ARGB32, false);
+                                                tex.SetPixels32(pixels);
+                                                tex.Apply();
+
+                                                byte scalingFactor = 1;
+
+                                                var resized = ResizeTexture(tex, screenWidth * scalingFactor, screenHeight * scalingFactor);
+                                                try
+                                                {
+                                                    var resizedPixels = resized.GetPixels32();
+
+                                                    var newWords = _tesseractEngine.Recognize(scalingFactor, screenWidth * scalingFactor, screenHeight * scalingFactor, resizedPixels);
+                                                    Interlocked.Exchange(ref _uiTexts, newWords);
+                                                }
+                                                finally
+                                                {
+                                                    Object.Destroy(resized);
+                                                }
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                RGDebug.LogWarning("Exception reading UI Text Information - " + e);
+                                            }
+                                        }
+
+                                        Interlocked.Exchange(ref _pixelHash, newHash);
+                                    }
 
                                     _priorPixels = pixels;
                                 }
@@ -157,6 +262,18 @@ namespace StateRecorder
             else
             {
                 return Interlocked.CompareExchange(ref _pixelHash, null, null);
+            }
+        }
+
+        public (string, Bounds?)[] GetUITexts(bool clearValueOnRead = false)
+        {
+            if (clearValueOnRead)
+            {
+                return Interlocked.Exchange(ref _uiTexts, null);
+            }
+            else
+            {
+                return Interlocked.CompareExchange(ref _uiTexts, null, null);
             }
         }
 

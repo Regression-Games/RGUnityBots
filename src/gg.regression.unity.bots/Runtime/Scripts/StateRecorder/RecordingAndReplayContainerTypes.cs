@@ -57,8 +57,27 @@ namespace RegressionGames.StateRecorder
             performance.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append(",\n\"pixelHash\":\"");
             stringBuilder.Append(pixelHash);
-            stringBuilder.Append("\",\n\"state\":[\n");
+            stringBuilder.Append(",\n\"uiTexts\":[\n");
             var counter = 0;
+            if (uiTexts != null)
+            {
+                var uiTextsCount = uiTexts.Length;
+                foreach (var uiTextEntry in uiTexts)
+                {
+                    stringBuilder.Append("{\"text\":");
+                    StringJsonConverter.WriteToStringBuilder(stringBuilder, uiTextEntry.Item1);
+                    stringBuilder.Append(",\"bounds\":");
+                    BoundsJsonConverter.WriteToStringBuilderNullable(stringBuilder, uiTextEntry.Item2);
+                    stringBuilder.Append("}");
+                    if (++counter < uiTextsCount)
+                    {
+                        stringBuilder.Append(",\n");
+                    }
+                }
+            }
+
+            stringBuilder.Append("\n],\n\"state\":[\n");
+            counter = 0;
             var stateCount = state.Count();
             foreach( var stateEntry in state)
             {
@@ -208,6 +227,7 @@ namespace RegressionGames.StateRecorder
         public float timeScale;
         public Vector2Int screenSize;
         public string pixelHash;
+        public (string, Bounds?)[] uiTexts;
         public List<ReplayGameObjectState> state;
         public InputData inputs;
     }
