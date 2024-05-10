@@ -11,7 +11,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static readonly StringBuilder _stringBuilder = new(5_000);
 
-        private static readonly char[] EscapeCharReplacements = new char[128];
+        // some games use extended chars like 'TM' or other fun symbols that are 8000+ into the character table
+        private static readonly char[] EscapeCharReplacements = new char[32_768];
 
         static StringJsonConverter()
         {
@@ -47,24 +48,32 @@ namespace RegressionGames.StateRecorder.JsonConverters
             for (var i = 0; i < inputLength; i++)
             {
                 var ch = input[i];
-                var escapeReplacement = EscapeCharReplacements[ch];
-                if (escapeReplacement == 0)
+                try
                 {
-                    // don't need to escape
-                    endIndex = i;
+                    var escapeReplacement = EscapeCharReplacements[ch];
+                    if (escapeReplacement == 0)
+                    {
+                        // don't need to escape
+                        endIndex = i;
+                    }
+                    else
+                    {
+                        // need to escape.. copy existing range to result
+                        var length = endIndex + 1 - startIndex;
+                        input.CopyTo(startIndex, _bufferArray, _currentNextIndex, length);
+                        _currentNextIndex += length;
+                        // update indexes
+                        endIndex = i + 1;
+                        startIndex = i + 1;
+                        // write the escaped value to the buffer
+                        _bufferArray[_currentNextIndex++] = '\\';
+                        _bufferArray[_currentNextIndex++] = escapeReplacement;
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    // need to escape.. copy existing range to result
-                    var length = endIndex + 1 - startIndex;
-                    input.CopyTo(startIndex, _bufferArray, _currentNextIndex,length);
-                    _currentNextIndex += length;
-                    // update indexes
-                    endIndex = i + 1;
-                    startIndex = i + 1;
-                    // write the escaped value to the buffer
-                    _bufferArray[_currentNextIndex++] = '\\';
-                    _bufferArray[_currentNextIndex++] = escapeReplacement;
+                    RGDebug.LogWarning( "Error mapping character: " + ch + " , intValue: " + (int)ch);
+                    throw e;
                 }
             }
 

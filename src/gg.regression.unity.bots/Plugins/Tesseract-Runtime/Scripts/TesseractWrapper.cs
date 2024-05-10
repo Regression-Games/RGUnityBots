@@ -21,7 +21,7 @@ public class TesseractWrapper
     private IntPtr _tessHandle;
 
     private string _errorMsg;
-    private const float MinimumConfidence = 60;
+    private const float MinimumConfidence = 20;
 
     [DllImport(TesseractDllName)]
     private static extern IntPtr TessVersion();
