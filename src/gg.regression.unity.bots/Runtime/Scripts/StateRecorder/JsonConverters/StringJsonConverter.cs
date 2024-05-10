@@ -11,7 +11,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static readonly StringBuilder _stringBuilder = new(5_000);
 
-        private static readonly char[] EscapeCharReplacements = new char[128];
+        // some games use obscure chars like 'TM' which is #8xxx in the table.. don't let us get index out of bounds on something silly
+        private static readonly char[] EscapeCharReplacements = new char[32_768];
 
         static StringJsonConverter()
         {
