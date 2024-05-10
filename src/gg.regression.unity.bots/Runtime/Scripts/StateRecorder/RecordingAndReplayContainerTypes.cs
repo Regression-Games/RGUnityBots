@@ -55,8 +55,8 @@ namespace RegressionGames.StateRecorder
             VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\n\"performance\":");
             performance.WriteToStringBuilder(stringBuilder);
-            stringBuilder.Append(",\n\"pixelHash\":\"");
-            stringBuilder.Append(pixelHash);
+            stringBuilder.Append(",\n\"pixelHash\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, pixelHash);
             stringBuilder.Append(",\n\"uiTexts\":[\n");
             var counter = 0;
             if (uiTexts != null)
