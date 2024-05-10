@@ -207,24 +207,35 @@ namespace StateRecorder
                                         {
                                             try
                                             {
-                                                // triple the texture size before analyzing for OCR
-                                                var tex = new Texture2D(screenWidth, screenHeight, TextureFormat.ARGB32, false);
-                                                tex.SetPixels32(pixels);
-                                                tex.Apply();
-
+                                                // in practice, scaling up the image did help find smaller words, but still didn't find them all :/
+                                                // making this 4 or larger actually made things way worse.. instead of doing a fixed factor we may want to do a target min x or y resolution ??
+                                                // for now.. leaving this at 1 as it didn't really help and dramatically slows things down having to read/write from the GPU
                                                 byte scalingFactor = 1;
-
-                                                var resized = ResizeTexture(tex, screenWidth * scalingFactor, screenHeight * scalingFactor);
-                                                try
+                                                // do not remove... here for ease of testing scaling factors
+                                                if (scalingFactor != 1)
                                                 {
-                                                    var resizedPixels = resized.GetPixels32();
+                                                    // scale the texture size before analyzing for OCR
+                                                    var tex = new Texture2D(screenWidth, screenHeight, TextureFormat.ARGB32, false);
+                                                    tex.SetPixels32(pixels);
+                                                    tex.Apply();
 
-                                                    var newWords = _tesseractEngine.Recognize(scalingFactor, screenWidth * scalingFactor, screenHeight * scalingFactor, resizedPixels);
-                                                    Interlocked.Exchange(ref _uiTexts, newWords);
+                                                    var resized = ResizeTexture(tex, screenWidth * scalingFactor, screenHeight * scalingFactor);
+                                                    try
+                                                    {
+                                                        var resizedPixels = resized.GetPixels32();
+
+                                                        var newWords = _tesseractEngine.Recognize(scalingFactor, screenWidth * scalingFactor, screenHeight * scalingFactor, resizedPixels);
+                                                        Interlocked.Exchange(ref _uiTexts, newWords);
+                                                    }
+                                                    finally
+                                                    {
+                                                        Object.Destroy(resized);
+                                                    }
                                                 }
-                                                finally
+                                                else
                                                 {
-                                                    Object.Destroy(resized);
+                                                    var newWords = _tesseractEngine.Recognize(scalingFactor, screenWidth, screenHeight, pixels);
+                                                    Interlocked.Exchange(ref _uiTexts, newWords);
                                                 }
                                             }
                                             catch (Exception e)
