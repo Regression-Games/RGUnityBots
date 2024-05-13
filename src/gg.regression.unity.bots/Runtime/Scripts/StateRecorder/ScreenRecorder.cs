@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using StateRecorder;
+using Unity.Multiplayer.Samples.BossRoom;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -54,7 +55,6 @@ namespace RegressionGames.StateRecorder
 
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
-        private long _videoNumber;
         private long _tickNumber;
         private DateTime _startTime;
 
@@ -254,7 +254,7 @@ namespace RegressionGames.StateRecorder
         private IEnumerator ShowUploadingIndicator(bool shouldShow)
         {
             yield return null;
-            RGBotManager.GetInstance().ShowUploadingIndicator(shouldShow);
+            ReplayToolbarManager.GetInstance().ShowUploadingIndicator(shouldShow);
         }
 
         private IEnumerator StartRecordingCoroutine(string referenceSessionId)
@@ -287,11 +287,14 @@ namespace RegressionGames.StateRecorder
 
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
+                var prefix = referenceSessionId != null ? "replay" : "recording";
+                var postfix = referenceSessionId != null ? referenceSessionId + "_" + _currentSessionId : _currentSessionId;
+
                 // find the first index number we haven't used yet
                 do
                 {
                     _currentGameplaySessionDirectoryPrefix =
-                        $"{stateRecordingsDirectory}/{Application.productName}/run_{_videoNumber++}";
+                        $"{stateRecordingsDirectory}/{Application.productName}/{prefix}_{postfix}";
                 } while (Directory.Exists(_currentGameplaySessionDirectoryPrefix));
 
                 _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";

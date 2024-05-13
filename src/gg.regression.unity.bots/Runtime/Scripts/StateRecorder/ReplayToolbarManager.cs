@@ -14,6 +14,9 @@ namespace Unity.Multiplayer.Samples.BossRoom
         public GameObject chooseReplayButton;
 
         public GameObject playButton;
+
+        public GameObject loopButton;
+
         public GameObject stopButton;
 
         public GameObject warningIcon;
@@ -22,13 +25,30 @@ namespace Unity.Multiplayer.Samples.BossRoom
         public GameObject recordButton;
         public RGIconPulse recordingPulse;
 
+        public RGTextPulse uploadingIndicator;
+        public RGTextPulse fileOpenIndicator;
+
+        public ReplayDataPlaybackController replayDataController;
+
         private bool _recording;
 
-        private ReplayDataPlaybackController _replayDataController;
+        private static ReplayToolbarManager _this;
 
-        private void OnEnable()
+        public static ReplayToolbarManager GetInstance()
         {
-            _replayDataController = GetComponent<ReplayDataPlaybackController>();
+            return _this;
+        }
+
+        private void Awake()
+        {
+            if (_this != null && this.gameObject != _this.gameObject)
+            {
+                // we only want one of us around.. kill the other one
+                Destroy(this.gameObject);
+                return;
+            }
+            _this = this;
+            DontDestroyOnLoad(_this.gameObject);
         }
 
         // Start is called before the first frame update
@@ -46,6 +66,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             successIcon.SetActive(false);
 
             playButton.SetActive(false);
+            loopButton.SetActive(false);
             stopButton.SetActive(false);
         }
 
@@ -90,6 +111,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             _parsingZipFile = true;
             recordButton.SetActive(false);
             chooseReplayButton.SetActive(false);
+            fileOpenIndicator.Normal();
 
             // do this on background thread
             Task.Run(() => ProcessDataContainerZipAndSetup(filePath));
@@ -111,6 +133,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             }
             finally
             {
+                fileOpenIndicator.Stop();
                 _parsingZipFile = false;
                 _justLoaded = true;
             }
@@ -126,12 +149,13 @@ namespace Unity.Multiplayer.Samples.BossRoom
                 if (_replayLoadedNextUpdate != null)
                 {
                     // setup the new replay data
-                    _replayDataController.SetDataContainer(_replayLoadedNextUpdate);
+                    replayDataController.SetDataContainer(_replayLoadedNextUpdate);
                     _replayLoadedNextUpdate = null;
                     SetDefaultButtonStates();
                     // set button states
                     chooseReplayButton.SetActive(false);
                     playButton.SetActive(true);
+                    loopButton.SetActive(true);
                     stopButton.SetActive(true);
                     recordButton.SetActive(false);
                 }
@@ -148,16 +172,28 @@ namespace Unity.Multiplayer.Samples.BossRoom
         {
             chooseReplayButton.SetActive(false);
             playButton.SetActive(false);
+            loopButton.SetActive(false);
             stopButton.SetActive(true);
             recordButton.SetActive(false);
 
-            _replayDataController.Play();
+            replayDataController.Play();
+        }
+
+        public void LoopReplay()
+        {
+            chooseReplayButton.SetActive(false);
+            playButton.SetActive(false);
+            loopButton.SetActive(false);
+            stopButton.SetActive(true);
+            recordButton.SetActive(false);
+
+            replayDataController.Loop();
         }
 
         public void StopReplay()
         {
             // stop and clear the old replay data
-            _replayDataController.Stop();
+            replayDataController.Stop();
 
             SetDefaultButtonStates();
         }
@@ -185,26 +221,26 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         private void LateUpdate()
         {
-            if (_replayDataController.ReplayCompletedSuccessfully() != null)
+            if (replayDataController.ReplayCompletedSuccessfully() != null)
             {
-                _replayDataController.Stop();
+                replayDataController.Stop();
                 // playback complete
                 SetDefaultButtonStates();
                 successIcon.SetActive(true);
             }
 
-            if (_replayDataController.WaitingForKeyFrameConditions != null && _replayDataController.KeyFrameInputComplete)
+            if (replayDataController.WaitingForKeyFrameConditions != null && replayDataController.KeyFrameInputComplete)
             {
                 // check that we've started all the last inputs as we got those up to the next key frame time
                 // if we haven't started all those yet, we shouldn't be super worried about not hitting the key frame .. yet
-                if (_lastKeyFrameError != _replayDataController.WaitingForKeyFrameConditions)
+                if (_lastKeyFrameError != replayDataController.WaitingForKeyFrameConditions)
                 {
-                    RGDebug.LogInfo(_replayDataController.WaitingForKeyFrameConditions);
-                    _lastKeyFrameError = _replayDataController.WaitingForKeyFrameConditions;
+                    RGDebug.LogInfo(replayDataController.WaitingForKeyFrameConditions);
+                    _lastKeyFrameError = replayDataController.WaitingForKeyFrameConditions;
                 }
 
                 //TODO: It might be nice if we got enough info here to draw the names and bounding boxes of the missing information
-                warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(_replayDataController.WaitingForKeyFrameConditions);
+                warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(replayDataController.WaitingForKeyFrameConditions);
                 warningIcon.SetActive(true);
             }
             else
@@ -213,5 +249,19 @@ namespace Unity.Multiplayer.Samples.BossRoom
                 warningIcon.SetActive(false);
             }
         }
+
+
+        public void ShowUploadingIndicator(bool show)
+        {
+            if (!show)
+            {
+                uploadingIndicator.Stop();
+            }
+            else
+            {
+                uploadingIndicator.Normal();
+            }
+        }
+
     }
 }

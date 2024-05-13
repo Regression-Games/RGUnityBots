@@ -112,33 +112,47 @@ namespace RegressionGames.StateRecorder
 
     public class ReplayDataContainer
     {
-        public string SessionId { get; private set; } = null;
+        private readonly List<ReplayKeyFrameEntry> _keyFrames = new();
+        private int _keyFrameIndex = 0;
+        private readonly List<ReplayKeyboardInputEntry> _keyboardData = new();
+        private int _keyboardIndex = 0;
+        private readonly List<ReplayMouseInputEntry> _mouseData = new();
+        private int _mouseIndex = 0;
 
-        private readonly Queue<ReplayKeyFrameEntry> _keyFrames = new();
-
-        private readonly Queue<ReplayKeyboardInputEntry> _keyboardData = new();
-
-        public bool IsShiftDown = false;
+        public string SessionId { get; private set; }
+        public bool IsShiftDown;
 
         private readonly Dictionary<string, ReplayKeyboardInputEntry> _pendingEndKeyboardInputs = new();
 
-        private readonly Queue<ReplayMouseInputEntry> _mouseData = new();
 
         public ReplayDataContainer(string zipFilePath)
         {
             ParseReplayZip(zipFilePath);
         }
 
+        public void Reset()
+        {
+            // sets indexes back to 0
+            _keyFrameIndex = 0;
+            _keyboardIndex = 0;
+            _mouseIndex = 0;
+
+            IsShiftDown = false;
+            _pendingEndKeyboardInputs.Clear();
+        }
+
         public List<ReplayMouseInputEntry> DequeueMouseInputsUpToTime(double? time = null)
         {
             List<ReplayMouseInputEntry> output = new();
-            while (_mouseData.TryPeek(out var item))
+            var mouseCount = _mouseData.Count;
+            while (_mouseIndex < mouseCount)
             {
+                var item = _mouseData[_mouseIndex];
                 if (time == null || item.startTime < time)
                 {
                     output.Add(item);
-                    // remove the one we just peeked
-                    _mouseData.Dequeue();
+                    // 'remove' the one we just peeked by updating our index
+                    ++_mouseIndex;
                 }
                 else
                 {
@@ -153,13 +167,15 @@ namespace RegressionGames.StateRecorder
         public List<ReplayKeyboardInputEntry> DequeueKeyboardInputsUpToTime(double? time = null)
         {
             List<ReplayKeyboardInputEntry> output = new();
-            while (_keyboardData.TryPeek(out var item))
+            var keyboardCount = _keyboardData.Count;
+            while (_keyboardIndex < keyboardCount)
             {
+                var item = _keyboardData[_keyboardIndex];
                 if (time == null || item.startTime < time)
                 {
                     output.Add(item);
-                    // remove the one we just peeked
-                    _keyboardData.Dequeue();
+                    // 'remove' the one we just peeked by updating our index
+                    ++_keyboardIndex;
                 }
                 else
                 {
@@ -173,9 +189,9 @@ namespace RegressionGames.StateRecorder
 
         public ReplayKeyFrameEntry DequeueKeyFrame()
         {
-            if (_keyFrames.TryDequeue(out var result))
+            if (_keyFrameIndex < _keyFrames.Count)
             {
-                return result;
+                return _keyFrames[_keyFrameIndex++];
             }
 
             return null;
@@ -183,9 +199,10 @@ namespace RegressionGames.StateRecorder
 
         public ReplayKeyFrameEntry PeekKeyFrame()
         {
-            if (_keyFrames.TryPeek(out var result))
+            if (_keyFrameIndex < _keyFrames.Count)
             {
-                return result;
+                // do not updated index
+                return _keyFrames[_keyFrameIndex];
             }
 
             return null;
@@ -244,7 +261,7 @@ namespace RegressionGames.StateRecorder
                         gameScenes = gameScenes.ToArray(),
                         gameElements = gameElements.ToArray()
                     };
-                    _keyFrames.Enqueue(keyFrame);
+                    _keyFrames.Add(keyFrame);
                 }
 
                 foreach (var inputData in frameData.inputs.keyboard)
@@ -271,7 +288,7 @@ namespace RegressionGames.StateRecorder
 
                             // we put this in the queue by its encounter position/start time
                             // we track pending ones if endtime not encountered yet
-                            _keyboardData.Enqueue(theData);
+                            _keyboardData.Add(theData);
 
                             if (theData.endTime == null)
                             {
@@ -295,7 +312,7 @@ namespace RegressionGames.StateRecorder
                             specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state);
                         }
 
-                        _mouseData.Enqueue(new ReplayMouseInputEntry()
+                        _mouseData.Add(new ReplayMouseInputEntry()
                         {
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,

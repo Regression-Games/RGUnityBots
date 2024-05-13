@@ -403,9 +403,16 @@ namespace RegressionGames.StateRecorder
                         resultObject.screenSpaceBounds.extents = extents;
                         resultObject.screenSpaceBounds.center = center;
 
-                        var wsb = resultObject.worldSpaceBounds.Value;
-                        wsb.extents = worldExtents;
-                        wsb.center = worldCenter;
+                        if (!resultObject.worldSpaceBounds.HasValue)
+                        {
+                            resultObject.worldSpaceBounds = new Bounds(worldCenter, worldExtents*2f);
+                        }
+                        else
+                        {
+                            var wsb = resultObject.worldSpaceBounds.Value;
+                            wsb.extents = worldExtents;
+                            wsb.center = worldCenter;
+                        }
                     }
                     else
                     {
@@ -753,6 +760,10 @@ namespace RegressionGames.StateRecorder
                             var extents = new Vector3((max.x - min.x)/2, (max.y-min.y)/2, 0.05f);
                             var center = new Vector3(min.x + extents.x, min.y + extents.y, 0f);
 
+                            List<ColliderRecordState> colliders = resultObject.colliders;
+                            _colliderStateObjectPool.AddRange(colliders);
+                            colliders.Clear();
+
                             List<BehaviourState> behaviours = resultObject.behaviours;
                             _behaviourStateObjectPool.AddRange(behaviours);
                             behaviours.Clear();
@@ -777,7 +788,7 @@ namespace RegressionGames.StateRecorder
                             _currentParentTransforms.Clear();
 
                             // process the first object here, then evaluate its children
-                            ProcessChildTransformComponents(objectTransform, behaviours, null, null);
+                            ProcessChildTransformComponents(objectTransform, behaviours, colliders, null);
                             var childCount = objectTransform.childCount;
                             for (var k = 0; k < childCount; k++)
                             {

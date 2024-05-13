@@ -25,6 +25,8 @@ namespace RegressionGames.StateRecorder
         //tracks in playback is in progress or paused
         private bool _isPlaying;
 
+        private bool _isLooping;
+
         // tracks the when we started or last got a key frame; tracked in unscaled time
         private float _lastStartTime;
 
@@ -121,6 +123,19 @@ namespace RegressionGames.StateRecorder
                 if (!_startPlaying && !_isPlaying)
                 {
                     _startPlaying = true;
+                    _isLooping = false;
+                }
+            }
+        }
+
+        public void Loop()
+        {
+            if (_dataContainer != null)
+            {
+                if (!_startPlaying && !_isPlaying)
+                {
+                    _startPlaying = true;
+                    _isLooping = true;
                 }
             }
         }
@@ -131,10 +146,23 @@ namespace RegressionGames.StateRecorder
             _keyboardQueue.Clear();
             _nextKeyFrames.Clear();
             _isPlaying = false;
-            _dataContainer = null;
+            _isLooping = false;
             WaitingForKeyFrameConditions = null;
+            _dataContainer = null;
             _replaySuccessful = null;
             _screenRecorder.StopRecording();
+        }
+
+        public void ResetForLooping()
+        {
+            // similar to Stop, but assumes continued looping
+            _mouseQueue.Clear();
+            _keyboardQueue.Clear();
+            _nextKeyFrames.Clear();
+            _isPlaying = true;
+            _isLooping = true;
+            WaitingForKeyFrameConditions = null;
+            _dataContainer?.Reset();
         }
 
         private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
@@ -890,11 +918,19 @@ namespace RegressionGames.StateRecorder
                 SendMouseEvent(0, new ReplayMouseInputEntry()
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure
-                    position = new Vector2Int(Screen.width +20, -20)
+                    position = new Vector2Int(Screen.width + 20, -20)
                 }, null, ScreenRecorder._emptyStateDictionary);
+
                 // we hit the end of the replay
-                Stop();
-                _replaySuccessful = true;
+                if (_isLooping)
+                {
+                    ResetForLooping();
+                }
+                else
+                {
+                    Stop();
+                    _replaySuccessful = true;
+                }
             }
         }
     }

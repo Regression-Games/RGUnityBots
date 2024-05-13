@@ -1,13 +1,14 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace RegressionGames
 {
-    public class RGIconPulse : MonoBehaviour
+    public class RGTextPulse : MonoBehaviour
     {
-        private Image _image;
+        private TextMeshProUGUI _textUI;
 
         [NonSerialized]
         private Color ogColor = Color.white;
@@ -42,12 +43,12 @@ namespace RegressionGames
             if (color == null)
             {
                 // reset
-                _image.color = new Color(ogColor.r, ogColor.g, ogColor.b, _image.color.a);
+                _textUI.color = new Color(ogColor.r, ogColor.g, ogColor.b, _textUI.color.a);
             }
             else
             {
                 var theColor = color.Value;
-                _image.color = new Color(theColor.r, theColor.g, theColor.b, _image.color.a);
+                _textUI.color = new Color(theColor.r, theColor.g, theColor.b, _textUI.color.a);
             }
         }
 
@@ -112,9 +113,9 @@ namespace RegressionGames
             }
             // start in 1 second
             _lastPulse = -1f * pulseInterval + 1f;
-            _image = GetComponent<Image>();
+            _textUI = GetComponent<TextMeshProUGUI>();
             ogPulseInterval = pulseInterval;
-            ogColor = _image.color;
+            ogColor = _textUI.color;
             ogStoppedAlpha = stoppedAlpha;
         }
 
@@ -138,6 +139,7 @@ namespace RegressionGames
                 if (timeSinceLast <= pulseDuration)
                 {
                     // animating the pulse
+
                     var pulseRange = pulseMidpointAlpha - pulseStartEndAlpha;
 
                     var halfPulseTime = pulseDuration / 2;
@@ -148,13 +150,13 @@ namespace RegressionGames
                 }
                 // else in between pulses
 
-                _image.color = new Color(_image.color.r, _image.color.g, _image.color.b, alphaValue);
+                _textUI.color = new Color(_textUI.color.r, _textUI.color.g, _textUI.color.b, alphaValue);
             }
             else
             {
                 // not animating
                 var alphaValue = stoppedAlpha / 255f;
-                _image.color = new Color(_image.color.r, _image.color.g, _image.color.b, alphaValue);
+                _textUI.color = new Color(_textUI.color.r, _textUI.color.g, _textUI.color.b, alphaValue);
             }
         }
     }
