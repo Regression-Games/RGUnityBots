@@ -127,7 +127,7 @@ namespace RegressionGames
                 var timeSinceLast = time - _lastPulse;
 
                 // in between pulses we are 'stopped'
-                var alphaValue = stoppedAlpha / 255f;
+                var alphaValue = pulseStartEndAlpha / 255f;
 
                 if (timeSinceLast >= pulseInterval)
                 {

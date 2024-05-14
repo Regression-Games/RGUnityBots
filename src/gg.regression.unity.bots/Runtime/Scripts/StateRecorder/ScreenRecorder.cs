@@ -13,6 +13,7 @@ using Unity.Multiplayer.Samples.BossRoom;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR

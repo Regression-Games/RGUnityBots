@@ -212,7 +212,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
                 SetDefaultButtonStates();
                 chooseReplayButton.SetActive(false);
                 recordButton.SetActive(true);
-                recordingPulse.Fast();
+                recordingPulse.Normal();
                 ScreenRecorder.GetInstance()?.StartRecording(null);
             }
         }

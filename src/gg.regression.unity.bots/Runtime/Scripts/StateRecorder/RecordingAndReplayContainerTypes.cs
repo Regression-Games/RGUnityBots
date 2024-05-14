@@ -283,9 +283,9 @@ namespace RegressionGames.StateRecorder
 
         public Bounds? worldSpaceBounds;
 
-        public List<RigidbodyRecordState> rigidbodies;
-        public List<ColliderRecordState> colliders;
-        public List<BehaviourState> behaviours;
+        public IList<RigidbodyRecordState> rigidbodies;
+        public IList<ColliderRecordState> colliders;
+        public IList<BehaviourState> behaviours;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {

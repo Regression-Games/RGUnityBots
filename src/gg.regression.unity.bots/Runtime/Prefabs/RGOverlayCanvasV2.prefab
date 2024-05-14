@@ -2164,10 +2164,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a808bde1fbd8447ed8fb5fb31642db9e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pulseInterval: 2
+  pulseInterval: 1.1
   pulseDuration: 1
-  pulseMidpointAlpha: 50
-  pulseStartEndAlpha: 255
+  pulseMidpointAlpha: 255
+  pulseStartEndAlpha: 0
   stoppedAlpha: 255
   active: 0
 --- !u!1 &3121819139612778033
@@ -4494,7 +4494,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 110, y: 90}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &366506122720462741
 CanvasRenderer:
@@ -5099,6 +5099,7 @@ RectTransform:
   m_Children:
   - {fileID: 1090041802443136416}
   - {fileID: 1094668923711103164}
+  - {fileID: 6927235806806861544}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -5367,17 +5368,17 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7038924818668551959}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.2879422, y: 0.2879422, z: 0.2879422}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6616899866124984948}
-  m_Father: {fileID: 1090041802443136416}
+  m_Father: {fileID: 5224021696837641672}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 600, y: 0}
+  m_AnchoredPosition: {x: 800, y: -360.07153}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4568043474053865578
@@ -6649,7 +6650,6 @@ RectTransform:
   - {fileID: 496607518005334757}
   - {fileID: 5630640976557725279}
   - {fileID: 5586944382632803572}
-  - {fileID: 6927235806806861544}
   - {fileID: 3368126336489784702}
   - {fileID: 5789129086972528656}
   m_Father: {fileID: 5224021696837641672}

@@ -76,10 +76,15 @@ namespace RegressionGames.StateRecorder
             InputSystemUIInputModule inputModule = null;
             foreach (var eventSystem in eventSystems)
             {
-                inputModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
-                if (inputModule != null)
+                var theModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
+                if (theModule != null)
                 {
-                    break;
+                    inputModule = theModule;
+                }
+                else
+                {
+                    // force add it to at least make mouse clicks work on UI elements
+                    eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
                 }
             }
             if (inputModule == null)

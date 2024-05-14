@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 using JetBrains.Annotations;
 using StateRecorder.Types;
@@ -33,8 +34,8 @@ namespace RegressionGames.StateRecorder
         private static readonly List<RigidbodyRecordState> _rigidbodyStateObjectPool = new (100);
         private static readonly List<Rigidbody2DRecordState> _rigidbody2DStateObjectPool = new (100);
 
-        private static readonly List<ColliderRecordState> _emptyColliderStateList = new(0);
-        private static readonly List<RigidbodyRecordState> _emptyRigidbodyStateList = new(0);
+        private static readonly IList<ColliderRecordState> _emptyColliderStateList = ImmutableList.Create<ColliderRecordState>();
+        private static readonly IList<RigidbodyRecordState> _emptyRigidbodyStateList = ImmutableList.Create<RigidbodyRecordState>();
 
         private static InGameObjectFinder _this;
 
@@ -422,8 +423,6 @@ namespace RegressionGames.StateRecorder
                     }
                     resultObject.screenSpaceZOffset = maxZ;
 
-
-
                     var behaviours = resultObject.behaviours;
                     _behaviourStateObjectPool.AddRange(behaviours);
                     behaviours.Clear();
@@ -511,7 +510,7 @@ namespace RegressionGames.StateRecorder
         // pre-allocate this rather large list 1 time to avoid memory stuff on each tick
         private readonly List<Component> _childComponentsQueryList = new(100);
 
-        private void ProcessChildTransformComponents(Transform childTransform, List<BehaviourState> behaviours, List<ColliderRecordState> collidersState, List<RigidbodyRecordState> rigidbodiesState)
+        private void ProcessChildTransformComponents(Transform childTransform, IList<BehaviourState> behaviours, IList<ColliderRecordState> collidersState, IList<RigidbodyRecordState> rigidbodiesState)
         {
             _childComponentsQueryList.Clear();
             childTransform.GetComponents(_childComponentsQueryList);
@@ -706,6 +705,10 @@ namespace RegressionGames.StateRecorder
                         var rectTransformsListLength = _rectTransformsList.Count;
                         if (rectTransformsListLength > 0)
                         {
+                            if (statefulUIObject.gameObject.name.EndsWith("BG"))
+                            {
+                                RGDebug.Log("Stop Here");
+                            }
                             //The returned array of 4 vertices is clockwise.
                             //It starts bottom left and rotates to top left, then top right, and finally bottom right.
                             //Note that bottom left, for example, is an (x, y, z) vector with x being left and y being bottom.
@@ -735,6 +738,11 @@ namespace RegressionGames.StateRecorder
 
                             var tStatus = GetOrCreateTransformStatus(objectTransform);
 
+                            if (statefulUIObject.gameObject.name.EndsWith("BG"))
+                            {
+                                RGDebug.Log("Stop Here");
+                            }
+
                             if (resultObject == null)
                             {
                                 resultObject = new RecordedGameObjectState()
@@ -747,7 +755,7 @@ namespace RegressionGames.StateRecorder
                                     layer = LayerMask.LayerToName(statefulUIObject.layer),
                                     scene = statefulUIObject.scene,
                                     behaviours = new List<BehaviourState>(),
-                                    colliders = _emptyColliderStateList,
+                                    colliders = new List<ColliderRecordState>(),
                                     worldSpaceBounds = null,
                                     rigidbodies = _emptyRigidbodyStateList,
                                     screenSpaceZOffset = 0.0f
@@ -760,11 +768,23 @@ namespace RegressionGames.StateRecorder
                             var extents = new Vector3((max.x - min.x)/2, (max.y-min.y)/2, 0.05f);
                             var center = new Vector3(min.x + extents.x, min.y + extents.y, 0f);
 
-                            List<ColliderRecordState> colliders = resultObject.colliders;
-                            _colliderStateObjectPool.AddRange(colliders);
-                            colliders.Clear();
+                            var collidersState = resultObject.colliders;
+                            var collidersStateCount = collidersState.Count;
+                            for (var i = 0; i < collidersStateCount; i++)
+                            {
+                                var cs = collidersState[i];
+                                if (cs is Collider2DRecordState c2d)
+                                {
+                                    _collider2DStateObjectPool.Add(c2d);
+                                }
+                                else
+                                {
+                                    _colliderStateObjectPool.Add(cs);
+                                }
+                            }
+                            collidersState.Clear();
 
-                            List<BehaviourState> behaviours = resultObject.behaviours;
+                            IList<BehaviourState> behaviours = resultObject.behaviours;
                             _behaviourStateObjectPool.AddRange(behaviours);
                             behaviours.Clear();
 
@@ -788,7 +808,7 @@ namespace RegressionGames.StateRecorder
                             _currentParentTransforms.Clear();
 
                             // process the first object here, then evaluate its children
-                            ProcessChildTransformComponents(objectTransform, behaviours, colliders, null);
+                            ProcessChildTransformComponents(objectTransform, behaviours, collidersState, null);
                             var childCount = objectTransform.childCount;
                             for (var k = 0; k < childCount; k++)
                             {
@@ -812,7 +832,7 @@ namespace RegressionGames.StateRecorder
                                     var hasRenderer = currentTransform.GetComponent(typeof(CanvasRenderer)) != null;
                                     if (!hasRenderer)
                                     {
-                                        ProcessChildTransformComponents(currentTransform, behaviours, null, null);
+                                        ProcessChildTransformComponents(currentTransform, behaviours, collidersState, null);
                                         childCount = currentTransform.childCount;
                                         for (var k = 0; k < childCount; k++)
                                         {
