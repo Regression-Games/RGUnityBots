@@ -289,13 +289,15 @@ namespace RegressionGames.StateRecorder
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
                 var prefix = referenceSessionId != null ? "replay" : "recording";
-                var postfix = referenceSessionId != null ? referenceSessionId + "_" + _currentSessionId : _currentSessionId;
+                var pf = _currentSessionId.Substring(Math.Max(0, _currentSessionId.Length - 6));
+                var postfix = referenceSessionId != null ? pf + "_" + referenceSessionId.Substring(Math.Max(0, referenceSessionId.Length - 6)) : pf;
+                var dateTimeString =  System.DateTime.Now.ToString("MM-dd-yyyy_HH.mm");
 
                 // find the first index number we haven't used yet
                 do
                 {
                     _currentGameplaySessionDirectoryPrefix =
-                        $"{stateRecordingsDirectory}/{Application.productName}/{prefix}_{postfix}";
+                        $"{stateRecordingsDirectory}/{Application.productName}/{prefix}_{dateTimeString}_{postfix}";
                 } while (Directory.Exists(_currentGameplaySessionDirectoryPrefix));
 
                 _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";
