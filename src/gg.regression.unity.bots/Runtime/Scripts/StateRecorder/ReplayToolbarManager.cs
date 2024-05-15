@@ -192,10 +192,9 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         public void StopReplay()
         {
+            SetDefaultButtonStates();
             // stop and clear the old replay data
             replayDataController.Stop();
-
-            SetDefaultButtonStates();
         }
 
         public void ToggleRecording()
@@ -223,10 +222,17 @@ namespace Unity.Multiplayer.Samples.BossRoom
         {
             if (replayDataController.ReplayCompletedSuccessfully() != null)
             {
-                replayDataController.Stop();
-                // playback complete
-                SetDefaultButtonStates();
-                successIcon.SetActive(true);
+                if (!replayDataController.IsPlaying())
+                {
+                    replayDataController.Reset();
+                    // playback complete
+                    chooseReplayButton.SetActive(false);
+                    successIcon.SetActive(true);
+                    playButton.SetActive(true);
+                    loopButton.SetActive(true);
+                    stopButton.SetActive(true);
+                    recordButton.SetActive(false);
+                }
             }
 
             if (replayDataController.WaitingForKeyFrameConditions != null && replayDataController.KeyFrameInputComplete)

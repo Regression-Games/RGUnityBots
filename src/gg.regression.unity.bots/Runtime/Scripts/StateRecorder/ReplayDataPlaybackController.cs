@@ -102,6 +102,7 @@ namespace RegressionGames.StateRecorder
         public void SetDataContainer(ReplayDataContainer dataContainer)
         {
             Stop();
+            _replaySuccessful = null;
 
             SendMouseEvent(0, new ReplayMouseInputEntry()
             {
@@ -127,6 +128,7 @@ namespace RegressionGames.StateRecorder
             {
                 if (!_startPlaying && !_isPlaying)
                 {
+                    _replaySuccessful = null;
                     _startPlaying = true;
                     _isLooping = false;
                 }
@@ -139,6 +141,7 @@ namespace RegressionGames.StateRecorder
             {
                 if (!_startPlaying && !_isPlaying)
                 {
+                    _replaySuccessful = null;
                     _startPlaying = true;
                     _isLooping = true;
                 }
@@ -152,22 +155,43 @@ namespace RegressionGames.StateRecorder
             _nextKeyFrames.Clear();
             _isPlaying = false;
             _isLooping = false;
-            WaitingForKeyFrameConditions = null;
-            _dataContainer = null;
             _replaySuccessful = null;
+            WaitingForKeyFrameConditions = null;
             _screenRecorder.StopRecording();
+
+            _dataContainer = null;
+        }
+
+        public void Reset()
+        {
+            // similar to Stop, but assumes will play again
+            _mouseQueue.Clear();
+            _keyboardQueue.Clear();
+            _nextKeyFrames.Clear();
+            _isPlaying = false;
+            _isLooping = false;
+            WaitingForKeyFrameConditions = null;
+            _screenRecorder.StopRecording();
+
+            _dataContainer?.Reset();
         }
 
         public void ResetForLooping()
         {
-            // similar to Stop, but assumes continued looping
+            // similar to Stop, but assumes continued looping .. doesn't stop recording
             _mouseQueue.Clear();
             _keyboardQueue.Clear();
             _nextKeyFrames.Clear();
             _isPlaying = true;
             _isLooping = true;
             WaitingForKeyFrameConditions = null;
+
             _dataContainer?.Reset();
+        }
+
+        public bool IsPlaying()
+        {
+            return _isPlaying;
         }
 
         private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
