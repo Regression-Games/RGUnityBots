@@ -155,8 +155,9 @@ namespace RegressionGames.StateRecorder
                 {
                     _replaySuccessful = null;
                     _startPlaying = true;
-                    _loopCount = 0;
+                    _loopCount = 1;
                     _loopCountCallback = loopCountCallback;
+                    _loopCountCallback.Invoke(_loopCount);
                 }
             }
         }
@@ -289,6 +290,9 @@ namespace RegressionGames.StateRecorder
 
         private static (bool,bool) MarkElementFoundInList(UIReplayEnforcement uiReplayEnforcement, List<(string, bool)> list, string theString)
         {
+            // for strict.. the element MUST be found and NOT already marked
+            // for atleast .. we just go through and mark.. as long as everything is marked at the end.. we're good
+
             var found = false;
             if (list != null)
             {
@@ -379,29 +383,34 @@ namespace RegressionGames.StateRecorder
                             }
 
                             var didFind = MarkElementFoundInList(myUIReplayEnforcementMode, uiElements, state.path);
-                            if (!didFind.Item1)
+                            if (myUIReplayEnforcementMode == UIReplayEnforcement.Strict)
                             {
-                                // only bail out here if we are where the ui is the oldest awaited key frame
-                                if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
+                                if (!didFind.Item1)
                                 {
-                                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                    // only bail out here if we are where the ui is the oldest awaited key frame
+                                    if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
                                     {
-                                        return null;
-                                    }
-                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Missing UIElement:\r\n" + state.path;
-                                }
-                            }
+                                        if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                        {
+                                            return null;
+                                        }
 
-                            if (!didFind.Item2)
-                            {
-                                // only bail out here if we are where the ui is the oldest awaited key frame
-                                if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
-                                {
-                                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
-                                    {
-                                        return null;
+                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
                                     }
-                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                }
+
+                                if (!didFind.Item2)
+                                {
+                                    // only bail out here if we are where the ui is the oldest awaited key frame
+                                    if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
+                                    {
+                                        if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                        {
+                                            return null;
+                                        }
+
+                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                    }
                                 }
                             }
                         }
@@ -433,9 +442,10 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
+                // for strict or atleast.. we needed to find all the expected key frame elements
                 var allUIElementsFound = AllUIElementFound(uiElements);
 
-                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && allUIElementsFound)
+                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && (uiElements == null || uiElements.Count == 0 || allUIElementsFound))
                 {
                     if (uiObjectKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && uiObjectKeyFrame.pixelHash != null)
                     {
@@ -988,7 +998,8 @@ namespace RegressionGames.StateRecorder
                     _startPlaying = false;
                     _isPlaying = true;
                     _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
-                    if (_loopCount > -1)
+                    // if starting to play, or on loop 1.. start recording
+                    if (_loopCount < 2)
                     {
                         _screenRecorder.StartRecording(_dataContainer.SessionId);
                     }
