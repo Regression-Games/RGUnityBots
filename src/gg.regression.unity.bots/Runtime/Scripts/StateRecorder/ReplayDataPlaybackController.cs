@@ -287,6 +287,40 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        private static (bool,bool) MarkElementFoundInList(UIReplayEnforcement uiReplayEnforcement, List<(string, bool)> list, string theString)
+        {
+            var found = false;
+            if (list != null)
+            {
+                var listCount = list.Count;
+                for (var i = 0; i < listCount; i++)
+                {
+                    if (string.CompareOrdinal(list[i].Item1, theString) == 0)
+                    {
+                        found = true;
+                        if (!list[i].Item2)
+                        {
+                            list[i] = (list[i].Item1, true);
+                            return (true, true);
+                        }
+                    }
+                }
+            }
+
+            // only for strict should we say false here
+            return (found, uiReplayEnforcement != UIReplayEnforcement.Strict);
+        }
+
+        private static bool AllUIElementFound(List<(string, bool)> list)
+        {
+            if (list == null)
+            {
+                return true;
+            }
+            // make sure they were all marked
+            return list.All(a => a.Item2);
+        }
+
         private string CheckKeyFrameState(int keyFrameCheckCount, Dictionary<int,RecordedGameObjectState> objectStates, string pixelHash)
         {
             var nextKeyFramesCount = _nextKeyFrames.Count;
@@ -316,7 +350,7 @@ namespace RegressionGames.StateRecorder
 
                 // copy these with .ToList() so we can remove from them
                 var uiScenes = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiScenes.ToList();
-                var uiElements = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiElements.ToList();
+                var uiElements = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiElements.Select(a => (a,false)).ToList();
                 var gameScenes = gameObjectKeyFrame?.gameScenes.ToList();
                 var gameElements = gameObjectKeyFrame?.gameElements.ToList();
 
@@ -344,7 +378,8 @@ namespace RegressionGames.StateRecorder
                                 uiScenes = null;
                             }
 
-                            if (myUIReplayEnforcementMode == UIReplayEnforcement.Strict && (uiElements == null || uiElements.Count == 0))
+                            var didFind = MarkElementFoundInList(myUIReplayEnforcementMode, uiElements, state.path);
+                            if (!didFind.Item1)
                             {
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
@@ -353,13 +388,11 @@ namespace RegressionGames.StateRecorder
                                     {
                                         return null;
                                     }
-                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
+                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Missing UIElement:\r\n" + state.path;
                                 }
-                                uiElements = null;
                             }
 
-                            var didRemove = StateRecorderUtils.OptimizedRemoveStringFromList(uiElements, state.path);
-                            if (myUIReplayEnforcementMode == UIReplayEnforcement.Strict && !didRemove)
+                            if (!didFind.Item2)
                             {
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
@@ -371,7 +404,6 @@ namespace RegressionGames.StateRecorder
                                     return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
                                 }
                             }
-
                         }
                     }
                     else
@@ -401,7 +433,9 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && (uiElements == null || uiElements.Count == 0))
+                var allUIElementsFound = AllUIElementFound(uiElements);
+
+                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && allUIElementsFound)
                 {
                     if (uiObjectKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && uiObjectKeyFrame.pixelHash != null)
                     {
