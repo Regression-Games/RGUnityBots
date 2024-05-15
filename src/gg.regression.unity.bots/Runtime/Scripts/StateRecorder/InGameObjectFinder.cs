@@ -720,22 +720,21 @@ namespace RegressionGames.StateRecorder
                                 if (rectTransformsListLength > 0)
                                 {
                                     Vector2 min, max;
-                                    Vector2 worldMin, worldMax;
                                     _rectTransformsList[0].GetWorldCorners(_screenSpaceCorners);
                                     if (canvasCamera != null)
                                     {
                                         min = RectTransformUtility.WorldToScreenPoint(canvasCamera, _screenSpaceCorners[0]);
                                         max = RectTransformUtility.WorldToScreenPoint(canvasCamera, _screenSpaceCorners[2]);
-                                        worldMin = _screenSpaceCorners[0];
-                                        worldMax = _screenSpaceCorners[2];
                                     }
                                     else
                                     {
                                         min = _screenSpaceCorners[0];
                                         max = _screenSpaceCorners[2];
-                                        worldMin = _screenSpaceCorners[0];
-                                        worldMax = _screenSpaceCorners[2];
                                     }
+
+                                    // default values, may or maynot be used depending on if isWorldSpace
+                                    Vector2 worldMin = _screenSpaceCorners[0];
+                                    Vector2 worldMax = _screenSpaceCorners[2];
 
                                     for (var i = 1; i < rectTransformsListLength; ++i)
                                     {
@@ -840,6 +839,10 @@ namespace RegressionGames.StateRecorder
                                     {
                                         resultObject.worldSpaceBounds = new Bounds(worldCenter, worldExtents * 2f);
                                     }
+                                    else
+                                    {
+                                        resultObject.worldSpaceBounds = null;
+                                    }
 
                                     // need to update some fields
                                     resultObject.rendererCount = rectTransformsListLength;
@@ -893,6 +896,7 @@ namespace RegressionGames.StateRecorder
 
             // find everything with a renderer.. then select the last parent walking up the tree that has
             // one of the key types.. in most cases that should be the correct 'parent' game object
+            // ignore UI items we already added above (these might have particle effect or other renderers on them, but does not necessarily make them world space)
 
             // add all the requisite transforms... avoided using Linq here for performance reasons
             var renderers = FindObjectsByType(typeof(Renderer), FindObjectsSortMode.None);
@@ -906,13 +910,19 @@ namespace RegressionGames.StateRecorder
                 for (var index = 0; index < renderers.Length; index++)
                 {
                     var renderer1 = (Renderer)renderers[index];
-                    _transformsForThisFrame.Add(renderer1.transform);
+                    if (!_newStates.ContainsKey(renderer1.transform.GetInstanceID()))
+                    {
+                        _transformsForThisFrame.Add(renderer1.transform);
+                    }
                 }
 
                 for (var i = 0; i < includeInStateObjects.Length; i++)
                 {
                     var includeInStateObject = (RGIncludeInState)includeInStateObjects[i];
-                    _transformsForThisFrame.Add(includeInStateObject.transform);
+                    if (!_newStates.ContainsKey(includeInStateObject.transform.GetInstanceID()))
+                    {
+                        _transformsForThisFrame.Add(includeInStateObject.transform);
+                    }
                 }
             }
             else
@@ -1031,7 +1041,7 @@ namespace RegressionGames.StateRecorder
                         // track the new one
                         maybeTopLevel = nextParent;
 
-                        if (!collapseRenderersIntoTopLevelGameObject)
+                        if (!collapseRenderersIntoTopLevelGameObject && !_newStates.ContainsKey(nextParent.transform.GetInstanceID()))
                         {
                             transformsForThisFrame.Add(nextParent);
                         }
@@ -1045,7 +1055,7 @@ namespace RegressionGames.StateRecorder
             if (maybeTopLevel != null)
             {
                 tStatus.TopLevelForThisTransform = maybeTopLevel;
-                if (collapseRenderersIntoTopLevelGameObject)
+                if (collapseRenderersIntoTopLevelGameObject && !_newStates.ContainsKey(maybeTopLevel.transform.GetInstanceID()))
                 {
                     transformsForThisFrame.Add(maybeTopLevel);
                 }

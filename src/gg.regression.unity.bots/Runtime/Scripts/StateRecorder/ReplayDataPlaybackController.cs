@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -17,6 +16,9 @@ namespace RegressionGames.StateRecorder
 {
     public class ReplayDataPlaybackController : MonoBehaviour
     {
+        [Tooltip("UI Element keyframe enforcement mode during replay.  Default is 'At Least'")]
+        public UIReplayEnforcement uiReplayEnforcement = UIReplayEnforcement.AtLeast;
+
         private ReplayDataContainer _dataContainer;
 
         // flag to indicate the next update loop should start playing
@@ -287,10 +289,17 @@ namespace RegressionGames.StateRecorder
                 var eldestKeyFrame = uiObjectKeyFrame == null ? gameObjectKeyFrame : gameObjectKeyFrame == null ? uiObjectKeyFrame : uiObjectKeyFrame.tickNumber < gameObjectKeyFrame.tickNumber ? uiObjectKeyFrame : gameObjectKeyFrame;
 
                 // copy these with .ToList() so we can remove from them
-                var uiScenes = uiObjectKeyFrame?.uiScenes.ToList();
-                var uiElements = uiObjectKeyFrame?.uiElements.ToList();
+                var uiScenes = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiScenes.ToList();
+                var uiElements = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiElements.ToList();
                 var gameScenes = gameObjectKeyFrame?.gameScenes.ToList();
                 var gameElements = gameObjectKeyFrame?.gameElements.ToList();
+
+                var myUIReplayEnforcementMode = uiReplayEnforcement;
+                if (uiElements != null && uiElements.Count == 0)
+                {
+                    // if no UI elements at all, we need to strictly wait for that as we're most likely on a scene load case
+                    myUIReplayEnforcementMode = UIReplayEnforcement.Strict;
+                }
 
                 foreach (var state in objectStates.Values)
                 {
@@ -309,7 +318,7 @@ namespace RegressionGames.StateRecorder
                                 uiScenes = null;
                             }
 
-                            if (uiElements == null || uiElements.Count == 0)
+                            if (myUIReplayEnforcementMode == UIReplayEnforcement.Strict && (uiElements == null || uiElements.Count == 0))
                             {
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
@@ -324,7 +333,7 @@ namespace RegressionGames.StateRecorder
                             }
 
                             var didRemove = StateRecorderUtils.OptimizedRemoveStringFromList(uiElements, state.path);
-                            if (!didRemove)
+                            if (myUIReplayEnforcementMode == UIReplayEnforcement.Strict && !didRemove)
                             {
                                 // only bail out here if we are where the ui is the oldest awaited key frame
                                 if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
@@ -334,7 +343,6 @@ namespace RegressionGames.StateRecorder
                                         return null;
                                     }
                                     return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
-
                                 }
                             }
 
