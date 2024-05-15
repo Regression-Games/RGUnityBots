@@ -171,6 +171,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
         public void PlayReplay()
         {
             chooseReplayButton.SetActive(false);
+            successIcon.SetActive(false);
             playButton.SetActive(false);
             loopButton.SetActive(false);
             stopButton.SetActive(true);
@@ -182,6 +183,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
         public void LoopReplay()
         {
             chooseReplayButton.SetActive(false);
+            successIcon.SetActive(false);
             playButton.SetActive(false);
             loopButton.SetActive(false);
             stopButton.SetActive(true);

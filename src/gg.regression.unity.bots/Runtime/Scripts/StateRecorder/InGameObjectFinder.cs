@@ -143,8 +143,7 @@ namespace RegressionGames.StateRecorder
                 tPath = tName;
                 tPathNormalized = tNameNormalized;
                 var parent = theTransform.parent;
-                // don't need overloaded unity != null-ness check as if we were found alive, our parent is alive
-                while (parent is not null)
+                while (parent != null)
                 {
                     _tPathBuilder.Clear();
                     tPath = _tPathBuilder.Append(parent.gameObject.name).Append("/").Append(tPath).ToString();
@@ -649,6 +648,7 @@ namespace RegressionGames.StateRecorder
         {
             _priorStates.Clear();
             _newStates.Clear();
+            _frameNumber = -1;
         }
 
         /**

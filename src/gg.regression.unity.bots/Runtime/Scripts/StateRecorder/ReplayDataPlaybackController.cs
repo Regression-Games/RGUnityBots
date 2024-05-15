@@ -55,7 +55,7 @@ namespace RegressionGames.StateRecorder
 
         private void Start()
         {
-            GetMouse(true);
+            SetupEventSystem();
             SceneManager.sceneLoaded += OnSceneLoad;
         }
 
@@ -99,6 +99,13 @@ namespace RegressionGames.StateRecorder
         {
             _screenRecorder = GetComponentInParent<ScreenRecorder>();
             SetupEventSystem();
+            GetMouse(true);
+        }
+
+        private void OnDisable()
+        {
+            _mouseEventHandler?.Dispose();
+            _mouseEventHandler = null;
         }
 
         public void SetDataContainer(ReplayDataContainer dataContainer)
@@ -113,7 +120,6 @@ namespace RegressionGames.StateRecorder
             }, null, ScreenRecorder._emptyStateDictionary);
 
             _dataContainer = dataContainer;
-            _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
         }
 
         /**
@@ -155,40 +161,55 @@ namespace RegressionGames.StateRecorder
             _mouseQueue.Clear();
             _keyboardQueue.Clear();
             _nextKeyFrames.Clear();
+            _startPlaying = false;
             _isPlaying = false;
             _isLooping = false;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
+            _checkOfKeyFrameCount = 0;
+
             _screenRecorder.StopRecording();
 
             _dataContainer = null;
+            InGameObjectFinder.GetInstance()?.Cleanup();
         }
 
         public void Reset()
         {
-            // similar to Stop, but assumes will play again
             _mouseQueue.Clear();
             _keyboardQueue.Clear();
             _nextKeyFrames.Clear();
+            _startPlaying = false;
             _isPlaying = false;
             _isLooping = false;
+            _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
+            _checkOfKeyFrameCount = 0;
+
             _screenRecorder.StopRecording();
 
+            // similar to Stop, but assumes will play again
             _dataContainer?.Reset();
+
+            InGameObjectFinder.GetInstance()?.Cleanup();
         }
 
         public void ResetForLooping()
         {
-            // similar to Stop, but assumes continued looping .. doesn't stop recording
             _mouseQueue.Clear();
             _keyboardQueue.Clear();
             _nextKeyFrames.Clear();
-            _isPlaying = true;
+            _startPlaying = true;
+            _isPlaying = false;
             _isLooping = true;
+            _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
+            _checkOfKeyFrameCount = 0;
 
+            // similar to Stop, but assumes continued looping .. doesn't stop recording
             _dataContainer?.Reset();
+
+            InGameObjectFinder.GetInstance()?.Cleanup();
         }
 
         public bool IsPlaying()
@@ -529,6 +550,11 @@ namespace RegressionGames.StateRecorder
                 created = true;
             }
 
+            if (!mouse.enabled)
+            {
+                InputSystem.EnableDevice(mouse);
+            }
+
             if (forceListener || created)
             {
                 _mouseEventHandler = InputSystem.onEvent.ForDevice(mouse).Call(e =>
@@ -543,11 +569,6 @@ namespace RegressionGames.StateRecorder
                     // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
                     FindObjectOfType<VirtualMouseCursor>().SetPosition(position, buttonsClicked);
                 });
-            }
-
-            if (!mouse.enabled)
-            {
-                InputSystem.EnableDevice(mouse);
             }
 
             return mouse;
@@ -924,9 +945,14 @@ namespace RegressionGames.StateRecorder
                 if (_startPlaying)
                 {
                     _lastStartTime = Time.unscaledTime;
+                    _priorKeyFrameTime = null;
                     _startPlaying = false;
                     _isPlaying = true;
-                    _screenRecorder.StartRecording(_dataContainer.SessionId);
+                    _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
+                    if (!_isLooping)
+                    {
+                        _screenRecorder.StartRecording(_dataContainer.SessionId);
+                    }
                 }
 
                 if (_isPlaying)
@@ -965,7 +991,7 @@ namespace RegressionGames.StateRecorder
                 }
                 else
                 {
-                    Stop();
+                    Reset();
                     _replaySuccessful = true;
                 }
             }

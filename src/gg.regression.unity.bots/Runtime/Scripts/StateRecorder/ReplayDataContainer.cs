@@ -85,6 +85,7 @@ namespace RegressionGames.StateRecorder
         public Vector2 scroll;
         public string[] clickedObjectPaths;
         public string[] clickedObjectNormalizedPaths;
+
         public bool IsDone;
 
         // gives the position relative to the current screen size
@@ -139,6 +140,24 @@ namespace RegressionGames.StateRecorder
 
             IsShiftDown = false;
             _pendingEndKeyboardInputs.Clear();
+
+            // reset all the tracking flags
+            foreach (var replayKeyFrameEntry in _keyFrames)
+            {
+                replayKeyFrameEntry.uiMatched = false;
+                replayKeyFrameEntry.gameMatched = false;
+            }
+
+            foreach (var replayKeyboardInputEntry in _keyboardData)
+            {
+                replayKeyboardInputEntry.startEndSentFlags[0] = false;
+                replayKeyboardInputEntry.startEndSentFlags[1] = false;
+            }
+
+            foreach (var replayMouseInputEntry in _mouseData)
+            {
+                replayMouseInputEntry.IsDone = false;
+            }
         }
 
         public List<ReplayMouseInputEntry> DequeueMouseInputsUpToTime(double? time = null)
