@@ -68,6 +68,7 @@ namespace RegressionGames.StateRecorder
 #endif
 
         private MouseInputActionObserver _mouseObserver;
+        private ProfilerObserver _profilerObserver;
 
 
         public static readonly Dictionary<int, RecordedGameObjectState> _emptyStateDictionary = new(0);
@@ -101,6 +102,7 @@ namespace RegressionGames.StateRecorder
         public void OnEnable()
         {
             _this._mouseObserver = GetComponent<MouseInputActionObserver>();
+            _this._profilerObserver = GetComponent<ProfilerObserver>();
         }
 
         private void OnDestroy()
@@ -126,6 +128,7 @@ namespace RegressionGames.StateRecorder
                 {
                     gameFacePixelHashObserver.SetActive(false);
                 }
+                _profilerObserver.StopProfiling();
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
                 _isRecording = false;
@@ -270,6 +273,7 @@ namespace RegressionGames.StateRecorder
                 }, null, _emptyStateDictionary);
 
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
+                _profilerObserver.StartProfiling();
                 _mouseObserver.ClearBuffer();
                 InGameObjectFinder.GetInstance()?.Cleanup();
                 _isRecording = true;
@@ -517,6 +521,8 @@ namespace RegressionGames.StateRecorder
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
+                    ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler();
+
                     try
                     {
                         ++_tickNumber;
@@ -526,6 +532,8 @@ namespace RegressionGames.StateRecorder
                             framesSincePreviousTick = _frameCountSinceLastTick,
                             previousTickTime = _lastCvFrameTime,
                             fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+                            cpuTime = profilerResult.cpuTime,
+                            memory = profilerResult.systemUsedMemory,
                             engineStats = new EngineStatsData()
                             {
 #if UNITY_EDITOR
