@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using StateRecorder;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -27,7 +28,10 @@ namespace RegressionGames.StateRecorder
         //tracks in playback is in progress or paused
         private bool _isPlaying;
 
-        private bool _isLooping;
+        // 0 or greater == isLooping true
+        private int _loopCount = -1;
+
+        private Action<int> _loopCountCallback;
 
         // tracks the when we started or last got a key frame; tracked in unscaled time
         private float _lastStartTime;
@@ -138,12 +142,12 @@ namespace RegressionGames.StateRecorder
                 {
                     _replaySuccessful = null;
                     _startPlaying = true;
-                    _isLooping = false;
+                    _loopCount = -1;
                 }
             }
         }
 
-        public void Loop()
+        public void Loop(Action<int> loopCountCallback)
         {
             if (_dataContainer != null)
             {
@@ -151,7 +155,8 @@ namespace RegressionGames.StateRecorder
                 {
                     _replaySuccessful = null;
                     _startPlaying = true;
-                    _isLooping = true;
+                    _loopCount = 0;
+                    _loopCountCallback = loopCountCallback;
                 }
             }
         }
@@ -163,7 +168,7 @@ namespace RegressionGames.StateRecorder
             _nextKeyFrames.Clear();
             _startPlaying = false;
             _isPlaying = false;
-            _isLooping = false;
+            _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
             _checkOfKeyFrameCount = 0;
@@ -181,7 +186,7 @@ namespace RegressionGames.StateRecorder
             _nextKeyFrames.Clear();
             _startPlaying = false;
             _isPlaying = false;
-            _isLooping = false;
+            _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
             _checkOfKeyFrameCount = 0;
@@ -201,7 +206,7 @@ namespace RegressionGames.StateRecorder
             _nextKeyFrames.Clear();
             _startPlaying = true;
             _isPlaying = false;
-            _isLooping = true;
+            // don't change _loopCount
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
             _checkOfKeyFrameCount = 0;
@@ -949,7 +954,7 @@ namespace RegressionGames.StateRecorder
                     _startPlaying = false;
                     _isPlaying = true;
                     _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
-                    if (!_isLooping)
+                    if (_loopCount > -1)
                     {
                         _screenRecorder.StartRecording(_dataContainer.SessionId);
                     }
@@ -985,9 +990,10 @@ namespace RegressionGames.StateRecorder
                 }, null, ScreenRecorder._emptyStateDictionary);
 
                 // we hit the end of the replay
-                if (_isLooping)
+                if (_loopCount > -1)
                 {
                     ResetForLooping();
+                    _loopCountCallback.Invoke(++_loopCount);
                 }
                 else
                 {

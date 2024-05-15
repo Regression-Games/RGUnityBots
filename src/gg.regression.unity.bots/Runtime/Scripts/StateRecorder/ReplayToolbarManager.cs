@@ -16,6 +16,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
         public GameObject playButton;
 
         public GameObject loopButton;
+        public TextMeshProUGUI loopCount;
 
         public GameObject stopButton;
 
@@ -68,6 +69,7 @@ namespace Unity.Multiplayer.Samples.BossRoom
             playButton.SetActive(false);
             loopButton.SetActive(false);
             stopButton.SetActive(false);
+            loopCount.gameObject.SetActive(false);
         }
 
         public void ChooseReplay()
@@ -189,7 +191,13 @@ namespace Unity.Multiplayer.Samples.BossRoom
             stopButton.SetActive(true);
             recordButton.SetActive(false);
 
-            replayDataController.Loop();
+            loopCount.text = "0";
+            loopCount.gameObject.SetActive(true);
+
+            replayDataController.Loop((newCount) =>
+            {
+                loopCount.text = "" + newCount;
+            });
         }
 
         public void StopReplay()
