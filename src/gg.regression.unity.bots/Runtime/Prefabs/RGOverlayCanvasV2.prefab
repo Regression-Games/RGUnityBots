@@ -6355,7 +6355,7 @@ GameObject:
   - component: {fileID: 5893801167117800152}
   - component: {fileID: 5122435472915985299}
   m_Layer: 5
-  m_Name: Recodring Toolbar
+  m_Name: Recording Toolbar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

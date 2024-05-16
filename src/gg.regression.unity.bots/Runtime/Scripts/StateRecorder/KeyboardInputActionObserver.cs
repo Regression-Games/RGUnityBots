@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,7 +18,7 @@ namespace RegressionGames.StateRecorder
     {
         public override void WriteJson(JsonWriter writer, KeyboardInputActionData value, JsonSerializer serializer)
         {
-            writer.WriteRawValue(value.ToJson());
+            writer.WriteRawValue(value.ToJsonString());
         }
 
         public override bool CanRead => false;
@@ -48,14 +50,29 @@ namespace RegressionGames.StateRecorder
 
         public bool isPressed => duration > 0 && endTime == null;
 
-        public string ToJson()
+        // re-usable and large enough to fit ball sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(2_000);
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\"startTime\":" + DoubleJsonConverter.ToJsonString(startTime)
-                                               + ",\"action\":" + JsonConvert.ToString(action)
-                                               + ",\"binding\":" + JsonConvert.ToString(binding)
-                                               + ",\"endTime\":" + DoubleJsonConverter.ToJsonString(endTime)
-                                               + ",\"isPressed\":" + (isPressed ? "true" : "false")
-                                               + "}";
+            stringBuilder.Append("{\"startTime\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
+            stringBuilder.Append(",\"action\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, action);
+            stringBuilder.Append(",\"binding\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, binding);
+            stringBuilder.Append(",\"endTime\":");
+            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, endTime);
+            stringBuilder.Append(",\"isPressed\":");
+            stringBuilder.Append(isPressed ? "true" : "false");
+            stringBuilder.Append("}");
+        }
+
+        internal string ToJsonString()
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder);
+            return _stringBuilder.ToString();
         }
     }
 
@@ -199,6 +216,98 @@ namespace RegressionGames.StateRecorder
             { "OEM3", Key.OEM3 },
             { "OEM4", Key.OEM4 },
             { "OEM5", Key.OEM5 },
+        });
+
+        // Key -> (without-Shift, with-Shift) values
+        // This is used to convert key presses into characters for text events, where shift can modify the character
+        public static readonly IReadOnlyDictionary<Key, (char, char)> KeyboardKeyToValueMap = new ReadOnlyDictionary<Key, (char,char)>(new Dictionary<Key, (char,char)>()
+        {
+            // row 1 (top row) is generally function keys.
+            // ignore these since they don't have ascii characters associated with them
+            { Key.Delete, ((char)127, (char)127) },
+
+            // row 2 - numbers and symbols
+            { Key.Backquote, ('`', '~') },
+            { Key.Digit1, ('1','!') },
+            { Key.Digit2, ('2','@') },
+            { Key.Digit3, ('3','#') },
+            { Key.Digit4, ('4','$') },
+            { Key.Digit5, ('5','%') },
+            { Key.Digit6, ('6','^') },
+            { Key.Digit7, ('7','&') },
+            { Key.Digit8, ('8','*') },
+            { Key.Digit9, ('9','(') },
+            { Key.Digit0, ('0',')') },
+            { Key.Minus, ('-','_') },
+            { Key.Equals, ('=', '+')},
+            { Key.Backspace, ((char)8, (char)8) },
+
+            // row 3 - qwerty
+            { Key.Tab, ((char)9, (char)9) },
+            { Key.Q, ('q','Q') },
+            { Key.W, ('w','W') },
+            { Key.E, ('e','E') },
+            { Key.R, ('r','R') },
+            { Key.T, ('t','T') },
+            { Key.Y, ('y','Y') },
+            { Key.U, ('u','u') },
+            { Key.I, ('i','I') },
+            { Key.O, ('o','O') },
+            { Key.P, ('p','P') },
+            { Key.LeftBracket, ('[','{') },
+            { Key.RightBracket, (']','}') },
+            { Key.Backslash, ('\\','|') },
+
+            // row 4 - asdf
+            { Key.A, ('a','A') },
+            { Key.S, ('s','S') },
+            { Key.D, ('d','D') },
+            { Key.F, ('f','F') },
+            { Key.G, ('g','G') },
+            { Key.H, ('h','H') },
+            { Key.J, ('j','J') },
+            { Key.K, ('k','K') },
+            { Key.L, ('l','L') },
+            { Key.Semicolon, (';',':') },
+            { Key.Quote, ('\'','"') },
+            { Key.Enter, ('\n','\n') },
+
+            // row 5 - zxcv
+            // left shift modifies each of these so doesn't need its own entry
+            { Key.Z, ('z','Z') },
+            { Key.X, ('x','X') },
+            { Key.C, ('c','C') },
+            { Key.V, ('v','V') },
+            { Key.B, ('b','B') },
+            { Key.N, ('n','N') },
+            { Key.M, ('m','M') },
+            { Key.Comma, (',','<') },
+            { Key.Period, ('.','>') },
+            { Key.Slash, ('/','?') },
+            // same for right shift
+
+            // row 6 - bottom row with space bar
+            // ignore ctrl. alt, other modifier keys
+            { Key.Space, (' ', ' ') },
+
+            // numpad
+            { Key.NumpadMultiply, ('*','*') },
+            { Key.NumpadDivide, ('/', '/') },
+            { Key.NumpadPlus, ('+', '+')},
+            { Key.NumpadMinus, ('-','-') },
+            { Key.Numpad7, ('7', '7') },
+            { Key.Numpad8, ('8', '8') },
+            { Key.Numpad9, ('9', '9') },
+            { Key.Numpad4, ('4', '4') },
+            { Key.Numpad5, ('5', '5') },
+            { Key.Numpad6, ('6', '6') },
+            { Key.Numpad1, ('1', '1') },
+            { Key.Numpad2, ('2', '2') },
+            { Key.Numpad3, ('3', '3') },
+            { Key.Numpad0, ('0', '0') },
+            // shift . on numpad is Delete
+            { Key.NumpadPeriod, ('.', (char)127) },
+            { Key.NumpadEnter, ('\n', '\n') },
         });
 
         public void Awake()

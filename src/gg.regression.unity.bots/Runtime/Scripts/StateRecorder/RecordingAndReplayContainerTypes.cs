@@ -1,34 +1,85 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder
 {
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class FrameStateData : ReplayFrameStateData
+    public class RecordingFrameStateData : BaseFrameStateData
     {
-        public PerformanceMetricData performance;
-        public new List<RecordedGameObjectState> state;
+        /**
+         * <summary>Reference to the original recording this was created from during replay, possibly null</summary>
+         */
+        public string referenceSessionId = null;
 
-        public string ToJson()
+        public PerformanceMetricData performance;
+        public new IEnumerable<RecordedGameObjectState> state;
+
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000_000);
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\n\"tickNumber\":" + tickNumber
-                                        + ",\n\"keyFrame\":[" + string.Join(",",keyFrame.Select(a=>a.ToJson()))
-                                        + "],\n\"time\":" + DoubleJsonConverter.ToJsonString(time)
-                                        + ",\n\"timeScale\":" + FloatJsonConverter.ToJsonString(timeScale)
-                                        + ",\n\"screenSize\":" + VectorIntJsonConverter.ToJsonString(screenSize)
-                                        + ",\n\"performance\":" + performance.ToJson()
-                                        + ",\n\"state\":[\n" + string.Join(",\n", state.Select(a=>a.ToJson()))
-                                        + "\n],\n\"inputs\":" + inputs.ToJson()
-                                        + "\n}";
+            stringBuilder.Append("{\n\"sessionId\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
+            stringBuilder.Append(",\n\"referenceSessionId\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, referenceSessionId);
+            stringBuilder.Append(",\n\"tickNumber\":");
+            LongJsonConverter.WriteToStringBuilder(stringBuilder, tickNumber);
+            stringBuilder.Append(",\n\"keyFrame\":[");
+            var keyFrameLength = keyFrame.Length;
+            for (var i = 0; i < keyFrameLength; i++)
+            {
+                stringBuilder.Append("\"").Append(keyFrame[i].ToString()).Append("\"");
+                if (i + 1 < keyFrameLength)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"time\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, time);
+            stringBuilder.Append(",\n\"timeScale\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, timeScale);
+            stringBuilder.Append(",\n\"screenSize\":");
+            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            stringBuilder.Append(",\n\"performance\":");
+            performance.WriteToStringBuilder(stringBuilder);
+            stringBuilder.Append(",\n\"pixelHash\":\"");
+            stringBuilder.Append(pixelHash);
+            stringBuilder.Append("\",\n\"state\":[\n");
+            var counter = 0;
+            var stateCount = state.Count();
+            foreach( var stateEntry in state)
+            {
+                stateEntry.WriteToStringBuilder(stringBuilder);
+                if (++counter < stateCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n],\n\"inputs\":");
+            inputs.WriteToStringBuilder(stringBuilder);
+            stringBuilder.Append("\n}");
         }
+
+        public string ToJsonString()
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder);
+            return _stringBuilder.ToString();
+        }
+
     }
 
     [Serializable]
@@ -38,13 +89,31 @@ namespace RegressionGames.StateRecorder
         public List<KeyboardInputActionData> keyboard;
         public List<MouseInputActionData> mouse;
 
-        public string ToJson()
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\n\"keyboard\":[\n" + string.Join(",\n", keyboard.Select(a=>a.ToJson()))
-                   + "\n],\n\"mouse\":[\n" + string.Join(",\n", mouse.Select(a=>a.ToJson()))
-                   + "\n]"
-                   + "\n}";
+            stringBuilder.Append("{\n\"keyboard\":[\n");
+            var keyboardCount = keyboard.Count;
+            for (var i = 0; i < keyboardCount; i++)
+            {
+                keyboard[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < keyboardCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n],\n\"mouse\":[\n");
+            var mouseCount = mouse.Count;
+            for (var i = 0; i < mouseCount; i++)
+            {
+                mouse[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < mouseCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]\n}");
         }
+
     }
 
     [Serializable]
@@ -56,13 +125,17 @@ namespace RegressionGames.StateRecorder
         public int fps;
         public EngineStatsData engineStats;
 
-        public string ToJson()
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\"previousTickTime\":" + DoubleJsonConverter.ToJsonString(previousTickTime)
-                                            + ",\"framesSincePreviousTick\":" + framesSincePreviousTick
-                                            + ",\"fps\":" + fps
-                                            + ",\"engineStats\":" + engineStats.ToJson()
-                                            + "}";
+            stringBuilder.Append("{\"previousTickTime\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, previousTickTime);
+            stringBuilder.Append(",\"framesSincePreviousTick\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, framesSincePreviousTick);
+            stringBuilder.Append(",\"fps\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, fps);
+            stringBuilder.Append(",\"engineStats\":");
+            engineStats.WriteToStringBuilder(stringBuilder);
+            stringBuilder.Append("}");
         }
     }
 
@@ -88,37 +161,66 @@ namespace RegressionGames.StateRecorder
         public int staticBatches;
         public int instancedBatches;
 
-        public string ToJson()
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\"frameTime\":" + FloatJsonConverter.ToJsonString(frameTime)
-                                     + ",\"renderTime\":" + FloatJsonConverter.ToJsonString(renderTime)
-                                     + ",\"triangles\":" + triangles
-                                     + ",\"vertices\":" + vertices
-                                     + ",\"setPassCalls\":" + setPassCalls
-                                     + ",\"drawCalls\":" + drawCalls
-                                     + ",\"dynamicBatchedDrawCalls\":" + dynamicBatchedDrawCalls
-                                     + ",\"staticBatchedDrawCalls\":" + staticBatchedDrawCalls
-                                     + ",\"instancedBatchedDrawCalls\":" + instancedBatchedDrawCalls
-                                     + ",\"batches\":" + batches
-                                     + ",\"dynamicBatches\":" + dynamicBatches
-                                     + ",\"staticBatches\":" + staticBatches
-                                     + ",\"instancedBatches\":" + instancedBatches
-                                     + "}";
+            stringBuilder.Append("{\"frameTime\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, frameTime);
+            stringBuilder.Append(",\"renderTime\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, renderTime);
+            stringBuilder.Append(",\"triangles\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, triangles);
+            stringBuilder.Append(",\"vertices\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, vertices);
+            stringBuilder.Append(",\"setPassCalls\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, setPassCalls);
+            stringBuilder.Append(",\"drawCalls\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, drawCalls);
+            stringBuilder.Append(",\"dynamicBatchedDrawCalls\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, dynamicBatchedDrawCalls);
+            stringBuilder.Append(",\"staticBatchedDrawCalls\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, staticBatchedDrawCalls);
+            stringBuilder.Append(",\"instancedBatchedDrawCalls\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, instancedBatchedDrawCalls);
+            stringBuilder.Append(",\"batches\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, batches);
+            stringBuilder.Append(",\"dynamicBatches\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, dynamicBatches);
+            stringBuilder.Append(",\"staticBatches\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, staticBatches);
+            stringBuilder.Append(",\"instancedBatches\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, instancedBatches);
+            stringBuilder.Append("}");
         }
     }
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     // replay doesn't need to deserialize everything we record
-    public class ReplayFrameStateData
+    public class BaseFrameStateData
     {
+        /**
+         * <summary>UUID of the session</summary>
+         */
+        public string sessionId;
         public long tickNumber;
         public KeyFrameType[] keyFrame;
         public double time;
         public float timeScale;
         public Vector2Int screenSize;
+        public string pixelHash;
         public List<ReplayGameObjectState> state;
         public InputData inputs;
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    // replay doesn't need to deserialize everything we record
+    public class ReplayFrameStateData :BaseFrameStateData
+    {
+        /**
+         * <summary>UUID of the session</summary>
+         */
+        public long recordingSessionId;
     }
 
     public abstract class BaseReplayObjectState
@@ -126,14 +228,15 @@ namespace RegressionGames.StateRecorder
         public int id;
 
         public string path;
+        public string normalizedPath;
         public string scene;
         public string tag;
         public string layer;
 
         public int rendererCount;
 
-        public List<RigidbodyState> rigidbodies;
-        public List<ColliderState> colliders;
+        public List<RigidbodyReplayState> rigidbodies;
+        public List<ColliderReplayState> colliders;
 
         public Bounds screenSpaceBounds;
 
@@ -154,27 +257,95 @@ namespace RegressionGames.StateRecorder
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RecordedGameObjectState : BaseReplayObjectState
+    public class RecordedGameObjectState
     {
+
+        public int id;
+
+        public string path;
+        public string normalizedPath;
+
+        [NonSerialized] // used internally for performance, but serialized as the name
+        public Scene scene;
+
+        public string tag;
+        public string layer;
+
+        public int rendererCount;
+
+        public Bounds screenSpaceBounds;
+
+        public float screenSpaceZOffset;
+
+        [NonSerialized]
+        // keep reference to this instead of updating its fields every tick
+        public Transform transform;
+
+        public Bounds? worldSpaceBounds;
+
+        public List<RigidbodyRecordState> rigidbodies;
+        public List<ColliderRecordState> colliders;
         public List<BehaviourState> behaviours;
 
-        public string ToJson()
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return "{\n\"id\":" + id
-                                + ",\n\"path\":" + JsonConvert.ToString(path)
-                                + ",\n\"scene\":" + JsonConvert.ToString(scene)
-                                + ",\n\"tag\":" + JsonConvert.ToString(tag)
-                                + ",\n\"layer\":" + JsonConvert.ToString(layer)
-                                + ",\n\"rendererCount\":" + rendererCount
-                                + ",\n\"screenSpaceBounds\":" + BoundsJsonConverter.ToJsonString(screenSpaceBounds)
-                                + ",\n\"worldSpaceBounds\":" + BoundsJsonConverter.ToJsonString(worldSpaceBounds)
-                                + ",\n\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
-                                + ",\n\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
-                                + ",\n\"rigidbodies\":[\n" + string.Join(",\n", rigidbodies.Select(a=>a.ToJson()))
-                                + "\n],\n\"colliders\":[\n" + string.Join(",\n", colliders.Select(a=>a.ToJson()))
-                                + "\n],\n\"behaviours\":[\n" + string.Join(",\n", behaviours.Select(a=>a.ToJson()))
-                                + "\n]\n}";
+            stringBuilder.Append("{\n\"id\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, id);
+            stringBuilder.Append(",\n\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\n\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\n\"scene\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, scene.name);
+            stringBuilder.Append(",\n\"tag\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, tag);
+            stringBuilder.Append(",\n\"layer\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, layer);
+            stringBuilder.Append(",\n\"rendererCount\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, rendererCount);
+            stringBuilder.Append(",\n\"screenSpaceBounds\":");
+            BoundsJsonConverter.WriteToStringBuilder(stringBuilder, screenSpaceBounds);
+            stringBuilder.Append(",\n\"screenSpaceZOffset\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, screenSpaceZOffset);
+            stringBuilder.Append(",\n\"worldSpaceBounds\":");
+            BoundsJsonConverter.WriteToStringBuilderNullable(stringBuilder, worldSpaceBounds);
+            stringBuilder.Append(",\n\"position\":");
+            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, transform.position);
+            stringBuilder.Append(",\n\"rotation\":");
+            QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, transform.rotation);
+            stringBuilder.Append(",\n\"rigidbodies\":[\n");
+            var rigidbodiesCount = rigidbodies.Count;
+            for (var i = 0; i < rigidbodiesCount; i++)
+            {
+                rigidbodies[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < rigidbodiesCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n],\n\"colliders\":[\n");
+            var collidersCount = colliders.Count;
+            for (var i = 0; i < collidersCount; i++)
+            {
+                colliders[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < collidersCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n],\n\"behaviours\":[\n");
+            var behavioursCount = behaviours.Count;
+            for (var i = 0; i < behavioursCount; i++)
+            {
+                behaviours[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < behavioursCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]\n}");
         }
+
     }
 
     [Serializable]
@@ -183,6 +354,7 @@ namespace RegressionGames.StateRecorder
     {
         public string name;
         public string path;
+        public string normalizedPath;
         public Behaviour state;
 
         public override string ToString()
@@ -190,56 +362,159 @@ namespace RegressionGames.StateRecorder
             return name;
         }
 
-        public string ToJson()
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            var stateJson = "{}";
-            try
-            {
-                stateJson = JsonConvert.SerializeObject(state, Formatting.None, ScreenRecorder.JsonSerializerSettings);
-                if (string.IsNullOrEmpty(stateJson))
-                {
-                    // shouldn't happen... but keeps us running if it does
-                    stateJson = "{\"EXCEPTION\":\"Could not convert Behaviour to JSON\"}";
-                }
-            }
-            catch (Exception ex)
-            {
-                RGDebug.LogException(ex, "Error converting behaviour to JSON - " + state.name);
-            }
-
-            return "{\"name\":" + JsonConvert.ToString(name)
-                                     + ",\"path\":" + JsonConvert.ToString(path)
-                                     // have to use JsonConvert to serialize here as Behaviours are the wild wild west of contents
-                                     + ",\"state\":" + stateJson
-                                     + "}";
+            stringBuilder.Append("{\"name\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, name);
+            stringBuilder.Append(",\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\"state\":");
+            JsonUtils.WriteBehaviourStateToStringBuilder(stringBuilder, state);
+            stringBuilder.Append("}");
         }
     }
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class ColliderState
+    public class ColliderRecordState
     {
         public string path;
+        public string normalizedPath;
+        public Collider collider;
+
+        public virtual void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\"is2D\":false");
+            stringBuilder.Append(",\"bounds\":");
+            BoundsJsonConverter.WriteToStringBuilder(stringBuilder, collider.bounds);
+            stringBuilder.Append(",\"isTrigger\":");
+            stringBuilder.Append((collider.isTrigger ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class Collider2DRecordState : ColliderRecordState
+    {
+        public new Collider2D collider;
+
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\"is2D\":true");
+            stringBuilder.Append(",\"bounds\":");
+            BoundsJsonConverter.WriteToStringBuilder(stringBuilder, collider.bounds);
+            stringBuilder.Append(",\"isTrigger\":");
+            stringBuilder.Append((collider.isTrigger ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class ColliderReplayState
+    {
+        public string path;
+        public string normalizedPath;
+        public bool is2D;
         public Bounds bounds;
         public bool isTrigger;
-
-        public string ToJson()
-        {
-            return "{\"path\":" + JsonConvert.ToString(path)
-                                + ",\"bounds\":" + BoundsJsonConverter.ToJsonString(bounds)
-                                + ",\"isTrigger\":" + (isTrigger ? "true" : "false")
-                                + "}";
-        }
     }
-
 
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RigidbodyState
+    public class RigidbodyRecordState
+    {
+
+        public string path;
+        public string normalizedPath;
+
+        // keep a ref to this instead of updating fields every tick
+        public Rigidbody rigidbody;
+
+        public virtual void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\"is2D\":false");
+            stringBuilder.Append(",\"position\":");
+            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.position);
+            stringBuilder.Append(",\"rotation\":");
+            QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.rotation);
+            stringBuilder.Append(",\"velocity\":");
+            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.velocity);
+            stringBuilder.Append(",\"mass\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.mass);
+            stringBuilder.Append(",\"drag\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.drag);
+            stringBuilder.Append(",\"angularDrag\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.angularDrag);
+            stringBuilder.Append(",\"useGravity\":");
+            stringBuilder.Append((rigidbody.useGravity ? "true" : "false"));
+            stringBuilder.Append(",\"isKinematic\":");
+            stringBuilder.Append((rigidbody.isKinematic ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class Rigidbody2DRecordState: RigidbodyRecordState
+    {
+
+        // keep a ref to this instead of updating fields every tick
+        public new Rigidbody2D rigidbody;
+
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\"is2D\":true");
+            stringBuilder.Append(",\"position\":");
+            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.position);
+            stringBuilder.Append(",\"rotation\":");
+            QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, Quaternion.Euler(0, 0, rigidbody.rotation));
+            stringBuilder.Append(",\"velocity\":");
+            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.velocity);
+            stringBuilder.Append(",\"mass\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.mass);
+            stringBuilder.Append(",\"drag\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.drag);
+            stringBuilder.Append(",\"angularDrag\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.angularDrag);
+            stringBuilder.Append(",\"gravityScale\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.gravityScale);
+            stringBuilder.Append(",\"isKinematic\":");
+            stringBuilder.Append((rigidbody.isKinematic ? "true" : "false"));
+            stringBuilder.Append("}");
+        }
+    }
+
+    [Serializable]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public class RigidbodyReplayState
     {
         public string path;
+        public string normalizedPath;
 
         public Vector3 position;
+
+        public bool is2D;
 
         // for 3D this is rotation on Z axis
         public Quaternion rotation;
@@ -248,20 +523,7 @@ namespace RegressionGames.StateRecorder
         public float drag;
         public float angularDrag;
         public bool useGravity;
+        public float gravityScale;
         public bool isKinematic;
-
-        public string ToJson()
-        {
-            return "{\"path\":" + JsonConvert.ToString(path)
-                                + ",\"position\":" + VectorJsonConverter.ToJsonStringVector3(position)
-                                + ",\"rotation\":" + QuaternionJsonConverter.ToJsonString(rotation)
-                                + ",\"velocity\":" + VectorJsonConverter.ToJsonStringVector3(velocity)
-                                + ",\"mass\":" + FloatJsonConverter.ToJsonString(mass)
-                                + ",\"drag\":" + FloatJsonConverter.ToJsonString(drag)
-                                + ",\"angularDrag\":" + FloatJsonConverter.ToJsonString(angularDrag)
-                                + ",\"useGravity\":" + (useGravity ? "true" : "false")
-                                + ",\"isKinematic\":" + (isKinematic ? "true" : "false")
-                                + "}";
-        }
     }
 }

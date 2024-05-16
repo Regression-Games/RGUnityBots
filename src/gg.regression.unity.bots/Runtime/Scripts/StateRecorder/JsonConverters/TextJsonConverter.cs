@@ -1,12 +1,52 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class TextJsonConverter : Newtonsoft.Json.JsonConverter
+    public class TextJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (Text)behaviour);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Text val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"text\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.text);
+            stringBuilder.Append(",\"font\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.font.name);
+            stringBuilder.Append(",\"fontStyle\":\"");
+            stringBuilder.Append(val.fontStyle.ToString());
+            stringBuilder.Append("\",\"fontSize\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.fontSize);
+            stringBuilder.Append(",\"color\":");
+            ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
+            stringBuilder.Append(",\"raycastTarget\":");
+            stringBuilder.Append(val.raycastTarget ? "true" : "false");
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(Text val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -15,15 +55,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (Text)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"text\":" + JsonConvert.ToString(val.text)
-                                                  + ",\"font\":" + JsonConvert.ToString(val.font.name)
-                                                  // enum doesn't need json escaping
-                                                  + ",\"fontStyle\":\"" + val.fontStyle
-                                                  + "\",\"fontSize\":" + val.fontSize
-                                                  + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                  + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false") + "}");
+                writer.WriteRawValue(ToJsonString((Text)value));
             }
         }
 

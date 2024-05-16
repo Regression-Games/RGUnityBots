@@ -29,7 +29,7 @@ namespace RegressionGames
         [SerializeField] private DebugLogLevel logLevel;
         // ReSharper disable once InconsistentNaming
         [SerializeField] private bool feature_StateRecordingAndReplay;
-        
+
         // Authentication settings
         [SerializeField] private string rgHostAddress;
         [SerializeField] private string apiKey;
@@ -64,7 +64,7 @@ namespace RegressionGames
                 _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
 
-                _settings.feature_StateRecordingAndReplay = false;
+                _settings.feature_StateRecordingAndReplay = true;
 #if UNITY_EDITOR
                 Directory.CreateDirectory(SETTINGS_DIRECTORY);
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
@@ -94,7 +94,7 @@ namespace RegressionGames
                 // if not called on main thread this will exception
             }
         }
-        
+
 #if UNITY_EDITOR
         public static SerializedObject GetSerializedSettings()
         {
@@ -122,8 +122,8 @@ namespace RegressionGames
         {
             return logLevel;
         }
-        
-        public string GetApiKey() 
+
+        public string GetApiKey()
         {
             return apiKey;
         }

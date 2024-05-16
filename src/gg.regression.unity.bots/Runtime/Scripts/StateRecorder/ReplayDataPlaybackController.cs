@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -10,6 +11,7 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.InputSystem.Utilities;
 using UnityEngine.SceneManagement;
+// ReSharper disable MergeIntoPattern
 
 namespace RegressionGames.StateRecorder
 {
@@ -28,7 +30,10 @@ namespace RegressionGames.StateRecorder
 
         private double? _priorKeyFrameTime;
 
-        private ReplayKeyFrameEntry _nextKeyFrame;
+        // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
+        // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
+        // This is done this way to allow situations like when loading screens (UI) are changing while game objects are loading in the background and the process is not consistent/deterministic between the 2
+        private readonly List<ReplayKeyFrameEntry> _nextKeyFrames = new();
 
         private readonly List<ReplayKeyboardInputEntry> _keyboardQueue = new();
         private readonly List<ReplayMouseInputEntry> _mouseQueue = new();
@@ -41,6 +46,8 @@ namespace RegressionGames.StateRecorder
         public string WaitingForKeyFrameConditions { get; private set; }
 
         public bool KeyFrameInputComplete { get; private set; }
+
+        private ScreenRecorder _screenRecorder;
 
         private void Start()
         {
@@ -75,12 +82,13 @@ namespace RegressionGames.StateRecorder
             }
             if (inputModule == null)
             {
-                throw new Exception("Regression Games Unity SDK only supports the new InputSystem.");
+                RGDebug.LogError("Regression Games Unity SDK only supports the new InputSystem, but did not detect an instance of InputSystemUIInputModule in the scene.  If you are using a 3rd party input module like Coherent GameFace this may be expected/ok.");
             }
         }
 
         void OnEnable()
         {
+            _screenRecorder = GetComponentInParent<ScreenRecorder>();
             SetupEventSystem();
         }
 
@@ -92,10 +100,10 @@ namespace RegressionGames.StateRecorder
             {
                 // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
                 position = new Vector2Int(Screen.width +20, -20)
-            }, new List<RecordedGameObjectState>());
+            }, null, ScreenRecorder._emptyStateDictionary);
 
             _dataContainer = dataContainer;
-            _nextKeyFrame = _dataContainer.DequeueKeyFrame();
+            _nextKeyFrames.Add(_dataContainer.DequeueKeyFrame());
         }
 
         /**
@@ -121,114 +129,228 @@ namespace RegressionGames.StateRecorder
         {
             _mouseQueue.Clear();
             _keyboardQueue.Clear();
-            _nextKeyFrame = null;
+            _nextKeyFrames.Clear();
             _isPlaying = false;
             _dataContainer = null;
             WaitingForKeyFrameConditions = null;
             _replaySuccessful = null;
+            _screenRecorder.StopRecording();
         }
 
         private double CurrentTimePoint => Time.unscaledTime - _lastStartTime + _priorKeyFrameTime ?? 0.0;
 
-        private void CheckWaitForKeyStateMatch(List<RecordedGameObjectState> objectStates)
+        // used to avoid spam building/showing the keyframe text until at least a few frames have gone past
+        private int _checkOfKeyFrameCount;
+
+        // allow up to 360 frames before saying it failed, at 120 fps this is 3 seconds, at 100fps this is ~3.6 seconds , at 60fps this is 6 seconds , at 50 fps this is ~7.2 seconds, at 30 fps this is 12 seconds
+        private const int KeyFrameChecksBeforePrompting = 360;
+
+        private void CheckWaitForKeyStateMatch(Dictionary<int,RecordedGameObjectState> objectStates, string pixelHash)
         {
             if (_isPlaying && _dataContainer != null)
             {
-                if (_nextKeyFrame != null)
+                if (_nextKeyFrames.Count > 0)
                 {
                     KeyFrameInputComplete = (_keyboardQueue.All(a => a.startEndSentFlags[0]
-                                                                     && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrame.time))
+                                                                     && (a.startEndSentFlags[1] || a.endTime > _nextKeyFrames[0].time))
                                              && _mouseQueue.Count == 0
                         );
-                    WaitingForKeyFrameConditions = CheckKeyFrameState(objectStates);
+                    WaitingForKeyFrameConditions = CheckKeyFrameState(_checkOfKeyFrameCount, objectStates, pixelHash);
+                    ++_checkOfKeyFrameCount;
 
-                    if (WaitingForKeyFrameConditions == null)
+                    var lastKeyFrameInList = _nextKeyFrames[^1];
+                    // if either the ui or the game objects are satisfied, add the next key frame to the list so we can start considering it
+                    if (lastKeyFrameInList.uiMatched || lastKeyFrameInList.gameMatched)
                     {
-                        RGDebug.LogInfo($"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - ConditionsMatched: true");
+                        var nextFrame = _dataContainer.DequeueKeyFrame();
+                        if (nextFrame != null)
+                        {
+                            // get the next key frame for future stuff
+                            _nextKeyFrames.Add(nextFrame);
+                            _checkOfKeyFrameCount = 0;
+                        }
+                    }
 
-                        _priorKeyFrameTime = _nextKeyFrame?.time;
+                    while (_nextKeyFrames.Count > 0 && _nextKeyFrames[0].IsMatched)
+                    {
+                        RGDebug.LogInfo($"({_nextKeyFrames[0].tickNumber}) Wait for KeyFrame - ConditionsMatched: true");
 
-                        // get the next key frame for future stuff
-                        _nextKeyFrame = _dataContainer.DequeueKeyFrame();
+                        _priorKeyFrameTime = _nextKeyFrames[0]?.time;
+
+                        // first key frame is done, get it out of here
+                        _nextKeyFrames.RemoveAt(0);
 
                         // when we update the keyframe, re-sync our time point to avoid drifting off track
                         _lastStartTime = Time.unscaledTime;
+                    }
 
-                        if (_nextKeyFrame != null)
-                        {
-                            // get all the inputs starting before the next key frame time and add them to the queue
-                            // floating point hell.. give them 1ms tolerance to avoid fp comparison issues
-                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrame.time + 0.001));
-                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrame.time + 0.001));
-                        }
-                        else
-                        {
-                            WaitingForKeyFrameConditions = null;
-                            // get the rest
-                            _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime());
-                            _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime());
-                        }
+                    if (_nextKeyFrames.Count > 0)
+                    {
+                        // get all the inputs starting before the next key frame time and add them to the queue
+                        // floating point hell.. give them 1ms tolerance to avoid fp comparison issues
+                        _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime(_nextKeyFrames[0].time + 0.001));
+                        _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime(_nextKeyFrames[0].time + 0.001));
+                    }
+                    else
+                    {
+                        WaitingForKeyFrameConditions = null;
+                        // get the rest
+                        _keyboardQueue.AddRange(_dataContainer.DequeueKeyboardInputsUpToTime());
+                        _mouseQueue.AddRange(_dataContainer.DequeueMouseInputsUpToTime());
                     }
                 }
             }
         }
 
-        private string CheckKeyFrameState(List<RecordedGameObjectState> objectStates)
+        private string CheckKeyFrameState(int keyFrameCheckCount, Dictionary<int,RecordedGameObjectState> objectStates, string pixelHash)
         {
-            if (_nextKeyFrame != null)
+            var nextKeyFramesCount = _nextKeyFrames.Count;
+            if (nextKeyFramesCount > 0 && objectStates != null)
             {
-                if (_nextKeyFrame.specificObjectPaths.Length > 0
-                    || _nextKeyFrame.uiElements.Length > 0
-                    || _nextKeyFrame.scenes.Length > 0)
+                ReplayKeyFrameEntry gameObjectKeyFrame = null, uiObjectKeyFrame = null;
+                for (var index = 0; index < nextKeyFramesCount; index++)
                 {
-                    if (objectStates != null)
+                    var nextKeyFrame = _nextKeyFrames[index];
+                    if (gameObjectKeyFrame == null && nextKeyFrame.gameMatched == false)
                     {
-                        // copy these so we can remove from them
-                        var scenes = _nextKeyFrame.scenes.ToList();
-                        var uiElements = _nextKeyFrame.uiElements.ToList();
-                        var specificObjectPaths = _nextKeyFrame.specificObjectPaths.ToList();
-                        var gameElements = _nextKeyFrame.gameElements.ToList();
-                        foreach (var state in objectStates)
+                        gameObjectKeyFrame = nextKeyFrame;
+                    }
+
+                    if (uiObjectKeyFrame == null && nextKeyFrame.uiMatched == false)
+                    {
+                        uiObjectKeyFrame = nextKeyFrame;
+                    }
+
+                    if (gameObjectKeyFrame != null && uiObjectKeyFrame != null)
+                    {
+                        break;
+                    }
+                }
+
+                var eldestKeyFrame = uiObjectKeyFrame == null ? gameObjectKeyFrame : gameObjectKeyFrame == null ? uiObjectKeyFrame : uiObjectKeyFrame.tickNumber < gameObjectKeyFrame.tickNumber ? uiObjectKeyFrame : gameObjectKeyFrame;
+
+                // copy these with .ToList() so we can remove from them
+                var uiScenes = uiObjectKeyFrame?.uiScenes.ToList();
+                var uiElements = uiObjectKeyFrame?.uiElements.ToList();
+                var gameScenes = gameObjectKeyFrame?.gameScenes.ToList();
+                var gameElements = gameObjectKeyFrame?.gameElements.ToList();
+
+                foreach (var state in objectStates.Values)
+                {
+                    var collidersCount = state.colliders.Count;
+                    var rigidbodiesCount = state.rigidbodies.Count;
+                    if (state.worldSpaceBounds == null)
+                    {
+                        if (uiObjectKeyFrame != null)
                         {
-                            scenes.Remove(state.scene);
-
-                            specificObjectPaths.Remove(state.path);
-
-                            if (state.worldSpaceBounds == null)
+                            if (uiScenes != null && uiScenes.Count > 0 )
                             {
-                                if (uiElements.Count == 0)
-                                {
-                                    return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
-                                }
-
-                                var didRemove = uiElements.Remove(state.path);
-                                if (!didRemove)
-                                {
-                                    return $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
-                                }
+                                StateRecorderUtils.OptimizedRemoveStringFromList(uiScenes, state.scene.name);
                             }
                             else
                             {
-                                // remove any matching game elements
-                                for (var i = gameElements.Count-1; i >= 0; i--)
+                                uiScenes = null;
+                            }
+
+                            if (uiElements == null || uiElements.Count == 0)
+                            {
+                                // only bail out here if we are where the ui is the oldest awaited key frame
+                                if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
                                 {
-                                    var element = gameElements[i];
-                                    if (element.Item1 == state.path && element.Item2 == state.rendererCount && element.Item3 == state.colliders.Count && element.Item4 == state.rigidbodies.Count)
+                                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                     {
-                                        gameElements.RemoveAt(i);
-                                        break;
+                                        return null;
                                     }
+                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
+                                }
+                                uiElements = null;
+                            }
+
+                            var didRemove = StateRecorderUtils.OptimizedRemoveStringFromList(uiElements, state.path);
+                            if (!didRemove)
+                            {
+                                // only bail out here if we are where the ui is the oldest awaited key frame
+                                if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
+                                {
+                                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                    {
+                                        return null;
+                                    }
+                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+
+                                }
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        if (gameObjectKeyFrame != null)
+                        {
+                            if (gameScenes != null && gameScenes.Count > 0 )
+                            {
+                                StateRecorderUtils.OptimizedRemoveStringFromList(gameScenes, state.scene.name);
+                            }
+                            else
+                            {
+                                gameScenes = null;
+                            }
+
+                            // remove any matching game elements
+                            for (var i = gameElements.Count - 1; i >= 0; i--)
+                            {
+                                var element = gameElements[i];
+                                if (element.Item2 == state.rendererCount && element.Item3 == collidersCount && element.Item4 == rigidbodiesCount && string.CompareOrdinal(element.Item1, state.path) == 0)
+                                {
+                                    gameElements.RemoveAt(i);
+                                    break;
                                 }
                             }
                         }
+                    }
+                }
 
-                        if (scenes.Count != 0 || specificObjectPaths.Count != 0 || uiElements.Count != 0 || gameElements.Count != 0)
+                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && (uiElements == null || uiElements.Count == 0))
+                {
+                    if (uiObjectKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && uiObjectKeyFrame.pixelHash != null)
+                    {
+                        if (uiObjectKeyFrame.pixelHash != pixelHash)
                         {
-                            var missingConditions = $"({_nextKeyFrame.tickNumber}) Wait for KeyFrame - Waiting for conditions...\r\nscenes:\r\n{string.Join("\r\n", scenes)}\r\nuiElements:\r\n{string.Join("\r\n", uiElements)}\r\ngameElements:\r\n{string.Join("\r\n", gameElements.Select(a=> $"({a.Item1}, {a.Item2}, {a.Item3}, {a.Item4})"))}\r\nspecificObjectPaths:\r\n{string.Join("\r\n", specificObjectPaths)}";
-                            // still missing something from the key frame
-                            return missingConditions;
+                            // only bail out here if we're the ui is the oldest awaited key frame
+                            if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
+                            {
+                                if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                {
+                                    return null;
+                                }
+                                return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - PixelHash '"+ pixelHash +"' does not match expected '" + uiObjectKeyFrame.pixelHash +"'";
+                            }
+                        }
+                        else
+                        {
+                            uiObjectKeyFrame.uiMatched = true;
                         }
                     }
+                    else
+                    {
+                        uiObjectKeyFrame.uiMatched = true;
+                    }
+                }
+
+                if (gameObjectKeyFrame != null && (gameScenes == null || gameScenes.Count == 0) && gameElements.Count == 0)
+                {
+                    gameObjectKeyFrame.gameMatched = true;
+                }
+
+                if (!(uiObjectKeyFrame?.uiMatched == true && gameObjectKeyFrame?.gameMatched == true ))
+                {
+                    if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                    {
+                        return null;
+                    }
+                    var missingConditions = "" + uiObjectKeyFrame?.tickNumber + ":"+ gameObjectKeyFrame?.tickNumber + " Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n" + (uiScenes != null ? string.Join("\r\n", uiScenes):null) + "\r\nuiElements:\r\n" + (uiElements != null ? string.Join("\r\n", uiElements) : null) + "\r\ngameScenes:\r\n" + (gameScenes != null ? string.Join("\r\n", gameScenes) : null) + "\r\ngameElements:\r\n" + (gameElements!= null ? string.Join("\r\n", gameElements.Select(a => "" + a.Item1+","+a.Item2+","+a.Item3+","+a.Item4)):null);
+                    // still missing something from the key frame
+                    return missingConditions;
                 }
             }
 
@@ -241,7 +363,7 @@ namespace RegressionGames.StateRecorder
             Down
         }
 
-        private void PlayInputs(List<RecordedGameObjectState> objectStates)
+        private void PlayInputs(Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
             var currentTime = CurrentTimePoint;
             if (_keyboardQueue.Count > 0)
@@ -271,7 +393,7 @@ namespace RegressionGames.StateRecorder
                     if (currentTime >= replayMouseInputEntry.startTime)
                     {
                         // send event
-                        SendMouseEvent(replayMouseInputEntry.tickNumber, replayMouseInputEntry, objectStates);
+                        SendMouseEvent(replayMouseInputEntry.tickNumber, replayMouseInputEntry, priorStates, objectStates);
                         replayMouseInputEntry.IsDone = true;
                     }
                 }
@@ -285,19 +407,49 @@ namespace RegressionGames.StateRecorder
         private void SendKeyEvent(long tickNumber, Key key, KeyState upOrDown)
         {
             var keyboard = Keyboard.current;
+
+            if (key == Key.LeftShift || key == Key.RightShift)
+            {
+                _dataContainer.IsShiftDown = upOrDown == KeyState.Down;
+            }
+
             // 1f == true == pressed state
             // 0f == false == un-pressed state
             using (DeltaStateEvent.From(keyboard, out var eventPtr))
             {
-                eventPtr.time = InputState.currentTime;
+                var time = InputState.currentTime;
+                eventPtr.time = time;
+
                 var inputControl = keyboard.allControls
                     .FirstOrDefault(a => a is KeyControl kc && kc.keyCode == key) ?? keyboard.anyKey;
 
                 if (inputControl != null)
                 {
-                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Up ? 1f : 0f, eventPtr);
                     RGDebug.LogInfo($"({tickNumber}) Sending Key Event: {key} - {upOrDown}");
+
+                    // queue input event
+                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
                     InputSystem.QueueEvent(eventPtr);
+
+                    if (upOrDown == KeyState.Up)
+                    {
+                        return;
+                    }
+
+                    // send a text event so that 'onChange' text events fire
+                    // convert key to text
+                    if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
+                    {
+                        var value = _dataContainer.IsShiftDown ? possibleValues.Item2 : possibleValues.Item1;
+                        if (value == 0x00)
+                        {
+                            RGDebug.LogError($"Found null value for keyboard input {key}");
+                            return;
+                        }
+
+                        var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
+                        InputSystem.QueueEvent(ref inputEvent);
+                    }
                 }
             }
         }
@@ -316,13 +468,13 @@ namespace RegressionGames.StateRecorder
             {
                 _mouseEventHandler = InputSystem.onEvent.ForDevice(mouse).Call(e =>
                 {
-                    var positionControl = mouse.allControls.First(a => a.name == "position") as Vector2Control;
+                    var positionControl = mouse.allControls.First(a => a is Vector2Control && a.name == "position") as Vector2Control;
                     var position = positionControl.ReadValueFromEvent(e);
 
                     var buttonsClicked = mouse.allControls.FirstOrDefault(a =>
                         a is ButtonControl abc && abc.ReadValueFromEvent(e) > 0.1f
                     ) != null;
-                    RGDebug.LogInfo("Mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
+                    RGDebug.LogDebug("Mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
                     // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
                     FindObjectOfType<VirtualMouseCursor>().SetPosition(position, buttonsClicked);
                 });
@@ -340,7 +492,12 @@ namespace RegressionGames.StateRecorder
         {
             public bool Equals(RecordedGameObjectState x, RecordedGameObjectState y)
             {
-                return x.path == y.path;
+                if (x?.worldSpaceBounds != null || y?.worldSpaceBounds != null)
+                {
+                    // for world space objects, we don't want to unique-ify based on path
+                    return false;
+                }
+                return x?.path == y?.path;
             }
 
             public int GetHashCode(RecordedGameObjectState obj)
@@ -349,36 +506,102 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        // ReSharper disable once InconsistentNaming
         private static readonly RecordedGameObjectStatePathEqualityComparer _recordedGameObjectStatePathEqualityComparer = new();
 
-        public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, List<RecordedGameObjectState> objectStates)
+        private static Vector2? _lastMousePosition;
+
+        // Finds the best object to adjust our click position to for a given mouse input
+        // Uses the exact path for UI clicks, but the normalized path for world space clicks
+        // Returns (the object, whether it was world space, the suggested mouse position, and the states list as a convenience)
+        private static (RecordedGameObjectState, bool, Vector2, IEnumerable<RecordedGameObjectState>) FindBestClickObject(Camera mainCamera, long tickNumber, ReplayMouseInputEntry mouseInput, Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
-            var screenWidth = Screen.width;
-            var screenHeight = Screen.height;
 
             // Mouse is hard... we can't use the raw position, we need to use the position relative to the current resolution
             // but.. it gets tougher than that.  Some UI elements scale differently with resolution (only horizontal, only vertical, preserve aspect, expand, etc)
             // so we have to take the bounding space of the original object(s) clicked on into consideration
             var normalizedPosition = mouseInput.NormalizedPosition;
 
+            // note that if this mouse input wasn't a click, there will be no possible objects
+            if (mouseInput.clickedObjectPaths == null || mouseInput.clickedObjectPaths.Length == 0)
+            {
+                // bail out early, no click
+                return (null, false, normalizedPosition, objectStates.Values);
+            }
+
             var theNp = new Vector3(normalizedPosition.x, normalizedPosition.y, 0f);
 
-            float smallestSize = Screen.width * Screen.height;
+            var originalPosition = mouseInput.position;
+
+            // find possible objects prioritizing the currentState, falling back to the priorState
+
+            // copy so we can remove
+            var mousePaths = mouseInput.worldPosition != null ? mouseInput.clickedObjectNormalizedPaths : mouseInput.clickedObjectPaths;
+            var pathsToFind = mousePaths.ToList();
+
+            var possibleObjects = new List<RecordedGameObjectState>();
+
+            foreach (var os in objectStates.Values)
+            {
+                if (mouseInput.worldPosition != null)
+                {
+                    if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, os.normalizedPath))
+                    {
+                        possibleObjects.Add(os);
+                        StateRecorderUtils.OptimizedRemoveStringFromList(pathsToFind, os.normalizedPath);
+                    }
+                }
+                else
+                {
+                    if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, os.path))
+                    {
+                        possibleObjects.Add(os);
+                        StateRecorderUtils.OptimizedRemoveStringFromList(pathsToFind, os.path);
+                    }
+                }
+            }
+
+            // still have some objects we didnt' find in the current state, check previous state
+            if (pathsToFind.Count > 0)
+            {
+                foreach (var os in objectStates.Values)
+                {
+                    if (mouseInput.worldPosition != null)
+                    {
+                        if (StateRecorderUtils.OptimizedContainsStringInList(pathsToFind, os.normalizedPath))
+                        {
+                            possibleObjects.Add(os);
+                        }
+                    }
+                    else
+                    {
+                        if (StateRecorderUtils.OptimizedContainsStringInList(pathsToFind, os.path))
+                        {
+                            possibleObjects.Add(os);
+                        }
+                    }
+                }
+            }
+
+            var cos = possibleObjects.OrderBy(a =>
+            {
+                var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
+                return (theNp - closestPointInA).sqrMagnitude;
+            });
+            possibleObjects = cos.Distinct(_recordedGameObjectStatePathEqualityComparer)
+                .ToList(); // select only the first entry of each path for ui elements; uses ToList due to multiple iterations of this structure later in the code to avoid multiple enumeration
+
+            var screenWidth = Screen.width;
+            var screenHeight = Screen.height;
+            float smallestSize = screenWidth * screenHeight;
 
             RecordedGameObjectState bestObject = null;
+            var worldSpaceObject = false;
 
-            // find the most precise object clicked on based on paths
-            // sorted by relative distance to our normalized position
-            var possibleObjects = objectStates
-                .Where(a => mouseInput.clickedObjectPaths.Contains(a.path))
-                // sort by nearest
-                .OrderBy(a =>
-                {
-                    var closestPointInA = a.screenSpaceBounds.ClosestPoint(theNp);
-                    return (theNp - closestPointInA).sqrMagnitude;
-                }).Distinct(_recordedGameObjectStatePathEqualityComparer); // select only the first entry of each path
-            foreach (var objectToCheck in possibleObjects)
+            var possibleObjectsCount = possibleObjects.Count;
+            for (var j = 0; j < possibleObjectsCount; j++)
             {
+                var objectToCheck = possibleObjects[j];
                 var size = objectToCheck.screenSpaceBounds.size.x * objectToCheck.screenSpaceBounds.size.y;
 
                 if (bestObject == null)
@@ -399,26 +622,28 @@ namespace RegressionGames.StateRecorder
                         {
                             // use the world space click location closest to the actual object location
                             var mouseWorldPosition = mouseInput.worldPosition.Value;
-                            if (objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition))
+                            // uses the collider bounds on that object as colliders are what would drive world space objects' click detection in scripts / etc
+                            if ((objectToCheck.colliders.Count == 0 && objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition)) || objectToCheck.colliders.FirstOrDefault(a => a.collider.bounds.Contains(mouseWorldPosition)) != null)
                             {
-                                var screenPoint = Camera.main.WorldToScreenPoint(mouseWorldPosition);
+                                var screenPoint = mainCamera.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
                                 {
-                                    RGDebug.LogError($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
+                                    RGDebug.LogWarning($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
                                 }
                                 else
                                 {
-                                    bestObject = null;
+                                    bestObject = objectToCheck;
+                                    worldSpaceObject = true;
+                                    var old = normalizedPosition;
                                     // we hit one of our world objects, set the normalized position and stop looping
-                                    normalizedPosition = new Vector2((int)screenPoint.x, (int)screenPoint.y);
-                                    break; // end the foreach
+                                    normalizedPosition = new Vector2Int((int)screenPoint.x, (int)screenPoint.y);
+                                    RGDebug.LogInfo($"({tickNumber}) Adjusting world click location to ensure hit on object: " + objectToCheck.path + " oldPosition: (" + old.x + "," + old.y + "), newPosition: (" + normalizedPosition.x + "," + normalizedPosition.y + ")");
+                                    break; // end the for
                                 }
                             }
                             else
                             {
-                                // TODO: Maybe??? , should we re-write this to be more like the non world position evaluation and evaluate the 'best' objects to see if we need to shift the world click position a tiny bit to hit our objects
-                                // for now, we let that fall back to the renderer bounds evaluation of best objects
-
+                                // didn't hit a collider on this object, we fall back to the renderer bounds bestObject evaluation method, similar to ui elements
 
                                 // compare elements bounds for best match
                                 // give some threshold variance here for floating point math on sizes
@@ -433,17 +658,20 @@ namespace RegressionGames.StateRecorder
                         }
                         else
                         {
-                            // compare elements bounds for best match
-                            // give some threshold variance here for floating point math on sizes
-                            // if 2 objects are very similarly sized, we want the one closest, not picking
-                            // one based on some floating point rounding error
-                            if (size * 1.02f < smallestSize)
+                            // mouse input didn't capture a world position, so we weren't clicking on a world space object.. ignore anything not UI related from consideration
+                            if (objectToCheck.worldSpaceBounds == null)
                             {
-                                bestObject = objectToCheck;
-                                smallestSize = size;
+                                // compare elements bounds for best match
+                                // give some threshold variance here for floating point math on sizes
+                                // if 2 objects are very similarly sized, we want the one closest, not picking
+                                // one based on some floating point rounding error
+                                if (size * 1.02f < smallestSize)
+                                {
+                                    bestObject = objectToCheck;
+                                    smallestSize = size;
+                                }
                             }
                         }
-
                     }
                 }
                 else // objectToCheck.worldSpaceBounds == null
@@ -466,20 +694,30 @@ namespace RegressionGames.StateRecorder
                         bestObject = objectToCheck;
                         smallestSize = size;
                     }
-
                 }
             }
 
-            if (bestObject != null)
+            return (bestObject, worldSpaceObject, normalizedPosition, possibleObjects);
+        }
+
+        public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
+        {
+            var clickObjectResult = FindBestClickObject(Camera.main, tickNumber, mouseInput, priorStates, objectStates);
+
+            var bestObject = clickObjectResult.Item1;
+            var normalizedPosition = clickObjectResult.Item3;
+
+            // non-world space object found, make sure we hit the object
+            if (bestObject != null && !clickObjectResult.Item2)
             {
                 var clickBounds = bestObject.screenSpaceBounds;
 
-                // evaluate the bounds of the possible objects and narrow our bounding box for any that intersect these bounds
-                // ReSharper disable once PossibleMultipleEnumeration
-                foreach (var objectToCheck in possibleObjects)
+                var possibleObjects = clickObjectResult.Item4;
+                foreach(var objectToCheck in possibleObjects)
                 {
                     if (clickBounds.Intersects(objectToCheck.screenSpaceBounds))
                     {
+                        // max of the mins; and min of the maxes
                         clickBounds.SetMinMax(
                             Vector3.Max(clickBounds.min, objectToCheck.screenSpaceBounds.min),
                             Vector3.Min(clickBounds.max, objectToCheck.screenSpaceBounds.max)
@@ -490,9 +728,13 @@ namespace RegressionGames.StateRecorder
                 // make sure our click is on that object
                 if (!clickBounds.Contains(normalizedPosition))
                 {
-                    RGDebug.LogInfo($"({tickNumber}) Adjusting click location to ensure hit on object path: " + bestObject.path);
+                    var old = normalizedPosition;
                     // use the center of these bounds as our best point to click
                     normalizedPosition = new Vector2((int)clickBounds.center.x, (int)clickBounds.center.y);
+
+                    RGDebug.LogInfo($"({tickNumber}) Adjusting click location to ensure hit on object path: " + bestObject.path + " oldPosition: (" + old.x + "," + old.y + "), newPosition: (" + normalizedPosition.x + "," + normalizedPosition.y + ")");
+
+
                 }
             }
 
@@ -509,65 +751,103 @@ namespace RegressionGames.StateRecorder
                 // 0f == false == un-clicked state
                 foreach (var mouseControl in mouseControls)
                 {
-                    var controlName = mouseControl.path.Substring(mouseControl.path.LastIndexOf('/') + 1);
-                    switch (controlName)
+                    switch (mouseControl.name)
                     {
+                        case "delta":
+                            if (_lastMousePosition != null)
+                            {
+                                var delta = normalizedPosition - _lastMousePosition.Value;
+                                if (RGDebug.IsDebugEnabled)
+                                {
+                                    mouseEventString += $"delta: {delta.x},{delta.y}  ";
+                                }
+
+                                ((Vector2Control)mouseControl).WriteValueIntoEvent(delta, eventPtr);
+                            }
+                            break;
                         case "position":
-                            mouseEventString += $"position: {normalizedPosition.x},{normalizedPosition.y}  ";
+                            if (RGDebug.IsDebugEnabled)
+                            {
+                                mouseEventString += $"position: {normalizedPosition.x},{normalizedPosition.y}  ";
+                            }
+
                             ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
                             break;
                         case "scroll":
-                            if (mouseInput.scroll.x < -0.1f || mouseInput.scroll.x > 0.1f || mouseInput.scroll.y < -0.1f || mouseInput.scroll.y > 0.1f)
+                            if (RGDebug.IsDebugEnabled)
                             {
-                                mouseEventString += $"scroll: {mouseInput.scroll.x},{mouseInput.scroll.y}  ";
+                                if (mouseInput.scroll.x < -0.1f || mouseInput.scroll.x > 0.1f || mouseInput.scroll.y < -0.1f || mouseInput.scroll.y > 0.1f)
+                                {
+                                    mouseEventString += $"scroll: {mouseInput.scroll.x},{mouseInput.scroll.y}  ";
+                                }
                             }
 
                             ((DeltaControl)mouseControl).WriteValueIntoEvent(mouseInput.scroll, eventPtr);
                             break;
                         case "leftButton":
-                            if (mouseInput.leftButton)
+                            if (RGDebug.IsDebugEnabled)
                             {
-                                mouseEventString += $"leftButton  ";
+                                if (mouseInput.leftButton)
+                                {
+                                    mouseEventString += $"leftButton  ";
+                                }
                             }
 
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.leftButton ? 1f : 0f, eventPtr);
                             break;
                         case "middleButton":
-                            if (mouseInput.middleButton)
+                            if (RGDebug.IsDebugEnabled)
                             {
-                                mouseEventString += $"middleButton  ";
+                                if (mouseInput.middleButton)
+                                {
+                                    mouseEventString += $"middleButton  ";
+                                }
                             }
 
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.middleButton ? 1f : 0f, eventPtr);
                             break;
                         case "rightButton":
-                            if (mouseInput.rightButton)
+                            if (RGDebug.IsDebugEnabled)
                             {
-                                mouseEventString += $"rightButton  ";
+                                if (mouseInput.rightButton)
+                                {
+                                    mouseEventString += $"rightButton  ";
+                                }
                             }
 
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.rightButton ? 1f : 0f, eventPtr);
                             break;
                         case "forwardButton":
-                            if (mouseInput.forwardButton)
+                            if (RGDebug.IsDebugEnabled)
                             {
-                                mouseEventString += $"forwardButton  ";
+                                if (mouseInput.forwardButton)
+                                {
+                                    mouseEventString += $"forwardButton  ";
+                                }
                             }
 
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.forwardButton ? 1f : 0f, eventPtr);
                             break;
                         case "backButton":
-                            if (mouseInput.backButton)
+                            if (RGDebug.IsDebugEnabled)
                             {
-                                mouseEventString += $"backButton  ";
+                                if (mouseInput.backButton)
+                                {
+                                    mouseEventString += $"backButton  ";
+                                }
                             }
 
                             ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.backButton ? 1f : 0f, eventPtr);
                             break;
                     }
                 }
+                _lastMousePosition = normalizedPosition;
 
-                RGDebug.LogInfo($"({tickNumber}) Sending Mouse Event - {mouseEventString}");
+                if (RGDebug.IsDebugEnabled)
+                {
+                    RGDebug.LogDebug($"({tickNumber}) Sending Mouse Event - {mouseEventString}");
+                }
+
                 InputSystem.QueueEvent(eventPtr);
             }
         }
@@ -581,25 +861,37 @@ namespace RegressionGames.StateRecorder
                     _lastStartTime = Time.unscaledTime;
                     _startPlaying = false;
                     _isPlaying = true;
+                    _screenRecorder.StartRecording(_dataContainer.SessionId);
                 }
 
                 if (_isPlaying)
                 {
-                    var objectStates = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
+                    var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
+                    var priorStates = states?.Item1;
+                    var currentStates = states?.Item2;
 
-                    CheckWaitForKeyStateMatch(objectStates);
+                    var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+                    string pixelHash = null;
+                    if (gameFacePixelHashObserver != null)
+                    {
+                        gameFacePixelHashObserver.SetActive(true);
+                        // don't clear the value on read during playback
+                        pixelHash = gameFacePixelHashObserver.GetPixelHash(false);
 
-                    PlayInputs(objectStates);
+                    }
+                    CheckWaitForKeyStateMatch(currentStates, pixelHash);
+
+                    PlayInputs(priorStates, currentStates);
                 }
             }
 
-            if (_isPlaying && _nextKeyFrame == null && _keyboardQueue.Count == 0 && _mouseQueue.Count == 0)
+            if (_isPlaying && _nextKeyFrames.Count == 0 && _keyboardQueue.Count == 0 && _mouseQueue.Count == 0)
             {
                 SendMouseEvent(0, new ReplayMouseInputEntry()
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure
                     position = new Vector2Int(Screen.width +20, -20)
-                }, new List<RecordedGameObjectState>());
+                }, null, ScreenRecorder._emptyStateDictionary);
                 // we hit the end of the replay
                 Stop();
                 _replaySuccessful = true;

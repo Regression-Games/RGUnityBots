@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
+using StateRecorder;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Playables;
 
 namespace RegressionGames.StateRecorder
 {
@@ -17,27 +16,47 @@ namespace RegressionGames.StateRecorder
         public long tickNumber;
         public double time;
 
+        public KeyFrameType[] keyFrameTypes;
+
         /**
-         * <summary>the scenes for objects set must match this list (no duplicates allowed in the list)</summary>
+         * <summary>Have the UI element/scene related conditions for this key frame been met</summary>
          */
-        public string[] scenes;
+        public bool uiMatched;
+
+        /**
+         * <summary>Have the game element/scene related conditions for this key frame been met</summary>
+         */
+        public bool gameMatched;
+
+        public bool IsMatched => uiMatched && gameMatched;
+
+        /**
+         * <summary>the scenes for ui elements must match this list (no duplicates allowed in the list)</summary>
+         */
+        public string[] uiScenes;
 
         /**
          * <summary>the ui elements visible must match this list exactly; (could be similar/duplicate paths in the list, need to match value + # of appearances)</summary>
          */
         public string[] uiElements;
 
+
+        /**
+         * <summary>the scenes for game elements must match this list (no duplicates allowed in the list)</summary>
+         */
+        public string[] gameScenes;
+
         /**
          * <summary>the in game elements visible must include everything in this list; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)
          * This will also try to match the number of renderers and colliders for each object</summary>
          */
         // (path, #renderers, #colliders, #rigidbodies)
-        public (string,int,int,int)[] gameElements;
+        public (string, int,int,int)[] gameElements;
 
         /**
-         * <summary>used for mouse input events to confirm that what they clicked on path wise exists; (could be similar/duplicate paths in the list, need to match value + >= # of appearances)</summary>
+         * <summary>Hash value of the pixels on screen. (Used for GameFace or other objectless UI systems)</summary>
          */
-        public string[] specificObjectPaths;
+        public string pixelHash;
     }
 
     [Serializable]
@@ -65,10 +84,11 @@ namespace RegressionGames.StateRecorder
         // scroll wheel
         public Vector2 scroll;
         public string[] clickedObjectPaths;
+        public string[] clickedObjectNormalizedPaths;
         public bool IsDone;
 
         // gives the position relative to the current screen size
-        public Vector2 NormalizedPosition => new()
+        public Vector2Int NormalizedPosition => new()
         {
             x = (int)(position.x * (Screen.width / (float)screenSize.x)),
             y = (int)(position.y * (Screen.height / (float)screenSize.y))
@@ -92,9 +112,13 @@ namespace RegressionGames.StateRecorder
 
     public class ReplayDataContainer
     {
+        public string SessionId { get; private set; } = null;
+
         private readonly Queue<ReplayKeyFrameEntry> _keyFrames = new();
 
         private readonly Queue<ReplayKeyboardInputEntry> _keyboardData = new();
+
+        public bool IsShiftDown = false;
 
         private readonly Dictionary<string, ReplayKeyboardInputEntry> _pendingEndKeyboardInputs = new();
 
@@ -167,7 +191,7 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private void ParseReplayZip(string zipFilePath)
+        public void ParseReplayZip(string zipFilePath)
         {
             using var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Read);
 
@@ -175,34 +199,57 @@ namespace RegressionGames.StateRecorder
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
             ReplayFrameStateData firstFrame = null;
+            ReplayFrameStateData priorFrame = null;
             foreach (var entry in entries)
             {
                 using var sr = new StreamReader(entry.Open());
                 var frameData = JsonConvert.DeserializeObject<ReplayFrameStateData>(sr.ReadToEnd());
 
-                if (firstFrame == null)
+                firstFrame ??= frameData;
+
+                if (SessionId == null)
                 {
-                    firstFrame = frameData;
+                    SessionId = frameData.sessionId;
                 }
 
                 // process key frame info
                 ReplayKeyFrameEntry keyFrame = null;
                 if (frameData.keyFrame.Length > 0)
                 {
+                    var uiElements = new List<string>();
+                    var gameElements = new List<(string,int,int,int)>();
+                    var uiScenes = new HashSet<string>();
+                    var gameScenes = new HashSet<string>();
+                    foreach (var replayGameObjectState in frameData.state)
+                    {
+                        if (replayGameObjectState.worldSpaceBounds == null)
+                        {
+                            uiElements.Add(replayGameObjectState.path);
+                            uiScenes.Add(replayGameObjectState.scene);
+                        }
+                        else
+                        {
+                            gameElements.Add((replayGameObjectState.path, replayGameObjectState.rendererCount, replayGameObjectState.colliders.Count, replayGameObjectState.rigidbodies.Count));
+                            gameScenes.Add(replayGameObjectState.scene);
+                        }
+                    }
                     keyFrame = new ReplayKeyFrameEntry()
                     {
                         tickNumber = frameData.tickNumber,
+                        pixelHash = frameData.pixelHash,
+                        keyFrameTypes = frameData.keyFrame,
                         time = frameData.time - firstFrame.time,
-                        scenes = frameData.state.Select(a => a.scene).Distinct().ToArray(),
-                        uiElements = frameData.state.Where(a => a.worldSpaceBounds == null).Select(a => a.path).ToArray(),
-                        gameElements = frameData.state.Where(a=>a.worldSpaceBounds != null).Select(a => (a.path, a.rendererCount, a.colliders.Count, a.rigidbodies.Count)).ToArray()
+                        uiScenes = uiScenes.ToArray(),
+                        uiElements = uiElements.ToArray(),
+                        gameScenes = gameScenes.ToArray(),
+                        gameElements = gameElements.ToArray()
                     };
                     _keyFrames.Enqueue(keyFrame);
                 }
 
                 foreach (var inputData in frameData.inputs.keyboard)
                 {
-                    if (inputData is KeyboardInputActionData keyboardInputData)
+                    if (inputData is { } keyboardInputData)
                     {
                         if (_pendingEndKeyboardInputs.TryGetValue(keyboardInputData.binding, out var theData))
                         {
@@ -234,18 +281,18 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                // go through the mouse input data and setup the different entries
-                // if they are a new button, add that to the key frame data
-                List<string> specificGameObjectPaths = new();
 
                 foreach (var inputData in frameData.inputs.mouse)
                 {
-                    if (inputData is MouseInputActionData mouseInputData)
+                    if (inputData is { } mouseInputData)
                     {
-                        // in the future, we may validate the object ids on mouse release.. but in early testing this had timing issues
-                        if (keyFrame != null && mouseInputData.clickedObjectIds != null && mouseInputData.IsButtonClicked)
+                        // go through the mouse input data and setup the different entries
+                        (List<string>,List<string>) specificGameObjectPaths = (null,null);
+
+                        // we also validate the object ids on mouse release to adjust click positions
+                        if (keyFrame != null && mouseInputData.clickedObjectIds != null )
                         {
-                            specificGameObjectPaths = FindObjectsWithIds(mouseInputData.clickedObjectIds, frameData.state);
+                            specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state);
                         }
 
                         _mouseData.Enqueue(new ReplayMouseInputEntry()
@@ -253,7 +300,8 @@ namespace RegressionGames.StateRecorder
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
-                            clickedObjectPaths = specificGameObjectPaths.ToArray(),
+                            clickedObjectPaths = specificGameObjectPaths.Item1?.ToArray() ?? Array.Empty<string>(),
+                            clickedObjectNormalizedPaths = specificGameObjectPaths.Item2?.ToArray() ?? Array.Empty<string>(),
                             position = mouseInputData.position,
                             worldPosition = mouseInputData.worldPosition,
                             leftButton = mouseInputData.leftButton,
@@ -266,10 +314,7 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                if (keyFrame != null)
-                {
-                    keyFrame.specificObjectPaths = specificGameObjectPaths.ToArray();
-                }
+                priorFrame = frameData;
             }
 
             if (firstFrame == null)
@@ -279,10 +324,39 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private List<string> FindObjectsWithIds(int[] objectIds, List<ReplayGameObjectState> state)
+        private (List<string>,List<string>) FindObjectPathsWithIds(int[] objectIds, List<ReplayGameObjectState> priorState, List<ReplayGameObjectState> state)
         {
-            var currentStateEntries = state.Where(a => objectIds.Contains(a.id)).Select(a => a.path);
-            return currentStateEntries.ToList();
+            // look in current state first, then fall back to prior state
+            // copy me
+            var objectIdsToFind = objectIds.ToList();
+            List<string> objectPathsFound = new();
+            List<string> objectPathsNormalizedFound = new();
+
+            var stateCount = state.Count;
+            for (var i = 0; i < stateCount; i++)
+            {
+                var so = state[i];
+                if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
+                {
+                    objectPathsFound.Add(so.path);
+                    objectPathsNormalizedFound.Add(so.normalizedPath);
+                }
+            }
+
+            if (objectIdsToFind.Count > 0 && priorState != null)
+            {
+                stateCount = priorState.Count;
+                for (var i = 0; i < stateCount; i++)
+                {
+                    var so = priorState[i];
+                    if (StateRecorderUtils.OptimizedRemoveIntFromList(objectIdsToFind, so.id))
+                    {
+                        objectPathsFound.Add(so.path);
+                        objectPathsNormalizedFound.Add(so.normalizedPath);
+                    }
+                }
+            }
+            return (objectPathsFound, objectPathsNormalizedFound);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading.Tasks;
 using RegressionGames;
 using SimpleFileBrowser;
 using RegressionGames.StateRecorder;
@@ -50,8 +51,11 @@ namespace Unity.Multiplayer.Samples.BossRoom
 
         public void ChooseReplay()
         {
-            //File choose and load the replay
-            StartCoroutine(ShowFileLoadDialog());
+            if (!_parsingZipFile)
+            {
+                //File choose and load the replay
+                StartCoroutine(ShowFileLoadDialog());
+            }
         }
 
         private IEnumerator ShowFileLoadDialog()
@@ -76,25 +80,67 @@ namespace Unity.Multiplayer.Samples.BossRoom
             }
         }
 
+        private volatile bool _parsingZipFile;
+
         void OnFilesSelected(string[] filePaths)
         {
             // Get the file path of the first selected file
             var filePath = filePaths[0];
 
+            _parsingZipFile = true;
+            recordButton.SetActive(false);
+            chooseReplayButton.SetActive(false);
+
+            // do this on background thread
+            Task.Run(() => ProcessDataContainerZipAndSetup(filePath));
+        }
+
+        private bool _justLoaded;
+
+        private void ProcessDataContainerZipAndSetup(String filePath)
+        {
             try
             {
-                // setup the new replay data
-                _replayDataController.SetDataContainer(new ReplayDataContainer(filePath));
-
-                SetDefaultButtonStates();
-                // set button states
-                playButton.SetActive(true);
-                stopButton.SetActive(true);
-                recordButton.SetActive(false);
+                // do this on background thread
+                var dataContainer = new ReplayDataContainer(filePath);
+                _replayLoadedNextUpdate = dataContainer;
             }
             catch (Exception e)
             {
                 RGDebug.LogException(e);
+            }
+            finally
+            {
+                _parsingZipFile = false;
+                _justLoaded = true;
+            }
+        }
+
+        private volatile ReplayDataContainer _replayLoadedNextUpdate;
+
+        private void Update()
+        {
+            if (_justLoaded)
+            {
+                _justLoaded = false;
+                if (_replayLoadedNextUpdate != null)
+                {
+                    // setup the new replay data
+                    _replayDataController.SetDataContainer(_replayLoadedNextUpdate);
+                    _replayLoadedNextUpdate = null;
+                    SetDefaultButtonStates();
+                    // set button states
+                    chooseReplayButton.SetActive(false);
+                    playButton.SetActive(true);
+                    stopButton.SetActive(true);
+                    recordButton.SetActive(false);
+                }
+                else
+                {
+                    // failed to load
+                    SetDefaultButtonStates();
+                }
+
             }
         }
 
@@ -121,6 +167,8 @@ namespace Unity.Multiplayer.Samples.BossRoom
             _recording = !_recording;
             if (!_recording)
             {
+                recordingPulse.Stop();
+                ScreenRecorder.GetInstance()?.StopRecording();
                 SetDefaultButtonStates();
             }
             else
@@ -128,10 +176,12 @@ namespace Unity.Multiplayer.Samples.BossRoom
                 SetDefaultButtonStates();
                 chooseReplayButton.SetActive(false);
                 recordButton.SetActive(true);
+                recordingPulse.Fast();
+                ScreenRecorder.GetInstance()?.StartRecording(null);
             }
         }
 
-        private string _lastKeyFrameError = null;
+        private string _lastKeyFrameError;
 
         private void LateUpdate()
         {
@@ -161,17 +211,6 @@ namespace Unity.Multiplayer.Samples.BossRoom
             {
                 _lastKeyFrameError = null;
                 warningIcon.SetActive(false);
-            }
-
-            if (_recording)
-            {
-                recordingPulse.Fast();
-                ScreenRecorder.GetInstance()?.StartRecording();
-            }
-            else
-            {
-                recordingPulse.Stop();
-                ScreenRecorder.GetInstance()?.StopRecording();
             }
         }
     }

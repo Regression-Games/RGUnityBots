@@ -1,12 +1,54 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
+using StateRecorder;
 using TMPro;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class TextMeshProUGUIJsonConverter : Newtonsoft.Json.JsonConverter
+    public class TextMeshProUGUIJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
+        // re-usable and large enough to fit all sizes
+        private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+
+        public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
+        {
+            WriteToStringBuilder(stringBuilder, (TextMeshProUGUI)behaviour);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, TextMeshProUGUI val)
+        {
+            if (val == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            stringBuilder.Append("{\"text\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.text);
+            stringBuilder.Append(",\"textStyle\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.textStyle.name);
+            stringBuilder.Append(",\"font\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.font.name);
+            stringBuilder.Append(",\"fontStyle\":\"");
+            stringBuilder.Append(val.fontStyle.ToString());
+            stringBuilder.Append("\",\"fontSize\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.fontSize);
+            stringBuilder.Append(",\"color\":");
+            ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
+            stringBuilder.Append(",\"raycastTarget\":");
+            stringBuilder.Append(val.raycastTarget ? "true" : "false");
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(TextMeshProUGUI val)
+        {
+            _stringBuilder.Clear();
+            WriteToStringBuilder(_stringBuilder, val);
+            return _stringBuilder.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -15,17 +57,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var val = (TextMeshProUGUI)value;
                 // raw is way faster than using the libraries
-                writer.WriteRawValue("{\"text\":" + JsonConvert.ToString(val.text)
-                                                  + ",\"textStyle\":" + JsonConvert.ToString(val.textStyle.name)
-                                                  + ",\"font\":" + JsonConvert.ToString(val.font.name)
-                                                  // enum doesn't need json escaping
-                                                  + ",\"fontStyle\":\"" + val.fontStyle
-                                                  + "\",\"fontSize\":" + val.fontSize
-                                                  + ",\"color\":" + ColorJsonConverter.ToJsonString(val.color)
-                                                  + ",\"raycastTarget\":" + (val.raycastTarget ? "true" : "false")
-                                                  + "}");
+                writer.WriteRawValue(ToJsonString((TextMeshProUGUI)value));
             }
         }
 
