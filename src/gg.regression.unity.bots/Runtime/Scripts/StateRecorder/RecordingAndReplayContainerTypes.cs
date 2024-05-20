@@ -123,7 +123,7 @@ namespace RegressionGames.StateRecorder
         public double previousTickTime;
         public int framesSincePreviousTick;
         public int fps;
-        public double? cpuTimeSincePreviousTick;
+        public long? cpuTimeSincePreviousTick;
         public long? memory;
         public long? gcMemory;
         public EngineStatsData engineStats;
@@ -137,7 +137,7 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append(",\"fps\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, fps);
             stringBuilder.Append(",\"cpuTimeSincePreviousTick\":");
-            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, cpuTimeSincePreviousTick);
+            LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, cpuTimeSincePreviousTick);
             stringBuilder.Append(",\"memory\":");
             LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, memory);
             stringBuilder.Append(",\"gcMemory\":");

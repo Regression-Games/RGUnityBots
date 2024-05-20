@@ -12,8 +12,8 @@ namespace StateRecorder
         // Used heap size (in bytes) that is garbage collected
         public long? gcUsedMemory;
 
-        // Time spent (in milliseconds) by the CPU on the main thread since the last tick
-        public double? cpuTimeSincePreviousTick;
+        // Time spent (in nanoseconds) by the CPU on the main thread since the last tick
+        public long? cpuTimeSincePreviousTick;
     }
 
     public class ProfilerObserver : MonoBehaviour
@@ -52,9 +52,9 @@ namespace StateRecorder
         /**
          * Computes the sum of the last N values of the round-robin sample buffer.
          */
-        private static double SumOfLastFrames(ProfilerRecorder recorder, List<ProfilerRecorderSample> samples, int numFrames, out int framesRead)
+        private static long SumOfLastFrames(ProfilerRecorder recorder, List<ProfilerRecorderSample> samples, int numFrames, out int framesRead)
         {
-            double sum = 0.0;
+            long sum = 0;
             framesRead = 0;
             for (int frameIndex = recorder.Count - 1; frameIndex >= 0 && framesRead < numFrames; --frameIndex)
             {
@@ -90,11 +90,11 @@ namespace StateRecorder
                 _cpuTimeSampleBuf.Clear();
                 _cpuTimeRecorder.CopyTo(_cpuTimeSampleBuf);
                 int framesRead;
-                double cpuTime = SumOfLastFrames(_cpuTimeRecorder, _cpuTimeSampleBuf, frameCountSinceLastTick,
+                long cpuTime = SumOfLastFrames(_cpuTimeRecorder, _cpuTimeSampleBuf, frameCountSinceLastTick,
                     out framesRead);
                 if (framesRead == frameCountSinceLastTick) // only report the total cpuTime if there were sufficient frames recorded for the request
                 {
-                    result.cpuTimeSincePreviousTick = cpuTime * 1e-6; // convert to milliseconds
+                    result.cpuTimeSincePreviousTick = cpuTime;
                 }
             }
             return result;
