@@ -521,7 +521,7 @@ namespace RegressionGames.StateRecorder
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
-                    ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler();
+                    ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler(_frameCountSinceLastTick);
 
                     try
                     {
@@ -532,8 +532,9 @@ namespace RegressionGames.StateRecorder
                             framesSincePreviousTick = _frameCountSinceLastTick,
                             previousTickTime = _lastCvFrameTime,
                             fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
-                            cpuTime = profilerResult.cpuTime,
+                            cpuTimeSincePreviousTick = profilerResult.cpuTimeSincePreviousTick,
                             memory = profilerResult.systemUsedMemory,
+                            gcMemory = profilerResult.gcUsedMemory,
                             engineStats = new EngineStatsData()
                             {
 #if UNITY_EDITOR
