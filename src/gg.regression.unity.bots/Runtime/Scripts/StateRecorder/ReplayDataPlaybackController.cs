@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using StateRecorder;
 using TMPro;
+using UnityEditor.AnimatedValues;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -17,8 +18,8 @@ namespace RegressionGames.StateRecorder
 {
     public class ReplayDataPlaybackController : MonoBehaviour
     {
-        [Tooltip("UI Element keyframe enforcement mode during replay.  Default is 'At Least'")]
-        public UIReplayEnforcement uiReplayEnforcement = UIReplayEnforcement.AtLeast;
+        [Tooltip("UI Element keyframe enforcement mode during replay.  Default is 'Delta'")]
+        public UIReplayEnforcement uiReplayEnforcement = UIReplayEnforcement.Delta;
 
         private ReplayDataContainer _dataContainer;
 
@@ -288,43 +289,6 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private static (bool,bool) MarkElementFoundInList(UIReplayEnforcement uiReplayEnforcement, List<(string, bool)> list, string theString)
-        {
-            // for strict.. the element MUST be found and NOT already marked
-            // for atleast .. we just go through and mark.. as long as everything is marked at the end.. we're good
-
-            var found = false;
-            if (list != null)
-            {
-                var listCount = list.Count;
-                for (var i = 0; i < listCount; i++)
-                {
-                    if (string.CompareOrdinal(list[i].Item1, theString) == 0)
-                    {
-                        found = true;
-                        if (!list[i].Item2)
-                        {
-                            list[i] = (list[i].Item1, true);
-                            return (true, true);
-                        }
-                    }
-                }
-            }
-
-            // only for strict should we say false here
-            return (found, uiReplayEnforcement != UIReplayEnforcement.Strict);
-        }
-
-        private static bool AllUIElementFound(List<(string, bool)> list)
-        {
-            if (list == null)
-            {
-                return true;
-            }
-            // make sure they were all marked
-            return list.All(a => a.Item2);
-        }
-
         private string CheckKeyFrameState(int keyFrameCheckCount, Dictionary<int,RecordedGameObjectState> objectStates, string pixelHash)
         {
             var nextKeyFramesCount = _nextKeyFrames.Count;
@@ -352,18 +316,15 @@ namespace RegressionGames.StateRecorder
 
                 var eldestKeyFrame = uiObjectKeyFrame == null ? gameObjectKeyFrame : gameObjectKeyFrame == null ? uiObjectKeyFrame : uiObjectKeyFrame.tickNumber < gameObjectKeyFrame.tickNumber ? uiObjectKeyFrame : gameObjectKeyFrame;
 
-                // copy these with .ToList() so we can remove from them
-                var uiScenes = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiScenes.ToList();
-                var uiElements = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiElements.Select(a => (a,false)).ToList();
+                // copy these with .ToList() / .ToDictionary() so we can remove from them
                 var gameScenes = gameObjectKeyFrame?.gameScenes.ToList();
+                var uiScenes = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiScenes.ToList();
+
+                var uiElements = uiReplayEnforcement == UIReplayEnforcement.None ? null : uiObjectKeyFrame?.uiElementsCounts.ToDictionary(a=>a.Key, a=>a.Value);
                 var gameElements = gameObjectKeyFrame?.gameElements.ToList();
 
-                var myUIReplayEnforcementMode = uiReplayEnforcement;
-                if (uiElements != null && uiElements.Count == 0)
-                {
-                    // if no UI elements at all, we need to strictly wait for that as we're most likely on a scene load case
-                    myUIReplayEnforcementMode = UIReplayEnforcement.Strict;
-                }
+                // if no UI elements at all, enforce strict as this is likely a scene transition
+                var myReplayEnforcementMode = uiElements?.Count == 0 ? UIReplayEnforcement.Strict : uiReplayEnforcement;
 
                 foreach (var state in objectStates.Values)
                 {
@@ -382,34 +343,44 @@ namespace RegressionGames.StateRecorder
                                 uiScenes = null;
                             }
 
-                            var didFind = MarkElementFoundInList(myUIReplayEnforcementMode, uiElements, state.path);
-                            if (myUIReplayEnforcementMode == UIReplayEnforcement.Strict)
+                            if (uiElements != null)
                             {
-                                if (!didFind.Item1)
+                                if (uiElements.TryGetValue(state.path, out var count))
                                 {
-                                    // only bail out here if we are where the ui is the oldest awaited key frame
-                                    if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
+                                    if (myReplayEnforcementMode == UIReplayEnforcement.Strict && count <= 0)
                                     {
-                                        if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                        // only bail out here if we are where the ui is the oldest awaited key frame
+                                        if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
                                         {
-                                            return null;
-                                        }
+                                            if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                            {
+                                                return null;
+                                            }
 
-                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
+                                            return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                        }
                                     }
+                                    uiElements[state.path] = count - 1;
                                 }
-
-                                if (!didFind.Item2)
+                                else
                                 {
-                                    // only bail out here if we are where the ui is the oldest awaited key frame
-                                    if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
+                                    if (myReplayEnforcementMode == UIReplayEnforcement.Strict)
                                     {
-                                        if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                        // only bail out here if we are where the ui is the oldest awaited key frame
+                                        if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
                                         {
-                                            return null;
-                                        }
+                                            if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
+                                            {
+                                                return null;
+                                            }
 
-                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + state.path;
+                                            return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + state.path;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // start to track the count of un-expected stuff
+                                        uiElements[state.path] = -1;
                                     }
                                 }
                             }
@@ -442,10 +413,66 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                // for strict or atleast.. we needed to find all the expected key frame elements
-                var allUIElementsFound = AllUIElementFound(uiElements);
+                // for strict.. we needed to find all the expected key frame elements
+                var allUIElementsFound = true;
+                if (myReplayEnforcementMode != UIReplayEnforcement.Delta)
+                {
+                    allUIElementsFound = uiElements?.All(a => a.Value == 0) ?? true;
+                }
+                else
+                {
+                    if (uiObjectKeyFrame != null)
+                    {
+                        foreach (var stateElementDeltaType in uiObjectKeyFrame.uiElementsDeltas)
+                        {
+                            if (uiElements.TryGetValue(stateElementDeltaType.Key, out var theVal))
+                            {
+                                if (stateElementDeltaType.Value == StateElementDeltaType.Decreased)
+                                {
+                                    if (theVal < 0)
+                                    {
+                                        // was more than before
+                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + stateElementDeltaType.Key;
+                                    }
+                                }
+                                else if (stateElementDeltaType.Value == StateElementDeltaType.Increased)
+                                {
+                                    if (theVal > 0)
+                                    {
+                                        // was the same or less than before
+                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too few instances of UIElement:\r\n" + stateElementDeltaType.Key;
+                                    }
+                                }
+                                else if (stateElementDeltaType.Value == StateElementDeltaType.Zero)
+                                {
+                                    if (theVal != 0)
+                                    {
+                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + stateElementDeltaType.Key;
+                                    }
+                                }
+                                else // non-zero
+                                {
+                                    // make sure we found at least 1
+                                    if (uiObjectKeyFrame.uiElementsCounts[stateElementDeltaType.Key] - theVal <= 0)
+                                    {
+                                        return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too few instances of UIElement:\r\n" + stateElementDeltaType.Key;
+                                    }
+                                }
 
-                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && (uiElements == null || uiElements.Count == 0 || allUIElementsFound))
+                            }
+                            else
+                            {
+                                // we didn't find the keyframe entry in the current state
+                                if (stateElementDeltaType.Value != StateElementDeltaType.Zero)
+                                {
+                                    return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Missing expected UIElement:\r\n" + stateElementDeltaType.Key;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (uiObjectKeyFrame != null && (uiScenes == null || uiScenes.Count == 0) && (uiElements == null || allUIElementsFound))
                 {
                     if (uiObjectKeyFrame.keyFrameTypes.Contains(KeyFrameType.UI_PIXELHASH) && uiObjectKeyFrame.pixelHash != null)
                     {
@@ -483,7 +510,7 @@ namespace RegressionGames.StateRecorder
                     {
                         return null;
                     }
-                    var missingConditions = "" + uiObjectKeyFrame?.tickNumber + ":"+ gameObjectKeyFrame?.tickNumber + " Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n" + (uiScenes != null ? string.Join("\r\n", uiScenes):null) + "\r\nuiElements:\r\n" + (uiElements != null ? string.Join("\r\n", uiElements) : null) + "\r\ngameScenes:\r\n" + (gameScenes != null ? string.Join("\r\n", gameScenes) : null) + "\r\ngameElements:\r\n" + (gameElements!= null ? string.Join("\r\n", gameElements.Select(a => "" + a.Item1+","+a.Item2+","+a.Item3+","+a.Item4)):null);
+                    var missingConditions = "" + uiObjectKeyFrame?.tickNumber + ":"+ gameObjectKeyFrame?.tickNumber + " Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n" + (uiScenes != null ? string.Join("\r\n", uiScenes):null) + "\r\nuiElements:\r\n" + (uiElements != null ? string.Join("\r\n", uiElements.Keys) : null) + "\r\ngameScenes:\r\n" + (gameScenes != null ? string.Join("\r\n", gameScenes) : null) + "\r\ngameElements:\r\n" + (gameElements!= null ? string.Join("\r\n", gameElements.Select(a => "" + a.Item1+","+a.Item2+","+a.Item3+","+a.Item4)):null);
                     // still missing something from the key frame
                     return missingConditions;
                 }

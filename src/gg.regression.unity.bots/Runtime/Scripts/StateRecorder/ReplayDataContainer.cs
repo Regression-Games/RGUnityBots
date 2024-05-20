@@ -40,6 +40,10 @@ namespace RegressionGames.StateRecorder
          */
         public string[] uiElements;
 
+        public Dictionary<string, int> uiElementsCounts;
+
+        public Dictionary<string, StateElementDeltaType> uiElementsDeltas;
+
 
         /**
          * <summary>the scenes for game elements must match this list (no duplicates allowed in the list)</summary>
@@ -52,6 +56,10 @@ namespace RegressionGames.StateRecorder
          */
         // (path, #renderers, #colliders, #rigidbodies)
         public (string, int,int,int)[] gameElements;
+
+        public Dictionary<string, int> gameElementsCounts;
+
+        public Dictionary<string, StateElementDeltaType> gameElementsDeltas;
 
         /**
          * <summary>Hash value of the pixels on screen. (Used for GameFace or other objectless UI systems)</summary>
@@ -236,6 +244,8 @@ namespace RegressionGames.StateRecorder
 
             ReplayFrameStateData firstFrame = null;
             ReplayFrameStateData priorFrame = null;
+
+            ReplayKeyFrameEntry priorKeyFrame = null;
             foreach (var entry in entries)
             {
                 using var sr = new StreamReader(entry.Open());
@@ -256,19 +266,110 @@ namespace RegressionGames.StateRecorder
                     var gameElements = new List<(string,int,int,int)>();
                     var uiScenes = new HashSet<string>();
                     var gameScenes = new HashSet<string>();
+
+                    var uiElementsCounts = new Dictionary<string, int>();
+                    var gameElementsCounts = new Dictionary<string, int>();
+
                     foreach (var replayGameObjectState in frameData.state)
                     {
                         if (replayGameObjectState.worldSpaceBounds == null)
                         {
                             uiElements.Add(replayGameObjectState.path);
                             uiScenes.Add(replayGameObjectState.scene);
+
+                            uiElementsCounts.TryAdd(replayGameObjectState.path, 0);
+                            uiElementsCounts[replayGameObjectState.path]++;
                         }
                         else
                         {
                             gameElements.Add((replayGameObjectState.path, replayGameObjectState.rendererCount, replayGameObjectState.colliders.Count, replayGameObjectState.rigidbodies.Count));
                             gameScenes.Add(replayGameObjectState.scene);
+
+                            gameElementsCounts.TryAdd(replayGameObjectState.path, 0);
+                            gameElementsCounts[replayGameObjectState.path]++;
                         }
                     }
+
+                    var uiElementsDeltas = new Dictionary<string, StateElementDeltaType>();
+                    var gameElementsDeltas = new Dictionary<string, StateElementDeltaType>();
+
+                    if (priorKeyFrame != null)
+                    {
+                        foreach (var elementsCount in uiElementsCounts)
+                        {
+                            if (priorKeyFrame.uiElementsCounts.TryGetValue(elementsCount.Key, out var count))
+                            {
+                                // this entry was in the prior frame
+                                if (count > elementsCount.Value)
+                                {
+                                    uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.Decreased;
+                                }
+                                else if (count < elementsCount.Value)
+                                {
+                                    uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.Increased;
+                                }
+                                else
+                                {
+                                    uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
+                                }
+                            }
+                            else
+                            {
+                                // this entry wasn't in the prior frame
+                                uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
+                            }
+                            // now check for things that went away
+                            foreach (var keyValuePair in priorKeyFrame.uiElementsCounts)
+                            {
+                                // went to zero
+                                uiElementsDeltas.TryAdd(keyValuePair.Key, StateElementDeltaType.Zero);
+                            }
+                        }
+
+                        foreach (var elementsCount in gameElementsCounts)
+                        {
+                            if (priorKeyFrame.gameElementsCounts.TryGetValue(elementsCount.Key, out var count))
+                            {
+                                // this entry was in the prior frame
+                                if (count > elementsCount.Value)
+                                {
+                                    gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.Decreased;
+                                }
+                                else if (count < elementsCount.Value)
+                                {
+                                    gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.Increased;
+                                }
+                                else
+                                {
+                                    gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
+                                }
+                            }
+                            else
+                            {
+                                // this entry wasn't in the prior frame
+                                gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
+                            }
+                            // now check for things that went away
+                            foreach (var keyValuePair in priorKeyFrame.gameElementsCounts)
+                            {
+                                // went to zero
+                                gameElementsDeltas.TryAdd(keyValuePair.Key, StateElementDeltaType.Zero);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (var uiElementsCount in uiElementsCounts)
+                        {
+                            uiElementsDeltas[uiElementsCount.Key] = StateElementDeltaType.NonZero;
+                        }
+
+                        foreach (var gameElementsCount in gameElementsCounts)
+                        {
+                            gameElementsDeltas[gameElementsCount.Key] = StateElementDeltaType.NonZero;
+                        }
+                    }
+
                     keyFrame = new ReplayKeyFrameEntry()
                     {
                         tickNumber = frameData.tickNumber,
@@ -278,9 +379,14 @@ namespace RegressionGames.StateRecorder
                         uiScenes = uiScenes.ToArray(),
                         uiElements = uiElements.ToArray(),
                         gameScenes = gameScenes.ToArray(),
-                        gameElements = gameElements.ToArray()
+                        gameElements = gameElements.ToArray(),
+                        uiElementsCounts = uiElementsCounts,
+                        gameElementsCounts = gameElementsCounts,
+                        uiElementsDeltas = uiElementsDeltas,
+                        gameElementsDeltas = gameElementsDeltas
                     };
                     _keyFrames.Add(keyFrame);
+                    priorKeyFrame = keyFrame;
                 }
 
                 foreach (var inputData in frameData.inputs.keyboard)

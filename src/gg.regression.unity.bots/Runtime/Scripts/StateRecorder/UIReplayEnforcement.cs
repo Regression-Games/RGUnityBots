@@ -7,9 +7,9 @@
          */
         Strict,
         /**
-         * <summary>Needs to have at least as many of each listed UI element from the recording, but allows there to be more / extra on the screen.</summary>
+         * <summary>Considers non exact delta states from prior key frame.  Looks for counts going to 0, increasing, decreasing, or being non-zero.</summary>
          */
-        AtLeast,
+        Delta,
         /**
          * <summary>Just play the inputs based on their timings without validating UI elements at all.  Not recommended.</summary>
          */
