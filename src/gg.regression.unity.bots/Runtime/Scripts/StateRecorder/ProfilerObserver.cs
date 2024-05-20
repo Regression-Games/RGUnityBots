@@ -12,7 +12,7 @@ namespace StateRecorder
         // Used heap size (in bytes) that is garbage collected
         public long? gcUsedMemory;
 
-        // Time spent (in nanoseconds) by the CPU on the main thread since the last tick
+        // Time spent (in milliseconds) by the CPU on the main thread since the last tick
         public double? cpuTimeSincePreviousTick;
     }
 
