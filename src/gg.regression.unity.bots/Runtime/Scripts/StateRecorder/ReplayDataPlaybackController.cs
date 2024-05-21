@@ -339,6 +339,7 @@ namespace RegressionGames.StateRecorder
 
                 foreach (var state in objectStates.Values)
                 {
+                    var hashCode = state.path.GetHashCode();
                     var collidersCount = state.colliders.Count;
                     var rigidbodiesCount = state.rigidbodies.Count;
                     if (state.worldSpaceBounds == null)
@@ -356,9 +357,9 @@ namespace RegressionGames.StateRecorder
 
                             if (uiElements != null)
                             {
-                                if (uiElements.TryGetValue(state.path, out var count))
+                                if (uiElements.TryGetValue(hashCode, out var count))
                                 {
-                                    if (myReplayEnforcementMode == UIReplayEnforcement.Strict && count <= 0)
+                                    if (myReplayEnforcementMode == UIReplayEnforcement.Strict && count.Item2 <= 0)
                                     {
                                         // only bail out here if we are where the ui is the oldest awaited key frame
                                         if (eldestKeyFrame.tickNumber == uiObjectKeyFrame.tickNumber)
@@ -371,7 +372,7 @@ namespace RegressionGames.StateRecorder
                                             return uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - (Strict) Too many instances of UIElement:\r\n" + state.path;
                                         }
                                     }
-                                    uiElements[state.path] = count - 1;
+                                    uiElements[hashCode] = (count.Item1, count.Item2 - 1);
                                 }
                                 else
                                 {
@@ -391,7 +392,7 @@ namespace RegressionGames.StateRecorder
                                     else
                                     {
                                         // start to track the count of un-expected stuff
-                                        uiElements[state.path] = -1;
+                                        uiElements[hashCode] = (state.path, -1);
                                     }
                                 }
                             }
@@ -447,19 +448,20 @@ namespace RegressionGames.StateRecorder
                 var allUIElementsFound = true;
                 if (myReplayEnforcementMode != UIReplayEnforcement.Delta)
                 {
-                    allUIElementsFound = uiElements?.All(a => a.Value == 0) ?? true;
+                    allUIElementsFound = uiElements?.All(a => a.Value.Item2 == 0) ?? true;
                 }
                 else
                 {
-                    if (uiObjectKeyFrame != null)
+                    if (uiObjectKeyFrame != null  && uiElements != null)
                     {
                         foreach (var stateElementDeltaType in uiObjectKeyFrame.uiElementsDeltas)
                         {
-                            if (uiElements.TryGetValue(stateElementDeltaType.Key, out var theVal))
+                            var deltaHash = stateElementDeltaType.Key;
+                            if (uiElements.TryGetValue(deltaHash, out var theVal))
                             {
                                 if (stateElementDeltaType.Value == StateElementDeltaType.Decreased)
                                 {
-                                    if (theVal < 0)
+                                    if (theVal.Item2 < 0)
                                     {
                                         if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                         {
@@ -471,7 +473,7 @@ namespace RegressionGames.StateRecorder
                                 }
                                 else if (stateElementDeltaType.Value == StateElementDeltaType.Increased)
                                 {
-                                    if (theVal > 0)
+                                    if (theVal.Item2 > 0)
                                     {
                                         if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                         {
@@ -483,7 +485,7 @@ namespace RegressionGames.StateRecorder
                                 }
                                 else if (stateElementDeltaType.Value == StateElementDeltaType.Zero)
                                 {
-                                    if (theVal != 0)
+                                    if (theVal.Item2 != 0)
                                     {
                                         if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                         {
@@ -495,7 +497,7 @@ namespace RegressionGames.StateRecorder
                                 else // non-zero
                                 {
                                     // make sure we found at least 1
-                                    if (uiObjectKeyFrame.uiElementsCounts[stateElementDeltaType.Key] - theVal <= 0)
+                                    if (uiObjectKeyFrame.uiElementsCounts[deltaHash].Item2 - theVal.Item2 <= 0)
                                     {
                                         if (keyFrameCheckCount < KeyFrameChecksBeforePrompting)
                                         {

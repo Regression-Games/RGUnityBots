@@ -36,13 +36,11 @@ namespace RegressionGames.StateRecorder
         public string[] uiScenes;
 
         /**
-         * <summary>the ui elements visible must match this list exactly; (could be similar/duplicate paths in the list, need to match value + # of appearances)</summary>
+         * <summary>the ui elements visible must match this list exactly; (could be similar/duplicate paths in the list, need to match value + # of appearances)
+         * First argument is the hashCode of the path to speed up dictionary evaluation of key match vs using strings</summary>
          */
-        public string[] uiElements;
-
-        public Dictionary<string, int> uiElementsCounts;
-
-        public Dictionary<string, StateElementDeltaType> uiElementsDeltas;
+        public Dictionary<int, (string,int)> uiElementsCounts;
+        public Dictionary<int, StateElementDeltaType> uiElementsDeltas;
 
 
         /**
@@ -258,22 +256,28 @@ namespace RegressionGames.StateRecorder
                 ReplayKeyFrameEntry keyFrame = null;
                 if (frameData.keyFrame.Length > 0)
                 {
-                    var uiElements = new List<string>();
                     var gameElements = new List<(string,int,int,int)>();
                     var uiScenes = new HashSet<string>();
                     var gameScenes = new HashSet<string>();
 
-                    var uiElementsCounts = new Dictionary<string, int>();
+                    var uiElementsCounts = new Dictionary<int, (string,int)>();
 
                     foreach (var replayGameObjectState in frameData.state)
                     {
                         if (replayGameObjectState.worldSpaceBounds == null)
                         {
-                            uiElements.Add(replayGameObjectState.path);
                             uiScenes.Add(replayGameObjectState.scene);
 
-                            uiElementsCounts.TryAdd(replayGameObjectState.path, 0);
-                            uiElementsCounts[replayGameObjectState.path]++;
+                            var hashCode = replayGameObjectState.path.GetHashCode();
+
+                            if (uiElementsCounts.TryGetValue(hashCode, out var val))
+                            {
+                                uiElementsCounts[hashCode] = (val.Item1, val.Item2 + 1);
+                            }
+                            else
+                            {
+                                uiElementsCounts[hashCode] = (val.Item1, 1);
+                            }
                         }
                         else
                         {
@@ -282,26 +286,27 @@ namespace RegressionGames.StateRecorder
                         }
                     }
 
-                    var uiElementsDeltas = new Dictionary<string, StateElementDeltaType>();
+                    var uiElementsDeltas = new Dictionary<int, StateElementDeltaType>();
 
                     if (priorKeyFrame != null)
                     {
                         foreach (var elementsCount in uiElementsCounts)
                         {
-                            if (priorKeyFrame.uiElementsCounts.TryGetValue(elementsCount.Key, out var count))
+                            var hashCode = elementsCount.Key.GetHashCode();
+                            if (priorKeyFrame.uiElementsCounts.TryGetValue(hashCode, out var counts))
                             {
                                 // this entry was in the prior frame
-                                if (count > elementsCount.Value)
+                                if (counts.Item2 > elementsCount.Value.Item2)
                                 {
-                                    uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.Decreased;
+                                    uiElementsDeltas[hashCode] = StateElementDeltaType.Decreased;
                                 }
-                                else if (count < elementsCount.Value)
+                                else if (counts.Item2 < elementsCount.Value.Item2)
                                 {
-                                    uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.Increased;
+                                    uiElementsDeltas[hashCode] = StateElementDeltaType.Increased;
                                 }
                                 else
                                 {
-                                    uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
+                                    uiElementsDeltas[hashCode] = StateElementDeltaType.NonZero;
                                 }
                             }
                             else
@@ -333,7 +338,6 @@ namespace RegressionGames.StateRecorder
                         keyFrameTypes = frameData.keyFrame,
                         time = frameData.time - firstFrame.time,
                         uiScenes = uiScenes.ToArray(),
-                        uiElements = uiElements.ToArray(),
                         gameScenes = gameScenes.ToArray(),
                         gameElements = gameElements.ToArray(),
                         uiElementsCounts = uiElementsCounts,
