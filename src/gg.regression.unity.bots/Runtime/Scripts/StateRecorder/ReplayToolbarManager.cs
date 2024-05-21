@@ -7,7 +7,7 @@ using RegressionGames.StateRecorder;
 using TMPro;
 using UnityEngine;
 
-namespace Unity.Multiplayer.Samples.BossRoom
+namespace RegressionGames.StateRecorder
 {
     public class ReplayToolbarManager : MonoBehaviour
     {
