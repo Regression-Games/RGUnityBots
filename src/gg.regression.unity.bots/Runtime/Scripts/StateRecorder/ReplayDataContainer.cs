@@ -57,10 +57,6 @@ namespace RegressionGames.StateRecorder
         // (path, #renderers, #colliders, #rigidbodies)
         public (string, int,int,int)[] gameElements;
 
-        public Dictionary<string, int> gameElementsCounts;
-
-        public Dictionary<string, StateElementDeltaType> gameElementsDeltas;
-
         /**
          * <summary>Hash value of the pixels on screen. (Used for GameFace or other objectless UI systems)</summary>
          */
@@ -268,7 +264,6 @@ namespace RegressionGames.StateRecorder
                     var gameScenes = new HashSet<string>();
 
                     var uiElementsCounts = new Dictionary<string, int>();
-                    var gameElementsCounts = new Dictionary<string, int>();
 
                     foreach (var replayGameObjectState in frameData.state)
                     {
@@ -284,14 +279,10 @@ namespace RegressionGames.StateRecorder
                         {
                             gameElements.Add((replayGameObjectState.path, replayGameObjectState.rendererCount, replayGameObjectState.colliders.Count, replayGameObjectState.rigidbodies.Count));
                             gameScenes.Add(replayGameObjectState.scene);
-
-                            gameElementsCounts.TryAdd(replayGameObjectState.path, 0);
-                            gameElementsCounts[replayGameObjectState.path]++;
                         }
                     }
 
                     var uiElementsDeltas = new Dictionary<string, StateElementDeltaType>();
-                    var gameElementsDeltas = new Dictionary<string, StateElementDeltaType>();
 
                     if (priorKeyFrame != null)
                     {
@@ -326,47 +317,12 @@ namespace RegressionGames.StateRecorder
                             }
                         }
 
-                        foreach (var elementsCount in gameElementsCounts)
-                        {
-                            if (priorKeyFrame.gameElementsCounts.TryGetValue(elementsCount.Key, out var count))
-                            {
-                                // this entry was in the prior frame
-                                if (count > elementsCount.Value)
-                                {
-                                    gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.Decreased;
-                                }
-                                else if (count < elementsCount.Value)
-                                {
-                                    gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.Increased;
-                                }
-                                else
-                                {
-                                    gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
-                                }
-                            }
-                            else
-                            {
-                                // this entry wasn't in the prior frame
-                                gameElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
-                            }
-                            // now check for things that went away
-                            foreach (var keyValuePair in priorKeyFrame.gameElementsCounts)
-                            {
-                                // went to zero
-                                gameElementsDeltas.TryAdd(keyValuePair.Key, StateElementDeltaType.Zero);
-                            }
-                        }
                     }
                     else
                     {
                         foreach (var uiElementsCount in uiElementsCounts)
                         {
                             uiElementsDeltas[uiElementsCount.Key] = StateElementDeltaType.NonZero;
-                        }
-
-                        foreach (var gameElementsCount in gameElementsCounts)
-                        {
-                            gameElementsDeltas[gameElementsCount.Key] = StateElementDeltaType.NonZero;
                         }
                     }
 
@@ -381,9 +337,7 @@ namespace RegressionGames.StateRecorder
                         gameScenes = gameScenes.ToArray(),
                         gameElements = gameElements.ToArray(),
                         uiElementsCounts = uiElementsCounts,
-                        gameElementsCounts = gameElementsCounts,
-                        uiElementsDeltas = uiElementsDeltas,
-                        gameElementsDeltas = gameElementsDeltas
+                        uiElementsDeltas = uiElementsDeltas
                     };
                     _keyFrames.Add(keyFrame);
                     priorKeyFrame = keyFrame;
