@@ -13,12 +13,10 @@ using Unity.Multiplayer.Samples.BossRoom;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using UnityEditor.Media;
 #endif
 
 
@@ -67,6 +65,7 @@ namespace RegressionGames.StateRecorder
         private readonly List<(string, Task)> _fileWriteTasks = new();
 
         private MouseInputActionObserver _mouseObserver;
+        private ProfilerObserver _profilerObserver;
 
 
         public static readonly Dictionary<int, RecordedGameObjectState> _emptyStateDictionary = new(0);
@@ -100,6 +99,7 @@ namespace RegressionGames.StateRecorder
         public void OnEnable()
         {
             _this._mouseObserver = GetComponent<MouseInputActionObserver>();
+            _this._profilerObserver = GetComponent<ProfilerObserver>();
         }
 
         private void OnDestroy()
@@ -245,6 +245,7 @@ namespace RegressionGames.StateRecorder
                 }, null, _emptyStateDictionary);
 
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
+                _profilerObserver.StartProfiling();
                 _mouseObserver.ClearBuffer();
                 InGameObjectFinder.GetInstance()?.Cleanup();
                 _isRecording = true;
@@ -463,6 +464,7 @@ namespace RegressionGames.StateRecorder
                 }
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
+                _profilerObserver.StopProfiling();
             }
 
             _gpuReadbackRequests.RemoveAll(a => a.done);
@@ -551,6 +553,8 @@ namespace RegressionGames.StateRecorder
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
+                    ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler(_frameCountSinceLastTick);
+
                     try
                     {
                         ++_tickNumber;
@@ -560,6 +564,9 @@ namespace RegressionGames.StateRecorder
                             framesSincePreviousTick = _frameCountSinceLastTick,
                             previousTickTime = _lastCvFrameTime,
                             fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+                            cpuTimeSincePreviousTick = profilerResult.cpuTimeSincePreviousTick,
+                            memory = profilerResult.systemUsedMemory,
+                            gcMemory = profilerResult.gcUsedMemory,
                             engineStats = new EngineStatsData()
                             {
 #if UNITY_EDITOR
