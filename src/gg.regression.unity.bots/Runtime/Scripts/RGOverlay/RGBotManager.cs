@@ -13,16 +13,9 @@ public class RGBotManager : MonoBehaviour
     [Header("Prefabs")]
     public List<GameObject> botPrefabs;
 
-    [Header("References")]
-    public RGIconPulse launcherPulse;
-
-    public RGIconPulse recordingPulse;
-
     public GameObject recordingToolbar;
 
     public GameObject selectionPanel;
-
-    public GameObject uploadingIndicator;
 
     [SerializeField]
     private TMP_Dropdown gameObjectsDropdown;
@@ -68,11 +61,6 @@ public class RGBotManager : MonoBehaviour
                 recordingToolbar.SetActive(false);
             }
         }
-    }
-
-    private void Start()
-    {
-
     }
 
     private void InitializeDropdown()
@@ -259,13 +247,6 @@ public class RGBotManager : MonoBehaviour
         }
         return null;
     }
-    
-    public void ShowUploadingIndicator(bool show)
-    {
-        if (show != uploadingIndicator.activeSelf)
-        {
-            uploadingIndicator.SetActive(show);
-        }
-    }
-    
+
+
 }

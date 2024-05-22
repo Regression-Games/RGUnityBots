@@ -2,7 +2,7 @@
 using Unity.Profiling;
 using UnityEngine;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     public struct ProfilerObserverResult
     {
