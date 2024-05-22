@@ -1,16 +1,12 @@
 ﻿#if UNITY_EDITOR
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEditor;
-using UnityEditor.Build;
-using UnityEditor.Build.Reporting;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Assembly = UnityEditor.Compilation.Assembly;
@@ -85,12 +81,11 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         
         private static ModuleDefinition ReadAssembly(string assemblyPath)
         {   
-            // Partially inspired by Weaver's approach to loading assemblies: https://github.com/ByronMayne/Weaver
             return ModuleDefinition.ReadModule(assemblyPath, new ReaderParameters()
             {
                 ReadingMode = ReadingMode.Immediate,
                 AssemblyResolver = CreateAssemblyResolver(),
-                ReadWrite = true,
+                InMemory = true,
                 ReadSymbols = true,
                 SymbolReaderProvider = new PdbReaderProvider()
             });
@@ -168,6 +163,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
             
             bool anyChanges = false;
+            string tmpOutputPath = assemblyPath + ".tmp.dll";
             
             using (ModuleDefinition module = ReadAssembly(assemblyPath))
             using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
@@ -180,12 +176,29 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 }
                 if (anyChanges)
                 {
-                    module.Write(new WriterParameters()
+                    module.Write(tmpOutputPath, new WriterParameters()
                     {
                         WriteSymbols = true,
                         SymbolWriterProvider = new PdbWriterProvider()
                     });
                     RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
+                }
+            }
+
+            if (anyChanges)
+            {
+                string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
+                File.Delete(assemblyPath);
+                if (File.Exists(pdbPath))
+                {
+                    File.Delete(pdbPath);
+                }
+
+                string outPdbPath = Path.ChangeExtension(tmpOutputPath, ".pdb");
+                File.Move(tmpOutputPath, assemblyPath);
+                if (File.Exists(outPdbPath))
+                {
+                    File.Move(outPdbPath, pdbPath);
                 }
             }
         }
