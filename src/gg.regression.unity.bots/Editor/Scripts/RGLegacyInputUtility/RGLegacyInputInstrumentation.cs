@@ -185,7 +185,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                         WriteSymbols = true,
                         SymbolWriterProvider = new PdbWriterProvider()
                     });
-                    RGDebug.LogInfo($"Added legacy input API instrumentation to assembly: {assemblyPath}");
+                    RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
                 }
             }
         }
