@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder;
+#if ENABLE_LEGACY_INPUT_MANAGER
+using RegressionGames.RGLegacyInputUtility;
+#endif
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -404,8 +407,36 @@ namespace RegressionGames.StateRecorder
             _mouseQueue.RemoveAll(a => a.IsDone);
         }
 
+#if ENABLE_LEGACY_INPUT_MANAGER
+        private void SendKeyEventLegacy(long tickNumber, Key key, KeyState upOrDown)
+        {
+            if (RGLegacyInputWrapper.IsPassthrough)
+            {
+                // simulation not started
+                return;
+            }
+
+            switch (upOrDown)
+            {
+                case KeyState.Down:
+                    RGLegacyInputWrapper.SimulateKeyPress(RGLegacyInputUtils.InputSystemKeyToKeyCode(key));
+                    break;
+                case KeyState.Up:
+                    RGLegacyInputWrapper.SimulateKeyRelease(RGLegacyInputUtils.InputSystemKeyToKeyCode(key));
+                    break;
+                default:
+                    RGDebug.LogError($"Unexpected key state {upOrDown}");
+                    break;
+            }
+        }
+#endif
+
         private void SendKeyEvent(long tickNumber, Key key, KeyState upOrDown)
         {
+#if ENABLE_LEGACY_INPUT_MANAGER
+            SendKeyEventLegacy(tickNumber, key, upOrDown);
+#endif
+            
             var keyboard = Keyboard.current;
 
             if (key == Key.LeftShift || key == Key.RightShift)

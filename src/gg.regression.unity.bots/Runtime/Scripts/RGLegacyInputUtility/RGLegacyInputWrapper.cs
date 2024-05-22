@@ -15,6 +15,14 @@ namespace RegressionGames.RGLegacyInputUtility
         private static ISet<KeyCode> _newKeysUp;
         private static Dictionary<KeyCode, Coroutine> _removeNewCoroutines;
         
+        /**
+         * If this flag is true (this is the initial state), then all inputs are
+         * forwarded to the regular UnityEngine.Input APIs.
+         * 
+         * If this flag is false (after calling StartSimulation), then the test driver
+         * has control of the inputs via the Simulate... methods and the game will
+         * no longer read inputs from the user's device.
+         */
         public static bool IsPassthrough
         {
             get => _simulationContext == null;
