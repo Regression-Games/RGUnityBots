@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 #if UNITY_EDITOR
 using RegressionGames.Editor;
+using RegressionGames.Editor.RGLegacyInputUtility;
 using UnityEditor;
 using UnityEditor.PackageManager.Requests;
 using UnityEditor.SceneManagement;
@@ -26,7 +27,12 @@ public class RegressionPackagePopup : EditorWindow
     private static bool requestingLogin = false;
     private static AddRequest addRequest;
     private static ListRequest listRequest;
-
+    
+    static RegressionPackagePopup()
+    {
+        RGLegacyInputInstrumentation.Enable();
+    }
+    
     void OnEnable()
     {
         string packagePath = "Packages/gg.regression.unity.bots/Editor/Images/banner.png";
