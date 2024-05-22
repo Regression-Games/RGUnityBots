@@ -179,6 +179,9 @@ namespace RegressionGames.StateRecorder
             _checkOfKeyFrameCount = 0;
 
             _screenRecorder.StopRecording();
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            RGLegacyInputWrapper.StopSimulation();
+            #endif
 
             _dataContainer = null;
             InGameObjectFinder.GetInstance()?.Cleanup();
@@ -642,9 +645,9 @@ namespace RegressionGames.StateRecorder
 
         private void SendKeyEvent(long tickNumber, Key key, KeyState upOrDown)
         {
-#if ENABLE_LEGACY_INPUT_MANAGER
+            #if ENABLE_LEGACY_INPUT_MANAGER
             SendKeyEventLegacy(tickNumber, key, upOrDown);
-#endif
+            #endif
             
             var keyboard = Keyboard.current;
 
@@ -1098,6 +1101,9 @@ namespace RegressionGames.StateRecorder
             {
                 if (_startPlaying)
                 {
+                    #if ENABLE_LEGACY_INPUT_MANAGER
+                    RGLegacyInputWrapper.StartSimulation(this);
+                    #endif
                     _lastStartTime = Time.unscaledTime;
                     _priorKeyFrameTime = null;
                     _startPlaying = false;
