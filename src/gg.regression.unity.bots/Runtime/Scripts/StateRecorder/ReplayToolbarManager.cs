@@ -42,14 +42,8 @@ namespace RegressionGames.StateRecorder
 
         private void Awake()
         {
-            if (_this != null && this.gameObject != _this.gameObject)
-            {
-                // we only want one of us around.. kill the other one
-                Destroy(this.gameObject);
-                return;
-            }
+            // this is a child of the overlay which is a singleton, so we don't need to manage our lifecycle, just track our instance
             _this = this;
-            DontDestroyOnLoad(_this.gameObject);
         }
 
         // Start is called before the first frame update
