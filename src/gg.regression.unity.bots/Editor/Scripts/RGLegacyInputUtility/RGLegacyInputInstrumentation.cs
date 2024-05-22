@@ -6,19 +6,40 @@ using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
+using Mono.Cecil.Pdb;
 using RegressionGames.RGLegacyInputUtility;
+using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Assembly = UnityEditor.Compilation.Assembly;
 
 namespace RegressionGames.Editor.RGLegacyInputUtility
 {
+    /*
+     * This class is responsible for hooking into the Unity build process and
+     * applying the wrapper input API instrumentation for the legacy input manager.
+     */
     public class RGLegacyInputInstrumentation
     {
-        public static void Enable()
+        [InitializeOnLoadMethod]
+        static void OnStartup()
         {
-            CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
-            InstrumentExistingAssemblies();
+            // Safer to do any initial instrumentation within the editor update loop.
+            // Initial experiments with running directly from static initializers
+            // caused errors sometimes.
+            EditorApplication.update += SetUpHooks;
+        }
+
+        static void SetUpHooks()
+        {
+            if (EditorApplication.timeSinceStartup > 2.0)
+            {
+                EditorApplication.update -= SetUpHooks;
+                CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
+                InstrumentExistingAssemblies();
+            }
         }
 
         private static bool IsAssemblyIgnored(string assemblyPath)
@@ -64,9 +85,14 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         
         private static ModuleDefinition ReadAssembly(string assemblyPath)
         {   
+            // Partially inspired by Weaver's approach to loading assemblies: https://github.com/ByronMayne/Weaver
             return ModuleDefinition.ReadModule(assemblyPath, new ReaderParameters()
             {
-                AssemblyResolver = CreateAssemblyResolver()
+                ReadingMode = ReadingMode.Immediate,
+                AssemblyResolver = CreateAssemblyResolver(),
+                ReadWrite = true,
+                ReadSymbols = true,
+                SymbolReaderProvider = new PdbReaderProvider()
             });
         }
         
@@ -142,7 +168,6 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
             
             bool anyChanges = false;
-            string tmpOutputPath = assemblyPath + ".tmp";
             
             using (ModuleDefinition module = ReadAssembly(assemblyPath))
             using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
@@ -155,15 +180,13 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 }
                 if (anyChanges)
                 {
-                    module.Write(tmpOutputPath);
+                    module.Write(new WriterParameters()
+                    {
+                        WriteSymbols = true,
+                        SymbolWriterProvider = new PdbWriterProvider()
+                    });
+                    RGDebug.LogInfo($"Added legacy input API instrumentation to assembly: {assemblyPath}");
                 }
-            }
-            
-            if (anyChanges)
-            {
-                File.Move(assemblyPath, assemblyPath + ".bak"); // create a backup of the original assembly for debugging purposes
-                File.Move(tmpOutputPath, assemblyPath);
-                RGDebug.LogInfo($"Instrumented {assemblyPath}");
             }
         }
         

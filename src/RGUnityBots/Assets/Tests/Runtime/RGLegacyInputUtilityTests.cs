@@ -31,7 +31,7 @@ namespace Tests.Runtime
 
             foreach (var entry in testCases)
             {
-                KeyCode result = RGInputWrapper.KeyNameToCode(entry.Key);
+                KeyCode result = RGLegacyInputWrapper.KeyNameToCode(entry.Key);
                 Assert.That(result, Is.EqualTo(entry.Value), $"{entry.Key} should produce {entry.Value}");
             }
         }

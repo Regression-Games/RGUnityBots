@@ -3,14 +3,16 @@
     "rootNamespace": "",
     "references": [
         "Unity.TextMeshPro",
-        "RegressionGames",
-        "Unity.Nuget.Mono-Cecil"
+        "RegressionGames"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Mono.Cecil.dll",
+        "Mono.Cecil.Pdb.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
