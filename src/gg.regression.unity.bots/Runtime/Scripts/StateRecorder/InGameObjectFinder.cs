@@ -1,13 +1,10 @@
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Text;
-using JetBrains.Annotations;
 using StateRecorder.Types;
 using UnityEngine;
 using Component = UnityEngine.Component;
 // ReSharper disable ForCanBeConvertedToForeach - indexed for is faster and has less allocs than enumerator
 // ReSharper disable LoopCanBeConvertedToQuery
-
 namespace RegressionGames.StateRecorder
 {
     public class TransformStatus
@@ -633,7 +630,7 @@ namespace RegressionGames.StateRecorder
         private readonly List<RectTransform> _rectTransformsList = new(100);
         private readonly HashSet<Transform> _transformsForThisFrame = new (1000);
 
-        private readonly Vector3[] _screenSpaceCorners = new Vector3[4];
+        private readonly Vector3[] _worldSpaceCorners = new Vector3[4];
 
         private List<Transform> _nextParentTransforms = new(100);
         private List<Transform> _currentParentTransforms = new(100);
@@ -720,35 +717,35 @@ namespace RegressionGames.StateRecorder
                                 if (rectTransformsListLength > 0)
                                 {
                                     Vector2 min, max;
-                                    _rectTransformsList[0].GetWorldCorners(_screenSpaceCorners);
+                                    _rectTransformsList[0].GetWorldCorners(_worldSpaceCorners);
                                     if (canvasCamera != null)
                                     {
-                                        min = RectTransformUtility.WorldToScreenPoint(canvasCamera, _screenSpaceCorners[0]);
-                                        max = RectTransformUtility.WorldToScreenPoint(canvasCamera, _screenSpaceCorners[2]);
+                                        min = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[0]);
+                                        max = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[2]);
                                     }
                                     else
                                     {
-                                        min = _screenSpaceCorners[0];
-                                        max = _screenSpaceCorners[2];
+                                        min = _worldSpaceCorners[0];
+                                        max = _worldSpaceCorners[2];
                                     }
 
                                     // default values, may or maynot be used depending on if isWorldSpace
-                                    Vector2 worldMin = _screenSpaceCorners[0];
-                                    Vector2 worldMax = _screenSpaceCorners[2];
+                                    Vector3 worldMin = _worldSpaceCorners[0];
+                                    Vector3 worldMax = _worldSpaceCorners[2];
 
                                     for (var i = 1; i < rectTransformsListLength; ++i)
                                     {
                                         Vector2 nextMin, nextMax;
-                                        _rectTransformsList[i].GetWorldCorners(_screenSpaceCorners);
+                                        _rectTransformsList[i].GetWorldCorners(_worldSpaceCorners);
                                         if (canvasCamera != null)
                                         {
-                                            nextMin = RectTransformUtility.WorldToScreenPoint(canvasCamera, _screenSpaceCorners[0]);
-                                            nextMax = RectTransformUtility.WorldToScreenPoint(canvasCamera, _screenSpaceCorners[2]);
+                                            nextMin = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[0]);
+                                            nextMax = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[2]);
                                         }
                                         else
                                         {
-                                            nextMin = _screenSpaceCorners[0];
-                                            nextMax = _screenSpaceCorners[2];
+                                            nextMin = _worldSpaceCorners[0];
+                                            nextMax = _worldSpaceCorners[2];
                                         }
 
                                         // Vector3.min and Vector3.max re-allocate new vectors on each call, avoid using them
@@ -760,10 +757,12 @@ namespace RegressionGames.StateRecorder
 
                                         if (isWorldSpace)
                                         {
-                                            worldMin.x = Mathf.Min(worldMin.x, _screenSpaceCorners[0].x);
-                                            worldMin.y = Mathf.Min(worldMin.y, _screenSpaceCorners[0].y);
-                                            worldMax.x = Mathf.Min(worldMin.x, _screenSpaceCorners[2].x);
-                                            worldMax.y = Mathf.Min(worldMin.y, _screenSpaceCorners[2].y);
+                                            worldMin.x = Mathf.Min(worldMin.x, _worldSpaceCorners[0].x);
+                                            worldMin.y = Mathf.Min(worldMin.y, _worldSpaceCorners[0].y);
+                                            worldMin.z = Mathf.Min(worldMin.y, _worldSpaceCorners[0].z);
+                                            worldMax.x = Mathf.Min(worldMin.x, _worldSpaceCorners[2].x);
+                                            worldMax.y = Mathf.Min(worldMin.y, _worldSpaceCorners[2].y);
+                                            worldMin.z = Mathf.Min(worldMin.y, _worldSpaceCorners[2].z);
                                         }
 
                                     }
@@ -800,8 +799,8 @@ namespace RegressionGames.StateRecorder
                                     var extents = new Vector3((max.x - min.x) / 2, (max.y - min.y) / 2, 0.05f);
                                     var center = new Vector3(min.x + extents.x, min.y + extents.y, 0f);
 
-                                    var worldExtents = new Vector3((worldMax.x - worldMin.x) / 2, (worldMax.y - worldMin.y) / 2, 0.05f);
-                                    var worldCenter = new Vector3(worldMin.x + worldExtents.x, worldMin.y + worldExtents.y, 0f);
+                                    var worldExtents = new Vector3((worldMax.x - worldMin.x) / 2, (worldMax.y - worldMin.y) / 2, (worldMax.z - worldMin.z) / 2);
+                                    var worldCenter = new Vector3(worldMin.x + worldExtents.x, worldMin.y + worldExtents.y, worldMin.z + worldExtents.z);
 
                                     var collidersState = resultObject.colliders;
                                     var collidersStateCount = collidersState.Count;
