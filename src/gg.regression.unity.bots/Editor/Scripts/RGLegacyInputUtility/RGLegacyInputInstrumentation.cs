@@ -50,41 +50,34 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             return ns.Contains("RegressionGames");
         }
         
-        private static DefaultAssemblyResolver CreateAssemblyResolver()
+        private static DefaultAssemblyResolver CreateAssemblyResolver(string assemblyPath)
         {
-            ISet<string> compiledSearchDirs = new HashSet<string>();
-            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
-            foreach (Assembly assembly in assemblies)
-            {
-                compiledSearchDirs.Add(Path.GetDirectoryName(assembly.outputPath));
-            }
-
-            ISet<string> precompiledSearchDirs = new HashSet<string>();
-            string[] precompiledPaths = CompilationPipeline.GetPrecompiledAssemblyPaths(CompilationPipeline.PrecompiledAssemblySources.All);
-            foreach (string path in precompiledPaths)
-            {
-                precompiledSearchDirs.Add(Path.GetDirectoryName(path));
-            }
-            
             DefaultAssemblyResolver resolver = new DefaultAssemblyResolver();
-            foreach (string searchDir in compiledSearchDirs)
+            var assembly = CompilationPipeline.GetAssemblies()
+                .FirstOrDefault(asm => Path.GetFullPath(asm.outputPath) == assemblyPath);
+            ISet<string> searchDirs = new HashSet<string>();
+            if (assembly != null)
+            {
+                foreach (string assemblyRefPath in assembly.compiledAssemblyReferences)
+                {
+                    searchDirs.Add(Path.GetDirectoryName(Path.GetFullPath(assemblyRefPath)));
+                }
+            }
+            searchDirs.Add(Path.GetDirectoryName(Path.GetFullPath(typeof(MonoBehaviour).Assembly.Location)));
+            foreach (string searchDir in searchDirs)
             {
                 resolver.AddSearchDirectory(searchDir);
             }
-            foreach (string searchDir in precompiledSearchDirs)
-            {
-                resolver.AddSearchDirectory(searchDir);
-            }
-
             return resolver;
         }
         
         private static ModuleDefinition ReadAssembly(string assemblyPath)
-        {   
+        {
+            assemblyPath = Path.GetFullPath(assemblyPath);
             return ModuleDefinition.ReadModule(assemblyPath, new ReaderParameters()
             {
                 ReadingMode = ReadingMode.Immediate,
-                AssemblyResolver = CreateAssemblyResolver(),
+                AssemblyResolver = CreateAssemblyResolver(assemblyPath),
                 InMemory = true,
                 ReadSymbols = true,
                 SymbolReaderProvider = new PdbReaderProvider()
@@ -93,9 +86,10 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         
         private static ModuleDefinition ReadWrapperAssembly()
         {
-            return ModuleDefinition.ReadModule(typeof(RGLegacyInputWrapper).Assembly.Location, new ReaderParameters()
+            string assemblyPath = Path.GetFullPath(typeof(RGLegacyInputWrapper).Assembly.Location);
+            return ModuleDefinition.ReadModule(assemblyPath, new ReaderParameters()
             {
-                AssemblyResolver = CreateAssemblyResolver()
+                AssemblyResolver = CreateAssemblyResolver(assemblyPath)
             });
         }
         
