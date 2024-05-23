@@ -1,13 +1,10 @@
-﻿#if ENABLE_INPUT_SYSTEM
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
-#endif
 
 namespace RegressionGames.RGLegacyInputUtility
 {
     public static class RGLegacyInputUtils
     {
-#if ENABLE_INPUT_SYSTEM
         public static KeyCode InputSystemKeyToKeyCode(Key key)
         {
             switch (key)
@@ -123,6 +120,5 @@ namespace RegressionGames.RGLegacyInputUtility
                     return KeyCode.None;
             }
         }
-#endif
     }
 }
