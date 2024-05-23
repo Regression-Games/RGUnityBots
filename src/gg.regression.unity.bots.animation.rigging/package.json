@@ -1,0 +1,17 @@
+{
+  "name": "gg.regression.unity.bots.animation.rigging",
+  "version": "0.0.19",
+  "description": "An extension package for Regression Games Unity Bots that supports Unity Animation Rigging.  To use this package, please also add the `gg.regression.unity.bots` package from URL `https://github.com/Regression-Games/RGUnityBots.git?path=src/gg.regression.unity.bots#v0.0.19`.",
+  "displayName": "Regression Games Unity Bots - Animation Rigging Extension",
+  "unity": "2021.3",
+  "unityRelease": "24f1",
+  "author": {
+    "name": "Regression Games Inc",
+    "email": "info@regression.gg",
+    "url": "https://regression.gg"
+  },
+  "dependencies": {
+    "com.unity.animation.rigging":"1.0.3"
+   },
+  "samples": []
+}
