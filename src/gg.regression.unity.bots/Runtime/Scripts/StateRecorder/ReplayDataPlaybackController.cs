@@ -468,7 +468,7 @@ namespace RegressionGames.StateRecorder
                                             return null;
                                         }
                                         // was more than before
-                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + stateElementDeltaType.Key;
+                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too many instances of UIElement:\r\n" + theVal.Item1;
                                     }
                                 }
                                 else if (stateElementDeltaType.Value == StateElementDeltaType.Increased)
@@ -480,7 +480,7 @@ namespace RegressionGames.StateRecorder
                                             return null;
                                         }
                                         // was the same or less than before
-                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too few instances of UIElement:\r\n" + stateElementDeltaType.Key;
+                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too few instances of UIElement:\r\n" + theVal.Item1;
                                     }
                                 }
                                 else if (stateElementDeltaType.Value == StateElementDeltaType.Zero)
@@ -491,7 +491,7 @@ namespace RegressionGames.StateRecorder
                                         {
                                             return null;
                                         }
-                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + stateElementDeltaType.Key;
+                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Unexpected UIElement:\r\n" + theVal.Item1;
                                     }
                                 }
                                 else // non-zero
@@ -503,7 +503,7 @@ namespace RegressionGames.StateRecorder
                                         {
                                             return null;
                                         }
-                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too few instances of UIElement:\r\n" + stateElementDeltaType.Key;
+                                        return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Too few instances of UIElement:\r\n" + theVal.Item1;
                                     }
                                 }
 
@@ -517,7 +517,7 @@ namespace RegressionGames.StateRecorder
                                     {
                                         return null;
                                     }
-                                    return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Missing expected UIElement:\r\n" + stateElementDeltaType.Key;
+                                    return gameElementsErrorMessage + uiObjectKeyFrame.tickNumber + " Wait for KeyFrame - Missing expected UIElement:\r\n" + theVal.Item1;
                                 }
                             }
                         }
@@ -557,7 +557,7 @@ namespace RegressionGames.StateRecorder
                     {
                         return null;
                     }
-                    var missingConditions = "" + uiObjectKeyFrame?.tickNumber + ":"+ gameObjectKeyFrame?.tickNumber + " Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n" + (uiScenes != null ? string.Join("\r\n", uiScenes):null) + "\r\nuiElements:\r\n" + (uiElements != null ? string.Join("\r\n", uiElements.Keys) : null) + "\r\ngameScenes:\r\n" + (gameScenes != null ? string.Join("\r\n", gameScenes) : null) + "\r\ngameElements:\r\n" + (gameElements!= null ? string.Join("\r\n", gameElements.Select(a => a.Item1)):null);
+                    var missingConditions = "" + uiObjectKeyFrame?.tickNumber + ":"+ gameObjectKeyFrame?.tickNumber + " Wait for KeyFrame - Waiting for conditions...\r\nuiScenes:\r\n" + (uiScenes != null ? string.Join("\r\n", uiScenes):null) + "\r\nuiElements:\r\n" + (uiElements != null ? string.Join("\r\n", uiElements.Values.Select(a=>a.Item1)) : null) + "\r\ngameScenes:\r\n" + (gameScenes != null ? string.Join("\r\n", gameScenes) : null) + "\r\ngameElements:\r\n" + (gameElements!= null ? string.Join("\r\n", gameElements.Select(a => a.Item1)):null);
                     // still missing something from the key frame
                     return missingConditions;
                 }
