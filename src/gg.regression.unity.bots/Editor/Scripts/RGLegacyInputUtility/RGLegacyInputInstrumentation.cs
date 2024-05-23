@@ -52,22 +52,30 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         
         private static DefaultAssemblyResolver CreateAssemblyResolver(string assemblyPath)
         {
-            DefaultAssemblyResolver resolver = new DefaultAssemblyResolver();
-            var assembly = CompilationPipeline.GetAssemblies()
-                .FirstOrDefault(asm => Path.GetFullPath(asm.outputPath) == assemblyPath);
-            ISet<string> searchDirs = new HashSet<string>();
-            if (assembly != null)
+            ISet<string> compiledSearchDirs = new HashSet<string>();
+            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            foreach (Assembly assembly in assemblies)
             {
-                foreach (string assemblyRefPath in assembly.compiledAssemblyReferences)
-                {
-                    searchDirs.Add(Path.GetDirectoryName(Path.GetFullPath(assemblyRefPath)));
-                }
+                compiledSearchDirs.Add(Path.GetDirectoryName(assembly.outputPath));
             }
-            searchDirs.Add(Path.GetDirectoryName(Path.GetFullPath(typeof(MonoBehaviour).Assembly.Location)));
-            foreach (string searchDir in searchDirs)
+
+            ISet<string> precompiledSearchDirs = new HashSet<string>();
+            string[] precompiledPaths = CompilationPipeline.GetPrecompiledAssemblyPaths(CompilationPipeline.PrecompiledAssemblySources.All);
+            foreach (string path in precompiledPaths)
+            {
+                precompiledSearchDirs.Add(Path.GetDirectoryName(path));
+            }
+
+            DefaultAssemblyResolver resolver = new DefaultAssemblyResolver();
+            foreach (string searchDir in compiledSearchDirs)
             {
                 resolver.AddSearchDirectory(searchDir);
             }
+            foreach (string searchDir in precompiledSearchDirs)
+            {
+                resolver.AddSearchDirectory(searchDir);
+            }
+
             return resolver;
         }
         
