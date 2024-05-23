@@ -276,7 +276,7 @@ namespace RegressionGames.StateRecorder
                             }
                             else
                             {
-                                uiElementsCounts[hashCode] = (val.Item1, 1);
+                                uiElementsCounts[hashCode] = (replayGameObjectState.path, 1);
                             }
                         }
                         else
