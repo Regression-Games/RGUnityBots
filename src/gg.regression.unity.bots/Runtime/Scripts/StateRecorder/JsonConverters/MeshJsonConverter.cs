@@ -1,32 +1,24 @@
 using System;
 using System.Text;
 using Newtonsoft.Json;
-using StateRecorder;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class MeshFilterJsonConverter : Newtonsoft.Json.JsonConverter
+    public class MeshJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
 
-        public static void WriteToStringBuilder(StringBuilder stringBuilder, MeshFilter val)
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Mesh val)
         {
-            stringBuilder.Append("{\"mesh\":");
-            if (val.mesh == null)
-            {
-                stringBuilder.Append("null");
-            }
-            else
-            {
-                MeshJsonConverter.WriteToStringBuilder(stringBuilder, val.mesh);
-            }
+            //TODO: Implement more support for meshes
+            stringBuilder.Append("{\"name\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.name);
             stringBuilder.Append("}");
         }
 
-        private static string ToJsonString(MeshFilter value)
+        private static string ToJsonString(Mesh value)
         {
             _stringBuilder.Clear();
             WriteToStringBuilder(_stringBuilder, value);
@@ -42,7 +34,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             else
             {
                 // raw is way faster than using the libraries
-                writer.WriteRawValue(ToJsonString((MeshFilter)value));
+                writer.WriteRawValue(ToJsonString((Mesh)value));
             }
         }
 
@@ -55,7 +47,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(MeshFilter);
+            return objectType == typeof(Mesh);
         }
     }
 }
