@@ -41,8 +41,9 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         private static bool IsAssemblyIgnored(string assemblyPath)
         {
             string fileName = Path.GetFileName(assemblyPath);
-            return fileName.Contains("RegressionGames") || fileName.StartsWith("UnityEngine.") ||
-                   fileName.StartsWith("Unity.");
+            return fileName.Contains("RegressionGames")  // ignore RG assemblies
+                   || fileName.StartsWith("UnityEngine.") || fileName.StartsWith("Unity.") // ignore game engine assemblies 
+                   || fileName.StartsWith("SimpleFileBrowser."); // ignore SimpleFileBrowser (used by RG overlay)
         }
 
         private static bool IsNamespaceIgnored(string ns)
