@@ -89,6 +89,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 _simulationContext.StopCoroutine(coro);
                 _removeNewCoroutines.Remove(keyCode);
             }
+            _keysHeld.Remove(keyCode);
             _newKeysDown.Remove(keyCode);
             _newKeysUp.Remove(keyCode);
         }
