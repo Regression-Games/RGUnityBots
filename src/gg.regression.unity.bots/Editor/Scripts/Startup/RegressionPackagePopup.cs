@@ -26,7 +26,7 @@ public class RegressionPackagePopup : EditorWindow
     private static bool requestingLogin = false;
     private static AddRequest addRequest;
     private static ListRequest listRequest;
-    
+
     void OnEnable()
     {
         string packagePath = "Packages/gg.regression.unity.bots/Editor/Images/banner.png";
