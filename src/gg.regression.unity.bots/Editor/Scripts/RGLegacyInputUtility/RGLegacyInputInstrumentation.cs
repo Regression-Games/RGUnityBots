@@ -1,4 +1,5 @@
 ﻿#if UNITY_EDITOR
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -160,49 +161,56 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         
         private static void InstrumentAssemblyIfNeeded(string assemblyPath)
         {
-            if (IsAssemblyIgnored(assemblyPath))
+            try
             {
-                return;
-            }
-            
-            bool anyChanges = false;
-            string tmpOutputPath = assemblyPath + ".tmp.dll";
-            
-            using (ModuleDefinition module = ReadAssembly(assemblyPath))
-            using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
-            {
-                var wrapperMethods = FindWrapperMethods(wrapperModule);
-                foreach ((Instruction inst, MethodReference wrapperMethodRef) in FindInstrumentationPoints(module, wrapperMethods))
+                if (IsAssemblyIgnored(assemblyPath))
                 {
-                    inst.Operand = module.ImportReference(wrapperMethodRef);
-                    anyChanges = true;
+                    return;
                 }
+            
+                bool anyChanges = false;
+                string tmpOutputPath = assemblyPath + ".tmp.dll";
+            
+                using (ModuleDefinition module = ReadAssembly(assemblyPath))
+                using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
+                {
+                    var wrapperMethods = FindWrapperMethods(wrapperModule);
+                    foreach ((Instruction inst, MethodReference wrapperMethodRef) in FindInstrumentationPoints(module, wrapperMethods))
+                    {
+                        inst.Operand = module.ImportReference(wrapperMethodRef);
+                        anyChanges = true;
+                    }
+                    if (anyChanges)
+                    {
+                        module.Write(tmpOutputPath, new WriterParameters()
+                        {
+                            WriteSymbols = true,
+                            SymbolWriterProvider = new PdbWriterProvider()
+                        });
+                        RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
+                    }
+                }
+
                 if (anyChanges)
                 {
-                    module.Write(tmpOutputPath, new WriterParameters()
+                    string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
+                    File.Delete(assemblyPath);
+                    if (File.Exists(pdbPath))
                     {
-                        WriteSymbols = true,
-                        SymbolWriterProvider = new PdbWriterProvider()
-                    });
-                    RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
+                        File.Delete(pdbPath);
+                    }
+
+                    string outPdbPath = Path.ChangeExtension(tmpOutputPath, ".pdb");
+                    File.Move(tmpOutputPath, assemblyPath);
+                    if (File.Exists(outPdbPath))
+                    {
+                        File.Move(outPdbPath, pdbPath);
+                    }
                 }
             }
-
-            if (anyChanges)
+            catch (Exception e)
             {
-                string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
-                File.Delete(assemblyPath);
-                if (File.Exists(pdbPath))
-                {
-                    File.Delete(pdbPath);
-                }
-
-                string outPdbPath = Path.ChangeExtension(tmpOutputPath, ".pdb");
-                File.Move(tmpOutputPath, assemblyPath);
-                if (File.Exists(outPdbPath))
-                {
-                    File.Move(outPdbPath, pdbPath);
-                }
+                RGDebug.LogException(e, $"Error during legacy input instrumentation for {assemblyPath}");
             }
         }
         
