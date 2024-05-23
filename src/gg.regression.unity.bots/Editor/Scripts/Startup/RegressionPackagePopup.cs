@@ -6,7 +6,6 @@ using UnityEngine;
 using UnityEngine.Rendering;
 #if UNITY_EDITOR
 using RegressionGames.Editor;
-using RegressionGames.Editor.RGLegacyInputUtility;
 using UnityEditor;
 using UnityEditor.PackageManager.Requests;
 using UnityEditor.SceneManagement;
