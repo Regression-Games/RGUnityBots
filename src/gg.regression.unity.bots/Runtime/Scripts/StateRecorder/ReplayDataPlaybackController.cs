@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using StateRecorder;
-using TMPro;
-using UnityEditor.AnimatedValues;
 #if ENABLE_LEGACY_INPUT_MANAGER
 using RegressionGames.RGLegacyInputUtility;
 #endif
