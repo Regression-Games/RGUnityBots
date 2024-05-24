@@ -53,12 +53,15 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
 
             // ignore plugin packages referenced by the RG package
-            string fullAssemblyPath = Path.GetFullPath(assemblyPath);
-            foreach (string asmPath in rgAssembly.allReferences)
+            if (rgAssembly != null)
             {
-                if (Path.GetFullPath(asmPath) == fullAssemblyPath)
+                string fullAssemblyPath = Path.GetFullPath(assemblyPath);
+                foreach (string asmPath in rgAssembly.allReferences)
                 {
-                    return true;
+                    if (Path.GetFullPath(asmPath) == fullAssemblyPath)
+                    {
+                        return true;
+                    }
                 }
             }
 
