@@ -84,10 +84,9 @@ namespace RegressionGames.RGLegacyInputUtility
         
         private static void ClearKeyState(KeyCode keyCode)
         {
-            if (_removeNewCoroutines.TryGetValue(keyCode, out Coroutine coro))
+            if (_removeNewCoroutines.Remove(keyCode, out Coroutine coro))
             {
                 _simulationContext.StopCoroutine(coro);
-                _removeNewCoroutines.Remove(keyCode);
             }
             _keysHeld.Remove(keyCode);
             _newKeysDown.Remove(keyCode);
