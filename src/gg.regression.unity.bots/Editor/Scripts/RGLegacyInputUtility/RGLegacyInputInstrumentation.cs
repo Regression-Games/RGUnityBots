@@ -31,12 +31,9 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
         static void SetUpHooks()
         {
-            if (EditorApplication.timeSinceStartup > 2.0)
-            {
-                EditorApplication.update -= SetUpHooks;
-                CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
-                InstrumentExistingAssemblies();
-            }
+            EditorApplication.update -= SetUpHooks;
+            CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
+            InstrumentExistingAssemblies();
         }
 
         private static bool IsAssemblyIgnored(string assemblyPath, Assembly rgAssembly)
