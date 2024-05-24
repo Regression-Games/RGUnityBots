@@ -579,18 +579,18 @@ namespace RegressionGames.StateRecorder
             {
                 foreach (var replayKeyboardInputEntry in _keyboardQueue)
                 {
-                    if (!replayKeyboardInputEntry.startEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.endTime)
-                    {
-                        // send end event
-                        SendKeyEvent(replayKeyboardInputEntry.tickNumber, replayKeyboardInputEntry.key, KeyState.Up);
-                        replayKeyboardInputEntry.startEndSentFlags[1] = true;
-                    }
-
                     if (!replayKeyboardInputEntry.startEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.startTime)
                     {
                         // send start event
                         SendKeyEvent(replayKeyboardInputEntry.tickNumber, replayKeyboardInputEntry.key, KeyState.Down);
                         replayKeyboardInputEntry.startEndSentFlags[0] = true;
+                    }
+
+                    if (!replayKeyboardInputEntry.startEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.endTime)
+                    {
+                        // send end event
+                        SendKeyEvent(replayKeyboardInputEntry.tickNumber, replayKeyboardInputEntry.key, KeyState.Up);
+                        replayKeyboardInputEntry.startEndSentFlags[1] = true;
                     }
                 }
             }
@@ -1078,7 +1078,13 @@ namespace RegressionGames.StateRecorder
                         _screenRecorder.StartRecording(_dataContainer.SessionId);
                     }
                 }
+            }
+        }
 
+        public void LateUpdate()
+        {
+            if (_dataContainer != null)
+            {
                 if (_isPlaying)
                 {
                     var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
