@@ -39,12 +39,30 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
         }
 
-        private static bool IsAssemblyIgnored(string assemblyPath)
+        private static bool IsAssemblyIgnored(string assemblyPath, Assembly rgAssembly)
         {
             string fileName = Path.GetFileName(assemblyPath);
-            return fileName.Contains("RegressionGames")  // ignore RG assemblies
-                   || fileName.StartsWith("UnityEngine.") || fileName.StartsWith("Unity.") // ignore game engine assemblies 
-                   || fileName.StartsWith("SimpleFileBrowser."); // ignore SimpleFileBrowser (used by RG overlay)
+            if (fileName.StartsWith("UnityEngine.") || fileName.StartsWith("Unity.")) // ignore game engine assemblies 
+            {
+                return true;
+            }
+
+            if (fileName.Contains("RegressionGames")) // ignore RG assemblies
+            {
+                return true;
+            }
+
+            // ignore plugin packages referenced by the RG package
+            string fullAssemblyPath = Path.GetFullPath(assemblyPath);
+            foreach (string asmPath in rgAssembly.allReferences)
+            {
+                if (Path.GetFullPath(asmPath) == fullAssemblyPath)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool IsNamespaceIgnored(string ns)
@@ -159,11 +177,11 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
         }
         
-        private static void InstrumentAssemblyIfNeeded(string assemblyPath)
+        private static void InstrumentAssemblyIfNeeded(string assemblyPath, Assembly rgAssembly)
         {
             try
             {
-                if (IsAssemblyIgnored(assemblyPath))
+                if (IsAssemblyIgnored(assemblyPath, rgAssembly))
                 {
                     return;
                 }
@@ -213,18 +231,35 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 RGDebug.LogException(e, $"Error during legacy input instrumentation for {assemblyPath}");
             }
         }
+
+        private static Assembly FindRGAssembly()
+        {
+            var rgAsmPath = Path.GetFullPath(typeof(RGLegacyInputWrapper).Assembly.Location);
+            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            foreach (Assembly assembly in assemblies)
+            {
+                string asmPath = Path.GetFullPath(assembly.outputPath);
+                if (asmPath == rgAsmPath)
+                {
+                    return assembly;
+                }
+            }
+            return null;
+        }
         
         private static void OnAssemblyCompiled(string assemblyAssetPath, CompilerMessage[] messages)
         {
-            InstrumentAssemblyIfNeeded(assemblyAssetPath);
+            Assembly rgAssembly = FindRGAssembly();
+            InstrumentAssemblyIfNeeded(assemblyAssetPath, rgAssembly);
         }
         
         private static void InstrumentExistingAssemblies()
         {
             Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            Assembly rgAssembly = FindRGAssembly();
             foreach (Assembly assembly in assemblies)
             {
-                InstrumentAssemblyIfNeeded(assembly.outputPath);
+                InstrumentAssemblyIfNeeded(assembly.outputPath, rgAssembly);
             }
         }
     }
