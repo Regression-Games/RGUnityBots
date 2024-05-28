@@ -16,7 +16,6 @@ using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using UnityEditor.Media;
 #endif
 
 
@@ -54,20 +53,18 @@ namespace RegressionGames.StateRecorder
 
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
-        private long _videoNumber;
         private long _tickNumber;
         private DateTime _startTime;
 
         private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, Color32[], Action))>
             _tickQueue;
 
+        private readonly List<AsyncGPUReadbackRequest> _gpuReadbackRequests = new();
+
         private readonly List<(string, Task)> _fileWriteTasks = new();
 
-#if UNITY_EDITOR
-        private MediaEncoder _encoder;
-#endif
-
         private MouseInputActionObserver _mouseObserver;
+        private ProfilerObserver _profilerObserver;
 
 
         public static readonly Dictionary<int, RecordedGameObjectState> _emptyStateDictionary = new(0);
@@ -101,36 +98,12 @@ namespace RegressionGames.StateRecorder
         public void OnEnable()
         {
             _this._mouseObserver = GetComponent<MouseInputActionObserver>();
+            _this._profilerObserver = GetComponent<ProfilerObserver>();
         }
 
         private void OnDestroy()
         {
-            _tickQueue?.CompleteAdding();
-            if (_fileWriteTasks.Count > 0)
-            {
-                RGDebug.LogInfo($"Waiting for unfinished file write tasks before stopping ["+ string.Join(",", _fileWriteTasks.Select(a=>a.Item1).ToArray())+ "]");
-            }
-            Task.WaitAll(_fileWriteTasks.Select(a=>a.Item2).ToArray());
-            _fileWriteTasks.Clear();
-            _tokenSource?.Cancel();
-            _tokenSource?.Dispose();
-            _tokenSource = null;
-#if UNITY_EDITOR
-            _encoder?.Dispose();
-            _encoder = null;
-#endif
-            if (_isRecording)
-            {
-                var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
-                if (gameFacePixelHashObserver != null)
-                {
-                    gameFacePixelHashObserver.SetActive(false);
-                }
-                KeyboardInputActionObserver.GetInstance()?.StopRecording();
-                _mouseObserver.ClearBuffer();
-                _isRecording = false;
-                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath, true);
-            }
+            StopRecording();
         }
 
         private void Start()
@@ -236,6 +209,7 @@ namespace RegressionGames.StateRecorder
 
         private void LateUpdate()
         {
+            _gpuReadbackRequests.RemoveAll(a => a.done);
             _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
 
             while (_texture2Ds.TryDequeue(out var tex))
@@ -254,7 +228,7 @@ namespace RegressionGames.StateRecorder
         private IEnumerator ShowUploadingIndicator(bool shouldShow)
         {
             yield return null;
-            RGBotManager.GetInstance().ShowUploadingIndicator(shouldShow);
+            ReplayToolbarManager.GetInstance().ShowUploadingIndicator(shouldShow);
         }
 
         private IEnumerator StartRecordingCoroutine(string referenceSessionId)
@@ -270,6 +244,7 @@ namespace RegressionGames.StateRecorder
                 }, null, _emptyStateDictionary);
 
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
+                _profilerObserver.StartProfiling();
                 _mouseObserver.ClearBuffer();
                 InGameObjectFinder.GetInstance()?.Cleanup();
                 _isRecording = true;
@@ -287,11 +262,16 @@ namespace RegressionGames.StateRecorder
 
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
+                var prefix = referenceSessionId != null ? "replay" : "recording";
+                var pf = _currentSessionId.Substring(Math.Max(0, _currentSessionId.Length - 6));
+                var postfix = referenceSessionId != null ? pf + "_" + referenceSessionId.Substring(Math.Max(0, referenceSessionId.Length - 6)) : pf;
+                var dateTimeString =  System.DateTime.Now.ToString("MM-dd-yyyy_HH.mm");
+
                 // find the first index number we haven't used yet
                 do
                 {
                     _currentGameplaySessionDirectoryPrefix =
-                        $"{stateRecordingsDirectory}/{Application.productName}/run_{_videoNumber++}";
+                        $"{stateRecordingsDirectory}/{Application.productName}/{prefix}_{dateTimeString}_{postfix}";
                 } while (Directory.Exists(_currentGameplaySessionDirectoryPrefix));
 
                 _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";
@@ -472,7 +452,62 @@ namespace RegressionGames.StateRecorder
 
         public void StopRecording()
         {
-            OnDestroy();
+            var wasRecording = _isRecording;
+            _isRecording = false;
+            if (wasRecording)
+            {
+                var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
+                if (gameFacePixelHashObserver != null)
+                {
+                    gameFacePixelHashObserver.SetActive(false);
+                }
+                KeyboardInputActionObserver.GetInstance()?.StopRecording();
+                _mouseObserver.ClearBuffer();
+                _profilerObserver.StopProfiling();
+            }
+
+            _gpuReadbackRequests.RemoveAll(a => a.done);
+
+            if (_gpuReadbackRequests.Count > 0)
+            {
+                RGDebug.LogInfo($"Waiting for " + _gpuReadbackRequests.Count + " unfinished GPU Readback requests before stopping");
+            }
+
+            // wait for all the GPU data to come back
+            foreach (var asyncGPUReadbackRequest in _gpuReadbackRequests)
+            {
+                asyncGPUReadbackRequest.WaitForCompletion();
+            }
+
+            _gpuReadbackRequests.Clear();
+
+            _tickQueue?.CompleteAdding();
+
+            // wait for all the tick writes to be queued up
+            while (_tickQueue != null && _tickQueue.Count() != 0)
+            {
+                Thread.Sleep(5);
+            }
+
+            _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
+
+            // wait for all the write tasks to finish
+            if (_fileWriteTasks.Count > 0)
+            {
+                RGDebug.LogInfo($"Waiting for unfinished file write tasks before stopping ["+ string.Join(",", _fileWriteTasks.Select(a=>a.Item1).ToArray())+ "]");
+            }
+            Task.WaitAll(_fileWriteTasks.Select(a=>a.Item2).ToArray());
+
+            _fileWriteTasks.Clear();
+
+            if (wasRecording)
+            {
+                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath, true);
+            }
+
+            _tokenSource?.Cancel();
+            _tokenSource?.Dispose();
+            _tokenSource = null;
         }
 
         private RenderTexture _screenShotTexture = null;
@@ -517,6 +552,8 @@ namespace RegressionGames.StateRecorder
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
+                    ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler(_frameCountSinceLastTick);
+
                     try
                     {
                         ++_tickNumber;
@@ -526,6 +563,9 @@ namespace RegressionGames.StateRecorder
                             framesSincePreviousTick = _frameCountSinceLastTick,
                             previousTickTime = _lastCvFrameTime,
                             fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+                            cpuTimeSincePreviousTick = profilerResult.cpuTimeSincePreviousTick,
+                            memory = profilerResult.systemUsedMemory,
+                            gcMemory = profilerResult.gcUsedMemory,
                             engineStats = new EngineStatsData()
                             {
 #if UNITY_EDITOR
@@ -690,33 +730,9 @@ namespace RegressionGames.StateRecorder
                                         }
                                     }
                                 }
-
                             });
 
-                            if (readbackRequest.hasError)
-                            {
-                                RGDebug.LogError($"Error starting to capture screenshot for tick # {currentTickNumber}");
-
-                                if (Interlocked.CompareExchange(ref didQueue, 1, 0) == 0)
-                                {
-                                    // queue up writing the tick data to disk async
-                                    _tickQueue.Add((
-                                        (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
-                                        (
-                                            jsonData,
-                                            screenWidth,
-                                            screenHeight,
-                                            graphicsFormat,
-                                            null,
-                                            () => { }
-                                        )
-                                    ));
-                                    if (RGDebug.IsDebugEnabled)
-                                    {
-                                        RGDebug.LogDebug($"Queued data to write without screenshot for tick # {currentTickNumber}");
-                                    }
-                                }
-                            }
+                            _gpuReadbackRequests.Add(readbackRequest);
                         }
                         catch (Exception e)
                         {

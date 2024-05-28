@@ -36,9 +36,11 @@ namespace RegressionGames.StateRecorder
         public string[] uiScenes;
 
         /**
-         * <summary>the ui elements visible must match this list exactly; (could be similar/duplicate paths in the list, need to match value + # of appearances)</summary>
+         * <summary>the ui elements visible must match this list exactly; (could be similar/duplicate paths in the list, need to match value + # of appearances)
+         * First argument is the hashCode of the path to speed up dictionary evaluation of key match vs using strings</summary>
          */
-        public string[] uiElements;
+        public Dictionary<int, (string,int)> uiElementsCounts;
+        public Dictionary<int, StateElementDeltaType> uiElementsDeltas;
 
 
         /**
@@ -85,6 +87,7 @@ namespace RegressionGames.StateRecorder
         public Vector2 scroll;
         public string[] clickedObjectPaths;
         public string[] clickedObjectNormalizedPaths;
+
         public bool IsDone;
 
         // gives the position relative to the current screen size
@@ -112,33 +115,65 @@ namespace RegressionGames.StateRecorder
 
     public class ReplayDataContainer
     {
-        public string SessionId { get; private set; } = null;
+        private readonly List<ReplayKeyFrameEntry> _keyFrames = new();
+        private int _keyFrameIndex = 0;
+        private readonly List<ReplayKeyboardInputEntry> _keyboardData = new();
+        private int _keyboardIndex = 0;
+        private readonly List<ReplayMouseInputEntry> _mouseData = new();
+        private int _mouseIndex = 0;
 
-        private readonly Queue<ReplayKeyFrameEntry> _keyFrames = new();
-
-        private readonly Queue<ReplayKeyboardInputEntry> _keyboardData = new();
-
-        public bool IsShiftDown = false;
+        public string SessionId { get; private set; }
+        public bool IsShiftDown;
 
         private readonly Dictionary<string, ReplayKeyboardInputEntry> _pendingEndKeyboardInputs = new();
 
-        private readonly Queue<ReplayMouseInputEntry> _mouseData = new();
 
         public ReplayDataContainer(string zipFilePath)
         {
             ParseReplayZip(zipFilePath);
         }
 
+        public void Reset()
+        {
+            // sets indexes back to 0
+            _keyFrameIndex = 0;
+            _keyboardIndex = 0;
+            _mouseIndex = 0;
+
+            IsShiftDown = false;
+            _pendingEndKeyboardInputs.Clear();
+
+            // reset all the tracking flags
+            foreach (var replayKeyFrameEntry in _keyFrames)
+            {
+                replayKeyFrameEntry.uiMatched = false;
+                replayKeyFrameEntry.gameMatched = false;
+            }
+
+            foreach (var replayKeyboardInputEntry in _keyboardData)
+            {
+                replayKeyboardInputEntry.startEndSentFlags[0] = false;
+                replayKeyboardInputEntry.startEndSentFlags[1] = false;
+            }
+
+            foreach (var replayMouseInputEntry in _mouseData)
+            {
+                replayMouseInputEntry.IsDone = false;
+            }
+        }
+
         public List<ReplayMouseInputEntry> DequeueMouseInputsUpToTime(double? time = null)
         {
             List<ReplayMouseInputEntry> output = new();
-            while (_mouseData.TryPeek(out var item))
+            var mouseCount = _mouseData.Count;
+            while (_mouseIndex < mouseCount)
             {
+                var item = _mouseData[_mouseIndex];
                 if (time == null || item.startTime < time)
                 {
                     output.Add(item);
-                    // remove the one we just peeked
-                    _mouseData.Dequeue();
+                    // 'remove' the one we just peeked by updating our index
+                    ++_mouseIndex;
                 }
                 else
                 {
@@ -153,13 +188,15 @@ namespace RegressionGames.StateRecorder
         public List<ReplayKeyboardInputEntry> DequeueKeyboardInputsUpToTime(double? time = null)
         {
             List<ReplayKeyboardInputEntry> output = new();
-            while (_keyboardData.TryPeek(out var item))
+            var keyboardCount = _keyboardData.Count;
+            while (_keyboardIndex < keyboardCount)
             {
+                var item = _keyboardData[_keyboardIndex];
                 if (time == null || item.startTime < time)
                 {
                     output.Add(item);
-                    // remove the one we just peeked
-                    _keyboardData.Dequeue();
+                    // 'remove' the one we just peeked by updating our index
+                    ++_keyboardIndex;
                 }
                 else
                 {
@@ -173,9 +210,9 @@ namespace RegressionGames.StateRecorder
 
         public ReplayKeyFrameEntry DequeueKeyFrame()
         {
-            if (_keyFrames.TryDequeue(out var result))
+            if (_keyFrameIndex < _keyFrames.Count)
             {
-                return result;
+                return _keyFrames[_keyFrameIndex++];
             }
 
             return null;
@@ -183,9 +220,10 @@ namespace RegressionGames.StateRecorder
 
         public ReplayKeyFrameEntry PeekKeyFrame()
         {
-            if (_keyFrames.TryPeek(out var result))
+            if (_keyFrameIndex < _keyFrames.Count)
             {
-                return result;
+                // do not updated index
+                return _keyFrames[_keyFrameIndex];
             }
 
             return null;
@@ -200,6 +238,8 @@ namespace RegressionGames.StateRecorder
 
             ReplayFrameStateData firstFrame = null;
             ReplayFrameStateData priorFrame = null;
+
+            ReplayKeyFrameEntry priorKeyFrame = null;
             foreach (var entry in entries)
             {
                 using var sr = new StreamReader(entry.Open());
@@ -216,16 +256,28 @@ namespace RegressionGames.StateRecorder
                 ReplayKeyFrameEntry keyFrame = null;
                 if (frameData.keyFrame.Length > 0)
                 {
-                    var uiElements = new List<string>();
                     var gameElements = new List<(string,int,int,int)>();
                     var uiScenes = new HashSet<string>();
                     var gameScenes = new HashSet<string>();
+
+                    var uiElementsCounts = new Dictionary<int, (string,int)>();
+
                     foreach (var replayGameObjectState in frameData.state)
                     {
                         if (replayGameObjectState.worldSpaceBounds == null)
                         {
-                            uiElements.Add(replayGameObjectState.path);
                             uiScenes.Add(replayGameObjectState.scene);
+
+                            var hashCode = replayGameObjectState.path.GetHashCode();
+
+                            if (uiElementsCounts.TryGetValue(hashCode, out var val))
+                            {
+                                uiElementsCounts[hashCode] = (val.Item1, val.Item2 + 1);
+                            }
+                            else
+                            {
+                                uiElementsCounts[hashCode] = (replayGameObjectState.path, 1);
+                            }
                         }
                         else
                         {
@@ -233,6 +285,52 @@ namespace RegressionGames.StateRecorder
                             gameScenes.Add(replayGameObjectState.scene);
                         }
                     }
+
+                    var uiElementsDeltas = new Dictionary<int, StateElementDeltaType>();
+
+                    if (priorKeyFrame != null)
+                    {
+                        foreach (var elementsCount in uiElementsCounts)
+                        {
+                            var hashCode = elementsCount.Key.GetHashCode();
+                            if (priorKeyFrame.uiElementsCounts.TryGetValue(hashCode, out var counts))
+                            {
+                                // this entry was in the prior frame
+                                if (counts.Item2 > elementsCount.Value.Item2)
+                                {
+                                    uiElementsDeltas[hashCode] = StateElementDeltaType.Decreased;
+                                }
+                                else if (counts.Item2 < elementsCount.Value.Item2)
+                                {
+                                    uiElementsDeltas[hashCode] = StateElementDeltaType.Increased;
+                                }
+                                else
+                                {
+                                    uiElementsDeltas[hashCode] = StateElementDeltaType.NonZero;
+                                }
+                            }
+                            else
+                            {
+                                // this entry wasn't in the prior frame
+                                uiElementsDeltas[elementsCount.Key] = StateElementDeltaType.NonZero;
+                            }
+                            // now check for things that went away
+                            foreach (var keyValuePair in priorKeyFrame.uiElementsCounts)
+                            {
+                                // went to zero
+                                uiElementsDeltas.TryAdd(keyValuePair.Key, StateElementDeltaType.Zero);
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        foreach (var uiElementsCount in uiElementsCounts)
+                        {
+                            uiElementsDeltas[uiElementsCount.Key] = StateElementDeltaType.NonZero;
+                        }
+                    }
+
                     keyFrame = new ReplayKeyFrameEntry()
                     {
                         tickNumber = frameData.tickNumber,
@@ -240,11 +338,13 @@ namespace RegressionGames.StateRecorder
                         keyFrameTypes = frameData.keyFrame,
                         time = frameData.time - firstFrame.time,
                         uiScenes = uiScenes.ToArray(),
-                        uiElements = uiElements.ToArray(),
                         gameScenes = gameScenes.ToArray(),
-                        gameElements = gameElements.ToArray()
+                        gameElements = gameElements.ToArray(),
+                        uiElementsCounts = uiElementsCounts,
+                        uiElementsDeltas = uiElementsDeltas
                     };
-                    _keyFrames.Enqueue(keyFrame);
+                    _keyFrames.Add(keyFrame);
+                    priorKeyFrame = keyFrame;
                 }
 
                 foreach (var inputData in frameData.inputs.keyboard)
@@ -271,7 +371,7 @@ namespace RegressionGames.StateRecorder
 
                             // we put this in the queue by its encounter position/start time
                             // we track pending ones if endtime not encountered yet
-                            _keyboardData.Enqueue(theData);
+                            _keyboardData.Add(theData);
 
                             if (theData.endTime == null)
                             {
@@ -295,7 +395,7 @@ namespace RegressionGames.StateRecorder
                             specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state);
                         }
 
-                        _mouseData.Enqueue(new ReplayMouseInputEntry()
+                        _mouseData.Add(new ReplayMouseInputEntry()
                         {
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
