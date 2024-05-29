@@ -10,9 +10,9 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 {
     /**
      * This script is responsible for making a copy of the input manager settings
-     * as a JSON file prior to a standalone build starting.
+     * as a JSON asset prior to a standalone build starting.
      */
-    public class RGLegacyInputSettingsHook : IPreprocessBuildWithReport
+    public class RGLegacyInputSettingsPreprocessBuild : IPreprocessBuildWithReport
     {
         private static string _inputManagerJsonOut = "Assets/Resources/RGInputSettingsCopy.json";
         public int callbackOrder => 0;
