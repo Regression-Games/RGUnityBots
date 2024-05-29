@@ -135,6 +135,14 @@ namespace RegressionGames.StateRecorder
             return _replaySuccessful;
         }
 
+        /**
+         * <summary>Returns the current save location being used for the recording</summary>
+         */
+        public string SaveLocation()
+        {
+            return _screenRecorder.GetCurrentSaveDirectory();
+        }
+
         public void Play()
         {
             if (_dataContainer != null)

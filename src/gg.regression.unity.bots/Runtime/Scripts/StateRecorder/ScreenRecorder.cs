@@ -75,6 +75,11 @@ namespace RegressionGames.StateRecorder
             return _this;
         }
 
+        public string GetCurrentSaveDirectory()
+        {
+            return _currentGameplaySessionDataDirectoryPrefix;
+        }
+
         public void Awake()
         {
             _usingIOSMetalGraphics = (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal);
