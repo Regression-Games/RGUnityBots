@@ -18,6 +18,28 @@ namespace RegressionGames.RGLegacyInputUtility
             smoothedValue = 0.0f;
         }
     }
+
+    enum RGLegacySimulatedInputEventType
+    {
+        KEY_EVENT,
+        MOUSE_MOVEMENT_EVENT,
+        MOUSE_SCROLL_EVENT
+    }
+
+    struct RGLegacySimulatedInputEvent
+    {
+        public RGLegacySimulatedInputEventType eventType;
+        
+        // Key event
+        public KeyCode keyCode;
+        public bool isKeyPressed;
+        
+        // Mouse movement event
+        public Vector3 newMousePosition;
+        
+        // Mouse scroll event
+        public Vector2 newMouseScrollDelta;
+    }
     
     /**
      * Class that provides APIs for simulating device inputs, and also
@@ -38,12 +60,9 @@ namespace RegressionGames.RGLegacyInputUtility
         private static Vector3 _mousePosDelta;
         private static Vector2 _mouseScrollDelta;
         private static Dictionary<InputManagerEntry, RGLegacyAxisInputState> _axisStates;
-        private static Dictionary<KeyCode, Coroutine> _removeNewCoroutines;
-        private static Coroutine _clearAnyKeyDownCoro;
-        private static Coroutine _clearMousePosDeltaCoro;
-        private static Coroutine _clearMouseScrollDeltaCoro;
         private static RGLegacyInputManagerSettings _inputManagerSettings;
         private static Coroutine _inputSimLoopCoro;
+        private static Queue<RGLegacySimulatedInputEvent> _inputSimEventQueue;
         
         /**
          * If this flag is true (this is the initial state), then all inputs are
@@ -78,15 +97,17 @@ namespace RegressionGames.RGLegacyInputUtility
             _mousePosDelta = Vector3.zero;
             _mouseScrollDelta = Vector2.zero;
             _axisStates = new Dictionary<InputManagerEntry, RGLegacyAxisInputState>();
-            _removeNewCoroutines = new Dictionary<KeyCode, Coroutine>();
             _inputManagerSettings = new RGLegacyInputManagerSettings();
-            _inputSimLoopCoro = _simulationContext.StartCoroutine(InputSimLoop());
+            _inputSimEventQueue = new Queue<RGLegacySimulatedInputEvent>();
             
             // initialize axis states
             foreach (var entry in _inputManagerSettings.Entries)
             {
                 _axisStates[entry] = new RGLegacyAxisInputState();
             }
+            
+            // start event processing loop
+            _inputSimLoopCoro = _simulationContext.StartCoroutine(InputSimLoop());
         }
         
         /**
@@ -97,31 +118,13 @@ namespace RegressionGames.RGLegacyInputUtility
             if (_simulationContext != null)
             {
                 _simulationContext.StopCoroutine(_inputSimLoopCoro);
-                foreach (Coroutine coro in _removeNewCoroutines.Values)
-                {
-                    _simulationContext.StopCoroutine(coro);
-                }
-                if (_clearAnyKeyDownCoro != null)
-                {
-                    _simulationContext.StopCoroutine(_clearAnyKeyDownCoro);
-                    _clearAnyKeyDownCoro = null;
-                }
-                if (_clearMousePosDeltaCoro != null)
-                {
-                    _simulationContext.StopCoroutine(_clearMousePosDeltaCoro);
-                    _clearMousePosDeltaCoro = null;
-                }
-                if (_clearMouseScrollDeltaCoro != null)
-                {
-                    _simulationContext.StopCoroutine(_clearMouseScrollDeltaCoro);
-                    _clearMouseScrollDeltaCoro = null;
-                }
+                _inputSimLoopCoro = null;
+                _inputSimEventQueue = null;
                 _inputManagerSettings = null;
                 _newKeysDown = null;
                 _newKeysUp = null;
                 _axisStates = null;
                 _keysHeld = null;
-                _removeNewCoroutines = null;
                 _simulationContext = null;
             }
         }
@@ -130,6 +133,56 @@ namespace RegressionGames.RGLegacyInputUtility
         {
             for (;;)
             {
+                // Process simulated input event queue
+                while (_inputSimEventQueue.TryDequeue(out RGLegacySimulatedInputEvent evt))
+                {
+                    switch (evt.eventType)
+                    {
+                        case RGLegacySimulatedInputEventType.KEY_EVENT:
+                        {
+                            KeyCode keyCode = evt.keyCode;
+                            bool isPressed = evt.isKeyPressed;
+                            bool wasHeld = _keysHeld.Contains(keyCode);
+                            if (isPressed)
+                            {
+                                bool anyHeld = _keysHeld.Count > 0;
+                                _keysHeld.Add(keyCode);
+                                if (!wasHeld)
+                                {
+                                    _newKeysDown.Add(keyCode);
+                                }
+                                if (!anyHeld)
+                                {
+                                    _anyKeyDown = true;
+                                }
+                            }
+                            else
+                            {
+                                _keysHeld.Remove(keyCode);
+                                if (wasHeld)
+                                {
+                                    _newKeysUp.Add(keyCode);
+                                }
+                            }
+                            break;
+                        }
+                        case RGLegacySimulatedInputEventType.MOUSE_MOVEMENT_EVENT:
+                        {
+                            Vector3 newMousePosition = evt.newMousePosition;
+                            _mousePosDelta = newMousePosition - _mousePosition;
+                            _mousePosition = newMousePosition;
+                            break;
+                        }
+                        case RGLegacySimulatedInputEventType.MOUSE_SCROLL_EVENT:
+                        {
+                            Vector2 newMouseScrollDelta = evt.newMouseScrollDelta;
+                            _mouseScrollDelta = newMouseScrollDelta;
+                            break;
+                        }
+                    }
+                }
+                
+                // Update axis states based on input
                 foreach (var p in _axisStates)
                 {
                     InputManagerEntry entry = p.Key;
@@ -197,69 +250,29 @@ namespace RegressionGames.RGLegacyInputUtility
                         RGDebug.LogWarning($"Unexpected input manager entry type: {entry.type}");
                     }
                 }
+                
+                // Wait one frame
                 yield return null;
+                
+                // Clear all "new" flags and deltas
+                _newKeysDown.Clear();
+                _newKeysUp.Clear();
+                _anyKeyDown = false;
+                _mousePosDelta = Vector3.zero;
+                _mouseScrollDelta = Vector2.zero;
             }
         }
         
-        /**
-         * Coroutine that clears "new" flag on a key (either down or up)
-         * on the next frame.
-         */
-        private static IEnumerator RemoveNewKey(KeyCode keyCode)
-        {
-            yield return null;
-            _newKeysDown.Remove(keyCode);
-            _newKeysUp.Remove(keyCode);
-        }
-
-        private static void ScheduleRemoveNewKey(KeyCode keyCode)
-        {
-            _removeNewCoroutines.Add(keyCode, _simulationContext.StartCoroutine(RemoveNewKey(keyCode)));
-        }
-
-        /**
-         * Coroutine for clearing the "any key down" flag on the next frame.
-         */
-        private static IEnumerator ClearAnyKeyDown()
-        {
-            yield return null;
-            _anyKeyDown = false;
-        }
-        
-        private static void ClearKeyState(KeyCode keyCode)
-        {
-            if (_removeNewCoroutines.Remove(keyCode, out Coroutine coro))
-            {
-                _simulationContext.StopCoroutine(coro);
-            }
-            _keysHeld.Remove(keyCode);
-            _newKeysDown.Remove(keyCode);
-            _newKeysUp.Remove(keyCode);
-        }
-
         /**
          * Called by the test driver to simulate a key press.
          */
         public static void SimulateKeyPress(KeyCode keyCode)
         {
-            bool wasHeld = _keysHeld.Contains(keyCode);
-            bool anyHeld = _keysHeld.Count > 0;
-            ClearKeyState(keyCode);
-            _keysHeld.Add(keyCode);
-            if (!wasHeld)
-            {
-                _newKeysDown.Add(keyCode);
-                ScheduleRemoveNewKey(keyCode);
-            }
-            if (!anyHeld)
-            {
-                _anyKeyDown = true;
-                if (_clearAnyKeyDownCoro != null)
-                {
-                    _simulationContext.StopCoroutine(_clearAnyKeyDownCoro);
-                }
-                _clearAnyKeyDownCoro = _simulationContext.StartCoroutine(ClearAnyKeyDown());
-            }
+            RGLegacySimulatedInputEvent evt = new RGLegacySimulatedInputEvent();
+            evt.eventType = RGLegacySimulatedInputEventType.KEY_EVENT;
+            evt.keyCode = keyCode;
+            evt.isKeyPressed = true;
+            _inputSimEventQueue.Enqueue(evt);
         }
 
         /**
@@ -267,21 +280,11 @@ namespace RegressionGames.RGLegacyInputUtility
          */
         public static void SimulateKeyRelease(KeyCode keyCode)
         {
-            bool wasHeld = _keysHeld.Contains(keyCode);
-            ClearKeyState(keyCode);
-            if (wasHeld)
-            {
-                _newKeysUp.Add(keyCode);
-                ScheduleRemoveNewKey(keyCode);
-            }
-        }
-
-        // Coroutine for clearing the mouse movement delta on the next frame
-        private static IEnumerator ClearMouseMovementDelta()
-        {
-            yield return null;
-            _mousePosDelta = Vector3.zero;
-            _clearMousePosDeltaCoro = null;
+            RGLegacySimulatedInputEvent evt = new RGLegacySimulatedInputEvent();
+            evt.eventType = RGLegacySimulatedInputEventType.KEY_EVENT;
+            evt.keyCode = keyCode;
+            evt.isKeyPressed = false;
+            _inputSimEventQueue.Enqueue(evt);
         }
 
         /**
@@ -289,31 +292,18 @@ namespace RegressionGames.RGLegacyInputUtility
          */
         public static void SimulateMouseMovement(Vector3 newMousePosition)
         {
-            _mousePosDelta = newMousePosition - _mousePosition;
-            _mousePosition = newMousePosition;
-            if (_clearMousePosDeltaCoro != null)
-            {
-                _simulationContext.StopCoroutine(_clearMousePosDeltaCoro);
-            }
-            _clearMousePosDeltaCoro = _simulationContext.StartCoroutine(ClearMouseMovementDelta());
-        }
-
-        // Coroutine for clearing the mouse scroll delta on the next frame
-        private static IEnumerator ClearMouseScrollDelta()
-        {
-            yield return null;
-            _mouseScrollDelta = Vector2.zero;
-            _clearMouseScrollDeltaCoro = null;
+            RGLegacySimulatedInputEvent evt = new RGLegacySimulatedInputEvent();
+            evt.eventType = RGLegacySimulatedInputEventType.MOUSE_MOVEMENT_EVENT;
+            evt.newMousePosition = newMousePosition;
+            _inputSimEventQueue.Enqueue(evt);
         }
 
         public static void SimulateMouseScrollWheel(Vector2 newMouseScrollDelta)
         {
-            _mouseScrollDelta = newMouseScrollDelta;
-            if (_clearMouseScrollDeltaCoro != null)
-            {
-                _simulationContext.StopCoroutine(_clearMouseScrollDeltaCoro);
-            }
-            _clearMouseScrollDeltaCoro = _simulationContext.StartCoroutine(ClearMouseScrollDelta());
+            RGLegacySimulatedInputEvent evt = new RGLegacySimulatedInputEvent();
+            evt.eventType = RGLegacySimulatedInputEventType.MOUSE_SCROLL_EVENT;
+            evt.newMouseScrollDelta = newMouseScrollDelta;
+            _inputSimEventQueue.Enqueue(evt);
         }
         
         private static Regex _joystickButtonPattern = new Regex(@"joystick (\d+) button (\d+)", RegexOptions.Compiled);
