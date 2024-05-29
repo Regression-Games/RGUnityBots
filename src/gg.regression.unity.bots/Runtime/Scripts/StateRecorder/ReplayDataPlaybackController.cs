@@ -79,25 +79,28 @@ namespace RegressionGames.StateRecorder
 
         private void SetupEventSystem()
         {
-            // when/if we can make the legacy input system work, we should remove this and respect that system
             var eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
-            InputSystemUIInputModule inputModule = null;
             foreach (var eventSystem in eventSystems)
             {
-                var theModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
-                if (theModule != null)
+                BaseInputModule inputModule = eventSystem.gameObject.GetComponent<BaseInputModule>();
+                
+                // If there is no module, add the appropriate input module so that the replay can simulate UI inputs
+                if (inputModule == null)
                 {
-                    inputModule = theModule;
+                    #if ENABLE_INPUT_SYSTEM
+                    inputModule = eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                    #elif ENABLE_LEGACY_INPUT_MANAGER
+                    inputModule = eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                    #endif
                 }
-                else
+
+                #if ENABLE_LEGACY_INPUT_MANAGER
+                // Override the UI module's input source to read inputs from RGLegacyInputWrapper instead of UnityEngine.Input
+                if (inputModule != null && inputModule.inputOverride == null)
                 {
-                    // force add it to at least make mouse clicks work on UI elements
-                    eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                    inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
                 }
-            }
-            if (inputModule == null)
-            {
-                RGDebug.LogError("Regression Games Unity SDK only supports the new InputSystem, but did not detect an instance of InputSystemUIInputModule in the scene.  If you are using a 3rd party input module like Coherent GameFace this may be expected/ok.");
+                #endif
             }
         }
 

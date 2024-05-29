@@ -19,6 +19,14 @@ namespace RegressionGames.RGLegacyInputUtility
         }
     }
     
+    /**
+     * Class that provides APIs for simulating device inputs, and also
+     * provides the necessary wrappers for the UnityEngine.Input APIs that
+     * are automatically added by RGLegacyInputInstrumentation.
+     *
+     * When adding new Input wrappers to this class, you should also update
+     * RGBaseInput with the wrappers that have been added.
+     */
     public static class RGLegacyInputWrapper
     {
         private static MonoBehaviour _simulationContext;
@@ -386,6 +394,21 @@ namespace RegressionGames.RGLegacyInputUtility
                 else
                 {
                     return _anyKeyDown;
+                }
+            }
+        }
+
+        public static bool mousePresent
+        {
+            get
+            {
+                if (IsPassthrough)
+                {
+                    return UnityEngine.Input.mousePresent;
+                }
+                else
+                {
+                    return true;
                 }
             }
         }
