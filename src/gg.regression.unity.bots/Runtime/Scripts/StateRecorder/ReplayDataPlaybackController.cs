@@ -940,6 +940,45 @@ namespace RegressionGames.StateRecorder
 
             return (bestObject, worldSpaceObject, normalizedPosition, possibleObjects);
         }
+        
+#if ENABLE_LEGACY_INPUT_MANAGER
+        public static void SendMouseEventLegacy(Vector2 position, Vector2 scroll, bool leftButton, bool middleButton, bool rightButton)
+        {
+            if (RGLegacyInputWrapper.IsPassthrough)
+            {
+                return;
+            }
+
+            RGLegacyInputWrapper.SimulateMouseMovement(new Vector3(position.x, position.y, 0.0f));
+            RGLegacyInputWrapper.SimulateMouseScrollWheel(scroll);
+            
+            // Left button -> Mouse 0, Right button -> Mouse 1, Middle button -> Mouse 2
+            if (leftButton)
+            {
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse0);
+            }
+            else
+            {
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse0);
+            }
+            if (middleButton)
+            {
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse2);
+            }
+            else
+            {
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse2);
+            }
+            if (rightButton)
+            {
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse1);
+            }
+            else
+            {
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse1);
+            }
+        }
+#endif
 
         public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
@@ -1090,6 +1129,10 @@ namespace RegressionGames.StateRecorder
                 }
 
                 InputSystem.QueueEvent(eventPtr);
+                
+                #if ENABLE_LEGACY_INPUT_MANAGER
+                SendMouseEventLegacy(normalizedPosition, mouseInput.scroll, mouseInput.leftButton, mouseInput.middleButton, mouseInput.rightButton);
+                #endif
             }
         }
 
