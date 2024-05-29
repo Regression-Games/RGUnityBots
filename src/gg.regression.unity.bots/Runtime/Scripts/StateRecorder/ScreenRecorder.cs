@@ -334,12 +334,8 @@ namespace RegressionGames.StateRecorder
 
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
-        private readonly List<int> _sceneHandlesInPriorFrame = new(10);
-        private readonly List<int> _sceneHandlesInCurrentFrame = new(10);
-        private readonly List<int> _uiElementsInCurrentFrame = new(1000);
-        private readonly Dictionary<int, RecordedGameObjectState> _worldElementsInCurrentFrame = new(1000);
 
-        private void GetKeyFrameType(bool firstFrame, Dictionary<int,RecordedGameObjectState> priorState, Dictionary<int,RecordedGameObjectState> currentState, string pixelHash)
+        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, string pixelHash)
         {
             _keyFrameTypeList.Clear();
             if (firstFrame)
@@ -353,99 +349,13 @@ namespace RegressionGames.StateRecorder
                 _keyFrameTypeList.Add(KeyFrameType.UI_PIXELHASH);
             }
 
-            // avoid dynamic resizing of structures
-            _sceneHandlesInPriorFrame.Clear();
-            _sceneHandlesInCurrentFrame.Clear();
-            _uiElementsInCurrentFrame.Clear();
-            _worldElementsInCurrentFrame.Clear();
-
-            // need to do current before previous due to the world element renderers comparisons
-
-            foreach(var recordedGameObjectState in currentState.Values)
+            if (hasUIDelta)
             {
-                var sceneHandle = recordedGameObjectState.scene.handle;
-                // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
-                if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInCurrentFrame, sceneHandle))
-                {
-                    _sceneHandlesInCurrentFrame.Add(sceneHandle);
-                }
-
-                if (recordedGameObjectState.worldSpaceBounds == null)
-                {
-                    _uiElementsInCurrentFrame.Add(recordedGameObjectState.id);
-                }
-                else
-                {
-                    _worldElementsInCurrentFrame[recordedGameObjectState.id] = recordedGameObjectState;
-                }
-            }
-
-            // performance optimization to avoid using hashing checks on every element
-            bool addedRendererCount = false, addedGameElement = false;
-            var worldElementsCount = 0;
-            var hadDifferentUIElements = false;
-            foreach(var recordedGameObjectState in priorState.Values)
-            {
-                var sceneHandle = recordedGameObjectState.scene.handle;
-                // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
-                if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInPriorFrame, sceneHandle))
-                {
-                    _sceneHandlesInPriorFrame.Add(sceneHandle);
-                }
-
-                if (recordedGameObjectState.worldSpaceBounds == null)
-                {
-                    if (!hadDifferentUIElements)
-                    {
-                        hadDifferentUIElements |= !StateRecorderUtils.OptimizedRemoveIntFromList(_uiElementsInCurrentFrame, recordedGameObjectState.id);
-                    }
-                }
-                else
-                {
-                    ++worldElementsCount;
-                    // once we've added both of these.. skip some checks
-                    if (!addedRendererCount || !addedGameElement)
-                    {
-                        if (_worldElementsInCurrentFrame.TryGetValue(recordedGameObjectState.id, out var elementInCurrentFrame))
-                        {
-                            if (!addedRendererCount && elementInCurrentFrame.rendererCount != recordedGameObjectState.rendererCount)
-                            {
-                                // if an element changed its renderer count
-                                _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT_RENDERER_COUNT);
-                                addedRendererCount = true;
-                            }
-                        }
-                        else
-                        {
-                            if (!addedGameElement)
-                            {
-                                // if we had an element disappear
-                                _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT);
-                                addedGameElement = true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // scene loaded or changed
-            if (!IntListsMatch(_sceneHandlesInPriorFrame, _sceneHandlesInCurrentFrame))
-            {
-                // elements from scenes changed this frame
-                _keyFrameTypeList.Add(KeyFrameType.SCENE);
-            }
-
-            // visible UI elements changed
-            if (hadDifferentUIElements || _uiElementsInCurrentFrame.Count != 0)
-            {
-                // visible UI elements changed this frame
                 _keyFrameTypeList.Add(KeyFrameType.UI_ELEMENT);
             }
 
-            // visible game elements changed
-            if (worldElementsCount != _worldElementsInCurrentFrame.Count && !addedGameElement)
+            if (hasGameObjectDelta)
             {
-                // if we had a new element appear
                 _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT);
             }
         }
@@ -512,6 +422,87 @@ namespace RegressionGames.StateRecorder
 
         private RenderTexture _screenShotTexture = null;
 
+        public class PathBasedDeltaCount
+        {
+            public PathBasedDeltaCount(int pathHash, string path)
+            {
+                this.pathHash = pathHash;
+                this.path = path;
+            }
+            public List<int> ids = new ();
+            public int pathHash;
+            public string path;
+
+            public int count;
+            public int addedCount;
+            public int removedCount;
+        }
+
+        /**
+         * argument lists are keyed by transform id
+         *
+         * returns hasDelta on spawns or despawns or change in camera visibility
+         */
+        private Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts((Dictionary<int,TransformStatus>, Dictionary<int, TransformStatus>) transformStatusLists, out bool hasDelta)
+        {
+            hasDelta = false;
+            var result = new Dictionary<int, PathBasedDeltaCount>();// keyed by path hash
+            /**
+             * go through the new state and add up the totals
+             * - track the ids for each path
+             * - compute spawns vs old state
+             *
+             * go through the old state
+             *  - track paths that have had despawns
+             */
+            foreach (var currentEntry in transformStatusLists.Item2.Values)
+            {
+                var pathHash = currentEntry.NormalizedPath.GetHashCode();
+                if (!result.TryGetValue(pathHash, out var pathCountEntry))
+                {
+                    pathCountEntry = new PathBasedDeltaCount(pathHash, currentEntry.NormalizedPath);
+                    result[pathHash] = pathCountEntry;
+                }
+
+                pathCountEntry.count++;
+                pathCountEntry.ids.Add(currentEntry.Id);
+
+                if (!transformStatusLists.Item1.TryGetValue(currentEntry.Id, out var oldStatus))
+                {
+                    hasDelta = true;
+                    pathCountEntry.addedCount++;
+                }
+                else
+                {
+                    if ((oldStatus.screenSpaceBounds != null) != (currentEntry.screenSpaceBounds != null))
+                    {
+                        // camera visibility changed.. only need to do this in one place, because if both lists didnt' have it we can't compare
+                        hasDelta = true;
+                    }
+                }
+            }
+
+            // figure out despawns
+            foreach( KeyValuePair<int, TransformStatus> entry in transformStatusLists.Item1)
+            {
+                var pathHash = entry.Value.NormalizedPath.GetHashCode();
+                if (!result.TryGetValue(pathHash, out var pathCountEntry))
+                {
+                    pathCountEntry = new PathBasedDeltaCount(pathHash, entry.Value.NormalizedPath);
+                    result[pathHash] = pathCountEntry;
+                }
+
+                if (!pathCountEntry.ids.Contains(entry.Key))
+                {
+                    hasDelta = true;
+                    pathCountEntry.removedCount++;
+                }
+            }
+
+
+            return result;
+        }
+
         private IEnumerator RecordFrame()
         {
             if (!_tickQueue.IsCompleted)
@@ -520,42 +511,54 @@ namespace RegressionGames.StateRecorder
                 // handle recording ... uses unscaled time for real framerate calculations
                 var time = Time.unscaledTimeAsDouble;
 
-                byte[] jsonData = null;
+                var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
+                var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
 
-                var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
-
-                // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
-                // what it clicked on normally isn't in the new state (button was in the old state)
-                var priorStates = states?.Item1;
-                var currentStates = states?.Item2;
-                if (priorStates?.Count > 0)
-                {
-                    _mouseObserver.ObserveMouse(priorStates);
-                }
-                else
-                {
-                    _mouseObserver.ObserveMouse(currentStates);
-                }
+                //TODO: Compute the delta values we need to record / evaluate to know if we need to record a key frame
+                var uiDeltas = ComputeNormalizedPathBasedDeltaCounts(uiTransforms, out var hasUIDelta);
+                var gameObjectDeltas = ComputeNormalizedPathBasedDeltaCounts(gameObjectTransforms, out var hasGameObjectDelta);
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, priorStates, currentStates, pixelHash);
+                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHash);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
                     || (recordingMinFPS > 0 && (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
                    )
                 {
+                    // prefer doing mouse on the 'prior' data as the mouse causes the new data
+                    if (uiTransforms.Item1.Count > 0 || gameObjectTransforms.Item1.Count > 0)
+                    {
+                        _mouseObserver.ObserveMouse(uiTransforms.Item1.Values.Concat(gameObjectTransforms.Item1.Values));
+                    }
+                    else
+                    {
+                        _mouseObserver.ObserveMouse(uiTransforms.Item2.Values.Concat(gameObjectTransforms.Item2.Values));
+                    }
+                    //TODO: record bot segment data for action replay
 
+
+                    // record full frame state and screenshot
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
                     ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler(_frameCountSinceLastTick);
 
+                    byte[] jsonData = null;
+
                     try
                     {
+                        // get the new state
+                        var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(uiTransforms.Item2.Values, gameObjectTransforms.Item2.Values);
+
+                        // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
+                        // what it clicked on normally isn't in the new state (button was in the old state)
+                        var priorStates = states?.Item1;
+                        var currentStates = states?.Item2;
+
                         ++_tickNumber;
 
                         var performanceMetrics = new PerformanceMetricData()
@@ -589,6 +592,7 @@ namespace RegressionGames.StateRecorder
                         _lastCvFrameTime = time;
                         _frameCountSinceLastTick = 0;
 
+                        // only write out i/o data on key frames, not timer recorded frames
                         var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
                         var mouseInputData = _mouseObserver.FlushInputDataBuffer(true);
 

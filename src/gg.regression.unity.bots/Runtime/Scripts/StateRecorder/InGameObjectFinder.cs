@@ -9,6 +9,7 @@ namespace RegressionGames.StateRecorder
 {
     public class TransformStatus
     {
+        public int Id;
         public bool? HasKeyTypes;
         public string Path;
         /**
@@ -16,10 +17,18 @@ namespace RegressionGames.StateRecorder
          */
         public string NormalizedPath;
 
+        public Transform Transform;
+
         /**
          * <summary>cached pointer to the top level transform of this transform.. must check != null to avoid stale unity object references</summary>
          */
         public Transform TopLevelForThisTransform;
+
+        public int rendererCount;
+
+        public Bounds? screenSpaceBounds;
+        public float screenSpaceZOffset;
+        public Bounds? worldSpaceBounds;
     }
 
     public class InGameObjectFinder : MonoBehaviour
@@ -51,7 +60,7 @@ namespace RegressionGames.StateRecorder
 
         // right now this resets on awake, but we may have to deal with dynamically re-parented transforms better at some point...
         // <transform, (hasKeyTypes, isTopLevelParent)>
-        private readonly Dictionary<Transform, TransformStatus> _transformsIveSeen = new(1000);
+        private readonly Dictionary<int, TransformStatus> _transformsIveSeen = new(1000);
 
         public void Awake()
         {
@@ -117,7 +126,9 @@ namespace RegressionGames.StateRecorder
             string tPath = null;
             string tPathNormalized = null;
 
-            if (_transformsIveSeen.TryGetValue(theTransform, out var status))
+            var id = theTransform.GetInstanceID();
+
+            if (_transformsIveSeen.TryGetValue(id, out var status))
             {
                 if (status.Path != null)
                 {
@@ -152,6 +163,8 @@ namespace RegressionGames.StateRecorder
                 if (status != null)
                 {
                     // update the cache our result
+                    status.Id = id;
+                    status.Transform = theTransform;
                     status.Path = tPath;
                     status.NormalizedPath = tPathNormalized;
                 }
@@ -159,11 +172,13 @@ namespace RegressionGames.StateRecorder
                 {
                     status = new TransformStatus
                     {
+                        Id = id,
+                        Transform = theTransform,
                         Path = tPath,
                         NormalizedPath = tPathNormalized
                     };
                     // add our result to the cache
-                    _transformsIveSeen[theTransform] = status;
+                    _transformsIveSeen[id] = status;
                 }
             }
 
@@ -185,320 +200,6 @@ namespace RegressionGames.StateRecorder
             new(0, 0, 0),
             new(0, 0, 0),
         };
-
-        private RecordedGameObjectState CreateStateForWorldSpaceTransform(Dictionary<int,RecordedGameObjectState> priorState, Camera mainCamera, bool replay, int screenWidth, int screenHeight, Transform t)
-        {
-            // All of this code is verbose in order to optimize performance by avoiding using the Bounds APIs
-            // find the full bounds of the statefulGameObject
-            var statefulGameObject = t.gameObject;
-
-            _rendererQueryList.Clear();
-            statefulGameObject.GetComponentsInChildren(_rendererQueryList);
-
-            var minWorldX = float.MaxValue;
-            var maxWorldX = float.MinValue;
-
-            var minWorldY = float.MaxValue;
-            var maxWorldY = float.MinValue;
-
-            var minWorldZ = float.MaxValue;
-            var maxWorldZ = float.MinValue;
-
-            var hasVisibleRenderer = false;
-
-            var rendererListLength = _rendererQueryList.Count;
-            for (var i = 0; i < rendererListLength; i++)
-            {
-                var nextRenderer = _rendererQueryList[i];
-                hasVisibleRenderer |= nextRenderer.isVisible;
-                if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
-                {
-                    var theBounds = nextRenderer.bounds;
-                    var theMin = theBounds.min;
-                    var theMax = theBounds.max;
-
-                    if (theMin.x < minWorldX)
-                    {
-                        minWorldX = theMin.x;
-                    }
-
-                    if (theMax.x > maxWorldX)
-                    {
-                        maxWorldX = theMax.x;
-                    }
-
-                    if (theMin.y < minWorldY)
-                    {
-                        minWorldY = theMin.y;
-                    }
-
-                    if (theMax.y > maxWorldY)
-                    {
-                        maxWorldY = theMax.y;
-                    }
-
-                    if (theMin.z < minWorldZ)
-                    {
-                        minWorldZ = theMin.z;
-                    }
-
-                    if (theMax.z > maxWorldZ)
-                    {
-                        maxWorldZ = theMax.z;
-                    }
-                }
-            }
-
-            var onCamera = minWorldX < float.MaxValue && (replay || hasVisibleRenderer);
-            if (onCamera)
-            {
-
-                // convert world space to screen space
-                _worldCorners[0].x = minWorldX;
-                _worldCorners[0].y = minWorldY;
-                _worldCorners[0].z = minWorldZ;
-
-                _worldCorners[1].x = maxWorldX;
-                _worldCorners[1].y = minWorldY;
-                _worldCorners[1].z = minWorldZ;
-
-                _worldCorners[2].x = maxWorldX;
-                _worldCorners[2].y = maxWorldY;
-                _worldCorners[2].z = minWorldZ;
-
-                _worldCorners[3].x = minWorldX;
-                _worldCorners[3].y = maxWorldY;
-                _worldCorners[3].z = minWorldZ;
-
-                _worldCorners[4].x = minWorldX;
-                _worldCorners[4].y = minWorldY;
-                _worldCorners[4].z = maxWorldZ;
-
-                _worldCorners[5].x = maxWorldX;
-                _worldCorners[5].y = minWorldY;
-                _worldCorners[5].z = maxWorldZ;
-
-                _worldCorners[6].x = maxWorldX;
-                _worldCorners[6].y = maxWorldY;
-                _worldCorners[6].z = maxWorldZ;
-
-                _worldCorners[7].x = minWorldX;
-                _worldCorners[7].y = maxWorldY;
-                _worldCorners[7].z = maxWorldZ;
-
-                var minX = float.MaxValue;
-                var maxX = float.MinValue;
-
-                var minY = float.MaxValue;
-                var maxY = float.MinValue;
-
-                var minZ = float.MaxValue;
-                var maxZ = float.MinValue;
-
-                var worldCornersLength = _worldCorners.Length;
-                for (var i=0; i< worldCornersLength; i++)
-                {
-                    var screenSpaceObjectCorner = mainCamera.WorldToScreenPoint(_worldCorners[i]);
-                    var x = screenSpaceObjectCorner.x;
-                    if (x < minX)
-                    {
-                        minX = x;
-                    }
-
-                    if (x > maxX)
-                    {
-                        maxX = x;
-                    }
-
-                    var y = screenSpaceObjectCorner.y;
-                    if (y < minY)
-                    {
-                        minY = y;
-                    }
-
-                    if (y > maxY)
-                    {
-                        maxY = y;
-                    }
-
-                    var z = screenSpaceObjectCorner.z;
-                    if (z < minZ)
-                    {
-                        minZ = z;
-                    }
-
-                    if (z > maxZ)
-                    {
-                        maxZ = z;
-                    }
-                }
-
-                if (includeOnlyOnCameraObjects)
-                {
-                    var yBuffer = 0;
-                    var xBuffer = 0;
-                    if (replay)
-                    {
-                        // look a bit outside the view on replay to account for edge cases and small intentional variances in the game code
-                        yBuffer = screenHeight / 2;
-                        xBuffer = screenWidth / 2;
-                    }
-
-                    var xLowerLimit = 0 - xBuffer;
-                    var xUpperLimit = screenWidth + xBuffer;
-                    var yLowerLimit = 0 - yBuffer;
-                    var yUpperLimit = screenWidth + yBuffer;
-                    if (!(minX <= xUpperLimit && maxX >= xLowerLimit && minY <= yUpperLimit && maxY >= yLowerLimit))
-                    {
-                        // not in camera..
-                        onCamera = false;
-                    }
-                }
-
-                if (onCamera)
-                {
-                    var objectTransformId = t.GetInstanceID();
-
-                    var usingOldObject = priorState.TryGetValue(objectTransformId, out var resultObject);
-
-                    var tStatus = GetOrCreateTransformStatus(t);
-
-                    if (resultObject == null)
-                    {
-                        resultObject = new RecordedGameObjectState()
-                        {
-                            id = objectTransformId,
-                            transform = t,
-                            path = tStatus.Path,
-                            normalizedPath = tStatus.NormalizedPath,
-                            tag = statefulGameObject.tag,
-                            layer = LayerMask.LayerToName(statefulGameObject.layer),
-                            scene = statefulGameObject.scene,
-                            behaviours = new List<BehaviourState>(),
-                            colliders = new List<ColliderRecordState>(),
-                            worldSpaceBounds = null,
-                            rigidbodies = new List<RigidbodyRecordState>()
-                        };
-                    }
-
-                    // make sure the screen space bounds has a non-zero Z size around 0
-                    // we track the true z offset separately for ease of mouse selection on replay
-                    var extents = new Vector3((maxX - minX)/2, (maxY - minY)/2, 0.05f);
-                    var center = new Vector3(minX + extents.x, minY + extents.y, 0);
-
-                    var worldExtents = new Vector3((maxWorldX - minWorldX)/2, (maxWorldY - minWorldY)/2, (maxWorldZ - minWorldZ)/2);
-                    var worldCenter = new Vector3(minWorldX + worldExtents.x, minWorldY + worldExtents.y, minWorldZ + worldExtents.z);
-
-                    // update some fields
-                    resultObject.rendererCount = rendererListLength;
-
-                    if (usingOldObject)
-                    {
-                        resultObject.screenSpaceBounds.extents = extents;
-                        resultObject.screenSpaceBounds.center = center;
-
-                        if (!resultObject.worldSpaceBounds.HasValue)
-                        {
-                            resultObject.worldSpaceBounds = new Bounds(worldCenter, worldExtents*2f);
-                        }
-                        else
-                        {
-                            var wsb = resultObject.worldSpaceBounds.Value;
-                            wsb.extents = worldExtents;
-                            wsb.center = worldCenter;
-                        }
-                    }
-                    else
-                    {
-                        // it would be nice if Bounds exposed a constructor with extents to avoid wasting the vector3 math calculations
-                        resultObject.screenSpaceBounds = new Bounds(center, extents*2f);
-                        resultObject.worldSpaceBounds = new Bounds(worldCenter, worldExtents*2f);
-                    }
-                    resultObject.screenSpaceZOffset = maxZ;
-
-                    var behaviours = resultObject.behaviours;
-                    _behaviourStateObjectPool.AddRange(behaviours);
-                    behaviours.Clear();
-                    var collidersState = resultObject.colliders;
-                    var collidersStateCount = collidersState.Count;
-                    for (var i = 0; i < collidersStateCount; i++)
-                    {
-                        var cs = collidersState[i];
-                        if (cs is Collider2DRecordState c2d)
-                        {
-                            _collider2DStateObjectPool.Add(c2d);
-                        }
-                        else
-                        {
-                            _colliderStateObjectPool.Add(cs);
-                        }
-                    }
-                    collidersState.Clear();
-                    var rigidbodiesState = resultObject.rigidbodies;
-                    var rigidbodiesStateCount = rigidbodiesState.Count;
-                    for (var i = 0; i < rigidbodiesStateCount; i++)
-                    {
-                        var rs = rigidbodiesState[i];
-                        if (rs is Rigidbody2DRecordState r2d)
-                        {
-                            _rigidbody2DStateObjectPool.Add(r2d);
-                        }
-                        else
-                        {
-                            _rigidbodyStateObjectPool.Add(rs);
-                        }
-                    }
-                    rigidbodiesState.Clear();
-
-
-                    // instead of searching for child Behaviours, we instead walk child tree of transforms and check each for Behaviours
-                    // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
-                    _nextParentTransforms.Clear();
-                    _currentParentTransforms.Clear();
-
-                    // process the first object here, then evaluate its children
-                    ProcessChildTransformComponents(t, behaviours, collidersState, rigidbodiesState);
-                    var childCount = t.childCount;
-                    for (var k = 0; k < childCount; k++)
-                    {
-                        var currentChildTransform = t.GetChild(k);
-                        _nextParentTransforms.Add(currentChildTransform);
-                    }
-
-                    // evaluate the children
-                    while (_nextParentTransforms.Count > 0)
-                    {
-                        // swap the list references so we can process from 'current' and be able to setup 'next'
-                        (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
-                        _nextParentTransforms.Clear();
-
-                        // load the next layer as we go
-                        var currentCount = _currentParentTransforms.Count;
-                        for (var i = 0; i < currentCount; i++)
-                        {
-                            var currentTransform = _currentParentTransforms[i];
-                            // only process down so far.. if we hit another rendered component.. stop traversing that part of the tree
-                            var hasRenderer = currentTransform.GetComponent(typeof(Renderer)) != null;
-                            if (!hasRenderer)
-                            {
-                                ProcessChildTransformComponents(currentTransform, behaviours, collidersState, rigidbodiesState);
-                                childCount = currentTransform.childCount;
-                                for (var k = 0; k < childCount; k++)
-                                {
-                                    var currentChildTransform = currentTransform.GetChild(k);
-                                    _nextParentTransforms.Add(currentChildTransform);
-                                }
-                            }
-                        }
-
-                    }
-
-                    return resultObject;
-                }
-            }
-
-            return null;
-        }
 
         // pre-allocate this rather large list 1 time to avoid memory stuff on each tick
         private readonly List<Component> _childComponentsQueryList = new(100);
@@ -640,38 +341,46 @@ namespace RegressionGames.StateRecorder
         // pre-allocate a big list we can re-use
         private Dictionary<int,RecordedGameObjectState> _priorStates = new (1000);
         private Dictionary<int,RecordedGameObjectState> _newStates = new(1000);
+        private Dictionary<int,TransformStatus> _priorUIObjects = new(1000);
+        private Dictionary<int,TransformStatus> _newUIObjects = new(1000);
+        private Dictionary<int,TransformStatus> _priorGameObjects = new(1000);
+        private Dictionary<int,TransformStatus> _newGameObjects = new(1000);
 
         public void Cleanup()
         {
             _priorStates.Clear();
             _newStates.Clear();
+            _priorUIObjects.Clear();
+            _newUIObjects.Clear();
+            _priorGameObjects.Clear();
+            _newGameObjects.Clear();
             _frameNumber = -1;
         }
 
         /**
-         * <returns>(priorState, currentState)</returns>
+         * <returns>uiObjects transform status for previous and current frame, ... will have null screenSpaceBounds if off camera</returns>
          */
-        public (Dictionary<int, RecordedGameObjectState>, Dictionary<int, RecordedGameObjectState>) GetStateForCurrentFrame(bool replay = false)
+        public (Dictionary<int, TransformStatus>,Dictionary<int, TransformStatus>) GetUITransformsForCurrentFrame()
         {
-            var mainCamera = Camera.main;
-
             var frameCount = Time.frameCount;
             if (frameCount == _frameNumber)
             {
-                // we already processed this frame (happens when recording during replay and they both call this
-                return (_priorStates, _newStates);
+                // we already processed this frame (happens when recording during replay and they both call this)
+                return (_priorUIObjects, _newUIObjects);
             }
 
             _frameNumber = frameCount;
 
             // switch the list references
-            (_priorStates, _newStates) = (_newStates, _priorStates);
-            _newStates.Clear();
+            (_priorUIObjects, _newUIObjects) = (_newUIObjects, _priorUIObjects);
+            _newUIObjects.Clear();
 
-            //find any gameObject with a canvas renderer (rect transform)... these are UI elements
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
 
-             // we re-use this over and over instead of allocating multiple times
+            var screenWidth = UnityEngine.Device.Screen.width;
+            var screenHeight = UnityEngine.Device.Screen.height;
+
+            // we re-use this over and over instead of allocating multiple times
             var canvasRenderersLength = canvasRenderers.Length;
             for (var j = 0; j < canvasRenderersLength; j++)
             {
@@ -682,9 +391,10 @@ namespace RegressionGames.StateRecorder
                     var canvas = statefulUIObject.GetComponentInParent<Canvas>();
                     if (canvas == null)
                     {
-                        // did Not think this was allowed.. but project skyline from parhelion gets away with it :/
+                        // did Not think this was allowed.. but one of our partner's games gets away with it :/
                         canvas = statefulUIObject.GetComponentInChildren<Canvas>();
                     }
+
                     if (canvas != null)
                     {
                         // screen space
@@ -714,6 +424,7 @@ namespace RegressionGames.StateRecorder
                                 _rectTransformsList.Clear();
                                 statefulUIObject.GetComponentsInChildren(_rectTransformsList);
                                 var rectTransformsListLength = _rectTransformsList.Count;
+
                                 if (rectTransformsListLength > 0)
                                 {
                                     Vector2 min, max;
@@ -729,7 +440,7 @@ namespace RegressionGames.StateRecorder
                                         max = _worldSpaceCorners[2];
                                     }
 
-                                    // default values, may or maynot be used depending on if isWorldSpace
+                                    // default values, may or may not be used depending on if isWorldSpace
                                     Vector3 worldMin = _worldSpaceCorners[0];
                                     Vector3 worldMax = _worldSpaceCorners[2];
 
@@ -764,134 +475,77 @@ namespace RegressionGames.StateRecorder
                                             worldMax.y = Mathf.Min(worldMin.y, _worldSpaceCorners[2].y);
                                             worldMin.z = Mathf.Min(worldMin.y, _worldSpaceCorners[2].z);
                                         }
-
                                     }
 
-                                    // see if we had this object last state.. if so, we can use a lot of the saved information and not re-allocate/re-compute it
-                                    var objectTransform = statefulUIObject.transform;
-                                    var objectTransformId = objectTransform.GetInstanceID();
-
-                                    var usingOldObject = _priorStates.TryGetValue(objectTransformId, out var resultObject);
-
-                                    var tStatus = GetOrCreateTransformStatus(objectTransform);
-
-                                    if (resultObject == null)
-                                    {
-                                        resultObject = new RecordedGameObjectState()
-                                        {
-                                            id = objectTransformId,
-                                            transform = objectTransform,
-                                            path = tStatus.Path,
-                                            normalizedPath = tStatus.NormalizedPath,
-                                            tag = statefulUIObject.tag,
-                                            layer = LayerMask.LayerToName(statefulUIObject.layer),
-                                            scene = statefulUIObject.scene,
-                                            behaviours = new List<BehaviourState>(),
-                                            colliders = new List<ColliderRecordState>(),
-                                            rigidbodies = new List<RigidbodyRecordState>(),
-                                            screenSpaceZOffset = 0.0f
-                                        };
-                                    }
-
-                                    _newStates[resultObject.id] = resultObject;
-
-                                    // make sure the screen space bounds has a non-zero Z size around 0
-                                    var extents = new Vector3((max.x - min.x) / 2, (max.y - min.y) / 2, 0.05f);
-                                    var center = new Vector3(min.x + extents.x, min.y + extents.y, 0f);
-
-                                    var worldExtents = new Vector3((worldMax.x - worldMin.x) / 2, (worldMax.y - worldMin.y) / 2, (worldMax.z - worldMin.z) / 2);
-                                    var worldCenter = new Vector3(worldMin.x + worldExtents.x, worldMin.y + worldExtents.y, worldMin.z + worldExtents.z);
-
-                                    var collidersState = resultObject.colliders;
-                                    var collidersStateCount = collidersState.Count;
-                                    for (var i = 0; i < collidersStateCount; i++)
-                                    {
-                                        var cs = collidersState[i];
-                                        if (cs is Collider2DRecordState c2d)
-                                        {
-                                            _collider2DStateObjectPool.Add(c2d);
-                                        }
-                                        else
-                                        {
-                                            _colliderStateObjectPool.Add(cs);
-                                        }
-                                    }
-
-                                    collidersState.Clear();
-
-                                    IList<BehaviourState> behaviours = resultObject.behaviours;
-                                    _behaviourStateObjectPool.AddRange(behaviours);
-                                    behaviours.Clear();
-
-                                    if (usingOldObject)
-                                    {
-                                        resultObject.screenSpaceBounds.extents = extents;
-                                        resultObject.screenSpaceBounds.center = center;
-                                    }
-                                    else
-                                    {
-                                        // it would be nice if Bounds exposed a constructor with extents to avoid the vector math calculations
-                                        resultObject.screenSpaceBounds = new Bounds(center, extents * 2f);
-                                    }
-
+                                    var onCamera = true;
                                     if (isWorldSpace)
                                     {
-                                        resultObject.worldSpaceBounds = new Bounds(worldCenter, worldExtents * 2f);
+                                        var xLowerLimit = 0;
+                                        var xUpperLimit = screenWidth;
+                                        var yLowerLimit = 0;
+                                        var yUpperLimit = screenHeight;
+                                        if (!(min.x <= xUpperLimit && max.x >= xLowerLimit && min.y <= yUpperLimit && max.y >= yLowerLimit))
+                                        {
+                                            // not in camera..
+                                            onCamera = false;
+                                        }
+                                    }
+
+                                    var objectTransform = statefulUIObject.transform;
+                                    var tStatus = GetOrCreateTransformStatus(objectTransform);
+                                    _newUIObjects[tStatus.Id] = tStatus;
+
+                                    if (onCamera)
+                                    {
+                                        // make sure the screen space bounds has a non-zero Z size around 0
+                                        var size = new Vector3((max.x - min.x) , (max.y - min.y) , 0.05f);
+                                        var center = new Vector3(min.x + size.x/2, min.y + size.y/2, 0f);
+                                        tStatus.screenSpaceBounds = new Bounds(center, size);
+                                        tStatus.screenSpaceZOffset = 0f;
+
+                                        tStatus.rendererCount = canvasRenderersLength;
+
+                                        if (isWorldSpace)
+                                        {
+                                            var worldSize = new Vector3((worldMax.x - worldMin.x), (worldMax.y - worldMin.y), (worldMax.z - worldMin.z));
+                                            var worldCenter = new Vector3(worldMin.x + worldSize.x, worldMin.y + worldSize.y/2, worldMin.z + worldSize.z/2);
+                                            tStatus.worldSpaceBounds = new Bounds(worldCenter, worldSize);
+                                            //TODO: tStatus.screenSpaceZOffset = ???
+                                        }
                                     }
                                     else
                                     {
-                                        resultObject.worldSpaceBounds = null;
-                                    }
-
-                                    // need to update some fields
-                                    resultObject.rendererCount = rectTransformsListLength;
-
-                                    // instead of searching for child Behaviours, we instead walk child tree of transforms and check each for Behaviours
-                                    // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
-                                    _nextParentTransforms.Clear();
-                                    _currentParentTransforms.Clear();
-
-                                    // process the first object here, then evaluate its children
-                                    ProcessChildTransformComponents(objectTransform, behaviours, collidersState, null);
-                                    var childCount = objectTransform.childCount;
-                                    for (var k = 0; k < childCount; k++)
-                                    {
-                                        var currentChildTransform = objectTransform.GetChild(k);
-                                        _nextParentTransforms.Add(currentChildTransform);
-                                    }
-
-                                    // evaluate the children
-                                    while (_nextParentTransforms.Count > 0)
-                                    {
-                                        // swap the list references so we can process from 'current' and be able to setup 'next'
-                                        (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
-                                        _nextParentTransforms.Clear();
-
-                                        // load the next layer as we go
-                                        var currentCount = _currentParentTransforms.Count;
-                                        for (var i = 0; i < currentCount; i++)
-                                        {
-                                            var currentTransform = _currentParentTransforms[i];
-                                            // only process down so far.. if we hit another ui component.. stop traversing that part of the tree
-                                            var hasRenderer = currentTransform.GetComponent(typeof(CanvasRenderer)) != null;
-                                            if (!hasRenderer)
-                                            {
-                                                ProcessChildTransformComponents(currentTransform, behaviours, collidersState, null);
-                                                childCount = currentTransform.childCount;
-                                                for (var k = 0; k < childCount; k++)
-                                                {
-                                                    var currentChildTransform = currentTransform.GetChild(k);
-                                                    _nextParentTransforms.Add(currentChildTransform);
-                                                }
-                                            }
-                                        }
+                                        tStatus.screenSpaceBounds = null;
+                                        tStatus.worldSpaceBounds = null;
                                     }
                                 }
+
+
                             }
                         }
                     }
                 }
             }
+            return (_priorUIObjects, _newUIObjects);
+        }
+
+        /**
+         * <returns>worldSpaceObjects transform status for previous and current frame, ... will have null screenSpaceBounds if off camera</returns>
+         */
+        public (Dictionary<int, TransformStatus>,Dictionary<int, TransformStatus>) GetGameObjectTransformsForCurrentFrame()
+        {
+            var frameCount = Time.frameCount;
+            if (frameCount == _frameNumber)
+            {
+                // we already processed this frame (happens when recording during replay and they both call this)
+                return (_priorGameObjects, _newGameObjects);
+            }
+
+            _frameNumber = frameCount;
+
+            // switch the list references
+            (_priorGameObjects, _newGameObjects) = (_newGameObjects, _priorGameObjects);
+            _newGameObjects.Clear();
 
             // find everything with a renderer.. then select the last parent walking up the tree that has
             // one of the key types.. in most cases that should be the correct 'parent' game object
@@ -901,8 +555,8 @@ namespace RegressionGames.StateRecorder
             var renderers = FindObjectsByType(typeof(Renderer), FindObjectsSortMode.None);
             var includeInStateObjects = FindObjectsByType(typeof(RGIncludeInState), FindObjectsSortMode.None);
 
-             // start with a size that should fit everything to avoid numerous re-alloc
-             _transformsForThisFrame.Clear();
+            // start with a size that should fit everything to avoid numerous re-alloc
+            _transformsForThisFrame.Clear();
 
             if (!collapseRenderersIntoTopLevelGameObject)
             {
@@ -942,18 +596,419 @@ namespace RegressionGames.StateRecorder
             var screenWidth = Screen.width;
             var screenHeight = Screen.height;
 
+            var mainCamera = Camera.main;
+
             foreach (var statefulTransform in _transformsForThisFrame) // can't use for with index as this is a hashset and enumerator is better in this case
             {
                 if (statefulTransform != null)
                 {
-                    var stateEntry = CreateStateForWorldSpaceTransform(_priorStates, mainCamera, replay, screenWidth, screenHeight, statefulTransform);
-                    // depending on the include only on camera setting, this object may be null
-                    if (stateEntry != null)
+                    // All of this code is verbose in order to optimize performance by avoiding using the Bounds APIs
+                    // find the full bounds of the statefulGameObject
+                    var statefulGameObject = statefulTransform.gameObject;
+
+                    _rendererQueryList.Clear();
+                    statefulGameObject.GetComponentsInChildren(_rendererQueryList);
+
+                    var minWorldX = float.MaxValue;
+                    var maxWorldX = float.MinValue;
+
+                    var minWorldY = float.MaxValue;
+                    var maxWorldY = float.MinValue;
+
+                    var minWorldZ = float.MaxValue;
+                    var maxWorldZ = float.MinValue;
+
+                    var hasVisibleRenderer = false;
+
+                    var rendererListLength = _rendererQueryList.Count;
+                    for (var i = 0; i < rendererListLength; i++)
                     {
-                        _newStates[stateEntry.id] = stateEntry;
+                        var nextRenderer = _rendererQueryList[i];
+                        hasVisibleRenderer |= nextRenderer.isVisible;
+                        if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
+                        {
+                            var theBounds = nextRenderer.bounds;
+                            var theMin = theBounds.min;
+                            var theMax = theBounds.max;
+
+                            if (theMin.x < minWorldX)
+                            {
+                                minWorldX = theMin.x;
+                            }
+
+                            if (theMax.x > maxWorldX)
+                            {
+                                maxWorldX = theMax.x;
+                            }
+
+                            if (theMin.y < minWorldY)
+                            {
+                                minWorldY = theMin.y;
+                            }
+
+                            if (theMax.y > maxWorldY)
+                            {
+                                maxWorldY = theMax.y;
+                            }
+
+                            if (theMin.z < minWorldZ)
+                            {
+                                minWorldZ = theMin.z;
+                            }
+
+                            if (theMax.z > maxWorldZ)
+                            {
+                                maxWorldZ = theMax.z;
+                            }
+                        }
+                    }
+
+                    var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
+                    if (onCamera)
+                    {
+
+                        // convert world space to screen space
+                        _worldCorners[0].x = minWorldX;
+                        _worldCorners[0].y = minWorldY;
+                        _worldCorners[0].z = minWorldZ;
+
+                        _worldCorners[1].x = maxWorldX;
+                        _worldCorners[1].y = minWorldY;
+                        _worldCorners[1].z = minWorldZ;
+
+                        _worldCorners[2].x = maxWorldX;
+                        _worldCorners[2].y = maxWorldY;
+                        _worldCorners[2].z = minWorldZ;
+
+                        _worldCorners[3].x = minWorldX;
+                        _worldCorners[3].y = maxWorldY;
+                        _worldCorners[3].z = minWorldZ;
+
+                        _worldCorners[4].x = minWorldX;
+                        _worldCorners[4].y = minWorldY;
+                        _worldCorners[4].z = maxWorldZ;
+
+                        _worldCorners[5].x = maxWorldX;
+                        _worldCorners[5].y = minWorldY;
+                        _worldCorners[5].z = maxWorldZ;
+
+                        _worldCorners[6].x = maxWorldX;
+                        _worldCorners[6].y = maxWorldY;
+                        _worldCorners[6].z = maxWorldZ;
+
+                        _worldCorners[7].x = minWorldX;
+                        _worldCorners[7].y = maxWorldY;
+                        _worldCorners[7].z = maxWorldZ;
+
+                        var minX = float.MaxValue;
+                        var maxX = float.MinValue;
+
+                        var minY = float.MaxValue;
+                        var maxY = float.MinValue;
+
+                        var minZ = float.MaxValue;
+                        var maxZ = float.MinValue;
+
+                        var worldCornersLength = _worldCorners.Length;
+                        for (var i = 0; i < worldCornersLength; i++)
+                        {
+                            var screenSpaceObjectCorner = mainCamera.WorldToScreenPoint(_worldCorners[i]);
+                            var x = screenSpaceObjectCorner.x;
+                            if (x < minX)
+                            {
+                                minX = x;
+                            }
+
+                            if (x > maxX)
+                            {
+                                maxX = x;
+                            }
+
+                            var y = screenSpaceObjectCorner.y;
+                            if (y < minY)
+                            {
+                                minY = y;
+                            }
+
+                            if (y > maxY)
+                            {
+                                maxY = y;
+                            }
+
+                            var z = screenSpaceObjectCorner.z;
+                            if (z < minZ)
+                            {
+                                minZ = z;
+                            }
+
+                            if (z > maxZ)
+                            {
+                                maxZ = z;
+                            }
+                        }
+
+                        var xLowerLimit = 0;
+                        var xUpperLimit = screenWidth;
+                        var yLowerLimit = 0;
+                        var yUpperLimit = screenHeight;
+                        if (!(minX <= xUpperLimit && maxX >= xLowerLimit && minY <= yUpperLimit && maxY >= yLowerLimit))
+                        {
+                            // not in camera..
+                            onCamera = false;
+                        }
+
+                        // depending on the include only on camera setting, this object may be null
+                        var tStatus = GetOrCreateTransformStatus(statefulTransform);
+
+                        tStatus.rendererCount = rendererListLength;
+
+                        if (onCamera)
+                        {
+                            // make sure the screen space bounds has a non-zero Z size around 0
+                            // we track the true z offset separately for ease of mouse selection on replay
+                            var size = new Vector3((maxX - minX), (maxY - minY), 0.05f);
+                            var center = new Vector3(minX + size.x / 2, minY + size.y / 2, 0);
+                            tStatus.screenSpaceBounds = new Bounds(center, size);
+                            tStatus.screenSpaceZOffset = maxZ;
+
+                            var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
+                            var worldCenter = new Vector3(minWorldX + worldSize.x / 2, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
+                            tStatus.worldSpaceBounds = new Bounds(worldCenter, worldSize);
+                        }
+                        else
+                        {
+                            tStatus.screenSpaceBounds = null;
+                            tStatus.worldSpaceBounds = null;
+                            tStatus.screenSpaceZOffset = 0f;
+                        }
+
+                        _newGameObjects[tStatus.Id] = tStatus;
                     }
                 }
             }
+
+            return (_priorGameObjects, _newGameObjects);
+        }
+
+        /**
+         * <returns>(priorState, currentState, offCameraTransforms)</returns>
+         */
+        //TODO Use passed in ui / world objects to record state.
+        public (Dictionary<int, RecordedGameObjectState>, Dictionary<int, RecordedGameObjectState>) GetStateForCurrentFrame(IEnumerable<TransformStatus> uiObjectTransformStatusList, IEnumerable<TransformStatus> gameObjectTransformStatusList)
+        {
+            var frameCount = Time.frameCount;
+            if (frameCount == _frameNumber)
+            {
+                // we already processed this frame (happens when recording during replay and they both call this)
+                return (_priorStates, _newStates);
+            }
+
+            _frameNumber = frameCount;
+
+            // switch the list references
+            (_priorStates, _newStates) = (_newStates, _priorStates);
+            _newStates.Clear();
+
+            foreach (var tStatus in uiObjectTransformStatusList)
+            {
+                var uiObjectTransformId = tStatus.Id;
+                if (tStatus.screenSpaceBounds.HasValue)
+                {
+                    var usingOldObject = _priorStates.TryGetValue(uiObjectTransformId, out var resultObject);
+
+                    if (!usingOldObject)
+                    {
+                        resultObject = new RecordedGameObjectState()
+                        {
+                            id = uiObjectTransformId,
+                            transform = tStatus.Transform,
+                            path = tStatus.Path,
+                            normalizedPath = tStatus.NormalizedPath,
+                            tag = tStatus.Transform.gameObject.tag,
+                            layer = LayerMask.LayerToName(tStatus.Transform.gameObject.layer),
+                            scene = tStatus.Transform.gameObject.scene,
+                            behaviours = new List<BehaviourState>(),
+                            colliders = new List<ColliderRecordState>(),
+                            rigidbodies = new List<RigidbodyRecordState>(),
+                            screenSpaceZOffset = tStatus.screenSpaceZOffset,
+                            screenSpaceBounds = tStatus.screenSpaceBounds.Value,
+                            worldSpaceBounds = tStatus.worldSpaceBounds
+                        };
+                    }
+
+                    _newStates[resultObject.id] = resultObject;
+
+                    var collidersState = resultObject.colliders;
+                    var collidersStateCount = collidersState.Count;
+                    for (var i = 0; i < collidersStateCount; i++)
+                    {
+                        var cs = collidersState[i];
+                        if (cs is Collider2DRecordState c2d)
+                        {
+                            _collider2DStateObjectPool.Add(c2d);
+                        }
+                        else
+                        {
+                            _colliderStateObjectPool.Add(cs);
+                        }
+                    }
+
+                    collidersState.Clear();
+
+                    IList<BehaviourState> behaviours = resultObject.behaviours;
+                    _behaviourStateObjectPool.AddRange(behaviours);
+                    behaviours.Clear();
+
+                    // instead of searching for child Behaviours, we instead walk child tree of transforms and check each for Behaviours
+                    // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
+                    _nextParentTransforms.Clear();
+                    _currentParentTransforms.Clear();
+
+                    // process the first object here, then evaluate its children
+                    ProcessChildTransformComponents(tStatus.Transform, behaviours, collidersState, null);
+                    var childCount = tStatus.Transform.childCount;
+                    for (var k = 0; k < childCount; k++)
+                    {
+                        var currentChildTransform = tStatus.Transform.GetChild(k);
+                        _nextParentTransforms.Add(currentChildTransform);
+                    }
+
+                    // evaluate the children
+                    while (_nextParentTransforms.Count > 0)
+                    {
+                        // swap the list references so we can process from 'current' and be able to setup 'next'
+                        (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
+                        _nextParentTransforms.Clear();
+
+                        // load the next layer as we go
+                        var currentCount = _currentParentTransforms.Count;
+                        for (var i = 0; i < currentCount; i++)
+                        {
+                            var currentTransform = _currentParentTransforms[i];
+                            // only process down so far.. if we hit another ui component.. stop traversing that part of the tree
+                            var hasRenderer = currentTransform.GetComponent(typeof(CanvasRenderer)) != null;
+                            if (!hasRenderer)
+                            {
+                                ProcessChildTransformComponents(currentTransform, behaviours, collidersState, null);
+                                childCount = currentTransform.childCount;
+                                for (var k = 0; k < childCount; k++)
+                                {
+                                    var currentChildTransform = currentTransform.GetChild(k);
+                                    _nextParentTransforms.Add(currentChildTransform);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var tStatus in gameObjectTransformStatusList)
+            {
+                var gameObjectTransformId = tStatus.Id;
+                if (tStatus.screenSpaceBounds.HasValue)
+                {
+                    var usingOldObject = _priorStates.TryGetValue(gameObjectTransformId, out var resultObject);
+
+                    if (!usingOldObject)
+                    {
+                        resultObject = new RecordedGameObjectState()
+                        {
+                            id = gameObjectTransformId,
+                            transform = tStatus.Transform,
+                            path = tStatus.Path,
+                            normalizedPath = tStatus.NormalizedPath,
+                            tag = tStatus.Transform.gameObject.tag,
+                            layer = LayerMask.LayerToName(tStatus.Transform.gameObject.layer),
+                            scene = tStatus.Transform.gameObject.scene,
+                            behaviours = new List<BehaviourState>(),
+                            colliders = new List<ColliderRecordState>(),
+                            rigidbodies = new List<RigidbodyRecordState>(),
+                            screenSpaceBounds = tStatus.screenSpaceBounds.Value,
+                            screenSpaceZOffset = tStatus.screenSpaceZOffset,
+                            worldSpaceBounds = tStatus.worldSpaceBounds
+                        };
+                    }
+
+                    var behaviours = resultObject.behaviours;
+                    _behaviourStateObjectPool.AddRange(behaviours);
+                    behaviours.Clear();
+                    var collidersState = resultObject.colliders;
+                    var collidersStateCount = collidersState.Count;
+                    for (var i = 0; i < collidersStateCount; i++)
+                    {
+                        var cs = collidersState[i];
+                        if (cs is Collider2DRecordState c2d)
+                        {
+                            _collider2DStateObjectPool.Add(c2d);
+                        }
+                        else
+                        {
+                            _colliderStateObjectPool.Add(cs);
+                        }
+                    }
+                    collidersState.Clear();
+                    var rigidbodiesState = resultObject.rigidbodies;
+                    var rigidbodiesStateCount = rigidbodiesState.Count;
+                    for (var i = 0; i < rigidbodiesStateCount; i++)
+                    {
+                        var rs = rigidbodiesState[i];
+                        if (rs is Rigidbody2DRecordState r2d)
+                        {
+                            _rigidbody2DStateObjectPool.Add(r2d);
+                        }
+                        else
+                        {
+                            _rigidbodyStateObjectPool.Add(rs);
+                        }
+                    }
+                    rigidbodiesState.Clear();
+
+
+                    // instead of searching for child Behaviours, we instead walk child tree of transforms and check each for Behaviours
+                    // this allows us to avoid calling GetUniqueTransformPath more than once for any single transform
+                    _nextParentTransforms.Clear();
+                    _currentParentTransforms.Clear();
+
+                    // process the first object here, then evaluate its children
+                    ProcessChildTransformComponents(tStatus.Transform, behaviours, collidersState, rigidbodiesState);
+                    var childCount = tStatus.Transform.childCount;
+                    for (var k = 0; k < childCount; k++)
+                    {
+                        var currentChildTransform = tStatus.Transform.GetChild(k);
+                        _nextParentTransforms.Add(currentChildTransform);
+                    }
+
+                    // evaluate the children
+                    while (_nextParentTransforms.Count > 0)
+                    {
+                        // swap the list references so we can process from 'current' and be able to setup 'next'
+                        (_currentParentTransforms, _nextParentTransforms) = (_nextParentTransforms, _currentParentTransforms);
+                        _nextParentTransforms.Clear();
+
+                        // load the next layer as we go
+                        var currentCount = _currentParentTransforms.Count;
+                        for (var i = 0; i < currentCount; i++)
+                        {
+                            var currentTransform = _currentParentTransforms[i];
+                            // only process down so far.. if we hit another rendered component.. stop traversing that part of the tree
+                            var hasRenderer = currentTransform.GetComponent(typeof(Renderer)) != null;
+                            if (!hasRenderer)
+                            {
+                                ProcessChildTransformComponents(currentTransform, behaviours, collidersState, rigidbodiesState);
+                                childCount = currentTransform.childCount;
+                                for (var k = 0; k < childCount; k++)
+                                {
+                                    var currentChildTransform = currentTransform.GetChild(k);
+                                    _nextParentTransforms.Add(currentChildTransform);
+                                }
+                            }
+                        }
+
+                    }
+                    _newStates[resultObject.id] = resultObject;
+                }
+            }
+
             return (_priorStates, _newStates);
         }
 
@@ -963,8 +1018,9 @@ namespace RegressionGames.StateRecorder
         private void FindTransformsForThisFrame(Transform startingTransform, HashSet<Transform> transformsForThisFrame)
         {
 
+            var transformId = startingTransform.GetInstanceID();
             // we walk all the way to the root and record which ones had key types to find the 'parent'
-            if (_transformsIveSeen.TryGetValue(startingTransform, out var tStatus))
+            if (_transformsIveSeen.TryGetValue(transformId, out var tStatus))
             {
                 tStatus.HasKeyTypes = true;
             }
@@ -974,7 +1030,7 @@ namespace RegressionGames.StateRecorder
                 {
                     HasKeyTypes = true
                 };
-                _transformsIveSeen[startingTransform] = tStatus;
+                _transformsIveSeen[transformId] = tStatus;
             }
 
             var maybeTopLevel = startingTransform;
@@ -992,8 +1048,9 @@ namespace RegressionGames.StateRecorder
                 // go until the root of the tree
                 while (nextParent != null)
                 {
+                    var nextParentId = nextParent.GetInstanceID();
                     var parentHasKeyTypes = false;
-                    _transformsIveSeen.TryGetValue(nextParent, out var nextParentStatus);
+                    _transformsIveSeen.TryGetValue(nextParentId, out var nextParentStatus);
 
                     if (nextParentStatus is { TopLevelForThisTransform: not null })
                     {
@@ -1032,7 +1089,7 @@ namespace RegressionGames.StateRecorder
                         {
                             HasKeyTypes = parentHasKeyTypes
                         };
-                        _transformsIveSeen[nextParent] = nextParentStatus;
+                        _transformsIveSeen[nextParentId] = nextParentStatus;
                     }
 
                     if (parentHasKeyTypes)

@@ -132,7 +132,7 @@ namespace RegressionGames.StateRecorder
         // based on a few pixel shift in relative camera position
         private readonly RaycastHit[] _cachedRaycastHits = new RaycastHit[5];
 
-        public void ObserveMouse(Dictionary<int,RecordedGameObjectState> statefulObjects)
+        public void ObserveMouse(IEnumerable<TransformStatus> statefulObjects)
         {
             var mousePosition = Mouse.current.position.ReadValue();
             var newMouseState = GetCurrentMouseState(mousePosition);
@@ -171,7 +171,7 @@ namespace RegressionGames.StateRecorder
                     {
                         foreach (var recordedGameObjectState in clickedOnObjects)
                         {
-                            clickedOnObjectIds.Add(recordedGameObjectState.id);
+                            clickedOnObjectIds.Add(recordedGameObjectState.Id);
                             if (recordedGameObjectState.worldSpaceBounds != null)
                             {
                                 // compare to any raycast hits and pick the one closest to the camera
@@ -182,7 +182,7 @@ namespace RegressionGames.StateRecorder
                                         var rayHit = _cachedRaycastHits[i];
                                         try
                                         {
-                                            if (_cachedRaycastHits[i].transform.GetInstanceID() == recordedGameObjectState.id)
+                                            if (_cachedRaycastHits[i].transform.GetInstanceID() == recordedGameObjectState.Id)
                                             {
                                                 if (i < bestIndex)
                                                 {
@@ -207,7 +207,7 @@ namespace RegressionGames.StateRecorder
                         // without a collider hit, we can't set a worldPosition
                         foreach (var recordedGameObjectState in clickedOnObjects)
                         {
-                            clickedOnObjectIds.Add(recordedGameObjectState.id);
+                            clickedOnObjectIds.Add(recordedGameObjectState.Id);
                         }
                     }
 
@@ -275,30 +275,34 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        private IEnumerable<RecordedGameObjectState> FindObjectsAtPosition(Vector2 position, Dictionary<int,RecordedGameObjectState> state, out float maxZDepth)
+        private IEnumerable<TransformStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<TransformStatus> statefulObjects, out float maxZDepth)
         {
             // make sure screen space position Z is around 0
             var vec3Position = new Vector3(position.x, position.y, 0);
-            List<RecordedGameObjectState> result = new();
+            List<TransformStatus> result = new();
             maxZDepth = 0f;
             var hitUIElement = false;
-            foreach (var recordedGameObjectState in state.Values)
+            foreach (var recordedGameObjectState in statefulObjects)
             {
-                if (recordedGameObjectState.screenSpaceBounds.Contains(vec3Position))
+                if (recordedGameObjectState.screenSpaceBounds.HasValue)
                 {
-                    if (!hitUIElement && recordedGameObjectState.worldSpaceBounds != null )
+                    if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position))
                     {
-                        if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                        if (!hitUIElement && recordedGameObjectState.worldSpaceBounds != null)
                         {
-                            maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                            if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                            {
+                                maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                            }
+
+                            result.Add(recordedGameObjectState);
                         }
-                        result.Add(recordedGameObjectState);
-                    }
-                    else
-                    {
-                        maxZDepth = 0f;
-                        hitUIElement = true;
-                        result.Add(recordedGameObjectState);
+                        else
+                        {
+                            maxZDepth = 0f;
+                            hitUIElement = true;
+                            result.Add(recordedGameObjectState);
+                        }
                     }
                 }
             }
