@@ -14,11 +14,24 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
      */
     public class RGLegacyInputSettingsHook : IPreprocessBuildWithReport
     {
+        private static string _inputManagerJsonOut = "Assets/Resources/RGInputSettingsCopy.json";
         public int callbackOrder => 0;
         
+        /*
+         * Creates a copy of the input manager settings as a JSON file so that
+         * our tools can read them in the standalone build during game play.
+         */
         public void OnPreprocessBuild(BuildReport report)
         {
-            RGLegacyEditorOnlyUtils.WriteInputManagerSettingsCopy();
+            string json = RGLegacyEditorOnlyUtils.GetInputManagerSettingsJSON();
+            if (json != null)
+            {
+                if (File.Exists(_inputManagerJsonOut))
+                {
+                    File.Delete(_inputManagerJsonOut);
+                }
+                File.WriteAllText(_inputManagerJsonOut, json);
+            }
         }
     }
 }

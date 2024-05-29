@@ -12,6 +12,7 @@ namespace RegressionGames.RGLegacyInputUtility
     }
     
     // The following structs' field names must match those found in the asset files.
+    [Serializable]
     public class InputManagerEntry
     {
         public string m_Name;
@@ -37,11 +38,13 @@ namespace RegressionGames.RGLegacyInputUtility
         public KeyCode? altPositiveButtonKeyCode;
     }
 
+    [Serializable]
     class InputManagerSettingsData
     {
         public InputManagerEntry[] m_Axes;
     }
 
+    [Serializable]
     class InputManagerSettingsRoot
     {
         public InputManagerSettingsData InputManager;
@@ -60,13 +63,15 @@ namespace RegressionGames.RGLegacyInputUtility
             // input manager settings JSON in case anything changed. Otherwise,
             // use the existing JSON file that would have been created by RGLegacyInputSettingsHook.
             #if UNITY_EDITOR
-            RGLegacyEditorOnlyUtils.WriteInputManagerSettingsCopy();
-            #endif
-
+            string json = RGLegacyEditorOnlyUtils.GetInputManagerSettingsJSON();
+            #else
             TextAsset jsonFile = Resources.Load<TextAsset>("RGInputSettingsCopy.json");
-            if (jsonFile != null)
+            string json = jsonFile?.text;
+            #endif
+            
+            if (json != null)
             {
-                InputManagerSettingsRoot root = JsonUtility.FromJson<InputManagerSettingsRoot>(jsonFile.text);
+                InputManagerSettingsRoot root = JsonUtility.FromJson<InputManagerSettingsRoot>(json);
                 _entries = root.InputManager.m_Axes;
             }
             else
