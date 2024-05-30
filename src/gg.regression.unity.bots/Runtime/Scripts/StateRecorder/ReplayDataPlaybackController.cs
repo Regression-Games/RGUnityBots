@@ -945,41 +945,41 @@ namespace RegressionGames.StateRecorder
         }
         
 #if ENABLE_LEGACY_INPUT_MANAGER
-        public static void SendMouseEventLegacy(Vector2 position, Vector2 scroll, bool leftButton, bool middleButton, bool rightButton)
+        public static void SendMouseEventLegacy(Vector2 position, Vector2 delta, Vector2 scroll, 
+            bool leftButton, bool middleButton, bool rightButton, bool forwardButton, bool backButton)
         {
             if (RGLegacyInputWrapper.IsPassthrough)
             {
                 return;
             }
 
-            RGLegacyInputWrapper.SimulateMouseMovement(new Vector3(position.x, position.y, 0.0f));
+            RGLegacyInputWrapper.SimulateMouseMovement(new Vector3(position.x, position.y, 0.0f), new Vector3(delta.x, delta.y, 0.0f));
             RGLegacyInputWrapper.SimulateMouseScrollWheel(scroll);
             
-            // Left button -> Mouse 0, Right button -> Mouse 1, Middle button -> Mouse 2
             if (leftButton)
-            {
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse0);
-            }
             else
-            {
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse0);
-            }
+            
             if (middleButton)
-            {
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse2);
-            }
             else
-            {
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse2);
-            }
+            
             if (rightButton)
-            {
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse1);
-            }
             else
-            {
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse1);
-            }
+
+            if (forwardButton)
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse3);
+            else
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse3);
+
+            if (backButton)
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse4);
+            else
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse4);
         }
 #endif
 
@@ -1124,6 +1124,16 @@ namespace RegressionGames.StateRecorder
                             break;
                     }
                 }
+                
+                #if ENABLE_LEGACY_INPUT_MANAGER
+                {
+                    Vector2 delta = _lastMousePosition.HasValue ? (normalizedPosition - _lastMousePosition.Value) : Vector2.zero;
+                    SendMouseEventLegacy(position: normalizedPosition, delta: delta, scroll: mouseInput.scroll, 
+                        leftButton: mouseInput.leftButton, middleButton: mouseInput.middleButton, rightButton: mouseInput.rightButton, 
+                        forwardButton: mouseInput.forwardButton, backButton: mouseInput.backButton);
+                }
+                #endif
+                
                 _lastMousePosition = normalizedPosition;
 
                 if (RGDebug.IsDebugEnabled)
@@ -1132,10 +1142,6 @@ namespace RegressionGames.StateRecorder
                 }
 
                 InputSystem.QueueEvent(eventPtr);
-                
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                SendMouseEventLegacy(normalizedPosition, mouseInput.scroll, mouseInput.leftButton, mouseInput.middleButton, mouseInput.rightButton);
-                #endif
             }
         }
 

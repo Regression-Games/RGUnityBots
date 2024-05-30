@@ -36,6 +36,7 @@ namespace RegressionGames.RGLegacyInputUtility
         
         // Mouse movement event
         public Vector3 newMousePosition;
+        public Vector3? newMouseDelta;
         
         // Mouse scroll event
         public Vector2 newMouseScrollDelta;
@@ -169,7 +170,14 @@ namespace RegressionGames.RGLegacyInputUtility
                         case RGLegacySimulatedInputEventType.MOUSE_MOVEMENT_EVENT:
                         {
                             Vector3 newMousePosition = evt.newMousePosition;
-                            _mousePosDelta = newMousePosition - _mousePosition;
+                            if (evt.newMouseDelta.HasValue)
+                            {
+                                _mousePosDelta = evt.newMouseDelta.Value;
+                            }
+                            else
+                            {
+                                _mousePosDelta = newMousePosition - _mousePosition;
+                            }
                             _mousePosition = newMousePosition;
                             break;
                         }
@@ -289,12 +297,14 @@ namespace RegressionGames.RGLegacyInputUtility
 
         /**
          * Called by the test driver to simulate a mouse movement to a new position.
+         * Delta can be optionally specified. Otherwise it is inferred from the previous mouse position.
          */
-        public static void SimulateMouseMovement(Vector3 newMousePosition)
+        public static void SimulateMouseMovement(Vector3 newMousePosition, Vector3? newMouseDelta = null)
         {
             RGLegacySimulatedInputEvent evt = new RGLegacySimulatedInputEvent();
             evt.eventType = RGLegacySimulatedInputEventType.MOUSE_MOVEMENT_EVENT;
             evt.newMousePosition = newMousePosition;
+            evt.newMouseDelta = newMouseDelta;
             _inputSimEventQueue.Enqueue(evt);
         }
 
