@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -48,7 +49,7 @@ namespace RegressionGames.StateRecorder
         // scroll wheel
         public Vector2 scroll;
 
-        public int[] clickedObjectIds;
+        public string[] clickedObjectNormalizedPaths;
 
         public bool IsButtonClicked => leftButton || middleButton || rightButton || forwardButton || backButton || Math.Abs(scroll.y) > 0.1f || Math.Abs(scroll.x) > 0.1f;
 
@@ -102,12 +103,12 @@ namespace RegressionGames.StateRecorder
             stringBuilder.Append(backButton ? "true" : "false");
             stringBuilder.Append(",\"scroll\":");
             VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
-            stringBuilder.Append(",\"clickedObjectIds\":[");
-            var clickedObjectIdsLength = clickedObjectIds.Length;
-            for (var i = 0; i < clickedObjectIdsLength; i++)
+            stringBuilder.Append(",\"clickedObjectNormalizedPaths\":[");
+            var clickedObjectPathsLength = clickedObjectNormalizedPaths.Length;
+            for (var i = 0; i < clickedObjectPathsLength; i++)
             {
-                IntJsonConverter.WriteToStringBuilder(stringBuilder, clickedObjectIds[i]);
-                if (i + 1 < clickedObjectIdsLength)
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, clickedObjectNormalizedPaths[i]);
+                if (i + 1 < clickedObjectPathsLength)
                 {
                     stringBuilder.Append(",");
                 }
@@ -132,6 +133,8 @@ namespace RegressionGames.StateRecorder
         // based on a few pixel shift in relative camera position
         private readonly RaycastHit[] _cachedRaycastHits = new RaycastHit[5];
 
+        private readonly HashSet<string> _clickedObjectNormalizedPaths = new(100);
+
         public void ObserveMouse(IEnumerable<TransformStatus> statefulObjects)
         {
             var mousePosition = Mouse.current.position.ReadValue();
@@ -151,7 +154,6 @@ namespace RegressionGames.StateRecorder
                         _cachedRaycastHits,
                         maxZDepth+0.1f);
 
-
                     var comparer = Comparer<RaycastHit>.Create(
                         (x1, x2) =>
                         {
@@ -165,13 +167,15 @@ namespace RegressionGames.StateRecorder
                         Array.Sort(_cachedRaycastHits, 0, mouseRayHits, comparer);
                     }
 
-                    List<int> clickedOnObjectIds = new();
+
+                    _clickedObjectNormalizedPaths.Clear();
+
                     var bestIndex = int.MaxValue;
                     if (mouseRayHits > 0)
                     {
                         foreach (var recordedGameObjectState in clickedOnObjects)
                         {
-                            clickedOnObjectIds.Add(recordedGameObjectState.Id);
+                            _clickedObjectNormalizedPaths.Add(recordedGameObjectState.NormalizedPath);
                             if (recordedGameObjectState.worldSpaceBounds != null)
                             {
                                 // compare to any raycast hits and pick the one closest to the camera
@@ -207,12 +211,12 @@ namespace RegressionGames.StateRecorder
                         // without a collider hit, we can't set a worldPosition
                         foreach (var recordedGameObjectState in clickedOnObjects)
                         {
-                            clickedOnObjectIds.Add(recordedGameObjectState.Id);
+                            _clickedObjectNormalizedPaths.Add(recordedGameObjectState.NormalizedPath);
                         }
                     }
 
                     newMouseState.worldPosition = worldPosition;
-                    newMouseState.clickedObjectIds = clickedOnObjectIds.ToArray();
+                    newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.ToArray();
                     _mouseInputActions.Enqueue(newMouseState);
                 }
                 else if (_priorMouseState?.PositionsEqual(newMouseState) != true)
@@ -240,7 +244,7 @@ namespace RegressionGames.StateRecorder
                     forwardButton = mouse.forwardButton.isPressed,
                     backButton = mouse.backButton.isPressed,
                     scroll = mouse.scroll.ReadValue(),
-                    clickedObjectIds = Array.Empty<int>(),
+                    clickedObjectNormalizedPaths = Array.Empty<string>(),
                     worldPosition = null
                 };
                 return newMouseState;

@@ -7,6 +7,7 @@
         GAME_ELEMENT,
         GAME_ELEMENT_RENDERER_COUNT,
         UI_ELEMENT,
-        UI_PIXELHASH
+        UI_PIXELHASH,
+        TIMER
     }
 }

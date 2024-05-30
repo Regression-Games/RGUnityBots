@@ -85,7 +85,6 @@ namespace RegressionGames.StateRecorder
 
         // scroll wheel
         public Vector2 scroll;
-        public string[] clickedObjectPaths;
         public string[] clickedObjectNormalizedPaths;
 
         public bool IsDone;
@@ -387,12 +386,12 @@ namespace RegressionGames.StateRecorder
                     if (inputData is { } mouseInputData)
                     {
                         // go through the mouse input data and setup the different entries
-                        (List<string>,List<string>) specificGameObjectPaths = (null,null);
+                        string[] specificGameObjectPaths = null;
 
                         // we also validate the object ids on mouse release to adjust click positions
-                        if (keyFrame != null && mouseInputData.clickedObjectIds != null )
+                        if (keyFrame != null && mouseInputData.clickedObjectNormalizedPaths != null )
                         {
-                            specificGameObjectPaths = FindObjectPathsWithIds(mouseInputData.clickedObjectIds, priorFrame?.state, frameData.state);
+                            specificGameObjectPaths = mouseInputData.clickedObjectNormalizedPaths;
                         }
 
                         _mouseData.Add(new ReplayMouseInputEntry()
@@ -400,8 +399,7 @@ namespace RegressionGames.StateRecorder
                             tickNumber = frameData.tickNumber,
                             screenSize = frameData.screenSize,
                             startTime = mouseInputData.startTime - firstFrame.time,
-                            clickedObjectPaths = specificGameObjectPaths.Item1?.ToArray() ?? Array.Empty<string>(),
-                            clickedObjectNormalizedPaths = specificGameObjectPaths.Item2?.ToArray() ?? Array.Empty<string>(),
+                            clickedObjectNormalizedPaths = specificGameObjectPaths ?? Array.Empty<string>(),
                             position = mouseInputData.position,
                             worldPosition = mouseInputData.worldPosition,
                             leftButton = mouseInputData.leftButton,

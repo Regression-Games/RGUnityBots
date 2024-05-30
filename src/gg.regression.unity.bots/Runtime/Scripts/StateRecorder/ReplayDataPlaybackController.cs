@@ -732,7 +732,7 @@ namespace RegressionGames.StateRecorder
             var normalizedPosition = mouseInput.NormalizedPosition;
 
             // note that if this mouse input wasn't a click, there will be no possible objects
-            if (mouseInput.clickedObjectPaths == null || mouseInput.clickedObjectPaths.Length == 0)
+            if (mouseInput.clickedObjectNormalizedPaths == null || mouseInput.clickedObjectNormalizedPaths.Length == 0)
             {
                 // bail out early, no click
                 return (null, false, normalizedPosition, objectStates.Values);
@@ -740,12 +740,10 @@ namespace RegressionGames.StateRecorder
 
             var theNp = new Vector3(normalizedPosition.x, normalizedPosition.y, 0f);
 
-            var originalPosition = mouseInput.position;
-
             // find possible objects prioritizing the currentState, falling back to the priorState
 
             // copy so we can remove
-            var mousePaths = mouseInput.worldPosition != null ? mouseInput.clickedObjectNormalizedPaths : mouseInput.clickedObjectPaths;
+            var mousePaths = mouseInput.clickedObjectNormalizedPaths;
             var pathsToFind = mousePaths.ToList();
 
             var possibleObjects = new List<RecordedGameObjectState>();
@@ -1087,7 +1085,8 @@ namespace RegressionGames.StateRecorder
             {
                 if (_isPlaying)
                 {
-                    var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
+                    // TODO: Implement this using the bot segments approach
+                    /*var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(true);
                     var priorStates = states?.Item1;
                     var currentStates = states?.Item2;
 
@@ -1103,6 +1102,7 @@ namespace RegressionGames.StateRecorder
                     CheckWaitForKeyStateMatch(currentStates, pixelHash);
 
                     PlayInputs(priorStates, currentStates);
+                    */
                 }
             }
 

@@ -357,6 +357,98 @@ namespace RegressionGames.StateRecorder
             _frameNumber = -1;
         }
 
+        public class PathBasedDeltaCount
+        {
+            public PathBasedDeltaCount(int pathHash, string path)
+            {
+                this.pathHash = pathHash;
+                this.path = path;
+            }
+            public List<int> ids = new ();
+            public int pathHash;
+            public string path;
+
+            public int count;
+            public int addedCount;
+            public int removedCount;
+            // if negative, this count went down CountRule.LessThanEqual; if positive, this count went up CountRule.GreaterThanEqual; if zero, this count didn't change CountRule.NonZero; if zero and count ==0, CountRule.Zero
+            public int higherLowerCountTracker;
+        }
+
+        /**
+         * argument lists are keyed by transform id
+         *
+         * returns hasDelta on spawns or de-spawns or change in camera visibility
+         */
+        public Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<int,TransformStatus> priorTransformStatusList, Dictionary<int, TransformStatus> currentTransformStatusList, out bool hasDelta)
+        {
+            hasDelta = false;
+            var result = new Dictionary<int, PathBasedDeltaCount>(); // keyed by path hash
+            /*
+             * go through the new state and add up the totals
+             * - track the ids for each path
+             * - compute spawns vs old state
+             *
+             * go through the old state
+             *  - track paths that have had de-spawns
+             */
+            foreach (var currentEntry in currentTransformStatusList.Values)
+            {
+                var pathHash = currentEntry.NormalizedPath.GetHashCode();
+                if (!result.TryGetValue(pathHash, out var pathCountEntry))
+                {
+                    pathCountEntry = new PathBasedDeltaCount(pathHash, currentEntry.NormalizedPath);
+                    result[pathHash] = pathCountEntry;
+                }
+
+                pathCountEntry.count++;
+                pathCountEntry.ids.Add(currentEntry.Id);
+
+                if (!priorTransformStatusList.TryGetValue(currentEntry.Id, out var oldStatus))
+                {
+                    hasDelta = true;
+                    pathCountEntry.addedCount++;
+                }
+                else
+                {
+                    var onCameraBefore = (oldStatus.screenSpaceBounds != null);
+                    var onCameraNow = (currentEntry.screenSpaceBounds != null);
+                    if ( onCameraBefore != onCameraNow )
+                    {
+                        if (onCameraNow)
+                        {
+                            pathCountEntry.higherLowerCountTracker++;
+                        }
+                        else
+                        {
+                            pathCountEntry.higherLowerCountTracker--;
+                        }
+                        // camera visibility changed.. only need to do this in one place, because if both lists didnt' have it we can't compare
+                        hasDelta = true;
+                    }
+                }
+            }
+
+            // figure out de-spawns
+            foreach( KeyValuePair<int, TransformStatus> entry in priorTransformStatusList)
+            {
+                var pathHash = entry.Value.NormalizedPath.GetHashCode();
+                if (!result.TryGetValue(pathHash, out var pathCountEntry))
+                {
+                    pathCountEntry = new PathBasedDeltaCount(pathHash, entry.Value.NormalizedPath);
+                    result[pathHash] = pathCountEntry;
+                }
+
+                if (!pathCountEntry.ids.Contains(entry.Key))
+                {
+                    hasDelta = true;
+                    pathCountEntry.removedCount++;
+                }
+            }
+
+            return result;
+        }
+
         /**
          * <returns>uiObjects transform status for previous and current frame, ... will have null screenSpaceBounds if off camera</returns>
          */
