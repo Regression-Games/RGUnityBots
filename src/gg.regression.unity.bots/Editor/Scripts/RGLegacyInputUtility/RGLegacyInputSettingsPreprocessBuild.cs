@@ -5,6 +5,7 @@ using RegressionGames.RGLegacyInputUtility;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEngine;
 
 namespace RegressionGames.Editor.RGLegacyInputUtility
 {
@@ -14,7 +15,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
      */
     public class RGLegacyInputSettingsPreprocessBuild : IPreprocessBuildWithReport
     {
-        private static string _inputManagerJsonOut = "Assets/Resources/RGInputSettingsCopy.json";
+        private static string _inputManagerJsonOut = "Assets/Resources/RGInputSettingsCopy.txt"; // this must have a .txt extension to be recognized as a TextAsset
         public int callbackOrder => 0;
         
         /*

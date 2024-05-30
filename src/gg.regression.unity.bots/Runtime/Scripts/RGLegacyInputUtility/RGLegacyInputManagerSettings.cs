@@ -65,10 +65,10 @@ namespace RegressionGames.RGLegacyInputUtility
             #if UNITY_EDITOR
             string json = RGLegacyEditorOnlyUtils.GetInputManagerSettingsJSON();
             #else
-            TextAsset jsonFile = Resources.Load<TextAsset>("RGInputSettingsCopy.json");
+            TextAsset jsonFile = Resources.Load<TextAsset>("RGInputSettingsCopy");
             string json = jsonFile?.text;
             #endif
-            
+
             if (json != null)
             {
                 InputManagerSettingsRoot root = JsonUtility.FromJson<InputManagerSettingsRoot>(json);
