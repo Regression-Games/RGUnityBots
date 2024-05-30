@@ -201,6 +201,9 @@ namespace RegressionGames.StateRecorder
             _checkOfKeyFrameCount = 0;
 
             _screenRecorder.StopRecording();
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            RGLegacyInputWrapper.StopSimulation();
+            #endif
 
             // similar to Stop, but assumes will play again
             _dataContainer?.Reset();
@@ -219,6 +222,10 @@ namespace RegressionGames.StateRecorder
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
             _checkOfKeyFrameCount = 0;
+            
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            RGLegacyInputWrapper.StopSimulation();
+            #endif
 
             // similar to Stop, but assumes continued looping .. doesn't stop recording
             _dataContainer?.Reset();
