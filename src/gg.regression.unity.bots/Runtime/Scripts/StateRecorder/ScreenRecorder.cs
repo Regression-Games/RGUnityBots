@@ -713,7 +713,7 @@ namespace RegressionGames.StateRecorder
                                 }
                                 else
                                 {
-                                    RGDebug.LogError($"Error capturing screenshot for tick # {currentTickNumber}");
+                                    RGDebug.LogWarning($"Error capturing screenshot for tick # {currentTickNumber}");
 
                                     if (Interlocked.CompareExchange(ref didQueue, 1, 0) == 0)
                                     {
@@ -741,7 +741,7 @@ namespace RegressionGames.StateRecorder
                         }
                         catch (Exception e)
                         {
-                            RGDebug.LogException(e, $"Exception starting to capture screenshot for tick # {currentTickNumber}");
+                            RGDebug.LogWarning($"Exception starting to capture screenshot for tick # {currentTickNumber} - {e.Message}");
                         }
                     }
                 }

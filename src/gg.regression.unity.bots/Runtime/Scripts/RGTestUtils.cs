@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using RegressionGames.StateRecorder;
+using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
@@ -21,7 +22,7 @@ namespace RegressionGames
         /// <param name="timeout">The maximum time to wait for the scene to load (in seconds). Defaults to 5.</param>
         public static IEnumerator WaitForScene(string sceneName, int timeout = 5)
         {
-            var startTime = Time.time;
+            var startTime = Time.unscaledTime;
             bool loaded = false;
             while (!loaded)
             {
@@ -38,7 +39,7 @@ namespace RegressionGames
                 yield return null;
             }
             yield return null;
-            Assert.IsTrue(loaded);
+            Assert.IsTrue(loaded, $"Scene {sceneName} failed to load within {timeout} seconds");
         }
         
         
@@ -46,8 +47,8 @@ namespace RegressionGames
         /// Plays back an existing recording, and then returns the save location of the recording.
         /// </summary>
         /// <param name="recordingPath">The path to the recording to play back (the full data.zip file path)</param>
-        /// <param name="setSaveLocation">A callback that will be called with the save location of the recording</param>
-        public static IEnumerator StartPlaybackFromFile(string recordingPath, Action<string> setSaveLocation)
+        /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
+        public static IEnumerator StartPlaybackFromFile(string recordingPath, Action<PlaybackResult> setPlaybackResult)
         {
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<ReplayDataPlaybackController>();
@@ -61,7 +62,11 @@ namespace RegressionGames
             }
             yield return null;
             RGDebug.LogInfo("Playback complete!");
-            setSaveLocation(playbackController.SaveLocation() + ".zip");
+            var result = new PlaybackResult
+            {
+                saveLocation = playbackController.SaveLocation() + ".zip"
+            };
+            setPlaybackResult(result);
         }
         
     }
