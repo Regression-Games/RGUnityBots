@@ -15,10 +15,106 @@ namespace RegressionGames.StateRecorder
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000_000);
 
+        public string sessionId;
         // used to correlate to ticks later.. can be null/empty
         public long? tickNumber;
         public KeyFrameCriteria[] keyFrameCriteria;
         public BotAction botAction;
+
+        // Replay only
+        public void ReplayReset()
+        {
+            Replay_Matched = false;
+            if (keyFrameCriteria != null)
+            {
+                var keyFrameCriteriaLength = keyFrameCriteria.Length;
+                for (var i = 0; i < keyFrameCriteriaLength; i++)
+                {
+                    keyFrameCriteria[i].ReplayReset();
+                }
+            }
+
+            if (botAction != null)
+            {
+                botAction.ReplayReset();
+            }
+        }
+
+        // Replay only - set to true once this bot segment's key frame criteria have matched
+        [NonSerialized]
+        public bool Replay_Matched;
+
+        // Replay only - true if any of this frame's transient criteria have matched
+        public bool Replay_TransientMatched => TransientMatchedHelper(keyFrameCriteria);
+
+        private bool TransientMatchedHelper(KeyFrameCriteria[] criteriaList)
+        {
+            if (criteriaList != null)
+            {
+                foreach (var criteria in criteriaList)
+                {
+                    if (criteria.Replay_TransientMatched)
+                    {
+                        return true;
+                    }
+
+                    if (criteria.data is OrKeyFrameCriteriaData okc)
+                    {
+                        var has = TransientMatchedHelper(okc.criteriaList);
+                        if (has)
+                        {
+                            return true;
+                        }
+                    }
+                    else if (criteria.data is AndKeyFrameCriteriaData akc)
+                    {
+                        var has = TransientMatchedHelper(akc.criteriaList);
+                        if (has)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        // used to allow transient key frame data to be somewhat evaluated in parallel / a few segments ahead
+        // a segment without transient criteria will of course hold up future segments from being evaluated (even if transient)
+        // current and next segment must be transient for this to really change behaviour
+        public bool HasTransientCriteria => HasTransientCriteriaHelper(keyFrameCriteria);
+
+        private bool HasTransientCriteriaHelper(KeyFrameCriteria[] criteriaList)
+        {
+            if (criteriaList != null)
+            {
+                foreach (var criteria in criteriaList)
+                {
+                    if (criteria.transient)
+                    {
+                        return true;
+                    }
+
+                    if (criteria.data is OrKeyFrameCriteriaData okc)
+                    {
+                        var has = HasTransientCriteriaHelper(okc.criteriaList);
+                        if (has)
+                        {
+                            return true;
+                        }
+                    }
+                    else if (criteria.data is AndKeyFrameCriteriaData akc)
+                    {
+                        var has = HasTransientCriteriaHelper(akc.criteriaList);
+                        if (has)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
 
         public string ToJsonString()
         {
@@ -29,7 +125,9 @@ namespace RegressionGames.StateRecorder
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"tickNumber:\":");
+            stringBuilder.Append("{\n\"sessionId:\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
+            stringBuilder.Append(",\n\"tickNumber:\":");
             LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, tickNumber);
             stringBuilder.Append(",\n\"keyFrameCriteria\":[");
             var keyFrameCriteriaLength = keyFrameCriteria.Length;
@@ -145,6 +243,11 @@ namespace RegressionGames.StateRecorder
         public BotActionType type;
         public IBotActionData data;
 
+        public void ReplayReset()
+        {
+            data.ReplayReset();
+        }
+
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\n\"type:\":");
@@ -158,6 +261,8 @@ namespace RegressionGames.StateRecorder
     public interface IBotActionData
     {
         public void WriteToStringBuilder(StringBuilder stringBuilder);
+
+        public void ReplayReset();
     }
 
     [Serializable]
@@ -166,15 +271,20 @@ namespace RegressionGames.StateRecorder
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.InputPlayback;
         /**
-         * <summary>Used to sync up with input event times on replay to playback at proper timings</summary>
+         * <summary>Used to sync up with input event times on replay to playback at proper timings.  This is the the time of the prior key frame so that we can compute the time delay to play each input once we get to this key frame.</summary>
          */
-        public double frameTime;
+        public double startTime;
         public InputData inputData;
+
+        public void ReplayReset()
+        {
+            inputData.ReplayReset();
+        }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"frameTime:\":");
-            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, frameTime);
+            stringBuilder.Append("{\n\"startTime:\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
             stringBuilder.Append(",\n\"inputData\":");
             inputData.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("\n}");
@@ -194,9 +304,28 @@ namespace RegressionGames.StateRecorder
         public bool transient;
         public IKeyFrameCriteriaData data;
 
-        // used to track if transient has ever matched
+        // Replay only - used to track if transient has ever matched during replay
         [NonSerialized]
-        public bool TransientMatched;
+        public bool Replay_TransientMatched;
+
+        public void ReplayReset()
+        {
+            Replay_TransientMatched = false;
+            if (data is OrKeyFrameCriteriaData okc)
+            {
+                foreach (var keyFrameCriteria in okc.criteriaList)
+                {
+                    keyFrameCriteria.ReplayReset();
+                }
+            }
+            else if (data is AndKeyFrameCriteriaData akc)
+            {
+                foreach (var keyFrameCriteria in akc.criteriaList)
+                {
+                    keyFrameCriteria.ReplayReset();
+                }
+            }
+        }
 
         public override string ToString()
         {
@@ -237,7 +366,7 @@ namespace RegressionGames.StateRecorder
             for (var i = 0; i < length; i++)
             {
                 var entry = criteriaList[i];
-                if (entry.transient && entry.TransientMatched)
+                if (entry.transient && entry.Replay_TransientMatched)
                 {
                     if (andOr == AndOr.Or)
                     {
@@ -298,7 +427,7 @@ namespace RegressionGames.StateRecorder
                         {
                             return true;
                         }
-                        orEntry.TransientMatched = true;
+                        orEntry.Replay_TransientMatched = true;
                     }
                     else
                     {
@@ -323,7 +452,7 @@ namespace RegressionGames.StateRecorder
                         {
                             return true;
                         }
-                        andEntry.TransientMatched = true;
+                        andEntry.Replay_TransientMatched = true;
                     }
                     else
                     {

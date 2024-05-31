@@ -34,6 +34,8 @@ namespace RegressionGames.StateRecorder
     {
         public double startTime;
 
+        public Vector2Int screenSize;
+
         public Vector2Int position;
 
         public Vector3? worldPosition;
@@ -80,6 +82,11 @@ namespace RegressionGames.StateRecorder
             return false;
         }
 
+        public void ReplayReset()
+        {
+            Replay_IsDone = false;
+        }
+
         // re-usable and large enough to fit ball sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(5_000);
 
@@ -87,6 +94,8 @@ namespace RegressionGames.StateRecorder
         {
             stringBuilder.Append("{\"startTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
+            stringBuilder.Append(",\"screenSize\":");
+            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\"position\":");
             VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, position);
             stringBuilder.Append(",\"worldPosition\":");
@@ -122,6 +131,18 @@ namespace RegressionGames.StateRecorder
             WriteToStringBuilder(_stringBuilder);
             return _stringBuilder.ToString();
         }
+
+        //gives the position relative to the current screen size
+        public Vector2Int NormalizedPosition => new()
+        {
+            x = (int)(position.x * (Screen.width / (float)screenSize.x)),
+            y = (int)(position.y * (Screen.height / (float)screenSize.y))
+        };
+
+        //Replay Only
+        [NonSerialized]
+        public bool Replay_IsDone;
+
     }
 
     public class MouseInputActionObserver : MonoBehaviour
@@ -245,7 +266,8 @@ namespace RegressionGames.StateRecorder
                     backButton = mouse.backButton.isPressed,
                     scroll = mouse.scroll.ReadValue(),
                     clickedObjectNormalizedPaths = Array.Empty<string>(),
-                    worldPosition = null
+                    worldPosition = null,
+                    screenSize = new Vector2Int(Screen.width, Screen.height)
                 };
                 return newMouseState;
             }

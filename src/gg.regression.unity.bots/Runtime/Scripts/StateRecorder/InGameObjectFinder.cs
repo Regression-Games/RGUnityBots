@@ -336,7 +336,9 @@ namespace RegressionGames.StateRecorder
         private List<Transform> _nextParentTransforms = new(100);
         private List<Transform> _currentParentTransforms = new(100);
 
-        private int _frameNumber = -1;
+        private int _uiObjectFrameNumber = -1;
+        private int _gameObjectFrameNumber = -1;
+        private int _stateFrameNumber = -1;
 
         // pre-allocate a big list we can re-use
         private Dictionary<int,RecordedGameObjectState> _priorStates = new (1000);
@@ -354,7 +356,9 @@ namespace RegressionGames.StateRecorder
             _newUIObjects.Clear();
             _priorGameObjects.Clear();
             _newGameObjects.Clear();
-            _frameNumber = -1;
+            _uiObjectFrameNumber = -1;
+            _gameObjectFrameNumber = -1;
+            _stateFrameNumber = -1;
         }
 
         public class PathBasedDeltaCount
@@ -455,13 +459,13 @@ namespace RegressionGames.StateRecorder
         public (Dictionary<int, TransformStatus>,Dictionary<int, TransformStatus>) GetUITransformsForCurrentFrame()
         {
             var frameCount = Time.frameCount;
-            if (frameCount == _frameNumber)
+            if (frameCount == _uiObjectFrameNumber)
             {
                 // we already processed this frame (happens when recording during replay and they both call this)
                 return (_priorUIObjects, _newUIObjects);
             }
 
-            _frameNumber = frameCount;
+            _uiObjectFrameNumber = frameCount;
 
             // switch the list references
             (_priorUIObjects, _newUIObjects) = (_newUIObjects, _priorUIObjects);
@@ -627,13 +631,13 @@ namespace RegressionGames.StateRecorder
         public (Dictionary<int, TransformStatus>,Dictionary<int, TransformStatus>) GetGameObjectTransformsForCurrentFrame()
         {
             var frameCount = Time.frameCount;
-            if (frameCount == _frameNumber)
+            if (frameCount == _gameObjectFrameNumber)
             {
                 // we already processed this frame (happens when recording during replay and they both call this)
                 return (_priorGameObjects, _newGameObjects);
             }
 
-            _frameNumber = frameCount;
+            _gameObjectFrameNumber = frameCount;
 
             // switch the list references
             (_priorGameObjects, _newGameObjects) = (_newGameObjects, _priorGameObjects);
@@ -889,13 +893,13 @@ namespace RegressionGames.StateRecorder
         public (Dictionary<int, RecordedGameObjectState>, Dictionary<int, RecordedGameObjectState>) GetStateForCurrentFrame(IEnumerable<TransformStatus> uiObjectTransformStatusList, IEnumerable<TransformStatus> gameObjectTransformStatusList)
         {
             var frameCount = Time.frameCount;
-            if (frameCount == _frameNumber)
+            if (frameCount == _stateFrameNumber)
             {
                 // we already processed this frame (happens when recording during replay and they both call this)
                 return (_priorStates, _newStates);
             }
 
-            _frameNumber = frameCount;
+            _stateFrameNumber = frameCount;
 
             // switch the list references
             (_priorStates, _newStates) = (_newStates, _priorStates);

@@ -74,6 +74,22 @@ namespace RegressionGames.StateRecorder
             WriteToStringBuilder(_stringBuilder);
             return _stringBuilder.ToString();
         }
+
+        public void ReplayReset()
+        {
+            Replay_StartEndSentFlags[0] = false;
+            Replay_StartEndSentFlags[1] = false;
+        }
+
+        // Replay only - used to track if we have sent the start and end events for this entry yet
+        [NonSerialized]
+        public readonly bool[] Replay_StartEndSentFlags = { false, false };
+
+        // Replay only - have we finished processing this input
+        public bool Replay_IsDone => Replay_StartEndSentFlags[0] && Replay_StartEndSentFlags[1];
+
+        // Replay only
+        public Key Key => KeyboardInputActionObserver.AllKeyboardKeys[binding.Substring(binding.LastIndexOf('/') + 1)];
     }
 
     public class KeyboardInputActionObserver : MonoBehaviour

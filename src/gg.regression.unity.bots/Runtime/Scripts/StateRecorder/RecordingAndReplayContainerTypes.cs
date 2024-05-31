@@ -89,6 +89,19 @@ namespace RegressionGames.StateRecorder
         public List<KeyboardInputActionData> keyboard;
         public List<MouseInputActionData> mouse;
 
+        public void ReplayReset()
+        {
+            foreach (var keyboardInputActionData in keyboard)
+            {
+                keyboardInputActionData.ReplayReset();
+            }
+
+            foreach (var mouseInputActionData in mouse)
+            {
+                mouseInputActionData.ReplayReset();
+            }
+        }
+
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\n\"keyboard\":[\n");

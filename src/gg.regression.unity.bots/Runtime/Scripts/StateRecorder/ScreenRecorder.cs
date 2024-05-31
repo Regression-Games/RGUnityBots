@@ -315,41 +315,6 @@ namespace RegressionGames.StateRecorder
 
         }
 
-        /**
-         * <summary>Modifies the lists with removal leaving only the unique entries in each list.  Assumes lists have unique entries as though created from a hashset</summary>
-         */
-        private bool IntListsMatch(List<int> priorScenes, List<int> currentScenes)
-        {
-            if (priorScenes.Count != currentScenes.Count)
-            {
-                return false;
-            }
-            for (var i = 0; i < priorScenes.Count;)
-            {
-                var priorScene = priorScenes[i];
-                var found = false;
-                var currentScenesCount = currentScenes.Count;
-                for (var j = 0; j < currentScenesCount; j++)
-                {
-                    var currentScene = currentScenes[j];
-                    if (priorScene == currentScene)
-                    {
-                        priorScenes.RemoveAt(i);
-                        currentScenes.RemoveAt(j);
-                        found = true;
-                        break; // inner for loop
-                    }
-                }
-
-                if (!found)
-                {
-                    i++;
-                }
-            }
-
-            return priorScenes.Count == 0 && currentScenes.Count == 0;
-        }
-
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
 
@@ -451,7 +416,8 @@ namespace RegressionGames.StateRecorder
                 var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
                 var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
 
-                // prefer doing mouse on the 'prior' data as the mouse causes the new data
+                // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
+                // what it clicked on normally isn't in the new state (button was in the old state)
                 if (uiTransforms.Item1.Count > 0 || gameObjectTransforms.Item1.Count > 0)
                 {
                     _mouseObserver.ObserveMouse(uiTransforms.Item1.Values.Concat(gameObjectTransforms.Item1.Values));
@@ -506,12 +472,9 @@ namespace RegressionGames.StateRecorder
                         var frameTime = Math.Max(time, mostRecentDeviceEventTime);
 
                         // get the new state
-                        var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame(uiTransforms.Item2.Values, gameObjectTransforms.Item2.Values);
+                        var states = InGameObjectFinder.GetInstance().GetStateForCurrentFrame(uiTransforms.Item2.Values, gameObjectTransforms.Item2.Values);
 
-                        // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
-                        // what it clicked on normally isn't in the new state (button was in the old state)
-                        var priorStates = states?.Item1;
-                        var currentStates = states?.Item2;
+                        var currentStates = states.Item2;
 
                         ++_tickNumber;
 
@@ -544,7 +507,7 @@ namespace RegressionGames.StateRecorder
                                 type = BotActionType.InputPlayback,
                                 data = new InputPlaybackActionData()
                                 {
-                                    frameTime = frameTime,
+                                    startTime = _lastCvFrameTime,
                                     inputData = inputData
                                 }
                             }

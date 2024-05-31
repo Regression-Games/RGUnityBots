@@ -86,7 +86,7 @@ namespace RegressionGames.StateRecorder
                 FileBrowser.PickMode.Files,
                 false,
                 null,
-                null,
+                "bot_segments.zip",
                 "Select Replay Zip File",
                 "Load Replay"
             );
