@@ -521,7 +521,7 @@ namespace RegressionGames.StateRecorder
                                 {
                                     Vector2 min, max;
                                     _rectTransformsList[0].GetWorldCorners(_worldSpaceCorners);
-                                    if (canvasCamera != null)
+                                    if (canvas.renderMode != RenderMode.ScreenSpaceOverlay && canvasCamera != null)
                                     {
                                         min = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[0]);
                                         max = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[2]);
