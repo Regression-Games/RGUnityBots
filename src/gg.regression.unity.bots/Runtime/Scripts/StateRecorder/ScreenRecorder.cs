@@ -238,7 +238,6 @@ namespace RegressionGames.StateRecorder
             {
                 StartCoroutine(RecordFrame());
             }
-
         }
 
         private IEnumerator ShowUploadingIndicator(bool shouldShow)
@@ -409,6 +408,9 @@ namespace RegressionGames.StateRecorder
         {
             if (!_tickQueue.IsCompleted)
             {
+                // wait for end of frame before capturing, otherwise .isVisible is wrong and GPU data won't be accurate for screenshot
+                yield return new WaitForEndOfFrame();
+
                 ++_frameCountSinceLastTick;
                 // handle recording ... uses unscaled time for real framerate calculations
                 var time = Time.unscaledTimeAsDouble;
@@ -596,8 +598,6 @@ namespace RegressionGames.StateRecorder
 
                         var graphicsFormat = _screenShotTexture.graphicsFormat;
 
-                        // wait for end of frame before capturing screenshot
-                        yield return new WaitForEndOfFrame();
                         try
                         {
                             ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);

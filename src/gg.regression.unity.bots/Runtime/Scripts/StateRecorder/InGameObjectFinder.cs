@@ -120,6 +120,8 @@ namespace RegressionGames.StateRecorder
 
         // re-use these objects
         private static readonly StringBuilder _tPathBuilder = new StringBuilder(500);
+        private static readonly StringBuilder _tNormalizedPathBuilder = new StringBuilder(500);
+        private static readonly List<GameObject> _parentList = new(100);
 
         private TransformStatus GetOrCreateTransformStatus(Transform theTransform)
         {
@@ -145,41 +147,46 @@ namespace RegressionGames.StateRecorder
             {
                 // now .. get the path in the scene.. but only from 1 level down
                 // iow.. ignore the name of the scene itself for cases where many scenes are loaded together like bossroom
-                var tName = theTransform.name;
-                var tNameNormalized = SanitizeObjectName(theTransform.name);
 
-                tPath = tName;
-                tPathNormalized = tNameNormalized;
+                _parentList.Clear();
+                _parentList.Add(transform.gameObject);
                 var parent = theTransform.parent;
                 while (parent != null)
                 {
-                    _tPathBuilder.Clear();
-                    tPath = _tPathBuilder.Append(parent.gameObject.name).Append("/").Append(tPath).ToString();
-                    _tPathBuilder.Clear();
-                    tPathNormalized = _tPathBuilder.Append(SanitizeObjectName(parent.gameObject.name)).Append("/").Append(tPathNormalized).ToString();
-                    parent = parent.transform.parent;
+                    _parentList.Add(parent.gameObject);
+                    parent = parent.parent;
                 }
 
-                if (status != null)
+                _tPathBuilder.Clear();
+                _tNormalizedPathBuilder.Clear();
+                for (var i = _parentList.Count-1; i >=0; i--)
                 {
-                    // update the cache our result
-                    status.Id = id;
-                    status.Transform = theTransform;
-                    status.Path = tPath;
-                    status.NormalizedPath = tPathNormalized;
+                    var parentEntry = _parentList[i];
+                    var objectName = parentEntry.gameObject.name;
+                    _tPathBuilder.Append(objectName);
+                    _tNormalizedPathBuilder.Append(SanitizeObjectName(objectName));
+                    if (i - 1 >= 0)
+                    {
+                        _tPathBuilder.Append("/");
+                        _tNormalizedPathBuilder.Append("/");
+                    }
                 }
-                else
+
+                tPath = _tPathBuilder.ToString();
+                tPathNormalized = _tNormalizedPathBuilder.ToString();
+
+                if (status == null)
                 {
                     status = new TransformStatus
                     {
                         Id = id,
-                        Transform = theTransform,
-                        Path = tPath,
-                        NormalizedPath = tPathNormalized
+                        Transform = theTransform
                     };
-                    // add our result to the cache
                     _transformsIveSeen[id] = status;
+                    // update the cache with our result
                 }
+                status.Path = tPath;
+                status.NormalizedPath = tPathNormalized;
             }
 
             return status;
@@ -544,7 +551,7 @@ namespace RegressionGames.StateRecorder
                                     {
                                         Vector2 nextMin, nextMax;
                                         _rectTransformsList[i].GetWorldCorners(_worldSpaceCorners);
-                                        if (canvasCamera != null)
+                                        if (canvas.renderMode != RenderMode.ScreenSpaceOverlay && canvasCamera != null)
                                         {
                                             nextMin = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[0]);
                                             nextMax = RectTransformUtility.WorldToScreenPoint(canvasCamera, _worldSpaceCorners[2]);
@@ -1113,24 +1120,12 @@ namespace RegressionGames.StateRecorder
 
         private void FindTransformsForThisFrame(Transform startingTransform, HashSet<Transform> transformsForThisFrame)
         {
-
-            var transformId = startingTransform.GetInstanceID();
             // we walk all the way to the root and record which ones had key types to find the 'parent'
-            if (_transformsIveSeen.TryGetValue(transformId, out var tStatus))
-            {
-                tStatus.HasKeyTypes = true;
-            }
-            else
-            {
-                tStatus = new TransformStatus
-                {
-                    HasKeyTypes = true
-                };
-                _transformsIveSeen[transformId] = tStatus;
-            }
+
+            var tStatus = GetOrCreateTransformStatus(startingTransform);
+            tStatus.HasKeyTypes = true;
 
             var maybeTopLevel = startingTransform;
-
 
             if (tStatus is { TopLevelForThisTransform: not null})
             {
@@ -1144,9 +1139,9 @@ namespace RegressionGames.StateRecorder
                 // go until the root of the tree
                 while (nextParent != null)
                 {
-                    var nextParentId = nextParent.GetInstanceID();
                     var parentHasKeyTypes = false;
-                    _transformsIveSeen.TryGetValue(nextParentId, out var nextParentStatus);
+
+                    var nextParentStatus = GetOrCreateTransformStatus(nextParent);
 
                     if (nextParentStatus is { TopLevelForThisTransform: not null })
                     {
@@ -1175,25 +1170,14 @@ namespace RegressionGames.StateRecorder
                         }
                     }
 
-                    if (nextParentStatus != null)
-                    {
-                        nextParentStatus.HasKeyTypes = parentHasKeyTypes;
-                    }
-                    else
-                    {
-                        nextParentStatus = new TransformStatus
-                        {
-                            HasKeyTypes = parentHasKeyTypes
-                        };
-                        _transformsIveSeen[nextParentId] = nextParentStatus;
-                    }
+                    nextParentStatus.HasKeyTypes = parentHasKeyTypes;
 
                     if (parentHasKeyTypes)
                     {
                         // track the new one
                         maybeTopLevel = nextParent;
 
-                        if (!collapseRenderersIntoTopLevelGameObject && !_newStates.ContainsKey(nextParent.transform.GetInstanceID()))
+                        if (!collapseRenderersIntoTopLevelGameObject)
                         {
                             transformsForThisFrame.Add(nextParent);
                         }
@@ -1207,7 +1191,7 @@ namespace RegressionGames.StateRecorder
             if (maybeTopLevel != null)
             {
                 tStatus.TopLevelForThisTransform = maybeTopLevel;
-                if (collapseRenderersIntoTopLevelGameObject && !_newStates.ContainsKey(maybeTopLevel.transform.GetInstanceID()))
+                if (collapseRenderersIntoTopLevelGameObject)
                 {
                     transformsForThisFrame.Add(maybeTopLevel);
                 }
