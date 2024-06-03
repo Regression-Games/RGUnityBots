@@ -100,9 +100,9 @@ namespace RegressionGames.RGLegacyInputUtility
                     entry.altPositiveButtonKeyCode = RGLegacyInputWrapper.KeyNameToCode(entry.altPositiveButton);
                 }
 
-                if (_entriesByName.TryGetValue(entry.m_Name, out var entries))
+                if (_entriesByName.TryGetValue(entry.m_Name, out var entriesWithName))
                 {
-                    entries.Add(entry);
+                    entriesWithName.Add(entry);
                 }
                 else
                 {
@@ -113,9 +113,9 @@ namespace RegressionGames.RGLegacyInputUtility
         
         public IEnumerable<InputManagerEntry> GetEntriesByName(string name)
         {
-            if (_entriesByName.TryGetValue(name, out var entries))
+            if (_entriesByName.TryGetValue(name, out var entriesWithName))
             {
-                foreach (var entry in entries)
+                foreach (var entry in entriesWithName)
                 {
                     yield return entry;
                 }
