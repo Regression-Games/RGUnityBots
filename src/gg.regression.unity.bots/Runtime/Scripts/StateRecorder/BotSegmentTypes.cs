@@ -16,15 +16,12 @@ namespace RegressionGames.StateRecorder
         private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000_000);
 
         public string sessionId;
-        // used to correlate to ticks later.. can be null/empty
-        public long? tickNumber;
         public KeyFrameCriteria[] keyFrameCriteria;
         public BotAction botAction;
 
         // Replay only
         public void ReplayReset()
         {
-            Replay_Matched = false;
             if (keyFrameCriteria != null)
             {
                 var keyFrameCriteriaLength = keyFrameCriteria.Length;
@@ -39,10 +36,6 @@ namespace RegressionGames.StateRecorder
                 botAction.ReplayReset();
             }
         }
-
-        // Replay only - set to true once this bot segment's key frame criteria have matched
-        [NonSerialized]
-        public bool Replay_Matched;
 
         // Replay only - true if any of this frame's transient criteria have matched
         public bool Replay_TransientMatched => TransientMatchedHelper(keyFrameCriteria);
@@ -125,10 +118,8 @@ namespace RegressionGames.StateRecorder
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"sessionId:\":");
+            stringBuilder.Append("{\n\"sessionId\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
-            stringBuilder.Append(",\n\"tickNumber:\":");
-            LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, tickNumber);
             stringBuilder.Append(",\n\"keyFrameCriteria\":[");
             var keyFrameCriteriaLength = keyFrameCriteria.Length;
             for (var i = 0; i < keyFrameCriteriaLength; i++)
@@ -157,10 +148,11 @@ namespace RegressionGames.StateRecorder
         {
             JObject jObject = JObject.Load(reader);
             BotSegmment actionModel = new();
-            actionModel.tickNumber = jObject["tickNumber"].ToObject<long?>();
-            actionModel.botAction = jObject["botAction"].ToObject<BotAction>(serializer);
+            ;
+            actionModel.sessionId = jObject.GetValue("sessionId").ToObject<string>(serializer);
+            actionModel.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
             //actionModel.keyFrameCriteria = KeyFrameCriteriaArrayJsonConverter.ReadJson(reader, typeof(KeyFrameCriteria), jObject["keyFrameCriteria"], serializer);
-            actionModel.keyFrameCriteria = jObject["keyFrameCriteria"].ToObject<KeyFrameCriteria[]>(serializer);
+            actionModel.keyFrameCriteria = jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer);
             return actionModel;
         }
 
@@ -354,8 +346,40 @@ namespace RegressionGames.StateRecorder
     {
         public static readonly KeyFrameEvaluator Evaluator = new ();
 
-        public bool Matched(AndOr andOr, KeyFrameCriteria[] criteriaList, IDictionary<int, RecordedGameObjectState> priorState, IDictionary<int, RecordedGameObjectState> currentState)
+        private static Dictionary<int, TransformStatus> _priorKeyFrameUIStatus = new ();
+        private static Dictionary<int, TransformStatus> _priorKeyFrameGameObjectStatus = new ();
+
+        /**
+         * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
+         */
+        public bool Matched(KeyFrameCriteria[] criteriaList)
         {
+            bool matched = false;
+            try
+            {
+                matched = MatchedHelper(AndOr.And, criteriaList);
+                return matched;
+            }
+            finally
+            {
+                if (matched)
+                {
+                    var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
+                    var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
+                    _priorKeyFrameUIStatus = uiTransforms.Item2;
+                    _priorKeyFrameGameObjectStatus = gameObjectTransforms.Item2;
+                }
+            }
+        }
+
+        /**
+         * <summary>Only to be called internally by BotSegmentTypes helper classes</summary>
+         */
+        internal bool MatchedHelper(AndOr andOr, KeyFrameCriteria[] criteriaList)
+        {
+            var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
+            var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
+
             var normalizedPathsToMatch = new List<PathKeyFrameCriteriaData>();
             var orsToMatch = new List<KeyFrameCriteria>();
             var andsToMatch = new List<KeyFrameCriteria>();
@@ -372,6 +396,7 @@ namespace RegressionGames.StateRecorder
                     {
                         return true;
                     }
+
                     continue;
                 }
 
@@ -392,7 +417,7 @@ namespace RegressionGames.StateRecorder
             // process each list.. start with the ones for this tier
             if (normalizedPathsToMatch.Count > 0)
             {
-                var pathResults = NormalizedPathEvaluator.Matched(normalizedPathsToMatch, priorState, currentState);
+                var pathResults = NormalizedPathEvaluator.Matched(normalizedPathsToMatch, _priorKeyFrameUIStatus, _priorKeyFrameGameObjectStatus, uiTransforms.Item2, gameObjectTransforms.Item2);
                 var pathResultsCount = pathResults.Count;
                 for (var j = 0; j < pathResultsCount; j++)
                 {
@@ -420,13 +445,14 @@ namespace RegressionGames.StateRecorder
                 for (var j = 0; j < orCount; j++)
                 {
                     var orEntry = orsToMatch[j];
-                    var m = OrKeyFrameCriteriaEvaluator.Matched(orEntry, priorState, currentState);
+                    var m = OrKeyFrameCriteriaEvaluator.Matched(orEntry);
                     if (m)
                     {
                         if (andOr == AndOr.Or)
                         {
                             return true;
                         }
+
                         orEntry.Replay_TransientMatched = true;
                     }
                     else
@@ -445,13 +471,14 @@ namespace RegressionGames.StateRecorder
                 for (var j = 0; j < andCount; j++)
                 {
                     var andEntry = andsToMatch[j];
-                    var m = AndKeyFrameCriteriaEvaluator.Matched(andEntry, priorState, currentState);
+                    var m = AndKeyFrameCriteriaEvaluator.Matched(andEntry);
                     if (m)
                     {
                         if (andOr == AndOr.Or)
                         {
                             return true;
                         }
+
                         andEntry.Replay_TransientMatched = true;
                     }
                     else
@@ -465,17 +492,18 @@ namespace RegressionGames.StateRecorder
             }
 
             return true;
+
         }
     }
 
     public static class NormalizedPathEvaluator
     {
-        public static List<bool> Matched(List<PathKeyFrameCriteriaData> criteriaList, IDictionary<int, RecordedGameObjectState> priorState, IDictionary<int, RecordedGameObjectState> currentState)
+        // Track counts from the last keyframe completion and use that as the 'prior' data
+        public static List<bool> Matched(List<PathKeyFrameCriteriaData> criteriaList, Dictionary<int, TransformStatus> priorUIStatus, Dictionary<int, TransformStatus> priorGameObjectStatus, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
         {
-            //TODO: Compute the frame deltas (Use InGameObjectFinder).. then evalute
-            var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
-            var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
-            // TODO: Track counts from the last keyframe completion and use that as the 'prior' data
+            //TODO: Compute the frame deltas (Use InGameObjectFinder).. then evaluate
+            var deltaUI = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorUIStatus, uiTransforms, out var hasUIDelta);
+            var deltaGameObjects = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorGameObjectStatus, gameObjectTransforms, out var hasGameDelta);
             var resultList = new List<bool>();
             foreach (var criteria in criteriaList)
             {
@@ -489,13 +517,13 @@ namespace RegressionGames.StateRecorder
 
     public static class OrKeyFrameCriteriaEvaluator
     {
-        public static bool Matched(KeyFrameCriteria criteria, IDictionary<int, RecordedGameObjectState> priorState, IDictionary<int, RecordedGameObjectState> currentState)
+        public static bool Matched(KeyFrameCriteria criteria)
         {
             if (criteria.data is OrKeyFrameCriteriaData { criteriaList: not null } orCriteria)
             {
                 try
                 {
-                    return KeyFrameEvaluator.Evaluator.Matched(AndOr.Or, orCriteria.criteriaList, priorState, currentState);
+                    return KeyFrameEvaluator.Evaluator.MatchedHelper(AndOr.Or, orCriteria.criteriaList);
                 }
                 catch (Exception e)
                 {
@@ -513,13 +541,13 @@ namespace RegressionGames.StateRecorder
 
     public static class AndKeyFrameCriteriaEvaluator
     {
-        public static bool Matched(KeyFrameCriteria criteria, IDictionary<int, RecordedGameObjectState> priorState, IDictionary<int, RecordedGameObjectState> currentState)
+        public static bool Matched(KeyFrameCriteria criteria)
         {
             if (criteria.data is AndKeyFrameCriteriaData { criteriaList: not null } andCriteria)
             {
                 try
                 {
-                    return KeyFrameEvaluator.Evaluator.Matched(AndOr.And, andCriteria.criteriaList, priorState, currentState);
+                    return KeyFrameEvaluator.Evaluator.MatchedHelper(AndOr.And, andCriteria.criteriaList);
                 }
                 catch (Exception e)
                 {

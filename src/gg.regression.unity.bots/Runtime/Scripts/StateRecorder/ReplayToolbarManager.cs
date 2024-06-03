@@ -120,7 +120,7 @@ namespace RegressionGames.StateRecorder
             try
             {
                 // do this on background thread
-                var dataContainer = new ReplayDataContainer(filePath);
+                var dataContainer = new ReplayBotSegmentsContainer(filePath);
                 _replayLoadedNextUpdate = dataContainer;
             }
             catch (Exception e)
@@ -135,7 +135,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private volatile ReplayDataContainer _replayLoadedNextUpdate;
+        private volatile ReplayBotSegmentsContainer _replayLoadedNextUpdate;
 
         private void Update()
         {

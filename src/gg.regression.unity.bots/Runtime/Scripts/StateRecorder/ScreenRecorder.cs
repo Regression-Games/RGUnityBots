@@ -68,7 +68,7 @@ namespace RegressionGames.StateRecorder
         private ProfilerObserver _profilerObserver;
 
 
-        public static readonly Dictionary<int, RecordedGameObjectState> _emptyStateDictionary = new(0);
+        public static readonly Dictionary<int, TransformStatus> _emptyTransformStatusDictionary = new(0);
 
 
         public static ScreenRecorder GetInstance()
@@ -252,11 +252,11 @@ namespace RegressionGames.StateRecorder
             yield return null;
             if (!_isRecording)
             {
-                ReplayDataPlaybackController.SendMouseEvent(0, new ReplayMouseInputEntry()
+                ReplayDataPlaybackController.SendMouseEvent(new MouseInputActionData()
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
                     position = new Vector2Int(Screen.width +20, -20)
-                }, null, _emptyStateDictionary);
+                }, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary);
 
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _profilerObserver.StartProfiling();
@@ -502,7 +502,7 @@ namespace RegressionGames.StateRecorder
                         //record bot segment data for action replay
                         botSegment = new BotSegmment()
                         {
-                            tickNumber = _tickNumber,
+                            sessionId = System.Guid.NewGuid().ToString(),
                             keyFrameCriteria = keyFrameCriteria,
                             botAction = new BotAction()
                             {
