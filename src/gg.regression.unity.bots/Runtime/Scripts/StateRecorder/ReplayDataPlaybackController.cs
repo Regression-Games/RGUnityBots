@@ -79,25 +79,29 @@ namespace RegressionGames.StateRecorder
 
         private void SetupEventSystem()
         {
-            // when/if we can make the legacy input system work, we should remove this and respect that system
             var eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
-            InputSystemUIInputModule inputModule = null;
             foreach (var eventSystem in eventSystems)
             {
-                var theModule = eventSystem.gameObject.GetComponent<InputSystemUIInputModule>();
-                if (theModule != null)
+                BaseInputModule inputModule = eventSystem.gameObject.GetComponent<BaseInputModule>();
+                
+                // If there is no module, add the appropriate input module so that the replay can simulate UI inputs.
+                // If both the new and old input systems are active, prefer the new input system's UI module.
+                if (inputModule == null)
                 {
-                    inputModule = theModule;
+                    #if ENABLE_INPUT_SYSTEM
+                    inputModule = eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                    #elif ENABLE_LEGACY_INPUT_MANAGER
+                    inputModule = eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                    #endif
                 }
-                else
+
+                #if ENABLE_LEGACY_INPUT_MANAGER
+                // Override the UI module's input source to read inputs from RGLegacyInputWrapper instead of UnityEngine.Input
+                if (inputModule != null && inputModule.inputOverride == null)
                 {
-                    // force add it to at least make mouse clicks work on UI elements
-                    eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                    inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
                 }
-            }
-            if (inputModule == null)
-            {
-                RGDebug.LogError("Regression Games Unity SDK only supports the new InputSystem, but did not detect an instance of InputSystemUIInputModule in the scene.  If you are using a 3rd party input module like Coherent GameFace this may be expected/ok.");
+                #endif
             }
         }
 
@@ -206,6 +210,9 @@ namespace RegressionGames.StateRecorder
             _checkOfKeyFrameCount = 0;
 
             _screenRecorder.StopRecording();
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            RGLegacyInputWrapper.StopSimulation();
+            #endif
 
             // similar to Stop, but assumes will play again
             _dataContainer?.Reset();
@@ -224,6 +231,10 @@ namespace RegressionGames.StateRecorder
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
             _checkOfKeyFrameCount = 0;
+            
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            RGLegacyInputWrapper.StopSimulation();
+            #endif
 
             // similar to Stop, but assumes continued looping .. doesn't stop recording
             _dataContainer?.Reset();
@@ -948,6 +959,45 @@ namespace RegressionGames.StateRecorder
 
             return (bestObject, worldSpaceObject, normalizedPosition, possibleObjects);
         }
+        
+#if ENABLE_LEGACY_INPUT_MANAGER
+        public static void SendMouseEventLegacy(Vector2 position, Vector2 delta, Vector2 scroll, 
+            bool leftButton, bool middleButton, bool rightButton, bool forwardButton, bool backButton)
+        {
+            if (RGLegacyInputWrapper.IsPassthrough)
+            {
+                return;
+            }
+
+            RGLegacyInputWrapper.SimulateMouseMovement(new Vector3(position.x, position.y, 0.0f), new Vector3(delta.x, delta.y, 0.0f));
+            RGLegacyInputWrapper.SimulateMouseScrollWheel(scroll);
+            
+            if (leftButton)
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse0);
+            else
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse0);
+            
+            if (middleButton)
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse2);
+            else
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse2);
+            
+            if (rightButton)
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse1);
+            else
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse1);
+
+            if (forwardButton)
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse3);
+            else
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse3);
+
+            if (backButton)
+                RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse4);
+            else
+                RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse4);
+        }
+#endif
 
         public static void SendMouseEvent(long tickNumber, ReplayMouseInputEntry mouseInput, Dictionary<int, RecordedGameObjectState> priorStates, Dictionary<int, RecordedGameObjectState> objectStates)
         {
@@ -1090,6 +1140,16 @@ namespace RegressionGames.StateRecorder
                             break;
                     }
                 }
+                
+                #if ENABLE_LEGACY_INPUT_MANAGER
+                {
+                    Vector2 delta = _lastMousePosition.HasValue ? (normalizedPosition - _lastMousePosition.Value) : Vector2.zero;
+                    SendMouseEventLegacy(position: normalizedPosition, delta: delta, scroll: mouseInput.scroll, 
+                        leftButton: mouseInput.leftButton, middleButton: mouseInput.middleButton, rightButton: mouseInput.rightButton, 
+                        forwardButton: mouseInput.forwardButton, backButton: mouseInput.backButton);
+                }
+                #endif
+                
                 _lastMousePosition = normalizedPosition;
 
                 if (RGDebug.IsDebugEnabled)
