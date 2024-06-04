@@ -1,4 +1,4 @@
-﻿namespace StateRecorder
+﻿namespace RegressionGames.StateRecorder
 {
     public enum KeyFrameType
     {

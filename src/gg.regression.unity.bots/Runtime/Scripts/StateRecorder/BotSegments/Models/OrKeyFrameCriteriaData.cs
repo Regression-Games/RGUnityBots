@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
     public class OrKeyFrameCriteriaData : IKeyFrameCriteriaData

@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 using Newtonsoft.Json;
-using StateRecorder;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 using UnityEngine.UI;
 

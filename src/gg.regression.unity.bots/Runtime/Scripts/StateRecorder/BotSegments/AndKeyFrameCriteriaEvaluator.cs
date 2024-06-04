@@ -1,8 +1,7 @@
 ﻿using System;
-using RegressionGames;
-using StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models;
 
-namespace StateRecorder.BotSegments
+namespace RegressionGames.StateRecorder.BotSegments
 {
     public static class AndKeyFrameCriteriaEvaluator
     {

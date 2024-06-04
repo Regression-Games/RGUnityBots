@@ -2,7 +2,7 @@
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
     public class PathKeyFrameCriteriaData : IKeyFrameCriteriaData
@@ -12,6 +12,8 @@ namespace StateRecorder.BotSegments.Models
         public int addedCount;
         public int count;
         public CountRule countRule;
+        public int rendererCount;
+        public CountRule rendererCountRule;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -25,6 +27,10 @@ namespace StateRecorder.BotSegments.Models
             IntJsonConverter.WriteToStringBuilder(stringBuilder, count);
             stringBuilder.Append(",\"countRule\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, countRule.ToString());
+            stringBuilder.Append(",\"rendererCount\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, rendererCount);
+            stringBuilder.Append(",\"rendererCountRule\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, rendererCountRule.ToString());
             stringBuilder.Append("}");
         }
 

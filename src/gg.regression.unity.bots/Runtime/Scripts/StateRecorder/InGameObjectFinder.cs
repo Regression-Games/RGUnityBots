@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using System.Text;
-using StateRecorder.Models;
-using StateRecorder.Types;
+using RegressionGames.StateRecorder.Models;
+using RegressionGames.StateRecorder.Types;
 using UnityEngine;
 using Component = UnityEngine.Component;
 // ReSharper disable ForCanBeConvertedToForeach - indexed for is faster and has less allocs than enumerator
@@ -234,24 +233,6 @@ namespace RegressionGames.StateRecorder
             _stateFrameNumber = -1;
         }
 
-        public class PathBasedDeltaCount
-        {
-            public PathBasedDeltaCount(int pathHash, string path)
-            {
-                this.pathHash = pathHash;
-                this.path = path;
-            }
-            public List<int> ids = new ();
-            public int pathHash;
-            public string path;
-
-            public int count;
-            public int addedCount;
-            public int removedCount;
-            // if negative, this count went down CountRule.LessThanEqual; if positive, this count went up CountRule.GreaterThanEqual; if zero, this count didn't change CountRule.NonZero; if zero and count ==0, CountRule.Zero
-            public int higherLowerCountTracker;
-        }
-
         /**
          * argument lists are keyed by transform id
          *
@@ -281,13 +262,17 @@ namespace RegressionGames.StateRecorder
                 pathCountEntry.count++;
                 pathCountEntry.ids.Add(currentEntry.Id);
 
+                pathCountEntry.rendererCount += currentEntry.rendererCount;
+
                 if (!priorTransformStatusList.TryGetValue(currentEntry.Id, out var oldStatus))
                 {
                     hasDelta = true;
                     pathCountEntry.addedCount++;
+                    pathCountEntry.higherLowerRendererCountTracker += currentEntry.rendererCount;
                 }
                 else
                 {
+                    pathCountEntry.higherLowerRendererCountTracker += currentEntry.rendererCount - oldStatus.rendererCount;
                     var onCameraBefore = (oldStatus.screenSpaceBounds != null);
                     var onCameraNow = (currentEntry.screenSpaceBounds != null);
                     if ( onCameraBefore != onCameraNow )
@@ -471,8 +456,8 @@ namespace RegressionGames.StateRecorder
                                         var center = new Vector3(min.x + size.x/2, min.y + size.y/2, 0f);
                                         tStatus.screenSpaceBounds = new Bounds(center, size);
                                         tStatus.screenSpaceZOffset = 0f;
-
-                                        tStatus.rendererCount = canvasRenderersLength;
+                                        // for ui objects if we find another in the tree that gets reported separately
+                                        tStatus.rendererCount = 1;
 
                                         if (isWorldSpace)
                                         {
@@ -801,7 +786,8 @@ namespace RegressionGames.StateRecorder
                             rigidbodies = new List<RigidbodyRecordState>(),
                             screenSpaceZOffset = tStatus.screenSpaceZOffset,
                             screenSpaceBounds = tStatus.screenSpaceBounds.Value,
-                            worldSpaceBounds = tStatus.worldSpaceBounds
+                            worldSpaceBounds = tStatus.worldSpaceBounds,
+                            rendererCount = tStatus.rendererCount
                         };
                     }
 
@@ -894,7 +880,8 @@ namespace RegressionGames.StateRecorder
                             rigidbodies = new List<RigidbodyRecordState>(),
                             screenSpaceBounds = tStatus.screenSpaceBounds.Value,
                             screenSpaceZOffset = tStatus.screenSpaceZOffset,
-                            worldSpaceBounds = tStatus.worldSpaceBounds
+                            worldSpaceBounds = tStatus.worldSpaceBounds,
+                            rendererCount = tStatus.rendererCount
                         };
                     }
 

@@ -1,9 +1,9 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models;
 
-namespace StateRecorder.BotSegments.JsonConverters
+namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {
     public sealed class BotSegmentJsonConverter : JsonConverter
     {

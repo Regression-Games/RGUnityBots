@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using RegressionGames.StateRecorder;
-using StateRecorder.BotSegments.Models;
-using StateRecorder.Models;
+using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.Models;
 
-namespace StateRecorder.BotSegments
+namespace RegressionGames.StateRecorder.BotSegments
 {
     public static class NormalizedPathCriteriaEvaluator
     {
@@ -57,13 +57,47 @@ namespace StateRecorder.BotSegments
                                 }
                                 break;
                         }
+
+                        if (matched)
+                        {
+                            // then evaluate renderer count rules
+                            // compare counts for match
+                            switch (pathData.rendererCountRule)
+                            {
+                                case CountRule.Zero:
+                                    if (uiObjectCounts.rendererCount != 0)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                                case CountRule.NonZero:
+                                    if (uiObjectCounts.rendererCount <= 0)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                                case CountRule.GreaterThanEqual:
+                                    if (uiObjectCounts.rendererCount < pathData.rendererCount)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                                case CountRule.LessThanEqual:
+                                    if (uiObjectCounts.rendererCount > pathData.rendererCount)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                            }
+                        }
+
                         // then evaluate added / removed data
-                        if (uiObjectCounts.addedCount != pathData.addedCount)
+                        if (matched && uiObjectCounts.addedCount != pathData.addedCount)
                         {
                             matched = false;
                         }
 
-                        if (uiObjectCounts.removedCount != pathData.removedCount)
+                        if (matched && uiObjectCounts.removedCount != pathData.removedCount)
                         {
                             matched = false;
                         }
@@ -98,13 +132,47 @@ namespace StateRecorder.BotSegments
                                 }
                                 break;
                         }
+
+                        if (matched)
+                        {
+                            // then evaluate renderer count rules
+                            // compare counts for match
+                            switch (pathData.rendererCountRule)
+                            {
+                                case CountRule.Zero:
+                                    if (gameObjectCounts.rendererCount != 0)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                                case CountRule.NonZero:
+                                    if (gameObjectCounts.rendererCount <= 0)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                                case CountRule.GreaterThanEqual:
+                                    if (gameObjectCounts.rendererCount < pathData.rendererCount)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                                case CountRule.LessThanEqual:
+                                    if (gameObjectCounts.rendererCount > pathData.rendererCount)
+                                    {
+                                        matched = false;
+                                    }
+                                    break;
+                            }
+                        }
+
                         // then evaluate added / removed data
-                        if (gameObjectCounts.addedCount != pathData.addedCount)
+                        if (matched && gameObjectCounts.addedCount != pathData.addedCount)
                         {
                             matched = false;
                         }
 
-                        if (gameObjectCounts.removedCount != pathData.removedCount)
+                        if (matched && gameObjectCounts.removedCount != pathData.removedCount)
                         {
                             matched = false;
                         }

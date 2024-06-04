@@ -2,7 +2,7 @@
 using System.Text;
 using UnityEngine;
 
-namespace StateRecorder.Models
+namespace RegressionGames.StateRecorder.Models
 {
     public class TransformStatus
     {
@@ -26,7 +26,6 @@ namespace StateRecorder.Models
          */
         public Transform TopLevelForThisTransform;
 
-        //TODO: Fix this for bot segments so it is used again
         public int rendererCount;
 
         public Bounds? screenSpaceBounds;
@@ -45,6 +44,7 @@ namespace StateRecorder.Models
         public static void Reset()
         {
             _transformsIveSeen.Clear();
+            _parentList.Clear();
         }
 
         public static TransformStatus GetOrCreateTransformStatus(Transform theTransform)

@@ -8,9 +8,9 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using StateRecorder;
-using StateRecorder.BotSegments.Models;
-using StateRecorder.Models;
+using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -250,7 +250,7 @@ namespace RegressionGames.StateRecorder
         private IEnumerator ShowUploadingIndicator(bool shouldShow)
         {
             yield return null;
-            ReplayToolbarManager.GetInstance().ShowUploadingIndicator(shouldShow);
+            FindObjectOfType<ReplayToolbarManager>()?.ShowUploadingIndicator(shouldShow);
         }
 
         private IEnumerator StartRecordingCoroutine(string referenceSessionId)
@@ -502,7 +502,9 @@ namespace RegressionGames.StateRecorder
                                 count =  a.count,
                                 addedCount = a.addedCount,
                                 removedCount = a.removedCount,
-                                countRule = a.higherLowerCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual)
+                                countRule = a.higherLowerCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual),
+                                rendererCount = a.rendererCount,
+                                rendererCountRule = a.higherLowerRendererCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerRendererCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual),
                             }
                         }).ToArray();
 

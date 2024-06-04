@@ -2,9 +2,9 @@
 using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
-using StateRecorder.BotSegments.JsonConverters;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 
-namespace StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [JsonConverter(typeof(BotSegmentJsonConverter))]
     [Serializable]

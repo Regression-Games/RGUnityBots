@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using StateRecorder;
+using RegressionGames.StateRecorder;
 
-using StateRecorder.BotSegments;
-using StateRecorder.BotSegments.Models;
-using StateRecorder.Models;
+using RegressionGames.StateRecorder.BotSegments;
+using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.Models;
 #if ENABLE_LEGACY_INPUT_MANAGER
 using RegressionGames.RGLegacyInputUtility;
 #endif
@@ -156,6 +156,7 @@ namespace RegressionGames.StateRecorder
                     _replaySuccessful = null;
                     _startPlaying = true;
                     _loopCount = -1;
+                    _lastTimeLoggedKeyFrameConditions = Time.unscaledTime;
                 }
             }
         }
@@ -177,6 +178,8 @@ namespace RegressionGames.StateRecorder
 
         public void Stop()
         {
+            _keyboardQueue.Clear();
+            _mouseQueue.Clear();
             _nextBotSegments.Clear();
             _startPlaying = false;
             _isPlaying = false;
@@ -190,11 +193,17 @@ namespace RegressionGames.StateRecorder
             #endif
 
             _dataContainer = null;
+
+            TransformStatus.Reset();
+            KeyFrameEvaluator.Evaluator.Reset();
+
             InGameObjectFinder.GetInstance()?.Cleanup();
         }
 
         public void Reset()
         {
+            _keyboardQueue.Clear();
+            _mouseQueue.Clear();
             _nextBotSegments.Clear();
             _startPlaying = false;
             _isPlaying = false;
@@ -210,11 +219,16 @@ namespace RegressionGames.StateRecorder
             // similar to Stop, but assumes will play again
             _dataContainer?.Reset();
 
+            TransformStatus.Reset();
+            KeyFrameEvaluator.Evaluator.Reset();
+
             InGameObjectFinder.GetInstance()?.Cleanup();
         }
 
         public void ResetForLooping()
         {
+            _keyboardQueue.Clear();
+            _mouseQueue.Clear();
             _nextBotSegments.Clear();
             _startPlaying = true;
             _isPlaying = false;
@@ -228,6 +242,9 @@ namespace RegressionGames.StateRecorder
 
             // similar to Stop, but assumes continued looping .. doesn't stop recording
             _dataContainer?.Reset();
+
+            TransformStatus.Reset();
+            KeyFrameEvaluator.Evaluator.Reset();
 
             InGameObjectFinder.GetInstance()?.Cleanup();
         }
@@ -833,6 +850,8 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        private float _lastTimeLoggedKeyFrameConditions = 0;
+
         private void EvaluateBotSegments()
         {
             var now = Time.unscaledTime;
@@ -879,8 +898,11 @@ namespace RegressionGames.StateRecorder
                 var nextBotSegment = _nextBotSegments[i];
 
                 var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched(nextBotSegment.keyFrameCriteria);
+
                 if (matched)
                 {
+                    _lastTimeLoggedKeyFrameConditions = now;
+                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                     if (!nextBotSegment.Replay_Matched)
                     {
                         // log this the first time
@@ -902,6 +924,19 @@ namespace RegressionGames.StateRecorder
                 }
                 else
                 {
+                    // only log this every 5 seconds
+                    if (nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
+                    {
+                        var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
+                        if (warningText != null)
+                        {
+                            var loggedMessage = $"({nextBotSegment.Replay_Number}) - Unmatched Criteria for BotSegment\r\n" + warningText;
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            RGDebug.LogInfo(loggedMessage);
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+                        }
+                    }
+
                     ++i;
                 }
             }
@@ -914,6 +949,8 @@ namespace RegressionGames.StateRecorder
                     var next = _dataContainer.DequeueBotSegment();
                     if (next != null)
                     {
+                        _lastTimeLoggedKeyFrameConditions = now;
+                        FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                         RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation");
                         _nextBotSegments.Add(next);
                     }
@@ -924,6 +961,8 @@ namespace RegressionGames.StateRecorder
                 var next = _dataContainer.DequeueBotSegment();
                 if (next != null)
                 {
+                    _lastTimeLoggedKeyFrameConditions = now;
+                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                     RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation");
                     _nextBotSegments.Add(next);
                 }

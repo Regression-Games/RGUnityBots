@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
-using StateRecorder;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 using UnityEngine.InputSystem;
 

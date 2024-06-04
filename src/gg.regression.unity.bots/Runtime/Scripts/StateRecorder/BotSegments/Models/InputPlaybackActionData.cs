@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
-using StateRecorder.Models;
+using RegressionGames.StateRecorder.Models;
 
-namespace StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
     public class InputPlaybackActionData : IBotActionData

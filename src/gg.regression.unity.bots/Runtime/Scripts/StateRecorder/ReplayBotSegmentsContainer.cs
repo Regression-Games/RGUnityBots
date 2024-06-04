@@ -4,8 +4,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
-using StateRecorder;
-using StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
 

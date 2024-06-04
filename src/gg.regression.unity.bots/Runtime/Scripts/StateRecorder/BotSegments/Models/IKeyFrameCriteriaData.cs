@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     public interface IKeyFrameCriteriaData
     {

@@ -1,4 +1,4 @@
-﻿namespace StateRecorder.BotSegments.Models
+﻿namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     public enum CountRule
     {

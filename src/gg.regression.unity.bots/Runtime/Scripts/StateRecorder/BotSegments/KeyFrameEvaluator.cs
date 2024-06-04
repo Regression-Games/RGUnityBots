@@ -2,10 +2,10 @@
 using System.Linq;
 using System.Text;
 using RegressionGames.StateRecorder;
-using StateRecorder.BotSegments.Models;
-using StateRecorder.Models;
+using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.Models;
 
-namespace StateRecorder.BotSegments
+namespace RegressionGames.StateRecorder.BotSegments
 {
     public sealed class KeyFrameEvaluator
     {
@@ -14,7 +14,13 @@ namespace StateRecorder.BotSegments
         private static Dictionary<int, TransformStatus> _priorKeyFrameUIStatus = new ();
         private static Dictionary<int, TransformStatus> _priorKeyFrameGameObjectStatus = new ();
 
-        public static string GetUnmatchedCriteria()
+        public void Reset()
+        {
+            _priorKeyFrameUIStatus.Clear();
+            _priorKeyFrameGameObjectStatus.Clear();
+        }
+
+        public string GetUnmatchedCriteria()
         {
             if (_unmatchedCriteria.Count == 0)
             {
@@ -23,31 +29,44 @@ namespace StateRecorder.BotSegments
 
             var sb = new StringBuilder(1000);
             sb.Append("Unmatched Criteria\r\n");
-            foreach (var keyFrameCriteria in _unmatchedCriteria)
+            var unmatchedCriteriaCount = _unmatchedCriteria.Count;
+            for (var i = 0; i < unmatchedCriteriaCount; i++)
             {
-                sb.Append(keyFrameCriteria.ToString());
+                sb.Append(_unmatchedCriteria[i].ToString());
+                if (i + 1 < unmatchedCriteriaCount)
+                {
+                    sb.Append(",");
+                }
             }
 
             return sb.ToString();
         }
 
-        private static List<KeyFrameCriteria> _unmatchedCriteria = new(1000);
+        private List<KeyFrameCriteria> _unmatchedCriteria = new(1000);
+        private List<KeyFrameCriteria> _newUnmatchedCriteria = new(1000);
 
         /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
          */
         public bool Matched(KeyFrameCriteria[] criteriaList)
         {
+            _newUnmatchedCriteria.Clear();
             bool matched = false;
             matched = MatchedHelper(AndOr.And, criteriaList);
             if (matched)
             {
                 _unmatchedCriteria.Clear();
+                _newUnmatchedCriteria.Clear();
                 var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
                 var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
                 // copy the dictionaries
                 _priorKeyFrameUIStatus = uiTransforms.Item2.ToDictionary(a => a.Key, a => a.Value);
                 _priorKeyFrameGameObjectStatus = gameObjectTransforms.Item2.ToDictionary(a=>a.Key, a=>a.Value);
+            }
+            else
+            {
+                (_unmatchedCriteria, _newUnmatchedCriteria) = (_newUnmatchedCriteria, _unmatchedCriteria);
+                _newUnmatchedCriteria.Clear();
             }
             return matched;
         }
@@ -112,7 +131,7 @@ namespace StateRecorder.BotSegments
                     {
                         if (andOr == AndOr.And)
                         {
-                            _unmatchedCriteria.Add(normalizedPathsToMatch[j]);
+                            _newUnmatchedCriteria.Add(normalizedPathsToMatch[j]);
                             return false;
                         }
                     }
@@ -139,7 +158,7 @@ namespace StateRecorder.BotSegments
                     {
                         if (andOr == AndOr.And)
                         {
-                            _unmatchedCriteria.Add(orEntry);
+                            _newUnmatchedCriteria.Add(orEntry);
                             return false;
                         }
                     }
@@ -166,7 +185,7 @@ namespace StateRecorder.BotSegments
                     {
                         if (andOr == AndOr.And)
                         {
-                            _unmatchedCriteria.Add(andEntry);
+                            _newUnmatchedCriteria.Add(andEntry);
                             return false;
                         }
                     }

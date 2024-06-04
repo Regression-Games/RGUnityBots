@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     public static class StateRecorderUtils
     {
