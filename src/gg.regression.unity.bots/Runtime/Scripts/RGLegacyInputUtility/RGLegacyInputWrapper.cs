@@ -61,6 +61,11 @@ namespace RegressionGames.RGLegacyInputUtility
         private static Vector3 _mousePosDelta;
         private static Vector2 _mouseScrollDelta;
         private static Dictionary<InputManagerEntry, RGLegacyAxisInputState> _axisStates;
+        private static Camera[] _camerasBuf;
+        private static (GameObject, Camera)? _lastHitObject;
+        private static (GameObject, Camera)? _mouseDownObject;
+        private static (GameObject, Camera)? _lastHitObject2D;
+        private static (GameObject, Camera)? _mouseDownObject2D;
         private static RGLegacyInputManagerSettings _inputManagerSettings;
         private static Coroutine _inputSimLoopCoro;
         private static Queue<RGLegacySimulatedInputEvent> _inputSimEventQueue;
@@ -98,6 +103,10 @@ namespace RegressionGames.RGLegacyInputUtility
             _mousePosDelta = Vector3.zero;
             _mouseScrollDelta = Vector2.zero;
             _axisStates = new Dictionary<InputManagerEntry, RGLegacyAxisInputState>();
+            _lastHitObject = null;
+            _mouseDownObject = null;
+            _lastHitObject2D = null;
+            _mouseDownObject2D = null;
             _inputManagerSettings = new RGLegacyInputManagerSettings();
             _inputSimEventQueue = new Queue<RGLegacySimulatedInputEvent>();
             
@@ -125,6 +134,10 @@ namespace RegressionGames.RGLegacyInputUtility
                 _newKeysDown = null;
                 _newKeysUp = null;
                 _axisStates = null;
+                _lastHitObject = null;
+                _mouseDownObject = null;
+                _lastHitObject2D = null;
+                _mouseDownObject2D = null;
                 _keysHeld = null;
                 _simulationContext = null;
             }
@@ -259,6 +272,53 @@ namespace RegressionGames.RGLegacyInputUtility
                     }
                 }
                 
+                // Invoke the appropriate mouse event handlers on MonoBehaviours
+                {
+                    (GameObject, Camera)? hitObject = null;
+                    (GameObject, Camera)? hitObject2D = null;
+                    int numCameras = Camera.allCamerasCount;
+                    if (_camerasBuf == null || _camerasBuf.Length != numCameras)
+                    {
+                        _camerasBuf = new Camera[numCameras];
+                    }
+                    Camera.GetAllCameras(_camerasBuf);
+                    foreach (Camera camera in _camerasBuf)
+                    {
+                        if (camera == null || camera.eventMask == 0 || camera.targetTexture != null)
+                        {
+                            continue;
+                        }
+                        
+                        int cameraRaycastMask = camera.cullingMask & camera.eventMask;
+                        
+                        // 3D raycast
+                        {
+                            Ray mouseRay = camera.ScreenPointToRay(_mousePosition);
+                            if (Physics.Raycast(mouseRay, out RaycastHit hit, maxDistance: Mathf.Infinity,
+                                    layerMask: cameraRaycastMask))
+                            {
+                                hitObject = (hit.collider.gameObject, camera);
+                            }
+                        }
+                        
+                        // 2D raycast
+                        {
+                            Vector3 mouseWorldPt = camera.ScreenToWorldPoint(_mousePosition);
+                            RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
+                                layerMask: cameraRaycastMask);
+                            if (hit2D.collider != null)
+                            {
+                                hitObject2D = (hit2D.collider.gameObject, camera);
+                            }
+                        }
+                    }
+                    // 3D collider mouse events are always handled before 2D collider mouse events
+                    InvokeMouseEventHandlers(hitObject, _lastHitObject, ref _mouseDownObject);
+                    InvokeMouseEventHandlers(hitObject2D, _lastHitObject2D, ref _mouseDownObject2D);
+                    _lastHitObject = hitObject;
+                    _lastHitObject2D = hitObject2D;
+                }
+
                 // Wait one frame
                 yield return null;
                 
@@ -268,6 +328,66 @@ namespace RegressionGames.RGLegacyInputUtility
                 _anyKeyDown = false;
                 _mousePosDelta = Vector3.zero;
                 _mouseScrollDelta = Vector2.zero;
+            }
+        }
+
+        private static void SendMouseEventMessage(GameObject gameObject, string methodName)
+        {
+            if (gameObject != null)
+            {
+                gameObject.SendMessage(methodName, null, SendMessageOptions.DontRequireReceiver);
+            }
+        }
+
+        private static void InvokeMouseEventHandlers((GameObject, Camera)? hitObject,
+            (GameObject, Camera)? lastHitObject, ref (GameObject, Camera)? mouseDownObject)
+        {
+            bool leftButton = _keysHeld.Contains(KeyCode.Mouse0);
+            bool leftButtonDown = _newKeysDown.Contains(KeyCode.Mouse0);
+            
+            if (leftButtonDown)
+            {
+                if (hitObject.HasValue)
+                {
+                    mouseDownObject = hitObject;
+                    SendMouseEventMessage(mouseDownObject.Value.Item1, "OnMouseDown");
+                }
+            }
+            else if (!leftButton)
+            {
+                if (mouseDownObject.HasValue)
+                {
+                    if (mouseDownObject == hitObject)
+                    {
+                        SendMouseEventMessage(mouseDownObject.Value.Item1, "OnMouseUpAsButton");
+                    }
+                    SendMouseEventMessage(mouseDownObject.Value.Item1, "OnMouseUp");
+                    mouseDownObject = null;
+                }
+            }
+            else if (mouseDownObject.HasValue)
+            {
+                SendMouseEventMessage(mouseDownObject.Value.Item1, "OnMouseDrag");
+            }
+
+            if (hitObject == lastHitObject)
+            {
+                if (hitObject.HasValue)
+                {
+                    SendMouseEventMessage(hitObject.Value.Item1, "OnMouseOver");
+                }
+            }
+            else
+            {
+                if (lastHitObject.HasValue)
+                {
+                    SendMouseEventMessage(lastHitObject.Value.Item1, "OnMouseExit");
+                }
+                if (hitObject.HasValue)
+                {
+                    SendMouseEventMessage(hitObject.Value.Item1, "OnMouseEnter");
+                    SendMouseEventMessage(hitObject.Value.Item1, "OnMouseOver");
+                }
             }
         }
         
