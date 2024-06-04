@@ -79,14 +79,25 @@ namespace RegressionGames.StateRecorder
         {
             Replay_StartEndSentFlags[0] = false;
             Replay_StartEndSentFlags[1] = false;
+            Replay_OffsetTime = 0;
         }
 
         // Replay only - used to track if we have sent the start and end events for this entry yet
         [NonSerialized]
         public readonly bool[] Replay_StartEndSentFlags = { false, false };
 
+        // Replay only
+        [NonSerialized]
+        public double Replay_OffsetTime;
+
+        // Replay only
+        public double Replay_StartTime => startTime + Replay_OffsetTime;
+
+        // Replay only
+        public double? Replay_EndTime => endTime + Replay_OffsetTime;
+
         // Replay only - have we finished processing this input
-        public bool Replay_IsDone => Replay_StartEndSentFlags[0] && Replay_StartEndSentFlags[1];
+        public bool Replay_IsDone => Replay_StartEndSentFlags[0] && (endTime == null || Replay_StartEndSentFlags[1]);
 
         // Replay only
         public Key Key => KeyboardInputActionObserver.AllKeyboardKeys[binding.Substring(binding.LastIndexOf('/') + 1)];

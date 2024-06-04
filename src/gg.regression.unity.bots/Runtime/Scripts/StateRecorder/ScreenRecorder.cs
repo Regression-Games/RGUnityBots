@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using StateRecorder;
+using StateRecorder.BotSegments.Models;
+using StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -57,7 +59,7 @@ namespace RegressionGames.StateRecorder
         private long _tickNumber;
         private DateTime _startTime;
 
-        private BlockingCollection<((string, long), (BotSegmment, byte[], int, int, GraphicsFormat, Color32[], Action))>
+        private BlockingCollection<((string, long), (BotSegment, byte[], int, int, GraphicsFormat, Color32[], Action))>
             _tickQueue;
 
         private readonly List<AsyncGPUReadbackRequest> _gpuReadbackRequests = new();
@@ -268,8 +270,8 @@ namespace RegressionGames.StateRecorder
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _tickQueue =
-                    new BlockingCollection<((string, long), (BotSegmment, byte[], int, int, GraphicsFormat, Color32[], Action))>(
-                        new ConcurrentQueue<((string, long), (BotSegmment,byte[], int, int, GraphicsFormat, Color32[],
+                    new BlockingCollection<((string, long), (BotSegment, byte[], int, int, GraphicsFormat, Color32[], Action))>(
+                        new ConcurrentQueue<((string, long), (BotSegment,byte[], int, int, GraphicsFormat, Color32[],
                             Action)
                             )>());
 
@@ -439,7 +441,7 @@ namespace RegressionGames.StateRecorder
                 // tell if the new frame is a key frame or the first frame (always a key frame)
                 GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHash);
 
-                BotSegmment botSegment = null;
+                BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
                     || (recordingMinFPS > 0 && (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
@@ -463,7 +465,7 @@ namespace RegressionGames.StateRecorder
                         }
 
                         var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                        var mouseInputData = _mouseObserver.FlushInputDataBuffer(true);
+                        var mouseInputData = _mouseObserver.FlushInputDataBuffer();
 
                         // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                         // update the frame time to be latest of 'now' or the last device event in it
@@ -488,7 +490,7 @@ namespace RegressionGames.StateRecorder
 
                         var keyFrameCriteria = uiDeltas.Values.Concat(gameObjectDeltas.Values).Select(a => new KeyFrameCriteria() {
                             type = KeyFrameCriteriaType.NormalizedPath,
-                            transient = false,
+                            transient = true,
                             data = new PathKeyFrameCriteriaData()
                             {
                                 path = a.path,
@@ -499,8 +501,29 @@ namespace RegressionGames.StateRecorder
                             }
                         }).ToArray();
 
+
+                        double inputTime = -1;
+                        // get the earliest input time so we can playback with minimal delay
+                        if (keyboardInputData.Count > 0)
+                        {
+                            inputTime = keyboardInputData[0].startTime;
+                        }
+
+                        if (mouseInputData.Count > 0)
+                        {
+                            var mouseTime = mouseInputData[0].startTime;
+                            if (inputTime < 0 || mouseTime < inputTime)
+                            {
+                                inputTime = mouseTime;
+                            }
+                        }
+                        if (inputTime < 0)
+                        {
+                            inputTime = 0;
+                        }
+
                         //record bot segment data for action replay
-                        botSegment = new BotSegmment()
+                        botSegment = new BotSegment()
                         {
                             sessionId = System.Guid.NewGuid().ToString(),
                             keyFrameCriteria = keyFrameCriteria,
@@ -509,7 +532,7 @@ namespace RegressionGames.StateRecorder
                                 type = BotActionType.InputPlayback,
                                 data = new InputPlaybackActionData()
                                 {
-                                    startTime = _lastCvFrameTime,
+                                    startTime = inputTime,
                                     inputData = inputData
                                 }
                             }
@@ -707,9 +730,9 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void ProcessTick(string directoryPath, long tickNumber, BotSegmment botSegmment, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
+        private void ProcessTick(string directoryPath, long tickNumber, BotSegment botSegment, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
         {
-            RecordBotSegment(directoryPath, tickNumber, botSegmment);
+            RecordBotSegment(directoryPath, tickNumber, botSegment);
             RecordJson(directoryPath, tickNumber, jsonData);
             RecordJPG(directoryPath, tickNumber, width, height, graphicsFormat, tickScreenshotData);
         }
@@ -780,10 +803,10 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void RecordBotSegment(string directoryPath, long tickNumber, BotSegmment botSegmment)
+        private void RecordBotSegment(string directoryPath, long tickNumber, BotSegment botSegment)
         {
             var jsonData = Encoding.UTF8.GetBytes(
-                botSegmment.ToJsonString()
+                botSegment.ToJsonString()
             );
             try
             {

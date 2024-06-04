@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
 using StateRecorder;
+using StateRecorder.BotSegments.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,7 +14,7 @@ namespace RegressionGames.StateRecorder
 
     public class ReplayBotSegmentsContainer
     {
-        private readonly List<BotSegmment> _botSegments = new();
+        private readonly List<BotSegment> _botSegments = new();
         private int _botSegmentIndex = 0;
 
         public string SessionId { get; private set; }
@@ -38,7 +39,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public BotSegmment DequeueBotSegment()
+        public BotSegment DequeueBotSegment()
         {
             if (_botSegmentIndex < _botSegments.Count)
             {
@@ -48,7 +49,7 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        public BotSegmment PeekBotSegment()
+        public BotSegment PeekBotSegment()
         {
             if (_botSegmentIndex < _botSegments.Count)
             {
@@ -66,10 +67,13 @@ namespace RegressionGames.StateRecorder
             // sort by numeric value of entries (not string comparison of filenames)
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
+            var replayNumber = 1;
             foreach (var entry in entries)
             {
                 using var sr = new StreamReader(entry.Open());
-                var frameData = JsonConvert.DeserializeObject<BotSegmment>(sr.ReadToEnd());
+                var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
+
+                frameData.Replay_Number = replayNumber++;
 
                 if (SessionId == null)
                 {

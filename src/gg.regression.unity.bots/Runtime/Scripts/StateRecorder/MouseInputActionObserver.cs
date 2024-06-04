@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -85,6 +86,7 @@ namespace RegressionGames.StateRecorder
         public void ReplayReset()
         {
             Replay_IsDone = false;
+            Replay_OffsetTime = 0;
         }
 
         // re-usable and large enough to fit ball sizes
@@ -142,6 +144,13 @@ namespace RegressionGames.StateRecorder
         //Replay Only
         [NonSerialized]
         public bool Replay_IsDone;
+
+        //Replay Only
+        [NonSerialized]
+        public double Replay_OffsetTime;
+
+        // Replay only
+        public double Replay_StartTime => startTime + Replay_OffsetTime;
 
     }
 
@@ -294,7 +303,7 @@ namespace RegressionGames.StateRecorder
 
             if (ensureOne && result.Count == 0 && _priorMouseState != null)
             {
-                // or.. we need at least 1 mouse observation per tick, otherwise hover over effects/etc don't function correctly
+                // or.. we asked for at least 1 mouse observation per tick
                 result.Add(_priorMouseState);
             }
 

@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using StateRecorder;
-using TMPro;
-using UnityEditor.AnimatedValues;
+using StateRecorder.BotSegments;
+using StateRecorder.BotSegments.Models;
+using StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -34,18 +35,11 @@ namespace RegressionGames.StateRecorder
 
         private Action<int> _loopCountCallback;
 
-        // tracks the when we started or last got a key frame; tracked in unscaled time
-        private float _lastStartTime;
-
-        private double? _priorKeyFrameTime;
-
         // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
         // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
         // This is done this way to allow situations like when loading screens (UI) are changing while game objects are loading in the background and the process is not consistent/deterministic between the 2
-        private readonly List<BotSegmment> _nextBotSegments = new();
+        private readonly List<BotSegment> _nextBotSegments = new();
 
-        private double _lastInputQueueStartTime = -1;
-        private double CurrentInputTimePoint => Time.unscaledTime - _lastInputQueueStartTime;
         private readonly List<KeyboardInputActionData> _keyboardQueue = new();
         private readonly List<MouseInputActionData> _mouseQueue = new();
 
@@ -224,22 +218,22 @@ namespace RegressionGames.StateRecorder
         }
         private void PlayInputs()
         {
-            var currentTime = CurrentInputTimePoint;
+            var currentTime = Time.unscaledTime;
             if (_keyboardQueue.Count > 0)
             {
                 foreach (var replayKeyboardInputEntry in _keyboardQueue)
                 {
-                    if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.startTime)
+                    if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
                     {
                         // send start event
-                        SendKeyEvent(replayKeyboardInputEntry.Key, KeyState.Down);
+                        SendKeyEvent(replayKeyboardInputEntry.Key, KeyState.Down, replayKeyboardInputEntry.startTime);
                         replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
                     }
 
-                    if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.endTime)
+                    if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
                     {
                         // send end event
-                        SendKeyEvent(replayKeyboardInputEntry.Key, KeyState.Up);
+                        SendKeyEvent(replayKeyboardInputEntry.Key, KeyState.Up, replayKeyboardInputEntry.endTime);
                         replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                     }
                 }
@@ -249,7 +243,7 @@ namespace RegressionGames.StateRecorder
             {
                 foreach (var replayMouseInputEntry in _mouseQueue)
                 {
-                    if (currentTime >= replayMouseInputEntry.startTime)
+                    if (currentTime >= replayMouseInputEntry.Replay_StartTime)
                     {
                         // send event
                         SendMouseEvent(replayMouseInputEntry, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary);
@@ -263,7 +257,7 @@ namespace RegressionGames.StateRecorder
             _mouseQueue.RemoveAll(a => a.Replay_IsDone);
         }
 
-        private void SendKeyEvent(Key key, KeyState upOrDown)
+        private void SendKeyEvent(Key key, KeyState upOrDown, double? replayTime)
         {
             var keyboard = Keyboard.current;
 
@@ -284,7 +278,7 @@ namespace RegressionGames.StateRecorder
 
                 if (inputControl != null)
                 {
-                    RGDebug.LogInfo($"Sending Key Event: {key} - {upOrDown}");
+                    RGDebug.LogInfo($"Sending Key Event [{replayTime}]: {key} - {upOrDown}");
 
                     // queue input event
                     inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
@@ -340,7 +334,7 @@ namespace RegressionGames.StateRecorder
                     ) != null;
                     RGDebug.LogDebug("Mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
                     // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
-                    FindObjectOfType<VirtualMouseCursor>().SetPosition(position, buttonsClicked);
+                    FindObjectOfType<VirtualMouseCursor>()?.SetPosition(position, buttonsClicked);
                 });
             }
 
@@ -708,7 +702,7 @@ namespace RegressionGames.StateRecorder
 
                 if (RGDebug.IsDebugEnabled)
                 {
-                    RGDebug.LogDebug($"Sending Mouse Event - {mouseEventString}");
+                    RGDebug.LogDebug($"Sending Mouse Event [{mouseInput.startTime}] - {mouseEventString}");
                 }
 
                 InputSystem.QueueEvent(eventPtr);
@@ -721,8 +715,6 @@ namespace RegressionGames.StateRecorder
             {
                 if (_startPlaying)
                 {
-                    _lastStartTime = Time.unscaledTime;
-                    _priorKeyFrameTime = null;
                     _startPlaying = false;
                     _isPlaying = true;
                     _nextBotSegments.Add(_dataContainer.DequeueBotSegment());
@@ -737,26 +729,70 @@ namespace RegressionGames.StateRecorder
 
         private void EvaluateBotSegments()
         {
+            var now = Time.unscaledTime;
+            var priorSegmentActionComplete = true;
+            // only look at actions for the first pending segment.. don't start actions for future segments until the current one ends
+            if (_nextBotSegments.Count > 0)
+            {
+                var nextBotSegment = _nextBotSegments[0];
+                // start processing the action for this segment before evaluating the end condition
+                // the thinking here is 1... less replay lag... 2 the inputs led to the key frame in the first place
+
+                // only process if we haven't processed it already
+                var botAction = nextBotSegment.botAction;
+                if (botAction != null && !nextBotSegment.Replay_ActionStarted)
+                {
+                    nextBotSegment.Replay_ActionStarted = true;
+                    if (botAction.data is InputPlaybackActionData ipad)
+                    {
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_Number}) - Processing InputPlaybackActionData for BotSegment");
+
+                        var currentInputTimePoint = now - ipad.startTime;
+
+                        foreach (var keyboardInputActionData in ipad.inputData.keyboard)
+                        {
+                            keyboardInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                            _keyboardQueue.Add(keyboardInputActionData);
+                        }
+
+                        foreach (var mouseInputActionData in ipad.inputData.mouse)
+                        {
+                            mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                            _mouseQueue.Add(mouseInputActionData);
+                        }
+                    }
+                }
+            }
+
+            // handle the inputs before checking the result
+            PlayInputs();
+
             // check count each loop because we remove from it during the loop
             for (var i = 0; i < _nextBotSegments.Count; /* do not increment here*/)
             {
                 var nextBotSegment = _nextBotSegments[i];
-                var matched = KeyFrameEvaluator.Evaluator.Matched(nextBotSegment.keyFrameCriteria);
+
+                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched(nextBotSegment.keyFrameCriteria);
                 if (matched)
                 {
-                    //Process the inputs from that bot segment if necessary
-                    var botAction = nextBotSegment.botAction;
-                    if (botAction != null)
+                    if (!nextBotSegment.Replay_Matched)
                     {
-                        if (botAction.data is InputPlaybackActionData ipad)
-                        {
-                            // record NOW... and offset the input data times based on their frame start time relative to now
-                            _lastInputQueueStartTime = ipad.startTime;
-                            _keyboardQueue.AddRange(ipad.inputData.keyboard);
-                            _mouseQueue.AddRange(ipad.inputData.mouse);
-                        }
+                        // log this the first time
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_Number}) - Bot Segment Criteria Matched");
                     }
-                    _nextBotSegments.RemoveAt(0);
+
+                    nextBotSegment.Replay_Matched = true;
+
+                    if (nextBotSegment.Replay_ActionCompleted)
+                    {
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_Number}) - Bot Segment Completed");
+                        //Process the inputs from that bot segment if necessary
+                        _nextBotSegments.RemoveAt(0);
+                    }
+                }
+                else
+                {
+                    ++i;
                 }
             }
 
@@ -768,6 +804,7 @@ namespace RegressionGames.StateRecorder
                     var next = _dataContainer.DequeueBotSegment();
                     if (next != null)
                     {
+                        RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation");
                         _nextBotSegments.Add(next);
                     }
                 }
@@ -777,6 +814,7 @@ namespace RegressionGames.StateRecorder
                 var next = _dataContainer.DequeueBotSegment();
                 if (next != null)
                 {
+                    RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation");
                     _nextBotSegments.Add(next);
                 }
             }
@@ -789,7 +827,6 @@ namespace RegressionGames.StateRecorder
                 if (_dataContainer != null)
                 {
                     EvaluateBotSegments();
-                    PlayInputs();
                 }
 
                 if (_nextBotSegments.Count == 0)

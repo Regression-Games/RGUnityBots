@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using StateRecorder.Models;
 using StateRecorder.Types;
 using UnityEngine;
 using Component = UnityEngine.Component;
@@ -7,30 +8,6 @@ using Component = UnityEngine.Component;
 // ReSharper disable LoopCanBeConvertedToQuery
 namespace RegressionGames.StateRecorder
 {
-    public class TransformStatus
-    {
-        public int Id;
-        public bool? HasKeyTypes;
-        public string Path;
-        /**
-         * <summary>Has things like ' (1)' and ' (Clone)' stripped off of object names.</summary>
-         */
-        public string NormalizedPath;
-
-        public Transform Transform;
-
-        /**
-         * <summary>cached pointer to the top level transform of this transform.. must check != null to avoid stale unity object references</summary>
-         */
-        public Transform TopLevelForThisTransform;
-
-        public int rendererCount;
-
-        public Bounds? screenSpaceBounds;
-        public float screenSpaceZOffset;
-        public Bounds? worldSpaceBounds;
-    }
-
     public class InGameObjectFinder : MonoBehaviour
     {
         // this is only a safe pooling optimization because we don't compare colliders/behaviours/rigidbodies between prior frame and current frame state.  If we do, this optimization will become unsafe
@@ -58,15 +35,11 @@ namespace RegressionGames.StateRecorder
         [Tooltip("(WARNING: Performance Impact) Include field/property values for behaviours.")]
         public bool collectStateFromBehaviours;
 
-        // right now this resets on awake, but we may have to deal with dynamically re-parented transforms better at some point...
-        // <transform, (hasKeyTypes, isTopLevelParent)>
-        private readonly Dictionary<int, TransformStatus> _transformsIveSeen = new(1000);
-
         public void Awake()
         {
             if (_this != null)
             {
-                _this._transformsIveSeen.Clear();
+                TransformStatus.Reset();
                 // only allow 1 of these to be alive
                 if (_this.gameObject != gameObject)
                 {
@@ -83,113 +56,6 @@ namespace RegressionGames.StateRecorder
         public static InGameObjectFinder GetInstance()
         {
             return _this;
-        }
-
-        private string FastTrim(string input)
-        {
-            var index = input.Length - 1;
-            while (input[index] == ' ')
-            {
-                --index;
-            }
-
-            if (index != input.Length - 1)
-            {
-                return input.Substring(0, index + 1);
-            }
-
-            return input;
-        }
-
-        private string SanitizeObjectName(string objectName)
-        {
-            objectName = FastTrim(objectName);
-            // Removes '(Clone)' and ' (1)' uniqueness numbers for copies
-            // may also remove some valid naming pieces like (TMP).. but oh well, REGEX for this performed horribly
-            while (objectName.EndsWith(')'))
-            {
-                var li = objectName.LastIndexOf('(');
-                if (li > 0)
-                {
-                    objectName = FastTrim(objectName.Substring(0, li));
-                }
-            }
-
-            return objectName;
-        }
-
-        // re-use these objects
-        private static readonly StringBuilder _tPathBuilder = new StringBuilder(500);
-        private static readonly StringBuilder _tNormalizedPathBuilder = new StringBuilder(500);
-        private static readonly List<GameObject> _parentList = new(100);
-
-        private TransformStatus GetOrCreateTransformStatus(Transform theTransform)
-        {
-            string tPath = null;
-            string tPathNormalized = null;
-
-            var id = theTransform.GetInstanceID();
-
-            if (_transformsIveSeen.TryGetValue(id, out var status))
-            {
-                if (status.Path != null)
-                {
-                    tPath = status.Path;
-                }
-
-                if (status.NormalizedPath != null)
-                {
-                    tPathNormalized = status.NormalizedPath;
-                }
-            }
-
-            if (tPath == null || tPathNormalized == null)
-            {
-                // now .. get the path in the scene.. but only from 1 level down
-                // iow.. ignore the name of the scene itself for cases where many scenes are loaded together like bossroom
-
-                _parentList.Clear();
-                _parentList.Add(transform.gameObject);
-                var parent = theTransform.parent;
-                while (parent != null)
-                {
-                    _parentList.Add(parent.gameObject);
-                    parent = parent.parent;
-                }
-
-                _tPathBuilder.Clear();
-                _tNormalizedPathBuilder.Clear();
-                for (var i = _parentList.Count-1; i >=0; i--)
-                {
-                    var parentEntry = _parentList[i];
-                    var objectName = parentEntry.gameObject.name;
-                    _tPathBuilder.Append(objectName);
-                    _tNormalizedPathBuilder.Append(SanitizeObjectName(objectName));
-                    if (i - 1 >= 0)
-                    {
-                        _tPathBuilder.Append("/");
-                        _tNormalizedPathBuilder.Append("/");
-                    }
-                }
-
-                tPath = _tPathBuilder.ToString();
-                tPathNormalized = _tNormalizedPathBuilder.ToString();
-
-                if (status == null)
-                {
-                    status = new TransformStatus
-                    {
-                        Id = id,
-                        Transform = theTransform
-                    };
-                    _transformsIveSeen[id] = status;
-                    // update the cache with our result
-                }
-                status.Path = tPath;
-                status.NormalizedPath = tPathNormalized;
-            }
-
-            return status;
         }
 
         // allocate this rather large list 1 time to avoid realloc on each tick object
@@ -240,8 +106,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new ColliderRecordState();
                     }
 
-                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.collider = colliderEntry;
 
                     collidersState.Add(cObject);
@@ -261,8 +127,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new Collider2DRecordState();
                     }
 
-                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.collider = colliderEntry2D;
 
                     collidersState.Add(cObject);
@@ -282,8 +148,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new RigidbodyRecordState();
                     }
 
-                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.rigidbody = myRigidbody;
 
                     rigidbodiesState.Add(cObject);
@@ -303,8 +169,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new Rigidbody2DRecordState();
                     }
 
-                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.rigidbody = myRigidbody2D;
 
                     rigidbodiesState.Add(cObject);
@@ -324,8 +190,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new BehaviourState();
                     }
 
-                    cObject.path = (ts ??= GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
                     cObject.name = childBehaviour.GetType().FullName;
                     cObject.state = childBehaviour;
 
@@ -389,7 +255,7 @@ namespace RegressionGames.StateRecorder
         /**
          * argument lists are keyed by transform id
          *
-         * returns hasDelta on spawns or de-spawns or change in camera visibility
+         * returns hasDelta on spawns or de-spawns or change in camera visibility .. result is keyed on path hash
          */
         public Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<int,TransformStatus> priorTransformStatusList, Dictionary<int, TransformStatus> currentTransformStatusList, out bool hasDelta)
         {
@@ -595,7 +461,7 @@ namespace RegressionGames.StateRecorder
                                     }
 
                                     var objectTransform = statefulUIObject.transform;
-                                    var tStatus = GetOrCreateTransformStatus(objectTransform);
+                                    var tStatus = TransformStatus.GetOrCreateTransformStatus(objectTransform);
                                     _newUIObjects[tStatus.Id] = tStatus;
 
                                     if (onCamera)
@@ -861,7 +727,7 @@ namespace RegressionGames.StateRecorder
                         }
 
                         // depending on the include only on camera setting, this object may be null
-                        var tStatus = GetOrCreateTransformStatus(statefulTransform);
+                        var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulTransform);
 
                         tStatus.rendererCount = rendererListLength;
 
@@ -1122,7 +988,7 @@ namespace RegressionGames.StateRecorder
         {
             // we walk all the way to the root and record which ones had key types to find the 'parent'
 
-            var tStatus = GetOrCreateTransformStatus(startingTransform);
+            var tStatus = TransformStatus.GetOrCreateTransformStatus(startingTransform);
             tStatus.HasKeyTypes = true;
 
             var maybeTopLevel = startingTransform;
@@ -1141,7 +1007,7 @@ namespace RegressionGames.StateRecorder
                 {
                     var parentHasKeyTypes = false;
 
-                    var nextParentStatus = GetOrCreateTransformStatus(nextParent);
+                    var nextParentStatus = TransformStatus.GetOrCreateTransformStatus(nextParent);
 
                     if (nextParentStatus is { TopLevelForThisTransform: not null })
                     {
