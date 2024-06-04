@@ -895,6 +895,10 @@ namespace RegressionGames.StateRecorder
                         //Process the inputs from that bot segment if necessary
                         _nextBotSegments.RemoveAt(0);
                     }
+                    else
+                    {
+                        ++i;
+                    }
                 }
                 else
                 {
