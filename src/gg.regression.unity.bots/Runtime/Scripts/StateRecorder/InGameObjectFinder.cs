@@ -265,22 +265,28 @@ namespace RegressionGames.StateRecorder
                     result[pathHash] = pathCountEntry;
                 }
 
-                pathCountEntry.count++;
-                pathCountEntry.ids.Add(currentEntry.Id);
+                var onCameraNow = (currentEntry.screenSpaceBounds != null);
 
-                pathCountEntry.rendererCount += currentEntry.rendererCount;
+                // only update 'count' for things on screen, but added/removed/rendererCount count are updated always
+                if (onCameraNow)
+                {
+                    pathCountEntry.count++;
+                    pathCountEntry.rendererCount += currentEntry.rendererCount;
+                }
+
+                pathCountEntry.higherLowerRendererCountTracker += currentEntry.rendererCount;
+
+                // ids is used to track despawns
+                pathCountEntry.ids.Add(currentEntry.Id);
 
                 if (!priorTransformStatusList.TryGetValue(currentEntry.Id, out var oldStatus))
                 {
                     hasDelta = true;
                     pathCountEntry.addedCount++;
-                    pathCountEntry.higherLowerRendererCountTracker += currentEntry.rendererCount;
                 }
                 else
                 {
-                    pathCountEntry.higherLowerRendererCountTracker += currentEntry.rendererCount - oldStatus.rendererCount;
                     var onCameraBefore = (oldStatus.screenSpaceBounds != null);
-                    var onCameraNow = (currentEntry.screenSpaceBounds != null);
                     if ( onCameraBefore != onCameraNow )
                     {
                         if (onCameraNow)
@@ -291,7 +297,7 @@ namespace RegressionGames.StateRecorder
                         {
                             pathCountEntry.higherLowerCountTracker--;
                         }
-                        // camera visibility changed.. only need to do this in one place, because if both lists didnt' have it we can't compare
+                        // camera visibility changed.. only need to do this in one place, because if both lists didn't have it we can't compare
                         hasDelta = true;
                     }
                 }
@@ -303,8 +309,14 @@ namespace RegressionGames.StateRecorder
                 var pathHash = entry.Value.NormalizedPath.GetHashCode();
                 if (!result.TryGetValue(pathHash, out var pathCountEntry))
                 {
+                    // this object wasn't in our result.. add an entry to so we can track the despawn
                     pathCountEntry = new PathBasedDeltaCount(pathHash, entry.Value.NormalizedPath);
                     result[pathHash] = pathCountEntry;
+                }
+                else
+                {
+                    // update the higherLowerRendererCountTracker if we already had this object path
+                    pathCountEntry.higherLowerRendererCountTracker -= entry.Value.rendererCount;
                 }
 
                 if (!pathCountEntry.ids.Contains(entry.Key))

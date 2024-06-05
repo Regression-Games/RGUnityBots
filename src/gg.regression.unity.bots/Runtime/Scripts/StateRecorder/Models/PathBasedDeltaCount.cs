@@ -35,5 +35,11 @@ namespace RegressionGames.StateRecorder.Models
         public int rendererCount;
 
         public int higherLowerRendererCountTracker;
+
+        public override string ToString()
+        {
+            // easier debugging
+            return "" + path + ",c:" + count + ", a:" + addedCount + ", r:" + removedCount + ",rc:" + rendererCount + ", hlc:" + higherLowerCountTracker + ",hlrc:" + higherLowerRendererCountTracker + ",ids:["+string.Join(",",ids)+"]";
+        }
     }
 }

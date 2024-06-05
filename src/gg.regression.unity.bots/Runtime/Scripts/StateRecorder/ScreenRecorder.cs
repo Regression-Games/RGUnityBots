@@ -498,20 +498,23 @@ namespace RegressionGames.StateRecorder
                             mouse = mouseInputData
                         };
 
-                        var keyFrameCriteria = uiDeltas.Values.Concat(gameObjectDeltas.Values).Select(a => new KeyFrameCriteria() {
-                            type = KeyFrameCriteriaType.NormalizedPath,
-                            transient = true,
-                            data = new PathKeyFrameCriteriaData()
-                            {
-                                path = a.path,
-                                count =  a.count,
-                                addedCount = a.addedCount,
-                                removedCount = a.removedCount,
-                                countRule = a.higherLowerCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual),
-                                rendererCount = a.rendererCount,
-                                rendererCountRule = a.higherLowerRendererCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerRendererCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual),
-                            }
-                        }).ToArray();
+                        var keyFrameCriteria = uiDeltas.Values
+                            .Concat(gameObjectDeltas.Values)
+                            .Select(a => new KeyFrameCriteria() {
+                                type = KeyFrameCriteriaType.NormalizedPath,
+                                transient = true,
+                                data = new PathKeyFrameCriteriaData()
+                                {
+                                    path = a.path,
+                                    count =  a.count,
+                                    addedCount = a.addedCount,
+                                    removedCount = a.removedCount,
+                                    countRule = a.higherLowerCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual),
+                                    rendererCount = a.rendererCount,
+                                    rendererCountRule = a.higherLowerRendererCountTracker ==0 ? (a.rendererCount==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerRendererCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual),
+                                }
+                            })
+                            .ToArray();
 
                         double inputTime = -1;
                         // note to future devs: it may be tempting get the earliest input time for every segment so we can playback with minimal delay
@@ -821,8 +824,8 @@ namespace RegressionGames.StateRecorder
             );
             try
             {
-                // write out the json to file.. pad 3 zeros on the right also to leave up to 1000 spaces between ticks for other bot segments
-                var path = $"{directoryPath}/bot_segments/{tickNumber}".PadLeft(9, '0') + "000.json";
+                // write out the json to file... while these numbers happen to align with the state data at recording time.. they don't mean the same thing
+                var path = $"{directoryPath}/bot_segments/{tickNumber}".PadLeft(9, '0') + ".json";
                 if (jsonData.Length == 0)
                 {
                     RGDebug.LogError($"ERROR: Empty JSON bot_segment for tick # {tickNumber}");
