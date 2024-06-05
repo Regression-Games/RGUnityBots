@@ -1,9 +1,7 @@
 using System;
 using System.Text;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {

@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -324,7 +323,7 @@ namespace RegressionGames.StateRecorder
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
 
-        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, string pixelHash)
+        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, bool hasRendererDelta, string pixelHash)
         {
             _keyFrameTypeList.Clear();
             if (firstFrame)
@@ -346,6 +345,11 @@ namespace RegressionGames.StateRecorder
             if (hasGameObjectDelta)
             {
                 _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT);
+            }
+
+            if (hasRendererDelta)
+            {
+                _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT_RENDERER_COUNT);
             }
         }
 
@@ -437,14 +441,14 @@ namespace RegressionGames.StateRecorder
                 }
 
                 //Compute the delta values we need to record / evaluate to know if we need to record a key frame
-                var uiDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(uiTransforms.Item1, uiTransforms.Item2, out var hasUIDelta);
-                var gameObjectDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(gameObjectTransforms.Item1, gameObjectTransforms.Item2, out var hasGameObjectDelta);
+                var uiDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(uiTransforms.Item1, uiTransforms.Item2, out var hasUIDelta, out var _);
+                var gameObjectDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(gameObjectTransforms.Item1, gameObjectTransforms.Item2, out var hasGameObjectDelta, out var hasGameObjectRendererDelta);
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHash);
+                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, hasGameObjectRendererDelta, pixelHash);
 
                 BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close

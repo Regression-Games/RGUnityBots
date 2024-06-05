@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames.StateRecorder;
 
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
@@ -261,6 +260,7 @@ namespace RegressionGames.StateRecorder
         }
         private void PlayInputs()
         {
+            //uses the current time on each time this is called, so that each call during the update reflects the new time
             var currentTime = Time.unscaledTime;
             if (_keyboardQueue.Count > 0)
             {
@@ -852,10 +852,9 @@ namespace RegressionGames.StateRecorder
 
         private float _lastTimeLoggedKeyFrameConditions = 0;
 
-        private void EvaluateBotSegments()
+        // uses the time from the start of evaluating each Update call
+        private void StartNewActions(float now)
         {
-            var now = Time.unscaledTime;
-            var priorSegmentActionComplete = true;
             // only look at actions for the first pending segment.. don't start actions for future segments until the current one ends
             if (_nextBotSegments.Count > 0)
             {
@@ -888,6 +887,18 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
+        }
+
+        private void EvaluateBotSegments()
+        {
+            var now = Time.unscaledTime;
+            // PlayInputs will occur 3 times in this method
+            // once at the very beginning, once after checking if new inputs need to be processed, and one last time after checking if we need to get the next bot segment
+            // the goal being to always play the inputs as quickly as possible
+            PlayInputs();
+
+            // start / queue up any new actions from bot segments
+            StartNewActions(now);
 
             // handle the inputs before checking the result
             PlayInputs();
@@ -967,6 +978,12 @@ namespace RegressionGames.StateRecorder
                     _nextBotSegments.Add(next);
                 }
             }
+
+            // start / queue up any new actions from bot segments
+            StartNewActions(now);
+
+            // see if there are any inputs we can play
+            PlayInputs();
         }
 
         public void LateUpdate()

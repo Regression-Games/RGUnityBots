@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using RegressionGames.StateRecorder.Models;
 using RegressionGames.StateRecorder.Types;
 using UnityEngine;
@@ -238,9 +240,10 @@ namespace RegressionGames.StateRecorder
          *
          * returns hasDelta on spawns or de-spawns or change in camera visibility .. result is keyed on path hash
          */
-        public Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<int,TransformStatus> priorTransformStatusList, Dictionary<int, TransformStatus> currentTransformStatusList, out bool hasDelta)
+        public Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<int,TransformStatus> priorTransformStatusList, Dictionary<int, TransformStatus> currentTransformStatusList, out bool hasDelta, out bool hasRendererDelta)
         {
             hasDelta = false;
+            hasRendererDelta = false;
             var result = new Dictionary<int, PathBasedDeltaCount>(); // keyed by path hash
             /*
              * go through the new state and add up the totals
@@ -307,6 +310,8 @@ namespace RegressionGames.StateRecorder
                     pathCountEntry.removedCount++;
                 }
             }
+
+            hasRendererDelta = result.Any(a => a.Value.higherLowerRendererCountTracker != 0);
 
             return result;
         }
@@ -417,17 +422,17 @@ namespace RegressionGames.StateRecorder
                                         min.x = Mathf.Min(min.x, nextMin.x);
                                         min.y = Mathf.Min(min.y, nextMin.y);
 
-                                        max.x = Mathf.Min(max.x, nextMax.x);
-                                        max.y = Mathf.Min(max.y, nextMax.y);
+                                        max.x = Mathf.Max(max.x, nextMax.x);
+                                        max.y = Mathf.Max(max.y, nextMax.y);
 
                                         if (isWorldSpace)
                                         {
                                             worldMin.x = Mathf.Min(worldMin.x, _worldSpaceCorners[0].x);
                                             worldMin.y = Mathf.Min(worldMin.y, _worldSpaceCorners[0].y);
-                                            worldMin.z = Mathf.Min(worldMin.y, _worldSpaceCorners[0].z);
-                                            worldMax.x = Mathf.Min(worldMin.x, _worldSpaceCorners[2].x);
-                                            worldMax.y = Mathf.Min(worldMin.y, _worldSpaceCorners[2].y);
-                                            worldMin.z = Mathf.Min(worldMin.y, _worldSpaceCorners[2].z);
+                                            worldMin.z = Mathf.Min(worldMin.z, _worldSpaceCorners[0].z);
+                                            worldMax.x = Mathf.Max(worldMax.x, _worldSpaceCorners[2].x);
+                                            worldMax.y = Mathf.Max(worldMax.y, _worldSpaceCorners[2].y);
+                                            worldMax.z = Mathf.Max(worldMax.z, _worldSpaceCorners[2].z);
                                         }
                                     }
 
@@ -464,7 +469,11 @@ namespace RegressionGames.StateRecorder
                                             var worldSize = new Vector3((worldMax.x - worldMin.x), (worldMax.y - worldMin.y), (worldMax.z - worldMin.z));
                                             var worldCenter = new Vector3(worldMin.x + worldSize.x, worldMin.y + worldSize.y/2, worldMin.z + worldSize.z/2);
                                             tStatus.worldSpaceBounds = new Bounds(worldCenter, worldSize);
-                                            //TODO: tStatus.screenSpaceZOffset = ???
+
+                                            // get the screen point values for the world max / min and find the screen space z offset closest the camera
+                                            var minSp = canvasCamera.WorldToScreenPoint(worldMin);
+                                            var maxSp = canvasCamera.WorldToScreenPoint(worldMax);
+                                            tStatus.screenSpaceZOffset = Math.Min(minSp.z, maxSp.z);
                                         }
                                     }
                                     else
@@ -617,6 +626,10 @@ namespace RegressionGames.StateRecorder
                         }
                     }
 
+                    // depending on the include only on camera setting, this object may be null
+                    var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulTransform);
+                    tStatus.rendererCount = rendererListLength;
+
                     var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
                     if (onCamera)
                     {
@@ -711,11 +724,6 @@ namespace RegressionGames.StateRecorder
                             onCamera = false;
                         }
 
-                        // depending on the include only on camera setting, this object may be null
-                        var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulTransform);
-
-                        tStatus.rendererCount = rendererListLength;
-
                         if (onCamera)
                         {
                             // make sure the screen space bounds has a non-zero Z size around 0
@@ -735,8 +743,12 @@ namespace RegressionGames.StateRecorder
                             tStatus.worldSpaceBounds = null;
                             tStatus.screenSpaceZOffset = 0f;
                         }
-
-                        _newGameObjects[tStatus.Id] = tStatus;
+                    }
+                    else
+                    {
+                        tStatus.screenSpaceBounds = null;
+                        tStatus.worldSpaceBounds = null;
+                        tStatus.screenSpaceZOffset = 0f;
                     }
                 }
             }
@@ -747,7 +759,6 @@ namespace RegressionGames.StateRecorder
         /**
          * <returns>(priorState, currentState, offCameraTransforms)</returns>
          */
-        //TODO Use passed in ui / world objects to record state.
         public (Dictionary<int, RecordedGameObjectState>, Dictionary<int, RecordedGameObjectState>) GetStateForCurrentFrame(IEnumerable<TransformStatus> uiObjectTransformStatusList, IEnumerable<TransformStatus> gameObjectTransformStatusList)
         {
             var frameCount = Time.frameCount;
