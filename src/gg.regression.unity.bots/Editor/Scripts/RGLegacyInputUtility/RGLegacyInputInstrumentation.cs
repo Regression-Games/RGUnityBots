@@ -72,7 +72,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         private static DefaultAssemblyResolver CreateAssemblyResolver(string assemblyPath)
         {
             ISet<string> compiledSearchDirs = new HashSet<string>();
-            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
             foreach (Assembly assembly in assemblies)
             {
                 compiledSearchDirs.Add(Path.GetDirectoryName(assembly.outputPath));
@@ -234,7 +234,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         private static Assembly FindRGAssembly()
         {
             var rgAsmName = Path.GetFileName(typeof(RGLegacyInputWrapper).Assembly.Location);
-            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
             foreach (Assembly assembly in assemblies)
             {
                 if (Path.GetFileName(assembly.outputPath) == rgAsmName)
@@ -253,7 +253,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         
         private static void InstrumentExistingAssemblies()
         {
-            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
             Assembly rgAssembly = FindRGAssembly();
             foreach (Assembly assembly in assemblies)
             {
