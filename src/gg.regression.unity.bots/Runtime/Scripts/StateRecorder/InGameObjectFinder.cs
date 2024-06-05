@@ -629,6 +629,7 @@ namespace RegressionGames.StateRecorder
                     // depending on the include only on camera setting, this object may be null
                     var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulTransform);
                     tStatus.rendererCount = rendererListLength;
+                    _newGameObjects[tStatus.Id] = tStatus;
 
                     var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
                     if (onCamera)
@@ -731,7 +732,7 @@ namespace RegressionGames.StateRecorder
                             var size = new Vector3((maxX - minX), (maxY - minY), 0.05f);
                             var center = new Vector3(minX + size.x / 2, minY + size.y / 2, 0);
                             tStatus.screenSpaceBounds = new Bounds(center, size);
-                            tStatus.screenSpaceZOffset = maxZ;
+                            tStatus.screenSpaceZOffset = Math.Min(minZ, maxZ);
 
                             var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
                             var worldCenter = new Vector3(minWorldX + worldSize.x / 2, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);

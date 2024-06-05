@@ -2,17 +2,35 @@
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
     public static class NormalizedPathCriteriaEvaluator
     {
+
+        private static Dictionary<int, PathBasedDeltaCount> _deltaUI;
+        private static Dictionary<int, PathBasedDeltaCount> _deltaGameObjects;
+
+        private static int _lastFrameEvaluated = -1;
+
+        private static void UpdateDeltaCounts(Dictionary<int, TransformStatus> priorUIStatus, Dictionary<int, TransformStatus> priorGameObjectStatus, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
+        {
+            var currentFrameCount = Time.frameCount;
+            if (_lastFrameEvaluated != currentFrameCount)
+            {
+                _lastFrameEvaluated = currentFrameCount;
+                //Compute the frame deltas (Use InGameObjectFinder)... but only once per frame
+                _deltaUI = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorUIStatus, uiTransforms, out var _, out var _);
+                _deltaGameObjects = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorGameObjectStatus, gameObjectTransforms, out var _, out var _);
+            }
+        }
+
         // Track counts from the last keyframe completion and use that as the 'prior' data
         public static List<bool> Matched(List<KeyFrameCriteria> criteriaList, Dictionary<int, TransformStatus> priorUIStatus, Dictionary<int, TransformStatus> priorGameObjectStatus, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
         {
-            //Compute the frame deltas (Use InGameObjectFinder).. then evaluate
-            var deltaUI = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorUIStatus, uiTransforms, out var _, out var _);
-            var deltaGameObjects = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorGameObjectStatus, gameObjectTransforms, out var _, out var _);
+            UpdateDeltaCounts(priorUIStatus, priorGameObjectStatus, uiTransforms, gameObjectTransforms);
+
             var resultList = new List<bool>();
             foreach (var criteria in criteriaList)
             {
@@ -27,7 +45,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     var normalizedPath = pathData.path;
                     var pathHash = normalizedPath.GetHashCode();
                     // see if it is in the UI path
-                    if (deltaUI.TryGetValue(pathHash, out var uiObjectCounts))
+                    if (_deltaUI.TryGetValue(pathHash, out var uiObjectCounts))
                     {
                         // compare counts for match
                         switch (pathData.countRule)
@@ -102,7 +120,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             matched = false;
                         }
                     }
-                    else if (deltaGameObjects.TryGetValue(pathHash, out var gameObjectCounts))
+                    else if (_deltaGameObjects.TryGetValue(pathHash, out var gameObjectCounts))
                     {
                         // compare counts for match
                         switch (pathData.countRule)

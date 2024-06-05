@@ -62,7 +62,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 foreach (var criteria in criteriaList)
                 {
-                    if (criteria.Replay_TransientMatched)
+                    if (criteria.transient && criteria.Replay_TransientMatched)
                     {
                         return true;
                     }

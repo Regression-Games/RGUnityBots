@@ -10,13 +10,23 @@ namespace RegressionGames.StateRecorder.Models
             this.path = path;
         }
 
-        public List<int> ids = new();
-        public int pathHash;
-        public string path;
+        public readonly HashSet<int> ids = new();
+        public readonly int pathHash;
+        public readonly string path;
 
+        /**
+         * <summary>Tracks the 'visible'/'onCamera' count of this path</summary>
+         */
         public int count;
+
+        /**
+         * <summary>Tracks the number of new objects of this path, on camera or not</summary>
+         */
         public int addedCount;
 
+        /**
+         * <summary>Tracks the number of removed objects of this path, on camera or not</summary>
+         */
         public int removedCount;
 
         // if negative, this count went down CountRule.LessThanEqual; if positive, this count went up CountRule.GreaterThanEqual; if zero, this count didn't change CountRule.NonZero; if zero and count ==0, CountRule.Zero

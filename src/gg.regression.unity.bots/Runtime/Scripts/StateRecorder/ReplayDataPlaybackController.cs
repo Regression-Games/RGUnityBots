@@ -952,17 +952,18 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            // see if the last entry has transient matches.. if so.. dequeue another
+            // see if the last entry has transient matches and is transient.. if so.. dequeue another
             if (_nextBotSegments.Count > 0)
             {
-                if (_nextBotSegments[^1].Replay_TransientMatched)
+                var lastSegment = _nextBotSegments[^1];
+                if (lastSegment.Replay_TransientMatched)
                 {
                     var next = _dataContainer.DequeueBotSegment();
                     if (next != null)
                     {
                         _lastTimeLoggedKeyFrameConditions = now;
                         FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                        RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation");
+                        RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation after Transient BotSegment");
                         _nextBotSegments.Add(next);
                     }
                 }
