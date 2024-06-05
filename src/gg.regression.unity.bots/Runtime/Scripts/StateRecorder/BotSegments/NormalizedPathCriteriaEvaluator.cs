@@ -41,14 +41,14 @@ namespace RegressionGames.StateRecorder.BotSegments
                 }
                 else
                 {
-                    var pathData = criteria.data as PathKeyFrameCriteriaData;
-                    var normalizedPath = pathData.path;
+                    var criteriaPathData = criteria.data as PathKeyFrameCriteriaData;
+                    var normalizedPath = criteriaPathData.path;
                     var pathHash = normalizedPath.GetHashCode();
                     // see if it is in the UI path
                     if (_deltaUI.TryGetValue(pathHash, out var uiObjectCounts))
                     {
                         // compare counts for match
-                        switch (pathData.countRule)
+                        switch (criteriaPathData.countRule)
                         {
                             case CountRule.Zero:
                                 if (uiObjectCounts.count == 0)
@@ -63,24 +63,25 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 }
                                 break;
                             case CountRule.GreaterThanEqual:
-                                if (uiObjectCounts.count >= pathData.count)
+                                if (uiObjectCounts.count >= criteriaPathData.count)
                                 {
                                     matched = true;
                                 }
                                 break;
                             case CountRule.LessThanEqual:
-                                if (uiObjectCounts.count <= pathData.count)
+                                if (uiObjectCounts.count <= criteriaPathData.count)
                                 {
                                     matched = true;
                                 }
                                 break;
                         }
 
+                        /* TODO: Evaluate if we really want to enforce renderer count changes or not
                         if (matched)
                         {
                             // then evaluate renderer count rules
                             // compare counts for match
-                            switch (pathData.rendererCountRule)
+                            switch (criteriaPathData.rendererCountRule)
                             {
                                 case CountRule.Zero:
                                     if (uiObjectCounts.rendererCount != 0)
@@ -95,27 +96,28 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     }
                                     break;
                                 case CountRule.GreaterThanEqual:
-                                    if (uiObjectCounts.rendererCount < pathData.rendererCount)
+                                    if (uiObjectCounts.rendererCount < criteriaPathData.rendererCount)
                                     {
                                         matched = false;
                                     }
                                     break;
                                 case CountRule.LessThanEqual:
-                                    if (uiObjectCounts.rendererCount > pathData.rendererCount)
+                                    if (uiObjectCounts.rendererCount > criteriaPathData.rendererCount)
                                     {
                                         matched = false;
                                     }
                                     break;
                             }
                         }
+                        */
 
                         // then evaluate added / removed data
-                        if (matched && uiObjectCounts.addedCount != pathData.addedCount)
+                        if (matched && uiObjectCounts.addedCount < criteriaPathData.addedCount)
                         {
                             matched = false;
                         }
 
-                        if (matched && uiObjectCounts.removedCount != pathData.removedCount)
+                        if (matched && uiObjectCounts.removedCount < criteriaPathData.removedCount)
                         {
                             matched = false;
                         }
@@ -123,7 +125,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     else if (_deltaGameObjects.TryGetValue(pathHash, out var gameObjectCounts))
                     {
                         // compare counts for match
-                        switch (pathData.countRule)
+                        switch (criteriaPathData.countRule)
                         {
                             case CountRule.Zero:
                                 if (gameObjectCounts.count == 0)
@@ -138,24 +140,25 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 }
                                 break;
                             case CountRule.GreaterThanEqual:
-                                if (gameObjectCounts.count >= pathData.count)
+                                if (gameObjectCounts.count >= criteriaPathData.count)
                                 {
                                     matched = true;
                                 }
                                 break;
                             case CountRule.LessThanEqual:
-                                if (gameObjectCounts.count <= pathData.count)
+                                if (gameObjectCounts.count <= criteriaPathData.count)
                                 {
                                     matched = true;
                                 }
                                 break;
                         }
 
+                        /* TODO: Evaluate if we really want to enforce renderer count changes or not
                         if (matched)
                         {
                             // then evaluate renderer count rules
                             // compare counts for match
-                            switch (pathData.rendererCountRule)
+                            switch (criteriaPathData.rendererCountRule)
                             {
                                 case CountRule.Zero:
                                     if (gameObjectCounts.rendererCount != 0)
@@ -170,27 +173,28 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     }
                                     break;
                                 case CountRule.GreaterThanEqual:
-                                    if (gameObjectCounts.rendererCount < pathData.rendererCount)
+                                    if (gameObjectCounts.rendererCount < criteriaPathData.rendererCount)
                                     {
                                         matched = false;
                                     }
                                     break;
                                 case CountRule.LessThanEqual:
-                                    if (gameObjectCounts.rendererCount > pathData.rendererCount)
+                                    if (gameObjectCounts.rendererCount > criteriaPathData.rendererCount)
                                     {
                                         matched = false;
                                     }
                                     break;
                             }
                         }
+                        */
 
-                        // then evaluate added / removed data
-                        if (matched && gameObjectCounts.addedCount != pathData.addedCount)
+                        // then evaluate added / removed data need equal to or more of each to pass
+                        if (matched && gameObjectCounts.addedCount < criteriaPathData.addedCount)
                         {
                             matched = false;
                         }
 
-                        if (matched && gameObjectCounts.removedCount != pathData.removedCount)
+                        if (matched && gameObjectCounts.removedCount < criteriaPathData.removedCount)
                         {
                             matched = false;
                         }

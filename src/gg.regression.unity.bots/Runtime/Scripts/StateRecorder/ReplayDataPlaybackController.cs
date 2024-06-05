@@ -486,7 +486,6 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-
             // still have some objects we didnt' find in the current state, check previous state
             // this is used primarly for mouse up event processing
             if (pathsToFind.Count > 0)
@@ -861,7 +860,11 @@ namespace RegressionGames.StateRecorder
 
                 // only process if we haven't processed it already
                 var botAction = nextBotSegment.botAction;
-                if (botAction != null && !nextBotSegment.Replay_ActionStarted)
+                if (botAction == null)
+                {
+                    nextBotSegment.Replay_ActionStarted = true;
+                }
+                if (!nextBotSegment.Replay_ActionStarted)
                 {
                     nextBotSegment.Replay_ActionStarted = true;
                     if (botAction.data is InputPlaybackActionData ipad)

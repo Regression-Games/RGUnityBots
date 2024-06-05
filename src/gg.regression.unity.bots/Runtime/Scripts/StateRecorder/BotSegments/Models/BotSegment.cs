@@ -30,7 +30,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public bool Replay_ActionStarted;
 
         // Replay only - tracks if we have completed the action for this bot segment
-        public bool Replay_ActionCompleted => botAction.IsCompleted;
+        public bool Replay_ActionCompleted => botAction == null || botAction.IsCompleted;
 
         // Replay only
         public void ReplayReset()
