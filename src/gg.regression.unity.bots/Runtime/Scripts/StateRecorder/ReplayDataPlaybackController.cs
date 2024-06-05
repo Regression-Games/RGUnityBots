@@ -287,8 +287,12 @@ namespace RegressionGames.StateRecorder
                 {
                     if (currentTime >= replayMouseInputEntry.Replay_StartTime)
                     {
+                        //Need the statuses for the mouse to click correctly when things move a bit or resolution changes
+                        var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
+                        var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
+
                         // send event
-                        SendMouseEvent(replayMouseInputEntry, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary);
+                        SendMouseEvent(replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
                         replayMouseInputEntry.Replay_IsDone = true;
                     }
                 }
@@ -528,15 +532,9 @@ namespace RegressionGames.StateRecorder
                 var ssb = objectToCheck.screenSpaceBounds.Value;
                 var size = ssb.size.x * ssb.size.y;
 
-                if (bestObject == null)
+                if (objectToCheck.worldSpaceBounds != null)
                 {
-                    // prefer UI elements when overlaps occur with game objects
-                    bestObject = objectToCheck;
-                    smallestSize = size;
-                }
-                else if (objectToCheck.worldSpaceBounds != null)
-                {
-                    if (bestObject.worldSpaceBounds == null)
+                    if (bestObject != null && bestObject.worldSpaceBounds == null)
                     {
                         //do nothing, prefer ui elements
                     }
@@ -548,7 +546,7 @@ namespace RegressionGames.StateRecorder
                             var mouseWorldPosition = mouseInput.worldPosition.Value;
                             // uses the collider bounds on that object as colliders are what would drive world space objects' click detection in scripts / etc
                             var colliders = objectToCheck.Transform.GetComponentsInChildren<Collider>();
-                            if ((colliders.Length == 0 && objectToCheck.worldSpaceBounds.Value.Contains(mouseWorldPosition)) || colliders.FirstOrDefault(a => a.bounds.Contains(mouseWorldPosition)) != null)
+                            if (colliders.FirstOrDefault(a => a.bounds.Contains(mouseWorldPosition)) != null)
                             {
                                 var screenPoint = mainCamera.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
@@ -601,7 +599,7 @@ namespace RegressionGames.StateRecorder
                 }
                 else // objectToCheck.worldSpaceBounds == null
                 {
-                    if (bestObject.worldSpaceBounds == null)
+                    if (bestObject != null && bestObject.worldSpaceBounds == null)
                     {
                         // compare ui elements for best match
                         // give some threshold variance here for floating point math on sizes
@@ -613,7 +611,7 @@ namespace RegressionGames.StateRecorder
                             smallestSize = size;
                         }
                     }
-                    else
+                    else //bestObject.worldSpaceBounds != null
                     {
                         // prefer UI elements when overlaps occur with game objects
                         bestObject = objectToCheck;
@@ -979,7 +977,7 @@ namespace RegressionGames.StateRecorder
             }
 
             // start / queue up any new actions from bot segments
-            StartNewActions(now);
+            StartNewActions();
 
             // see if there are any inputs we can play
             PlayInputs();
@@ -996,7 +994,6 @@ namespace RegressionGames.StateRecorder
 
                 if (_nextBotSegments.Count == 0)
                 {
-
                     SendMouseEvent(new MouseInputActionData()
                     {
                         // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure

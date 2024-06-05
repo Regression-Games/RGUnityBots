@@ -11,6 +11,12 @@ namespace RegressionGames.StateRecorder.Models
 
         }
 
+        public override string ToString()
+        {
+            // implement for easier debugger usage
+            return "" + Id + " - " + Path + " - " + rendererCount + " - " + (screenSpaceBounds!=null?"true":"false") + " - " + (worldSpaceBounds !=null?"true":"false");
+        }
+
         public int Id;
         public bool? HasKeyTypes;
         public string Path;
@@ -29,7 +35,11 @@ namespace RegressionGames.StateRecorder.Models
         public int rendererCount;
 
         public Bounds? screenSpaceBounds;
+        /**
+         * <summary>The closest distance to the camera, tracked outside of screenSpaceBounds so that screen space bounds is always around 0.0</summary>
+         */
         public float screenSpaceZOffset;
+
         public Bounds? worldSpaceBounds;
 
 

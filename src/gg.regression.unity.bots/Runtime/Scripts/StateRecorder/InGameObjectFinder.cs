@@ -80,123 +80,126 @@ namespace RegressionGames.StateRecorder
 
         private void ProcessChildTransformComponents(Transform childTransform, IList<BehaviourState> behaviours, IList<ColliderRecordState> collidersState, IList<RigidbodyRecordState> rigidbodiesState)
         {
-            _childComponentsQueryList.Clear();
-            childTransform.GetComponents(_childComponentsQueryList);
-            TransformStatus ts = null;
-
-            // uses object pools to minimize new allocations and GCs
-
-            // This code re-uses the objects from the prior state as much as possible to avoid allocations
-            // we try to minimize calls to GetUniqueTransformPath whenever possible
-            var listLength = _childComponentsQueryList.Count;
-            for (var i = 0; i < listLength; i++)
+            if (childTransform != null)
             {
-                var childComponent = _childComponentsQueryList[i];
-                if (childComponent is Collider colliderEntry)
+                _childComponentsQueryList.Clear();
+                childTransform.GetComponents(_childComponentsQueryList);
+                TransformStatus ts = null;
+
+                // uses object pools to minimize new allocations and GCs
+
+                // This code re-uses the objects from the prior state as much as possible to avoid allocations
+                // we try to minimize calls to GetUniqueTransformPath whenever possible
+                var listLength = _childComponentsQueryList.Count;
+                for (var i = 0; i < listLength; i++)
                 {
-                    ColliderRecordState cObject;
-                    var poolCount = _colliderStateObjectPool.Count;
-                    if (poolCount > 0)
+                    var childComponent = _childComponentsQueryList[i];
+                    if (childComponent is Collider colliderEntry)
                     {
-                        // remove from end of list
-                        cObject = _colliderStateObjectPool[poolCount - 1];
-                        _colliderStateObjectPool.RemoveAt(poolCount - 1);
+                        ColliderRecordState cObject;
+                        var poolCount = _colliderStateObjectPool.Count;
+                        if (poolCount > 0)
+                        {
+                            // remove from end of list
+                            cObject = _colliderStateObjectPool[poolCount - 1];
+                            _colliderStateObjectPool.RemoveAt(poolCount - 1);
+                        }
+                        else
+                        {
+                            cObject = new ColliderRecordState();
+                        }
+
+                        cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                        cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                        cObject.collider = colliderEntry;
+
+                        collidersState.Add(cObject);
                     }
-                    else
+                    else if (childComponent is Collider2D colliderEntry2D)
                     {
-                        cObject = new ColliderRecordState();
+                        Collider2DRecordState cObject;
+                        var poolCount = _collider2DStateObjectPool.Count;
+                        if (poolCount > 0)
+                        {
+                            // remove from end of list
+                            cObject = _collider2DStateObjectPool[poolCount - 1];
+                            _collider2DStateObjectPool.RemoveAt(poolCount - 1);
+                        }
+                        else
+                        {
+                            cObject = new Collider2DRecordState();
+                        }
+
+                        cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                        cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                        cObject.collider = colliderEntry2D;
+
+                        collidersState.Add(cObject);
                     }
-
-                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
-                    cObject.collider = colliderEntry;
-
-                    collidersState.Add(cObject);
-                }
-                else if (childComponent is Collider2D colliderEntry2D)
-                {
-                    Collider2DRecordState cObject;
-                    var poolCount = _collider2DStateObjectPool.Count;
-                    if (poolCount > 0)
+                    else if (childComponent is Rigidbody myRigidbody)
                     {
-                        // remove from end of list
-                        cObject = _collider2DStateObjectPool[poolCount - 1];
-                        _collider2DStateObjectPool.RemoveAt(poolCount - 1);
+                        RigidbodyRecordState cObject;
+                        var poolCount = _rigidbodyStateObjectPool.Count;
+                        if (poolCount > 0)
+                        {
+                            // remove from end of list
+                            cObject = _rigidbodyStateObjectPool[poolCount - 1];
+                            _rigidbodyStateObjectPool.RemoveAt(poolCount - 1);
+                        }
+                        else
+                        {
+                            cObject = new RigidbodyRecordState();
+                        }
+
+                        cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                        cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                        cObject.rigidbody = myRigidbody;
+
+                        rigidbodiesState.Add(cObject);
                     }
-                    else
+                    else if (childComponent is Rigidbody2D myRigidbody2D)
                     {
-                        cObject = new Collider2DRecordState();
+                        Rigidbody2DRecordState cObject;
+                        var poolCount = _rigidbody2DStateObjectPool.Count;
+                        if (poolCount > 0)
+                        {
+                            // remove from end of list
+                            cObject = _rigidbody2DStateObjectPool[poolCount - 1];
+                            _rigidbody2DStateObjectPool.RemoveAt(poolCount - 1);
+                        }
+                        else
+                        {
+                            cObject = new Rigidbody2DRecordState();
+                        }
+
+                        cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                        cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                        cObject.rigidbody = myRigidbody2D;
+
+                        rigidbodiesState.Add(cObject);
                     }
-
-                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
-                    cObject.collider = colliderEntry2D;
-
-                    collidersState.Add(cObject);
-                }
-                else if (childComponent is Rigidbody myRigidbody)
-                {
-                    RigidbodyRecordState cObject;
-                    var poolCount = _rigidbodyStateObjectPool.Count;
-                    if (poolCount > 0)
+                    else if (childComponent is MonoBehaviour childBehaviour)
                     {
-                        // remove from end of list
-                        cObject = _rigidbodyStateObjectPool[poolCount - 1];
-                        _rigidbodyStateObjectPool.RemoveAt(poolCount - 1);
-                    }
-                    else
-                    {
-                        cObject = new RigidbodyRecordState();
-                    }
+                        BehaviourState cObject;
+                        var poolCount = _behaviourStateObjectPool.Count;
+                        if (poolCount > 0)
+                        {
+                            // remove from end of list
+                            cObject = _behaviourStateObjectPool[poolCount - 1];
+                            _behaviourStateObjectPool.RemoveAt(poolCount - 1);
+                        }
+                        else
+                        {
+                            cObject = new BehaviourState();
+                        }
 
-                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
-                    cObject.rigidbody = myRigidbody;
+                        cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
+                        cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
+                        cObject.name = childBehaviour.GetType().FullName;
+                        cObject.state = childBehaviour;
 
-                    rigidbodiesState.Add(cObject);
-                }
-                else if (childComponent is Rigidbody2D myRigidbody2D)
-                {
-                    Rigidbody2DRecordState cObject;
-                    var poolCount = _rigidbody2DStateObjectPool.Count;
-                    if (poolCount > 0)
-                    {
-                        // remove from end of list
-                        cObject = _rigidbody2DStateObjectPool[poolCount - 1];
-                        _rigidbody2DStateObjectPool.RemoveAt(poolCount - 1);
+                        behaviours.Add(cObject);
                     }
-                    else
-                    {
-                        cObject = new Rigidbody2DRecordState();
-                    }
-
-                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
-                    cObject.rigidbody = myRigidbody2D;
-
-                    rigidbodiesState.Add(cObject);
-                }
-                else if (childComponent is MonoBehaviour childBehaviour)
-                {
-                    BehaviourState cObject;
-                    var poolCount = _behaviourStateObjectPool.Count;
-                    if (poolCount > 0)
-                    {
-                        // remove from end of list
-                        cObject = _behaviourStateObjectPool[poolCount - 1];
-                        _behaviourStateObjectPool.RemoveAt(poolCount - 1);
-                    }
-                    else
-                    {
-                        cObject = new BehaviourState();
-                    }
-
-                    cObject.path = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).Path;
-                    cObject.normalizedPath = (ts ??= TransformStatus.GetOrCreateTransformStatus(childTransform)).NormalizedPath;
-                    cObject.name = childBehaviour.GetType().FullName;
-                    cObject.state = childBehaviour;
-
-                    behaviours.Add(cObject);
                 }
             }
         }

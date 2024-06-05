@@ -165,6 +165,13 @@ namespace RegressionGames.StateRecorder
 
         private readonly HashSet<string> _clickedObjectNormalizedPaths = new(100);
 
+        private readonly Comparer<RaycastHit> _mouseHitComparer = Comparer<RaycastHit>.Create(
+            (x1, x2) =>
+            {
+                var d = x1.distance - x2.distance;
+                return (d > 0) ? 1 : (d < 0) ? -1 : 0;
+            } );
+
         public void ObserveMouse(IEnumerable<TransformStatus> statefulObjects)
         {
             var mousePosition = Mouse.current.position.ReadValue();
@@ -178,35 +185,26 @@ namespace RegressionGames.StateRecorder
 
                     var mouseRayHits = 0;
 
-
                     var ray = Camera.main.ScreenPointToRay(mousePosition);
                     mouseRayHits = Physics.RaycastNonAlloc(ray,
                         _cachedRaycastHits,
-                        maxZDepth+0.1f);
-
-                    var comparer = Comparer<RaycastHit>.Create(
-                        (x1, x2) =>
-                        {
-                            var d = x1.distance - x2.distance;
-                            return (d > 0) ? 1 : (d < 0) ? -1 : 0;
-                        } );
+                        maxZDepth * 2f + 1f); // make sure we go deep enough to hit the collider on that object.. we hope
 
                     if (mouseRayHits > 0)
                     {
                         // order by distance from camera
-                        Array.Sort(_cachedRaycastHits, 0, mouseRayHits, comparer);
+                        Array.Sort(_cachedRaycastHits, 0, mouseRayHits, _mouseHitComparer);
                     }
-
 
                     _clickedObjectNormalizedPaths.Clear();
 
                     var bestIndex = int.MaxValue;
                     if (mouseRayHits > 0)
                     {
-                        foreach (var recordedGameObjectState in clickedOnObjects)
+                        foreach (var clickedTransformStatus in clickedOnObjects)
                         {
-                            _clickedObjectNormalizedPaths.Add(recordedGameObjectState.NormalizedPath);
-                            if (recordedGameObjectState.worldSpaceBounds != null)
+                            _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
+                            if (clickedTransformStatus.worldSpaceBounds != null)
                             {
                                 // compare to any raycast hits and pick the one closest to the camera
                                 if (bestIndex > 0)
@@ -216,7 +214,7 @@ namespace RegressionGames.StateRecorder
                                         var rayHit = _cachedRaycastHits[i];
                                         try
                                         {
-                                            if (_cachedRaycastHits[i].transform.GetInstanceID() == recordedGameObjectState.Id)
+                                            if (_cachedRaycastHits[i].transform.GetInstanceID() == clickedTransformStatus.Id)
                                             {
                                                 if (i < bestIndex)
                                                 {

@@ -32,7 +32,7 @@ namespace RegressionGames.StateRecorder
         [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
         public string stateRecordingsDirectory = "";
 
-        private double _lastCvFrameTime = -1.0;
+        private double _lastCvFrameTime = -1;
 
         private int _frameCountSinceLastTick;
 
@@ -264,6 +264,7 @@ namespace RegressionGames.StateRecorder
                     position = new Vector2Int(Screen.width +20, -20)
                 }, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary);
 
+                _lastCvFrameTime = -1;
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _profilerObserver.StartProfiling();
                 _mouseObserver.ClearBuffer();
@@ -424,7 +425,7 @@ namespace RegressionGames.StateRecorder
 
                 ++_frameCountSinceLastTick;
                 // handle recording ... uses unscaled time for real framerate calculations
-                var time = Time.unscaledTimeAsDouble;
+                var now = Time.unscaledTimeAsDouble;
 
                 var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
                 var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
@@ -453,7 +454,7 @@ namespace RegressionGames.StateRecorder
                 BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
-                    || (recordingMinFPS > 0 && (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
+                    || (recordingMinFPS > 0 && (int)(1000 * (now - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
                    )
                 {
 
@@ -479,10 +480,10 @@ namespace RegressionGames.StateRecorder
                         // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                         // update the frame time to be latest of 'now' or the last device event in it
                         // otherwise replay gets messed up trying to read the inputs by time
-                        var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => a.startTime);
+                        var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => !a.endTime.HasValue ? a.startTime : Math.Max(a.startTime, a.endTime.Value));
                         var mostRecentMouseTime = mouseInputData == null || mouseInputData.Count == 0 ? 0.0 : mouseInputData.Max(a => a.startTime);
                         var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
-                        var frameTime = Math.Max(time, mostRecentDeviceEventTime);
+                        var frameTime = Math.Max(now, mostRecentDeviceEventTime);
 
                         // get the new state
                         var states = InGameObjectFinder.GetInstance().GetStateForCurrentFrame(uiTransforms.Item2.Values, gameObjectTransforms.Item2.Values);
@@ -512,20 +513,19 @@ namespace RegressionGames.StateRecorder
                             }
                         }).ToArray();
 
-
                         double inputTime = -1;
-                        // get the earliest input time so we can playback with minimal delay
-                        if (keyboardInputData.Count > 0)
-                        {
-                            inputTime = keyboardInputData[0].startTime;
-                        }
+                        // note to future devs: it may be tempting get the earliest input time for every segment so we can playback with minimal delay
+                        // but.. because a mouse or keyboard button can be held down across many frames and across bot segment boundaries
+                        // if you replay the release action too soon in the N+1 bot segment, then you have wrongfully altered the original action
+                        // thus you can only get the earliest time on the 'first' segment
+                        inputTime = _lastCvFrameTime;
 
-                        if (mouseInputData.Count > 0)
+                        if (inputTime < 0)
                         {
-                            var mouseTime = mouseInputData[0].startTime;
-                            if (inputTime < 0 || mouseTime < inputTime)
+                            // first frame, get the mouse input time for the first frame if it exists
+                            if (mouseInputData.Count > 0)
                             {
-                                inputTime = mouseTime;
+                                inputTime = mouseInputData[0].startTime;
                             }
                         }
                         if (inputTime < 0)
@@ -552,8 +552,8 @@ namespace RegressionGames.StateRecorder
                         var performanceMetrics = new PerformanceMetricData()
                         {
                             framesSincePreviousTick = _frameCountSinceLastTick,
-                            previousTickTime = _lastCvFrameTime,
-                            fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+                            previousTickTime = _lastCvFrameTime > 0 ? _lastCvFrameTime : 0,
+                            fps = _lastCvFrameTime > 0 ? (int)(_frameCountSinceLastTick / (now - _lastCvFrameTime)) : 0,
                             cpuTimeSincePreviousTick = profilerResult.cpuTimeSincePreviousTick,
                             memory = profilerResult.systemUsedMemory,
                             gcMemory = profilerResult.gcUsedMemory,
@@ -577,7 +577,7 @@ namespace RegressionGames.StateRecorder
                             }
                         };
 
-                        _lastCvFrameTime = time;
+                        _lastCvFrameTime = now;
                         _frameCountSinceLastTick = 0;
 
                         var frameState = new RecordingFrameStateData()
