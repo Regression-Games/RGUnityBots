@@ -97,9 +97,26 @@ namespace RegressionGames.StateRecorder
 
                 #if ENABLE_LEGACY_INPUT_MANAGER
                 // Override the UI module's input source to read inputs from RGLegacyInputWrapper instead of UnityEngine.Input
-                if (inputModule != null && inputModule.inputOverride == null)
+                if (inputModule != null && inputModule is not InputSystemUIInputModule && inputModule.inputOverride == null)
                 {
-                    inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
+                    var rgModule = eventSystem.gameObject.GetComponent<RGUIInputModule>();
+                    if (rgModule == null)
+                    {
+                        // Override the existing module's input
+                        inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
+                        inputModule.enabled = false;
+                        
+                        // Add a second StandaloneInputModule to read input from the user so the overlay continues working
+                        var secondModule = eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                        secondModule.enabled = false;
+                        
+                        // Fake enabling the modules
+                        inputModule.SendMessage("OnEnable", null, SendMessageOptions.DontRequireReceiver);
+                        secondModule.SendMessage("OnEnable", null, SendMessageOptions.DontRequireReceiver);
+                        
+                        // Add RGUIInputModule to combine the disabled input modules
+                        eventSystem.gameObject.AddComponent<RGUIInputModule>();
+                    }
                 }
                 #endif
             }
