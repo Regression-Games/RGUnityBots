@@ -32,14 +32,10 @@ namespace RegressionGames.StateRecorder.Models
         // if negative, this count went down CountRule.LessThanEqual; if positive, this count went up CountRule.GreaterThanEqual; if zero, this count didn't change CountRule.NonZero; if zero and count ==0, CountRule.Zero
         public int higherLowerCountTracker;
 
-        public int rendererCount;
-
-        public int higherLowerRendererCountTracker;
-
         public override string ToString()
         {
             // easier debugging
-            return "" + path + ",c:" + count + ", a:" + addedCount + ", r:" + removedCount + ",rc:" + rendererCount + ", hlc:" + higherLowerCountTracker + ",hlrc:" + higherLowerRendererCountTracker + ",ids:["+string.Join(",",ids)+"]";
+            return path + " | " + pathHash + " - c:" + count + ", a:" + addedCount + ", r:" + removedCount + ", hlc:" + higherLowerCountTracker + ", ids:["+string.Join(",",ids)+"]";
         }
     }
 }

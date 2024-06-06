@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.Models
         public override string ToString()
         {
             // implement for easier debugger usage
-            return "" + Id + " - " + Path + " - " + rendererCount + " - " + (screenSpaceBounds!=null?"true":"false") + " - " + (worldSpaceBounds !=null?"true":"false");
+            return "" + Id + " - " + Path + " - " + (screenSpaceBounds!=null?"true":"false") + " - " + (worldSpaceBounds !=null?"true":"false");
         }
 
         public int Id;
@@ -31,8 +31,6 @@ namespace RegressionGames.StateRecorder.Models
          * <summary>cached pointer to the top level transform of this transform.. must check != null to avoid stale unity object references</summary>
          */
         public Transform TopLevelForThisTransform;
-
-        public int rendererCount;
 
         public Bounds? screenSpaceBounds;
         /**

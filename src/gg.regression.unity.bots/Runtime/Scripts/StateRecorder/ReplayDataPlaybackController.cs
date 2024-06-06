@@ -911,15 +911,19 @@ namespace RegressionGames.StateRecorder
 
                 if (matched)
                 {
-                    _lastTimeLoggedKeyFrameConditions = now;
-                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                     if (!nextBotSegment.Replay_Matched)
                     {
+                        nextBotSegment.Replay_Matched = true;
                         // log this the first time
                         RGDebug.LogInfo($"({nextBotSegment.Replay_Number}) - Bot Segment Criteria Matched");
                     }
 
-                    nextBotSegment.Replay_Matched = true;
+                    // only update the time when the first index matches
+                    if (i == 0)
+                    {
+                        _lastTimeLoggedKeyFrameConditions = now;
+                        FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                    }
 
                     if (nextBotSegment.Replay_ActionCompleted)
                     {
@@ -934,8 +938,8 @@ namespace RegressionGames.StateRecorder
                 }
                 else
                 {
-                    // only log this every 5 seconds
-                    if (nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
+                    // only log this every 5 seconds for the first key frame being evaluted
+                    if (i==0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
                     {
                         var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
                         if (warningText != null)
@@ -951,9 +955,9 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            // see if the last entry has transient matches and is transient.. if so.. dequeue another
             if (_nextBotSegments.Count > 0)
             {
+                // see if the last entry has transient matches.. if so.. dequeue another
                 var lastSegment = _nextBotSegments[^1];
                 if (lastSegment.Replay_TransientMatched)
                 {
@@ -969,6 +973,7 @@ namespace RegressionGames.StateRecorder
             }
             else
             {
+                // segment list empty.. dequeue another
                 var next = _dataContainer.DequeueBotSegment();
                 if (next != null)
                 {

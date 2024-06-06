@@ -21,8 +21,8 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 _lastFrameEvaluated = currentFrameCount;
                 //Compute the frame deltas (Use InGameObjectFinder)... but only once per frame
-                _deltaUI = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorUIStatus, uiTransforms, out var _, out var _);
-                _deltaGameObjects = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorGameObjectStatus, gameObjectTransforms, out var _, out var _);
+                _deltaUI = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorUIStatus, uiTransforms, out _);
+                _deltaGameObjects = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(priorGameObjectStatus, gameObjectTransforms, out _);
             }
         }
 
@@ -76,41 +76,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 break;
                         }
 
-                        /* TODO: Evaluate if we really want to enforce renderer count changes or not
-                        if (matched)
-                        {
-                            // then evaluate renderer count rules
-                            // compare counts for match
-                            switch (criteriaPathData.rendererCountRule)
-                            {
-                                case CountRule.Zero:
-                                    if (uiObjectCounts.rendererCount != 0)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                                case CountRule.NonZero:
-                                    if (uiObjectCounts.rendererCount <= 0)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                                case CountRule.GreaterThanEqual:
-                                    if (uiObjectCounts.rendererCount < criteriaPathData.rendererCount)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                                case CountRule.LessThanEqual:
-                                    if (uiObjectCounts.rendererCount > criteriaPathData.rendererCount)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                            }
-                        }
-                        */
-
                         // then evaluate added / removed data
                         if (matched && uiObjectCounts.addedCount < criteriaPathData.addedCount)
                         {
@@ -152,41 +117,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 }
                                 break;
                         }
-
-                        /* TODO: Evaluate if we really want to enforce renderer count changes or not
-                        if (matched)
-                        {
-                            // then evaluate renderer count rules
-                            // compare counts for match
-                            switch (criteriaPathData.rendererCountRule)
-                            {
-                                case CountRule.Zero:
-                                    if (gameObjectCounts.rendererCount != 0)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                                case CountRule.NonZero:
-                                    if (gameObjectCounts.rendererCount <= 0)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                                case CountRule.GreaterThanEqual:
-                                    if (gameObjectCounts.rendererCount < criteriaPathData.rendererCount)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                                case CountRule.LessThanEqual:
-                                    if (gameObjectCounts.rendererCount > criteriaPathData.rendererCount)
-                                    {
-                                        matched = false;
-                                    }
-                                    break;
-                            }
-                        }
-                        */
 
                         // then evaluate added / removed data need equal to or more of each to pass
                         if (matched && gameObjectCounts.addedCount < criteriaPathData.addedCount)

@@ -12,8 +12,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int addedCount;
         public int count;
         public CountRule countRule;
-        public int rendererCount;
-        public CountRule rendererCountRule;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -27,10 +25,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             IntJsonConverter.WriteToStringBuilder(stringBuilder, count);
             stringBuilder.Append(",\"countRule\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, countRule.ToString());
-            stringBuilder.Append(",\"rendererCount\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, rendererCount);
-            stringBuilder.Append(",\"rendererCountRule\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, rendererCountRule.ToString());
             stringBuilder.Append("}");
         }
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using RegressionGames.StateRecorder.Models;
 using RegressionGames.StateRecorder.Types;
 using UnityEngine;
@@ -243,10 +242,9 @@ namespace RegressionGames.StateRecorder
          *
          * returns hasDelta on spawns or de-spawns or change in camera visibility .. result is keyed on path hash
          */
-        public Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<int,TransformStatus> priorTransformStatusList, Dictionary<int, TransformStatus> currentTransformStatusList, out bool hasDelta, out bool hasRendererDelta)
+        public Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<int,TransformStatus> priorTransformStatusList, Dictionary<int, TransformStatus> currentTransformStatusList, out bool hasDelta)
         {
             hasDelta = false;
-            hasRendererDelta = false;
             var result = new Dictionary<int, PathBasedDeltaCount>(); // keyed by path hash
             /*
              * go through the new state and add up the totals
@@ -267,14 +265,11 @@ namespace RegressionGames.StateRecorder
 
                 var onCameraNow = (currentEntry.screenSpaceBounds != null);
 
-                // only update 'count' for things on screen, but added/removed/rendererCount count are updated always
+                // only update 'count' for things on screen, but added/removed count are updated always
                 if (onCameraNow)
                 {
                     pathCountEntry.count++;
-                    pathCountEntry.rendererCount += currentEntry.rendererCount;
                 }
-
-                pathCountEntry.higherLowerRendererCountTracker += currentEntry.rendererCount;
 
                 // ids is used to track despawns
                 pathCountEntry.ids.Add(currentEntry.Id);
@@ -313,11 +308,6 @@ namespace RegressionGames.StateRecorder
                     pathCountEntry = new PathBasedDeltaCount(pathHash, entry.Value.NormalizedPath);
                     result[pathHash] = pathCountEntry;
                 }
-                else
-                {
-                    // update the higherLowerRendererCountTracker if we already had this object path
-                    pathCountEntry.higherLowerRendererCountTracker -= entry.Value.rendererCount;
-                }
 
                 if (!pathCountEntry.ids.Contains(entry.Key))
                 {
@@ -325,8 +315,6 @@ namespace RegressionGames.StateRecorder
                     pathCountEntry.removedCount++;
                 }
             }
-
-            hasRendererDelta = result.Any(a => a.Value.higherLowerRendererCountTracker != 0);
 
             return result;
         }
@@ -476,8 +464,6 @@ namespace RegressionGames.StateRecorder
                                         var center = new Vector3(min.x + size.x/2, min.y + size.y/2, 0f);
                                         tStatus.screenSpaceBounds = new Bounds(center, size);
                                         tStatus.screenSpaceZOffset = 0f;
-                                        // for ui objects if we find another in the tree that gets reported separately
-                                        tStatus.rendererCount = 1;
 
                                         if (isWorldSpace)
                                         {
@@ -643,7 +629,6 @@ namespace RegressionGames.StateRecorder
 
                     // depending on the include only on camera setting, this object may be null
                     var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulTransform);
-                    tStatus.rendererCount = rendererListLength;
                     _newGameObjects[tStatus.Id] = tStatus;
 
                     var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
@@ -813,8 +798,7 @@ namespace RegressionGames.StateRecorder
                             rigidbodies = new List<RigidbodyRecordState>(),
                             screenSpaceZOffset = tStatus.screenSpaceZOffset,
                             screenSpaceBounds = tStatus.screenSpaceBounds.Value,
-                            worldSpaceBounds = tStatus.worldSpaceBounds,
-                            rendererCount = tStatus.rendererCount
+                            worldSpaceBounds = tStatus.worldSpaceBounds
                         };
                     }
 
@@ -907,8 +891,7 @@ namespace RegressionGames.StateRecorder
                             rigidbodies = new List<RigidbodyRecordState>(),
                             screenSpaceBounds = tStatus.screenSpaceBounds.Value,
                             screenSpaceZOffset = tStatus.screenSpaceZOffset,
-                            worldSpaceBounds = tStatus.worldSpaceBounds,
-                            rendererCount = tStatus.rendererCount
+                            worldSpaceBounds = tStatus.worldSpaceBounds
                         };
                     }
 
