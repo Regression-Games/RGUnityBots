@@ -4,20 +4,32 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RecordingFrameStateData : BaseFrameStateData
+    public class RecordingFrameStateData
     {
+        /**
+         * <summary>UUID of the session</summary>
+         */
+        public string sessionId;
         /**
          * <summary>Reference to the original recording this was created from during replay, possibly null</summary>
          */
-        public string referenceSessionId = null;
+        public string referenceSessionId;
+        public long tickNumber;
+        public KeyFrameType[] keyFrame;
+        public double time;
+        public float timeScale;
+        public Vector2Int screenSize;
+        public string pixelHash;
+        public IEnumerable<RecordedGameObjectState> state;
+        public InputData inputs;
 
         public PerformanceMetricData performance;
-        public new IEnumerable<RecordedGameObjectState> state;
 
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000_000);
