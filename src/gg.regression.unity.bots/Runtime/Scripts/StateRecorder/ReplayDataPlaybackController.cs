@@ -82,7 +82,9 @@ namespace RegressionGames.StateRecorder
             var eventSystems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
             foreach (var eventSystem in eventSystems)
             {
-                BaseInputModule inputModule = eventSystem.gameObject.GetComponent<BaseInputModule>();
+                BaseInputModule inputModule = eventSystem.gameObject
+                    .GetComponents<BaseInputModule>()
+                    .FirstOrDefault(module => module is not RGStandaloneInputModule);
                 
                 // If there is no module, add the appropriate input module so that the replay can simulate UI inputs.
                 // If both the new and old input systems are active, prefer the new input system's UI module.
@@ -99,23 +101,15 @@ namespace RegressionGames.StateRecorder
                 // Override the UI module's input source to read inputs from RGLegacyInputWrapper instead of UnityEngine.Input
                 if (inputModule != null && inputModule is not InputSystemUIInputModule && inputModule.inputOverride == null)
                 {
-                    var rgModule = eventSystem.gameObject.GetComponent<RGUIInputModule>();
+                    // Override and disable the existing module's input
+                    inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
+                    inputModule.enabled = false;
+                    
+                    var rgModule = eventSystem.gameObject.GetComponent<RGStandaloneInputModule>();
                     if (rgModule == null)
                     {
-                        // Override the existing module's input
-                        inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
-                        inputModule.enabled = false;
-                        
-                        // Add a second StandaloneInputModule to read input from the user so the overlay continues working
-                        var secondModule = eventSystem.gameObject.AddComponent<StandaloneInputModule>();
-                        secondModule.enabled = false;
-                        
-                        // Fake enabling the modules
-                        inputModule.SendMessage("OnEnable", null, SendMessageOptions.DontRequireReceiver);
-                        secondModule.SendMessage("OnEnable", null, SendMessageOptions.DontRequireReceiver);
-                        
-                        // Add RGUIInputModule to combine the disabled input modules
-                        eventSystem.gameObject.AddComponent<RGUIInputModule>();
+                        // Add RGUIInputModule to read input from both playback and user input
+                        eventSystem.gameObject.AddComponent<RGStandaloneInputModule>();
                     }
                 }
                 #endif
