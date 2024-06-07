@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
+using RegressionGames.RGLegacyInputUtility;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 
 namespace RegressionGames
 {
@@ -65,6 +70,49 @@ namespace RegressionGames
 
             var hash = md5.ComputeHash(stream);
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
+        
+        
+        /// <summary>
+        /// Configures a scene's EventSystems to support replay and other functionality requiring simulated inputs
+        /// </summary>
+        public static void SetupEventSystem()
+        {
+            var eventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
+            foreach (var eventSystem in eventSystems)
+            {
+                BaseInputModule inputModule = eventSystem.gameObject
+                    .GetComponents<BaseInputModule>()
+                    .FirstOrDefault(module => module is not RGStandaloneInputModule);
+                
+                // If there is no module, add the appropriate input module so that the replay can simulate UI inputs.
+                // If both the new and old input systems are active, prefer the new input system's UI module.
+                if (inputModule == null)
+                {
+                    #if ENABLE_INPUT_SYSTEM
+                    inputModule = eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                    #elif ENABLE_LEGACY_INPUT_MANAGER
+                    inputModule = eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                    #endif
+                }
+
+                #if ENABLE_LEGACY_INPUT_MANAGER
+                // Override the UI module's input source to read inputs from RGLegacyInputWrapper instead of UnityEngine.Input
+                if (inputModule != null && inputModule is not InputSystemUIInputModule && inputModule.inputOverride == null)
+                {
+                    // Override and disable the existing module's input
+                    inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
+                    inputModule.enabled = false;
+                    
+                    var rgModule = eventSystem.gameObject.GetComponent<RGStandaloneInputModule>();
+                    if (rgModule == null)
+                    {
+                        // Add RGUIInputModule to read input from both playback and user input
+                        eventSystem.gameObject.AddComponent<RGStandaloneInputModule>();
+                    }
+                }
+                #endif
+            }
         }
     }
 }
