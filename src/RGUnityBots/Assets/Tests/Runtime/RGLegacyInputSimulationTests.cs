@@ -64,6 +64,10 @@ namespace Tests.Runtime
             Debug.unityLogger.logHandler = new RGLegacyInputTestLogHandler(_logMessages, Debug.unityLogger.logHandler);
         }
 
+        /**
+         * All the test cases for the legacy input simulation go in one test case.
+         * Otherwise, we run into test flakiness when running in batch mode.
+         */
         [UnityTest]
         public IEnumerator TestLegacyInputSimulation()
         {
