@@ -15,39 +15,10 @@ using Object = UnityEngine.Object;
 
 namespace Tests.Runtime
 {
-    public class RGLegacyInputTestLogHandler : ILogHandler
-    {
-        private Queue<string> _logMessageQueue;
-        private ILogHandler _existingLogHandler;
-
-        public ILogHandler ExistingLogHandler => _existingLogHandler;
-        
-        public RGLegacyInputTestLogHandler(Queue<string> logMessageQueue, ILogHandler existingLogHandler)
-        {
-            _logMessageQueue = logMessageQueue;
-            _existingLogHandler = existingLogHandler;
-        }
-        
-        public void LogFormat(LogType logType, Object context, string format, params object[] args)
-        {
-            string message = string.Format(format, args);
-            _logMessageQueue.Enqueue(message);
-            _existingLogHandler.LogFormat(logType, context, format, args);
-        }
-
-        public void LogException(Exception exception, Object context)
-        {
-            _existingLogHandler.LogException(exception, context);
-        }
-    }
-
     public class RGLegacyInputSimulationTests
     {
-        private Queue<string> _logMessages;
-
         private void ResetState()
         {
-            _logMessages.Clear();
             RGLegacyInputWrapper.StopSimulation();
             GameObject eventSystem = GameObject.Find("EventSystem");
             var eventSys = eventSystem.GetComponent<EventSystem>();
@@ -60,8 +31,6 @@ namespace Tests.Runtime
             SceneManager.LoadSceneAsync("LegacyInputTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("LegacyInputTestScene");
             RGUtils.SetupEventSystem();
-            _logMessages = new Queue<string>();
-            Debug.unityLogger.logHandler = new RGLegacyInputTestLogHandler(_logMessages, Debug.unityLogger.logHandler);
         }
 
         /**
@@ -219,28 +188,16 @@ namespace Tests.Runtime
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            Debug.unityLogger.logHandler =
-                ((RGLegacyInputTestLogHandler)Debug.unityLogger.logHandler).ExistingLogHandler;
+            RGLegacyInputWrapper.StopSimulation();
             yield break;
         }
 
         private void AssertLogMessagesPresent(params string[] expectedMessages)
         {
-            var actualMessages = DequeueLogMessages();
             foreach (string msg in expectedMessages)
             {
-                Debug.Assert(actualMessages.Contains(msg), $"Expected log message {msg}");
+                LogAssert.Expect(LogType.Log, msg);
             }
-        }
-
-        private ISet<string> DequeueLogMessages()
-        {
-            ISet<string> result = new HashSet<string>();
-            while (_logMessages.TryDequeue(out string msg))
-            {
-                result.Add(msg);
-            }
-            return result;
         }
     }
 }
