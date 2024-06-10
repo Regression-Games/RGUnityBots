@@ -71,7 +71,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         }
 
         /**
-         * <summary>Only to be called internally by BotSegmentTypes helper classes</summary>
+         * <summary>Only to be called internally by KeyFrameEvaluator</summary>
          */
         internal bool MatchedHelper(AndOr andOr, KeyFrameCriteria[] criteriaList)
         {
