@@ -28,22 +28,21 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
 
             var sb = new StringBuilder(1000);
-            sb.Append("Unmatched Criteria\r\n");
             var unmatchedCriteriaCount = _unmatchedCriteria.Count;
             for (var i = 0; i < unmatchedCriteriaCount; i++)
             {
-                sb.Append(_unmatchedCriteria[i].ToString());
+                sb.Append(_unmatchedCriteria[i]);
                 if (i + 1 < unmatchedCriteriaCount)
                 {
-                    sb.Append(",");
+                    sb.Append("\r\n");
                 }
             }
 
             return sb.ToString();
         }
 
-        private List<KeyFrameCriteria> _unmatchedCriteria = new(1000);
-        private List<KeyFrameCriteria> _newUnmatchedCriteria = new(1000);
+        private List<string> _unmatchedCriteria = new(1000);
+        private List<string> _newUnmatchedCriteria = new(1000);
 
         /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
@@ -120,7 +119,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < pathResultsCount; j++)
                 {
                     var pathEntry = pathResults[j];
-                    if (pathEntry)
+                    if (pathEntry == null)
                     {
                         if (andOr == AndOr.Or)
                         {
@@ -131,7 +130,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     {
                         if (andOr == AndOr.And)
                         {
-                            _newUnmatchedCriteria.Add(normalizedPathsToMatch[j]);
+                            _newUnmatchedCriteria.Add(pathEntry);
                             return false;
                         }
                     }
@@ -158,7 +157,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                     {
                         if (andOr == AndOr.And)
                         {
-                            _newUnmatchedCriteria.Add(orEntry);
                             return false;
                         }
                     }
@@ -185,7 +183,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                     {
                         if (andOr == AndOr.And)
                         {
-                            _newUnmatchedCriteria.Add(andEntry);
                             return false;
                         }
                     }

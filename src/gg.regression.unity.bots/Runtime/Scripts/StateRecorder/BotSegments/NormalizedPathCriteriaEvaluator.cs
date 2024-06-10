@@ -27,17 +27,17 @@ namespace RegressionGames.StateRecorder.BotSegments
         }
 
         // Track counts from the last keyframe completion and use that as the 'prior' data
-        public static List<bool> Matched(List<KeyFrameCriteria> criteriaList, Dictionary<int, TransformStatus> priorUIStatus, Dictionary<int, TransformStatus> priorGameObjectStatus, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
+        public static List<string> Matched(List<KeyFrameCriteria> criteriaList, Dictionary<int, TransformStatus> priorUIStatus, Dictionary<int, TransformStatus> priorGameObjectStatus, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
         {
             UpdateDeltaCounts(priorUIStatus, priorGameObjectStatus, uiTransforms, gameObjectTransforms);
 
-            var resultList = new List<bool>();
+            var resultList = new List<string>();
             foreach (var criteria in criteriaList)
             {
-                var matched = false;
+                string matched = null; // null == matched, error message if not matched
                 if (criteria.transient && criteria.Replay_TransientMatched)
                 {
-                    matched = true;
+                    matched = null;
                 }
                 else
                 {
@@ -51,40 +51,40 @@ namespace RegressionGames.StateRecorder.BotSegments
                         switch (criteriaPathData.countRule)
                         {
                             case CountRule.Zero:
-                                if (uiObjectCounts.count == 0)
+                                if (uiObjectCounts.count != 0)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.Zero - actual: {uiObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.NonZero:
-                                if (uiObjectCounts.count > 0)
+                                if (uiObjectCounts.count <= 0)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.NonZero - actual: {uiObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.GreaterThanEqual:
-                                if (uiObjectCounts.count >= criteriaPathData.count)
+                                if (uiObjectCounts.count < criteriaPathData.count)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.GreaterThanEqual - actual: {uiObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                             case CountRule.LessThanEqual:
-                                if (uiObjectCounts.count <= criteriaPathData.count)
+                                if (uiObjectCounts.count > criteriaPathData.count)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.LessThanEqual - actual: {uiObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                         }
 
                         // then evaluate added / removed data
-                        if (matched && uiObjectCounts.addedCount < criteriaPathData.addedCount)
+                        if (matched == null && uiObjectCounts.addedCount < criteriaPathData.addedCount)
                         {
-                            matched = false;
+                            matched = $"{normalizedPath} - addedCount - actual: {uiObjectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
                         }
 
-                        if (matched && uiObjectCounts.removedCount < criteriaPathData.removedCount)
+                        if (matched == null && uiObjectCounts.removedCount < criteriaPathData.removedCount)
                         {
-                            matched = false;
+                            matched = $"{normalizedPath} - removedCount - actual: {uiObjectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
                         }
                     }
                     else if (_deltaGameObjects.TryGetValue(pathHash, out var gameObjectCounts))
@@ -93,46 +93,51 @@ namespace RegressionGames.StateRecorder.BotSegments
                         switch (criteriaPathData.countRule)
                         {
                             case CountRule.Zero:
-                                if (gameObjectCounts.count == 0)
+                                if (gameObjectCounts.count != 0)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.Zero - actual: {gameObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.NonZero:
-                                if (gameObjectCounts.count > 0)
+                                if (gameObjectCounts.count <= 0)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.NonZero - actual: {gameObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.GreaterThanEqual:
-                                if (gameObjectCounts.count >= criteriaPathData.count)
+                                if (gameObjectCounts.count < criteriaPathData.count)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.GreaterThanEqual - actual: {gameObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                             case CountRule.LessThanEqual:
-                                if (gameObjectCounts.count <= criteriaPathData.count)
+                                if (gameObjectCounts.count > criteriaPathData.count)
                                 {
-                                    matched = true;
+                                    matched = $"{normalizedPath} - CountRule.LessThanEqual - actual: {gameObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                         }
 
-                        // then evaluate added / removed data need equal to or more of each to pass
-                        if (matched && gameObjectCounts.addedCount < criteriaPathData.addedCount)
+                        // then evaluate added / removed data
+                        if (matched == null && gameObjectCounts.addedCount < criteriaPathData.addedCount)
                         {
-                            matched = false;
+                            matched = $"{normalizedPath} - addedCount - actual: {gameObjectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
                         }
 
-                        if (matched && gameObjectCounts.removedCount < criteriaPathData.removedCount)
+                        if (matched == null && gameObjectCounts.removedCount < criteriaPathData.removedCount)
                         {
-                            matched = false;
+                            matched = $"{normalizedPath} - removedCount - actual: {gameObjectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
                         }
                     }
-                    // else - criteria not met - false
+                    else
+                    {
+                        // else - criteria not met - false
+                        matched = $"{normalizedPath} - missing object";
+                    }
+
                 }
 
-                if (matched)
+                if (matched == null)
                 {
                     criteria.Replay_TransientMatched = true;
                 }
