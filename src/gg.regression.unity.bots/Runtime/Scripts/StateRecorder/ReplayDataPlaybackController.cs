@@ -710,7 +710,7 @@ namespace RegressionGames.StateRecorder
                     // use the center of these bounds as our best point to click
                     normalizedPosition = new Vector2((int)clickBounds.center.x, (int)clickBounds.center.y);
 
-                    RGDebug.LogInfo($"Adjusting click location to ensure hit on object path: " + bestObject.Path + " oldPosition: (" + old.x + "," + old.y + "), newPosition: (" + normalizedPosition.x + "," + normalizedPosition.y + ")");
+                    RGDebug.LogInfo($"({replaySegment}) Adjusting click location to ensure hit on object path: " + bestObject.Path + " oldPosition: (" + old.x + "," + old.y + "), newPosition: (" + normalizedPosition.x + "," + normalizedPosition.y + ")");
                 }
             }
 
@@ -931,13 +931,22 @@ namespace RegressionGames.StateRecorder
                         nextBotSegment.Replay_Matched = true;
                         // log this the first time
                         RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment Criteria Matched");
+                        if (i == 0)
+                        {
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                            // only do this when it is the zero index segment that passes
+                            KeyFrameEvaluator.Evaluator.PersistPriorFrameStatus();
+                        }
                     }
 
-                    // only update the time when the first index matches
+                    // only update the time when the first index matches, but keeps us from logging this while waiting for actions to complete
                     if (i == 0)
                     {
-                        _lastTimeLoggedKeyFrameConditions = now;
-                        FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                        if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
+                        {
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText($"({nextBotSegment.Replay_SegmentNumber}) - Waiting for actions to complete");
+                        }
                     }
 
                     if (nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
@@ -953,8 +962,8 @@ namespace RegressionGames.StateRecorder
                 }
                 else
                 {
-                    // only log this every 5 seconds for the first key frame being evaluted
-                    if (i==0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
+                    // only log this every 5 seconds for the first key frame being evaluated after its actions complete
+                    if (i == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
                     {
                         var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
                         if (warningText != null)

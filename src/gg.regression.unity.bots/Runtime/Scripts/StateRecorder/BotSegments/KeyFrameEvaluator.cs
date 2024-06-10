@@ -16,6 +16,8 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void Reset()
         {
+            _unmatchedCriteria.Clear();
+            _newUnmatchedCriteria.Clear();
             _priorKeyFrameUIStatus.Clear();
             _priorKeyFrameGameObjectStatus.Clear();
         }
@@ -45,22 +47,28 @@ namespace RegressionGames.StateRecorder.BotSegments
         private List<string> _newUnmatchedCriteria = new(1000);
 
         /**
+         * <summary>Called to tell this to persist the current frame as the last succesful key frame.  This is NOT done automatically in matched because we process multiple transient frames in a single pass and you don't want to update to a newer state yet when a later transient frame passes before the earlier one.</summary>
+         */
+        public void PersistPriorFrameStatus()
+        {
+            var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
+            var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
+            // copy the dictionaries
+            _priorKeyFrameUIStatus = uiTransforms.Item2.ToDictionary(a => a.Key, a => a.Value);
+            _priorKeyFrameGameObjectStatus = gameObjectTransforms.Item2.ToDictionary(a=>a.Key, a=>a.Value);
+        }
+
+        /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
          */
         public bool Matched(KeyFrameCriteria[] criteriaList)
         {
             _newUnmatchedCriteria.Clear();
-            bool matched = false;
-            matched = MatchedHelper(AndOr.And, criteriaList);
+            bool matched = MatchedHelper(AndOr.And, criteriaList);
             if (matched)
             {
                 _unmatchedCriteria.Clear();
                 _newUnmatchedCriteria.Clear();
-                var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
-                var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
-                // copy the dictionaries
-                _priorKeyFrameUIStatus = uiTransforms.Item2.ToDictionary(a => a.Key, a => a.Value);
-                _priorKeyFrameGameObjectStatus = gameObjectTransforms.Item2.ToDictionary(a=>a.Key, a=>a.Value);
             }
             else
             {
