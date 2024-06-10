@@ -77,7 +77,7 @@ namespace RegressionGames.StateRecorder
                     using var sr = new StreamReader(entry.Open());
                     var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
 
-                    frameData.Replay_Number = replayNumber++;
+                    frameData.Replay_SegmentNumber = replayNumber++;
 
                     if (SessionId == null)
                     {

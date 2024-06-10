@@ -149,6 +149,10 @@ namespace RegressionGames.StateRecorder
         [NonSerialized]
         public double Replay_OffsetTime;
 
+        // Replay only - used for logging
+        [NonSerialized]
+        public int Replay_SegmentNumber;
+
         // Replay only
         public double Replay_StartTime => startTime + Replay_OffsetTime;
 

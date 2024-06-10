@@ -85,6 +85,10 @@ namespace RegressionGames.StateRecorder
         [NonSerialized]
         public readonly bool[] Replay_StartEndSentFlags = { false, false };
 
+        // Replay only - used for logging
+        [NonSerialized]
+        public int Replay_SegmentNumber;
+
         // Replay only
         [NonSerialized]
         public double Replay_OffsetTime;

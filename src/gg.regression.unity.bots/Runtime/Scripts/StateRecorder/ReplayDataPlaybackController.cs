@@ -132,10 +132,10 @@ namespace RegressionGames.StateRecorder
             Stop();
             _replaySuccessful = null;
 
-            SendMouseEvent(new MouseInputActionData()
+            SendMouseEvent(-1, new MouseInputActionData()
             {
                 // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
-                position = new Vector2Int(Screen.width +20, -20)
+                position = new Vector2Int(Screen.width +20, -20),
             }, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary);
 
             _dataContainer = dataContainer;
@@ -279,14 +279,14 @@ namespace RegressionGames.StateRecorder
                     if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
                     {
                         // send start event
-                        SendKeyEvent(replayKeyboardInputEntry.Key, KeyState.Down);
+                        SendKeyEvent(replayKeyboardInputEntry, KeyState.Down);
                         replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
                     }
 
                     if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
                     {
                         // send end event
-                        SendKeyEvent(replayKeyboardInputEntry.Key, KeyState.Up);
+                        SendKeyEvent(replayKeyboardInputEntry, KeyState.Up);
                         replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                     }
                 }
@@ -303,7 +303,7 @@ namespace RegressionGames.StateRecorder
                         var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
 
                         // send event
-                        SendMouseEvent(replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
+                        SendMouseEvent(replayMouseInputEntry.Replay_SegmentNumber, replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
                         replayMouseInputEntry.Replay_IsDone = true;
                     }
                 }
@@ -338,8 +338,10 @@ namespace RegressionGames.StateRecorder
         }
 #endif
 
-        private void SendKeyEvent(Key key, KeyState upOrDown)
+        private void SendKeyEvent(KeyboardInputActionData keyboardData, KeyState upOrDown)
         {
+            var replaySegment = keyboardData.Replay_SegmentNumber;
+            var key = keyboardData.Key;
             #if ENABLE_LEGACY_INPUT_MANAGER
             SendKeyEventLegacy(key, upOrDown);
             #endif
@@ -363,7 +365,7 @@ namespace RegressionGames.StateRecorder
 
                 if (inputControl != null)
                 {
-                    RGDebug.LogInfo($"Sending Key Event: {key} - {upOrDown}");
+                    RGDebug.LogInfo($"({replaySegment}) Sending Key Event: [{keyboardData.Replay_StartTime}] [{keyboardData.Replay_EndTime}] - {key} - {upOrDown}");
 
                     // queue input event
                     inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
@@ -672,7 +674,7 @@ namespace RegressionGames.StateRecorder
         }
 #endif
 
-        public static void SendMouseEvent(MouseInputActionData mouseInput, Dictionary<int, TransformStatus> priorUiTransforms, Dictionary<int, TransformStatus> priorGameObjectTransforms, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
+        public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<int, TransformStatus> priorUiTransforms, Dictionary<int, TransformStatus> priorGameObjectTransforms, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
         {
             var clickObjectResult = FindBestClickObject(Camera.main, mouseInput, priorUiTransforms, priorGameObjectTransforms,uiTransforms, gameObjectTransforms);
 
@@ -829,7 +831,7 @@ namespace RegressionGames.StateRecorder
 
                 if (RGDebug.IsDebugEnabled)
                 {
-                    RGDebug.LogDebug($"Sending Mouse Event [{mouseInput.startTime}] - {mouseEventString}");
+                    RGDebug.LogDebug($"({replaySegment}) Sending Mouse Event [{mouseInput.Replay_StartTime}] - {mouseEventString}");
                 }
 
                 InputSystem.QueueEvent(eventPtr);
@@ -880,19 +882,21 @@ namespace RegressionGames.StateRecorder
                     nextBotSegment.Replay_ActionStarted = true;
                     if (botAction.data is InputPlaybackActionData ipad)
                     {
-                        RGDebug.LogInfo($"({nextBotSegment.Replay_Number}) - Processing InputPlaybackActionData for BotSegment");
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Processing InputPlaybackActionData for BotSegment");
 
                         var currentInputTimePoint = now - ipad.startTime;
 
                         foreach (var keyboardInputActionData in ipad.inputData.keyboard)
                         {
                             keyboardInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                            keyboardInputActionData.Replay_SegmentNumber = nextBotSegment.Replay_SegmentNumber;
                             _keyboardQueue.Add(keyboardInputActionData);
                         }
 
                         foreach (var mouseInputActionData in ipad.inputData.mouse)
                         {
                             mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                            mouseInputActionData.Replay_SegmentNumber = nextBotSegment.Replay_SegmentNumber;
                             _mouseQueue.Add(mouseInputActionData);
                         }
                     }
@@ -926,7 +930,7 @@ namespace RegressionGames.StateRecorder
                     {
                         nextBotSegment.Replay_Matched = true;
                         // log this the first time
-                        RGDebug.LogInfo($"({nextBotSegment.Replay_Number}) - Bot Segment Criteria Matched");
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment Criteria Matched");
                     }
 
                     // only update the time when the first index matches
@@ -936,11 +940,11 @@ namespace RegressionGames.StateRecorder
                         FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                     }
 
-                    if (nextBotSegment.Replay_ActionCompleted)
+                    if (nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
                     {
-                        RGDebug.LogInfo($"({nextBotSegment.Replay_Number}) - Bot Segment Completed");
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment Completed");
                         //Process the inputs from that bot segment if necessary
-                        _nextBotSegments.RemoveAt(0);
+                        _nextBotSegments.RemoveAt(i);
                     }
                     else
                     {
@@ -955,7 +959,7 @@ namespace RegressionGames.StateRecorder
                         var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
                         if (warningText != null)
                         {
-                            var loggedMessage = $"({nextBotSegment.Replay_Number}) - Unmatched Criteria for BotSegment\r\n" + warningText;
+                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Unmatched Criteria for BotSegment\r\n" + warningText;
                             _lastTimeLoggedKeyFrameConditions = now;
                             RGDebug.LogInfo(loggedMessage);
                             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
@@ -977,7 +981,7 @@ namespace RegressionGames.StateRecorder
                     {
                         _lastTimeLoggedKeyFrameConditions = now;
                         FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                        RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation after Transient BotSegment");
+                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Added BotSegment for Evaluation after Transient BotSegment");
                         _nextBotSegments.Add(next);
                     }
                 }
@@ -990,7 +994,7 @@ namespace RegressionGames.StateRecorder
                 {
                     _lastTimeLoggedKeyFrameConditions = now;
                     FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                    RGDebug.LogInfo($"({next.Replay_Number}) - Added BotSegment for Evaluation");
+                    RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Added BotSegment for Evaluation");
                     _nextBotSegments.Add(next);
                 }
             }
@@ -1013,7 +1017,7 @@ namespace RegressionGames.StateRecorder
 
                 if (_nextBotSegments.Count == 0)
                 {
-                    SendMouseEvent(new MouseInputActionData()
+                    SendMouseEvent(-1, new MouseInputActionData()
                     {
                         // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure
                         position = new Vector2Int(Screen.width + 20, -20)

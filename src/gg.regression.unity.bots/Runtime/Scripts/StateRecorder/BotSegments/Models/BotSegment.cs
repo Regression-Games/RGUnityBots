@@ -23,7 +23,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // Replay only - numbers the segments in the replay data
         [NonSerialized]
-        public int Replay_Number;
+        public int Replay_SegmentNumber;
 
         // Replay only - tracks if we have started the action for this bot segment
         [NonSerialized]
