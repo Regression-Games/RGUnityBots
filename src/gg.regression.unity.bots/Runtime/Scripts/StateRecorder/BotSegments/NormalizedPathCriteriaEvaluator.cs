@@ -35,11 +35,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             foreach (var criteria in criteriaList)
             {
                 string matched = null; // null == matched, error message if not matched
-                if (criteria.transient && criteria.Replay_TransientMatched)
-                {
-                    matched = null;
-                }
-                else
+                if (!(criteria.transient && criteria.Replay_TransientMatched))
                 {
                     var criteriaPathData = criteria.data as PathKeyFrameCriteriaData;
                     var normalizedPath = criteriaPathData.path;
