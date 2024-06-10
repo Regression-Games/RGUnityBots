@@ -353,7 +353,7 @@ namespace RegressionGames.StateRecorder
                     var canvas = statefulUIObject.GetComponentInParent<Canvas>();
                     if (canvas == null)
                     {
-                        // did Not think this was allowed.. but one of our partner's games gets away with it :/
+                        // did Not think having canvas as a child instead of a parent was allowed.. but one of our partner's games gets away with it :/
                         canvas = statefulUIObject.GetComponentInChildren<Canvas>();
                     }
 
