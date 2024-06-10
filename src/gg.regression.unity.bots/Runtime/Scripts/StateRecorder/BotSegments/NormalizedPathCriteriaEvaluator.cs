@@ -53,25 +53,25 @@ namespace RegressionGames.StateRecorder.BotSegments
                             case CountRule.Zero:
                                 if (uiObjectCounts.count != 0)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.Zero - actual: {uiObjectCounts.count}";
+                                    matched = $"NormalizedPath (UI) - {normalizedPath} - CountRule.Zero - actual: {uiObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.NonZero:
                                 if (uiObjectCounts.count <= 0)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.NonZero - actual: {uiObjectCounts.count}";
+                                    matched = $"NormalizedPath (UI) - {normalizedPath} - CountRule.NonZero - actual: {uiObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.GreaterThanEqual:
                                 if (uiObjectCounts.count < criteriaPathData.count)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.GreaterThanEqual - actual: {uiObjectCounts.count} , expected: {criteriaPathData.count}";
+                                    matched = $"NormalizedPath (UI) - {normalizedPath} - CountRule.GreaterThanEqual - actual: {uiObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                             case CountRule.LessThanEqual:
                                 if (uiObjectCounts.count > criteriaPathData.count)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.LessThanEqual - actual: {uiObjectCounts.count} , expected: {criteriaPathData.count}";
+                                    matched = $"NormalizedPath (UI) - {normalizedPath} - CountRule.LessThanEqual - actual: {uiObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                         }
@@ -79,12 +79,12 @@ namespace RegressionGames.StateRecorder.BotSegments
                         // then evaluate added / removed data
                         if (matched == null && uiObjectCounts.addedCount < criteriaPathData.addedCount)
                         {
-                            matched = $"{normalizedPath} - addedCount - actual: {uiObjectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
+                            matched = $"NormalizedPath (UI) - {normalizedPath} - addedCount - actual: {uiObjectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
                         }
 
                         if (matched == null && uiObjectCounts.removedCount < criteriaPathData.removedCount)
                         {
-                            matched = $"{normalizedPath} - removedCount - actual: {uiObjectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
+                            matched = $"NormalizedPath (UI) - {normalizedPath} - removedCount - actual: {uiObjectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
                         }
                     }
                     else if (_deltaGameObjects.TryGetValue(pathHash, out var gameObjectCounts))
@@ -95,25 +95,25 @@ namespace RegressionGames.StateRecorder.BotSegments
                             case CountRule.Zero:
                                 if (gameObjectCounts.count != 0)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.Zero - actual: {gameObjectCounts.count}";
+                                    matched = $"NormalizedPath (WorldSpace) - {normalizedPath} - CountRule.Zero - actual: {gameObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.NonZero:
                                 if (gameObjectCounts.count <= 0)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.NonZero - actual: {gameObjectCounts.count}";
+                                    matched = $"NormalizedPath (WorldSpace) - {normalizedPath} - CountRule.NonZero - actual: {gameObjectCounts.count}";
                                 }
                                 break;
                             case CountRule.GreaterThanEqual:
                                 if (gameObjectCounts.count < criteriaPathData.count)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.GreaterThanEqual - actual: {gameObjectCounts.count} , expected: {criteriaPathData.count}";
+                                    matched = $"NormalizedPath (WorldSpace) - {normalizedPath} - CountRule.GreaterThanEqual - actual: {gameObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                             case CountRule.LessThanEqual:
                                 if (gameObjectCounts.count > criteriaPathData.count)
                                 {
-                                    matched = $"{normalizedPath} - CountRule.LessThanEqual - actual: {gameObjectCounts.count} , expected: {criteriaPathData.count}";
+                                    matched = $"NormalizedPath (WorldSpace) - {normalizedPath} - CountRule.LessThanEqual - actual: {gameObjectCounts.count} , expected: {criteriaPathData.count}";
                                 }
                                 break;
                         }
@@ -121,18 +121,18 @@ namespace RegressionGames.StateRecorder.BotSegments
                         // then evaluate added / removed data
                         if (matched == null && gameObjectCounts.addedCount < criteriaPathData.addedCount)
                         {
-                            matched = $"{normalizedPath} - addedCount - actual: {gameObjectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
+                            matched = $"NormalizedPath (WorldSpace) - {normalizedPath} - addedCount - actual: {gameObjectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
                         }
 
                         if (matched == null && gameObjectCounts.removedCount < criteriaPathData.removedCount)
                         {
-                            matched = $"{normalizedPath} - removedCount - actual: {gameObjectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
+                            matched = $"NormalizedPath (WorldSpace) - {normalizedPath} - removedCount - actual: {gameObjectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
                         }
                     }
                     else
                     {
                         // else - criteria not met - false
-                        matched = $"{normalizedPath} - missing object";
+                        matched = $"NormalizedPath (WorldSpace) - {normalizedPath} - missing object";
                     }
 
                 }
