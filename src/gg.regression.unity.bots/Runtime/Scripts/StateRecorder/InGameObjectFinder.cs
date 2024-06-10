@@ -386,9 +386,8 @@ namespace RegressionGames.StateRecorder
 
                             if (rectTransformsListLength > 0)
                             {
-                                var min = Vector2.zero;
-                                var max = Vector2.zero;
-                                Vector3 worldMin = Vector3.zero;
+                                Vector2 min, max;
+                                var worldMin = Vector3.zero;
                                 var worldMax = Vector3.zero;
                                 _rectTransformsList[0].GetWorldCorners(_worldSpaceCorners);
                                 if (isWorldSpace)
@@ -411,27 +410,26 @@ namespace RegressionGames.StateRecorder
 
                                 for (var i = 1; i < rectTransformsListLength; ++i)
                                 {
-                                    var nextMin = Vector2.zero;
-                                    var nextMax = Vector2.zero;
+                                    Vector2 nextMin, nextMax;
                                     var nextWorldMin = Vector3.zero;
                                     var nextWorldMax = Vector3.zero;
                                     _rectTransformsList[i].GetWorldCorners(_worldSpaceCorners);
                                     if (isWorldSpace)
                                     {
-                                        min = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                        max = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
-                                        worldMin = _worldSpaceCorners[0];
-                                        worldMax = _worldSpaceCorners[2];
+                                        nextMin = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
+                                        nextMax = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
+                                        nextWorldMin = _worldSpaceCorners[0];
+                                        nextWorldMax = _worldSpaceCorners[2];
                                     }
                                     else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
                                     {
-                                        min = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                        max = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
+                                        nextMin = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
+                                        nextMax = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
                                     }
                                     else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
                                     {
-                                        min = _worldSpaceCorners[0];
-                                        max = _worldSpaceCorners[2];
+                                        nextMin = _worldSpaceCorners[0];
+                                        nextMax = _worldSpaceCorners[2];
                                     }
 
                                     // Vector3.min and Vector3.max re-allocate new vectors on each call, avoid using them
