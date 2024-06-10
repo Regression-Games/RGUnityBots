@@ -13,7 +13,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     return KeyFrameEvaluator.Evaluator.MatchedHelper(AndOr.And, andCriteria.criteriaList);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     RGDebug.LogError("Invalid bot segment criteria: " + andCriteria);
                 }

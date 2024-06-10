@@ -67,26 +67,35 @@ namespace RegressionGames.StateRecorder
             // sort by numeric value of entries (not string comparison of filenames)
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
-            var replayNumber = 1;
-            foreach (var entry in entries)
+            var bsCount = _botSegments.Count;
+
+            try
             {
-                using var sr = new StreamReader(entry.Open());
-                var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
-
-                frameData.Replay_Number = replayNumber++;
-
-                if (SessionId == null)
+                var replayNumber = 1;
+                foreach (var entry in entries)
                 {
-                    SessionId = frameData.sessionId;
-                }
+                    using var sr = new StreamReader(entry.Open());
+                    var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
 
-                _botSegments.Add(frameData);
+                    frameData.Replay_Number = replayNumber++;
+
+                    if (SessionId == null)
+                    {
+                        SessionId = frameData.sessionId;
+                    }
+
+                    _botSegments.Add(frameData);
+                }
+            }
+            catch (Exception)
+            {
+                // Failed to parse the json.  End user doesn't really need this message.. we give them a for real exception below
             }
 
-            if (_botSegments.Count < 1)
+            if (_botSegments.Count == bsCount)
             {
                 // entries was empty
-                throw new Exception("Error parsing replay .zip.  Must include at least 1 frame json/jpg pair.");
+                throw new Exception("Error parsing bot segments .zip.  Must include at least 1 bot segment json.  Ensure you are loading a 'bot_segments.zip' file.");
             }
         }
     }
