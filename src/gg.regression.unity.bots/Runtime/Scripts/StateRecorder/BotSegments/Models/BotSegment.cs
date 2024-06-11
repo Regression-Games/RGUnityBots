@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -10,8 +12,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [Serializable]
     public class BotSegment
     {
+        // these values reference key moments in the development of the SDK for bot segments
+        public const int SDK_API_VERSION_1 = 1; // initial version with and/or/normalizedPath criteria and mouse/keyboard input actions
+
+        // Update this when new features are used in the SDK
+        public const int CURRENT_SDK_API_VERSION = SDK_API_VERSION_1;
+
         // re-usable and large enough to fit all sizes
         private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+
+        // versioning support for bot segments in the SDK, the is for this top level schema only
+        // update this if this top level schema changes
+        public int apiVersion = SDK_API_VERSION_1;
+
+        // the highest apiVersion component included in this json.. used for compatibility checks on replay load
+        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), keyFrameCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
 
         public string sessionId;
         public KeyFrameCriteria[] keyFrameCriteria;
@@ -136,6 +151,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             stringBuilder.Append("{\n\"sessionId\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\n\"keyFrameCriteria\":[\n");
             var keyFrameCriteriaLength = keyFrameCriteria.Length;
             for (var i = 0; i < keyFrameCriteriaLength; i++)
@@ -144,7 +161,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 criteria.WriteToStringBuilder(stringBuilder);
                 if (i + 1 < keyFrameCriteriaLength)
                 {
-                    stringBuilder.Append(",");
+                    stringBuilder.Append(",\n");
                 }
             }
             stringBuilder.Append("\n],\n\"botAction\":");

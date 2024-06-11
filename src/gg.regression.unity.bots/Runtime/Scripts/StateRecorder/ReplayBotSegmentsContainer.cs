@@ -69,6 +69,8 @@ namespace RegressionGames.StateRecorder
 
             var bsCount = _botSegments.Count;
 
+            var versionMismatch = -1;
+            var badSegmentNumber = 1; // keep this to current entry count ahead of time so we know which one failed
             try
             {
                 var replayNumber = 1;
@@ -76,6 +78,14 @@ namespace RegressionGames.StateRecorder
                 {
                     using var sr = new StreamReader(entry.Open());
                     var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
+
+                    if (frameData.EffectiveApiVersion > BotSegment.CURRENT_SDK_API_VERSION)
+                    {
+                        versionMismatch = frameData.EffectiveApiVersion;
+                        break;
+                    }
+
+                    ++badSegmentNumber;
 
                     frameData.Replay_SegmentNumber = replayNumber++;
 
@@ -87,15 +97,21 @@ namespace RegressionGames.StateRecorder
                     _botSegments.Add(frameData);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 // Failed to parse the json.  End user doesn't really need this message.. we give them a for real exception below
+                RGDebug.LogWarning("Exception while parsing bot_segments.zip - " + e);
+            }
+
+            if (versionMismatch > 0)
+            {
+                throw new Exception($"Error parsing bot segments .zip at segment #{badSegmentNumber}.  File contains segments which require SDK version {versionMismatch}, but currently installed SDK version is {BotSegment.CURRENT_SDK_API_VERSION}");
             }
 
             if (_botSegments.Count == bsCount)
             {
                 // entries was empty
-                throw new Exception("Error parsing bot segments .zip.  Must include at least 1 bot segment json.  Ensure you are loading a 'bot_segments.zip' file.");
+                throw new Exception($"Error parsing bot segments .zip at segment #{badSegmentNumber}.  Must include at least 1 bot segment json.  Ensure you are loading a 'bot_segments.zip' file.");
             }
         }
     }

@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 try
                 {
-                    return KeyFrameEvaluator.Evaluator.MatchedHelper(AndOr.And, andCriteria.criteriaList);
+                    return KeyFrameEvaluator.Evaluator.MatchedHelper(BooleanCriteria.And, andCriteria.criteriaList);
                 }
                 catch (Exception)
                 {

@@ -9,5 +9,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public void ReplayReset();
 
         public bool IsCompleted();
+
+        public int EffectiveApiVersion();
     }
 }
