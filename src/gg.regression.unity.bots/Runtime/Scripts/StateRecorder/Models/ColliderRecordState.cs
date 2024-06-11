@@ -10,11 +10,17 @@ namespace RegressionGames.StateRecorder.Models
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class ColliderRecordState
     {
+        public string path;
+        public string normalizedPath;
         public Collider collider;
 
         public virtual void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"is2D\":false");
+            stringBuilder.Append("{\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\"is2D\":false");
             stringBuilder.Append(",\"bounds\":");
             BoundsJsonConverter.WriteToStringBuilder(stringBuilder, collider.bounds);
             stringBuilder.Append(",\"isTrigger\":");

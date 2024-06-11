@@ -11,6 +11,8 @@ namespace RegressionGames.StateRecorder.Models
     public class BehaviourState
     {
         public string name;
+        public string path;
+        public string normalizedPath;
         public Behaviour state;
 
         public override string ToString()
@@ -22,6 +24,10 @@ namespace RegressionGames.StateRecorder.Models
         {
             stringBuilder.Append("{\"name\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, name);
+            stringBuilder.Append(",\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
             stringBuilder.Append(",\"state\":");
             JsonUtils.WriteBehaviourStateToStringBuilder(stringBuilder, state);
             stringBuilder.Append("}");

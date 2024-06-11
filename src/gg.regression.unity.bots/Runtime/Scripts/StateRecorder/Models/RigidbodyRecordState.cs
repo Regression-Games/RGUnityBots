@@ -10,12 +10,20 @@ namespace RegressionGames.StateRecorder.Models
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RigidbodyRecordState
     {
+
+        public string path;
+        public string normalizedPath;
+
         // keep a ref to this instead of updating fields every tick
         public Rigidbody rigidbody;
 
         public virtual void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"is2D\":false");
+            stringBuilder.Append("{\"path\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
+            stringBuilder.Append(",\"normalizedPath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
+            stringBuilder.Append(",\"is2D\":false");
             stringBuilder.Append(",\"position\":");
             VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.position);
             stringBuilder.Append(",\"rotation\":");

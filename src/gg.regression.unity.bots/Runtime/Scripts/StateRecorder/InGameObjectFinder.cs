@@ -92,6 +92,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new ColliderRecordState();
                     }
 
+                    cObject.path = transformStatus.Path;
+                    cObject.normalizedPath = transformStatus.NormalizedPath;
                     cObject.collider = colliderEntry;
 
                     collidersState.Add(cObject);
@@ -111,6 +113,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new Collider2DRecordState();
                     }
 
+                    cObject.path = transformStatus.Path;
+                    cObject.normalizedPath = transformStatus.NormalizedPath;
                     cObject.collider = colliderEntry2D;
 
                     collidersState.Add(cObject);
@@ -130,6 +134,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new RigidbodyRecordState();
                     }
 
+                    cObject.path = transformStatus.Path;
+                    cObject.normalizedPath = transformStatus.NormalizedPath;
                     cObject.rigidbody = myRigidbody;
 
                     rigidbodiesState.Add(cObject);
@@ -149,6 +155,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new Rigidbody2DRecordState();
                     }
 
+                    cObject.path = transformStatus.Path;
+                    cObject.normalizedPath = transformStatus.NormalizedPath;
                     cObject.rigidbody = myRigidbody2D;
 
                     rigidbodiesState.Add(cObject);
@@ -168,6 +176,8 @@ namespace RegressionGames.StateRecorder
                         cObject = new BehaviourState();
                     }
 
+                    cObject.path = transformStatus.Path;
+                    cObject.normalizedPath = transformStatus.NormalizedPath;
                     cObject.name = childBehaviour.GetType().FullName;
                     cObject.state = childBehaviour;
 
