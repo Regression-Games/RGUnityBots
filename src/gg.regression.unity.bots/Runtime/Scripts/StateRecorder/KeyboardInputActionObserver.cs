@@ -1,117 +1,13 @@
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
-using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.JsonConverters;
+using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder
 {
-
-    public class KeyboardInputActionDataJsonConverter : JsonConverter<KeyboardInputActionData>
-    {
-        public override void WriteJson(JsonWriter writer, KeyboardInputActionData value, JsonSerializer serializer)
-        {
-            writer.WriteRawValue(value.ToJsonString());
-        }
-
-        public override bool CanRead => false;
-
-        public override KeyboardInputActionData ReadJson(JsonReader reader, Type objectType, KeyboardInputActionData existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    [JsonConverter(typeof(KeyboardInputActionDataJsonConverter))]
-    public class KeyboardInputActionData
-    {
-        // version of this schema, update this if fields change
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
-
-        public double startTime;
-        public string action;
-        public string binding;
-        public double? endTime;
-
-        [NonSerialized]
-        public double duration;
-
-        [NonSerialized]
-        public double? lastSentUpdateTime;
-
-        [NonSerialized]
-        public double lastUpdateTime;
-
-        public bool isPressed => duration > 0 && endTime == null;
-
-        // re-usable and large enough to fit ball sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(2_000);
-
-        public void WriteToStringBuilder(StringBuilder stringBuilder)
-        {
-            stringBuilder.Append("{\"apiVersion\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"startTime\":");
-            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
-            stringBuilder.Append(",\"action\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, action);
-            stringBuilder.Append(",\"binding\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, binding);
-            stringBuilder.Append(",\"endTime\":");
-            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, endTime);
-            stringBuilder.Append(",\"isPressed\":");
-            stringBuilder.Append(isPressed ? "true" : "false");
-            stringBuilder.Append("}");
-        }
-
-        internal string ToJsonString()
-        {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder);
-            return _stringBuilder.ToString();
-        }
-
-        public void ReplayReset()
-        {
-            Replay_StartEndSentFlags[0] = false;
-            Replay_StartEndSentFlags[1] = false;
-            Replay_OffsetTime = 0;
-        }
-
-        // Replay only - used to track if we have sent the start and end events for this entry yet
-        [NonSerialized]
-        public readonly bool[] Replay_StartEndSentFlags = { false, false };
-
-        // Replay only - used for logging
-        [NonSerialized]
-        public int Replay_SegmentNumber;
-
-        // Replay only
-        [NonSerialized]
-        public double Replay_OffsetTime;
-
-        // Replay only
-        public double Replay_StartTime => startTime + Replay_OffsetTime;
-
-        // Replay only
-        public double? Replay_EndTime => endTime + Replay_OffsetTime;
-
-        // Replay only - have we finished processing this input
-        public bool Replay_IsDone => Replay_StartEndSentFlags[0] && (endTime == null || Replay_StartEndSentFlags[1]);
-
-        // Replay only
-        public Key Key => KeyboardInputActionObserver.AllKeyboardKeys[binding.Substring(binding.LastIndexOf('/') + 1)];
-    }
-
     public class KeyboardInputActionObserver : MonoBehaviour
     {
         private static KeyboardInputActionObserver _this;
