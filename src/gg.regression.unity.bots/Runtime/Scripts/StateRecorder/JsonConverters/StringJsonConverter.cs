@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 using Newtonsoft.Json;
-using StateRecorder;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
@@ -23,6 +23,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             EscapeCharReplacements['\b'] = 'b';
             EscapeCharReplacements['\\'] = '\\';
             EscapeCharReplacements['"'] = '"';
+            //Main(); - useful for testing
         }
 
         // supports up to 100k char length escaped strings
@@ -56,10 +57,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 }
                 else
                 {
-                    // need to escape.. copy existing range to result
-                    var length = endIndex + 1 - startIndex;
-                    input.CopyTo(startIndex, _bufferArray, _currentNextIndex,length);
-                    _currentNextIndex += length;
+                    // need to escape.. copy existing range to result if not the start of the string
+                    if (i != 0)
+                    {
+                        var length = endIndex + 1 - startIndex;
+                        input.CopyTo(startIndex, _bufferArray, _currentNextIndex, length);
+                        _currentNextIndex += length;
+                    }
                     // update indexes
                     endIndex = i + 1;
                     startIndex = i + 1;
@@ -69,7 +73,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 }
             }
 
-            if (startIndex != endIndex)
+            if (startIndex != endIndex || startIndex == inputLength - 1)
             {
                 // got to the end
                 var length = endIndex + 1 - startIndex;
@@ -118,5 +122,28 @@ namespace RegressionGames.StateRecorder.JsonConverters
         {
             return objectType == typeof(string);
         }
+
+        /* Useful for testing
+        public static void Main()
+        {
+            var input = "a";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+
+            input = "somethingLonger";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+
+            input = "\nStartingNewline";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+
+            input = "EndingNewline\n";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+
+            input = "Middle\nNewline";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+
+            input = "N\newline\nAfter\nFirst\nAnd\nEach\nWord\na";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+        }
+        */
     }
 }

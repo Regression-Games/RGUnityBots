@@ -526,6 +526,33 @@ namespace RegressionGames
             }
         }
 
+        public async Task UploadGameplaySessionBotSegments(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
+        {
+            if (LoadAuth())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/gameplay-session/{gameplaySessionId}/bot-segments",
+                    method: "POST",
+                    filePath: zipPath,
+                    contentType: "application/zip",
+                    onSuccess: (s) =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService GameplaySessionData response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload bot_segments for gameplay session {gameplaySessionId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure.Invoke();
+            }
+        }
         public async Task UploadGameplaySessionData(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
         {
             if (LoadAuth())

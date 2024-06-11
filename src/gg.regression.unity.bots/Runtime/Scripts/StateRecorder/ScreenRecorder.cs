@@ -8,7 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using StateRecorder;
+using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -31,7 +32,7 @@ namespace RegressionGames.StateRecorder
         [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
         public string stateRecordingsDirectory = "";
 
-        private double _lastCvFrameTime = -1.0;
+        private double _lastCvFrameTime = -1;
 
         private int _frameCountSinceLastTick;
 
@@ -40,6 +41,7 @@ namespace RegressionGames.StateRecorder
 
         private string _currentGameplaySessionDirectoryPrefix;
         private string _currentGameplaySessionScreenshotsDirectoryPrefix;
+        private string _currentGameplaySessionBotSegmentsDirectoryPrefix;
         private string _currentGameplaySessionDataDirectoryPrefix;
         private string _currentGameplaySessionThumbnailPath;
 
@@ -56,7 +58,7 @@ namespace RegressionGames.StateRecorder
         private long _tickNumber;
         private DateTime _startTime;
 
-        private BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, Color32[], Action))>
+        private BlockingCollection<((string, long), (BotSegment, byte[], int, int, GraphicsFormat, Color32[], Action))>
             _tickQueue;
 
         private readonly List<AsyncGPUReadbackRequest> _gpuReadbackRequests = new();
@@ -67,7 +69,7 @@ namespace RegressionGames.StateRecorder
         private ProfilerObserver _profilerObserver;
 
 
-        public static readonly Dictionary<int, RecordedGameObjectState> _emptyStateDictionary = new(0);
+        public static readonly Dictionary<int, TransformStatus> _emptyTransformStatusDictionary = new(0);
 
 
         public static ScreenRecorder GetInstance()
@@ -119,7 +121,7 @@ namespace RegressionGames.StateRecorder
             RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
-        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
+        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
         {
             if (!onDestroy)
             {
@@ -142,6 +144,14 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogInfo($"Finished zipping replay to file: {screenshotsDirectoryPrefix}.zip");
             });
 
+            var zipTask3 = Task.Run(() =>
+            {
+                // Then save the bot segments separately
+                RGDebug.LogInfo($"Zipping bot_segments recording replay to file: {botSegmentsDirectoryPrefix}.zip");
+                ZipFile.CreateFromDirectory(botSegmentsDirectoryPrefix, botSegmentsDirectoryPrefix + ".zip");
+                RGDebug.LogInfo($"Finished zipping replay to file: {botSegmentsDirectoryPrefix}.zip");
+            });
+
             // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
             var screenshotFiles = Directory.GetFiles(screenshotsDirectoryPrefix);
             var middleFile = screenshotFiles[screenshotFiles.Length / 2]; // this gets floored automatically
@@ -151,12 +161,13 @@ namespace RegressionGames.StateRecorder
             Task.WaitAll(zipTask1, zipTask2);
 
             Directory.Delete(dataDirectoryPrefix, true);
+            Directory.Delete(botSegmentsDirectoryPrefix, true);
             Directory.Delete(screenshotsDirectoryPrefix, true);
 
-            await CreateAndUploadGameplaySession(tickCount, startTime, endTime, dataDirectoryPrefix, screenshotsDirectoryPrefix, thumbnailPath, onDestroy);
+            await CreateAndUploadGameplaySession(tickCount, startTime, endTime, dataDirectoryPrefix, botSegmentsDirectoryPrefix,screenshotsDirectoryPrefix, thumbnailPath, onDestroy);
         }
 
-        private async Task CreateAndUploadGameplaySession(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
+        private async Task CreateAndUploadGameplaySession(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
         {
 
             try
@@ -180,7 +191,13 @@ namespace RegressionGames.StateRecorder
                     return;
                 }
 
-                // Upload the gameplay session data
+                // Upload the gameplay bot_segments
+                await RGServiceManager.GetInstance().UploadGameplaySessionBotSegments(gameplaySessionId,
+                    botSegmentsDirectoryPrefix + ".zip",
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session bot_segments from {botSegmentsDirectoryPrefix}.zip"); },
+                    () => { });
+
+                // Upload the gameplay state data
                 await RGServiceManager.GetInstance().UploadGameplaySessionData(gameplaySessionId,
                     dataDirectoryPrefix + ".zip",
                     () => { RGDebug.LogInfo($"Uploaded gameplay session data from {dataDirectoryPrefix}.zip"); },
@@ -227,13 +244,12 @@ namespace RegressionGames.StateRecorder
             {
                 StartCoroutine(RecordFrame());
             }
-
         }
 
         private IEnumerator ShowUploadingIndicator(bool shouldShow)
         {
             yield return null;
-            ReplayToolbarManager.GetInstance().ShowUploadingIndicator(shouldShow);
+            FindObjectOfType<ReplayToolbarManager>()?.ShowUploadingIndicator(shouldShow);
         }
 
         private IEnumerator StartRecordingCoroutine(string referenceSessionId)
@@ -242,12 +258,13 @@ namespace RegressionGames.StateRecorder
             yield return null;
             if (!_isRecording)
             {
-                ReplayDataPlaybackController.SendMouseEvent(0, new ReplayMouseInputEntry()
+                ReplayDataPlaybackController.SendMouseEvent(-1,new MouseInputActionData()
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
                     position = new Vector2Int(Screen.width +20, -20)
-                }, null, _emptyStateDictionary);
+                }, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary);
 
+                _lastCvFrameTime = -1;
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _profilerObserver.StartProfiling();
                 _mouseObserver.ClearBuffer();
@@ -258,8 +275,8 @@ namespace RegressionGames.StateRecorder
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _tickQueue =
-                    new BlockingCollection<((string, long), (byte[], int, int, GraphicsFormat, Color32[], Action))>(
-                        new ConcurrentQueue<((string, long), (byte[], int, int, GraphicsFormat, Color32[],
+                    new BlockingCollection<((string, long), (BotSegment, byte[], int, int, GraphicsFormat, Color32[], Action))>(
+                        new ConcurrentQueue<((string, long), (BotSegment,byte[], int, int, GraphicsFormat, Color32[],
                             Action)
                             )>());
 
@@ -281,8 +298,10 @@ namespace RegressionGames.StateRecorder
 
                 _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";
                 _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
+                _currentGameplaySessionBotSegmentsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/bot_segments";
                 _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
                 Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
+                Directory.CreateDirectory(_currentGameplaySessionBotSegmentsDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
 
                 // run the tick processor in the background
@@ -302,49 +321,10 @@ namespace RegressionGames.StateRecorder
 
         }
 
-        /**
-         * <summary>Modifies the lists with removal leaving only the unique entries in each list.  Assumes lists have unique entries as though created from a hashset</summary>
-         */
-        private bool IntListsMatch(List<int> priorScenes, List<int> currentScenes)
-        {
-            if (priorScenes.Count != currentScenes.Count)
-            {
-                return false;
-            }
-            for (var i = 0; i < priorScenes.Count;)
-            {
-                var priorScene = priorScenes[i];
-                var found = false;
-                var currentScenesCount = currentScenes.Count;
-                for (var j = 0; j < currentScenesCount; j++)
-                {
-                    var currentScene = currentScenes[j];
-                    if (priorScene == currentScene)
-                    {
-                        priorScenes.RemoveAt(i);
-                        currentScenes.RemoveAt(j);
-                        found = true;
-                        break; // inner for loop
-                    }
-                }
-
-                if (!found)
-                {
-                    i++;
-                }
-            }
-
-            return priorScenes.Count == 0 && currentScenes.Count == 0;
-        }
-
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
-        private readonly List<int> _sceneHandlesInPriorFrame = new(10);
-        private readonly List<int> _sceneHandlesInCurrentFrame = new(10);
-        private readonly List<int> _uiElementsInCurrentFrame = new(1000);
-        private readonly Dictionary<int, RecordedGameObjectState> _worldElementsInCurrentFrame = new(1000);
 
-        private void GetKeyFrameType(bool firstFrame, Dictionary<int,RecordedGameObjectState> priorState, Dictionary<int,RecordedGameObjectState> currentState, string pixelHash)
+        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, string pixelHash)
         {
             _keyFrameTypeList.Clear();
             if (firstFrame)
@@ -358,99 +338,13 @@ namespace RegressionGames.StateRecorder
                 _keyFrameTypeList.Add(KeyFrameType.UI_PIXELHASH);
             }
 
-            // avoid dynamic resizing of structures
-            _sceneHandlesInPriorFrame.Clear();
-            _sceneHandlesInCurrentFrame.Clear();
-            _uiElementsInCurrentFrame.Clear();
-            _worldElementsInCurrentFrame.Clear();
-
-            // need to do current before previous due to the world element renderers comparisons
-
-            foreach(var recordedGameObjectState in currentState.Values)
+            if (hasUIDelta)
             {
-                var sceneHandle = recordedGameObjectState.scene.handle;
-                // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
-                if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInCurrentFrame, sceneHandle))
-                {
-                    _sceneHandlesInCurrentFrame.Add(sceneHandle);
-                }
-
-                if (recordedGameObjectState.worldSpaceBounds == null)
-                {
-                    _uiElementsInCurrentFrame.Add(recordedGameObjectState.id);
-                }
-                else
-                {
-                    _worldElementsInCurrentFrame[recordedGameObjectState.id] = recordedGameObjectState;
-                }
-            }
-
-            // performance optimization to avoid using hashing checks on every element
-            bool addedRendererCount = false, addedGameElement = false;
-            var worldElementsCount = 0;
-            var hadDifferentUIElements = false;
-            foreach(var recordedGameObjectState in priorState.Values)
-            {
-                var sceneHandle = recordedGameObjectState.scene.handle;
-                // scenes list is normally 1, and almost never beyond single digits.. this check is faster than hashing
-                if (!StateRecorderUtils.OptimizedContainsIntInList(_sceneHandlesInPriorFrame, sceneHandle))
-                {
-                    _sceneHandlesInPriorFrame.Add(sceneHandle);
-                }
-
-                if (recordedGameObjectState.worldSpaceBounds == null)
-                {
-                    if (!hadDifferentUIElements)
-                    {
-                        hadDifferentUIElements |= !StateRecorderUtils.OptimizedRemoveIntFromList(_uiElementsInCurrentFrame, recordedGameObjectState.id);
-                    }
-                }
-                else
-                {
-                    ++worldElementsCount;
-                    // once we've added both of these.. skip some checks
-                    if (!addedRendererCount || !addedGameElement)
-                    {
-                        if (_worldElementsInCurrentFrame.TryGetValue(recordedGameObjectState.id, out var elementInCurrentFrame))
-                        {
-                            if (!addedRendererCount && elementInCurrentFrame.rendererCount != recordedGameObjectState.rendererCount)
-                            {
-                                // if an element changed its renderer count
-                                _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT_RENDERER_COUNT);
-                                addedRendererCount = true;
-                            }
-                        }
-                        else
-                        {
-                            if (!addedGameElement)
-                            {
-                                // if we had an element disappear
-                                _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT);
-                                addedGameElement = true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // scene loaded or changed
-            if (!IntListsMatch(_sceneHandlesInPriorFrame, _sceneHandlesInCurrentFrame))
-            {
-                // elements from scenes changed this frame
-                _keyFrameTypeList.Add(KeyFrameType.SCENE);
-            }
-
-            // visible UI elements changed
-            if (hadDifferentUIElements || _uiElementsInCurrentFrame.Count != 0)
-            {
-                // visible UI elements changed this frame
                 _keyFrameTypeList.Add(KeyFrameType.UI_ELEMENT);
             }
 
-            // visible game elements changed
-            if (worldElementsCount != _worldElementsInCurrentFrame.Count && !addedGameElement)
+            if (hasGameObjectDelta)
             {
-                // if we had a new element appear
                 _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT);
             }
         }
@@ -507,7 +401,7 @@ namespace RegressionGames.StateRecorder
 
             if (wasRecording)
             {
-                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath, true);
+                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionBotSegmentsDirectoryPrefix,  _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath, true);
             }
 
             _tokenSource?.Cancel();
@@ -521,53 +415,141 @@ namespace RegressionGames.StateRecorder
         {
             if (!_tickQueue.IsCompleted)
             {
+                // wait for end of frame before capturing, otherwise .isVisible is wrong and GPU data won't be accurate for screenshot
+                yield return new WaitForEndOfFrame();
+
                 ++_frameCountSinceLastTick;
                 // handle recording ... uses unscaled time for real framerate calculations
-                var time = Time.unscaledTimeAsDouble;
+                var now = Time.unscaledTimeAsDouble;
 
-                byte[] jsonData = null;
-
-                var states = InGameObjectFinder.GetInstance()?.GetStateForCurrentFrame();
+                var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
+                var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
 
                 // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
                 // what it clicked on normally isn't in the new state (button was in the old state)
-                var priorStates = states?.Item1;
-                var currentStates = states?.Item2;
-                if (priorStates?.Count > 0)
+                if (uiTransforms.Item1.Count > 0 || gameObjectTransforms.Item1.Count > 0)
                 {
-                    _mouseObserver.ObserveMouse(priorStates);
+                    _mouseObserver.ObserveMouse(uiTransforms.Item1.Values.Concat(gameObjectTransforms.Item1.Values));
                 }
                 else
                 {
-                    _mouseObserver.ObserveMouse(currentStates);
+                    _mouseObserver.ObserveMouse(uiTransforms.Item2.Values.Concat(gameObjectTransforms.Item2.Values));
                 }
+
+                //Compute the delta values we need to record / evaluate to know if we need to record a key frame
+                var uiDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(uiTransforms.Item1, uiTransforms.Item2, out var hasUIDelta);
+                var gameObjectDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(gameObjectTransforms.Item1, gameObjectTransforms.Item2, out var hasGameObjectDelta);
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, priorStates, currentStates, pixelHash);
+                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHash);
 
+                BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
-                    || (recordingMinFPS > 0 && (int)(1000 * (time - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
+                    || (recordingMinFPS > 0 && (int)(1000 * (now - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
                    )
                 {
 
+                    // record full frame state and screenshot
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
 
                     ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler(_frameCountSinceLastTick);
 
+                    byte[] jsonData = null;
+
                     try
                     {
+
+                        if (_keyFrameTypeList.Count == 0)
+                        {
+                            _keyFrameTypeList.Add(KeyFrameType.TIMER);
+                        }
+
+                        var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
+                        var mouseInputData = _mouseObserver.FlushInputDataBuffer();
+
+                        // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
+                        // update the frame time to be latest of 'now' or the last device event in it
+                        // otherwise replay gets messed up trying to read the inputs by time
+                        var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => !a.endTime.HasValue ? a.startTime : Math.Max(a.startTime, a.endTime.Value));
+                        var mostRecentMouseTime = mouseInputData == null || mouseInputData.Count == 0 ? 0.0 : mouseInputData.Max(a => a.startTime);
+                        var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
+                        var frameTime = Math.Max(now, mostRecentDeviceEventTime);
+
+                        // get the new state
+                        var states = InGameObjectFinder.GetInstance().GetStateForCurrentFrame(uiTransforms.Item2.Values, gameObjectTransforms.Item2.Values);
+
+                        var currentStates = states.Item2;
+
                         ++_tickNumber;
+
+                        var inputData = new InputData()
+                        {
+                            keyboard = keyboardInputData,
+                            mouse = mouseInputData
+                        };
+
+                        var keyFrameCriteria = uiDeltas.Values
+                            .Concat(gameObjectDeltas.Values)
+                            .Select(a => new KeyFrameCriteria() {
+                                type = KeyFrameCriteriaType.NormalizedPath,
+                                transient = true,
+                                data = new PathKeyFrameCriteriaData()
+                                {
+                                    path = a.path,
+                                    count =  a.count,
+                                    addedCount = a.addedCount,
+                                    removedCount = a.removedCount,
+                                    countRule = a.higherLowerCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual)
+                                }
+                            })
+                            .ToArray();
+
+                        double inputTime = -1;
+                        // note to future devs: it may be tempting get the earliest input time for every segment so we can playback with minimal delay
+                        // but.. because a mouse or keyboard button can be held down across many frames and across bot segment boundaries
+                        // if you replay the release action too soon in the N+1 bot segment, then you have wrongfully altered the original action
+                        // thus you can only get the earliest time on the 'first' segment
+                        inputTime = _lastCvFrameTime;
+
+                        if (inputTime < 0)
+                        {
+                            // first frame, get the mouse input time for the first frame if it exists
+                            if (mouseInputData.Count > 0)
+                            {
+                                inputTime = mouseInputData[0].startTime;
+                            }
+                        }
+                        if (inputTime < 0)
+                        {
+                            inputTime = 0;
+                        }
+
+                        //record bot segment data for action replay
+                        botSegment = new BotSegment()
+                        {
+                            sessionId = System.Guid.NewGuid().ToString(),
+                            keyFrameCriteria = keyFrameCriteria,
+                            botAction = new BotAction()
+                            {
+                                type = BotActionType.InputPlayback,
+                                data = new InputPlaybackActionData()
+                                {
+                                    startTime = inputTime,
+                                    inputData = inputData
+                                }
+                            }
+                        };
 
                         var performanceMetrics = new PerformanceMetricData()
                         {
                             framesSincePreviousTick = _frameCountSinceLastTick,
-                            previousTickTime = _lastCvFrameTime,
-                            fps = (int)(_frameCountSinceLastTick / (time - _lastCvFrameTime)),
+                            previousTickTime = _lastCvFrameTime > 0 ? _lastCvFrameTime : 0,
+                            fps = _lastCvFrameTime > 0 ? (int)(_frameCountSinceLastTick / (now - _lastCvFrameTime)) : 0,
                             cpuTimeSincePreviousTick = profilerResult.cpuTimeSincePreviousTick,
                             memory = profilerResult.systemUsedMemory,
                             gcMemory = profilerResult.gcUsedMemory,
@@ -591,19 +573,8 @@ namespace RegressionGames.StateRecorder
                             }
                         };
 
-                        _lastCvFrameTime = time;
+                        _lastCvFrameTime = now;
                         _frameCountSinceLastTick = 0;
-
-                        var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                        var mouseInputData = _mouseObserver.FlushInputDataBuffer(true);
-
-                        // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
-                        // update the frame time to be latest of 'now' or the last device event in it
-                        // otherwise replay gets messed up trying to read the inputs by time
-                        var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => a.startTime);
-                        var mostRecentMouseTime = mouseInputData == null || mouseInputData.Count == 0 ? 0.0 : mouseInputData.Max(a => a.startTime);
-                        var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
-                        var frameTime = Math.Max(time, mostRecentDeviceEventTime);
 
                         var frameState = new RecordingFrameStateData()
                         {
@@ -617,11 +588,7 @@ namespace RegressionGames.StateRecorder
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
                             state = currentStates.Values,
-                            inputs = new InputData()
-                            {
-                                keyboard = keyboardInputData,
-                                mouse = mouseInputData
-                            }
+                            inputs = inputData
                         };
 
                         if (frameState.keyFrame != null)
@@ -644,7 +611,7 @@ namespace RegressionGames.StateRecorder
 
                     var didQueue = 0;
 
-                    if (jsonData != null)
+                    if (jsonData != null && botSegment != null)
                     {
                         // save this off because we're about to operate on a different thread :)
                         var currentTickNumber = _tickNumber;
@@ -661,8 +628,6 @@ namespace RegressionGames.StateRecorder
 
                         var graphicsFormat = _screenShotTexture.graphicsFormat;
 
-                        // wait for end of frame before capturing screenshot
-                        yield return new WaitForEndOfFrame();
                         try
                         {
                             ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
@@ -697,6 +662,7 @@ namespace RegressionGames.StateRecorder
                                         _tickQueue.Add((
                                             (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
                                             (
+                                                botSegment,
                                                 jsonData,
                                                 screenWidth,
                                                 screenHeight,
@@ -721,6 +687,7 @@ namespace RegressionGames.StateRecorder
                                         _tickQueue.Add((
                                             (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
                                             (
+                                                botSegment,
                                                 jsonData,
                                                 screenWidth,
                                                 screenHeight,
@@ -756,9 +723,9 @@ namespace RegressionGames.StateRecorder
                 {
                     var tuple = _tickQueue.Take(_tokenSource.Token);
                     ProcessTick(tuple.Item1.Item1, tuple.Item1.Item2, tuple.Item2.Item1, tuple.Item2.Item2,
-                        tuple.Item2.Item3, tuple.Item2.Item4, tuple.Item2.Item5);
+                        tuple.Item2.Item3, tuple.Item2.Item4, tuple.Item2.Item5, tuple.Item2.Item6);
                     // invoke the cleanup callback function
-                    tuple.Item2.Item6();
+                    tuple.Item2.Item7();
                 }
                 catch (Exception e)
                 {
@@ -770,8 +737,9 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void ProcessTick(string directoryPath, long tickNumber, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
+        private void ProcessTick(string directoryPath, long tickNumber, BotSegment botSegment, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
         {
+            RecordBotSegment(directoryPath, tickNumber, botSegment);
             RecordJson(directoryPath, tickNumber, jsonData);
             RecordJPG(directoryPath, tickNumber, width, height, graphicsFormat, tickScreenshotData);
         }
@@ -839,6 +807,38 @@ namespace RegressionGames.StateRecorder
             catch (Exception e)
             {
                 RGDebug.LogException(e, $"ERROR: Unable to record JSON for tick # {tickNumber}");
+            }
+        }
+
+        private void RecordBotSegment(string directoryPath, long tickNumber, BotSegment botSegment)
+        {
+            var jsonData = Encoding.UTF8.GetBytes(
+                botSegment.ToJsonString()
+            );
+            try
+            {
+                // write out the json to file... while these numbers happen to align with the state data at recording time.. they don't mean the same thing
+                var path = $"{directoryPath}/bot_segments/{tickNumber}".PadLeft(9, '0') + ".json";
+                if (jsonData.Length == 0)
+                {
+                    RGDebug.LogError($"ERROR: Empty JSON bot_segment for tick # {tickNumber}");
+                }
+
+                // Save the byte array as a file
+                var fileWriteTask = File.WriteAllBytesAsync(path, jsonData, _tokenSource.Token);
+                fileWriteTask.ContinueWith((nextTask) =>
+                {
+                    if (nextTask.Exception != null)
+                    {
+                        RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record JSON bot_segment for tick # {tickNumber}");
+                    }
+
+                });
+                _fileWriteTasks.Add((path,fileWriteTask));
+            }
+            catch (Exception e)
+            {
+                RGDebug.LogException(e, $"ERROR: Unable to record JSON bot_segment for tick # {tickNumber}");
             }
         }
     }

@@ -14,7 +14,7 @@ namespace RegressionGames
     /// </summary>
     public class RGTestUtils
     {
-        
+
         /// <summary>
         /// Waits until a specific scene has been loaded, and asserts that it has been loaded
         /// </summary>
@@ -41,8 +41,8 @@ namespace RegressionGames
             yield return null;
             Assert.IsTrue(loaded, $"Scene {sceneName} failed to load within {timeout} seconds");
         }
-        
-        
+
+
         /// <summary>
         /// Plays back an existing recording, and then returns the save location of the recording.
         /// </summary>
@@ -52,7 +52,7 @@ namespace RegressionGames
         {
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<ReplayDataPlaybackController>();
-            var replayData = new ReplayDataContainer(recordingPath);
+            var replayData = new ReplayBotSegmentsContainer(recordingPath);
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
             yield return null; // Allow the recording to start playing
@@ -68,6 +68,6 @@ namespace RegressionGames
             };
             setPlaybackResult(result);
         }
-        
+
     }
 }
