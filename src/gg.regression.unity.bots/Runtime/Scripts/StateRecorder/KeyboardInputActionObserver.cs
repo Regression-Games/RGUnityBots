@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -33,6 +34,9 @@ namespace RegressionGames.StateRecorder
     [JsonConverter(typeof(KeyboardInputActionDataJsonConverter))]
     public class KeyboardInputActionData
     {
+        // version of this schema, update this if fields change
+        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+
         public double startTime;
         public string action;
         public string binding;
@@ -54,7 +58,9 @@ namespace RegressionGames.StateRecorder
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"startTime\":");
+            stringBuilder.Append("{\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"startTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
             stringBuilder.Append(",\"action\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, action);

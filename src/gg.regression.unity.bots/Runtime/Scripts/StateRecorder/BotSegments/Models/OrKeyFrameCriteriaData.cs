@@ -39,7 +39,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public int EffectiveApiVersion()
         {
-            return Math.Max(apiVersion, criteriaList.Max(a => a.EffectiveApiVersion));
+            return Math.Max(apiVersion, criteriaList.DefaultIfEmpty().Max(a => a?.EffectiveApiVersion ?? 0));
         }
     }
 }

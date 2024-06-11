@@ -46,10 +46,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"startTime\":");
-            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
-            stringBuilder.Append(",\n\"apiVersion\":");
+            stringBuilder.Append("{\n\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\n\"startTime\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
             stringBuilder.Append(",\n\"inputData\":");
             inputData.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("\n}");
@@ -57,7 +57,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public int EffectiveApiVersion()
         {
-            return apiVersion;
+            return Math.Max(apiVersion, inputData.EffectiveApiVersion);
         }
     }
 }

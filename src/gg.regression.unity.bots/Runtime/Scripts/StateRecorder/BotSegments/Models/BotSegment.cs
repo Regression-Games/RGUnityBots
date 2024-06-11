@@ -26,7 +26,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int apiVersion = SDK_API_VERSION_1;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
-        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), keyFrameCriteria.Max(a=>a.EffectiveApiVersion));
+        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), keyFrameCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
 
         public string sessionId;
         public KeyFrameCriteria[] keyFrameCriteria;
@@ -161,7 +161,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 criteria.WriteToStringBuilder(stringBuilder);
                 if (i + 1 < keyFrameCriteriaLength)
                 {
-                    stringBuilder.Append(",");
+                    stringBuilder.Append(",\n");
                 }
             }
             stringBuilder.Append("\n],\n\"botAction\":");
