@@ -19,7 +19,6 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             BotSegment actionModel = new();
             actionModel.sessionId = jObject.GetValue("sessionId").ToObject<string>(serializer);
             actionModel.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
-            //actionModel.keyFrameCriteria = KeyFrameCriteriaArrayJsonConverter.ReadJson(reader, typeof(KeyFrameCriteria), jObject["keyFrameCriteria"], serializer);
             actionModel.keyFrameCriteria = jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer);
             return actionModel;
         }
