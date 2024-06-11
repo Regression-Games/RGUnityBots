@@ -64,7 +64,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         public bool Matched(KeyFrameCriteria[] criteriaList)
         {
             _newUnmatchedCriteria.Clear();
-            bool matched = MatchedHelper(AndOr.And, criteriaList);
+            bool matched = MatchedHelper(BooleanCriteria.And, criteriaList);
             if (matched)
             {
                 _unmatchedCriteria.Clear();
@@ -81,7 +81,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator</summary>
          */
-        internal bool MatchedHelper(AndOr andOr, KeyFrameCriteria[] criteriaList)
+        internal bool MatchedHelper(BooleanCriteria andOr, KeyFrameCriteria[] criteriaList)
         {
             var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
             var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
@@ -98,7 +98,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 var entry = criteriaList[i];
                 if (entry.transient && entry.Replay_TransientMatched)
                 {
-                    if (andOr == AndOr.Or)
+                    if (andOr == BooleanCriteria.Or)
                     {
                         return true;
                     }
@@ -129,14 +129,14 @@ namespace RegressionGames.StateRecorder.BotSegments
                     var pathEntry = pathResults[j];
                     if (pathEntry == null)
                     {
-                        if (andOr == AndOr.Or)
+                        if (andOr == BooleanCriteria.Or)
                         {
                             return true;
                         }
                     }
                     else
                     {
-                        if (andOr == AndOr.And)
+                        if (andOr == BooleanCriteria.And)
                         {
                             _newUnmatchedCriteria.Add(pathEntry);
                             return false;
@@ -154,7 +154,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     var m = OrKeyFrameCriteriaEvaluator.Matched(orEntry);
                     if (m)
                     {
-                        if (andOr == AndOr.Or)
+                        if (andOr == BooleanCriteria.Or)
                         {
                             return true;
                         }
@@ -163,7 +163,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                     else
                     {
-                        if (andOr == AndOr.And)
+                        if (andOr == BooleanCriteria.And)
                         {
                             return false;
                         }
@@ -180,7 +180,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     var m = AndKeyFrameCriteriaEvaluator.Matched(andEntry);
                     if (m)
                     {
-                        if (andOr == AndOr.Or)
+                        if (andOr == BooleanCriteria.Or)
                         {
                             return true;
                         }
@@ -189,7 +189,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                     else
                     {
-                        if (andOr == AndOr.And)
+                        if (andOr == BooleanCriteria.And)
                         {
                             return false;
                         }
