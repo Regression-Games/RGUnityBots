@@ -14,11 +14,7 @@ namespace RegressionGames.StateRecorder.Models
 
         public override void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"path\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
-            stringBuilder.Append(",\"normalizedPath\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
-            stringBuilder.Append(",\"is2D\":true");
+            stringBuilder.Append("{\"is2D\":true");
             stringBuilder.Append(",\"bounds\":");
             BoundsJsonConverter.WriteToStringBuilder(stringBuilder, collider.bounds);
             stringBuilder.Append(",\"isTrigger\":");
