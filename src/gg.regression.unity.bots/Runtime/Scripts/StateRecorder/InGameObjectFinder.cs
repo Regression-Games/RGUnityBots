@@ -350,7 +350,7 @@ namespace RegressionGames.StateRecorder
 
                         if (cgEnabled)
                         {
-                            var canvasCamera = canvas.worldCamera;
+                            var canvasCamera = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
                             var isWorldSpace = canvas.renderMode == RenderMode.WorldSpace;
                             _rectTransformsList.Clear();
                             statefulUIObject.GetComponentsInChildren(_rectTransformsList);
