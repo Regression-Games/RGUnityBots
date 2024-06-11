@@ -1,16 +1,22 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
+using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
     public class OrKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
+        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+
         public KeyFrameCriteria[] criteriaList;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"criteriaList\":[");
+            stringBuilder.Append("{\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"criteriaList\":[");
             var criteriaListLength = criteriaList.Length;
             for (var i = 0; i < criteriaListLength; i++)
             {
@@ -29,6 +35,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             var sb = new StringBuilder(1000);
             WriteToStringBuilder(sb);
             return sb.ToString();
+        }
+
+        public int EffectiveApiVersion()
+        {
+            return Math.Max(apiVersion, criteriaList.Max(a => a.EffectiveApiVersion));
         }
     }
 }

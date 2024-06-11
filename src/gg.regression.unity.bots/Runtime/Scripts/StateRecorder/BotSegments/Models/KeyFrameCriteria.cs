@@ -10,9 +10,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [Serializable]
     public class KeyFrameCriteria
     {
+        // api version of this top level schema, update if we add/change fields
+        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+
         public KeyFrameCriteriaType type;
         public bool transient;
         public IKeyFrameCriteriaData data;
+
+        public int EffectiveApiVersion => Math.Max(apiVersion, data.EffectiveApiVersion());
+
 
         // Replay only - used to track if transient has ever matched during replay
         [NonSerialized]
@@ -44,13 +50,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"type\":");
+            stringBuilder.Append("{\"type\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, type.ToString());
-            stringBuilder.Append(",\n\"transient\":");
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"transient\":");
             stringBuilder.Append(transient ? "true" : "false");
-            stringBuilder.Append(",\n\"data\":");
+            stringBuilder.Append(",\"data\":");
             data.WriteToStringBuilder(stringBuilder);
-            stringBuilder.Append("\n}");
+            stringBuilder.Append("}");
         }
     }
 }

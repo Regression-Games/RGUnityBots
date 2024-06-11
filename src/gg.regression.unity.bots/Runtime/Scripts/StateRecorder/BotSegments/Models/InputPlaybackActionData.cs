@@ -8,6 +8,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [Serializable]
     public class InputPlaybackActionData : IBotActionData
     {
+        // api version for this object, update if object format changes
+        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.InputPlayback;
         /**
@@ -45,9 +48,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             stringBuilder.Append("{\n\"startTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\n\"inputData\":");
             inputData.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("\n}");
+        }
+
+        public int EffectiveApiVersion()
+        {
+            return apiVersion;
         }
     }
 }

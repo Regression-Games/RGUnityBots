@@ -16,8 +16,10 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
         {
 
             JObject jObject = JObject.Load(reader);
+            // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
             BotSegment actionModel = new();
             actionModel.sessionId = jObject.GetValue("sessionId").ToObject<string>(serializer);
+            actionModel.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             actionModel.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
             actionModel.keyFrameCriteria = jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer);
             return actionModel;
