@@ -34,6 +34,7 @@ namespace RegressionGames.ActionManager
     public abstract class RGContinuousValueRange : IRGValueRange
     {
         public abstract object MinValue { get; }
+        public abstract object MidPoint { get; }
         public abstract object MaxValue { get; }
 
         public abstract object RandomSample();
@@ -80,19 +81,84 @@ namespace RegressionGames.ActionManager
 
     public class RGFloatRange : RGContinuousValueRange
     {
-        public override object MinValue { get; }
-        public override object MaxValue { get; }
-        
-        // public RGFloatRange()
+        private float _minValue;
+        private float _maxValue;
+
+        public override object MinValue => _minValue;
+        public override object MidPoint => (_minValue + _maxValue) / 2.0f;
+        public override object MaxValue => _maxValue;
+
+        public RGFloatRange(float minValue, float maxValue)
+        {
+            _minValue = minValue;
+            _maxValue = maxValue;
+            Debug.Assert(_minValue <= _maxValue);
+        }
         
         public override object RandomSample()
         {
-            return Random.Range()
+            return Random.Range(_minValue, _maxValue);
         }
 
         public override RGContinuousValueRange[] Discretize(int n)
         {
-            throw new NotImplementedException();
+            float stepSize = (_maxValue - _minValue) / n;
+            RGContinuousValueRange[] result = new RGContinuousValueRange[n];
+            for (int i = 0; i < n; ++i)
+            {
+                float minVal = _minValue + i * stepSize;
+                result[i] = new RGFloatRange(minVal, minVal + stepSize);
+            }
+            return result;
+        }
+    }
+
+    public class RGVector2Range : RGContinuousValueRange
+    {
+        private Vector2 _minValue;
+        private Vector2 _maxValue;
+
+        public override object MinValue => _minValue;
+        public override object MidPoint => (_minValue + _maxValue) / 2.0f;
+        public override object MaxValue => _maxValue;
+        
+        public RGVector2Range(Vector2 minValue, Vector2 maxValue)
+        {
+            _minValue = minValue;
+            _maxValue = maxValue;
+            Debug.Assert(minValue.x <= maxValue.x);
+            Debug.Assert(minValue.y <= maxValue.y);
+        }
+        
+        public override object RandomSample()
+        {
+            return new Vector2(Random.Range(_minValue.x, _maxValue.x),
+                Random.Range(_minValue.y, _maxValue.y));
+        }
+
+        public override RGContinuousValueRange[] Discretize(int n)
+        {
+            RGContinuousValueRange[] result = new RGContinuousValueRange[n];
+            
+            int sq = (int)Math.Sqrt(n);
+            if (sq * sq != n)
+            {
+                throw new ArgumentException("Discretization of RGVector2Range can only be done with square values of n");
+            }
+
+            float stepX = (_maxValue.x - _minValue.x) / sq;
+            float stepY = (_maxValue.y - _minValue.y) / sq;
+            for (int i = 0; i < sq; ++i)
+            {
+                for (int j = 0; j < sq; ++j)
+                {
+                    float minX = _minValue.x + j * stepX;
+                    float minY = _minValue.y + i * stepY;
+                    result[i*sq + j] = new RGVector2Range(new Vector2(minX, minY), new Vector2(minX + stepX, minY + stepY));
+                }
+            }
+
+            return result;
         }
     }
 }
