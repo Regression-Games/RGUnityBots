@@ -15,6 +15,8 @@ namespace RegressionGames.StateRecorder.Models
 
         public int id;
 
+        public int? parentId;
+
         public string path;
         public string normalizedPath;
 
@@ -24,9 +26,9 @@ namespace RegressionGames.StateRecorder.Models
         public string tag;
         public string layer;
 
-        public Bounds screenSpaceBounds;
+        public Bounds? screenSpaceBounds;
 
-        public float screenSpaceZOffset;
+        public float? screenSpaceZOffset;
 
         [NonSerialized]
         // keep reference to this instead of updating its fields every tick
@@ -42,6 +44,8 @@ namespace RegressionGames.StateRecorder.Models
         {
             stringBuilder.Append("{\n\"id\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, id);
+            stringBuilder.Append(",\n\"parentId\":");
+            IntJsonConverter.WriteToStringBuilderNullable(stringBuilder, parentId);
             stringBuilder.Append(",\n\"path\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
             stringBuilder.Append(",\n\"normalizedPath\":");
@@ -53,9 +57,9 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\n\"layer\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, layer);
             stringBuilder.Append(",\n\"screenSpaceBounds\":");
-            BoundsJsonConverter.WriteToStringBuilder(stringBuilder, screenSpaceBounds);
+            BoundsJsonConverter.WriteToStringBuilderNullable(stringBuilder, screenSpaceBounds);
             stringBuilder.Append(",\n\"screenSpaceZOffset\":");
-            FloatJsonConverter.WriteToStringBuilder(stringBuilder, screenSpaceZOffset);
+            FloatJsonConverter.WriteToStringBuilderNullable(stringBuilder, screenSpaceZOffset);
             stringBuilder.Append(",\n\"worldSpaceBounds\":");
             BoundsJsonConverter.WriteToStringBuilderNullable(stringBuilder, worldSpaceBounds);
             stringBuilder.Append(",\n\"position\":");
