@@ -1,12 +1,12 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System.Collections.Generic;
-using RegressionGames;
 using NUnit.Framework;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 
 namespace Tests.Runtime
 {
+    
     public class RGLegacyInputUtilityTests
     {
         [Test]
