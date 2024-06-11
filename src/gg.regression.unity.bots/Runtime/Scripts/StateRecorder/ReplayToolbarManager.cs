@@ -1,9 +1,7 @@
 using System;
 using System.Collections;
 using System.Threading.Tasks;
-using RegressionGames;
 using SimpleFileBrowser;
-using RegressionGames.StateRecorder;
 using TMPro;
 using UnityEngine;
 
@@ -32,19 +30,6 @@ namespace RegressionGames.StateRecorder
         public ReplayDataPlaybackController replayDataController;
 
         private bool _recording;
-
-        private static ReplayToolbarManager _this;
-
-        public static ReplayToolbarManager GetInstance()
-        {
-            return _this;
-        }
-
-        private void Awake()
-        {
-            // this is a child of the overlay which is a singleton, so we don't need to manage our lifecycle, just track our instance
-            _this = this;
-        }
 
         // Start is called before the first frame update
         void Start()
@@ -86,7 +71,7 @@ namespace RegressionGames.StateRecorder
                 FileBrowser.PickMode.Files,
                 false,
                 null,
-                null,
+                "bot_segments.zip",
                 "Select Replay Zip File",
                 "Load Replay"
             );
@@ -120,7 +105,7 @@ namespace RegressionGames.StateRecorder
             try
             {
                 // do this on background thread
-                var dataContainer = new ReplayDataContainer(filePath);
+                var dataContainer = new ReplayBotSegmentsContainer(filePath);
                 _replayLoadedNextUpdate = dataContainer;
             }
             catch (Exception e)
@@ -135,7 +120,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private volatile ReplayDataContainer _replayLoadedNextUpdate;
+        private volatile ReplayBotSegmentsContainer _replayLoadedNextUpdate;
 
         private void Update()
         {
@@ -220,8 +205,6 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private string _lastKeyFrameError;
-
         private void LateUpdate()
         {
             if (replayDataController.ReplayCompletedSuccessfully() != null)
@@ -238,25 +221,19 @@ namespace RegressionGames.StateRecorder
                     recordButton.SetActive(false);
                 }
             }
+        }
 
-            if (replayDataController.WaitingForKeyFrameConditions != null && replayDataController.KeyFrameInputComplete)
+        public void SetKeyFrameWarningText(string text)
+        {
+            if (text == null)
             {
-                // check that we've started all the last inputs as we got those up to the next key frame time
-                // if we haven't started all those yet, we shouldn't be super worried about not hitting the key frame .. yet
-                if (_lastKeyFrameError != replayDataController.WaitingForKeyFrameConditions)
-                {
-                    RGDebug.LogInfo(replayDataController.WaitingForKeyFrameConditions);
-                    _lastKeyFrameError = replayDataController.WaitingForKeyFrameConditions;
-                }
-
-                //TODO: It might be nice if we got enough info here to draw the names and bounding boxes of the missing information
-                warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(replayDataController.WaitingForKeyFrameConditions);
-                warningIcon.SetActive(true);
+                warningIcon.SetActive(false);
+                warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText("");
             }
             else
             {
-                _lastKeyFrameError = null;
-                warningIcon.SetActive(false);
+                warningIcon.transform.GetChild(0).GetComponent<TextMeshProUGUI>().SetText(text);
+                warningIcon.SetActive(true);
             }
         }
 

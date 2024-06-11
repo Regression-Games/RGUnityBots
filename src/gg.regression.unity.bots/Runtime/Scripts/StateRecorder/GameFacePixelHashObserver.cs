@@ -2,11 +2,10 @@ using System;
 using System.Reflection;
 using System.Threading;
 using JetBrains.Annotations;
-using RegressionGames;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     public class GameFacePixelHashObserver : MonoBehaviour
     {

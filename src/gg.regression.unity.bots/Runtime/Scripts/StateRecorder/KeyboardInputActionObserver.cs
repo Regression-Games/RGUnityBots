@@ -1,81 +1,13 @@
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
-using Newtonsoft.Json;
-using RegressionGames.StateRecorder.JsonConverters;
-using StateRecorder;
+using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder
 {
-
-    public class KeyboardInputActionDataJsonConverter : JsonConverter<KeyboardInputActionData>
-    {
-        public override void WriteJson(JsonWriter writer, KeyboardInputActionData value, JsonSerializer serializer)
-        {
-            writer.WriteRawValue(value.ToJsonString());
-        }
-
-        public override bool CanRead => false;
-
-        public override KeyboardInputActionData ReadJson(JsonReader reader, Type objectType, KeyboardInputActionData existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    [Serializable]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
-    [JsonConverter(typeof(KeyboardInputActionDataJsonConverter))]
-    public class KeyboardInputActionData
-    {
-        public double startTime;
-        public string action;
-        public string binding;
-        public double? endTime;
-
-        [NonSerialized]
-        public double duration;
-
-        [NonSerialized]
-        public double? lastSentUpdateTime;
-
-        [NonSerialized]
-        public double lastUpdateTime;
-
-        public bool isPressed => duration > 0 && endTime == null;
-
-        // re-usable and large enough to fit ball sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(2_000);
-
-        public void WriteToStringBuilder(StringBuilder stringBuilder)
-        {
-            stringBuilder.Append("{\"startTime\":");
-            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
-            stringBuilder.Append(",\"action\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, action);
-            stringBuilder.Append(",\"binding\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, binding);
-            stringBuilder.Append(",\"endTime\":");
-            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, endTime);
-            stringBuilder.Append(",\"isPressed\":");
-            stringBuilder.Append(isPressed ? "true" : "false");
-            stringBuilder.Append("}");
-        }
-
-        internal string ToJsonString()
-        {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder);
-            return _stringBuilder.ToString();
-        }
-    }
-
     public class KeyboardInputActionObserver : MonoBehaviour
     {
         private static KeyboardInputActionObserver _this;

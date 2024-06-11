@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace StateRecorder
+namespace RegressionGames.StateRecorder
 {
     public class VirtualMouseCursor : MonoBehaviour
     {
