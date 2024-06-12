@@ -25,7 +25,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             EscapeCharReplacements['\b'] = 'b';
             EscapeCharReplacements['\\'] = '\\';
             EscapeCharReplacements['"'] = '"';
-            TestCode(); //- useful for testing
+            //TestCode(); //- useful for testing
         }
 
         // supports up to 1m char length escaped strings
@@ -124,7 +124,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             return objectType == typeof(string);
         }
 
-        ///* Useful for testing
+        /* Useful for testing
         public static void TestCode()
         {
             new Thread(StringJsonConverter.Test).Start();
@@ -191,6 +191,6 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
             Debug.Log(sb.ToString());
         }
-        //*/
+        */
     }
 }
