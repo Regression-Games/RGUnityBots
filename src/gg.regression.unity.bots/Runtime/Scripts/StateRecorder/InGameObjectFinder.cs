@@ -757,12 +757,13 @@ namespace RegressionGames.StateRecorder
                             scene = theGameObject.scene,
                             behaviours = new List<BehaviourState>(),
                             colliders = new List<ColliderRecordState>(),
-                            rigidbodies = new List<RigidbodyRecordState>(),
-                            screenSpaceZOffset = tStatus.screenSpaceZOffset,
-                            screenSpaceBounds = tStatus.screenSpaceBounds.Value,
-                            worldSpaceBounds = tStatus.worldSpaceBounds
+                            rigidbodies = new List<RigidbodyRecordState>()
                         };
                     }
+
+                    resultObject.screenSpaceZOffset = tStatus.screenSpaceZOffset;
+                    resultObject.screenSpaceBounds = tStatus.screenSpaceBounds.Value;
+                    resultObject.worldSpaceBounds = tStatus.worldSpaceBounds;
 
                     _newStates[resultObject.id] = resultObject;
 
@@ -815,12 +816,13 @@ namespace RegressionGames.StateRecorder
                             scene = theGameObject.scene,
                             behaviours = new List<BehaviourState>(),
                             colliders = new List<ColliderRecordState>(),
-                            rigidbodies = new List<RigidbodyRecordState>(),
-                            screenSpaceBounds = tStatus.screenSpaceBounds.Value,
-                            screenSpaceZOffset = tStatus.screenSpaceZOffset,
-                            worldSpaceBounds = tStatus.worldSpaceBounds
+                            rigidbodies = new List<RigidbodyRecordState>()
                         };
                     }
+
+                    resultObject.screenSpaceZOffset = tStatus.screenSpaceZOffset;
+                    resultObject.screenSpaceBounds = tStatus.screenSpaceBounds.Value;
+                    resultObject.worldSpaceBounds = tStatus.worldSpaceBounds;
 
                     var behaviours = resultObject.behaviours;
                     _behaviourStateObjectPool.AddRange(behaviours);
