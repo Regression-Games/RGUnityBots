@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -72,8 +73,8 @@ namespace RegressionGames.StateRecorder.Models
             Replay_OffsetTime = 0;
         }
 
-        // re-usable and large enough to fit ball sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(5_000);
+        // re-usable and large enough to fit all sizes
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(5_000));
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -114,9 +115,9 @@ namespace RegressionGames.StateRecorder.Models
 
         internal string ToJsonString()
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
         }
 
         //gives the position relative to the current screen size

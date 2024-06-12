@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class TextMeshProJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
 
         public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
         {
@@ -43,9 +44,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonString(TextMeshPro val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
