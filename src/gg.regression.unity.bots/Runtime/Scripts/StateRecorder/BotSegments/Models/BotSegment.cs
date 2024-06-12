@@ -15,9 +15,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     {
         // these values reference key moments in the development of the SDK for bot segments
         public const int SDK_API_VERSION_1 = 1; // initial version with and/or/normalizedPath criteria and mouse/keyboard input actions
+        public const int SDK_API_VERSION_2 = 2; // added mouse pixel and object random clicking actions
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_SDK_API_VERSION = SDK_API_VERSION_1;
+        public const int CURRENT_SDK_API_VERSION = SDK_API_VERSION_2;
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
@@ -46,7 +47,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public bool Replay_ActionStarted;
 
         // Replay only - tracks if we have completed the action for this bot segment
-        public bool Replay_ActionCompleted => botAction == null || botAction.IsCompleted;
+        // returns true if botAction.IsCompleted || botAction.IsCompleted==null && Replay_Matched
+        public bool Replay_ActionCompleted => botAction == null || (botAction.IsCompleted ?? Replay_Matched);
+
+        // Replay only - called at least once per frame
+        public void ProcessAction()
+        {
+            botAction?.ProcessAction();
+        }
 
         // Replay only
         public void ReplayReset()

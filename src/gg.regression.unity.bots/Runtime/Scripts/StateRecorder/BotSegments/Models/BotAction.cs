@@ -15,9 +15,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public BotActionType type;
         public IBotActionData data;
-        public bool IsCompleted => data.IsCompleted();
+        public bool? IsCompleted => data.IsCompleted(); // returns null if this action runs until the keyframecriteria are met
 
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? 0);
+
+        // called at least once per frame
+        public void ProcessAction()
+        {
+            data.ProcessAction();
+        }
 
         public void ReplayReset()
         {

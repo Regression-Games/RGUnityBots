@@ -2,6 +2,8 @@
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -19,7 +21,42 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public double startTime;
         public InputData inputData;
 
-        public bool IsCompleted()
+        public void ProcessAction()
+        {
+            var currentTime = Time.unscaledTime;
+            foreach (var replayKeyboardInputEntry in inputData.keyboard)
+            {
+                if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
+                {
+                    // send start event
+                    KeyboardEventSender.SendKeyEvent(replayKeyboardInputEntry, KeyState.Down);
+                    replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
+                }
+
+                if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
+                {
+                    // send end event
+                    KeyboardEventSender.SendKeyEvent(replayKeyboardInputEntry, KeyState.Up);
+                    replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
+                }
+            }
+
+            foreach (var replayMouseInputEntry in inputData.mouse)
+            {
+                if (currentTime >= replayMouseInputEntry.Replay_StartTime)
+                {
+                    //Need the statuses for the mouse to click correctly when things move a bit or resolution changes
+                    var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
+                    var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
+
+                    // send event
+                    MouseEventSender.SendMouseEvent(replayMouseInputEntry.Replay_SegmentNumber, replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
+                    replayMouseInputEntry.Replay_IsDone = true;
+                }
+            }
+        }
+
+        public bool? IsCompleted()
         {
             foreach (var keyboardInputActionData in inputData.keyboard)
             {

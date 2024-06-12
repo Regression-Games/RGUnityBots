@@ -23,7 +23,12 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                 case BotActionType.InputPlayback:
                     data = jObject["data"].ToObject<InputPlaybackActionData>(serializer);
                     break;
-
+                case BotActionType.RandomMouse_ClickPixel:
+                    data = jObject["data"].ToObject<RandomMousePixelActionData>(serializer);
+                    break;
+                case BotActionType.RandomMouse_ClickObject:
+                    data = jObject["data"].ToObject<RandomMouseObjectActionData>(serializer);
+                    break;
                 default:
                     throw new JsonSerializationException($"Unsupported BotAction type: '{action.type}'");
             }

@@ -258,7 +258,7 @@ namespace RegressionGames.StateRecorder
             yield return null;
             if (!_isRecording)
             {
-                ReplayDataPlaybackController.SendMouseEvent(-1,new MouseInputActionData()
+                MouseEventSender.SendMouseEvent(-1,new MouseInputActionData()
                 {
                     // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
                     position = new Vector2Int(Screen.width +20, -20)
