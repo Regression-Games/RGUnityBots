@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
@@ -32,7 +33,7 @@ namespace RegressionGames.StateRecorder.Models
         public PerformanceMetricData performance;
 
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000_000);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000_000));
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -80,9 +81,9 @@ namespace RegressionGames.StateRecorder.Models
 
         public string ToJsonString()
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
         }
 
     }

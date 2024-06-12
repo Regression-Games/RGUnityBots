@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class VectorJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit vectors of all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(200));
 
         public static void WriteToStringBuilderVector2Nullable(StringBuilder stringBuilder, Vector2? f)
         {
@@ -32,9 +33,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonStringVector2(Vector2 val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilderVector2(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilderVector2(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
         public static void WriteToStringBuilderVector3Nullable(StringBuilder stringBuilder, Vector3? f)
@@ -60,9 +61,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonStringVector3(Vector3 val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilderVector3(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilderVector3(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
         public static void WriteToStringBuilderVector4Nullable(StringBuilder stringBuilder, Vector4? f)
@@ -90,9 +91,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonStringVector4(Vector4 val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilderVector4(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilderVector4(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
 

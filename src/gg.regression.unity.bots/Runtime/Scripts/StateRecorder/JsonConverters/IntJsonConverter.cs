@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
@@ -9,7 +10,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class IntJsonConverter: JsonConverter
     {
         // re-usable and large enough to fit objects of all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(20);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(20));
 
         private static readonly NumberFormatInfo NumberFormatInfo = new ()
         {
@@ -39,9 +40,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonString(int f)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, f);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, f);
+            return _stringBuilder.Value.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
