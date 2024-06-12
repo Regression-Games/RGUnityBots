@@ -872,7 +872,7 @@ namespace RegressionGames.StateRecorder
                 var parentTransform = newStateEntry.transform.parent;
                 // go up the tree until we find something in our parent hierarchy existing..
                 // stop if we hit the top
-                while (parentId.HasValue && !_newStates.ContainsKey(parentId.Value))
+                while (parentId.HasValue && parentTransform != null && !_newStates.ContainsKey(parentId.Value))
                 {
                     var parentParentTransform = parentTransform.parent;
                     int? parentParentId = parentParentTransform != null ? parentParentTransform.GetInstanceID() : null;

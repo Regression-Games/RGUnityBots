@@ -1,8 +1,6 @@
 using System;
 using System.Text;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
@@ -23,7 +21,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             EscapeCharReplacements['\b'] = 'b';
             EscapeCharReplacements['\\'] = '\\';
             EscapeCharReplacements['"'] = '"';
-            //Main(); - useful for testing
+            //Main(); //- useful for testing
         }
 
         // supports up to 100k char length escaped strings
@@ -44,6 +42,13 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
             var inputLength = input.Length;
 
+            /*
+             * \n a b c
+             * 0  1 2 3
+             *
+             * s = 1 , e = 1
+             */
+
             var startIndex = 0;
             var endIndex = 0;
             for (var i = 0; i < inputLength; i++)
@@ -53,14 +58,14 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 if (escapeReplacement == 0)
                 {
                     // don't need to escape
-                    endIndex = i;
+                    endIndex = i + 1;
                 }
                 else
                 {
-                    // need to escape.. copy existing range to result if not the start of the string
-                    if (i != 0)
+                    // need to escape.. copy existing range to result
+                    if (startIndex != endIndex)
                     {
-                        var length = endIndex + 1 - startIndex;
+                        var length = endIndex - startIndex;
                         input.CopyTo(startIndex, _bufferArray, _currentNextIndex, length);
                         _currentNextIndex += length;
                     }
@@ -76,7 +81,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             if (startIndex != endIndex || startIndex == inputLength - 1)
             {
                 // got to the end
-                var length = endIndex + 1 - startIndex;
+                var length = endIndex - startIndex;
                 input.CopyTo(startIndex, _bufferArray, _currentNextIndex, length);
                 _currentNextIndex += length;
             }
@@ -126,6 +131,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
         /* Useful for testing
         public static void Main()
         {
+            Debug.Log("StringJsonConverter Test Output");
             var input = "a";
             Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
 
