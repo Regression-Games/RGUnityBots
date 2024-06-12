@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
@@ -19,7 +20,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public const int CURRENT_SDK_API_VERSION = SDK_API_VERSION_1;
 
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(10_000);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
@@ -142,9 +143,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public string ToJsonString()
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
