@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
@@ -237,15 +237,17 @@ namespace RegressionGames.StateRecorder
         private void EvaluateBotSegments()
         {
             var now = Time.unscaledTime;
-            // PlayInputs will occur 2 times in this method
+
+            IEnumerable<TransformStatus> transformStatus = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2.Values.Concat(InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2.Values);
+
+            // ProcessAction will occur up to 2 times in this method
             // once after checking if new inputs need to be processed, and one last time after checking if we need to get the next bot segment
             // the goal being to always play the inputs as quickly as possible
-
             BotSegment firstActionSegment = null;
             if (_nextBotSegments.Count > 0)
             {
                 firstActionSegment = _nextBotSegments[0];
-                firstActionSegment.ProcessAction();
+                firstActionSegment.ProcessAction(transformStatus);
             }
 
             // check count each loop because we remove from it during the loop
@@ -346,7 +348,7 @@ namespace RegressionGames.StateRecorder
                 var nextSegment = _nextBotSegments[0];
                 if (nextSegment != firstActionSegment)
                 {
-                    nextSegment.ProcessAction();
+                    nextSegment.ProcessAction(transformStatus);
                 }
             }
         }

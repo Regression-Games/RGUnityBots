@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
+using RegressionGames.StateRecorder.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -20,9 +22,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? 0);
 
         // called at least once per frame
-        public void ProcessAction()
+        public void ProcessAction(int segmentNumber, IEnumerable<TransformStatus> currentTransformStatus)
         {
-            data.ProcessAction();
+            data.ProcessAction(segmentNumber, currentTransformStatus);
         }
 
         public void ReplayReset()

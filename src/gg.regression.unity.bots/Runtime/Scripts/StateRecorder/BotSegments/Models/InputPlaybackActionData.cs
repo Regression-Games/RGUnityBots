@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
@@ -21,7 +22,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public double startTime;
         public InputData inputData;
 
-        public void ProcessAction()
+        public void ProcessAction(int segmentNumbe, IEnumerable<TransformStatus> currentTransformStatus)
         {
             var currentTime = Time.unscaledTime;
             foreach (var replayKeyboardInputEntry in inputData.keyboard)

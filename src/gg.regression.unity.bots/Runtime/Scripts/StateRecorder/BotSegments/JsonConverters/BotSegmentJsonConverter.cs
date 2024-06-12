@@ -25,6 +25,8 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             return actionModel;
         }
 
+        public override bool CanWrite => false;
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             throw new NotImplementedException();

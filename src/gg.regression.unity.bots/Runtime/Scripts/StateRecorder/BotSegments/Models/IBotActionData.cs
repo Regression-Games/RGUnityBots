@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
+using RegressionGames.StateRecorder.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -7,7 +9,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /**
          * Called at least once per frame
          */
-        public void ProcessAction();
+        public void ProcessAction(int segmentNumber, IEnumerable<TransformStatus> currentTransformStatus);
 
         public void WriteToStringBuilder(StringBuilder stringBuilder);
 

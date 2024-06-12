@@ -6,6 +6,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
+using RegressionGames.StateRecorder.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -51,9 +52,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public bool Replay_ActionCompleted => botAction == null || (botAction.IsCompleted ?? Replay_Matched);
 
         // Replay only - called at least once per frame
-        public void ProcessAction()
+        public void ProcessAction(IEnumerable<TransformStatus> currentTransformStatus)
         {
-            botAction?.ProcessAction();
+            botAction?.ProcessAction(Replay_SegmentNumber, currentTransformStatus);
         }
 
         // Replay only
