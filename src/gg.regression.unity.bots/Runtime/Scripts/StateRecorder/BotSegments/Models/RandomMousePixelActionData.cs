@@ -50,7 +50,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
         }
 
-        public void ProcessAction(int segmentNumber, IEnumerable<TransformStatus> currentTransformStatus)
+        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            // no-op
+        }
+
+        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -115,7 +120,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         leftButton = Random.Range(0, 2) == 0,
                         middleButton = Random.Range(0, 2) == 0,
                         rightButton = Random.Range(0, 2) == 0,
-                    }, null, null, null, null);
+                    }, null, null, currentUITransforms, currentGameObjectTransforms);
                 }
             }
         }

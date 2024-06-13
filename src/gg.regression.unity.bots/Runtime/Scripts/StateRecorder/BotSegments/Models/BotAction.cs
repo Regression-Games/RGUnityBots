@@ -21,10 +21,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? 0);
 
-        // called at least once per frame
-        public void ProcessAction(int segmentNumber, IEnumerable<TransformStatus> currentTransformStatus)
+        // Called before the first call to ProcessAction to allow data setup by the action code
+        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
-            data.ProcessAction(segmentNumber, currentTransformStatus);
+            data.StartAction(segmentNumber, currentUITransforms, currentGameObjectTransforms);
+        }
+
+        // called at least once per frame
+        // bool firstCall tracks if this is the first call for this botaction
+        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            data.ProcessAction(segmentNumber, currentUITransforms, currentGameObjectTransforms);
         }
 
         public void ReplayReset()

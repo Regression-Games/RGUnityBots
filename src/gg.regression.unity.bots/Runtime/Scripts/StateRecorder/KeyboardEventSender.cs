@@ -16,9 +16,8 @@ namespace RegressionGames.StateRecorder
             _isShiftDown = false;
         }
 
-        public static void SendKeyEvent(KeyboardInputActionData keyboardData, KeyState upOrDown)
+        public static void SendKeyEvent(int replaySegment, KeyboardInputActionData keyboardData, KeyState upOrDown)
         {
-            var replaySegment = keyboardData.Replay_SegmentNumber;
             var key = keyboardData.Key;
             #if ENABLE_LEGACY_INPUT_MANAGER
             SendKeyEventLegacy(key, upOrDown);

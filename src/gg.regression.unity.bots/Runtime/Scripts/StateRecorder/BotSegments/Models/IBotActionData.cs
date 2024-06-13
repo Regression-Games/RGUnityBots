@@ -6,10 +6,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     public interface IBotActionData
     {
+
+        /**
+         * Called before the first call to ProcessAction to allow data setup by the action
+         */
+        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms);
+
         /**
          * Called at least once per frame
          */
-        public void ProcessAction(int segmentNumber, IEnumerable<TransformStatus> currentTransformStatus);
+        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms);
 
         public void WriteToStringBuilder(StringBuilder stringBuilder);
 

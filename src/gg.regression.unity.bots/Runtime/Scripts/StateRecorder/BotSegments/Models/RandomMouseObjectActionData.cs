@@ -55,7 +55,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
         }
 
-        public void ProcessAction(int segmentNumber, IEnumerable<TransformStatus> currentTransformStatus)
+        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            // no-op
+        }
+
+        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -63,77 +68,95 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 var screenHeight = Screen.height;
                 var screenWidth = Screen.width;
 
-                var possibleTransformsToClick = currentTransformStatus.Where(a => a.screenSpaceBounds != null).ToList();
-                var possibleTransformsCount = possibleTransformsToClick.Count;
-                var RESTART_LIMIT = 20;
-                var restartCount = 0;
-                // try up to 20 times per frame to find a valid click object, but after that, give up till the next frame as none may be available
-                // helps prevent long searches, or cases where the user excludes the whole screen
-                do
+                List<TransformStatus> possibleTransformsToClick;
+                // pick randomly either UI or gameObject
+                var uiOrGameObject = Random.Range(0, 2) > 0;
+                if (currentGameObjectTransforms.Count == 0 || uiOrGameObject && currentUITransforms.Count > 0)
                 {
-                    var transformOption = possibleTransformsToClick[Random.Range(0, possibleTransformsCount)];
-                    if (StateRecorderUtils.OptimizedStringStartsWithStringInList(excludedNormalizedPaths, transformOption.NormalizedPath))
+                    possibleTransformsToClick = currentUITransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
+                }
+                else
+                {
+                    possibleTransformsToClick = currentGameObjectTransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
+                }
+
+                var possibleTransformsCount = possibleTransformsToClick.Count;
+                if (possibleTransformsCount > 0)
+                {
+                    var RESTART_LIMIT = 20;
+                    var restartCount = 0;
+                    // try up to 20 times per frame to find a valid click object, but after that, give up till the next frame as none may be available
+                    // helps prevent long searches, or cases where the user excludes the whole screen
+                    do
                     {
-                        // not allowed object .. pick another
-                        continue; // while
-                    }
-
-                    var ssbCenter = transformOption.screenSpaceBounds.Value.center;
-                    var x = (int)ssbCenter.x;
-                    var y = (int)ssbCenter.y;
-
-                    var valid = true;
-                    var count = excludedAreas.Count;
-                    for (var i = 0; i < count; i++)
-                    {
-                        var excludedArea = excludedAreas[i];
-                        var xMin = excludedArea.xMin;
-                        var xMax = excludedArea.xMax;
-                        var yMin = excludedArea.yMin;
-                        var yMax = excludedArea.yMax;
-
-                        // normalize the location to the current resolution
-                        if (screenWidth != screenSize.x)
+                        var transformOption = possibleTransformsToClick[Random.Range(0, possibleTransformsCount)];
+                        if (StateRecorderUtils.OptimizedStringStartsWithStringInList(excludedNormalizedPaths, transformOption.NormalizedPath))
                         {
-                            var ratio = screenWidth / screenSize.x;
-                            xMin *= ratio;
-                            xMax *= ratio;
+                            // not allowed object .. pick another
+                            continue; // while
                         }
 
-                        if (screenHeight != screenSize.y)
+                        var ssbCenter = transformOption.screenSpaceBounds.Value.center;
+                        var x = (int)ssbCenter.x;
+                        var y = (int)ssbCenter.y;
+
+                        var valid = true;
+                        var count = excludedAreas.Count;
+                        for (var i = 0; i < count; i++)
                         {
-                            var ratio = screenHeight / screenSize.y;
-                            yMin *= ratio;
-                            yMax *= ratio;
+                            var excludedArea = excludedAreas[i];
+                            var xMin = excludedArea.xMin;
+                            var xMax = excludedArea.xMax;
+                            var yMin = excludedArea.yMin;
+                            var yMax = excludedArea.yMax;
+
+                            // normalize the location to the current resolution
+                            if (screenWidth != screenSize.x)
+                            {
+                                var ratio = screenWidth / (float)screenSize.x;
+                                xMin = (int) (xMin * ratio);
+                                xMax = (int) (xMax * ratio);
+                            }
+
+                            if (screenHeight != screenSize.y)
+                            {
+                                var ratio = screenHeight / (float)screenSize.y;
+                                yMin = (int) (yMin * ratio);
+                                yMax = (int) (yMax * ratio);
+                            }
+
+                            if (x >= xMin && x <= xMax)
+                            {
+                                valid = false;
+                                break; // for
+                            }
+
+                            if (y >= yMin && y <= yMax)
+                            {
+                                valid = false;
+                                break; // for
+                            }
                         }
 
-                        if (x >= xMin && x <= xMax)
+                        if (valid)
                         {
-                            valid = false;
-                            break; // for
+                            RGDebug.LogInfo($"RandomMouseObjectClicker - Mouse action at point x: {x}, y: {y} on object with NormalizedPath: {transformOption.NormalizedPath}");
+                            MouseEventSender.SendRawPositionMouseEvent(
+                                segmentNumber,
+                                new Vector2(x, y),
+                                Random.Range(0, 2) == 0,
+                                Random.Range(0, 2) == 0,
+                                Random.Range(0, 2) == 0,
+                                Random.Range(0, 2) == 0,
+                                Random.Range(0, 2) == 0,
+                                new Vector2(0,0) // don't support random scrolling yet...
+                            );
+                            Replay_LastClickTime = now;
+                            break; // while
                         }
 
-                        if (y >= yMin && y <= yMax)
-                        {
-                            valid = false;
-                            break; // for
-                        }
-                    }
-
-                    if (valid)
-                    {
-                        MouseEventSender.SendMouseEvent(segmentNumber, new MouseInputActionData()
-                        {
-                            position = new Vector2Int(x, y),
-                            leftButton = Random.Range(0, 2) == 0,
-                            middleButton = Random.Range(0, 2) == 0,
-                            rightButton = Random.Range(0, 2) == 0,
-                        }, null, null, null, null);
-                        Replay_LastClickTime = now;
-                        break; // while
-                    }
-
-                } while (++restartCount < RESTART_LIMIT);
+                    } while (++restartCount < RESTART_LIMIT);
+                }
             }
         }
 

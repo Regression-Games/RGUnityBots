@@ -79,11 +79,8 @@ namespace RegressionGames.StateRecorder
             Stop();
             _replaySuccessful = null;
 
-            MouseEventSender.SendMouseEvent(-1, new MouseInputActionData()
-            {
-                // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
-                position = new Vector2Int(Screen.width +20, -20),
-            }, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary);
+            // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
+            MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
 
             _dataContainer = dataContainer;
         }
@@ -238,7 +235,8 @@ namespace RegressionGames.StateRecorder
         {
             var now = Time.unscaledTime;
 
-            IEnumerable<TransformStatus> transformStatus = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2.Values.Concat(InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2.Values);
+            var currentUiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
+            var currentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
 
             // ProcessAction will occur up to 2 times in this method
             // once after checking if new inputs need to be processed, and one last time after checking if we need to get the next bot segment
@@ -247,7 +245,7 @@ namespace RegressionGames.StateRecorder
             if (_nextBotSegments.Count > 0)
             {
                 firstActionSegment = _nextBotSegments[0];
-                firstActionSegment.ProcessAction(transformStatus);
+                firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
             }
 
             // check count each loop because we remove from it during the loop
@@ -348,7 +346,7 @@ namespace RegressionGames.StateRecorder
                 var nextSegment = _nextBotSegments[0];
                 if (nextSegment != firstActionSegment)
                 {
-                    nextSegment.ProcessAction(transformStatus);
+                    nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
                 }
             }
         }
@@ -364,11 +362,7 @@ namespace RegressionGames.StateRecorder
 
                 if (_nextBotSegments.Count == 0)
                 {
-                    MouseEventSender.SendMouseEvent(-1, new MouseInputActionData()
-                    {
-                        // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure
-                        position = new Vector2Int(Screen.width + 20, -20)
-                    }, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary, ScreenRecorder._emptyTransformStatusDictionary);
+                    MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
 
                     // we hit the end of the replay
                     if (_loopCount > -1)

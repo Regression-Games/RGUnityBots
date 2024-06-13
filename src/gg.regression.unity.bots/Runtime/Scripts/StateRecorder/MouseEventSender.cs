@@ -61,6 +61,139 @@ namespace RegressionGames.StateRecorder
             return mouse;
         }
 
+        public static void SendRawPositionMouseEvent(int replaySegment, Vector2 normalizedPosition, bool leftButton = false, bool middleButton = false, bool rightButton = false, bool forwardButton = false, bool backButton = false)
+        {
+            SendRawPositionMouseEvent(replaySegment, normalizedPosition, leftButton, middleButton, rightButton, forwardButton, backButton, Vector2.zero);
+        }
+
+        public static void SendRawPositionMouseEvent(int replaySegment, Vector2 normalizedPosition, bool leftButton, bool middleButton, bool rightButton, bool forwardButton, bool backButton, Vector2 scroll)
+        {
+
+             var mouse = GetMouse();
+
+             using (DeltaStateEvent.From(mouse, out var eventPtr))
+             {
+                 eventPtr.time = InputState.currentTime;
+
+                 var mouseControls = mouse.allControls;
+                 var mouseEventString = "";
+
+                 // 1f == true == clicked state
+                 // 0f == false == un-clicked state
+                 foreach (var mouseControl in mouseControls)
+                 {
+                     switch (mouseControl.name)
+                     {
+                         case "delta":
+                             if (_lastMousePosition != null)
+                             {
+                                 var delta = normalizedPosition - _lastMousePosition.Value;
+                                 if (RGDebug.IsDebugEnabled)
+                                 {
+                                     mouseEventString += $"delta: {delta.x},{delta.y}  ";
+                                 }
+
+                                 ((Vector2Control)mouseControl).WriteValueIntoEvent(delta, eventPtr);
+                             }
+
+                             break;
+                         case "position":
+                             if (RGDebug.IsDebugEnabled)
+                             {
+                                 mouseEventString += $"position: {normalizedPosition.x},{normalizedPosition.y}  ";
+                             }
+
+                             ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
+                             break;
+                         case "scroll":
+                             if (RGDebug.IsDebugEnabled)
+                             {
+                                 if (scroll.x < -0.1f || scroll.x > 0.1f || scroll.y < -0.1f || scroll.y > 0.1f)
+                                 {
+                                     mouseEventString += $"scroll: {scroll.x},{scroll.y}  ";
+                                 }
+                             }
+
+                             ((DeltaControl)mouseControl).WriteValueIntoEvent(scroll, eventPtr);
+                             break;
+                         case "leftButton":
+                             if (RGDebug.IsDebugEnabled)
+                             {
+                                 if (leftButton)
+                                 {
+                                     mouseEventString += $"leftButton  ";
+                                 }
+                             }
+
+                             ((ButtonControl)mouseControl).WriteValueIntoEvent(leftButton ? 1f : 0f, eventPtr);
+                             break;
+                         case "middleButton":
+                             if (RGDebug.IsDebugEnabled)
+                             {
+                                 if (middleButton)
+                                 {
+                                     mouseEventString += $"middleButton  ";
+                                 }
+                             }
+
+                             ((ButtonControl)mouseControl).WriteValueIntoEvent(middleButton ? 1f : 0f, eventPtr);
+                             break;
+                         case "rightButton":
+                             if (RGDebug.IsDebugEnabled)
+                             {
+                                 if (rightButton)
+                                 {
+                                     mouseEventString += $"rightButton  ";
+                                 }
+                             }
+
+                             ((ButtonControl)mouseControl).WriteValueIntoEvent(rightButton ? 1f : 0f, eventPtr);
+                             break;
+                         case "forwardButton":
+                             if (RGDebug.IsDebugEnabled)
+                             {
+                                 if (forwardButton)
+                                 {
+                                     mouseEventString += $"forwardButton  ";
+                                 }
+                             }
+
+                             ((ButtonControl)mouseControl).WriteValueIntoEvent(forwardButton ? 1f : 0f, eventPtr);
+                             break;
+                         case "backButton":
+                             if (RGDebug.IsDebugEnabled)
+                             {
+                                 if (backButton)
+                                 {
+                                     mouseEventString += $"backButton  ";
+                                 }
+                             }
+
+                             ((ButtonControl)mouseControl).WriteValueIntoEvent(backButton ? 1f : 0f, eventPtr);
+                             break;
+                     }
+                 }
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+                 {
+                     Vector2 delta = _lastMousePosition.HasValue ? (normalizedPosition - _lastMousePosition.Value) : Vector2.zero;
+                     SendMouseEventLegacy(position: normalizedPosition, delta: delta, scroll: scroll,
+                         leftButton: leftButton, middleButton: middleButton, rightButton: rightButton,
+                         forwardButton: forwardButton, backButton: backButton);
+                 }
+#endif
+
+                 _lastMousePosition = normalizedPosition;
+
+                 if (RGDebug.IsDebugEnabled)
+                 {
+                     RGDebug.LogDebug($"({replaySegment}) Sending Mouse Event - {mouseEventString}");
+                 }
+
+                 InputSystem.QueueEvent(eventPtr);
+             }
+        }
+
         public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<int, TransformStatus> priorUiTransforms, Dictionary<int, TransformStatus> priorGameObjectTransforms, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
         {
             var clickObjectResult = FindBestClickObject(Camera.main, mouseInput, priorUiTransforms, priorGameObjectTransforms,uiTransforms, gameObjectTransforms);
@@ -101,128 +234,8 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            var mouse = GetMouse();
+            SendRawPositionMouseEvent(replaySegment, normalizedPosition, mouseInput.leftButton, mouseInput.middleButton, mouseInput.rightButton, mouseInput.forwardButton, mouseInput.backButton, mouseInput.scroll);
 
-            using (DeltaStateEvent.From(mouse, out var eventPtr))
-            {
-                eventPtr.time = InputState.currentTime;
-
-                var mouseControls = mouse.allControls;
-                var mouseEventString = "";
-
-                // 1f == true == clicked state
-                // 0f == false == un-clicked state
-                foreach (var mouseControl in mouseControls)
-                {
-                    switch (mouseControl.name)
-                    {
-                        case "delta":
-                            if (_lastMousePosition != null)
-                            {
-                                var delta = normalizedPosition - _lastMousePosition.Value;
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    mouseEventString += $"delta: {delta.x},{delta.y}  ";
-                                }
-
-                                ((Vector2Control)mouseControl).WriteValueIntoEvent(delta, eventPtr);
-                            }
-                            break;
-                        case "position":
-                            if (RGDebug.IsDebugEnabled)
-                            {
-                                mouseEventString += $"position: {normalizedPosition.x},{normalizedPosition.y}  ";
-                            }
-
-                            ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
-                            break;
-                        case "scroll":
-                            if (RGDebug.IsDebugEnabled)
-                            {
-                                if (mouseInput.scroll.x < -0.1f || mouseInput.scroll.x > 0.1f || mouseInput.scroll.y < -0.1f || mouseInput.scroll.y > 0.1f)
-                                {
-                                    mouseEventString += $"scroll: {mouseInput.scroll.x},{mouseInput.scroll.y}  ";
-                                }
-                            }
-
-                            ((DeltaControl)mouseControl).WriteValueIntoEvent(mouseInput.scroll, eventPtr);
-                            break;
-                        case "leftButton":
-                            if (RGDebug.IsDebugEnabled)
-                            {
-                                if (mouseInput.leftButton)
-                                {
-                                    mouseEventString += $"leftButton  ";
-                                }
-                            }
-
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.leftButton ? 1f : 0f, eventPtr);
-                            break;
-                        case "middleButton":
-                            if (RGDebug.IsDebugEnabled)
-                            {
-                                if (mouseInput.middleButton)
-                                {
-                                    mouseEventString += $"middleButton  ";
-                                }
-                            }
-
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.middleButton ? 1f : 0f, eventPtr);
-                            break;
-                        case "rightButton":
-                            if (RGDebug.IsDebugEnabled)
-                            {
-                                if (mouseInput.rightButton)
-                                {
-                                    mouseEventString += $"rightButton  ";
-                                }
-                            }
-
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.rightButton ? 1f : 0f, eventPtr);
-                            break;
-                        case "forwardButton":
-                            if (RGDebug.IsDebugEnabled)
-                            {
-                                if (mouseInput.forwardButton)
-                                {
-                                    mouseEventString += $"forwardButton  ";
-                                }
-                            }
-
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.forwardButton ? 1f : 0f, eventPtr);
-                            break;
-                        case "backButton":
-                            if (RGDebug.IsDebugEnabled)
-                            {
-                                if (mouseInput.backButton)
-                                {
-                                    mouseEventString += $"backButton  ";
-                                }
-                            }
-
-                            ((ButtonControl)mouseControl).WriteValueIntoEvent(mouseInput.backButton ? 1f : 0f, eventPtr);
-                            break;
-                    }
-                }
-
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                {
-                    Vector2 delta = _lastMousePosition.HasValue ? (normalizedPosition - _lastMousePosition.Value) : Vector2.zero;
-                    SendMouseEventLegacy(position: normalizedPosition, delta: delta, scroll: mouseInput.scroll,
-                        leftButton: mouseInput.leftButton, middleButton: mouseInput.middleButton, rightButton: mouseInput.rightButton,
-                        forwardButton: mouseInput.forwardButton, backButton: mouseInput.backButton);
-                }
-                #endif
-
-                _lastMousePosition = normalizedPosition;
-
-                if (RGDebug.IsDebugEnabled)
-                {
-                    RGDebug.LogDebug($"({replaySegment}) Sending Mouse Event [{mouseInput.Replay_StartTime}] - {mouseEventString}");
-                }
-
-                InputSystem.QueueEvent(eventPtr);
-            }
         }
 
 #if ENABLE_LEGACY_INPUT_MANAGER

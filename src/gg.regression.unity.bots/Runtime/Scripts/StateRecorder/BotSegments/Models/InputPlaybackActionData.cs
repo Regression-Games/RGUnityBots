@@ -22,7 +22,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public double startTime;
         public InputData inputData;
 
-        public void ProcessAction(int segmentNumbe, IEnumerable<TransformStatus> currentTransformStatus)
+        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            RGDebug.LogInfo($"({segmentNumber}) - Processing InputPlaybackActionData for BotSegment");
+
+            var now = Time.unscaledTime;
+            var currentInputTimePoint = now - startTime;
+
+            foreach (var keyboardInputActionData in inputData.keyboard)
+            {
+                keyboardInputActionData.Replay_OffsetTime = currentInputTimePoint;
+            }
+
+            foreach (var mouseInputActionData in inputData.mouse)
+            {
+                mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
+            }
+        }
+
+        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
             var currentTime = Time.unscaledTime;
             foreach (var replayKeyboardInputEntry in inputData.keyboard)
@@ -30,28 +48,28 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
                 {
                     // send start event
-                    KeyboardEventSender.SendKeyEvent(replayKeyboardInputEntry, KeyState.Down);
+                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry, KeyState.Down);
                     replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
                 }
 
                 if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
                 {
                     // send end event
-                    KeyboardEventSender.SendKeyEvent(replayKeyboardInputEntry, KeyState.Up);
+                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry, KeyState.Up);
                     replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                 }
             }
 
             foreach (var replayMouseInputEntry in inputData.mouse)
             {
-                if (currentTime >= replayMouseInputEntry.Replay_StartTime)
+                if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
                 {
                     //Need the statuses for the mouse to click correctly when things move a bit or resolution changes
                     var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
                     var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
 
                     // send event
-                    MouseEventSender.SendMouseEvent(replayMouseInputEntry.Replay_SegmentNumber, replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
+                    MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
                     replayMouseInputEntry.Replay_IsDone = true;
                 }
             }
