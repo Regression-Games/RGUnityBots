@@ -245,7 +245,15 @@ namespace RegressionGames.StateRecorder
             if (_nextBotSegments.Count > 0)
             {
                 firstActionSegment = _nextBotSegments[0];
-                firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
+                var error = firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
+                // only log this if we're really stuck on it
+                if (error != null && _lastTimeLoggedKeyFrameConditions < now - 5)
+                {
+                    var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
+                    _lastTimeLoggedKeyFrameConditions = now;
+                    RGDebug.LogInfo(loggedMessage);
+                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+                }
             }
 
             // check count each loop because we remove from it during the loop
@@ -347,11 +355,13 @@ namespace RegressionGames.StateRecorder
                 if (nextSegment != firstActionSegment)
                 {
                     var error = nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
-                    if (error != null)
+                    // only log this if we're really stuck on it
+                    if (error != null && _lastTimeLoggedKeyFrameConditions < now - 5)
                     {
                         var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
                         _lastTimeLoggedKeyFrameConditions = now;
                         RGDebug.LogInfo(loggedMessage);
+                        FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
                     }
                 }
             }
