@@ -40,7 +40,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
-        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
             var currentTime = Time.unscaledTime;
             foreach (var replayKeyboardInputEntry in inputData.keyboard)
@@ -73,6 +73,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     replayMouseInputEntry.Replay_IsDone = true;
                 }
             }
+
+            return null;
         }
 
         public bool? IsCompleted()

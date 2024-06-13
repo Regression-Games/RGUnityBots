@@ -23,6 +23,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             data.timeBetweenClicks = jObject.GetValue("timeBetweenClicks").ToObject<float>();
             data.excludedAreas = jObject.GetValue("excludedAreas").ToObject<List<RectInt>>();
             data.excludedNormalizedPaths = jObject.GetValue("excludedNormalizedPaths").ToObject<List<string>>();
+            data.preconditionNormalizedPaths = jObject.GetValue("preconditionNormalizedPaths").ToObject<List<string>>();
             return data;
         }
 

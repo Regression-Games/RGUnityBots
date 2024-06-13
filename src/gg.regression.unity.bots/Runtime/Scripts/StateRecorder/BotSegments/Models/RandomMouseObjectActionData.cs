@@ -41,10 +41,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * <summary>The screen pixel rects to avoid clicking in</summary>
          */
         public List<RectInt> excludedAreas = new();
+
         /**
          * <summary>The object paths to avoid clicking on</summary>
          */
         public List<string> excludedNormalizedPaths = new();
+
+        /**
+         * <summary>The object paths that must be visible for this bot to keep clicking.</summary>
+         */
+        public List<string> preconditionNormalizedPaths = new();
 
         public bool? IsCompleted()
         {
@@ -60,7 +66,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             // no-op
         }
 
-        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -71,6 +77,36 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 List<TransformStatus> possibleTransformsToClick;
                 // pick randomly either UI or gameObject
                 var uiOrGameObject = Random.Range(0, 2) > 0;
+                var preconditionsMet = preconditionNormalizedPaths.Count == 0;
+                if (!preconditionsMet)
+                {
+                    preconditionsMet = currentUITransforms.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
+                }
+
+                if (!preconditionsMet)
+                {
+                    preconditionsMet = currentGameObjectTransforms.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
+                }
+
+                if (!preconditionsMet)
+                {
+                    //TODO: Someday make this only log the ones that weren't matched instead of all the preconditions
+                    StringBuilder error = new StringBuilder(500);
+                    error.Append("RandomMouseClicker - Missing one or more precondition normalized paths\r\n");
+                    var preconditionNormalizedPathsCount = preconditionNormalizedPaths.Count;
+                    for (var i = 0; i < preconditionNormalizedPathsCount; i++)
+                    {
+                        var pc = preconditionNormalizedPaths[i];
+                        error.Append(pc);
+                        if (i + 1 < preconditionNormalizedPathsCount)
+                        {
+                            error.Append("\r\n");
+                        }
+                    }
+
+                    return error.ToString();
+                }
+
                 if (currentGameObjectTransforms.Count == 0 || uiOrGameObject && currentUITransforms.Count > 0)
                 {
                     possibleTransformsToClick = currentUITransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
@@ -158,6 +194,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     } while (++restartCount < RESTART_LIMIT);
                 }
             }
+
+            return null;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
@@ -187,6 +225,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 var excludedNormalizedPath = excludedNormalizedPaths[i];
                 StringJsonConverter.WriteToStringBuilder(stringBuilder, excludedNormalizedPath);
                 if (i + 1 < excludedAreasCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+
+            stringBuilder.Append("],\"preconditionNormalizedPaths\":[");
+            var preconditionNormalizedPathsCount = preconditionNormalizedPaths.Count;
+            for (var i = 0; i < preconditionNormalizedPathsCount; i++)
+            {
+                var preconditionNormalizedPath = preconditionNormalizedPaths[i];
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, preconditionNormalizedPath);
+                if (i + 1 < preconditionNormalizedPathsCount)
                 {
                     stringBuilder.Append(",");
                 }

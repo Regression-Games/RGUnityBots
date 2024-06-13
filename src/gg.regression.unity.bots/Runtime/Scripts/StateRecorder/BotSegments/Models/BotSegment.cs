@@ -52,7 +52,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public bool Replay_ActionCompleted => botAction == null || (botAction.IsCompleted ?? Replay_Matched);
 
         // Replay only - called at least once per frame
-        public void ProcessAction(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public string ProcessAction(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
             if (botAction == null)
             {
@@ -65,8 +65,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     botAction.StartAction(Replay_SegmentNumber, currentUITransforms, currentGameObjectTransforms);
                     Replay_ActionStarted = true;
                 }
-                botAction.ProcessAction(Replay_SegmentNumber, currentUITransforms, currentGameObjectTransforms);
+                return botAction.ProcessAction(Replay_SegmentNumber, currentUITransforms, currentGameObjectTransforms);
             }
+            return null;
         }
 
         // Replay only

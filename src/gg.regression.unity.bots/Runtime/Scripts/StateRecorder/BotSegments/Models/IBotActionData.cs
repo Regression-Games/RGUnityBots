@@ -14,8 +14,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         /**
          * Called at least once per frame
+         * Returns null or an error message string
          */
-        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms);
+        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms);
 
         public void WriteToStringBuilder(StringBuilder stringBuilder);
 

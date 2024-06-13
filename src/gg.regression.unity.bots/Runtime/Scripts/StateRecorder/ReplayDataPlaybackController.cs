@@ -346,7 +346,13 @@ namespace RegressionGames.StateRecorder
                 var nextSegment = _nextBotSegments[0];
                 if (nextSegment != firstActionSegment)
                 {
-                    nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
+                    var error = nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
+                    if (error != null)
+                    {
+                        var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
+                        _lastTimeLoggedKeyFrameConditions = now;
+                        RGDebug.LogInfo(loggedMessage);
+                    }
                 }
             }
         }

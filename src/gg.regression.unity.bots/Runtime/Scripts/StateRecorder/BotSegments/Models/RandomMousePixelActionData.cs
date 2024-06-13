@@ -55,7 +55,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             // no-op
         }
 
-        public void ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -123,6 +123,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     }, null, null, currentUITransforms, currentGameObjectTransforms);
                 }
             }
+
+            return null;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
