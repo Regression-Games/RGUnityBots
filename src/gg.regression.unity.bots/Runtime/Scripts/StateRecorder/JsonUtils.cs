@@ -166,6 +166,10 @@ namespace RegressionGames.StateRecorder
             {
                 converter = new RectJsonConverter();
             }
+            else if (objectType == typeof(RectInt))
+            {
+                converter = new RectIntJsonConverter();
+            }
             else if (objectType == typeof(RawImage))
             {
                 converter = new RawImageJsonConverter();

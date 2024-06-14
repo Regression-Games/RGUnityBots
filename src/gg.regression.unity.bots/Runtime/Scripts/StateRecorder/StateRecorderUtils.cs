@@ -51,6 +51,24 @@ namespace RegressionGames.StateRecorder
             return false;
         }
 
+        public static bool OptimizedStringStartsWithStringInList(List<string> list, string theString)
+        {
+            if (list != null)
+            {
+                var listCount = list.Count;
+                for (var i = 0; i < listCount; i++)
+                {
+                    // if the string being checked starts with any of the strings in the list
+                    if (theString.StartsWith(list[i]))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public static bool OptimizedContainsStringInList(List<string> list, string theString)
         {
             if (list != null)

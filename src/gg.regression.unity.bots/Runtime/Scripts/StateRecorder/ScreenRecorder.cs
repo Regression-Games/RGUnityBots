@@ -232,7 +232,7 @@ namespace RegressionGames.StateRecorder
         private void LateUpdate()
         {
             _gpuReadbackRequests.RemoveAll(a => a.done);
-            _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
+            _fileWriteTasks.RemoveAll(a => a.Item2 == null || a.Item2.IsCompleted);
 
             while (_texture2Ds.TryDequeue(out var tex))
             {
@@ -258,11 +258,8 @@ namespace RegressionGames.StateRecorder
             yield return null;
             if (!_isRecording)
             {
-                ReplayDataPlaybackController.SendMouseEvent(-1,new MouseInputActionData()
-                {
-                    // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
-                    position = new Vector2Int(Screen.width +20, -20)
-                }, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary);
+                // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
+                MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
 
                 _lastCvFrameTime = -1;
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
@@ -532,7 +529,7 @@ namespace RegressionGames.StateRecorder
                         //record bot segment data for action replay
                         botSegment = new BotSegment()
                         {
-                            sessionId = System.Guid.NewGuid().ToString(),
+                            sessionId = _currentSessionId,
                             keyFrameCriteria = keyFrameCriteria,
                             botAction = new BotAction()
                             {
