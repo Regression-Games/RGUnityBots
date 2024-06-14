@@ -249,7 +249,7 @@ namespace RegressionGames.StateRecorder
                 firstActionSegment = _nextBotSegments[0];
                 var error = firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
                 // only log this if we're really stuck on it
-                if (error != null && _lastTimeLoggedKeyFrameConditions < now - 5)
+                if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                 {
                     var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
                     _lastTimeLoggedKeyFrameConditions = now;
