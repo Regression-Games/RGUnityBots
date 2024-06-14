@@ -5259,7 +5259,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 32767
@@ -6841,6 +6841,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77fc1e88a9b44c159e04099241437fe5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pauseEditorOnPlaybackWarning: 1
 --- !u!114 &5122435472915985299
 MonoBehaviour:
   m_ObjectHideFlags: 0
