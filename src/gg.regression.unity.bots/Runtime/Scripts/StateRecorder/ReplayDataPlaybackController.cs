@@ -231,6 +231,8 @@ namespace RegressionGames.StateRecorder
 
         private float _lastTimeLoggedKeyFrameConditions = 0;
 
+        private const int LOG_ERROR_INTERVAL = 10;
+
         private void EvaluateBotSegments()
         {
             var now = Time.unscaledTime;
@@ -251,7 +253,7 @@ namespace RegressionGames.StateRecorder
                 {
                     var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
                     _lastTimeLoggedKeyFrameConditions = now;
-                    RGDebug.LogInfo(loggedMessage);
+                    RGDebug.LogWarning(loggedMessage);
                     FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
                 }
             }
@@ -282,9 +284,13 @@ namespace RegressionGames.StateRecorder
                     // only update the time when the first index matches, but keeps us from logging this while waiting for actions to complete
                     if (i == 0)
                     {
-                        if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
+                        // wait 10 seconds between logging this as some actions take quite a while
+                        if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                         {
-                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText($"({nextBotSegment.Replay_SegmentNumber}) - Waiting for actions to complete");
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Waiting for actions to complete";
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+                            RGDebug.LogInfo(loggedMessage);
                         }
                     }
 
@@ -301,15 +307,15 @@ namespace RegressionGames.StateRecorder
                 }
                 else
                 {
-                    // only log this every 5 seconds for the first key frame being evaluated after its actions complete
-                    if (i == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - 5)
+                    // only log this every 10 seconds for the first key frame being evaluated after its actions complete
+                    if (i == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                     {
                         var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
                         if (warningText != null)
                         {
                             var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Unmatched Criteria for BotSegment\r\n" + warningText;
                             _lastTimeLoggedKeyFrameConditions = now;
-                            RGDebug.LogInfo(loggedMessage);
+                            RGDebug.LogWarning(loggedMessage);
                             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
                         }
                     }
@@ -355,8 +361,8 @@ namespace RegressionGames.StateRecorder
                 if (nextSegment != firstActionSegment)
                 {
                     var error = nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
-                    // only log this if we're really stuck on it
-                    if (error != null && _lastTimeLoggedKeyFrameConditions < now - 5)
+                    // only log this if we're really stuck on it for a while
+                    if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                     {
                         var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
                         _lastTimeLoggedKeyFrameConditions = now;
