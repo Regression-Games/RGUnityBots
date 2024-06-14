@@ -27,11 +27,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             data.StartAction(segmentNumber, currentUITransforms, currentGameObjectTransforms);
         }
 
-        // called at least once per frame
-        // bool firstCall tracks if this is the first call for this botaction
-        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        // called once per frame
+        // returns true if an action was performed
+        // out error will have an error string or null if no action performed or no error
+        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
         {
-            return data.ProcessAction(segmentNumber, currentUITransforms, currentGameObjectTransforms);
+            return data.ProcessAction(segmentNumber, currentUITransforms, currentGameObjectTransforms, out error);
         }
 
         public void ReplayReset()

@@ -66,7 +66,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             // no-op
         }
 
-        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -91,20 +91,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (!preconditionsMet)
                 {
                     //TODO: Someday make this only log the ones that weren't matched instead of all the preconditions
-                    StringBuilder error = new StringBuilder(500);
-                    error.Append("RandomMouseClicker - Missing one or more precondition normalized paths\r\n");
+                    StringBuilder theError = new StringBuilder(500);
+                    theError.Append("RandomMouseClicker - Missing one or more precondition normalized paths\r\n");
                     var preconditionNormalizedPathsCount = preconditionNormalizedPaths.Count;
                     for (var i = 0; i < preconditionNormalizedPathsCount; i++)
                     {
                         var pc = preconditionNormalizedPaths[i];
-                        error.Append(pc);
+                        theError.Append(pc);
                         if (i + 1 < preconditionNormalizedPathsCount)
                         {
-                            error.Append("\r\n");
+                            theError.Append("\r\n");
                         }
                     }
 
-                    return error.ToString();
+                    error = theError.ToString();
+                    return false;
                 }
 
                 if (currentGameObjectTransforms.Count == 0 || uiOrGameObject && currentUITransforms.Count > 0)
@@ -193,14 +194,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 new Vector2(0,0) // don't support random scrolling yet...
                             );
                             Replay_LastClickTime = now;
-                            break; // while
+                            error = null;
+                            return true;
                         }
 
                     } while (++restartCount < RESTART_LIMIT);
                 }
             }
 
-            return null;
+            error = null;
+            return false;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

@@ -40,14 +40,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
-        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
         {
+            var result = false;
             var currentTime = Time.unscaledTime;
             foreach (var replayKeyboardInputEntry in inputData.keyboard)
             {
                 if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
                 {
                     // send start event
+                    result = true;
                     KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry, KeyState.Down);
                     replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
                 }
@@ -55,6 +57,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
                 {
                     // send end event
+                    result = true;
                     KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry, KeyState.Up);
                     replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                 }
@@ -69,12 +72,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
 
                     // send event
+                    result = true;
                     MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
                     replayMouseInputEntry.Replay_IsDone = true;
                 }
             }
 
-            return null;
+            error = null;
+            return result;
         }
 
         public bool? IsCompleted()

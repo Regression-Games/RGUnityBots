@@ -55,7 +55,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             // no-op
         }
 
-        public string ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -114,6 +114,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 if (restartCount < RESTART_LIMIT)
                 {
+                    error = null;
                     MouseEventSender.SendMouseEvent(segmentNumber, new MouseInputActionData()
                     {
                         position = new Vector2Int(x, y),
@@ -121,10 +122,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         middleButton = Random.Range(0, 2) == 0,
                         rightButton = Random.Range(0, 2) == 0,
                     }, null, null, currentUITransforms, currentGameObjectTransforms);
+                    return true;
                 }
             }
 
-            return null;
+            error = null;
+            return false;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

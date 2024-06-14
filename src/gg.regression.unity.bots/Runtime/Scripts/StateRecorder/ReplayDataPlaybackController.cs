@@ -292,9 +292,9 @@ namespace RegressionGames.StateRecorder
             if (_nextBotSegments.Count > 0)
             {
                 firstActionSegment = _nextBotSegments[0];
-                var error = firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
+                var didAction = firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms, out var error);
                 // only log this if we're really stuck on it
-                if (error == null)
+                if (error == null && didAction)
                 {
                     // for every non error action, reset the timer
                     _lastTimeLoggedKeyFrameConditions = now;
@@ -407,8 +407,9 @@ namespace RegressionGames.StateRecorder
                 var nextSegment = _nextBotSegments[0];
                 if (nextSegment != firstActionSegment)
                 {
-                    var error = nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
-                    if (error == null)
+                    var didAction = nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms, out var error);
+                    // only log this if we're really stuck on it
+                    if (error == null && didAction)
                     {
                         // for every non error action, reset the timer
                         _lastTimeLoggedKeyFrameConditions = now;
