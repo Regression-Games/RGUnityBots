@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
@@ -13,8 +12,10 @@ using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder
 {
-    public partial class ReplayDataPlaybackController : MonoBehaviour
+    public class ReplayDataPlaybackController : MonoBehaviour
     {
+        public bool pauseEditorOnPlaybackWarning = true;
+
         private ReplayBotSegmentsContainer _dataContainer;
 
         // flag to indicate the next update loop should start playing
@@ -233,6 +234,18 @@ namespace RegressionGames.StateRecorder
 
         private const int LOG_ERROR_INTERVAL = 10;
 
+        private void LogPlaybackWarning(string loggedMessage)
+        {
+            var now = Time.unscaledTime;
+            _lastTimeLoggedKeyFrameConditions = now;
+            RGDebug.LogWarning(loggedMessage);
+            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+            if (pauseEditorOnPlaybackWarning)
+            {
+                Debug.Break();
+            }
+        }
+
         private void EvaluateBotSegments()
         {
             var now = Time.unscaledTime;
@@ -252,9 +265,7 @@ namespace RegressionGames.StateRecorder
                 if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                 {
                     var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
-                    _lastTimeLoggedKeyFrameConditions = now;
-                    RGDebug.LogWarning(loggedMessage);
-                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+                    LogPlaybackWarning(loggedMessage);
                 }
             }
 
@@ -314,9 +325,7 @@ namespace RegressionGames.StateRecorder
                         if (warningText != null)
                         {
                             var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Unmatched Criteria for BotSegment\r\n" + warningText;
-                            _lastTimeLoggedKeyFrameConditions = now;
-                            RGDebug.LogWarning(loggedMessage);
-                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+                            LogPlaybackWarning(loggedMessage);
                         }
                     }
 
@@ -365,9 +374,7 @@ namespace RegressionGames.StateRecorder
                     if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                     {
                         var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
-                        _lastTimeLoggedKeyFrameConditions = now;
-                        RGDebug.LogInfo(loggedMessage);
-                        FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+                        LogPlaybackWarning(loggedMessage);
                     }
                 }
             }
