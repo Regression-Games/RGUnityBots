@@ -4,10 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder
 {
@@ -18,7 +15,6 @@ namespace RegressionGames.StateRecorder
         private int _botSegmentIndex = 0;
 
         public string SessionId { get; private set; }
-        public bool IsShiftDown;
 
         public ReplayBotSegmentsContainer(string zipFilePath)
         {
@@ -29,8 +25,6 @@ namespace RegressionGames.StateRecorder
         {
             // sets indexes back to 0
             _botSegmentIndex = 0;
-
-            IsShiftDown = false;
 
             // reset all the tracking flags
             foreach (var botSegment in _botSegments)

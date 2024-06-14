@@ -314,6 +314,8 @@ namespace RegressionGames.StateRecorder
             var screenWidth = UnityEngine.Device.Screen.width;
             var screenHeight = UnityEngine.Device.Screen.height;
 
+            var mainCamera = Camera.main;
+
             // we re-use this over and over instead of allocating multiple times
             var canvasRenderersLength = canvasRenderers.Length;
             for (var j = 0; j < canvasRenderersLength; j++)
@@ -350,7 +352,7 @@ namespace RegressionGames.StateRecorder
 
                         if (cgEnabled)
                         {
-                            var canvasCamera = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+                            var canvasCamera = canvas.worldCamera == null ? mainCamera : canvas.worldCamera;
                             var isWorldSpace = canvas.renderMode == RenderMode.WorldSpace;
                             _rectTransformsList.Clear();
                             statefulUIObject.GetComponentsInChildren(_rectTransformsList);
@@ -358,14 +360,18 @@ namespace RegressionGames.StateRecorder
 
                             if (rectTransformsListLength > 0)
                             {
+                                var objectTransform = statefulUIObject.transform;
+                                var tStatus = TransformStatus.GetOrCreateTransformStatus(objectTransform);
+                                _newUIObjects[tStatus.Id] = tStatus;
+
                                 Vector2 min, max;
                                 var worldMin = Vector3.zero;
                                 var worldMax = Vector3.zero;
                                 _rectTransformsList[0].GetWorldCorners(_worldSpaceCorners);
                                 if (isWorldSpace)
                                 {
-                                    min = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                    max = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
+                                    min = mainCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
+                                    max = mainCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
                                     worldMin = _worldSpaceCorners[0];
                                     worldMax = _worldSpaceCorners[2];
                                 }
@@ -388,8 +394,8 @@ namespace RegressionGames.StateRecorder
                                     _rectTransformsList[i].GetWorldCorners(_worldSpaceCorners);
                                     if (isWorldSpace)
                                     {
-                                        nextMin = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                        nextMax = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
+                                        nextMin = mainCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
+                                        nextMax = mainCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
                                         nextWorldMin = _worldSpaceCorners[0];
                                         nextWorldMax = _worldSpaceCorners[2];
                                     }
@@ -423,7 +429,7 @@ namespace RegressionGames.StateRecorder
                                 }
 
                                 var onCamera = true;
-                                if (isWorldSpace)
+                                if (isWorldSpace || canvasCamera != mainCamera)
                                 {
                                     var xLowerLimit = 0;
                                     var xUpperLimit = screenWidth;
@@ -435,10 +441,6 @@ namespace RegressionGames.StateRecorder
                                         onCamera = false;
                                     }
                                 }
-
-                                var objectTransform = statefulUIObject.transform;
-                                var tStatus = TransformStatus.GetOrCreateTransformStatus(objectTransform);
-                                _newUIObjects[tStatus.Id] = tStatus;
 
                                 if (onCamera)
                                 {
@@ -455,13 +457,14 @@ namespace RegressionGames.StateRecorder
                                         tStatus.worldSpaceBounds = new Bounds(worldCenter, worldSize);
 
                                         // get the screen point values for the world max / min and find the screen space z offset closest the camera
-                                        var minSp = canvasCamera.WorldToScreenPoint(worldMin);
-                                        var maxSp = canvasCamera.WorldToScreenPoint(worldMax);
+                                        var minSp = mainCamera.WorldToScreenPoint(worldMin);
+                                        var maxSp = mainCamera.WorldToScreenPoint(worldMax);
                                         tStatus.screenSpaceZOffset = Math.Min(minSp.z, maxSp.z);
                                     }
                                 }
                                 else
                                 {
+                                    tStatus.screenSpaceZOffset = 0f;
                                     tStatus.screenSpaceBounds = null;
                                     tStatus.worldSpaceBounds = null;
                                 }
