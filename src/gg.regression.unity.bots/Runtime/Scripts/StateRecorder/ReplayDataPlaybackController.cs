@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 #if ENABLE_LEGACY_INPUT_MANAGER
 using RegressionGames.RGLegacyInputUtility;
 #endif
@@ -45,11 +48,18 @@ namespace RegressionGames.StateRecorder
         {
             SetupEventSystem();
             SceneManager.sceneLoaded += OnSceneLoad;
+#if UNITY_EDITOR
+            EditorApplication.pauseStateChanged += ResetErrorTimer;
+#endif
         }
 
         private void OnDestroy()
         {
             MouseEventSender.Reset();
+            SceneManager.sceneLoaded -= OnSceneLoad;
+#if UNITY_EDITOR
+            EditorApplication.pauseStateChanged -= ResetErrorTimer;
+#endif
         }
 
         void OnSceneLoad(Scene s, LoadSceneMode m)
@@ -69,6 +79,22 @@ namespace RegressionGames.StateRecorder
             SetupEventSystem();
             MouseEventSender.GetMouse();
         }
+
+        private bool unpaused;
+
+#if UNITY_EDITOR
+        private void ResetErrorTimer(PauseState pauseState)
+        {
+            if (pauseState == PauseState.Unpaused)
+            {
+                unpaused = true;
+            }
+            else
+            {
+                unpaused = false;
+            }
+        }
+#endif
 
         private void OnDisable()
         {
@@ -249,6 +275,12 @@ namespace RegressionGames.StateRecorder
         private void EvaluateBotSegments()
         {
             var now = Time.unscaledTime;
+
+            if (unpaused)
+            {
+                _lastTimeLoggedKeyFrameConditions = now;
+                unpaused = false;
+            }
 
             var currentUiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
             var currentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
