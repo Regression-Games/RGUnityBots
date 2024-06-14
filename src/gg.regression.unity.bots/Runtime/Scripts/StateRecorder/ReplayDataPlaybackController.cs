@@ -262,6 +262,11 @@ namespace RegressionGames.StateRecorder
                 firstActionSegment = _nextBotSegments[0];
                 var error = firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
                 // only log this if we're really stuck on it
+                if (error == null)
+                {
+                    // for every non error action, reset the timer
+                    _lastTimeLoggedKeyFrameConditions = now;
+                }
                 if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                 {
                     var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
@@ -307,6 +312,7 @@ namespace RegressionGames.StateRecorder
 
                     if (nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
                     {
+                        _lastTimeLoggedKeyFrameConditions = now;
                         RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment Completed");
                         //Process the inputs from that bot segment if necessary
                         _nextBotSegments.RemoveAt(i);
@@ -370,6 +376,11 @@ namespace RegressionGames.StateRecorder
                 if (nextSegment != firstActionSegment)
                 {
                     var error = nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms);
+                    if (error == null)
+                    {
+                        // for every non error action, reset the timer
+                        _lastTimeLoggedKeyFrameConditions = now;
+                    }
                     // only log this if we're really stuck on it for a while
                     if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                     {
