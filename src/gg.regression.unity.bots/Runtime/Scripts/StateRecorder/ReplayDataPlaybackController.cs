@@ -66,7 +66,7 @@ namespace RegressionGames.StateRecorder
         {
             _screenRecorder = GetComponentInParent<ScreenRecorder>();
             SetupEventSystem();
-            MouseEventSender.GetMouse(true);
+            MouseEventSender.GetMouse();
         }
 
         private void OnDisable()

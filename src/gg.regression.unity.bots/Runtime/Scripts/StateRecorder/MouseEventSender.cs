@@ -27,14 +27,12 @@ namespace RegressionGames.StateRecorder
             _mouseEventHandler = null;
         }
 
-        public static InputDevice GetMouse(bool forceListener = false)
+        public static InputDevice GetMouse()
         {
             var mouse = InputSystem.devices.FirstOrDefault(a => a.name == "RGVirtualMouse");
-            var created = false;
             if (mouse == null)
             {
                 mouse = InputSystem.AddDevice<Mouse>("RGVirtualMouse");
-                created = true;
             }
 
             if (!mouse.enabled)
@@ -42,7 +40,7 @@ namespace RegressionGames.StateRecorder
                 InputSystem.EnableDevice(mouse);
             }
 
-            if (forceListener || created)
+            if (_mouseEventHandler == null)
             {
                 _mouseEventHandler = InputSystem.onEvent.ForDevice(mouse).Call(e =>
                 {
@@ -54,7 +52,8 @@ namespace RegressionGames.StateRecorder
                     ) != null;
                     RGDebug.LogDebug("Mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
                     // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
-                    UnityEngine.Object.FindObjectOfType<VirtualMouseCursor>()?.SetPosition(position, buttonsClicked);
+                    var virtualMouseCursors = UnityEngine.Object.FindObjectsOfType<VirtualMouseCursor>();
+                    virtualMouseCursors.FirstOrDefault()?.SetPosition(position, buttonsClicked);
                 });
             }
 
