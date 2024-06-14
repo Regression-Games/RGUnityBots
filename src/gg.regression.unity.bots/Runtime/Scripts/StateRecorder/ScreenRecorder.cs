@@ -529,7 +529,7 @@ namespace RegressionGames.StateRecorder
                         //record bot segment data for action replay
                         botSegment = new BotSegment()
                         {
-                            sessionId = System.Guid.NewGuid().ToString(),
+                            sessionId = _currentSessionId,
                             keyFrameCriteria = keyFrameCriteria,
                             botAction = new BotAction()
                             {
