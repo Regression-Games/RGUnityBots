@@ -89,8 +89,6 @@ namespace RegressionGames.StateRecorder.BotSegments
             var normalizedPathsToMatch = new List<KeyFrameCriteria>();
             var orsToMatch = new List<KeyFrameCriteria>();
             var andsToMatch = new List<KeyFrameCriteria>();
-            //var pathsToMatch = new List<KeyFrameCriteria>();
-            //var xPathsToMatch = new List<KeyFrameCriteria>();
 
             var length = criteriaList.Length;
             for (var i = 0; i < length; i++)
@@ -115,6 +113,16 @@ namespace RegressionGames.StateRecorder.BotSegments
                         break;
                     case KeyFrameCriteriaType.NormalizedPath:
                         normalizedPathsToMatch.Add(entry);
+                        break;
+                    case KeyFrameCriteriaType.UIPixelHash:
+                        if (GameFacePixelHashObserver.GetInstance().HasPixelHashChanged(out _))
+                        {
+                            entry.Replay_TransientMatched = true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                         break;
                 }
             }
