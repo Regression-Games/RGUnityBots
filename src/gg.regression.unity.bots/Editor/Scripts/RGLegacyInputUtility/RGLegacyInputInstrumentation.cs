@@ -32,6 +32,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         static void SetUpHooks()
         {
             EditorApplication.update -= SetUpHooks;
+            CompilationPipeline.compilationStarted += UpdateAssemblyResolver;
             CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
             InstrumentExistingAssemblies();
         }
@@ -39,7 +40,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         private static bool IsAssemblyIgnored(string assemblyPath, Assembly rgAssembly)
         {
             string fileName = Path.GetFileName(assemblyPath);
-            if (fileName.StartsWith("UnityEngine.") || fileName.StartsWith("Unity.")) // ignore game engine assemblies 
+            if (fileName.StartsWith("UnityEngine.") || fileName.StartsWith("Unity.")) // ignore game engine assemblies
             {
                 return true;
             }
@@ -68,8 +69,15 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         {
             return ns.Contains("RegressionGames");
         }
-        
-        private static DefaultAssemblyResolver CreateAssemblyResolver(string assemblyPath)
+
+        private static DefaultAssemblyResolver _assemblyResolver = null;
+
+        private static void UpdateAssemblyResolver(object o)
+        {
+            _assemblyResolver = CreateAssemblyResolver();
+        }
+
+        private static DefaultAssemblyResolver CreateAssemblyResolver()
         {
             ISet<string> compiledSearchDirs = new HashSet<string>();
             Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
@@ -97,29 +105,29 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
             return resolver;
         }
-        
+
         private static ModuleDefinition ReadAssembly(string assemblyPath)
         {
             assemblyPath = Path.GetFullPath(assemblyPath);
             return ModuleDefinition.ReadModule(assemblyPath, new ReaderParameters()
             {
                 ReadingMode = ReadingMode.Immediate,
-                AssemblyResolver = CreateAssemblyResolver(assemblyPath),
+                AssemblyResolver = _assemblyResolver,
                 InMemory = true,
                 ReadSymbols = true,
                 SymbolReaderProvider = new PdbReaderProvider()
             });
         }
-        
+
         private static ModuleDefinition ReadWrapperAssembly()
         {
             string assemblyPath = Path.GetFullPath(typeof(RGLegacyInputWrapper).Assembly.Location);
             return ModuleDefinition.ReadModule(assemblyPath, new ReaderParameters()
             {
-                AssemblyResolver = CreateAssemblyResolver(assemblyPath)
+                AssemblyResolver = _assemblyResolver
             });
         }
-        
+
         private static string GetSubsignature(MethodReference method)
         {
             return method.Name + "(" + string.Join(",", method.Parameters.Select(param => param.ParameterType.FullName)) + ")";
@@ -157,7 +165,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
                 foreach (MethodDefinition method in type.Methods)
                 {
-                    if (method.Body == null) 
+                    if (method.Body == null)
                         continue;
 
                     foreach (Instruction inst in method.Body.Instructions)
@@ -175,7 +183,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 }
             }
         }
-        
+
         private static void InstrumentAssemblyIfNeeded(string assemblyPath, Assembly rgAssembly)
         {
             try
@@ -184,10 +192,15 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 {
                     return;
                 }
-            
+
                 bool anyChanges = false;
                 string tmpOutputPath = assemblyPath + ".tmp.dll";
-            
+
+                if (_assemblyResolver == null)
+                {
+                    UpdateAssemblyResolver(null);
+                }
+
                 using (ModuleDefinition module = ReadAssembly(assemblyPath))
                 using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
                 {
@@ -244,13 +257,13 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
             return null;
         }
-        
+
         private static void OnAssemblyCompiled(string assemblyAssetPath, CompilerMessage[] messages)
         {
             Assembly rgAssembly = FindRGAssembly();
             InstrumentAssemblyIfNeeded(assemblyAssetPath, rgAssembly);
         }
-        
+
         private static void InstrumentExistingAssemblies()
         {
             Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
