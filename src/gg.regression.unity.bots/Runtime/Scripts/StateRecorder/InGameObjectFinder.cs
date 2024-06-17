@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using RegressionGames.StateRecorder.Models;
 using RegressionGames.StateRecorder.Types;
+using Unity.Entities;
 using UnityEngine;
 using Component = UnityEngine.Component;
+
 // ReSharper disable ForCanBeConvertedToForeach - indexed for is faster and has less allocs than enumerator
 // ReSharper disable LoopCanBeConvertedToQuery
 namespace RegressionGames.StateRecorder
@@ -16,6 +20,7 @@ namespace RegressionGames.StateRecorder
         private static readonly List<Collider2DRecordState> _collider2DStateObjectPool = new (100);
         private static readonly List<RigidbodyRecordState> _rigidbodyStateObjectPool = new (100);
         private static readonly List<Rigidbody2DRecordState> _rigidbody2DStateObjectPool = new (100);
+        private static readonly List<ECSComponentState> _ecsComponentDataObjectPool = new (100);
 
         private static InGameObjectFinder _this;
 
@@ -64,13 +69,12 @@ namespace RegressionGames.StateRecorder
         // pre-allocate this rather large list 1 time to avoid memory stuff on each tick
         private readonly List<Component> _componentsQueryList = new(100);
 
-        private void ProcessTransformComponents(TransformStatus transformStatus, IList<BehaviourState> behaviours, IList<ColliderRecordState> collidersState, IList<RigidbodyRecordState> rigidbodiesState)
+        private void ProcessTransformComponents(TransformStatus transformStatus, IList<BehaviourState> behaviours, IList<ECSComponentState> escComponents, IList<ColliderRecordState> collidersState, IList<RigidbodyRecordState> rigidbodiesState)
         {
             _componentsQueryList.Clear();
             transformStatus.Transform.GetComponents(_componentsQueryList);
 
             // uses object pools to minimize new allocations and GCs
-
             // This code re-uses the objects from the prior state as much as possible to avoid allocations
             // we try to minimize calls to GetUniqueTransformPath whenever possible
             var listLength = _componentsQueryList.Count;
@@ -79,101 +83,97 @@ namespace RegressionGames.StateRecorder
                 var component = _componentsQueryList[i];
                 if (component is Collider colliderEntry)
                 {
-                    ColliderRecordState cObject;
-                    var poolCount = _colliderStateObjectPool.Count;
-                    if (poolCount > 0)
-                    {
-                        // remove from end of list
-                        cObject = _colliderStateObjectPool[poolCount - 1];
-                        _colliderStateObjectPool.RemoveAt(poolCount - 1);
-                    }
-                    else
-                    {
-                        cObject = new ColliderRecordState();
-                    }
-
+                    ColliderRecordState cObject = GetObjectFromPool(_colliderStateObjectPool);
                     cObject.collider = colliderEntry;
-
                     collidersState.Add(cObject);
                 }
                 else if (component is Collider2D colliderEntry2D)
                 {
-                    Collider2DRecordState cObject;
-                    var poolCount = _collider2DStateObjectPool.Count;
-                    if (poolCount > 0)
-                    {
-                        // remove from end of list
-                        cObject = _collider2DStateObjectPool[poolCount - 1];
-                        _collider2DStateObjectPool.RemoveAt(poolCount - 1);
-                    }
-                    else
-                    {
-                        cObject = new Collider2DRecordState();
-                    }
-
+                    Collider2DRecordState cObject = GetObjectFromPool(_collider2DStateObjectPool);
                     cObject.collider = colliderEntry2D;
-
                     collidersState.Add(cObject);
                 }
                 else if (component is Rigidbody myRigidbody)
                 {
-                    RigidbodyRecordState cObject;
-                    var poolCount = _rigidbodyStateObjectPool.Count;
-                    if (poolCount > 0)
-                    {
-                        // remove from end of list
-                        cObject = _rigidbodyStateObjectPool[poolCount - 1];
-                        _rigidbodyStateObjectPool.RemoveAt(poolCount - 1);
-                    }
-                    else
-                    {
-                        cObject = new RigidbodyRecordState();
-                    }
-
+                    RigidbodyRecordState cObject = GetObjectFromPool(_rigidbodyStateObjectPool);
                     cObject.rigidbody = myRigidbody;
-
                     rigidbodiesState.Add(cObject);
                 }
                 else if (component is Rigidbody2D myRigidbody2D)
                 {
-                    Rigidbody2DRecordState cObject;
-                    var poolCount = _rigidbody2DStateObjectPool.Count;
-                    if (poolCount > 0)
-                    {
-                        // remove from end of list
-                        cObject = _rigidbody2DStateObjectPool[poolCount - 1];
-                        _rigidbody2DStateObjectPool.RemoveAt(poolCount - 1);
-                    }
-                    else
-                    {
-                        cObject = new Rigidbody2DRecordState();
-                    }
-
+                    Rigidbody2DRecordState cObject = GetObjectFromPool(_rigidbody2DStateObjectPool);
                     cObject.rigidbody = myRigidbody2D;
-
                     rigidbodiesState.Add(cObject);
                 }
                 else if (component is MonoBehaviour childBehaviour)
                 {
-                    BehaviourState cObject;
-                    var poolCount = _behaviourStateObjectPool.Count;
-                    if (poolCount > 0)
-                    {
-                        // remove from end of list
-                        cObject = _behaviourStateObjectPool[poolCount - 1];
-                        _behaviourStateObjectPool.RemoveAt(poolCount - 1);
-                    }
-                    else
-                    {
-                        cObject = new BehaviourState();
-                    }
-
+                    BehaviourState cObject = GetObjectFromPool(_behaviourStateObjectPool);
                     cObject.name = childBehaviour.GetType().FullName;
                     cObject.state = childBehaviour;
-
                     behaviours.Add(cObject);
+                    
+                    // Handle ECS components
+                    var type = component.GetType();
+                    if (cObject.name!.Contains("EntityFollower"))
+                    {
+                        var entityManagerField = type.GetField("_entityManager", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                        var entityField = type.GetField("Entity");
+                        if (entityManagerField != null && entityField != null)
+                        {
+                            var ecsManager = entityManagerField.GetValue(component);
+                            var ecsEntity = entityField.GetValue(component);
+                            if (ecsManager != null && ecsEntity != null)
+                            {
+                                var manager = (EntityManager)ecsManager;
+                                MethodInfo methodInfo = typeof(EntityManager).GetMethods().FirstOrDefault(method => method.IsGenericMethod && method.Name == "GetComponentData"); 
+
+                                var ecsComponentTypes = manager.GetComponentTypes((Entity)ecsEntity);
+                                foreach (var ecsComponentType in ecsComponentTypes)
+                                {
+                                    try
+                                    {
+                                        MethodInfo genericMethodInfo = methodInfo.MakeGenericMethod(ecsComponentType.GetManagedType());
+                                        var componentData = genericMethodInfo.Invoke(manager, new object[] { ecsEntity });
+
+                                        ECSComponentState poolObject = GetObjectFromPool(_ecsComponentDataObjectPool);
+                                        poolObject.name = componentData.GetType().FullName;
+                                        poolObject.state = (IComponentData) componentData;
+                                        escComponents.Add(poolObject);
+                                    }
+                                    catch (ArgumentException e)
+                                    {
+                                        // RGDebug.LogError(e.ToString());
+                                        var ex = e;
+                                    }
+                                    catch (TargetInvocationException e)
+                                    {
+                                        // RGDebug.LogError(e.ToString());
+                                        var ex = e;
+                                    }
+
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        }
+
+        /**
+         * Get an object from the pool, or create a new one if the pool is empty
+         */
+        private T GetObjectFromPool<T>(IList<T> pool) where T : new()
+        {
+            var poolCount = pool.Count;
+            if (poolCount == 0)
+            {
+                return new T();
+            }
+            
+            // remove from end of list
+            var cObject = pool[poolCount - 1];
+            pool.RemoveAt(poolCount - 1);
+            return cObject;
         }
 
         // allocate these rather large things 1 time to save allocations on each tick object
@@ -756,6 +756,7 @@ namespace RegressionGames.StateRecorder
                             layer = LayerMask.LayerToName(theGameObject.layer),
                             scene = theGameObject.scene,
                             behaviours = new List<BehaviourState>(),
+                            ecsComponents = new List<ECSComponentState>(),
                             colliders = new List<ColliderRecordState>(),
                             rigidbodies = new List<RigidbodyRecordState>(),
                             screenSpaceZOffset = tStatus.screenSpaceZOffset,
@@ -782,11 +783,15 @@ namespace RegressionGames.StateRecorder
                     }
                     collidersState.Clear();
 
-                    IList<BehaviourState> behaviours = resultObject.behaviours;
+                    var behaviours = resultObject.behaviours;
                     _behaviourStateObjectPool.AddRange(behaviours);
                     behaviours.Clear();
+                    
+                    var ecsComponents = resultObject.ecsComponents;
+                    _ecsComponentDataObjectPool.AddRange(ecsComponents);
+                    ecsComponents.Clear();
 
-                    ProcessTransformComponents(tStatus, behaviours, collidersState, null);
+                    ProcessTransformComponents(tStatus, behaviours, ecsComponents, collidersState, null);
                 }
             }
 
@@ -814,6 +819,7 @@ namespace RegressionGames.StateRecorder
                             layer = LayerMask.LayerToName(theGameObject.layer),
                             scene = theGameObject.scene,
                             behaviours = new List<BehaviourState>(),
+                            ecsComponents = new List<ECSComponentState>(),
                             colliders = new List<ColliderRecordState>(),
                             rigidbodies = new List<RigidbodyRecordState>(),
                             screenSpaceBounds = tStatus.screenSpaceBounds.Value,
@@ -825,6 +831,10 @@ namespace RegressionGames.StateRecorder
                     var behaviours = resultObject.behaviours;
                     _behaviourStateObjectPool.AddRange(behaviours);
                     behaviours.Clear();
+
+                    var ecsComponents = resultObject.ecsComponents;
+                    _ecsComponentDataObjectPool.AddRange(ecsComponents);
+                    ecsComponents.Clear();
 
                     var collidersState = resultObject.colliders;
                     var collidersStateCount = collidersState.Count;
@@ -859,7 +869,9 @@ namespace RegressionGames.StateRecorder
                     rigidbodiesState.Clear();
 
                     // process the first object here
-                    ProcessTransformComponents(tStatus, behaviours, collidersState, rigidbodiesState);
+                    
+                    
+                    ProcessTransformComponents(tStatus, behaviours, ecsComponents, collidersState, rigidbodiesState);
                     _newStates[resultObject.id] = resultObject;
                 }
             }
@@ -892,6 +904,7 @@ namespace RegressionGames.StateRecorder
                             layer = LayerMask.LayerToName(theGameObject.layer),
                             scene = theGameObject.scene,
                             behaviours = new List<BehaviourState>(),
+                            ecsComponents = new List<ECSComponentState>(),
                             colliders = new List<ColliderRecordState>(),
                             rigidbodies = new List<RigidbodyRecordState>(),
                             screenSpaceBounds = null,
@@ -903,6 +916,10 @@ namespace RegressionGames.StateRecorder
                     var behaviours = resultObject.behaviours;
                     _behaviourStateObjectPool.AddRange(behaviours);
                     behaviours.Clear();
+                    
+                    var ecsComponents = resultObject.ecsComponents;
+                    _ecsComponentDataObjectPool.AddRange(ecsComponents);
+                    ecsComponents.Clear();
 
                     var collidersState = resultObject.colliders;
                     var collidersStateCount = collidersState.Count;
@@ -937,7 +954,7 @@ namespace RegressionGames.StateRecorder
                     rigidbodiesState.Clear();
 
                     // process the first object here
-                    ProcessTransformComponents(tStatus, behaviours, collidersState, rigidbodiesState);
+                    ProcessTransformComponents(tStatus, behaviours, ecsComponents, collidersState, rigidbodiesState);
 
                     // don't update the dictionary while iterating
                     _fillInStates.Add(resultObject);

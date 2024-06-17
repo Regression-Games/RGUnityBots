@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using RegressionGames.StateRecorder.JsonConverters;
 using TMPro;
+using Unity.Entities;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
@@ -62,6 +63,43 @@ namespace RegressionGames.StateRecorder
                     RGDebug.LogException(ex, "Error converting behaviour to JSON - " + state.name);
                     stringBuilder.Append("{}");
                 }
+            }
+        }
+
+        public static void WriteECSComponentStateToStringBuilder(StringBuilder stringBuilder, String name, IComponentData state)
+        {
+            var stateType = state.GetType();
+
+            // TODO custom serializer for IComponentData??
+            
+            // use the generic and expensive serializer
+            var sbLength = stringBuilder.Length;
+            try
+            {
+                // do this ourselves to bypass all the serializer creation junk for every object :/
+                if (_jsonSerializer == null)
+                {
+                    _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
+                    _jsonSerializer.Formatting = Formatting.None;
+                }
+
+                var sw = new StringWriter(stringBuilder, CultureInfo.InvariantCulture);
+                using (var jsonWriter = new JsonTextWriter(sw))
+                {
+                    jsonWriter.Formatting = _jsonSerializer.Formatting;
+                    _jsonSerializer.Serialize(jsonWriter, state, stateType);
+                }
+
+                if (sbLength == stringBuilder.Length)
+                {
+                    // nothing written ... shouldn't happen... but keeps us running if it does
+                    stringBuilder.Append("{\"EXCEPTION\":\"Could not convert Behaviour to JSON\"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                RGDebug.LogException(ex, "Error converting behaviour to JSON - " + name);
+                stringBuilder.Append("{}");
             }
         }
 
@@ -214,6 +252,12 @@ namespace RegressionGames.StateRecorder
             {
                 converter = new NavMeshAgentJsonConverter();
             }
+            else if (typeof(IComponentData).IsAssignableFrom(objectType))
+            {
+                // ECS Component
+                // TODO Do we need to do anything special here?
+                converter = new UnityObjectFallbackJsonConverter();
+            }
             else if (IsUnityType(objectType) && InGameObjectFinder.GetInstance().collectStateFromBehaviours)
             {
                 if (NetworkVariableJsonConverter.Convertable(objectType))
@@ -230,7 +274,7 @@ namespace RegressionGames.StateRecorder
             {
                 converter = new UnityObjectFallbackJsonConverter();
             }
-
+            
             return converter;
         }
 

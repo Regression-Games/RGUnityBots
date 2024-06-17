@@ -39,6 +39,7 @@ namespace RegressionGames.StateRecorder.Models
         public IList<RigidbodyRecordState> rigidbodies;
         public IList<ColliderRecordState> colliders;
         public IList<BehaviourState> behaviours;
+        public IList<ECSComponentState> ecsComponents;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -96,6 +97,17 @@ namespace RegressionGames.StateRecorder.Models
                     stringBuilder.Append(",\n");
                 }
             }
+            stringBuilder.Append("\n],\n\"ecsComponents\":[\n");
+            var ecsComponentsCount = ecsComponents.Count;
+            for (var i = 0; i < ecsComponentsCount; i++)
+            {
+                ecsComponents[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < ecsComponentsCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            
             stringBuilder.Append("\n]\n}");
         }
 

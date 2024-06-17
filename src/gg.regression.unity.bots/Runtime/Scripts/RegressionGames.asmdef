@@ -4,6 +4,8 @@
     "references": [
         "Unity.InputSystem",
         "Unity.TextMeshPro",
+        "Unity.Entities",
+        "Unity.Collections",
         "SimpleFileBrowser.Runtime"
     ],
     "includePlatforms": [],
