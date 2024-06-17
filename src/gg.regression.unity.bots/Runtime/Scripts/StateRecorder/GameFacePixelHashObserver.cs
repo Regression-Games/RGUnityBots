@@ -123,7 +123,6 @@ namespace RegressionGames.StateRecorder
 
                                     if (!_firstRun)
                                     {
-
                                         if (_priorPixels == null || pixels.Length != _priorPixels.Length)
                                         {
                                             // different size image or first pass
