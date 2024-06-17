@@ -200,6 +200,8 @@ namespace RegressionGames.StateRecorder
         {
             _priorStates.Clear();
             _newStates.Clear();
+            _fillInStates.Clear();
+
             _priorUIObjects.Clear();
             _newUIObjects.Clear();
             _priorGameObjects.Clear();
