@@ -9,7 +9,7 @@ namespace RegressionGames.StateRecorder
 {
     public class GameFacePixelHashObserver : MonoBehaviour
     {
-        private volatile Color32[] _priorPixels;
+        private Color32[] _priorPixels;
 
         private bool _firstRun = true;
         private bool _isActive;
@@ -121,9 +121,10 @@ namespace RegressionGames.StateRecorder
 
                                     string newHash = _firstRun ? "FirstPass" : null;
 
+                                    var priorPixels = Interlocked.Exchange(ref _priorPixels, pixels);
                                     if (!_firstRun)
                                     {
-                                        if (_priorPixels == null || pixels.Length != _priorPixels.Length)
+                                        if (priorPixels == null || pixels.Length != priorPixels.Length)
                                         {
                                             // different size image or first pass
                                             newHash = "NewResolution";
@@ -133,7 +134,7 @@ namespace RegressionGames.StateRecorder
                                             var pixelsLength = pixels.Length;
                                             for (var i = 0; i < pixelsLength; i++)
                                             {
-                                                if (pixels[i].r != _priorPixels[i].r || pixels[i].g != _priorPixels[i].g || pixels[i].b != _priorPixels[i].b || pixels[i].a != _priorPixels[i].a)
+                                                if (pixels[i].r != priorPixels[i].r || pixels[i].g != priorPixels[i].g || pixels[i].b != priorPixels[i].b || pixels[i].a != priorPixels[i].a)
                                                 {
                                                     newHash = $"{i} - ({pixels[i].r},{pixels[i].g},{pixels[i].b},{pixels[i].a})";
                                                     RGDebug.LogDebug($"Different GameFace UI pixel at index {i}");
@@ -143,10 +144,7 @@ namespace RegressionGames.StateRecorder
                                         }
                                     }
                                     _firstRun = false;
-
                                     Interlocked.Exchange(ref _pixelHash, newHash);
-
-                                    _priorPixels = pixels;
                                 }
                             }
                             finally
