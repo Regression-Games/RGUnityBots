@@ -33,6 +33,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public float timeBetweenClicks;
 
         /**
+         * <summary>Allow mouse events that 'move' with a button held down</summary>
+         */
+        public bool allowDrag;
+
+        /**
          * <summary>Used to normalize the excluded areas values to the current screen size</summary>
          */
         public Vector2Int screenSize;
@@ -133,47 +138,109 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             continue; // while
                         }
 
-                        var ssbCenter = transformOption.screenSpaceBounds.Value.center;
+                        var ssb = transformOption.screenSpaceBounds.Value;
+                        var ssbCenter = ssb.center;
                         var x = (int)ssbCenter.x;
                         var y = (int)ssbCenter.y;
 
-                        var valid = true;
+                        bool valid;
                         var count = excludedAreas.Count;
-                        for (var i = 0; i < count; i++)
+                        var reScan = false;
+                        do
                         {
-                            var excludedArea = excludedAreas[i];
-                            var xMin = excludedArea.xMin;
-                            var xMax = excludedArea.xMax;
-                            var yMin = excludedArea.yMin;
-                            var yMax = excludedArea.yMax;
-
-                            // normalize the location to the current resolution
-                            if (screenWidth != screenSize.x)
+                            valid = true;
+                            for (var i = 0; i < count; i++)
                             {
-                                var ratio = screenWidth / (float)screenSize.x;
-                                xMin = (int) (xMin * ratio);
-                                xMax = (int) (xMax * ratio);
+                                var excludedArea = excludedAreas[i];
+                                var xMin = excludedArea.xMin;
+                                var xMax = excludedArea.xMax;
+                                var yMin = excludedArea.yMin;
+                                var yMax = excludedArea.yMax;
+
+                                // normalize the location to the current resolution
+                                if (screenWidth != screenSize.x)
+                                {
+                                    var ratio = screenWidth / (float)screenSize.x;
+                                    xMin = (int)(xMin * ratio);
+                                    xMax = (int)(xMax * ratio);
+                                }
+
+                                if (screenHeight != screenSize.y)
+                                {
+                                    var ratio = screenHeight / (float)screenSize.y;
+                                    yMin = (int)(yMin * ratio);
+                                    yMax = (int)(yMax * ratio);
+                                }
+
+                                if (x >= xMin && x <= xMax)
+                                {
+                                    valid = false;
+                                    if (reScan)
+                                    {
+                                        // violation on reScan, abandon this object
+                                        reScan = false;
+                                        break; // for
+                                    }
+
+                                    // see if we can pick an X that is valid within our object
+                                    if (ssb.min.x < xMin)
+                                    {
+                                        // pick a new X within the box as close to the center as possible to try to still hit collider
+                                        x = xMin - 1;
+                                        // need to rescan again to make sure we didn't violate other areas if multiple overlap my object
+                                        reScan = true;
+                                    }
+                                    else if (ssb.max.x > xMax)
+                                    {
+                                        // pick a new X within the box as close to the center as possible to try to still hit collider
+                                        x = xMax + 1;
+                                        // need to rescan again to make sure we didn't violate other areas if multiple overlap my object
+                                        reScan = true;
+                                    }
+                                    else
+                                    {
+                                        break; // for
+                                    }
+                                }
+
+                                if (y >= yMin && y <= yMax)
+                                {
+                                    valid = false;
+                                    if (reScan)
+                                    {
+                                        // violation on reScan, abandon this object
+                                        reScan = false;
+                                        break; // for
+                                    }
+
+                                    // see if we can pick a Y that is valid within our object
+                                    if (ssb.min.y < yMin)
+                                    {
+                                        // pick a new Y within sthe box as close to the center as possible to try to still hit collider
+                                        y = yMin - 1;
+                                        // need to rescan again to make sure we didn't violate other areas if multiple overlap my object
+                                        reScan = true;
+                                    }
+                                    else if (ssb.max.y > yMax)
+                                    {
+                                        // pick a new Y within the box as close to the center as possible to try to still hit collider
+                                        y = yMax + 1;
+                                        // need to rescan again to make sure we didn't violate other areas if multiple overlap my object
+                                        reScan = true;
+                                    }
+                                    else
+                                    {
+                                        break; // for
+                                    }
+                                }
                             }
 
-                            if (screenHeight != screenSize.y)
+                            // if valid on the rescan.. stop the outer loop
+                            if (valid && reScan)
                             {
-                                var ratio = screenHeight / (float)screenSize.y;
-                                yMin = (int) (yMin * ratio);
-                                yMax = (int) (yMax * ratio);
+                                reScan = false;
                             }
-
-                            if (x >= xMin && x <= xMax)
-                            {
-                                valid = false;
-                                break; // for
-                            }
-
-                            if (y >= yMin && y <= yMax)
-                            {
-                                valid = false;
-                                break; // for
-                            }
-                        }
+                        } while (reScan);
 
                         if (valid)
                         {
@@ -191,8 +258,20 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 rb,
                                 fb,
                                 bb,
-                                new Vector2(0,0) // don't support random scrolling yet...
+                                Vector2.zero // don't support random scrolling yet...
                             );
+
+                            // send the unclick event
+                            MouseEventSender.SendRawPositionMouseEvent(
+                                segmentNumber,
+                                new Vector2(x,y),
+                                false,
+                                false,
+                                false,
+                                false,
+                                false,
+                                Vector2.zero // don't support random scrolling yet...
+                                );
                             Replay_LastClickTime = now;
                             error = null;
                             return true;
@@ -206,10 +285,116 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
+        private GUIStyle _guiStyle = null;
+
+        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            if (_guiStyle == null)
+            {
+                _guiStyle = new ()
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                };
+                _guiStyle.normal.background = Texture2D.whiteTexture; // must be white to tint properly
+                var textColor = Color.white;
+                textColor.a = 0.4f;
+                _guiStyle.normal.textColor = textColor;
+            }
+            OnGUIDrawExcludedAreas();
+            OnGUIDrawExcludedObjects(currentUITransforms, currentGameObjectTransforms);
+        }
+
+        private void OnGUIDrawExcludedObjects(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            if (excludedNormalizedPaths.Count > 0)
+            {
+                var screenHeight = Screen.height;
+                var bgColor = (Color.yellow + Color.red) / 2;
+                bgColor.a = 0.4f;
+                foreach (var currentUITransform in currentUITransforms)
+                {
+                    var uiValue = currentUITransform.Value;
+                    if (uiValue.screenSpaceBounds.HasValue)
+                    {
+                        if (StateRecorderUtils.OptimizedContainsStringInList(excludedNormalizedPaths, uiValue.NormalizedPath))
+                        {
+                            var ssb = uiValue.screenSpaceBounds.Value;
+                            GUI.backgroundColor = bgColor;
+                            /*
+                             * Screen coordinates are 2D, measured in pixels and start in the lower left corner at (0,0) and go to (Screen.width, Screen.height). Screen coordinates change with the resolution of the device, and even the orientation (if you app allows it) on mobile devices.
+                             * GUI coordinates are used by the IMGUI system. They are identical to Screen coordinates except that they start at (0,0) in the upper left and go to (Screen.width, Screen.height) in the lower right.
+                             */
+                            GUI.Box(new Rect(ssb.min.x, screenHeight-ssb.max.y, ssb.size.x, ssb.size.y), "Excluded\nObject", _guiStyle);
+                        }
+                    }
+                }
+
+                foreach (var currentGameObjectTransform in currentGameObjectTransforms)
+                {
+                    var uiValue = currentGameObjectTransform.Value;
+                    if (uiValue.screenSpaceBounds.HasValue)
+                    {
+                        if (StateRecorderUtils.OptimizedContainsStringInList(excludedNormalizedPaths, uiValue.NormalizedPath))
+                        {
+                            var ssb = uiValue.screenSpaceBounds.Value;
+                            GUI.backgroundColor = bgColor;
+                            /*
+                             * Screen coordinates are 2D, measured in pixels and start in the lower left corner at (0,0) and go to (Screen.width, Screen.height). Screen coordinates change with the resolution of the device, and even the orientation (if you app allows it) on mobile devices.
+                             * GUI coordinates are used by the IMGUI system. They are identical to Screen coordinates except that they start at (0,0) in the upper left and go to (Screen.width, Screen.height) in the lower right.
+                             */
+                            GUI.Box(new Rect(ssb.min.x, screenHeight-ssb.max.y, ssb.size.x, ssb.size.y), "Excluded\nObject", _guiStyle);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void OnGUIDrawExcludedAreas()
+        {
+            var screenHeight = Screen.height;
+            var screenWidth = Screen.width;
+            var count = excludedAreas.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var excludedArea = excludedAreas[i];
+                var xMin = excludedArea.xMin;
+                var xMax = excludedArea.xMax;
+                var yMin = excludedArea.yMin;
+                var yMax = excludedArea.yMax;
+
+                // normalize the location to the current resolution
+                if (screenWidth != screenSize.x)
+                {
+                    var ratio = screenWidth / (float)screenSize.x;
+                    xMin = (int) (xMin * ratio);
+                    xMax = (int) (xMax * ratio);
+                }
+
+                if (screenHeight != screenSize.y)
+                {
+                    var ratio = screenHeight / (float)screenSize.y;
+                    yMin = (int) (yMin * ratio);
+                    yMax = (int) (yMax * ratio);
+                }
+
+                var bgColor = Color.red;
+                bgColor.a = 0.4f;
+                GUI.backgroundColor = bgColor;
+
+                /*
+                 * Screen coordinates are 2D, measured in pixels and start in the lower left corner at (0,0) and go to (Screen.width, Screen.height). Screen coordinates change with the resolution of the device, and even the orientation (if you app allows it) on mobile devices.
+                 * GUI coordinates are used by the IMGUI system. They are identical to Screen coordinates except that they start at (0,0) in the upper left and go to (Screen.width, Screen.height) in the lower right.
+                 */
+                GUI.Box(new Rect(xMin, screenHeight-yMax, (xMax - xMin), (yMax - yMin)), "Excluded\nArea", _guiStyle);
+            }
+        }
+
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"allowDrag\":");
+            stringBuilder.Append(allowDrag ? "true" : "false");
             stringBuilder.Append(",\"screenSize\":");
             VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\"timeBetweenClicks\":");

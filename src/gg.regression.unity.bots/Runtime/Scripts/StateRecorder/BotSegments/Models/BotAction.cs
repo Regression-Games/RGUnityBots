@@ -40,6 +40,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             data.ReplayReset();
         }
 
+        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            data.OnGUI(currentUITransforms, currentGameObjectTransforms);
+        }
+
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"type\":");

@@ -20,6 +20,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             RandomMouseObjectActionData data = new();
             data.screenSize = jObject.GetValue("screenSize").ToObject<Vector2Int>(serializer);
             data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>();
+            data.allowDrag = jObject.GetValue("allowDrag").ToObject<bool>();
             data.timeBetweenClicks = jObject.GetValue("timeBetweenClicks").ToObject<float>();
             data.excludedAreas = jObject.GetValue("excludedAreas").ToObject<List<RectInt>>();
             data.excludedNormalizedPaths = jObject.GetValue("excludedNormalizedPaths").ToObject<List<string>>();

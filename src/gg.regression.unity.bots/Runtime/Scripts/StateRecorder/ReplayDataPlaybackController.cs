@@ -461,7 +461,7 @@ namespace RegressionGames.StateRecorder
                 {
                     var currentUiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
                     var currentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
-                    //_nextBotSegments[0].OnGUI(currentUiTransforms, currentGameObjectTransforms);
+                    _nextBotSegments[0].OnGUI(currentUiTransforms, currentGameObjectTransforms);
                 }
             }
         }
