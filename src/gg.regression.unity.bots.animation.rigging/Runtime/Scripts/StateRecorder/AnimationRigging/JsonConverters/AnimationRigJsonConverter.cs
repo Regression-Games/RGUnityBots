@@ -2,19 +2,21 @@ using System;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine.Animations.Rigging;
 
-namespace RegressionGames.StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.AnimationRigging.JsonConverters
 {
     public class AnimationRigJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(1_000);
+        private static readonly StringBuilder _stringBuilder = new (1_000);
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Rig val)
         {
             stringBuilder.Append("{\"weight\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.weight);
+#if UNITY_EDITOR
             stringBuilder.Append(",\"effectors\":[\r\n");
             var list = val.effectors.ToList();
             var listCount = list.Count;
@@ -31,7 +33,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
                     stringBuilder.Append(",\r\n");
                 }
             }
-            stringBuilder.Append("]}");
+            stringBuilder.Append("]");
+#endif
+            stringBuilder.Append("}");
         }
 
         private static string ToJsonString(Rig value)
