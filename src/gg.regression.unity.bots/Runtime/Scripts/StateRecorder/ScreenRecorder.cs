@@ -14,11 +14,9 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-
 
 // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
 // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
@@ -67,10 +65,6 @@ namespace RegressionGames.StateRecorder
 
         private MouseInputActionObserver _mouseObserver;
         private ProfilerObserver _profilerObserver;
-
-
-        public static readonly Dictionary<int, TransformStatus> _emptyTransformStatusDictionary = new(0);
-
 
         public static ScreenRecorder GetInstance()
         {
@@ -318,19 +312,19 @@ namespace RegressionGames.StateRecorder
 
         }
 
-        // cache this to avoid re-alloc on every frame
-        private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
+        // cache this to avoid re-alloc on every frame... a tiny bit risky, but every GC and millisecond counts
+        private static readonly List<KeyFrameType> _keyFrameTypeList = new(10);
 
-        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, bool pixelHashChanged)
+        public static List<KeyFrameType> GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, string pixelHash)
         {
             _keyFrameTypeList.Clear();
             if (firstFrame)
             {
                 _keyFrameTypeList.Add(KeyFrameType.FIRST_FRAME );
-                return;
+                return _keyFrameTypeList;
             }
 
-            if (pixelHashChanged)
+            if (pixelHash != null)
             {
                 _keyFrameTypeList.Add(KeyFrameType.UI_PIXELHASH);
             }
@@ -344,6 +338,8 @@ namespace RegressionGames.StateRecorder
             {
                 _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT);
             }
+
+            return _keyFrameTypeList;
         }
 
         public void StopRecording()
@@ -443,11 +439,11 @@ namespace RegressionGames.StateRecorder
                 var pixelHashChanged = gameFacePixelHashObserver != null && gameFacePixelHashObserver.HasPixelHashChanged(out pixelHash);
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHashChanged);
+                var keyFrameTypeList = GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHash);
 
                 BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
-                if (_keyFrameTypeList.Count > 0
+                if (keyFrameTypeList.Count > 0
                     || (recordingMinFPS > 0 && (int)(1000 * (now - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
                    )
                 {
@@ -463,9 +459,9 @@ namespace RegressionGames.StateRecorder
                     try
                     {
 
-                        if (_keyFrameTypeList.Count == 0)
+                        if (keyFrameTypeList.Count == 0)
                         {
-                            _keyFrameTypeList.Add(KeyFrameType.TIMER);
+                            keyFrameTypeList.Add(KeyFrameType.TIMER);
                         }
 
                         var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
@@ -596,7 +592,7 @@ namespace RegressionGames.StateRecorder
                         {
                             sessionId = _currentSessionId,
                             referenceSessionId = _referenceSessionId,
-                            keyFrame = _keyFrameTypeList.ToArray(),
+                            keyFrame = keyFrameTypeList.ToArray(),
                             tickNumber = _tickNumber,
                             time = frameTime,
                             timeScale = Time.timeScale,

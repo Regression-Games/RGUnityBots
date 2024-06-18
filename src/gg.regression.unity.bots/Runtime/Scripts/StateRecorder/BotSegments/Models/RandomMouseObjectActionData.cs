@@ -85,12 +85,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 var preconditionsMet = preconditionNormalizedPaths.Count == 0;
                 if (!preconditionsMet)
                 {
-                    preconditionsMet = currentUITransforms.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
+                    preconditionsMet = currentUITransforms.Any(a => a.Value.Transform != null && a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
                 }
 
                 if (!preconditionsMet)
                 {
-                    preconditionsMet = currentGameObjectTransforms.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
+                    preconditionsMet = currentGameObjectTransforms.Any(a => a.Value.Transform != null && a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
                 }
 
                 if (!preconditionsMet)
@@ -115,11 +115,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 if (currentGameObjectTransforms.Count == 0 || uiOrGameObject && currentUITransforms.Count > 0)
                 {
-                    possibleTransformsToClick = currentUITransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
+                    possibleTransformsToClick = currentUITransforms.Values.Where(a => a.Transform != null && a.screenSpaceBounds != null).ToList();
                 }
                 else
                 {
-                    possibleTransformsToClick = currentGameObjectTransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
+                    possibleTransformsToClick = currentGameObjectTransforms.Values.Where(a => a.Transform != null && a.screenSpaceBounds != null).ToList();
                 }
 
                 var possibleTransformsCount = possibleTransformsToClick.Count;

@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
+using RegressionGames.StateRecorder.Types;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.Models
@@ -40,10 +42,13 @@ namespace RegressionGames.StateRecorder.Models
 
         public Bounds? worldSpaceBounds;
 
+        [NonSerialized]
+        // tracks things like RG overlay objects that aren't in the state
+        public bool ExcludeFromState;
 
         // re-use these objects
-        private static readonly StringBuilder _tPathBuilder = new StringBuilder(500);
-        private static readonly StringBuilder _tNormalizedPathBuilder = new StringBuilder(500);
+        private static readonly StringBuilder _tPathBuilder = new (500);
+        private static readonly StringBuilder _tNormalizedPathBuilder = new (500);
         private static readonly List<GameObject> _parentList = new(100);
 
         // right now this resets on awake from InGameObjectFinder, but we may have to deal with dynamically re-parented transforms better at some point...
@@ -59,6 +64,8 @@ namespace RegressionGames.StateRecorder.Models
         {
             string tPath = null;
             string tPathNormalized = null;
+
+            var excludeFromState = false;
 
             var id = theTransform.GetInstanceID();
 
@@ -81,9 +88,13 @@ namespace RegressionGames.StateRecorder.Models
                 // iow.. ignore the name of the scene itself for cases where many scenes are loaded together like bossroom
                 _parentList.Clear();
                 _parentList.Add(theTransform.gameObject);
+
+                excludeFromState |= theTransform.GetComponent<RGExcludeFromState>() != null;
+
                 var parent = theTransform.parent;
                 while (parent != null)
                 {
+                    excludeFromState |= parent.GetComponent<RGExcludeFromState>() != null;
                     _parentList.Add(parent.gameObject);
                     parent = parent.parent;
                 }
@@ -118,6 +129,7 @@ namespace RegressionGames.StateRecorder.Models
                 }
                 status.Path = tPath;
                 status.NormalizedPath = tPathNormalized;
+                status.ExcludeFromState = excludeFromState;
             }
 
             return status;
