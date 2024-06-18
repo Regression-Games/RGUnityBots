@@ -61,10 +61,10 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
          */
-        public bool Matched(KeyFrameCriteria[] criteriaList)
+        public bool Matched(int segmentNumber, KeyFrameCriteria[] criteriaList)
         {
             _newUnmatchedCriteria.Clear();
-            bool matched = MatchedHelper(BooleanCriteria.And, criteriaList);
+            bool matched = MatchedHelper(segmentNumber, BooleanCriteria.And, criteriaList);
             if (matched)
             {
                 _unmatchedCriteria.Clear();
@@ -81,7 +81,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator</summary>
          */
-        internal bool MatchedHelper(BooleanCriteria andOr, KeyFrameCriteria[] criteriaList)
+        internal bool MatchedHelper(int segmentNumber, BooleanCriteria andOr, KeyFrameCriteria[] criteriaList)
         {
             var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
             var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
@@ -122,7 +122,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             // process each list.. start with the ones for this tier
             if (normalizedPathsToMatch.Count > 0)
             {
-                var pathResults = NormalizedPathCriteriaEvaluator.Matched(normalizedPathsToMatch, _priorKeyFrameUIStatus, _priorKeyFrameGameObjectStatus, uiTransforms.Item2, gameObjectTransforms.Item2);
+                var pathResults = NormalizedPathCriteriaEvaluator.Matched(segmentNumber, normalizedPathsToMatch, _priorKeyFrameUIStatus, _priorKeyFrameGameObjectStatus, uiTransforms.Item2, gameObjectTransforms.Item2);
                 var pathResultsCount = pathResults.Count;
                 for (var j = 0; j < pathResultsCount; j++)
                 {
@@ -151,7 +151,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < orCount; j++)
                 {
                     var orEntry = orsToMatch[j];
-                    var m = OrKeyFrameCriteriaEvaluator.Matched(orEntry);
+                    var m = OrKeyFrameCriteriaEvaluator.Matched(segmentNumber, orEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
@@ -177,7 +177,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < andCount; j++)
                 {
                     var andEntry = andsToMatch[j];
-                    var m = AndKeyFrameCriteriaEvaluator.Matched(andEntry);
+                    var m = AndKeyFrameCriteriaEvaluator.Matched(segmentNumber, andEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)

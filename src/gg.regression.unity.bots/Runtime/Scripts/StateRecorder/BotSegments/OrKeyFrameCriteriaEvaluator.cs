@@ -5,22 +5,22 @@ namespace RegressionGames.StateRecorder.BotSegments
 {
     public static class OrKeyFrameCriteriaEvaluator
     {
-        public static bool Matched(KeyFrameCriteria criteria)
+        public static bool Matched(int segmentNumber, KeyFrameCriteria criteria)
         {
             if (criteria.data is OrKeyFrameCriteriaData { criteriaList: not null } orCriteria)
             {
                 try
                 {
-                    return KeyFrameEvaluator.Evaluator.MatchedHelper(BooleanCriteria.Or, orCriteria.criteriaList);
+                    return KeyFrameEvaluator.Evaluator.MatchedHelper(segmentNumber, BooleanCriteria.Or, orCriteria.criteriaList);
                 }
                 catch (Exception)
                 {
-                    RGDebug.LogError("Invalid bot segment criteria: " + orCriteria);
+                    RGDebug.LogError($"({segmentNumber}) - Bot Segment - Invalid criteria: " + orCriteria);
                 }
             }
             else
             {
-                RGDebug.LogError("Invalid bot segment criteria: " + criteria);
+                RGDebug.LogError($"({segmentNumber}) - Bot Segment - Invalid criteria: " + criteria);
             }
 
             return false;
