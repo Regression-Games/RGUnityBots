@@ -244,6 +244,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                         if (valid)
                         {
+                            var drag = allowDrag && Random.Range(0, 2) == 0;
                             var lb = Random.Range(0, 2) == 0;
                             var mb = Random.Range(0, 2) == 0;
                             var rb = Random.Range(0, 2) == 0;
@@ -261,17 +262,22 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 Vector2.zero // don't support random scrolling yet...
                             );
 
-                            // send the unclick event
-                            MouseEventSender.SendRawPositionMouseEvent(
-                                segmentNumber,
-                                new Vector2(x,y),
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                Vector2.zero // don't support random scrolling yet...
+                            if (!drag)
+                            {
+                                RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - RandomMouseObjectClicker - unclick - {{x:{x}, y:{y}}}");
+                                // send the un-click event
+                                MouseEventSender.SendRawPositionMouseEvent(
+                                    segmentNumber,
+                                    new Vector2(x, y),
+                                    false,
+                                    false,
+                                    false,
+                                    false,
+                                    false,
+                                    Vector2.zero // don't support random scrolling yet...
                                 );
+                            }
+
                             Replay_LastClickTime = now;
                             error = null;
                             return true;
