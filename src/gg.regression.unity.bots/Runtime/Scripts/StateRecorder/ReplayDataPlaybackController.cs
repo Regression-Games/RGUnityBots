@@ -301,7 +301,7 @@ namespace RegressionGames.StateRecorder
                 }
                 if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                 {
-                    var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
+                    var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
                     LogPlaybackWarning(loggedMessage);
                 }
             }
@@ -311,7 +311,7 @@ namespace RegressionGames.StateRecorder
             {
                 var nextBotSegment = _nextBotSegments[i];
 
-                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched(nextBotSegment.keyFrameCriteria);
+                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched(nextBotSegment.Replay_SegmentNumber, nextBotSegment.keyFrameCriteria);
 
                 if (matched)
                 {
@@ -319,7 +319,7 @@ namespace RegressionGames.StateRecorder
                     {
                         nextBotSegment.Replay_Matched = true;
                         // log this the first time
-                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment Criteria Matched");
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched");
                         if (i == 0)
                         {
                             _lastTimeLoggedKeyFrameConditions = now;
@@ -336,7 +336,7 @@ namespace RegressionGames.StateRecorder
                         if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                         {
                             _lastTimeLoggedKeyFrameConditions = now;
-                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Waiting for actions to complete";
+                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Waiting for actions to complete";
                             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
                             RGDebug.LogInfo(loggedMessage);
                         }
@@ -345,7 +345,7 @@ namespace RegressionGames.StateRecorder
                     if (nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
                     {
                         _lastTimeLoggedKeyFrameConditions = now;
-                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment Completed");
+                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Completed");
                         //Process the inputs from that bot segment if necessary
                         _nextBotSegments.RemoveAt(i);
                     }
@@ -362,7 +362,7 @@ namespace RegressionGames.StateRecorder
                         var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
                         if (warningText != null)
                         {
-                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Unmatched Criteria for BotSegment\r\n" + warningText;
+                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Unmatched Criteria for \r\n" + warningText;
                             LogPlaybackWarning(loggedMessage);
                         }
                     }
@@ -382,7 +382,7 @@ namespace RegressionGames.StateRecorder
                     {
                         _lastTimeLoggedKeyFrameConditions = now;
                         FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Added BotSegment for Evaluation after Transient BotSegment");
+                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria?"":"Non-")}Transient BotSegment for Evaluation after Transient BotSegment");
                         _nextBotSegments.Add(next);
                     }
                 }
@@ -395,7 +395,7 @@ namespace RegressionGames.StateRecorder
                 {
                     _lastTimeLoggedKeyFrameConditions = now;
                     FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                    RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Added BotSegment for Evaluation");
+                    RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria?"":"Non-")}Transient BotSegment for Evaluation");
                     _nextBotSegments.Add(next);
                 }
             }
@@ -417,7 +417,7 @@ namespace RegressionGames.StateRecorder
                     // only log this if we're really stuck on it for a while
                     if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                     {
-                        var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Error processing BotAction\r\n" + error;
+                        var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
                         LogPlaybackWarning(loggedMessage);
                     }
                 }
@@ -448,6 +448,20 @@ namespace RegressionGames.StateRecorder
                         Reset();
                         _replaySuccessful = true;
                     }
+                }
+            }
+        }
+
+        public void OnGUI()
+        {
+            if (_isPlaying)
+            {
+                // render any GUI things for the first segment action
+                if (_nextBotSegments.Count > 0)
+                {
+                    var currentUiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
+                    var currentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
+                    //_nextBotSegments[0].OnGUI(currentUiTransforms, currentGameObjectTransforms);
                 }
             }
         }

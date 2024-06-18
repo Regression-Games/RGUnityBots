@@ -182,7 +182,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             var rb = Random.Range(0, 2) == 0;
                             var fb = Random.Range(0, 2) == 0;
                             var bb = Random.Range(0, 2) == 0;
-                            RGDebug.LogInfo($"RandomMouseObjectClicker - {{x:{x}, y:{y}, lb:{(lb?1:0)}, mb:{(mb?1:0)}, rb:{(rb?1:0)}, fb:{(fb?1:0)}, bb:{(bb?1:0)}}} on object with NormalizedPath: {transformOption.NormalizedPath}", transformOption.Transform.gameObject);
+                            RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - RandomMouseObjectClicker - {{x:{x}, y:{y}, lb:{(lb?1:0)}, mb:{(mb?1:0)}, rb:{(rb?1:0)}, fb:{(fb?1:0)}, bb:{(bb?1:0)}}} on object with NormalizedPath: {transformOption.NormalizedPath}", transformOption.Transform.gameObject);
                             MouseEventSender.SendRawPositionMouseEvent(
                                 segmentNumber,
                                 new Vector2(x, y),
