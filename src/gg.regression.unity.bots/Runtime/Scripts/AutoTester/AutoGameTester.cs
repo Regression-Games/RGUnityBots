@@ -17,7 +17,7 @@ namespace RegressionGames.AutoTester
     public class AutoGameTester : MonoBehaviour
     {
         // Maybe expose this as a field.. maybe ??
-        private float actionIntervalSeconds = 0.1f;
+        private float actionIntervalSeconds = 0.3f;
 
         private bool _running;
 
@@ -49,6 +49,8 @@ namespace RegressionGames.AutoTester
 
         private TransformStatus _lastObjectClicked = null;
 
+        private MouseAction _lastMouseAction = null;
+
         private float _lastTimeStateChanged = -1;
 
         public void Update()
@@ -70,7 +72,7 @@ namespace RegressionGames.AutoTester
                     if (keyFrameTypes.Count > 0)
                     {
                         _lastTimeStateChanged = Time.unscaledTime;
-                        _autoTestMetadata.actionableObjectPaths.Add(_lastObjectClicked.NormalizedPath);
+                        _autoTestMetadata.actionableObjectPaths[_lastObjectClicked.NormalizedPath] = _lastMouseAction;
                     }
                 }
 
@@ -88,13 +90,13 @@ namespace RegressionGames.AutoTester
 
                 var currentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
                 var currentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
-                _lastObjectClicked = ClickOnRandomObject(currentUITransforms.Item2, currentGameObjectTransforms.Item2);
+                _lastObjectClicked = ClickOnRandomObject(currentUITransforms.Item2, currentGameObjectTransforms.Item2, out _lastMouseAction);
             }
         }
 
         private float LastActionTime = float.MinValue;
 
-        private TransformStatus ClickOnRandomObject(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        private TransformStatus ClickOnRandomObject(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out MouseAction mouseAction)
         {
             var now = Time.unscaledTime;
             if (now - actionIntervalSeconds > LastActionTime)
@@ -104,8 +106,8 @@ namespace RegressionGames.AutoTester
 
                 List<TransformStatus> possibleTransformsToClick;
 
-                // 50% chance of choosing a known actionable path, 50% chance of exploration with random action
-                var randomAction = Random.Range(0,2) == 0;
+                // 67% chance of choosing a known actionable path, 33% chance of exploration with random action
+                var randomAction = Random.Range(0,3) == 0;
 
                 if (Time.unscaledTime - _lastTimeStateChanged > 10f)
                 {
@@ -145,7 +147,7 @@ namespace RegressionGames.AutoTester
                     // pick from the known good actions
                     if (currentUITransforms.Count > 0)
                     {
-                        possibleTransformsToClick = currentUITransforms.Values.Where(a => a.Transform != null && a.screenSpaceBounds != null && _autoTestMetadata.actionableObjectPaths.Contains(a.NormalizedPath)).ToList();
+                        possibleTransformsToClick = currentUITransforms.Values.Where(a => a.Transform != null && a.screenSpaceBounds != null && _autoTestMetadata.actionableObjectPaths.Keys.Contains(a.NormalizedPath)).ToList();
                     }
                     else
                     {
@@ -154,7 +156,7 @@ namespace RegressionGames.AutoTester
 
                     if (currentGameObjectTransforms.Count > 0)
                     {
-                        possibleTransformsToClick.AddRange(currentGameObjectTransforms.Values.Where(a => a.Transform != null && a.screenSpaceBounds != null && _autoTestMetadata.actionableObjectPaths.Contains(a.NormalizedPath)));
+                        possibleTransformsToClick.AddRange(currentGameObjectTransforms.Values.Where(a => a.Transform != null && a.screenSpaceBounds != null && _autoTestMetadata.actionableObjectPaths.Keys.Contains(a.NormalizedPath)));
                     }
                 }
 
@@ -218,35 +220,54 @@ namespace RegressionGames.AutoTester
 
                         if (valid)
                         {
-                            var lb = Random.Range(0, 2) == 0;
-                            var mb = Random.Range(0, 2) == 0;
-                            var rb = Random.Range(0, 2) == 0;
-                            var fb = Random.Range(0, 2) == 0;
-                            var bb = Random.Range(0, 2) == 0;
-                            RGDebug.LogInfo($"AutoTester - {{x:{x}, y:{y}, lb:{(lb?1:0)}, mb:{(mb?1:0)}, rb:{(rb?1:0)}, fb:{(fb?1:0)}, bb:{(bb?1:0)}}} on object with NormalizedPath: {transformOption.NormalizedPath}", transformOption.Transform.gameObject);
+                            // 20% of random mouse action, 80% of common mouse action
+                            var useRandomMouseAction = Random.Range(0, 5) == 0;
+                            if (useRandomMouseAction)
+                            {
+                                var lb = Random.Range(0, 2) == 0;
+                                var mb = Random.Range(0, 2) == 0;
+                                var rb = Random.Range(0, 2) == 0;
+                                var fb = Random.Range(0, 2) == 0;
+                                var bb = Random.Range(0, 2) == 0;
+                                mouseAction = new MouseAction(lb, mb, rb, fb, bb);
+                            }
+                            else
+                            {
+                                var index = Random.Range(0, MouseAction.CommonGameMouseActions.Count);
+                                mouseAction = MouseAction.CommonGameMouseActions[index];
+                            }
+
+                            RGDebug.LogInfo($"AutoTester - {{x:{x}, y:{y}, lb:{(mouseAction.leftButton ? 1 : 0)}, mb:{(mouseAction.middleButton ? 1 : 0)}, rb:{(mouseAction.rightButton ? 1 : 0)}, fb:{(mouseAction.forwardButton ? 1 : 0)}, bb:{(mouseAction.backButton ? 1 : 0)}}} on object with NormalizedPath: {transformOption.NormalizedPath}", transformOption.Transform.gameObject);
+
                             MouseEventSender.SendRawPositionMouseEvent(
                                 0,
                                 new Vector2(x, y),
-                                lb,
-                                mb,
-                                rb,
-                                fb,
-                                bb,
+                                mouseAction.leftButton,
+                                mouseAction.middleButton,
+                                mouseAction.rightButton,
+                                mouseAction.forwardButton,
+                                mouseAction.backButton,
                                 Vector2.zero // don't support random scrolling yet...
                             );
 
-                            RGDebug.LogInfo($"AutoTester - unclick - {{x:{x}, y:{y}}}");
-                            // send the un-click (no drags here)
-                            MouseEventSender.SendRawPositionMouseEvent(
-                                0,
-                                new Vector2(x, y),
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                Vector2.zero // don't support random scrolling yet...
-                            );
+                            //var shouldUnclick = Random.Range(0, 2) == 0; // TODO: Implement this later
+                            var shouldUnclick = true;
+                            if (shouldUnclick)
+                            {
+                                RGDebug.LogInfo($"AutoTester - unclick - {{x:{x}, y:{y}}}");
+                                // send the un-click (no drags here)
+                                MouseEventSender.SendRawPositionMouseEvent(
+                                    0,
+                                    new Vector2(x, y),
+                                    false,
+                                    false,
+                                    false,
+                                    false,
+                                    false,
+                                    Vector2.zero // don't support random scrolling yet...
+                                );
+                            }
+
                             LastActionTime = now;
                             return transformOption;
                         }
@@ -254,6 +275,8 @@ namespace RegressionGames.AutoTester
                     } while (++restartCount < RESTART_LIMIT);
                 }
             }
+
+            mouseAction = null;
             return null;
         }
 
@@ -331,10 +354,12 @@ namespace RegressionGames.AutoTester
 
             if (jObject.ContainsKey("actionableObjectPaths"))
             {
-                var actionableObjectPaths = jObject["actionableObjectPaths"].ToObject<List<string>>();
+                var actionableObjectPaths = jObject["actionableObjectPaths"].ToObject<List<JObject>>();
                 foreach (var actionableObjectPath in actionableObjectPaths)
                 {
-                    data.actionableObjectPaths.Add(actionableObjectPath);
+                    var path = actionableObjectPath["path"].ToObject<String>();
+                    var mouseAction = actionableObjectPath["mouseAction"].ToObject<MouseAction>();
+                    data.actionableObjectPaths.Add(path, mouseAction);
                 }
             }
 
@@ -351,12 +376,58 @@ namespace RegressionGames.AutoTester
         public override bool CanRead => true;
     }
 
+
+
+    public class MouseAction
+    {
+        public static readonly List<MouseAction> CommonGameMouseActions = new()
+        {
+            // singular buttons
+            new MouseAction(true,false,false,false,false),
+            new MouseAction(false,true,false,false,false),
+            new MouseAction(false,false,true,false,false),
+            new MouseAction(false,false,false,true,false),
+            new MouseAction(false,false,false,false,true),
+            // common combos
+            new MouseAction(true,false,true,false,false),
+            new MouseAction(true,true,true,false,false),
+            new MouseAction(false,true,true,false,false),
+            new MouseAction(true,true,false,false,false)
+        };
+
+        public MouseAction(bool leftButton, bool middleButton, bool rightButton, bool forwardButton, bool backButton)
+        {
+            this.leftButton = leftButton;
+            this.middleButton = middleButton;
+            this.rightButton = rightButton;
+            this.forwardButton = forwardButton;
+            this.backButton = backButton;
+        }
+
+        public bool leftButton;
+        public bool middleButton;
+        public bool rightButton;
+        public bool forwardButton;
+        public bool backButton;
+        public Vector2 scroll = Vector2.zero;
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"leftButton\":").Append(leftButton ? "true" : "false");
+            stringBuilder.Append(",\"middleButton\":").Append(middleButton ? "true" : "false");
+            stringBuilder.Append(",\"rightButton\":").Append(rightButton ? "true" : "false");
+            stringBuilder.Append(",\"forwardButton\":").Append(forwardButton ? "true" : "false");
+            stringBuilder.Append(",\"backButton\":").Append(backButton ? "true" : "false");
+            stringBuilder.Append("}");
+        }
+    }
+
     [JsonConverter(typeof(AutoTestMetadataJsonConverter))]
     public class AutoTestMetadata
     {
         public HashSet<string> exitGameObjectPaths = new();
 
-        public HashSet<string> actionableObjectPaths = new();
+        public Dictionary<string, MouseAction> actionableObjectPaths = new();
 
         private static readonly StringBuilder _stringBuilder = new(1000);
 
@@ -364,28 +435,33 @@ namespace RegressionGames.AutoTester
         {
             _stringBuilder.Clear();
             _stringBuilder.Append("{\"exitGameObjectPaths\":[");
-            var exitGameSceneObjectPathsCount = exitGameObjectPaths.Count;
+            var count = exitGameObjectPaths.Count;
             var i = 0;
             foreach (var exitGameObjectPath in exitGameObjectPaths)
             {
                 StringJsonConverter.WriteToStringBuilder(_stringBuilder, exitGameObjectPath);
-                if (++i < exitGameSceneObjectPathsCount)
+                if (++i < count)
                 {
                     _stringBuilder.Append(",");
                 }
             }
 
             i = 0;
-            _stringBuilder.Append("],\"actionableObjectPaths\":[");
+            count = actionableObjectPaths.Count;
+            _stringBuilder.Append("],\"actionableObjectPaths\":[\r\n");
             foreach (var actionableObjectPath in actionableObjectPaths)
             {
-                StringJsonConverter.WriteToStringBuilder(_stringBuilder, actionableObjectPath);
-                if (++i < exitGameSceneObjectPathsCount)
+                _stringBuilder.Append("{\"path\":");
+                StringJsonConverter.WriteToStringBuilder(_stringBuilder, actionableObjectPath.Key);
+                _stringBuilder.Append(",\"mouseAction\":");
+                actionableObjectPath.Value.WriteToStringBuilder(_stringBuilder);
+                _stringBuilder.Append("}");
+                if (++i < count)
                 {
-                    _stringBuilder.Append(",");
+                    _stringBuilder.Append(",\r\n");
                 }
             }
-            _stringBuilder.Append("]}");
+            _stringBuilder.Append("\r\n]}");
             return _stringBuilder.ToString();
         }
     }
