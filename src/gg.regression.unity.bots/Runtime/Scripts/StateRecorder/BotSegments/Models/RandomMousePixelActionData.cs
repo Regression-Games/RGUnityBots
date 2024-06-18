@@ -130,6 +130,59 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
+        private GUIStyle _guiStyle = null;
+
+        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            if (_guiStyle == null)
+            {
+                _guiStyle = new ()
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                };
+                _guiStyle.normal.background = Texture2D.whiteTexture; // must be white to tint properly
+                var textColor = Color.white;
+                textColor.a = 0.4f;
+                _guiStyle.normal.textColor = textColor;
+            }
+            var screenHeight = Screen.height;
+            var screenWidth = Screen.width;
+            var count = excludedAreas.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var excludedArea = excludedAreas[i];
+                var xMin = excludedArea.xMin;
+                var xMax = excludedArea.xMax;
+                var yMin = excludedArea.yMin;
+                var yMax = excludedArea.yMax;
+
+                // normalize the location to the current resolution
+                if (screenWidth != screenSize.x)
+                {
+                    var ratio = screenWidth / (float)screenSize.x;
+                    xMin = (int) (xMin * ratio);
+                    xMax = (int) (xMax * ratio);
+                }
+
+                if (screenHeight != screenSize.y)
+                {
+                    var ratio = screenHeight / (float)screenSize.y;
+                    yMin = (int) (yMin * ratio);
+                    yMax = (int) (yMax * ratio);
+                }
+
+                var bgColor = Color.red;
+                bgColor.a = 0.4f;
+                GUI.backgroundColor = bgColor;
+
+                /*
+                 * Screen coordinates are 2D, measured in pixels and start in the lower left corner at (0,0) and go to (Screen.width, Screen.height). Screen coordinates change with the resolution of the device, and even the orientation (if you app allows it) on mobile devices.
+                 * GUI coordinates are used by the IMGUI system. They are identical to Screen coordinates except that they start at (0,0) in the upper left and go to (Screen.width, Screen.height) in the lower right.
+                 */
+                GUI.Box(new Rect(xMin, screenHeight-yMax, (xMax - xMin), (yMax - yMin)), "Excluded\nArea", _guiStyle);
+            }
+        }
+
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"apiVersion\":");

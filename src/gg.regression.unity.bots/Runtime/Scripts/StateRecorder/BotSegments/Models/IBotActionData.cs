@@ -29,5 +29,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public bool? IsCompleted();
 
         public int EffectiveApiVersion();
+
+        // Allows the impl to draw debug elements on the screen
+        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        {
+            // default to no-op impl
+        }
     }
 }

@@ -741,7 +741,7 @@ namespace RegressionGames.StateRecorder
             {
                 var uiObjectTransformId = tStatus.Id;
                 // only process visible objects into the state
-                if (tStatus.screenSpaceBounds.HasValue)
+                if (tStatus.Transform != null && tStatus.screenSpaceBounds.HasValue)
                 {
                     var usingOldObject = _priorStates.TryGetValue(uiObjectTransformId, out var resultObject);
 
@@ -800,7 +800,7 @@ namespace RegressionGames.StateRecorder
             {
                 var gameObjectTransformId = tStatus.Id;
                 // only process visible objects into the state
-                if (tStatus.screenSpaceBounds.HasValue)
+                if (tStatus.Transform != null && tStatus.screenSpaceBounds.HasValue)
                 {
                     var usingOldObject = _priorStates.TryGetValue(gameObjectTransformId, out var resultObject);
 

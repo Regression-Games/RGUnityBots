@@ -27,7 +27,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         }
 
         // Track counts from the last keyframe completion and use that as the 'prior' data
-        public static List<string> Matched(List<KeyFrameCriteria> criteriaList, Dictionary<int, TransformStatus> priorUIStatus, Dictionary<int, TransformStatus> priorGameObjectStatus, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
+        public static List<string> Matched(int segmentNumber, List<KeyFrameCriteria> criteriaList, Dictionary<int, TransformStatus> priorUIStatus, Dictionary<int, TransformStatus> priorGameObjectStatus, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
         {
             UpdateDeltaCounts(priorUIStatus, priorGameObjectStatus, uiTransforms, gameObjectTransforms);
 

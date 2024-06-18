@@ -24,7 +24,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
         {
-            RGDebug.LogInfo($"({segmentNumber}) - Processing InputPlaybackActionData for BotSegment");
+            RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - Processing InputPlaybackActionData");
 
             var now = Time.unscaledTime;
             var currentInputTimePoint = now - startTime;
