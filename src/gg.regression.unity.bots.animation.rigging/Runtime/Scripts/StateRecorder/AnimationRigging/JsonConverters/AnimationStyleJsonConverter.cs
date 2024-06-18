@@ -1,14 +1,15 @@
 using System;
 using System.Text;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine.Animations.Rigging;
 
-namespace RegressionGames.StateRecorder.JsonConverters
+namespace RegressionGames.StateRecorder.AnimationRigging.JsonConverters
 {
     public class AnimationStyleJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(1_000);
+        private static readonly StringBuilder _stringBuilder = new (1_000);
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, RigEffectorData.Style val)
         {
