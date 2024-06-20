@@ -9,24 +9,21 @@ namespace RegressionGames.ActionManager
     public static class RGActionManager
     {
         private static MonoBehaviour _context;
+        private static IRGActionProvider _actionProvider;
 
-        public static IEnumerable<RGGameAction> Actions
-        {
-            get
-            {
-                // TODO
-                yield break;
-            }
-        }
+        public static IEnumerable<RGGameAction> Actions => _actionProvider.Actions;
 
-        public static IEnumerable<IRGGameActionInstance> GetValidActions()
+        public static void SetActionProvider(IRGActionProvider actionProvider)
         {
-            // TODO
-            yield break;
+            _actionProvider = actionProvider;
         }
 
         public static void StartSession(MonoBehaviour context)
         {
+            if (_actionProvider == null)
+            {
+                throw new Exception("Must set an action provider before starting a session");
+            }
             if (_context != null)
             {
                 throw new Exception($"Session is already active with context {_context}");
@@ -44,6 +41,21 @@ namespace RegressionGames.ActionManager
                 SceneManager.sceneLoaded -= OnSceneLoad;
                 RGLegacyInputWrapper.StopSimulation();
                 _context = null;
+            }
+        }
+        
+        public static IEnumerable<IRGGameActionInstance> GetValidActions()
+        {
+            foreach (RGGameAction action in Actions)
+            {
+                UnityEngine.Object[] objects = UnityEngine.Object.FindObjectsOfType(action.ObjectType);
+                foreach (var obj in objects)
+                {
+                    if (action.IsValidForObject(obj))
+                    {
+                        yield return action.GetInstance(obj);
+                    }
+                }
             }
         }
 

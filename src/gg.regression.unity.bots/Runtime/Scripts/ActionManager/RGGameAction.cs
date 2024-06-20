@@ -34,7 +34,18 @@ namespace RegressionGames.ActionManager
         }
 
         /// <summary>
+        /// Determines whether this action is valid for the object.
+        /// </summary>
+        /// <param name="obj">
+        /// The target object for which to check validity.
+        /// The object will be of type ObjectType.
+        /// </param>
+        /// <returns>Whether the action is valid for the object.</returns>
+        public abstract bool IsValidForObject(UnityEngine.Object obj);
+        
+        /// <summary>
         /// Obtain an instance of this action for the target object.
+        /// This method is only called if IsValidForObject is true for the given object.
         /// </summary>
         /// <param name="obj">
         /// The object for which to obtain an action instance.
@@ -46,9 +57,11 @@ namespace RegressionGames.ActionManager
 
     public interface IRGGameActionInstance
     {
-        /// <returns>Returns whether this action instance is valid in the current game state</returns>
-        public bool IsValid();
-
+        /// <summary>
+        /// Get the action associated with this instance.
+        /// </summary>
+        public RGGameAction BaseAction { get; }
+        
         /// <summary>
         /// Perform the action by simulating the applicable user inputs.
         /// </summary>
@@ -58,26 +71,27 @@ namespace RegressionGames.ActionManager
     
     public abstract class RGGameActionInstance<TAction, TParam> : IRGGameActionInstance where TAction : RGGameAction
     {
+        /// <summary>
+        /// Same as BaseAction, but is already the appropriate type
+        /// this action instance is associated with.
+        /// </summary>
         public TAction Action { get; private set; }
-        
-        public UnityEngine.Object Instance { get; private set; }
 
-        public RGGameActionInstance(TAction action, UnityEngine.Object instance)
+        public RGGameAction BaseAction => Action;
+        
+        public UnityEngine.Object TargetObject { get; private set; }
+
+        public RGGameActionInstance(TAction action, UnityEngine.Object targetObject)
         {
             Action = action;
-            Instance = instance;
-        }
-
-        public bool IsValid()
-        {
-            return true;
+            TargetObject = targetObject;
         }
 
         public void Perform(object param)
         {
-            Perform((TParam)param);
+            PerformAction((TParam)param);
         }
         
-        public abstract void Perform(TParam param);
+        protected abstract void PerformAction(TParam param);
     }
 }

@@ -1,29 +1,48 @@
 ﻿
 using System;
 using RegressionGames.RGLegacyInputUtility;
+using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace RegressionGames.ActionManager
 {
     public static class RGActionUtils
     {
-        #if ENABLE_LEGACY_INPUT_MANAGER
         public static void SimulateLegacyKeyState(KeyCode keyCode, bool isPressed)
         {
-            if (isPressed)
+            if (keyCode >= KeyCode.Mouse0 && keyCode <= KeyCode.Mouse6)
             {
-                RGLegacyInputWrapper.SimulateKeyPress(keyCode);
+                bool leftButton = keyCode == KeyCode.Mouse0 ? isPressed : RGLegacyInputWrapper.GetKey(KeyCode.Mouse0);
+                bool middleButton = keyCode == KeyCode.Mouse2 ? isPressed : RGLegacyInputWrapper.GetKey(KeyCode.Mouse2);
+                bool rightButton = keyCode == KeyCode.Mouse1 ? isPressed : RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
+                bool forwardButton =
+                    keyCode == KeyCode.Mouse3 ? isPressed : RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
+                bool backButton =
+                    keyCode == KeyCode.Mouse4 ? isPressed : RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
+                MouseEventSender.SendRawPositionMouseEvent(0,
+                    RGLegacyInputWrapper.mousePosition,
+                    leftButton: leftButton, middleButton: middleButton, rightButton: rightButton,
+                    forwardButton: forwardButton, backButton: backButton);
             }
             else
             {
-                RGLegacyInputWrapper.SimulateKeyRelease(keyCode);
+                Key key = RGLegacyInputUtils.KeyCodeToInputSystemKey(keyCode);
+                if (key != Key.None)
+                {
+                    KeyControl control = Keyboard.current[key];
+                    KeyboardInputActionData data = new KeyboardInputActionData()
+                    {
+                        action = control.name,
+                        binding = control.path,
+                        startTime = Time.unscaledTime,
+                        endTime = isPressed ? null : Time.unscaledTime
+                    };
+                    KeyboardEventSender.SendKeyEvent(0, data, isPressed ? KeyState.Down : KeyState.Up);
+                }
             }
-            
-            #if ENABLE_INPUT_SYSTEM
-            // TODO
-            throw new NotImplementedException();
-            #endif
         }
-        #endif
     }
 }
