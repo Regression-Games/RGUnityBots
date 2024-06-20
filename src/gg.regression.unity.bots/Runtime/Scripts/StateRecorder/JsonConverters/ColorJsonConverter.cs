@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class ColorJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(200));
 
         public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Color? f)
         {
@@ -36,9 +37,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonString(Color val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

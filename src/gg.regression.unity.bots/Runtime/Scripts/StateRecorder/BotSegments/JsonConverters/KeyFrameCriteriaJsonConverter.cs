@@ -33,6 +33,8 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             return criteria;
         }
 
+        public override bool CanWrite => false;
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             throw new NotImplementedException();

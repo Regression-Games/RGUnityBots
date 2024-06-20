@@ -16,6 +16,7 @@ namespace RegressionGames.StateRecorder
 
         // uses null or not-null to do interlocked threadsafe updates
         private string _pixelHash;
+
         private string _requestInProgress;
 
         [NonSerialized]
@@ -75,6 +76,17 @@ namespace RegressionGames.StateRecorder
             return _instance;
         }
 
+        public void ClearPixelHash()
+        {
+            Interlocked.Exchange(ref _pixelHash, null);
+        }
+
+        public bool HasPixelHashChanged(out string newHash)
+        {
+            newHash = Interlocked.CompareExchange(ref _pixelHash, null, null);
+            return newHash != null;
+        }
+
         private static RenderTexture GetRenderTexture()
         {
             if (_instance != null && _instance._cohtmlViewInstance != null)
@@ -96,7 +108,8 @@ namespace RegressionGames.StateRecorder
                     var wasActive = Interlocked.CompareExchange(ref _requestInProgress, string.Empty, null);
                     if (wasActive == null)
                     {
-                        AsyncGPUReadback.Request(cohtmlViewTexture, 0, (request =>
+                        var frame = Time.frameCount;
+                        AsyncGPUReadback.Request(cohtmlViewTexture, 0, request =>
                         {
                             try
                             {
@@ -108,54 +121,43 @@ namespace RegressionGames.StateRecorder
 
                                     string newHash = _firstRun ? "FirstPass" : null;
 
-                                    if (_priorPixels == null || pixels.Length != _priorPixels.Length)
+                                    var priorPixels = Interlocked.Exchange(ref _priorPixels, pixels);
+                                    if (!_firstRun)
                                     {
-                                        // different size image or first pass
-                                        newHash = "NewResolution";
-                                    }
-                                    else
-                                    {
-                                        _firstRun = false;
-                                        var pixelsLength = pixels.Length;
-                                        for (var i = 0; i < pixelsLength; i++)
+                                        if (priorPixels == null || pixels.Length != priorPixels.Length)
                                         {
-                                            if (pixels[i].r != _priorPixels[i].r || pixels[i].g != _priorPixels[i].g || pixels[i].b != _priorPixels[i].b || pixels[i].a != _priorPixels[i].a)
+                                            // different size image or first pass
+                                            newHash = "NewResolution";
+                                        }
+                                        else
+                                        {
+                                            var pixelsLength = pixels.Length;
+                                            for (var i = 0; i < pixelsLength; i++)
                                             {
-                                                newHash = $"{i} - ({pixels[i].r},{pixels[i].g},{pixels[i].b},{pixels[i].a})";
-                                                RGDebug.LogDebug($"Different GameFace UI pixel at index {i}");
-                                                break;
+                                                if (pixels[i].r != priorPixels[i].r || pixels[i].g != priorPixels[i].g || pixels[i].b != priorPixels[i].b || pixels[i].a != priorPixels[i].a)
+                                                {
+                                                    newHash = $"{i} - ({pixels[i].r},{pixels[i].g},{pixels[i].b},{pixels[i].a})";
+                                                    RGDebug.LogDebug($"Different GameFace UI pixel at index {i}");
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
-
+                                    _firstRun = false;
                                     Interlocked.Exchange(ref _pixelHash, newHash);
-
-                                    _priorPixels = pixels;
                                 }
                             }
                             finally
                             {
                                 Interlocked.Exchange(ref _requestInProgress, null);
                             }
-                        }));
+                        });
                     }
                 }
             }
             else
             {
                 Interlocked.Exchange(ref _pixelHash, null);
-            }
-        }
-
-        public string GetPixelHash(bool clearValueOnRead = false)
-        {
-            if (clearValueOnRead)
-            {
-                return Interlocked.Exchange(ref _pixelHash, null);
-            }
-            else
-            {
-                return Interlocked.CompareExchange(ref _pixelHash, null, null);
             }
         }
 

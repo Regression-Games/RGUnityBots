@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class AnimatorJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
     {
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(1_000);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1_000));
 
         public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
         {
@@ -32,9 +33,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonString(Animator value)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, value);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, value);
+            return _stringBuilder.Value.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

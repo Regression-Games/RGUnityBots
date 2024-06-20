@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class VectorIntJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit vectors of all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(200);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(200));
 
         public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Vector2Int? f)
         {
@@ -52,16 +53,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonString(Vector2Int val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
         private static string ToJsonString(Vector3Int val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

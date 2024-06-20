@@ -1,15 +1,17 @@
 using System;
+using System.Collections;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder;
 using UnityEngine;
+using Object = System.Object;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
     public class StringJsonConverter : Newtonsoft.Json.JsonConverter
     {
 
-        private static readonly StringBuilder _stringBuilder = new(5_000);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(5_000));
 
         // some games use obscure chars like 'TM' which is #8xxx in the table.. don't let us get index out of bounds on something silly
         private static readonly char[] EscapeCharReplacements = new char[32_768];
@@ -23,13 +25,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
             EscapeCharReplacements['\b'] = 'b';
             EscapeCharReplacements['\\'] = '\\';
             EscapeCharReplacements['"'] = '"';
-            //Main(); - useful for testing
+            //TestCode(); //- useful for testing
         }
 
-        // supports up to 100k char length escaped strings
-        private static char[] _bufferArray = new char[100_000];
-
-        private static int _currentNextIndex = 0;
+        // supports up to 1m char length escaped strings
+        private static readonly ThreadLocal<char[]> _bufferArray = new (() => new char[1_000_000]);
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, string input)
         {
@@ -39,8 +39,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 return;
             }
 
-            _currentNextIndex = 0;
-            _bufferArray[_currentNextIndex++] = '"';
+            var currentNextIndex = 0;
+            var bufferArray = _bufferArray.Value;
+            bufferArray[currentNextIndex++] = '"';
 
             var inputLength = input.Length;
 
@@ -53,37 +54,37 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 if (escapeReplacement == 0)
                 {
                     // don't need to escape
-                    endIndex = i;
+                    endIndex = i + 1;
                 }
                 else
                 {
-                    // need to escape.. copy existing range to result if not the start of the string
-                    if (i != 0)
+                    // need to escape.. copy existing range to result
+                    if (startIndex != endIndex)
                     {
-                        var length = endIndex + 1 - startIndex;
-                        input.CopyTo(startIndex, _bufferArray, _currentNextIndex, length);
-                        _currentNextIndex += length;
+                        var length = endIndex - startIndex;
+                        input.CopyTo(startIndex, bufferArray, currentNextIndex, length);
+                        currentNextIndex += length;
                     }
                     // update indexes
                     endIndex = i + 1;
                     startIndex = i + 1;
                     // write the escaped value to the buffer
-                    _bufferArray[_currentNextIndex++] = '\\';
-                    _bufferArray[_currentNextIndex++] = escapeReplacement;
+                    bufferArray[currentNextIndex++] = '\\';
+                    bufferArray[currentNextIndex++] = escapeReplacement;
                 }
             }
 
-            if (startIndex != endIndex || startIndex == inputLength - 1)
+            if (startIndex != endIndex)
             {
                 // got to the end
-                var length = endIndex + 1 - startIndex;
-                input.CopyTo(startIndex, _bufferArray, _currentNextIndex, length);
-                _currentNextIndex += length;
+                var length = endIndex - startIndex;
+                input.CopyTo(startIndex, bufferArray, currentNextIndex, length);
+                currentNextIndex += length;
             }
 
-            _bufferArray[_currentNextIndex++] = '"';
+            bufferArray[currentNextIndex++] = '"';
 
-            stringBuilder.Append(_bufferArray, 0, _currentNextIndex);
+            stringBuilder.Append(bufferArray, 0, currentNextIndex);
         }
 
         public static string ToJsonString(string val)
@@ -93,9 +94,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 return "null";
             }
 
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
 
@@ -124,12 +125,30 @@ namespace RegressionGames.StateRecorder.JsonConverters
         }
 
         /* Useful for testing
-        public static void Main()
+        public static void TestCode()
         {
+            new Thread(StringJsonConverter.Test).Start();
+            new Thread(StringJsonConverter.Test).Start();
+            new Thread(StringJsonConverter.Test).Start();
+
+            new Thread(StringJsonConverter.TestCorruption).Start();
+            new Thread(StringJsonConverter.TestCorruption).Start();
+            new Thread(StringJsonConverter.TestCorruption).Start();
+        }
+
+        private static void Test()
+        {
+            Debug.Log("StringJsonConverter Test");
             var input = "a";
             Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
 
             input = "somethingLonger";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+
+            input = "HeroProfileManager";
+            Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+
+            input = "NormalizedPath";
             Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
 
             input = "\nStartingNewline";
@@ -143,6 +162,34 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
             input = "N\newline\nAfter\nFirst\nAnd\nEach\nWord\na";
             Debug.Log("Input: " + input + " , Output: " + ToJsonString(input));
+        }
+
+        private static void TestCorruption()
+        {
+            Debug.Log("StringJsonConverter Corruption Test");
+            StringBuilder sb = new StringBuilder(1000);
+
+            var input = "a";
+            sb.Append("Input: " + input + " , Output: ");
+            WriteToStringBuilder(sb, input);
+            sb.Append("\n");
+
+            input = "somethingLonger";
+            sb.Append("Input: " + input + " , Output: ");
+            WriteToStringBuilder(sb, input);
+            sb.Append("\n");
+
+            input = "HeroProfileManager";
+            sb.Append("Input: " + input + " , Output: ");
+            WriteToStringBuilder(sb, input);
+            sb.Append("\n");
+
+            input = "NormalizedPath";
+            sb.Append("Input: " + input + " , Output: ");
+            WriteToStringBuilder(sb, input);
+            sb.Append("\n");
+
+            Debug.Log(sb.ToString());
         }
         */
     }

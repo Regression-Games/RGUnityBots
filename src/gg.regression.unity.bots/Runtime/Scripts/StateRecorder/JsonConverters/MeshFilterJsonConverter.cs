@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     public class MeshFilterJsonConverter : Newtonsoft.Json.JsonConverter
     {
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(500);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(500));
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, MeshFilter val)
         {
@@ -26,9 +27,9 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         private static string ToJsonString(MeshFilter value)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, value);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, value);
+            return _stringBuilder.Value.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

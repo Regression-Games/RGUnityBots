@@ -232,7 +232,7 @@ namespace RegressionGames.StateRecorder
         private void LateUpdate()
         {
             _gpuReadbackRequests.RemoveAll(a => a.done);
-            _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
+            _fileWriteTasks.RemoveAll(a => a.Item2 == null || a.Item2.IsCompleted);
 
             while (_texture2Ds.TryDequeue(out var tex))
             {
@@ -258,11 +258,8 @@ namespace RegressionGames.StateRecorder
             yield return null;
             if (!_isRecording)
             {
-                ReplayDataPlaybackController.SendMouseEvent(-1,new MouseInputActionData()
-                {
-                    // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
-                    position = new Vector2Int(Screen.width +20, -20)
-                }, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary, _emptyTransformStatusDictionary);
+                // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
+                MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
 
                 _lastCvFrameTime = -1;
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
@@ -324,7 +321,7 @@ namespace RegressionGames.StateRecorder
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
 
-        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, string pixelHash)
+        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, bool pixelHashChanged)
         {
             _keyFrameTypeList.Clear();
             if (firstFrame)
@@ -333,7 +330,7 @@ namespace RegressionGames.StateRecorder
                 return;
             }
 
-            if (pixelHash != null)
+            if (pixelHashChanged)
             {
                 _keyFrameTypeList.Add(KeyFrameType.UI_PIXELHASH);
             }
@@ -416,6 +413,7 @@ namespace RegressionGames.StateRecorder
             if (!_tickQueue.IsCompleted)
             {
                 // wait for end of frame before capturing, otherwise .isVisible is wrong and GPU data won't be accurate for screenshot
+                // also impacts ordering for clearing the pixel hash
                 yield return new WaitForEndOfFrame();
 
                 ++_frameCountSinceLastTick;
@@ -441,10 +439,11 @@ namespace RegressionGames.StateRecorder
                 var gameObjectDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(gameObjectTransforms.Item1, gameObjectTransforms.Item2, out var hasGameObjectDelta);
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
-                var pixelHash = gameFacePixelHashObserver != null ? gameFacePixelHashObserver.GetPixelHash(true) : null;
+                string pixelHash = null;
+                var pixelHashChanged = gameFacePixelHashObserver != null && gameFacePixelHashObserver.HasPixelHashChanged(out pixelHash);
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHash);
+                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHashChanged);
 
                 BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
@@ -493,21 +492,38 @@ namespace RegressionGames.StateRecorder
                             mouse = mouseInputData
                         };
 
-                        var keyFrameCriteria = uiDeltas.Values
-                            .Concat(gameObjectDeltas.Values)
-                            .Select(a => new KeyFrameCriteria() {
-                                type = KeyFrameCriteriaType.NormalizedPath,
-                                transient = true,
-                                data = new PathKeyFrameCriteriaData()
+                        KeyFrameCriteria[] keyFrameCriteria;
+                        if (pixelHashChanged)
+                        {
+                            keyFrameCriteria = new[]
+                            {
+                                new KeyFrameCriteria()
                                 {
-                                    path = a.path,
-                                    count =  a.count,
-                                    addedCount = a.addedCount,
-                                    removedCount = a.removedCount,
-                                    countRule = a.higherLowerCountTracker ==0 ? (a.count==0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual)
+                                    type = KeyFrameCriteriaType.UIPixelHash,
+                                    transient = false,
+                                    data = new UIPixelHashKeyFrameCriteriaData()
                                 }
-                            })
-                            .ToArray();
+                            };
+                        }
+                        else
+                        {
+                            keyFrameCriteria = uiDeltas.Values
+                                .Concat(gameObjectDeltas.Values)
+                                .Select(a => new KeyFrameCriteria()
+                                {
+                                    type = KeyFrameCriteriaType.NormalizedPath,
+                                    transient = true,
+                                    data = new PathKeyFrameCriteriaData()
+                                    {
+                                        path = a.path,
+                                        count = a.count,
+                                        addedCount = a.addedCount,
+                                        removedCount = a.removedCount,
+                                        countRule = a.higherLowerCountTracker == 0 ? (a.count == 0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual)
+                                    }
+                                })
+                                .ToArray();
+                        }
 
                         double inputTime = -1;
                         // note to future devs: it may be tempting get the earliest input time for every segment so we can playback with minimal delay
@@ -532,7 +548,7 @@ namespace RegressionGames.StateRecorder
                         //record bot segment data for action replay
                         botSegment = new BotSegment()
                         {
-                            sessionId = System.Guid.NewGuid().ToString(),
+                            sessionId = _currentSessionId,
                             keyFrameCriteria = keyFrameCriteria,
                             botAction = new BotAction()
                             {
@@ -608,6 +624,8 @@ namespace RegressionGames.StateRecorder
                     {
                         RGDebug.LogException(e, $"Exception capturing state for tick # {_tickNumber}");
                     }
+
+                    GameFacePixelHashObserver.GetInstance()?.ClearPixelHash();
 
                     var didQueue = 0;
 

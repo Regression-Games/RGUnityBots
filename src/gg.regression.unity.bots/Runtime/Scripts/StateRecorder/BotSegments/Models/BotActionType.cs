@@ -4,6 +4,8 @@
     {
         None,
         InputPlayback,
+        RandomMouse_ClickPixel,
+        RandomMouse_ClickObject,
 
         //FUTURE
         //Timer,
@@ -11,8 +13,6 @@
         //Behaviour,
         //AgentBuilder,
         //OrchestratedInput,
-        //RandomMouse_ClickPixel,
-        //RandomMouse_ClickObject,
         //RandomKeyboard_Key,
         //RandomKeyboard_ActionableKey,
         //RandomJoystick_Axis1|Axis2|Axis3,Key
