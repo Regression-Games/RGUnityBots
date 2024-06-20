@@ -33,31 +33,51 @@ namespace RegressionGames.ActionManager
             ObjectType = objectType;
         }
 
-        public abstract RGGameActionInstance GetInstance(UnityEngine.Object obj);
+        /// <summary>
+        /// Obtain an instance of this action for the target object.
+        /// </summary>
+        /// <param name="obj">
+        /// The object for which to obtain an action instance.
+        /// This should be of type ObjectType.
+        /// </param>
+        /// <returns>An instance of this action for the target object.</returns>
+        public abstract IRGGameActionInstance GetInstance(UnityEngine.Object obj);
+    }
+
+    public interface IRGGameActionInstance
+    {
+        /// <returns>Returns whether this action instance is valid in the current game state</returns>
+        public bool IsValid();
+
+        /// <summary>
+        /// Perform the action by simulating the applicable user inputs.
+        /// </summary>
+        /// <param name="param">Value from the action's ParameterRange</param>
+        public void Perform(object param);
     }
     
-    public abstract class RGGameActionInstance
+    public abstract class RGGameActionInstance<TAction, TParam> : IRGGameActionInstance where TAction : RGGameAction
     {
-        public RGGameAction Action { get; private set; }
+        public TAction Action { get; private set; }
         
         public UnityEngine.Object Instance { get; private set; }
 
-        public RGGameActionInstance(RGGameAction action, UnityEngine.Object instance)
+        public RGGameActionInstance(TAction action, UnityEngine.Object instance)
         {
             Action = action;
             Instance = instance;
         }
 
-        /// <returns>Returns whether this action instance is valid in the current game state</returns>
         public bool IsValid()
         {
             return true;
         }
+
+        public void Perform(object param)
+        {
+            Perform((TParam)param);
+        }
         
-        /// <summary>
-        /// Perform the action by simulating the applicable user inputs.
-        /// </summary>
-        /// <param name="param">Value from the action's ParameterRange</param>
-        public abstract void Perform(object param);
+        public abstract void Perform(TParam param);
     }
 }
