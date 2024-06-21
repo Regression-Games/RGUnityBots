@@ -8,11 +8,9 @@ namespace RegressionGames.ActionManager
     {
         /// The path of the action, typically derived from
         /// the location where the associated input handling logic takes place.
-        /// 
-        /// This serves as an identifier for the action. It is expected that
-        /// upon changes to the code, the path will remain the same if the
-        /// location of the associated input-handling logic has not changed.
-        public string Path { get; private set; }
+        /// An action may have multiple paths if multiple code locations were inferred to
+        /// have equivalent actions by IsEquivalentTo and were grouped together.
+        public List<string> Paths { get; private set; }
         
         /// The type of object that the action is associated with.
         /// The object must be derived from UnityEngine.Object, and
@@ -20,16 +18,16 @@ namespace RegressionGames.ActionManager
         /// UnityEngine.Object.FindObjectsOfType(ObjectType).
         public Type ObjectType { get; private set; }
         
-        /// User-specified data for this action.
-        public Dictionary<string, object> UserData { get; }
-        
          /// The range of parameter values accepted by this action's
          /// Perform() method.
         public abstract IRGValueRange ParameterRange { get; }
         
+        /// User-specified data for this action.
+        public Dictionary<string, object> UserData { get; }
+        
         public RGGameAction(string path, Type objectType)
         {
-            Path = path;
+            Paths = new List<string> { path };
             ObjectType = objectType;
         }
 
@@ -53,6 +51,17 @@ namespace RegressionGames.ActionManager
         /// </param>
         /// <returns>An instance of this action for the target object.</returns>
         public abstract IRGGameActionInstance GetInstance(UnityEngine.Object obj);
+
+        /// <summary>
+        /// Indicates whether this action is equivalent as another action.
+        /// This is used for deciding whether an action should be grouped together with another.
+        /// </summary>
+        /// <param name="other">The action to compare against.</param>
+        /// <returns>Whether the actions are equivalent.</returns>
+        public virtual bool IsEquivalentTo(RGGameAction other)
+        {
+            return ObjectType == other.ObjectType && ParameterRange.RangeEquals(other.ParameterRange);
+        }
     }
 
     public interface IRGGameActionInstance

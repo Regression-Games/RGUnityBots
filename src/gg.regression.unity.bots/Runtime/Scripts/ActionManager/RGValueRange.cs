@@ -10,6 +10,7 @@ namespace RegressionGames.ActionManager
         public object MinValue { get; }
         public object MaxValue { get; }
         public object RandomSample();
+        public bool RangeEquals(IRGValueRange other);
     }
     
     // All discrete value types (bool, char, int, etc.) derived from RGDiscreteValueRange
@@ -28,6 +29,8 @@ namespace RegressionGames.ActionManager
         {
             return this[Random.Range(0, NumValues)];
         }
+
+        public abstract bool RangeEquals(IRGValueRange other);
     }
     
     // All continuous value types (float, Vector2, etc.) derived from RGContinuousValueRange
@@ -41,6 +44,8 @@ namespace RegressionGames.ActionManager
         
         // Divide this continuous range into N ranges
         public abstract RGContinuousValueRange[] Discretize(int n);
+        
+        public abstract bool RangeEquals(IRGValueRange other);
     }
 
     public class RGVoidRange : RGDiscreteValueRange
@@ -49,6 +54,11 @@ namespace RegressionGames.ActionManager
         public override object MaxValue => null;
         public override int NumValues => 1;
         public override object this[int index] => null;
+        
+        public override bool RangeEquals(IRGValueRange other)
+        {
+            return other is RGVoidRange;
+        }
     }
 
     public class RGBoolRange : RGDiscreteValueRange
@@ -58,7 +68,7 @@ namespace RegressionGames.ActionManager
 
         public override object MinValue => _minValue != 0;
         public override object MaxValue => _maxValue != 0;
-        
+
         public override int NumValues => _maxValue - _minValue + 1;
 
         public RGBoolRange(bool minValue, bool maxValue)
@@ -68,6 +78,10 @@ namespace RegressionGames.ActionManager
             Debug.Assert(_minValue <= _maxValue);
         }
 
+        public RGBoolRange() : this(false, true)
+        {
+        }
+
         public override object this[int index]
         {
             get
@@ -75,6 +89,18 @@ namespace RegressionGames.ActionManager
                 Debug.Assert(index >= 0 && index < NumValues);
                 int val = _minValue + index;
                 return val != 0;
+            }
+        }
+        
+        public override bool RangeEquals(IRGValueRange other)
+        {
+            if (other is RGBoolRange boolRange)
+            {
+                return _minValue == boolRange._minValue && _maxValue == boolRange._maxValue;
+            }
+            else
+            {
+                return false;
             }
         }
     }
@@ -98,6 +124,19 @@ namespace RegressionGames.ActionManager
         public override object RandomSample()
         {
             return Random.Range(_minValue, _maxValue);
+        }
+
+        public override bool RangeEquals(IRGValueRange other)
+        {
+            if (other is RGFloatRange floatRange)
+            {
+                return Mathf.Approximately(_minValue, floatRange._minValue) &&
+                       Mathf.Approximately(_maxValue, floatRange._maxValue);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public override RGContinuousValueRange[] Discretize(int n)
@@ -134,6 +173,18 @@ namespace RegressionGames.ActionManager
         {
             return new Vector2(Random.Range(_minValue.x, _maxValue.x),
                 Random.Range(_minValue.y, _maxValue.y));
+        }
+
+        public override bool RangeEquals(IRGValueRange other)
+        {
+            if (other is RGVector2Range v2Range)
+            {
+                return _minValue == v2Range._minValue && _maxValue == v2Range._maxValue;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public override RGContinuousValueRange[] Discretize(int n)
