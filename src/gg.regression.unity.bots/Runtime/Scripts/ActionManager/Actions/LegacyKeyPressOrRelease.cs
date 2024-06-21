@@ -17,7 +17,7 @@ namespace RegressionGames.ActionManager.Actions
             KeyCodeFunc = keyCodeFunc;
         }
 
-        public override IRGValueRange ParameterRange => new RGBoolRange(false, true);
+        public override IRGValueRange ParameterRange { get; } = new RGBoolRange(false, true);
 
         public override bool IsValidForObject(Object obj)
         {
@@ -39,7 +39,7 @@ namespace RegressionGames.ActionManager.Actions
         protected override void PerformAction(bool param)
         {
             KeyCode keyCode = Action.KeyCodeFunc(TargetObject);
-            RGActionUtils.SimulateLegacyKeyState(keyCode, param);
+            RGActionManager.SimulateLegacyKeyState(keyCode, param);
         }
     }
 }

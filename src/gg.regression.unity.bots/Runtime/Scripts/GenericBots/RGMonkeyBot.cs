@@ -17,17 +17,12 @@ namespace RegressionGames.GenericBots
     
         void Update()
         {
-            _actionInstances.Clear();
             foreach (var actionInst in RGActionManager.GetValidActions())
             {
-                _actionInstances.Add(actionInst);
-            }
-
-            if (_actionInstances.Count > 0)
-            {
-                int actionIndex = UnityEngine.Random.Range(0, _actionInstances.Count);
-                var chosenActionInst = _actionInstances[actionIndex];
-                chosenActionInst.Perform(chosenActionInst.BaseAction.ParameterRange.RandomSample());
+                if (Random.Range(0, 2) == 1)
+                {
+                    actionInst.Perform(actionInst.BaseAction.ParameterRange.RandomSample());
+                }
             }
         }
 
