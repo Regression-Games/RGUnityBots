@@ -6,20 +6,48 @@ namespace RegressionGames.GenericBots
 {
     public class RGMonkeyBot : MonoBehaviour, IRGBot
     {
-        private List<IRGGameActionInstance> _actionInstances;
+        private Dictionary<int, List<IRGGameActionInstance>> _actionInstancesByGroup;
+        private ISet<int> _validActionGroups;
+        private IList<int> _validActionGroupsList;
     
         void Start()
         {
             RGActionManager.StartSession(this);
-            _actionInstances = new List<IRGGameActionInstance>();
+            _actionInstancesByGroup = new Dictionary<int, List<IRGGameActionInstance>>();
+            _validActionGroups = new HashSet<int>();
+            _validActionGroupsList = new List<int>();
+            foreach (RGGameAction action in RGActionManager.Actions)
+            {
+                if (!_actionInstancesByGroup.TryGetValue(action.ActionGroup, out _))
+                {
+                    _actionInstancesByGroup[action.ActionGroup] = new List<IRGGameActionInstance>();
+                }
+            }
             DontDestroyOnLoad(this);
         }
     
         void Update()
         {
+            foreach (var p in _actionInstancesByGroup)
+            {
+                p.Value.Clear();
+            }
+            _validActionGroups.Clear();
+            _validActionGroupsList.Clear();
             foreach (var actionInst in RGActionManager.GetValidActions())
             {
-                if (Random.Range(0, 2) == 1)
+                _actionInstancesByGroup[actionInst.BaseAction.ActionGroup].Add(actionInst);
+                _validActionGroups.Add(actionInst.BaseAction.ActionGroup);
+            }
+            foreach (int grp in _validActionGroups)
+            {
+                _validActionGroupsList.Add(grp);
+            }
+
+            if (_validActionGroupsList.Count > 0)
+            {
+                int grp = _validActionGroupsList[Random.Range(0, _validActionGroupsList.Count)];
+                foreach (var actionInst in _actionInstancesByGroup[grp])
                 {
                     actionInst.Perform(actionInst.BaseAction.ParameterRange.RandomSample());
                 }

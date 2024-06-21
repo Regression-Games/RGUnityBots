@@ -13,7 +13,7 @@ namespace RegressionGames.ActionManager.Actions
         public Func<Object, KeyCode> KeyCodeFunc { get; }
         public string KeyCodeFuncName { get; }
         
-        public LegacyKeyAction(string path, Type objectType, Func<Object, KeyCode> keyCodeFunc, string keyCodeFuncName) : base(path, objectType)
+        public LegacyKeyAction(string path, Type objectType, Func<Object, KeyCode> keyCodeFunc, string keyCodeFuncName, int actionGroup) : base(path, objectType, actionGroup)
         {
             KeyCodeFunc = keyCodeFunc;
             KeyCodeFuncName = keyCodeFuncName;
@@ -50,7 +50,7 @@ namespace RegressionGames.ActionManager.Actions
         protected override void PerformAction(bool param)
         {
             KeyCode keyCode = Action.KeyCodeFunc(TargetObject);
-            RGActionManager.SimulateLegacyKeyState(keyCode, param);
+            RGActionManager.SimulateKeyState(keyCode, param);
         }
     }
 }

@@ -10,14 +10,18 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
 {
+    /// <summary>
+    /// Action to click on a Unity UI button identified by the full name of the event listener method.
+    /// </summary>
     public class UIButtonPressAction : RGGameAction
     {
-        public string ButtonPath { get; }
+        public string EventListenerName { get; }
         
-        public UIButtonPressAction(string path, Type objectType, string buttonPath) : base(path, objectType)
+        public UIButtonPressAction(string path, Type objectType, string eventListenerName, int actionGroup) : 
+            base(path, objectType, actionGroup)
         {
             Debug.Assert(typeof(Button).IsAssignableFrom(objectType));
-            ButtonPath = buttonPath;
+            EventListenerName = eventListenerName;
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -25,9 +29,14 @@ namespace RegressionGames.ActionManager.Actions
         public override bool IsValidForObject(Object obj)
         {
             Button btn = (Button)obj;
-            GameObject gameObject = btn.gameObject;
-            TransformStatus tStatus = TransformStatus.GetOrCreateTransformStatus(gameObject.transform);
-            return ButtonPath == tStatus.NormalizedPath;
+            foreach (string listenerName in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
+            {
+                if (listenerName == EventListenerName)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public override IRGGameActionInstance GetInstance(Object obj)
@@ -39,7 +48,7 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is UIButtonPressAction action)
             {
-                return ButtonPath == action.ButtonPath;
+                return EventListenerName == action.EventListenerName;
             }
             return false;
         }

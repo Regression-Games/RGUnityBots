@@ -111,7 +111,7 @@ namespace RegressionGames.ActionManager
             MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
         }
 
-        public static void SimulateLegacyKeyState(KeyCode keyCode, bool isPressed)
+        public static void SimulateKeyState(KeyCode keyCode, bool isPressed)
         {
             if (keyCode >= KeyCode.Mouse0 && keyCode <= KeyCode.Mouse6)
             {
@@ -135,18 +135,23 @@ namespace RegressionGames.ActionManager
             else
             {
                 Key key = RGLegacyInputUtils.KeyCodeToInputSystemKey(keyCode);
-                if (key != Key.None)
+                SimulateKeyState(key, isPressed);
+            }
+        }
+
+        public static void SimulateKeyState(Key key, bool isPressed)
+        {
+            if (key != Key.None)
+            {
+                KeyControl control = Keyboard.current[key];
+                KeyboardInputActionData data = new KeyboardInputActionData()
                 {
-                    KeyControl control = Keyboard.current[key];
-                    KeyboardInputActionData data = new KeyboardInputActionData()
-                    {
-                        action = control.name,
-                        binding = control.path,
-                        startTime = Time.unscaledTime,
-                        endTime = isPressed ? null : Time.unscaledTime
-                    };
-                    KeyboardEventSender.SendKeyEvent(0, data, isPressed ? KeyState.Down : KeyState.Up);
-                }
+                    action = control.name,
+                    binding = control.path,
+                    startTime = Time.unscaledTime,
+                    endTime = isPressed ? null : Time.unscaledTime
+                };
+                KeyboardEventSender.SendKeyEvent(0, data, isPressed ? KeyState.Down : KeyState.Up);
             }
         }
 
@@ -168,27 +173,27 @@ namespace RegressionGames.ActionManager
 
         public static void SimulateLeftMouseButton(bool isPressed)
         {
-            SimulateLegacyKeyState(KeyCode.Mouse0, isPressed);
+            SimulateKeyState(KeyCode.Mouse0, isPressed);
         }
         
         public static void SimulateMiddleMouseButton(bool isPressed)
         {
-            SimulateLegacyKeyState(KeyCode.Mouse2, isPressed);
+            SimulateKeyState(KeyCode.Mouse2, isPressed);
         }
         
         public static void SimulateRightMouseButton(bool isPressed)
         {
-            SimulateLegacyKeyState(KeyCode.Mouse1, isPressed);
+            SimulateKeyState(KeyCode.Mouse1, isPressed);
         }
         
         public static void SimulateForwardMouseButton(bool isPressed)
         {
-            SimulateLegacyKeyState(KeyCode.Mouse3, isPressed);
+            SimulateKeyState(KeyCode.Mouse3, isPressed);
         }
         
         public static void SimulateBackMouseButton(bool isPressed)
         {
-            SimulateLegacyKeyState(KeyCode.Mouse4, isPressed);
+            SimulateKeyState(KeyCode.Mouse4, isPressed);
         }
     }
 }

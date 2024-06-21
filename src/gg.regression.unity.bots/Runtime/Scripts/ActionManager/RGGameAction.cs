@@ -12,6 +12,12 @@ namespace RegressionGames.ActionManager
         /// have equivalent actions by IsEquivalentTo and were grouped together.
         public List<string> Paths { get; private set; }
         
+        /// <summary>
+        /// Actions with the same group number can be performed together simultaneously on the same frame.
+        /// Two actions with different group numbers will NOT be performed on the same frame by any bot.
+        /// </summary>
+        public int ActionGroup { get; }
+        
         /// The type of object that the action is associated with.
         /// The object must be derived from UnityEngine.Object, and
         /// all instances of the object should be retrievable via
@@ -25,10 +31,11 @@ namespace RegressionGames.ActionManager
         /// User-specified data for this action.
         public Dictionary<string, object> UserData { get; }
         
-        public RGGameAction(string path, Type objectType)
+        public RGGameAction(string path, Type objectType, int actionGroup)
         {
             Paths = new List<string> { path };
             ObjectType = objectType;
+            ActionGroup = actionGroup;
         }
 
         /// <summary>
