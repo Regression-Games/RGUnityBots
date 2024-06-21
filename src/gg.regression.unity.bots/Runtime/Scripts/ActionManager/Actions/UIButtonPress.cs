@@ -48,8 +48,6 @@ namespace RegressionGames.ActionManager.Actions
         protected override void PerformAction(object param)
         {
             Button targetBtn = (Button)TargetObject;
-            Canvas canvas = targetBtn.gameObject.GetComponentInParent<Canvas>();
-            Camera canvasCamera = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
             var instId = targetBtn.transform.GetInstanceID();
             if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
             {
