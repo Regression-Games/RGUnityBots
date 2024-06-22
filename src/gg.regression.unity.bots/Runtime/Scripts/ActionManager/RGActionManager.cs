@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.Models;
@@ -8,18 +9,60 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace RegressionGames.ActionManager
 {
     public static class RGActionManager
     {
         private static MonoBehaviour _context;
         private static IRGActionProvider _actionProvider;
+        private static RGActionManagerSettings _settings;
 
         public static IEnumerable<RGGameAction> Actions => _actionProvider.Actions;
+
+        public static event EventHandler ActionsChanged;
+
+        public static bool IsAvailable => _actionProvider != null;
+
+        public static RGActionManagerSettings Settings => _settings;
+        
+        #if UNITY_EDITOR
+        [InitializeOnLoadMethod]
+        public static void InitializeInEditor()
+        {
+            // find the action provider
+            var actionProviders = TypeCache.GetTypesDerivedFrom<IRGActionProvider>();
+            Type providerType = actionProviders.FirstOrDefault();
+            IRGActionProvider provider = (IRGActionProvider)providerType.GetConstructor(Type.EmptyTypes).Invoke(null);
+            SetActionProvider(provider);
+            LoadSettings();
+        }
+        #endif
+
+        private static void LoadSettings()
+        {
+            _settings = Resources.Load<RGActionManagerSettings>("RGActionManagerSettings");
+            if (_settings == null)
+            {
+                _settings = ScriptableObject.CreateInstance<RGActionManagerSettings>();
+                #if UNITY_EDITOR
+                AssetDatabase.CreateAsset(_settings, "Assets/Resources/RGActionManagerSettings.asset");
+                #endif
+            }
+        }
 
         public static void SetActionProvider(IRGActionProvider actionProvider)
         {
             _actionProvider = actionProvider;
+            _actionProvider.ActionsChanged += OnActionsChanged;
+        }
+
+        private static void OnActionsChanged(object sender, EventArgs args)
+        {
+            ActionsChanged?.Invoke(null, EventArgs.Empty);
         }
 
         public static void StartSession(MonoBehaviour context)
@@ -32,6 +75,7 @@ namespace RegressionGames.ActionManager
             {
                 throw new Exception($"Session is already active with context {_context}");
             }
+            LoadSettings();
             _context = context;
             RGLegacyInputWrapper.StartSimulation(_context);
             SceneManager.sceneLoaded += OnSceneLoad;
