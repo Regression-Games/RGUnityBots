@@ -17,7 +17,7 @@ namespace RegressionGames.ActionManager.Actions
     {
         public string EventListenerName { get; }
         
-        public UIButtonPressAction(string path, Type objectType, string eventListenerName, int actionGroup) : 
+        public UIButtonPressAction(string[] path, Type objectType, string eventListenerName, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
             Debug.Assert(typeof(Button).IsAssignableFrom(objectType));

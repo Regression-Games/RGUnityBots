@@ -59,6 +59,11 @@ namespace RegressionGames.ActionManager
         {
             return other is RGVoidRange;
         }
+
+        public override string ToString()
+        {
+            return "void";
+        }
     }
 
     public class RGBoolRange : RGDiscreteValueRange
@@ -102,6 +107,11 @@ namespace RegressionGames.ActionManager
             {
                 return false;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"bool ({MinValue}, {MaxValue})";
         }
     }
 
@@ -149,6 +159,11 @@ namespace RegressionGames.ActionManager
                 result[i] = new RGFloatRange(minVal, minVal + stepSize);
             }
             return result;
+        }
+
+        public override string ToString()
+        {
+            return $"float ({MinValue}, {MaxValue})";
         }
     }
 
@@ -210,6 +225,11 @@ namespace RegressionGames.ActionManager
             }
 
             return result;
+        }
+
+        public override string ToString()
+        {
+            return $"Vector2 ({MinValue}, {MaxValue})";
         }
     }
 }

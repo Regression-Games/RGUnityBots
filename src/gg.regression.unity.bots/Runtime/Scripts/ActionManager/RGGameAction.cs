@@ -10,7 +10,7 @@ namespace RegressionGames.ActionManager
         /// the location where the associated input handling logic takes place.
         /// An action may have multiple paths if multiple code locations were inferred to
         /// have equivalent actions by IsEquivalentTo and were grouped together.
-        public List<string> Paths { get; private set; }
+        public List<string[]> Paths { get; private set; }
         
         /// <summary>
         /// Actions with the same group number can be performed together simultaneously on the same frame.
@@ -31,9 +31,9 @@ namespace RegressionGames.ActionManager
         /// User-specified data for this action.
         public Dictionary<string, object> UserData { get; }
         
-        public RGGameAction(string path, Type objectType, int actionGroup)
+        public RGGameAction(string[] path, Type objectType, int actionGroup)
         {
-            Paths = new List<string> { path };
+            Paths = new List<string[]> { path };
             ObjectType = objectType;
             ActionGroup = actionGroup;
         }

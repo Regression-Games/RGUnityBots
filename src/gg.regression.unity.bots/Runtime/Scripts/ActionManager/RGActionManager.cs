@@ -23,7 +23,8 @@ namespace RegressionGames.ActionManager
 
         public static IEnumerable<RGGameAction> Actions => _actionProvider.Actions;
 
-        public static event EventHandler ActionsChanged;
+        public delegate void ActionsChangedHandler();
+        public static event ActionsChangedHandler ActionsChanged;
 
         public static bool IsAvailable => _actionProvider != null;
 
@@ -62,7 +63,7 @@ namespace RegressionGames.ActionManager
 
         private static void OnActionsChanged(object sender, EventArgs args)
         {
-            ActionsChanged?.Invoke(null, EventArgs.Empty);
+            ActionsChanged?.Invoke();
         }
 
         public static void StartSession(MonoBehaviour context)

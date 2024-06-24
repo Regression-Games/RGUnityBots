@@ -11,7 +11,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePositionAction : RGGameAction
     {
-        public MousePositionAction(string path, Type objectType, int actionGroup) : 
+        public MousePositionAction(string[] path, Type objectType, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
         }

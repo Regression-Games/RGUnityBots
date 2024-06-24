@@ -20,7 +20,7 @@ namespace RegressionGames.ActionManager.Actions
         public Func<Object, MouseButtonActionButton> MouseButtonFunc { get; }
         public string MouseButtonFuncName { get; }
         
-        public MouseButtonAction(string path, Type objectType, Func<Object, MouseButtonActionButton> mouseBtnFunc, string mouseBtnFuncName, int actionGroup) 
+        public MouseButtonAction(string[] path, Type objectType, Func<Object, MouseButtonActionButton> mouseBtnFunc, string mouseBtnFuncName, int actionGroup) 
             : base(path, objectType, actionGroup)
         {
             MouseButtonFunc = mouseBtnFunc;

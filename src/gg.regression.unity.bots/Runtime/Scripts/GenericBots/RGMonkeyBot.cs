@@ -12,6 +12,12 @@ namespace RegressionGames.GenericBots
     
         void Start()
         {
+            if (!RGActionManager.IsAvailable)
+            {
+                RGDebug.LogError("Monkey bot is currently unavailable");
+                Destroy(this);
+                return;
+            }
             RGActionManager.StartSession(this);
             _actionInstancesByGroup = new Dictionary<int, List<IRGGameActionInstance>>();
             _validActionGroups = new HashSet<int>();

@@ -13,7 +13,8 @@ namespace RegressionGames.ActionManager.Actions
         public Func<Object, KeyCode> KeyCodeFunc { get; }
         public string KeyCodeFuncName { get; }
         
-        public LegacyKeyAction(string path, Type objectType, Func<Object, KeyCode> keyCodeFunc, string keyCodeFuncName, int actionGroup) : base(path, objectType, actionGroup)
+        public LegacyKeyAction(string[] path, Type objectType, Func<Object, KeyCode> keyCodeFunc, string keyCodeFuncName, int actionGroup) : 
+            base(path, objectType, actionGroup)
         {
             KeyCodeFunc = keyCodeFunc;
             KeyCodeFuncName = keyCodeFuncName;

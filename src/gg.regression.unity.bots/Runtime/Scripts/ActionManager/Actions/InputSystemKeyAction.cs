@@ -12,7 +12,7 @@ namespace RegressionGames.ActionManager.Actions
         public Func<Object, Key> KeyFunc { get; }
         public string KeyFuncName { get; }
         
-        public InputSystemKeyAction(string path, Type objectType, Func<Object, Key> keyFunc, string keyFuncName, int actionGroup) : 
+        public InputSystemKeyAction(string[] path, Type objectType, Func<Object, Key> keyFunc, string keyFuncName, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
             KeyFunc = keyFunc;
