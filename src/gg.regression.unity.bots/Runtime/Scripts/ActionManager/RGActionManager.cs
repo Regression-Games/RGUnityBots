@@ -11,16 +11,27 @@ using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEngine.Windows;
 #endif
 
 namespace RegressionGames.ActionManager
 {
     public static class RGActionManager
     {
+        private static readonly string SETTINGS_DIRECTORY = "Assets/Resources";
+        private static readonly string SETTINGS_RESOURCE_NAME = "RGActionManagerSettings";
+        private static readonly string SETTINGS_RESOURCE_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_RESOURCE_NAME}.asset";
+            
         private static MonoBehaviour _context;
         private static IRGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
+        private static List<RGGameAction> _sessionActions;
 
+        /// <summary>
+        /// Provides access to the actions obtained from the action provider.
+        /// This property does not consider whether actions are disabled in the settings:
+        /// the IsActionEnabled method can be used to determine this.
+        /// </summary>
         public static IEnumerable<RGGameAction> Actions => _actionProvider.Actions;
 
         public delegate void ActionsChangedHandler();
@@ -28,6 +39,10 @@ namespace RegressionGames.ActionManager
 
         public static bool IsAvailable => _actionProvider != null;
 
+        /// <summary>
+        /// Provides access to the action manager settings.
+        /// The settings should not change while a session is active.
+        /// </summary>
         public static RGActionManagerSettings Settings => _settings;
         
         #if UNITY_EDITOR
@@ -45,15 +60,25 @@ namespace RegressionGames.ActionManager
 
         private static void LoadSettings()
         {
-            _settings = Resources.Load<RGActionManagerSettings>("RGActionManagerSettings");
+            _settings = Resources.Load<RGActionManagerSettings>(SETTINGS_RESOURCE_NAME);
             if (_settings == null)
             {
                 _settings = ScriptableObject.CreateInstance<RGActionManagerSettings>();
                 #if UNITY_EDITOR
-                AssetDatabase.CreateAsset(_settings, "Assets/Resources/RGActionManagerSettings.asset");
+                Directory.CreateDirectory(SETTINGS_DIRECTORY);
+                AssetDatabase.CreateAsset(_settings, SETTINGS_RESOURCE_PATH);
+                AssetDatabase.SaveAssets();
                 #endif
             }
         }
+
+        #if UNITY_EDITOR
+        public static void SaveSettings()
+        {
+            GUID guid = AssetDatabase.GUIDFromAssetPath(SETTINGS_RESOURCE_PATH);
+            AssetDatabase.SaveAssetIfDirty(guid);
+        }
+        #endif
 
         public static void SetActionProvider(IRGActionProvider actionProvider)
         {
@@ -78,6 +103,16 @@ namespace RegressionGames.ActionManager
             }
             LoadSettings();
             _context = context;
+            
+            _sessionActions = new List<RGGameAction>();
+            foreach (RGGameAction action in _actionProvider.Actions)
+            {
+                if (IsActionEnabled(action))
+                {
+                    _sessionActions.Add(action);
+                }
+            }
+            
             RGLegacyInputWrapper.StartSimulation(_context);
             SceneManager.sceneLoaded += OnSceneLoad;
             RGUtils.SetupEventSystem();
@@ -90,15 +125,26 @@ namespace RegressionGames.ActionManager
             {
                 SceneManager.sceneLoaded -= OnSceneLoad;
                 RGLegacyInputWrapper.StopSimulation();
+                _sessionActions = null;
                 _context = null;
             }
         }
-        
+
+        public static bool IsActionEnabled(RGGameAction action)
+        {
+            if (action.Paths.All(path => !_settings.IsActionEnabled(path)))
+            {
+                // action is disabled in settings
+                return false;
+            }
+            return true;
+        }
+
         public static IEnumerable<IRGGameActionInstance> GetValidActions()
         {
             CurrentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
             CurrentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
-            foreach (RGGameAction action in Actions)
+            foreach (RGGameAction action in _sessionActions)
             {
                 Debug.Assert(action.ParameterRange != null);
                 UnityEngine.Object[] objects = UnityEngine.Object.FindObjectsOfType(action.ObjectType);

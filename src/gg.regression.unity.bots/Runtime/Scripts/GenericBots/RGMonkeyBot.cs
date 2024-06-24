@@ -34,6 +34,12 @@ namespace RegressionGames.GenericBots
     
         void Update()
         {
+            if (GameObject.Find("Selection Panel") != null)
+            {
+                // pause sending events while the overlay panel is open
+                return;
+            }
+            
             foreach (var p in _actionInstancesByGroup)
             {
                 p.Value.Clear();

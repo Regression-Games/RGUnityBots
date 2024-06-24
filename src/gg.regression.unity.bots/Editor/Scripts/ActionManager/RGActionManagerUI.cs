@@ -171,17 +171,36 @@ namespace RegressionGames.ActionManager
 
                 listView.makeItem = () =>
                 {
-                    VisualElement container = new VisualElement();
-                    container.style.flexDirection = FlexDirection.Row;
+                    VisualElement item = new VisualElement();
+                    item.style.flexDirection = FlexDirection.Row;
 
                     Toggle checkbox = new Toggle();
-                    container.Add(checkbox);
+                    item.Add(checkbox);
 
                     Label actionName = new Label();
                     actionName.style.unityTextAlign = TextAnchor.MiddleCenter;
-                    container.Add(actionName);
+                    item.Add(actionName);
 
-                    return container;
+                    checkbox.RegisterValueChangedCallback(evt =>
+                    {
+                        ActionTreeNode leafNode = (ActionTreeNode)checkbox.userData;
+                        string path = string.Join("/", leafNode.path);
+                        if (evt.newValue)
+                        {
+                            RGActionManager.Settings.DisabledActionPaths.Remove(path);
+                        }
+                        else
+                        {
+                            if (!RGActionManager.Settings.DisabledActionPaths.Contains(path))
+                            {
+                                RGActionManager.Settings.DisabledActionPaths.Add(path);
+                            }
+                        }
+                        RGActionManager.Settings.MarkDirty();
+                        RGActionManager.SaveSettings();
+                    });
+
+                    return item;
                 };
 
                 listView.bindItem = (item, index) =>
@@ -189,8 +208,17 @@ namespace RegressionGames.ActionManager
                     ActionTreeNode leafNode = node.children[index];
                     Toggle checkbox = (Toggle)item[0];
                     Label actionName = (Label)item[1];
-                    checkbox.value = true;
+                    checkbox.value =
+                        !RGActionManager.Settings.DisabledActionPaths.Contains(string.Join("/", leafNode.path));
                     actionName.text = leafNode.path.Last();
+                    checkbox.userData = leafNode;
+
+                    // changing the action manager settings during play mode is not allowed
+                    if (EditorApplication.isPlayingOrWillChangePlaymode)
+                    {
+                        actionName.SetEnabled(false);
+                        checkbox.SetEnabled(false);
+                    }
                 };
 
                 listView.onSelectionChange += (items) =>
@@ -263,6 +291,12 @@ namespace RegressionGames.ActionManager
 
         public void CreateGUI()
         {
+            if (!RGActionManager.IsAvailable)
+            {
+                Close();
+                return;
+            }
+            
             _searchField = new ToolbarSearchField();
             _searchField.RegisterValueChangedCallback(evt =>
             {
@@ -286,9 +320,21 @@ namespace RegressionGames.ActionManager
             
             UpdateGUI();
 
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
             RGActionManager.ActionsChanged += OnActionsChanged;
         }
 
+        public void OnDestroy()
+        {
+            RGActionManager.ActionsChanged -= OnActionsChanged;
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        }
+
+        private void OnPlayModeStateChanged(PlayModeStateChange mode)
+        {
+            UpdateGUI();
+        }
+        
         private void OnActionsChanged()
         {
             UpdateGUI();
