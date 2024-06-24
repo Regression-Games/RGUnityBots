@@ -52,9 +52,12 @@ namespace RegressionGames.ActionManager
             // find the action provider
             var actionProviders = TypeCache.GetTypesDerivedFrom<IRGActionProvider>();
             Type providerType = actionProviders.FirstOrDefault();
-            IRGActionProvider provider = (IRGActionProvider)providerType.GetConstructor(Type.EmptyTypes).Invoke(null);
-            SetActionProvider(provider);
-            LoadSettings();
+            if (providerType != null)
+            {
+                IRGActionProvider provider = (IRGActionProvider)providerType.GetConstructor(Type.EmptyTypes).Invoke(null);
+                SetActionProvider(provider);
+                LoadSettings();
+            }
         }
         #endif
 
