@@ -67,6 +67,7 @@ namespace RegressionGames.StateRecorder
 
         public static void SendRawPositionMouseEvent(int replaySegment, Vector2 normalizedPosition, bool leftButton, bool middleButton, bool rightButton, bool forwardButton, bool backButton, Vector2 scroll)
         {
+            
              var mouse = GetMouse();
 
              using (DeltaStateEvent.From(mouse, out var eventPtr))
