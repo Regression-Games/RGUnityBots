@@ -8,7 +8,7 @@ namespace RegressionGames.GenericBots
     {
         public float actionInterval = 0.0f; // every frame by default
             
-        private Dictionary<int, List<IRGGameActionInstance>> _actionInstancesByGroup;
+        private Dictionary<int, Dictionary<RGGameAction, List<IRGGameActionInstance>>> _actionsByGroup;
         private ISet<int> _validActionGroups;
         private IList<int> _validActionGroupsList;
         private float _lastActionTime;
@@ -22,17 +22,23 @@ namespace RegressionGames.GenericBots
                 return;
             }
             RGActionManager.StartSession(this);
-            _actionInstancesByGroup = new Dictionary<int, List<IRGGameActionInstance>>();
+            
+            // Initialize buffers
+            _actionsByGroup = new Dictionary<int, Dictionary<RGGameAction, List<IRGGameActionInstance>>>();
             _validActionGroups = new HashSet<int>();
             _validActionGroupsList = new List<int>();
-            _lastActionTime = Time.unscaledTime;
             foreach (RGGameAction action in RGActionManager.Actions)
             {
-                if (!_actionInstancesByGroup.TryGetValue(action.ActionGroup, out _))
+                if (!_actionsByGroup.TryGetValue(action.ActionGroup, out var groupActions))
                 {
-                    _actionInstancesByGroup[action.ActionGroup] = new List<IRGGameActionInstance>();
+                    groupActions = new Dictionary<RGGameAction, List<IRGGameActionInstance>>();
+                    _actionsByGroup[action.ActionGroup] = groupActions;
                 }
+                groupActions.Add(action, new List<IRGGameActionInstance>());
             }
+            
+            _lastActionTime = Time.unscaledTime;
+            
             DontDestroyOnLoad(this);
         }
     
@@ -40,7 +46,7 @@ namespace RegressionGames.GenericBots
         {
             if (GameObject.Find("Selection Panel") != null)
             {
-                // pause sending events while the overlay panel is open
+                // Pause sending events while the overlay panel is open
                 return;
             }
 
@@ -51,28 +57,51 @@ namespace RegressionGames.GenericBots
             }
             _lastActionTime = currentTimeUnscaled;
             
-            foreach (var p in _actionInstancesByGroup)
+            // Clear buffers
+            foreach (var p in _actionsByGroup)
             {
-                p.Value.Clear();
+                foreach (var entry in p.Value)
+                {
+                    entry.Value.Clear();
+                }
             }
             _validActionGroups.Clear();
             _validActionGroupsList.Clear();
-            foreach (var actionInst in RGActionManager.GetValidActions())
+
+            // Gather all valid actions in a mapping from group number -> action -> action instances
+            foreach (var entry in RGActionManager.GetValidActions())
             {
-                _actionInstancesByGroup[actionInst.BaseAction.ActionGroup].Add(actionInst);
-                _validActionGroups.Add(actionInst.BaseAction.ActionGroup);
+                RGGameAction action = entry.Key;
+                var instances = entry.Value;
+                if (instances.Count > 0)
+                {
+                    _validActionGroups.Add(action.ActionGroup);
+                    var instBuf = _actionsByGroup[action.ActionGroup][action];
+                    foreach (var inst in instances)
+                    {
+                        instBuf.Add(inst);
+                    }
+                }
             }
             foreach (int grp in _validActionGroups)
             {
                 _validActionGroupsList.Add(grp);
             }
-
+            
+            // 1. Randomly choose an action group
+            // 2. Choose one action instance to perform from each action in the group
             if (_validActionGroupsList.Count > 0)
             {
                 int grp = _validActionGroupsList[Random.Range(0, _validActionGroupsList.Count)];
-                foreach (var actionInst in _actionInstancesByGroup[grp])
+                foreach (var entry in _actionsByGroup[grp])
                 {
-                    actionInst.Perform(actionInst.BaseAction.ParameterRange.RandomSample());
+                    RGGameAction action = entry.Key;
+                    var instances = entry.Value;
+                    if (instances.Count > 0)
+                    {
+                        var chosenInst = instances[Random.Range(0, instances.Count)];
+                        chosenInst.Perform(action.ParameterRange.RandomSample());
+                    }
                 }
             }
         }

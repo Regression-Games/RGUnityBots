@@ -26,7 +26,7 @@ namespace RegressionGames.ActionManager
         private static MonoBehaviour _context;
         private static IRGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
-        private static List<RGGameAction> _sessionActions;
+        private static Dictionary<RGGameAction, IList<IRGGameActionInstance>> _sessionActionsBuf;
 
         /// <summary>
         /// Provides access to the actions obtained from the action provider.
@@ -130,12 +130,12 @@ namespace RegressionGames.ActionManager
             LoadSettings();
             _context = context;
             
-            _sessionActions = new List<RGGameAction>();
+            _sessionActionsBuf = new Dictionary<RGGameAction, IList<IRGGameActionInstance>>();
             foreach (RGGameAction action in _actionProvider.Actions)
             {
                 if (IsActionEnabled(action))
                 {
-                    _sessionActions.Add(action);
+                    _sessionActionsBuf.Add(action, new List<IRGGameActionInstance>());
                 }
             }
             
@@ -151,7 +151,7 @@ namespace RegressionGames.ActionManager
             {
                 SceneManager.sceneLoaded -= OnSceneLoad;
                 RGLegacyInputWrapper.StopSimulation();
-                _sessionActions = null;
+                _sessionActionsBuf = null;
                 _context = null;
             }
         }
@@ -166,12 +166,24 @@ namespace RegressionGames.ActionManager
             return true;
         }
 
-        public static IEnumerable<IRGGameActionInstance> GetValidActions()
+        /// <summary>
+        /// Computes the set of valid actions in the current game state as a dictionary that maps the actions to their instances.
+        /// The dictionary and lists that are returned should NOT be modified or retained by the caller.
+        /// </summary>
+        /// <returns>
+        /// A dictionary mapping actions to valid instances in the current state.
+        /// The list of valid instances may be empty (i.e. the presence of an action as a key does not imply it has a valid instance in the current state).
+        /// </returns>
+        public static IDictionary<RGGameAction, IList<IRGGameActionInstance>> GetValidActions()
         {
             CurrentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
             CurrentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
-            foreach (RGGameAction action in _sessionActions)
+            foreach (var entry in _sessionActionsBuf)
             {
+                RGGameAction action = entry.Key;
+                IList<IRGGameActionInstance> actionInstances = entry.Value;
+                actionInstances.Clear();
+                
                 Debug.Assert(action.ParameterRange != null);
                 UnityEngine.Object[] objects = UnityEngine.Object.FindObjectsOfType(action.ObjectType);
                 foreach (var obj in objects)
@@ -188,10 +200,11 @@ namespace RegressionGames.ActionManager
                     }
                     if (action.IsValidForObject(obj))
                     {
-                        yield return action.GetInstance(obj);
+                        actionInstances.Add(action.GetInstance(obj));
                     }
                 }
             }
+            return _sessionActionsBuf;
         }
 
         private static void OnSceneLoad(Scene s, LoadSceneMode m)
