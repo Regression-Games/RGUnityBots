@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Linq;
-using RegressionGames.RGLegacyInputUtility;
-using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -60,21 +56,30 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
+        private static Bounds? GetUIScreenSpaceBounds(Object targetObject)
+        {
+            Button targetBtn = (Button)targetObject;
+            var instId = targetBtn.transform.GetInstanceID();
+            if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
+            {
+                return tStatus.screenSpaceBounds;
+            }
+            else
+            {
+                return null;
+            }
+        }
+        
         protected override void PerformAction(bool param)
         {
             if (param)
             {
-                Button targetBtn = (Button)TargetObject;
-                var instId = targetBtn.transform.GetInstanceID();
-                if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
+                Bounds? bounds = GetUIScreenSpaceBounds(TargetObject);
+                if (bounds.HasValue)
                 {
-                    Bounds? bounds = tStatus.screenSpaceBounds;
-                    if (bounds.HasValue)
-                    {
-                        Bounds boundsVal = bounds.Value;
-                        RGActionManager.SimulateMouseMovement(boundsVal.center);
-                        RGActionManager.SimulateLeftMouseButton(true);
-                    }
+                    Bounds boundsVal = bounds.Value;
+                    RGActionManager.SimulateMouseMovement(boundsVal.center);
+                    RGActionManager.SimulateLeftMouseButton(true);
                 }
             }
             else
