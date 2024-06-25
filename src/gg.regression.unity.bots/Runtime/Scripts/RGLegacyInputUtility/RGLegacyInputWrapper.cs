@@ -84,6 +84,12 @@ namespace RegressionGames.RGLegacyInputUtility
         }
 
         /**
+         * Returns the current input manager settings.
+         * If a simulation is not active, this will return null.
+         */
+        public static RGLegacyInputManagerSettings InputManagerSettings => _inputManagerSettings;
+
+        /**
          * Called by the test driver to take control of the user input.
          * Context parameter is the driving MonoBehaviour to use as context.
          */
@@ -185,11 +191,11 @@ namespace RegressionGames.RGLegacyInputUtility
                             Vector3 newMousePosition = evt.newMousePosition;
                             if (evt.newMouseDelta.HasValue)
                             {
-                                _mousePosDelta = evt.newMouseDelta.Value;
+                                _mousePosDelta += evt.newMouseDelta.Value;
                             }
                             else
                             {
-                                _mousePosDelta = newMousePosition - _mousePosition;
+                                _mousePosDelta += newMousePosition - _mousePosition;
                             }
                             _mousePosition = newMousePosition;
                             break;
@@ -197,7 +203,7 @@ namespace RegressionGames.RGLegacyInputUtility
                         case RGLegacySimulatedInputEventType.MOUSE_SCROLL_EVENT:
                         {
                             Vector2 newMouseScrollDelta = evt.newMouseScrollDelta;
-                            _mouseScrollDelta = newMouseScrollDelta;
+                            _mouseScrollDelta += newMouseScrollDelta;
                             break;
                         }
                     }

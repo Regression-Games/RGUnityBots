@@ -256,6 +256,12 @@ namespace RegressionGames.ActionManager
             _mousePosition = mousePosition;
         }
 
+        public static void SimulateMouseMovementDelta(Vector2 mousePositionDelta)
+        {
+            Vector3 delta = mousePositionDelta;
+            SimulateMouseMovement(_mousePosition + delta);
+        }
+
         public static void SimulateMouseScroll(Vector2 mouseScroll)
         {
             MouseEventSender.SendRawPositionMouseEvent(0, _mousePosition, leftButton: _leftMouseButton,

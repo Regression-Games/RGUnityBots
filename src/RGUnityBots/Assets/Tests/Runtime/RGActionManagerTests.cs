@@ -26,6 +26,15 @@ namespace Tests.Runtime
                 Assert.IsTrue((bool)rng[0]);
             }
             {
+                RGIntRange rng = new RGIntRange(-1, 1);
+                Assert.AreEqual(rng.MinValue, -1);
+                Assert.AreEqual(rng.MaxValue, 1);
+                Assert.AreEqual(rng.NumValues, 3);
+                Assert.AreEqual(rng[0], -1);
+                Assert.AreEqual(rng[1], 0);
+                Assert.AreEqual(rng[2], 1);
+            }
+            {
                 RGFloatRange rng = new RGFloatRange(-1.0f, 1.0f);
                 Assert.IsTrue(Mathf.Approximately((float)rng.MinValue, -1.0f));
                 Assert.IsTrue(Mathf.Approximately((float)rng.MaxValue, 1.0f));

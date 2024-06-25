@@ -6,9 +6,12 @@ namespace RegressionGames.GenericBots
 {
     public class RGMonkeyBot : MonoBehaviour, IRGBot
     {
+        public float actionInterval = 0.0f; // every frame by default
+            
         private Dictionary<int, List<IRGGameActionInstance>> _actionInstancesByGroup;
         private ISet<int> _validActionGroups;
         private IList<int> _validActionGroupsList;
+        private float _lastActionTime;
     
         void Start()
         {
@@ -22,6 +25,7 @@ namespace RegressionGames.GenericBots
             _actionInstancesByGroup = new Dictionary<int, List<IRGGameActionInstance>>();
             _validActionGroups = new HashSet<int>();
             _validActionGroupsList = new List<int>();
+            _lastActionTime = Time.unscaledTime;
             foreach (RGGameAction action in RGActionManager.Actions)
             {
                 if (!_actionInstancesByGroup.TryGetValue(action.ActionGroup, out _))
@@ -39,6 +43,13 @@ namespace RegressionGames.GenericBots
                 // pause sending events while the overlay panel is open
                 return;
             }
+
+            float currentTimeUnscaled = Time.unscaledTime;
+            if (currentTimeUnscaled - _lastActionTime < actionInterval)
+            {
+                return;
+            }
+            _lastActionTime = currentTimeUnscaled;
             
             foreach (var p in _actionInstancesByGroup)
             {

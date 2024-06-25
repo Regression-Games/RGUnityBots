@@ -115,6 +115,42 @@ namespace RegressionGames.ActionManager
         }
     }
 
+    public class RGIntRange : RGDiscreteValueRange
+    {
+        private int _minValue;
+        private int _maxValue;
+
+        public override object MinValue => _minValue;
+        public override object MaxValue => _maxValue;
+
+        public RGIntRange(int minValue, int maxValue)
+        {
+            _minValue = minValue;
+            _maxValue = maxValue;
+        }
+        
+        public override bool RangeEquals(IRGValueRange other)
+        {
+            if (other is RGIntRange intRange)
+            {
+                return _minValue == intRange._minValue && _maxValue == intRange._maxValue;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public override int NumValues => _maxValue - _minValue + 1;
+
+        public override object this[int index] => _minValue + index;
+
+        public override string ToString()
+        {
+            return $"int ({MinValue}, {MaxValue})";
+        }
+    }
+
     public class RGFloatRange : RGContinuousValueRange
     {
         private float _minValue;
