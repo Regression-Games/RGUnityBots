@@ -16,6 +16,8 @@ namespace RegressionGames.ActionManager.Actions
         public Func<Object, string> AxisNameFunc { get; }
         public string AxisNameFuncName { get; }
 
+        public float MouseMovementMagnitude = 10.0f; // for axes that read mouse delta, the amount to move/scroll the mouse
+
         public LegacyAxisAction(string[] path, Type objectType, Func<Object, string> axisNameFunc, string axisNameFuncName, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
@@ -135,7 +137,7 @@ namespace RegressionGames.ActionManager.Actions
                     {
                         if (entry.sensitivity > 0.0f)
                         {
-                            float mouseMoveScale = 1.0f / entry.sensitivity;
+                            float mouseMoveScale = Action.MouseMovementMagnitude / entry.sensitivity;
                             if (entry.axis == 0) // X Axis
                             {
                                 RGActionManager.SimulateMouseMovementDelta(Vector2.right * (paramForEntry * mouseMoveScale));
