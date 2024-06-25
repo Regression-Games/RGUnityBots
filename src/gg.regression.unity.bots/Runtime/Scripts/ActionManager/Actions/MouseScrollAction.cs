@@ -4,6 +4,9 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
 {
+    /// <summary>
+    /// Action for simulating a mouse scroll.
+    /// </summary>
     public class MouseScrollAction : RGGameAction
     {
         public MouseScrollAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)

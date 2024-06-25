@@ -5,6 +5,10 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
 {
+    /// <summary>
+    /// If the parameter is true, ensures that at least one key is being pressed (Enter). Otherwise, releases all keys.
+    /// This is used for triggering Input.anyKey, Input.anyKeyDown, Keyboard.current.anyKey
+    /// </summary>
     public class AnyKeyAction : RGGameAction
     {
         public AnyKeyAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)

@@ -6,6 +6,10 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
 {
+    /// <summary>
+    /// Action to either press or release a button checked via the Input.GetButton API.
+    /// This reads the input manager settings to determine the appropriate key codes to simulate.
+    /// </summary>
     public class LegacyButtonAction : RGGameAction
     {
         public Func<Object, string> ButtonNameFunc { get; }

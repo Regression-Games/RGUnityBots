@@ -6,6 +6,11 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
 {
+    /// <summary>
+    /// Action to bring an input axis into either a negative, zero, or positive state. (Input.GetAxis, Input.GetAxisRaw)
+    /// This reads the configuration from the input manager settings and simulates the appropriate
+    /// keyboard or mouse event associated with the axis configuration.
+    /// </summary>
     public class LegacyAxisAction : RGGameAction
     {
         public Func<Object, string> AxisNameFunc { get; }
