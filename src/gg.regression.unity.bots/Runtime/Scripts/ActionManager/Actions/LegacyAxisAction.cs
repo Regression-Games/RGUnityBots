@@ -1,9 +1,9 @@
-﻿using System;
+﻿#if ENABLE_LEGACY_INPUT_MANAGER
+using System;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-#if ENABLE_LEGACY_INPUT_MANAGER
 namespace RegressionGames.ActionManager.Actions
 {
     public class LegacyAxisAction : RGGameAction
