@@ -9,7 +9,8 @@ namespace RegressionGames.ActionManager
     /// This is saved and loaded from an asset in RGActionManager.
     /// The settings are saved via RGActionManager.SaveSettings().
     /// </summary>
-    public class RGActionManagerSettings : ScriptableObject
+    [Serializable]
+    public class RGActionManagerSettings
     {
         // Whenever modifying any serializable fields, call MarkDirty()
         

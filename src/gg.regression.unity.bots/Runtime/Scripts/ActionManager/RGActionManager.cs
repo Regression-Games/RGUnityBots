@@ -10,17 +10,18 @@ using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR
+using System.IO;
 using UnityEditor;
-using UnityEngine.Windows;
 #endif
 
 namespace RegressionGames.ActionManager
 {
     public static class RGActionManager
     {
+        // Using JSON files for storing configuration (instead of asset files) due to challenges faced with using ScriptableObject and AssetDatabase
         private static readonly string SETTINGS_DIRECTORY = "Assets/Resources";
-        private static readonly string SETTINGS_RESOURCE_NAME = "RGActionManagerSettings";
-        private static readonly string SETTINGS_RESOURCE_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_RESOURCE_NAME}.asset";
+        private static readonly string SETTINGS_NAME = "RGActionManagerSettings";
+        private static readonly string SETTINGS_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_NAME}.txt";
             
         private static MonoBehaviour _context;
         private static IRGActionProvider _actionProvider;
@@ -56,21 +57,37 @@ namespace RegressionGames.ActionManager
             {
                 IRGActionProvider provider = (IRGActionProvider)providerType.GetConstructor(Type.EmptyTypes).Invoke(null);
                 SetActionProvider(provider);
-                LoadSettings();
             }
+            LoadSettings();
         }
         #endif
 
         private static void LoadSettings()
         {
-            _settings = Resources.Load<RGActionManagerSettings>(SETTINGS_RESOURCE_NAME);
-            if (_settings == null)
+            string jsonText = null;
+            #if UNITY_EDITOR
+            if (File.Exists(SETTINGS_PATH))
             {
-                _settings = ScriptableObject.CreateInstance<RGActionManagerSettings>();
+                using (StreamReader sr = new StreamReader(SETTINGS_PATH))
+                {
+                    jsonText = sr.ReadToEnd();
+                }
+            }
+            #else
+            {
+                TextAsset jsonFile = Resources.Load<TextAsset>(SETTINGS_NAME);
+                jsonText = jsonFile?.text;
+            }
+            #endif
+            if (jsonText != null)
+            {
+                _settings = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
+            }
+            else
+            {
+                _settings = new RGActionManagerSettings();
                 #if UNITY_EDITOR
-                Directory.CreateDirectory(SETTINGS_DIRECTORY);
-                AssetDatabase.CreateAsset(_settings, SETTINGS_RESOURCE_PATH);
-                AssetDatabase.SaveAssets();
+                SaveSettings();
                 #endif
             }
         }
@@ -78,8 +95,14 @@ namespace RegressionGames.ActionManager
         #if UNITY_EDITOR
         public static void SaveSettings()
         {
-            GUID guid = AssetDatabase.GUIDFromAssetPath(SETTINGS_RESOURCE_PATH);
-            AssetDatabase.SaveAssetIfDirty(guid);
+            if (!Directory.Exists(SETTINGS_DIRECTORY))
+            {
+                Directory.CreateDirectory(SETTINGS_DIRECTORY);
+            }
+            using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
+            {
+                sw.Write(JsonUtility.ToJson(_settings));
+            }
         }
         #endif
 
