@@ -35,6 +35,29 @@ namespace Tests.Runtime
                 Assert.AreEqual(rng[2], 1);
             }
             {
+                RGVector2IntRange rng = new RGVector2IntRange(new Vector2Int(-2, -1), new Vector2Int(2, 1));
+                RGVector2IntRange rng2 = new RGVector2IntRange(new Vector2Int(-2, -1), new Vector2Int(2, 1));
+                Assert.IsTrue(rng.RangeEquals(rng2));
+                Assert.AreEqual(rng.Width, 5);
+                Assert.AreEqual(rng.Height, 3);
+                Assert.AreEqual(rng.NumValues, 15);
+                Assert.AreEqual(rng[0], new Vector2Int(-2, -1));
+                Assert.AreEqual(rng[1], new Vector2Int(-1, -1));
+                Assert.AreEqual(rng[2], new Vector2Int(0, -1));
+                Assert.AreEqual(rng[3], new Vector2Int(1, -1));
+                Assert.AreEqual(rng[4], new Vector2Int(2, -1));
+                Assert.AreEqual(rng[5], new Vector2Int(-2, 0));
+                Assert.AreEqual(rng[6], new Vector2Int(-1, 0));
+                Assert.AreEqual(rng[7], new Vector2Int(0, 0));
+                Assert.AreEqual(rng[8], new Vector2Int(1, 0));
+                Assert.AreEqual(rng[9], new Vector2Int(2, 0));
+                Assert.AreEqual(rng[10], new Vector2Int(-2, 1));
+                Assert.AreEqual(rng[11], new Vector2Int(-1, 1));
+                Assert.AreEqual(rng[12], new Vector2Int(0, 1));
+                Assert.AreEqual(rng[13], new Vector2Int(1, 1));
+                Assert.AreEqual(rng[14], new Vector2Int(2, 1));
+            }
+            {
                 RGFloatRange rng = new RGFloatRange(-1.0f, 1.0f);
                 Assert.IsTrue(Mathf.Approximately((float)rng.MinValue, -1.0f));
                 Assert.IsTrue(Mathf.Approximately((float)rng.MaxValue, 1.0f));

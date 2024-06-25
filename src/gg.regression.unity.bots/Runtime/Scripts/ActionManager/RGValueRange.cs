@@ -115,6 +115,48 @@ namespace RegressionGames.ActionManager
         }
     }
 
+    public class RGVector2IntRange : RGDiscreteValueRange
+    {
+        private Vector2Int _minValue;
+        private Vector2Int _maxValue;
+        
+        public override object MinValue { get; }
+        public override object MaxValue { get; }
+
+        public RGVector2IntRange(Vector2Int minValue, Vector2Int maxValue)
+        {
+            _minValue = minValue;
+            _maxValue = maxValue;
+        }
+        
+        public override bool RangeEquals(IRGValueRange other)
+        {
+            if (other is RGVector2IntRange v2Range)
+            {
+                return _minValue == v2Range._minValue && _maxValue == v2Range._maxValue;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public int Width => (_maxValue.x - _minValue.x + 1);
+        public int Height => (_maxValue.y - _minValue.y + 1);
+
+        public override int NumValues => Width * Height;
+
+        public override object this[int index]
+        {
+            get
+            {
+                int xi = index % Width;
+                int yi = index / Width;
+                return new Vector2Int(_minValue.x + xi, _minValue.y + yi);
+            }
+        }
+    }
+
     public class RGIntRange : RGDiscreteValueRange
     {
         private int _minValue;
