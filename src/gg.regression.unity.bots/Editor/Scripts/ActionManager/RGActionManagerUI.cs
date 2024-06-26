@@ -304,9 +304,17 @@ namespace RegressionGames.ActionManager
                 UpdateGUI();
             });
             _searchField.style.width = StyleKeyword.Auto;
-            
-            var splitView = new TwoPaneSplitView(1, 250.0f, TwoPaneSplitViewOrientation.Vertical);
             rootVisualElement.Add(_searchField);
+
+            var refreshBtn = new Button();
+            refreshBtn.text = "Refresh";
+            refreshBtn.clicked += () =>
+            {
+                RGActionAnalysis.TryRunAnalysis();
+            };
+            rootVisualElement.Add(refreshBtn);
+                
+            var splitView = new TwoPaneSplitView(1, 250.0f, TwoPaneSplitViewOrientation.Vertical);
             rootVisualElement.Add(splitView);
             
             _actionsPane = new ScrollView(ScrollViewMode.VerticalAndHorizontal);
