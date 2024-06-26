@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace RegressionGames.ActionManager
@@ -28,14 +29,18 @@ namespace RegressionGames.ActionManager
          /// Perform() method.
         public abstract IRGValueRange ParameterRange { get; }
         
-        /// User-specified data for this action.
-        public Dictionary<string, object> UserData { get; }
-        
         public RGGameAction(string[] path, Type objectType, int actionGroup)
         {
             Paths = new List<string[]> { path };
             ObjectType = objectType;
             ActionGroup = actionGroup;
+        }
+
+        public RGGameAction(RGSerializedAction serializedAction)
+        {
+            Paths = new List<string[]>(serializedAction.paths);
+            ObjectType = Type.GetType(serializedAction.objectTypeName);
+            ActionGroup = serializedAction.actionGroup;
         }
 
         /// <summary>
@@ -68,6 +73,50 @@ namespace RegressionGames.ActionManager
         public virtual bool IsEquivalentTo(RGGameAction other)
         {
             return ObjectType == other.ObjectType && ParameterRange.RangeEquals(other.ParameterRange);
+        }
+
+        /// <summary>
+        /// Serializes this action into a storable data structure.
+        /// </summary>
+        /// <returns>The serialized action data.</returns>
+        public RGSerializedAction Serialize()
+        {
+            RGSerializedAction result = new RGSerializedAction();
+            result.actionTypeName = GetType().AssemblyQualifiedName;
+            result.paths = new List<string[]>(Paths);
+            result.objectTypeName = ObjectType.AssemblyQualifiedName;
+            result.actionGroup = ActionGroup;
+            result.actionParameters = new List<object>();
+            SerializeParameters(result.actionParameters);
+            return result;
+        }
+
+        /// <summary>
+        /// Serialize the action-specific parameters (such as key code, button name, etc.).
+        /// This is stored to the actionParameters field of RGSerializedAction.
+        /// </summary>
+        /// <param name="actionParametersOut">List where the action-specific data should be placed.</param>
+        protected abstract void SerializeParameters(List<object> actionParametersOut);
+    }
+    
+    [Serializable]
+    public class RGSerializedAction
+    {
+        public string actionTypeName;
+        public List<string[]> paths;
+        public string objectTypeName;
+        public int actionGroup;
+        public List<object> actionParameters;
+
+        public RGGameAction Deserialize()
+        {
+            Type actionType = Type.GetType(actionTypeName);
+            var constructor = actionType.GetConstructor(new[] { typeof(RGSerializedAction) });
+            if (constructor == null)
+            {
+                throw new Exception($"Missing deserialization constructor for {actionType.FullName}");
+            }
+            return (RGGameAction)constructor.Invoke(new object[] { this });
         }
     }
 

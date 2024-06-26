@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -9,7 +10,13 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseScrollAction : RGGameAction
     {
-        public MouseScrollAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        public MouseScrollAction(string[] path, Type objectType, int actionGroup) : 
+            base(path, objectType, actionGroup)
+        {
+        }
+
+        public MouseScrollAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
         {
         }
 
@@ -25,6 +32,10 @@ namespace RegressionGames.ActionManager.Actions
         public override IRGGameActionInstance GetInstance(Object obj)
         {
             return new MouseScrollInstance(this, obj);
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
         }
     }
 

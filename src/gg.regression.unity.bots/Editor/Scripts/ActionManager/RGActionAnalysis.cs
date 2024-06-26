@@ -5,6 +5,7 @@ using System.IO;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using RegressionGames.Editor.RGLegacyInputUtility;
 
 namespace RegressionGames.ActionManager
@@ -50,30 +51,48 @@ namespace RegressionGames.ActionManager
             return result;
         }
 
-        private static IEnumerable<string> FindScripts()
+        private static IEnumerable<Compilation> GetCompilations()
         {
             ISet<string> ignoredAssemblyNames = GetIgnoredAssemblyNames();
             Assembly[] playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
             foreach (var playerAsm in playerAssemblies)
             {
                 string playerAsmName = Path.GetFileNameWithoutExtension(playerAsm.outputPath);
-                if (ignoredAssemblyNames.Contains(playerAsmName) || playerAsmName.StartsWith("UnityEngine.") || playerAsmName.StartsWith("Unity."))
+                if (ignoredAssemblyNames.Contains(playerAsmName) 
+                    || playerAsmName.StartsWith("UnityEngine.") 
+                    || playerAsmName.StartsWith("Unity.")
+                    || playerAsm.sourceFiles.Length == 0)
                 {
                     continue;
                 }
-
+                
+                List<MetadataReference> references = new List<MetadataReference>();
+                foreach (var playerAsmRef in playerAsm.allReferences)
+                {
+                    references.Add(MetadataReference.CreateFromFile(playerAsmRef));
+                }
+                
+                List<SyntaxTree> syntaxTrees = new List<SyntaxTree>();
                 foreach (string sourceFile in playerAsm.sourceFiles)
                 {
-                    yield return sourceFile;
+                    using (StreamReader sr = new StreamReader(sourceFile))
+                    {
+                        SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd());
+                        syntaxTrees.Add(tree);
+                    }
                 }
+
+                yield return CSharpCompilation.Create(playerAsm.name)
+                    .AddReferences(references)
+                    .AddSyntaxTrees(syntaxTrees);
             }
         }
-        
+
         public static void RunAnalysis()
         {
-            foreach (string scriptPath in FindScripts())
+            foreach (var compilation in GetCompilations())
             {
-                Debug.Log(scriptPath);
+                Debug.Log(compilation.AssemblyName);
             }
         }
     }

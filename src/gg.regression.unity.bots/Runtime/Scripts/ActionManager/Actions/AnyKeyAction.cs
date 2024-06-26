@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
@@ -12,6 +13,11 @@ namespace RegressionGames.ActionManager.Actions
     public class AnyKeyAction : RGGameAction
     {
         public AnyKeyAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        {
+        }
+
+        public AnyKeyAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
         {
         }
 
@@ -30,6 +36,10 @@ namespace RegressionGames.ActionManager.Actions
         public override bool IsEquivalentTo(RGGameAction other)
         {
             return base.IsEquivalentTo(other);
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
         }
     }
 

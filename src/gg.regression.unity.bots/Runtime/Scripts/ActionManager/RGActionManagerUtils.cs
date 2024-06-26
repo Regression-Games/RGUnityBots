@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine.Events;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager
 {
@@ -47,6 +49,12 @@ namespace RegressionGames.ActionManager
                     yield return target.GetType().FullName + "." + methodName;
                 }
             }
+        }
+
+        public static Func<Object, T> DeserializeFuncFromName<T>(string funcName)
+        {
+            // TODO implement this after the analysis is done
+            throw new NotImplementedException();
         }
     }
 }

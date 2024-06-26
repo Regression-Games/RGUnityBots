@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
 
@@ -17,6 +18,13 @@ namespace RegressionGames.ActionManager.Actions
         {
             KeyFunc = keyFunc;
             KeyFuncName = keyFuncName;
+        }
+
+        public InputSystemKeyAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
+        {
+            KeyFuncName = (string)serializedAction.actionParameters[0];
+            KeyFunc = RGActionManagerUtils.DeserializeFuncFromName<Key>(KeyFuncName);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -41,6 +49,11 @@ namespace RegressionGames.ActionManager.Actions
             {
                 return false;
             }
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
+            actionParametersOut.Add(KeyFuncName);
         }
     }
 

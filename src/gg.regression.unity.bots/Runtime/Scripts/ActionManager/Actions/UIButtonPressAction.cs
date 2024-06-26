@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,6 +19,12 @@ namespace RegressionGames.ActionManager.Actions
         {
             Debug.Assert(typeof(Button).IsAssignableFrom(objectType));
             EventListenerName = eventListenerName;
+        }
+
+        public UIButtonPressAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
+        {
+            EventListenerName = (string)serializedAction.actionParameters[0];
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -47,6 +54,11 @@ namespace RegressionGames.ActionManager.Actions
                 return EventListenerName == action.EventListenerName;
             }
             return false;
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
+            actionParametersOut.Add(EventListenerName);
         }
     }
 

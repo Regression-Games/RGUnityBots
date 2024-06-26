@@ -1,5 +1,6 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
+using System.Collections.Generic;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -22,6 +23,13 @@ namespace RegressionGames.ActionManager.Actions
             ButtonNameFuncName = buttonNameFuncName;
         }
 
+        public LegacyButtonAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
+        {
+            ButtonNameFuncName = (string)serializedAction.actionParameters[0];
+            ButtonNameFunc = RGActionManagerUtils.DeserializeFuncFromName<string>(ButtonNameFuncName);
+        }
+
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
         
         public override bool IsValidForObject(Object obj)
@@ -41,6 +49,11 @@ namespace RegressionGames.ActionManager.Actions
                 return ButtonNameFuncName == action.ButtonNameFuncName;
             }
             return false;
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
+            actionParametersOut.Add(ButtonNameFuncName);
         }
     }
 

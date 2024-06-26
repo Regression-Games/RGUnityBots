@@ -1,5 +1,6 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -18,6 +19,13 @@ namespace RegressionGames.ActionManager.Actions
         {
             KeyCodeFunc = keyCodeFunc;
             KeyCodeFuncName = keyCodeFuncName;
+        }
+
+        public LegacyKeyAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
+        {
+            KeyCodeFuncName = (string)serializedAction.actionParameters[0];
+            KeyCodeFunc = RGActionManagerUtils.DeserializeFuncFromName<KeyCode>(KeyCodeFuncName);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -39,6 +47,11 @@ namespace RegressionGames.ActionManager.Actions
                 return KeyCodeFuncName == action.KeyCodeFuncName;
             }
             return false;
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
+            actionParametersOut.Add(KeyCodeFuncName);
         }
     }
 

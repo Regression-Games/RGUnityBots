@@ -1,5 +1,6 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
+using System.Collections.Generic;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -25,6 +26,13 @@ namespace RegressionGames.ActionManager.Actions
             AxisNameFuncName = axisNameFuncName;
         }
 
+        public LegacyAxisAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
+        {
+            AxisNameFuncName = (string)serializedAction.actionParameters[0];
+            AxisNameFunc = RGActionManagerUtils.DeserializeFuncFromName<string>(AxisNameFuncName);
+        }
+
         // Discretize the axis into three states (negative, zero, positive) so there is an equal chance of not going in either direction
         public override IRGValueRange ParameterRange { get; } = new RGIntRange(-1, 1);
         
@@ -45,6 +53,11 @@ namespace RegressionGames.ActionManager.Actions
                 return AxisNameFuncName == action.AxisNameFuncName;
             }
             return false;
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
+            actionParametersOut.Add(AxisNameFuncName);
         }
     }
 

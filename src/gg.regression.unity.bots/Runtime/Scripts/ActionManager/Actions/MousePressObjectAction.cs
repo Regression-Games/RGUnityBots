@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -16,6 +17,11 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
+        public MousePressObjectAction(RGSerializedAction serializedAction) :
+            base(serializedAction)
+        {
+        }
+
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
         
         public override bool IsValidForObject(Object obj)
@@ -26,6 +32,10 @@ namespace RegressionGames.ActionManager.Actions
         public override IRGGameActionInstance GetInstance(Object obj)
         {
             return new MousePressObjectInstance(this, obj);
+        }
+
+        protected override void SerializeParameters(List<object> actionParametersOut)
+        {
         }
     }
 

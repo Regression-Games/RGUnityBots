@@ -13,7 +13,8 @@
         "Mono.Cecil.dll",
         "Mono.Cecil.Pdb.dll",
         "Microsoft.CodeAnalysis.dll",
-        "Microsoft.CodeAnalysis.CSharp.dll"
+        "Microsoft.CodeAnalysis.CSharp.dll",
+        "System.Collections.Immutable.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
