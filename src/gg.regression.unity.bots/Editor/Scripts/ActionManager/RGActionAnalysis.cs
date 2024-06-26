@@ -2,10 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Xml.Linq;
-using System.Xml.XPath;
-using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
@@ -26,10 +22,9 @@ namespace RegressionGames.ActionManager
                     return assembly;
                 }
             }
-
+     
             return null;
         }
-        
         private static ISet<string> GetIgnoredAssemblyNames()
         {
             Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
@@ -38,7 +33,7 @@ namespace RegressionGames.ActionManager
             {
                 return null;
             }
-            
+         
             // ignore RG SDK assemblies and their dependencies
             HashSet<string> result = new HashSet<string>();
             result.Add(Path.GetFileNameWithoutExtension(rgAssembly.outputPath));
@@ -51,59 +46,35 @@ namespace RegressionGames.ActionManager
             {
                 result.Add(Path.GetFileNameWithoutExtension(asmPath));
             }
-
+         
             return result;
         }
-        
-        private static IEnumerable<string> FindScriptPaths(ISet<string> ignoredAssemblyNames)
+
+        private static IEnumerable<string> FindScripts()
         {
-            string projectDir = Path.GetDirectoryName(Application.dataPath);
-            string[] csprojFiles = Directory.GetFiles(projectDir, "*.csproj");
-            
-            foreach (string csprojPath in csprojFiles)
+            ISet<string> ignoredAssemblyNames = GetIgnoredAssemblyNames();
+            Assembly[] playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
+            foreach (var playerAsm in playerAssemblies)
             {
-                if (ignoredAssemblyNames.Contains(Path.GetFileNameWithoutExtension(csprojPath)))
+                string playerAsmName = Path.GetFileNameWithoutExtension(playerAsm.outputPath);
+                if (ignoredAssemblyNames.Contains(playerAsmName) || playerAsmName.StartsWith("UnityEngine.") || playerAsmName.StartsWith("Unity."))
                 {
-                    continue;
-                }
-                
-                XElement csproj;
-                try
-                {
-                    csproj = XElement.Load(csprojPath);
-                }
-                catch (Exception e)
-                {
-                    RGDebug.LogWarning($"Error when parsing csproj file {csprojPath}: {e.Message}");
                     continue;
                 }
 
-                XNamespace ns = csproj.GetDefaultNamespace();
-                foreach (var compileEl in csproj.Descendants(ns.GetName("Compile")))
+                foreach (string sourceFile in playerAsm.sourceFiles)
                 {
-                    var includeAttr = compileEl.Attribute("Include");
-                    if (includeAttr != null)
-                    {
-                        yield return includeAttr.Value;
-                    }
+                    yield return sourceFile;
                 }
             }
         }
         
-        public static bool TryRunAnalysis()
+        public static void RunAnalysis()
         {
-            ISet<string> ignoredAssemblyNames = GetIgnoredAssemblyNames();
-            if (ignoredAssemblyNames == null)
-            {
-                return false;
-            }
-            
-            foreach (string scriptPath in FindScriptPaths(ignoredAssemblyNames))
+            foreach (string scriptPath in FindScripts())
             {
                 Debug.Log(scriptPath);
             }
-
-            return true;
         }
     }
 }
