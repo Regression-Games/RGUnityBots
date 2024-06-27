@@ -191,11 +191,11 @@ namespace RegressionGames.RGLegacyInputUtility
                             Vector3 newMousePosition = evt.newMousePosition;
                             if (evt.newMouseDelta.HasValue)
                             {
-                                _mousePosDelta += evt.newMouseDelta.Value;
+                                _mousePosDelta = evt.newMouseDelta.Value;
                             }
                             else
                             {
-                                _mousePosDelta += newMousePosition - _mousePosition;
+                                _mousePosDelta = newMousePosition - _mousePosition;
                             }
                             _mousePosition = newMousePosition;
                             break;
@@ -203,7 +203,7 @@ namespace RegressionGames.RGLegacyInputUtility
                         case RGLegacySimulatedInputEventType.MOUSE_SCROLL_EVENT:
                         {
                             Vector2 newMouseScrollDelta = evt.newMouseScrollDelta;
-                            _mouseScrollDelta += newMouseScrollDelta;
+                            _mouseScrollDelta = newMouseScrollDelta;
                             break;
                         }
                     }
