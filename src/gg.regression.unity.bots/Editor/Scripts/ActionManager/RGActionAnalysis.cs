@@ -2,31 +2,43 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RegressionGames.Editor.RGLegacyInputUtility;
 
 namespace RegressionGames.ActionManager
 {
-    public class RGActionAnalysis
+    public class RGActionAnalysisWarning
     {
-        public static Assembly FindRGEditorAssembly()
+        public string FilePath { get; }
+        public int StartLineNumber { get; }
+        public int EndLineNumber { get; }
+        public string Message { get; }
+
+        public RGActionAnalysisWarning(SyntaxNode node, string message)
         {
-            var rgEditorAsmName = Path.GetFileName(typeof(RGActionAnalysis).Assembly.Location);
-            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor);
-            foreach (Assembly assembly in assemblies)
-            {
-                if (Path.GetFileName(assembly.outputPath) == rgEditorAsmName)
-                {
-                    return assembly;
-                }
-            }
-     
-            return null;
+            FilePath = node.SyntaxTree.FilePath;
+            var lineSpan = node.SyntaxTree.GetLineSpan(node.Span);
+            StartLineNumber = lineSpan.StartLinePosition.Line;
+            EndLineNumber = lineSpan.EndLinePosition.Line;
+            Message = message;
         }
-        private static ISet<string> GetIgnoredAssemblyNames()
+    }
+    
+    public class RGActionAnalysis : CSharpSyntaxWalker
+    {
+        private List<RGGameAction> _actions;
+        private List<RGActionAnalysisWarning> _warnings;
+        private SemanticModel _currentModel;
+
+        public List<RGGameAction> Actions => _actions;
+        public List<RGActionAnalysisWarning> Warnings => _warnings;
+        
+        private ISet<string> GetIgnoredAssemblyNames()
         {
             Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
             Assembly rgEditorAssembly = FindRGEditorAssembly();
@@ -50,8 +62,23 @@ namespace RegressionGames.ActionManager
          
             return result;
         }
+        
+        public static Assembly FindRGEditorAssembly()
+        {
+            var rgEditorAsmName = Path.GetFileName(typeof(RGActionAnalysis).Assembly.Location);
+            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Editor);
+            foreach (Assembly assembly in assemblies)
+            {
+                if (Path.GetFileName(assembly.outputPath) == rgEditorAsmName)
+                {
+                    return assembly;
+                }
+            }
+     
+            return null;
+        }
 
-        private static IEnumerable<Compilation> GetCompilations()
+        private IEnumerable<Compilation> GetCompilations()
         {
             ISet<string> ignoredAssemblyNames = GetIgnoredAssemblyNames();
             Assembly[] playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
@@ -77,7 +104,7 @@ namespace RegressionGames.ActionManager
                 {
                     using (StreamReader sr = new StreamReader(sourceFile))
                     {
-                        SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd());
+                        SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd(), path: sourceFile);
                         syntaxTrees.Add(tree);
                     }
                 }
@@ -88,11 +115,81 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        public static void RunAnalysis()
+        public override void VisitInvocationExpression(InvocationExpressionSyntax node)
         {
+            var nodeSymInfo = _currentModel.GetSymbolInfo(node.Expression);
+            if (nodeSymInfo.Symbol is IMethodSymbol methodSymbol)
+            {
+                var containingTypeName = methodSymbol.ContainingType.ToString();
+                if (containingTypeName == "UnityEngine.Input")
+                {
+                    string methodName = methodSymbol.Name;
+                    switch (methodName)
+                    {
+                        case "GetKey":
+                        case "GetKeyDown":
+                        case "GetKeyUp":
+                        {
+                            bool matched = false;
+                            var keyArg = node.ArgumentList.Arguments[0];
+                            var keyArgSym = _currentModel.GetSymbolInfo(keyArg.Expression).Symbol;
+                            if (keyArgSym != null)
+                            {
+                                if (keyArgSym is ILocalSymbol localSym)
+                                {
+                                    // TODO data-flow analysis
+                                } else if (keyArgSym is IFieldSymbol fieldSym)
+                                {
+                                    if (fieldSym.IsStatic && fieldSym.ContainingType?.TypeKind == TypeKind.Enum)
+                                    {
+                                        // constant enum Input.GetKey(KeyCode.<key>)
+                                        matched = true;
+                                        // TODO create LegacyKeyAction
+                                    }
+                                    else
+                                    {
+                                        // TODO generate expression for field
+                                    }
+                                } 
+                            }
+                            else if (keyArg.Expression is LiteralExpressionSyntax literalExpr)
+                            {
+                                var literalKind = literalExpr.Kind();
+                                if (literalKind == SyntaxKind.StringLiteralExpression)
+                                {
+                                    // constant string Input.GetKey("<key name>")
+                                    matched = true;
+                                    // TODO create LegacyKeyAction
+                                }
+                            }
+                            if (!matched)
+                            {
+                                AddAnalysisWarning(node, "Could not identify key code being used");
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void AddAnalysisWarning(SyntaxNode node, string message)
+        {
+            _warnings.Add(new RGActionAnalysisWarning(node, message));
+        }
+
+        public void RunAnalysis()
+        {
+            _actions = new List<RGGameAction>();
+            _warnings = new List<RGActionAnalysisWarning>();
             foreach (var compilation in GetCompilations())
             {
-                Debug.Log(compilation.AssemblyName);
+                foreach (var syntaxTree in compilation.SyntaxTrees)
+                {
+                    _currentModel = compilation.GetSemanticModel(syntaxTree);
+                    var root = syntaxTree.GetCompilationUnitRoot();
+                    Visit(root);
+                }
             }
         }
     }

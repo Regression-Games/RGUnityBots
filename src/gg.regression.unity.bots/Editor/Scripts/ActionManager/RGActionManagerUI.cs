@@ -310,7 +310,7 @@ namespace RegressionGames.ActionManager
             refreshBtn.text = "Refresh";
             refreshBtn.clicked += () =>
             {
-                RGActionAnalysis.RunAnalysis();
+                new RGActionAnalysis().RunAnalysis();
             };
             rootVisualElement.Add(refreshBtn);
                 
