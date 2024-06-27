@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -12,9 +13,9 @@ namespace RegressionGames.StateRecorder.Models
         public double previousTickTime;
         public int framesSincePreviousTick;
         public int fps;
-        public long? cpuTimeSincePreviousTick;
-        public long? memory;
-        public long? gcMemory;
+        public List<long> cpuTimesPerFrame;
+        public List<long> memoryPerFrame;
+        public List<long> gcMemoryPerFrame;
         public EngineStatsData engineStats;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
@@ -25,13 +26,34 @@ namespace RegressionGames.StateRecorder.Models
             IntJsonConverter.WriteToStringBuilder(stringBuilder, framesSincePreviousTick);
             stringBuilder.Append(",\"fps\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, fps);
-            stringBuilder.Append(",\"cpuTimeSincePreviousTick\":");
-            LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, cpuTimeSincePreviousTick);
-            stringBuilder.Append(",\"memory\":");
-            LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, memory);
-            stringBuilder.Append(",\"gcMemory\":");
-            LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, gcMemory);
-            stringBuilder.Append(",\"engineStats\":");
+            stringBuilder.Append(",\n\"cpuTimesPerFrame\":[");
+            for (int i = 0, n = cpuTimesPerFrame.Count; i < n; ++i)
+            {
+                LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, cpuTimesPerFrame[i]);
+                if (i < n - 1)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"memoryPerFrame\":[");
+            for (int i = 0, n = memoryPerFrame.Count; i < n; ++i)
+            {
+                LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, memoryPerFrame[i]);
+                if (i < n - 1)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"gcMemoryPerFrame\":[");
+            for (int i = 0, n = gcMemoryPerFrame.Count; i < n; ++i)
+            {
+                LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, gcMemoryPerFrame[i]);
+                if (i < n - 1)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"engineStats\":");
             engineStats.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
         }
