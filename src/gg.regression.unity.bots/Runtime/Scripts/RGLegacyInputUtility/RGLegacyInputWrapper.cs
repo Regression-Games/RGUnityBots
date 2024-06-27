@@ -84,6 +84,12 @@ namespace RegressionGames.RGLegacyInputUtility
         }
 
         /**
+         * Returns the current input manager settings.
+         * If a simulation is not active, this will return null.
+         */
+        public static RGLegacyInputManagerSettings InputManagerSettings => _inputManagerSettings;
+
+        /**
          * Called by the test driver to take control of the user input.
          * Context parameter is the driving MonoBehaviour to use as context.
          */
