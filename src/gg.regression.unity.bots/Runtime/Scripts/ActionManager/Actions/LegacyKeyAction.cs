@@ -1,6 +1,7 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
 using System.Collections.Generic;
+using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -11,21 +12,18 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyKeyAction : RGGameAction
     {
-        public Func<Object, KeyCode> KeyCodeFunc { get; }
-        public string KeyCodeFuncName { get; }
+        public RGActionParamFunc<object> KeyCodeFunc { get; }
         
-        public LegacyKeyAction(string[] path, Type objectType, Func<Object, KeyCode> keyCodeFunc, string keyCodeFuncName, int actionGroup) : 
+        public LegacyKeyAction(string[] path, Type objectType, RGActionParamFunc<object> keyCodeFunc, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
             KeyCodeFunc = keyCodeFunc;
-            KeyCodeFuncName = keyCodeFuncName;
         }
 
         public LegacyKeyAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            KeyCodeFuncName = (string)serializedAction.actionParameters[0];
-            KeyCodeFunc = RGActionManagerUtils.DeserializeFuncFromName<KeyCode>(KeyCodeFuncName);
+            KeyCodeFunc = new RGActionParamFunc<object>((string)serializedAction.actionParameters[0]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -44,14 +42,14 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is LegacyKeyAction action)
             {
-                return KeyCodeFuncName == action.KeyCodeFuncName;
+                return KeyCodeFunc == action.KeyCodeFunc;
             }
             return false;
         }
 
         protected override void SerializeParameters(List<object> actionParametersOut)
         {
-            actionParametersOut.Add(KeyCodeFuncName);
+            actionParametersOut.Add(KeyCodeFunc.Identifier);
         }
     }
 
@@ -63,8 +61,18 @@ namespace RegressionGames.ActionManager.Actions
         
         protected override void PerformAction(bool param)
         {
-            KeyCode keyCode = Action.KeyCodeFunc(TargetObject);
-            RGActionManager.SimulateKeyState(keyCode, param);
+            object keyCodeOrName= Action.KeyCodeFunc.Invoke(TargetObject);
+            if (keyCodeOrName is KeyCode keyCode)
+            {
+                RGActionManager.SimulateKeyState(keyCode, param);
+            } else if (keyCodeOrName is string keyName)
+            {
+                RGActionManager.SimulateKeyState(RGLegacyInputWrapper.KeyNameToCode(keyName), param);
+            }
+            else
+            {
+                RGDebug.LogWarning($"Unexpected output from key code func: {keyCodeOrName}");
+            }
         }
     }
 }

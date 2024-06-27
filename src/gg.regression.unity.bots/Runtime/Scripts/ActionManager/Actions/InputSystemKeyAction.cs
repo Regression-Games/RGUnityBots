@@ -10,21 +10,18 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class InputSystemKeyAction : RGGameAction
     {
-        public Func<Object, Key> KeyFunc { get; }
-        public string KeyFuncName { get; }
+        public RGActionParamFunc<Key> KeyFunc { get; }
         
-        public InputSystemKeyAction(string[] path, Type objectType, Func<Object, Key> keyFunc, string keyFuncName, int actionGroup) : 
+        public InputSystemKeyAction(string[] path, Type objectType, RGActionParamFunc<Key> keyFunc, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
             KeyFunc = keyFunc;
-            KeyFuncName = keyFuncName;
         }
 
         public InputSystemKeyAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            KeyFuncName = (string)serializedAction.actionParameters[0];
-            KeyFunc = RGActionManagerUtils.DeserializeFuncFromName<Key>(KeyFuncName);
+            KeyFunc = new RGActionParamFunc<Key>((string)serializedAction.actionParameters[0]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -43,7 +40,7 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is InputSystemKeyAction action)
             {
-                return KeyFuncName == action.KeyFuncName;
+                return KeyFunc == action.KeyFunc;
             }
             else
             {
@@ -53,7 +50,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override void SerializeParameters(List<object> actionParametersOut)
         {
-            actionParametersOut.Add(KeyFuncName);
+            actionParametersOut.Add(KeyFunc.Identifier);
         }
     }
 
@@ -65,7 +62,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override void PerformAction(bool param)
         {
-            Key key = Action.KeyFunc(TargetObject);
+            Key key = Action.KeyFunc.Invoke(TargetObject);
             RGActionManager.SimulateKeyState(key, param);
         }
     }

@@ -13,21 +13,18 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyButtonAction : RGGameAction
     {
-        public Func<Object, string> ButtonNameFunc { get; }
-        public string ButtonNameFuncName { get; }
+        public RGActionParamFunc<string> ButtonNameFunc { get; }
 
-        public LegacyButtonAction(string[] path, Type objectType, Func<Object, string> buttonNameFunc, string buttonNameFuncName, int actionGroup) : 
+        public LegacyButtonAction(string[] path, Type objectType, RGActionParamFunc<string> buttonNameFunc, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
             ButtonNameFunc = buttonNameFunc;
-            ButtonNameFuncName = buttonNameFuncName;
         }
 
         public LegacyButtonAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            ButtonNameFuncName = (string)serializedAction.actionParameters[0];
-            ButtonNameFunc = RGActionManagerUtils.DeserializeFuncFromName<string>(ButtonNameFuncName);
+            ButtonNameFunc = new RGActionParamFunc<string>((string)serializedAction.actionParameters[0]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -46,14 +43,14 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is LegacyButtonAction action)
             {
-                return ButtonNameFuncName == action.ButtonNameFuncName;
+                return ButtonNameFunc == action.ButtonNameFunc;
             }
             return false;
         }
 
         protected override void SerializeParameters(List<object> actionParametersOut)
         {
-            actionParametersOut.Add(ButtonNameFuncName);
+            actionParametersOut.Add(ButtonNameFunc.Identifier);
         }
     }
 
@@ -65,7 +62,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override void PerformAction(bool param)
         {
-            string buttonName = Action.ButtonNameFunc(TargetObject);
+            string buttonName = Action.ButtonNameFunc.Invoke(TargetObject);
             var inpSettings = RGLegacyInputWrapper.InputManagerSettings;
             
             // Simulate appropriate button events

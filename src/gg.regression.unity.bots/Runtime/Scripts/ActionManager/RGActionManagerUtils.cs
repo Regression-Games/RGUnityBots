@@ -50,11 +50,5 @@ namespace RegressionGames.ActionManager
                 }
             }
         }
-
-        public static Func<Object, T> DeserializeFuncFromName<T>(string funcName)
-        {
-            // TODO implement this after the analysis is done
-            throw new NotImplementedException();
-        }
     }
 }

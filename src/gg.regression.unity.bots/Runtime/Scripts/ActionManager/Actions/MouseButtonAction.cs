@@ -18,21 +18,18 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseButtonAction : RGGameAction
     {
-        public Func<Object, MouseButtonActionButton> MouseButtonFunc { get; }
-        public string MouseButtonFuncName { get; }
+        public RGActionParamFunc<MouseButtonActionButton> MouseButtonFunc { get; }
         
-        public MouseButtonAction(string[] path, Type objectType, Func<Object, MouseButtonActionButton> mouseBtnFunc, string mouseBtnFuncName, int actionGroup) 
+        public MouseButtonAction(string[] path, Type objectType, RGActionParamFunc<MouseButtonActionButton> mouseButtonFunc, int actionGroup) 
             : base(path, objectType, actionGroup)
         {
-            MouseButtonFunc = mouseBtnFunc;
-            MouseButtonFuncName = mouseBtnFuncName;
+            MouseButtonFunc = mouseButtonFunc;
         }
 
         public MouseButtonAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            MouseButtonFuncName = (string)serializedAction.actionParameters[0];
-            MouseButtonFunc = RGActionManagerUtils.DeserializeFuncFromName<MouseButtonActionButton>(MouseButtonFuncName);
+            MouseButtonFunc = new RGActionParamFunc<MouseButtonActionButton>((string)serializedAction.actionParameters[0]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -51,7 +48,7 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is MouseButtonAction action)
             {
-                return action.MouseButtonFuncName == MouseButtonFuncName;
+                return action.MouseButtonFunc == MouseButtonFunc;
             }
             else
             {
@@ -61,7 +58,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override void SerializeParameters(List<object> actionParametersOut)
         {
-            actionParametersOut.Add(MouseButtonFuncName);
+            actionParametersOut.Add(MouseButtonFunc.Identifier);
         }
     }
 
@@ -73,7 +70,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override void PerformAction(bool param)
         {
-            MouseButtonActionButton btn = Action.MouseButtonFunc(TargetObject);
+            MouseButtonActionButton btn = Action.MouseButtonFunc.Invoke(TargetObject);
             switch (btn)
             {
                 case MouseButtonActionButton.LEFT_MOUSE_BUTTON:

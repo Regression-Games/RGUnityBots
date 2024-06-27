@@ -14,23 +14,20 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyAxisAction : RGGameAction
     {
-        public Func<Object, string> AxisNameFunc { get; }
-        public string AxisNameFuncName { get; }
+        public RGActionParamFunc<string> AxisNameFunc { get; }
 
         public float MouseMovementMagnitude = 10.0f; // for axes that read mouse delta, the amount to move/scroll the mouse
 
-        public LegacyAxisAction(string[] path, Type objectType, Func<Object, string> axisNameFunc, string axisNameFuncName, int actionGroup) : 
+        public LegacyAxisAction(string[] path, Type objectType, RGActionParamFunc<string> axisNameFunc, int actionGroup) : 
             base(path, objectType, actionGroup)
         {
             AxisNameFunc = axisNameFunc;
-            AxisNameFuncName = axisNameFuncName;
         }
 
         public LegacyAxisAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            AxisNameFuncName = (string)serializedAction.actionParameters[0];
-            AxisNameFunc = RGActionManagerUtils.DeserializeFuncFromName<string>(AxisNameFuncName);
+            AxisNameFunc = new RGActionParamFunc<string>((string)serializedAction.actionParameters[0]);
         }
 
         // Discretize the axis into three states (negative, zero, positive) so there is an equal chance of not going in either direction
@@ -50,14 +47,14 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is LegacyAxisAction action)
             {
-                return AxisNameFuncName == action.AxisNameFuncName;
+                return AxisNameFunc == action.AxisNameFunc;
             }
             return false;
         }
 
         protected override void SerializeParameters(List<object> actionParametersOut)
         {
-            actionParametersOut.Add(AxisNameFuncName);
+            actionParametersOut.Add(AxisNameFunc.Identifier);
         }
     }
 
@@ -69,7 +66,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override void PerformAction(int param)
         {
-            string axisName = Action.AxisNameFunc(TargetObject);
+            string axisName = Action.AxisNameFunc.Invoke(TargetObject);
             var inpSettings = RGLegacyInputWrapper.InputManagerSettings;
             
             // Simulate the appropriate input event for each entry associated with the axis name
