@@ -6,7 +6,7 @@ namespace RegressionGames.GenericBots
 {
     public class RGMonkeyBot : MonoBehaviour, IRGBot
     {
-        public float actionInterval = 0.0f; // every frame by default
+        public float actionInterval = 0.1f; // unscaled time
             
         private Dictionary<int, Dictionary<RGGameAction, List<IRGGameActionInstance>>> _actionsByGroup;
         private ISet<int> _validActionGroups;
