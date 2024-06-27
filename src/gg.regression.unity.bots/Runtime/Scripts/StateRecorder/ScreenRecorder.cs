@@ -68,10 +68,6 @@ namespace RegressionGames.StateRecorder
         private MouseInputActionObserver _mouseObserver;
         private ProfilerObserver _profilerObserver;
 
-
-        public static readonly Dictionary<int, TransformStatus> _emptyTransformStatusDictionary = new(0);
-
-
         public static ScreenRecorder GetInstance()
         {
             return _this;
@@ -265,7 +261,11 @@ namespace RegressionGames.StateRecorder
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _profilerObserver.StartProfiling();
                 _mouseObserver.ClearBuffer();
-                InGameObjectFinder.GetInstance()?.Cleanup();
+                var objectFinders = FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+                foreach (var objectFinder in objectFinders)
+                {
+                    objectFinder.Cleanup();
+                }
                 _isRecording = true;
                 _tickNumber = 0;
                 _currentSessionId = Guid.NewGuid().ToString("n");
@@ -321,7 +321,7 @@ namespace RegressionGames.StateRecorder
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
 
-        private void GetKeyFrameType(bool firstFrame, bool hasUIDelta, bool hasGameObjectDelta, bool pixelHashChanged)
+        private void GetKeyFrameType(bool firstFrame, bool hasDeltas, bool pixelHashChanged)
         {
             _keyFrameTypeList.Clear();
             if (firstFrame)
@@ -335,12 +335,7 @@ namespace RegressionGames.StateRecorder
                 _keyFrameTypeList.Add(KeyFrameType.UI_PIXELHASH);
             }
 
-            if (hasUIDelta)
-            {
-                _keyFrameTypeList.Add(KeyFrameType.UI_ELEMENT);
-            }
-
-            if (hasGameObjectDelta)
+            if (hasDeltas)
             {
                 _keyFrameTypeList.Add(KeyFrameType.GAME_ELEMENT);
             }
@@ -420,30 +415,44 @@ namespace RegressionGames.StateRecorder
                 // handle recording ... uses unscaled time for real framerate calculations
                 var now = Time.unscaledTimeAsDouble;
 
-                var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
-                var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
+                var transformStatuses = (new Dictionary<long, ObjectStatus>(),new Dictionary<long, ObjectStatus>());
+                var entityStatuses = (new Dictionary<long, ObjectStatus>(),new Dictionary<long, ObjectStatus>());
+
+                var keyFrameCriteria = new List<KeyFrameCriteria>();
+
+                var objectFinders = FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+                var hasDeltas = false;
+                foreach (var objectFinder in objectFinders)
+                {
+                    keyFrameCriteria.AddRange(objectFinder.GetKeyFrameCriteriaForCurrentFrame(out var hasObjectDeltas));
+                    hasDeltas |= hasObjectDeltas;
+                    if (objectFinder is TransformObjectFinder)
+                    {
+                        transformStatuses = objectFinder.GetObjectStatusForCurrentFrame();
+                    }
+                    else
+                    {
+                        entityStatuses = objectFinder.GetObjectStatusForCurrentFrame();
+                    }
+                }
 
                 // generally speaking, you want to observe the mouse relative to the prior state as the mouse input generally causes the 'newState' and thus
                 // what it clicked on normally isn't in the new state (button was in the old state)
-                if (uiTransforms.Item1.Count > 0 || gameObjectTransforms.Item1.Count > 0)
+                if (transformStatuses.Item1.Count > 0 || entityStatuses.Item1.Count > 0)
                 {
-                    _mouseObserver.ObserveMouse(uiTransforms.Item1.Values.Concat(gameObjectTransforms.Item1.Values));
+                    _mouseObserver.ObserveMouse(transformStatuses.Item1.Values.Concat(entityStatuses.Item1.Values));
                 }
                 else
                 {
-                    _mouseObserver.ObserveMouse(uiTransforms.Item2.Values.Concat(gameObjectTransforms.Item2.Values));
+                    _mouseObserver.ObserveMouse(transformStatuses.Item2.Values.Concat(entityStatuses.Item2.Values));
                 }
-
-                //Compute the delta values we need to record / evaluate to know if we need to record a key frame
-                var uiDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(uiTransforms.Item1, uiTransforms.Item2, out var hasUIDelta);
-                var gameObjectDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(gameObjectTransforms.Item1, gameObjectTransforms.Item2, out var hasGameObjectDelta);
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 string pixelHash = null;
                 var pixelHashChanged = gameFacePixelHashObserver != null && gameFacePixelHashObserver.HasPixelHashChanged(out pixelHash);
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, hasUIDelta, hasGameObjectDelta, pixelHashChanged);
+                GetKeyFrameType(_tickNumber ==0, hasDeltas, pixelHashChanged);
 
                 BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
@@ -479,10 +488,16 @@ namespace RegressionGames.StateRecorder
                         var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
                         var frameTime = Math.Max(now, mostRecentDeviceEventTime);
 
-                        // get the new state
-                        var states = InGameObjectFinder.GetInstance().GetStateForCurrentFrame(uiTransforms.Item2.Values, gameObjectTransforms.Item2.Values);
-
-                        var currentStates = states.Item2;
+                        // get the new state from all providers
+                        var currentStates = new Dictionary<long, RecordedGameObjectState>();
+                        foreach (var objectFinder in objectFinders)
+                        {
+                            var state = objectFinder.GetStateForCurrentFrame();
+                            foreach (var recordedGameObjectState in state.Item2)
+                            {
+                                currentStates[recordedGameObjectState.Key] = recordedGameObjectState.Value;
+                            }
+                        }
 
                         ++_tickNumber;
 
@@ -492,37 +507,15 @@ namespace RegressionGames.StateRecorder
                             mouse = mouseInputData
                         };
 
-                        KeyFrameCriteria[] keyFrameCriteria;
                         if (pixelHashChanged)
                         {
-                            keyFrameCriteria = new[]
-                            {
-                                new KeyFrameCriteria()
+                            keyFrameCriteria.Add(new KeyFrameCriteria()
                                 {
                                     type = KeyFrameCriteriaType.UIPixelHash,
                                     transient = false,
                                     data = new UIPixelHashKeyFrameCriteriaData()
                                 }
-                            };
-                        }
-                        else
-                        {
-                            keyFrameCriteria = uiDeltas.Values
-                                .Concat(gameObjectDeltas.Values)
-                                .Select(a => new KeyFrameCriteria()
-                                {
-                                    type = KeyFrameCriteriaType.NormalizedPath,
-                                    transient = true,
-                                    data = new PathKeyFrameCriteriaData()
-                                    {
-                                        path = a.path,
-                                        count = a.count,
-                                        addedCount = a.addedCount,
-                                        removedCount = a.removedCount,
-                                        countRule = a.higherLowerCountTracker == 0 ? (a.count == 0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual)
-                                    }
-                                })
-                                .ToArray();
+                            );
                         }
 
                         double inputTime = -1;

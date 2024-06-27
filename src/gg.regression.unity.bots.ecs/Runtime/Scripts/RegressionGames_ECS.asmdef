@@ -1,0 +1,17 @@
+{
+    "name": "RegressionGames_ECS",
+    "rootNamespace": "",
+    "references": [
+        "RegressionGames",
+        "Unity.Entities"
+     ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

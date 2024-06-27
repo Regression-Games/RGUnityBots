@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using RegressionGames.StateRecorder.Types;
 using UnityEngine;
@@ -8,41 +10,27 @@ using Component = UnityEngine.Component;
 // ReSharper disable LoopCanBeConvertedToQuery
 namespace RegressionGames.StateRecorder
 {
-    public class InGameObjectFinder : MonoBehaviour
+    public class TransformObjectFinder : ObjectFinder
     {
         // this is only a safe pooling optimization because we don't compare colliders/behaviours/rigidbodies between prior frame and current frame state.  If we do, this optimization will become unsafe
-        private static readonly List<BehaviourState> _behaviourStateObjectPool = new (100);
-        private static readonly List<ColliderRecordState> _colliderStateObjectPool = new (100);
-        private static readonly List<Collider2DRecordState> _collider2DStateObjectPool = new (100);
-        private static readonly List<RigidbodyRecordState> _rigidbodyStateObjectPool = new (100);
-        private static readonly List<Rigidbody2DRecordState> _rigidbody2DStateObjectPool = new (100);
-
-        private static InGameObjectFinder _this;
-
-        [Tooltip("(WARNING: Performance Impact) Include field/property values for behaviours.")]
-        public bool collectStateFromBehaviours;
+        private static readonly List<BehaviourState> BehaviourStateObjectPool = new (100);
+        private static readonly List<ColliderRecordState> ColliderStateObjectPool = new (100);
+        private static readonly List<Collider2DRecordState> Collider2DStateObjectPool = new (100);
+        private static readonly List<RigidbodyRecordState> RigidbodyStateObjectPool = new (100);
+        private static readonly List<Rigidbody2DRecordState> Rigidbody2DStateObjectPool = new (100);
 
         public void Awake()
         {
-            if (_this != null)
+            TransformStatus.Reset();
+
+            // Is there a better place to do this, maybe.. but for now, this gets the ECS subsystem loaded on the same object as this behaviour
+            Type t = Type.GetType("RegressionGames.StateRecorder.ECS.EntityFinder");
+            var entityFinder = this.gameObject.GetComponent(t);
+            if (entityFinder == null)
             {
-                TransformStatus.Reset();
-                // only allow 1 of these to be alive
-                if (_this.gameObject != gameObject)
-                {
-                    Destroy(gameObject);
-                    return;
-                }
+                this.gameObject.AddComponent(t);
             }
 
-            // keep this thing alive across scenes
-            DontDestroyOnLoad(gameObject);
-            _this = this;
-        }
-
-        public static InGameObjectFinder GetInstance()
-        {
-            return _this;
         }
 
         // allocate this rather large list 1 time to avoid realloc on each tick object
@@ -64,7 +52,7 @@ namespace RegressionGames.StateRecorder
         // pre-allocate this rather large list 1 time to avoid memory stuff on each tick
         private readonly List<Component> _componentsQueryList = new(100);
 
-        private void ProcessTransformComponents(TransformStatus transformStatus, IList<BehaviourState> behaviours, IList<ColliderRecordState> collidersState, IList<RigidbodyRecordState> rigidbodiesState)
+        private void ProcessTransformComponents(TransformStatus transformStatus, List<IComponentDataProvider> dataProviders)
         {
             _componentsQueryList.Clear();
             transformStatus.Transform.GetComponents(_componentsQueryList);
@@ -80,12 +68,12 @@ namespace RegressionGames.StateRecorder
                 if (component is Collider colliderEntry)
                 {
                     ColliderRecordState cObject;
-                    var poolCount = _colliderStateObjectPool.Count;
+                    var poolCount = ColliderStateObjectPool.Count;
                     if (poolCount > 0)
                     {
                         // remove from end of list
-                        cObject = _colliderStateObjectPool[poolCount - 1];
-                        _colliderStateObjectPool.RemoveAt(poolCount - 1);
+                        cObject = ColliderStateObjectPool[poolCount - 1];
+                        ColliderStateObjectPool.RemoveAt(poolCount - 1);
                     }
                     else
                     {
@@ -94,17 +82,17 @@ namespace RegressionGames.StateRecorder
 
                     cObject.collider = colliderEntry;
 
-                    collidersState.Add(cObject);
+                    dataProviders.Add(cObject);
                 }
                 else if (component is Collider2D colliderEntry2D)
                 {
                     Collider2DRecordState cObject;
-                    var poolCount = _collider2DStateObjectPool.Count;
+                    var poolCount = Collider2DStateObjectPool.Count;
                     if (poolCount > 0)
                     {
                         // remove from end of list
-                        cObject = _collider2DStateObjectPool[poolCount - 1];
-                        _collider2DStateObjectPool.RemoveAt(poolCount - 1);
+                        cObject = Collider2DStateObjectPool[poolCount - 1];
+                        Collider2DStateObjectPool.RemoveAt(poolCount - 1);
                     }
                     else
                     {
@@ -113,17 +101,17 @@ namespace RegressionGames.StateRecorder
 
                     cObject.collider = colliderEntry2D;
 
-                    collidersState.Add(cObject);
+                    dataProviders.Add(cObject);
                 }
                 else if (component is Rigidbody myRigidbody)
                 {
                     RigidbodyRecordState cObject;
-                    var poolCount = _rigidbodyStateObjectPool.Count;
+                    var poolCount = RigidbodyStateObjectPool.Count;
                     if (poolCount > 0)
                     {
                         // remove from end of list
-                        cObject = _rigidbodyStateObjectPool[poolCount - 1];
-                        _rigidbodyStateObjectPool.RemoveAt(poolCount - 1);
+                        cObject = RigidbodyStateObjectPool[poolCount - 1];
+                        RigidbodyStateObjectPool.RemoveAt(poolCount - 1);
                     }
                     else
                     {
@@ -132,17 +120,17 @@ namespace RegressionGames.StateRecorder
 
                     cObject.rigidbody = myRigidbody;
 
-                    rigidbodiesState.Add(cObject);
+                    dataProviders.Add(cObject);
                 }
                 else if (component is Rigidbody2D myRigidbody2D)
                 {
                     Rigidbody2DRecordState cObject;
-                    var poolCount = _rigidbody2DStateObjectPool.Count;
+                    var poolCount = Rigidbody2DStateObjectPool.Count;
                     if (poolCount > 0)
                     {
                         // remove from end of list
-                        cObject = _rigidbody2DStateObjectPool[poolCount - 1];
-                        _rigidbody2DStateObjectPool.RemoveAt(poolCount - 1);
+                        cObject = Rigidbody2DStateObjectPool[poolCount - 1];
+                        Rigidbody2DStateObjectPool.RemoveAt(poolCount - 1);
                     }
                     else
                     {
@@ -151,17 +139,17 @@ namespace RegressionGames.StateRecorder
 
                     cObject.rigidbody = myRigidbody2D;
 
-                    rigidbodiesState.Add(cObject);
+                    dataProviders.Add(cObject);
                 }
                 else if (component is MonoBehaviour childBehaviour)
                 {
                     BehaviourState cObject;
-                    var poolCount = _behaviourStateObjectPool.Count;
+                    var poolCount = BehaviourStateObjectPool.Count;
                     if (poolCount > 0)
                     {
                         // remove from end of list
-                        cObject = _behaviourStateObjectPool[poolCount - 1];
-                        _behaviourStateObjectPool.RemoveAt(poolCount - 1);
+                        cObject = BehaviourStateObjectPool[poolCount - 1];
+                        BehaviourStateObjectPool.RemoveAt(poolCount - 1);
                     }
                     else
                     {
@@ -171,7 +159,7 @@ namespace RegressionGames.StateRecorder
                     cObject.name = childBehaviour.GetType().FullName;
                     cObject.state = childBehaviour;
 
-                    behaviours.Add(cObject);
+                    dataProviders.Add(cObject);
                 }
             }
         }
@@ -182,44 +170,34 @@ namespace RegressionGames.StateRecorder
 
         private readonly Vector3[] _worldSpaceCorners = new Vector3[4];
 
-        private int _uiObjectFrameNumber = -1;
-        private int _gameObjectFrameNumber = -1;
+        private int _objectFrameNumber = -1;
         private int _stateFrameNumber = -1;
 
         // pre-allocate a big list we can re-use
-        private Dictionary<int,RecordedGameObjectState> _priorStates = new (1000);
-        private Dictionary<int,RecordedGameObjectState> _newStates = new(1000);
+        private Dictionary<long,RecordedGameObjectState> _priorStates = new (1000);
+        private Dictionary<long,RecordedGameObjectState> _newStates = new(1000);
         private readonly List<RecordedGameObjectState> _fillInStates = new (1000);
 
-        private Dictionary<int,TransformStatus> _priorUIObjects = new(1000);
-        private Dictionary<int,TransformStatus> _newUIObjects = new(1000);
-        private Dictionary<int,TransformStatus> _priorGameObjects = new(1000);
-        private Dictionary<int,TransformStatus> _newGameObjects = new(1000);
+        private Dictionary<long,ObjectStatus> _priorObjects = new(1000);
+        private Dictionary<long,ObjectStatus> _newObjects = new(1000);
 
-        public void Cleanup()
+
+        public override void Cleanup()
         {
             _priorStates.Clear();
             _newStates.Clear();
             _fillInStates.Clear();
 
-            _priorUIObjects.Clear();
-            _newUIObjects.Clear();
-            _priorGameObjects.Clear();
-            _newGameObjects.Clear();
-            _uiObjectFrameNumber = -1;
-            _gameObjectFrameNumber = -1;
+            _priorObjects.Clear();
+            _newObjects.Clear();
+            _objectFrameNumber = -1;
             _stateFrameNumber = -1;
         }
 
-        /**
-         * argument lists are keyed by transform id
-         *
-         * returns hasDelta on spawns or de-spawns or change in camera visibility .. result is keyed on path hash
-         */
-        public Dictionary<int, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<int,TransformStatus> priorTransformStatusList, Dictionary<int, TransformStatus> currentTransformStatusList, out bool hasDelta)
+        public override Dictionary<long, PathBasedDeltaCount> ComputeNormalizedPathBasedDeltaCounts(Dictionary<long, ObjectStatus> priorTransformStatusList, Dictionary<long, ObjectStatus> currentTransformStatusList, out bool hasDelta)
         {
             hasDelta = false;
-            var result = new Dictionary<int, PathBasedDeltaCount>(); // keyed by path hash
+            var result = new Dictionary<long, PathBasedDeltaCount>(); // keyed by path hash
             /*
              * go through the new state and add up the totals
              * - track the ids for each path
@@ -273,7 +251,7 @@ namespace RegressionGames.StateRecorder
             }
 
             // figure out de-spawns
-            foreach( KeyValuePair<int, TransformStatus> entry in priorTransformStatusList)
+            foreach( KeyValuePair<long, ObjectStatus> entry in priorTransformStatusList)
             {
                 var pathHash = entry.Value.NormalizedPath.GetHashCode();
                 if (!result.TryGetValue(pathHash, out var pathCountEntry))
@@ -293,23 +271,30 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        /**
-         * <returns>uiObjects transform status for previous and current frame, ... will have null screenSpaceBounds if off camera</returns>
-         */
-        public (Dictionary<int, TransformStatus>,Dictionary<int, TransformStatus>) GetUITransformsForCurrentFrame()
+        public override (Dictionary<long, ObjectStatus>, Dictionary<long, ObjectStatus>) GetObjectStatusForCurrentFrame()
         {
             var frameCount = Time.frameCount;
-            if (frameCount == _uiObjectFrameNumber)
+            if (frameCount == _stateFrameNumber)
             {
                 // we already processed this frame (happens when recording during replay and they both call this)
-                return (_priorUIObjects, _newUIObjects);
+                return (_priorObjects, _newObjects);
             }
 
-            _uiObjectFrameNumber = frameCount;
+            _objectFrameNumber = frameCount;
 
             // switch the list references
-            (_priorUIObjects, _newUIObjects) = (_newUIObjects, _priorUIObjects);
-            _newUIObjects.Clear();
+            (_priorObjects, _newObjects) = (_newObjects, _priorObjects);
+            _newObjects.Clear();
+
+            // populate the data
+            PopulateUITransformsForCurrentFrame();
+            PopulateGameObjectTransformsForCurrentFrame();
+
+            return (_priorObjects, _newObjects);
+        }
+
+        private void PopulateUITransformsForCurrentFrame()
+        {
 
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
 
@@ -364,7 +349,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 var objectTransform = statefulUIObject.transform;
                                 var tStatus = TransformStatus.GetOrCreateTransformStatus(objectTransform);
-                                _newUIObjects[tStatus.Id] = tStatus;
+                                _newObjects[tStatus.Id] = tStatus;
 
                                 Vector2 min, max;
                                 var worldMin = Vector3.zero;
@@ -475,27 +460,13 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
-            return (_priorUIObjects, _newUIObjects);
         }
 
         /**
          * <returns>worldSpaceObjects transform status for previous and current frame, ... will have null screenSpaceBounds if off camera</returns>
          */
-        public (Dictionary<int, TransformStatus>,Dictionary<int, TransformStatus>) GetGameObjectTransformsForCurrentFrame()
+        private void PopulateGameObjectTransformsForCurrentFrame()
         {
-            var frameCount = Time.frameCount;
-            if (frameCount == _gameObjectFrameNumber)
-            {
-                // we already processed this frame (happens when recording during replay and they both call this)
-                return (_priorGameObjects, _newGameObjects);
-            }
-
-            _gameObjectFrameNumber = frameCount;
-
-            // switch the list references
-            (_priorGameObjects, _newGameObjects) = (_newGameObjects, _priorGameObjects);
-            _newGameObjects.Clear();
-
             // find everything with a renderer.. then select the last parent walking up the tree that has
             // one of the key types.. in most cases that should be the correct 'parent' game object
             // ignore UI items we already added above (these might have particle effect or other renderers on them, but does not necessarily make them world space)
@@ -591,7 +562,7 @@ namespace RegressionGames.StateRecorder
 
                     // depending on the include only on camera setting, this object may be null
                     var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulTransform);
-                    _newGameObjects[tStatus.Id] = tStatus;
+                    _newObjects[tStatus.Id] = tStatus;
 
                     var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
                     if (onCamera)
@@ -715,14 +686,110 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
+        }
 
-            return (_priorGameObjects, _newGameObjects);
+        public override List<KeyFrameCriteria> GetKeyFrameCriteriaForCurrentFrame(out bool hasDeltas)
+        {
+            var transforms = GetObjectStatusForCurrentFrame();
+
+            var deltas = ComputeNormalizedPathBasedDeltaCounts(transforms.Item1, transforms.Item2, out hasDeltas);
+
+            return deltas.Values
+                .Select(a => new KeyFrameCriteria()
+                {
+                    type = KeyFrameCriteriaType.NormalizedPath,
+                    transient = true,
+                    data = new PathKeyFrameCriteriaData()
+                    {
+                        path = a.path,
+                        count = a.count,
+                        addedCount = a.addedCount,
+                        removedCount = a.removedCount,
+                        countRule = a.higherLowerCountTracker == 0 ? (a.count == 0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual)
+                    }
+                })
+                .ToList();
+        }
+
+        public RecordedGameObjectState GetStateForTransformObject(TransformStatus tStatus)
+        {
+            var uiObjectTransformId = tStatus.Id;
+            // only process visible objects into the state
+            if (tStatus.Transform != null && tStatus.screenSpaceBounds.HasValue)
+            {
+                var usingOldObject = _priorStates.TryGetValue(uiObjectTransformId, out var resultObject);
+
+                if (!usingOldObject)
+                {
+                    var theGameObject = tStatus.Transform.gameObject;
+                    var parentTransform = tStatus.Transform.parent;
+
+                    resultObject = new RecordedGameObjectState()
+                    {
+                        id = uiObjectTransformId,
+                        parentId = parentTransform != null ? parentTransform.GetInstanceID() : null,
+                        path = tStatus.Path,
+                        normalizedPath = tStatus.NormalizedPath,
+                        tag = theGameObject.tag,
+                        layer = LayerMask.LayerToName(theGameObject.layer),
+                        scene = theGameObject.scene,
+                        componentDataProviders = new List<IComponentDataProvider>()
+                        {
+                            new TransformComponentDataProvider()
+                            {
+                                Transform = transform
+                            }
+                        }
+                    };
+                }
+
+                resultObject.position = tStatus.Transform.position;
+                resultObject.rotation = tStatus.Transform.rotation;
+
+                resultObject.screenSpaceZOffset = tStatus.screenSpaceZOffset;
+                resultObject.screenSpaceBounds = tStatus.screenSpaceBounds.Value;
+                resultObject.worldSpaceBounds = tStatus.worldSpaceBounds;
+
+                var dataProviders = resultObject.componentDataProviders;
+                var dataProvidersCount = dataProviders.Count;
+                for (var i = 0; i < dataProvidersCount; i++)
+                {
+                    var cs = resultObject.componentDataProviders[i];
+                    if (cs is Collider2DRecordState c2d)
+                    {
+                        Collider2DStateObjectPool.Add(c2d);
+                    }
+                    else if (cs is ColliderRecordState cd)
+                    {
+                        ColliderStateObjectPool.Add(cd);
+                    }
+                    else if (cs is Rigidbody2DRecordState r2d)
+                    {
+                        Rigidbody2DStateObjectPool.Add(r2d);
+                    }
+                    else if (cs is RigidbodyRecordState rd)
+                    {
+                        RigidbodyStateObjectPool.Add(rd);
+                    }
+                    else if (cs is BehaviourState bd)
+                    {
+                        BehaviourStateObjectPool.Add(bd);
+                    }
+                }
+
+                dataProviders.Clear();
+                ProcessTransformComponents(tStatus, dataProviders);
+                return resultObject;
+
+            }
+
+            return null;
         }
 
         /**
-         * <returns>(priorState, currentState, offCameraTransforms)</returns>
+         * <returns>(priorState, currentState)</returns>
          */
-        public (Dictionary<int, RecordedGameObjectState>, Dictionary<int, RecordedGameObjectState>) GetStateForCurrentFrame(IEnumerable<TransformStatus> uiObjectTransformStatusList, IEnumerable<TransformStatus> gameObjectTransformStatusList)
+        public override (Dictionary<long, RecordedGameObjectState>, Dictionary<long, RecordedGameObjectState>) GetStateForCurrentFrame()
         {
             var frameCount = Time.frameCount;
             if (frameCount == _stateFrameNumber)
@@ -737,136 +804,13 @@ namespace RegressionGames.StateRecorder
             (_priorStates, _newStates) = (_newStates, _priorStates);
             _newStates.Clear();
 
-            foreach (var tStatus in uiObjectTransformStatusList)
+            var statusList = GetObjectStatusForCurrentFrame().Item2;
+
+            foreach (var oStatus in statusList.Values)
             {
-                var uiObjectTransformId = tStatus.Id;
-                // only process visible objects into the state
-                if (tStatus.Transform != null && tStatus.screenSpaceBounds.HasValue)
+                if (oStatus is TransformStatus tStatus)
                 {
-                    var usingOldObject = _priorStates.TryGetValue(uiObjectTransformId, out var resultObject);
-
-                    if (!usingOldObject)
-                    {
-                        var theGameObject = tStatus.Transform.gameObject;
-                        var parentTransform = tStatus.Transform.parent;
-
-                        resultObject = new RecordedGameObjectState()
-                        {
-                            id = uiObjectTransformId,
-                            parentId = parentTransform != null ? parentTransform.GetInstanceID() : null,
-                            transform = tStatus.Transform,
-                            path = tStatus.Path,
-                            normalizedPath = tStatus.NormalizedPath,
-                            tag = theGameObject.tag,
-                            layer = LayerMask.LayerToName(theGameObject.layer),
-                            scene = theGameObject.scene,
-                            behaviours = new List<BehaviourState>(),
-                            colliders = new List<ColliderRecordState>(),
-                            rigidbodies = new List<RigidbodyRecordState>()
-                        };
-                    }
-
-                    resultObject.screenSpaceZOffset = tStatus.screenSpaceZOffset;
-                    resultObject.screenSpaceBounds = tStatus.screenSpaceBounds.Value;
-                    resultObject.worldSpaceBounds = tStatus.worldSpaceBounds;
-
-                    _newStates[resultObject.id] = resultObject;
-
-                    var collidersState = resultObject.colliders;
-                    var collidersStateCount = collidersState.Count;
-                    for (var i = 0; i < collidersStateCount; i++)
-                    {
-                        var cs = collidersState[i];
-                        if (cs is Collider2DRecordState c2d)
-                        {
-                            _collider2DStateObjectPool.Add(c2d);
-                        }
-                        else
-                        {
-                            _colliderStateObjectPool.Add(cs);
-                        }
-                    }
-                    collidersState.Clear();
-
-                    IList<BehaviourState> behaviours = resultObject.behaviours;
-                    _behaviourStateObjectPool.AddRange(behaviours);
-                    behaviours.Clear();
-
-                    ProcessTransformComponents(tStatus, behaviours, collidersState, null);
-                }
-            }
-
-            foreach (var tStatus in gameObjectTransformStatusList)
-            {
-                var gameObjectTransformId = tStatus.Id;
-                // only process visible objects into the state
-                if (tStatus.Transform != null && tStatus.screenSpaceBounds.HasValue)
-                {
-                    var usingOldObject = _priorStates.TryGetValue(gameObjectTransformId, out var resultObject);
-
-                    if (!usingOldObject)
-                    {
-                        var theGameObject = tStatus.Transform.gameObject;
-                        var parentTransform = tStatus.Transform.parent;
-
-                        resultObject = new RecordedGameObjectState()
-                        {
-                            id = gameObjectTransformId,
-                            parentId = parentTransform != null ? parentTransform.GetInstanceID() : null,
-                            transform = tStatus.Transform,
-                            path = tStatus.Path,
-                            normalizedPath = tStatus.NormalizedPath,
-                            tag = theGameObject.tag,
-                            layer = LayerMask.LayerToName(theGameObject.layer),
-                            scene = theGameObject.scene,
-                            behaviours = new List<BehaviourState>(),
-                            colliders = new List<ColliderRecordState>(),
-                            rigidbodies = new List<RigidbodyRecordState>()
-                        };
-                    }
-
-                    resultObject.screenSpaceZOffset = tStatus.screenSpaceZOffset;
-                    resultObject.screenSpaceBounds = tStatus.screenSpaceBounds.Value;
-                    resultObject.worldSpaceBounds = tStatus.worldSpaceBounds;
-
-                    var behaviours = resultObject.behaviours;
-                    _behaviourStateObjectPool.AddRange(behaviours);
-                    behaviours.Clear();
-
-                    var collidersState = resultObject.colliders;
-                    var collidersStateCount = collidersState.Count;
-                    for (var i = 0; i < collidersStateCount; i++)
-                    {
-                        var cs = collidersState[i];
-                        if (cs is Collider2DRecordState c2d)
-                        {
-                            _collider2DStateObjectPool.Add(c2d);
-                        }
-                        else
-                        {
-                            _colliderStateObjectPool.Add(cs);
-                        }
-                    }
-                    collidersState.Clear();
-
-                    var rigidbodiesState = resultObject.rigidbodies;
-                    var rigidbodiesStateCount = rigidbodiesState.Count;
-                    for (var i = 0; i < rigidbodiesStateCount; i++)
-                    {
-                        var rs = rigidbodiesState[i];
-                        if (rs is Rigidbody2DRecordState r2d)
-                        {
-                            _rigidbody2DStateObjectPool.Add(r2d);
-                        }
-                        else
-                        {
-                            _rigidbodyStateObjectPool.Add(rs);
-                        }
-                    }
-                    rigidbodiesState.Clear();
-
-                    // process the first object here
-                    ProcessTransformComponents(tStatus, behaviours, collidersState, rigidbodiesState);
+                    var resultObject = GetStateForTransformObject(tStatus);
                     _newStates[resultObject.id] = resultObject;
                 }
             }
@@ -875,82 +819,86 @@ namespace RegressionGames.StateRecorder
             // now fill in any 'missing' parent objects in the state so that the UI can render the full tree
             foreach (var newStateEntry in _newStates.Values)
             {
-                int? parentId = newStateEntry.parentId;
-                var parentTransform = newStateEntry.transform.parent;
-                // go up the tree until we find something in our parent hierarchy existing..
-                // stop if we hit the top
-                while (parentId.HasValue && parentTransform != null && !_newStates.ContainsKey(parentId.Value))
+                var parentId = newStateEntry.parentId;
+                if (parentId.HasValue)
                 {
-                    var parentParentTransform = parentTransform.parent;
-                    int? parentParentId = parentParentTransform != null ? parentParentTransform.GetInstanceID() : null;
-                    var usingOldObject = _priorStates.TryGetValue(parentId.Value, out var resultObject);
-                    var tStatus = TransformStatus.GetOrCreateTransformStatus(parentTransform);
-                    if (!usingOldObject)
+                    if (statusList.TryGetValue(parentId.Value, out var parentStatus))
                     {
-                        var theGameObject = parentTransform.gameObject;
-                        resultObject = new RecordedGameObjectState()
+                        var parentTransform = (parentStatus is TransformStatus ptStatus) ? ptStatus.Transform : null;
+
+                        // go up the tree until we find something in our parent hierarchy existing..
+                        // stop if we hit the top
+                        while (parentId.HasValue && parentTransform != null && !_newStates.ContainsKey(parentId.Value))
                         {
-                            id = parentId.Value,
-                            parentId = parentParentId,
-                            transform = parentTransform,
-                            path = tStatus.Path,
-                            normalizedPath = tStatus.NormalizedPath,
-                            tag = theGameObject.tag,
-                            layer = LayerMask.LayerToName(theGameObject.layer),
-                            scene = theGameObject.scene,
-                            behaviours = new List<BehaviourState>(),
-                            colliders = new List<ColliderRecordState>(),
-                            rigidbodies = new List<RigidbodyRecordState>(),
-                            screenSpaceBounds = null,
-                            screenSpaceZOffset = 0,
-                            worldSpaceBounds = null
-                        };
+                            var parentParentTransform = parentTransform.parent;
+                            int? parentParentId = parentParentTransform != null ? parentParentTransform.GetInstanceID() : null;
+                            var usingOldObject = _priorStates.TryGetValue(parentId.Value, out var resultObject);
+                            var tStatus = TransformStatus.GetOrCreateTransformStatus(parentTransform);
+                            if (!usingOldObject)
+                            {
+                                var theGameObject = parentTransform.gameObject;
+                                resultObject = new RecordedGameObjectState()
+                                {
+                                    id = parentId.Value,
+                                    parentId = parentParentId,
+                                    path = tStatus.Path,
+                                    normalizedPath = tStatus.NormalizedPath,
+                                    tag = theGameObject.tag,
+                                    layer = LayerMask.LayerToName(theGameObject.layer),
+                                    scene = theGameObject.scene,
+                                    componentDataProviders = new List<IComponentDataProvider>()
+                                    {
+                                        new TransformComponentDataProvider()
+                                        {
+                                            Transform = parentTransform
+                                        }
+                                    },
+                                    screenSpaceBounds = null,
+                                    screenSpaceZOffset = 0,
+                                    worldSpaceBounds = null
+                                };
+                            }
+
+                            resultObject.position = parentTransform.position;
+                            resultObject.rotation = parentTransform.rotation;
+
+                            var dataProviders = resultObject.componentDataProviders;
+                            var dataProvidersCount = dataProviders.Count;
+                            for (var i = 0; i < dataProvidersCount; i++)
+                            {
+                                var cs = resultObject.componentDataProviders[i];
+                                if (cs is Collider2DRecordState c2d)
+                                {
+                                    Collider2DStateObjectPool.Add(c2d);
+                                }
+                                else if (cs is ColliderRecordState cd)
+                                {
+                                    ColliderStateObjectPool.Add(cd);
+                                }
+                                else if (cs is Rigidbody2DRecordState r2d)
+                                {
+                                    Rigidbody2DStateObjectPool.Add(r2d);
+                                }
+                                else if (cs is RigidbodyRecordState rd)
+                                {
+                                    RigidbodyStateObjectPool.Add(rd);
+                                }
+                                else if (cs is BehaviourState bd)
+                                {
+                                    BehaviourStateObjectPool.Add(bd);
+                                }
+                            }
+
+                            dataProviders.Clear();
+                            ProcessTransformComponents(tStatus, dataProviders);
+
+                            // don't update the dictionary while iterating
+                            _fillInStates.Add(resultObject);
+
+                            parentTransform = parentParentTransform;
+                            parentId = parentParentId;
+                        }
                     }
-
-                    var behaviours = resultObject.behaviours;
-                    _behaviourStateObjectPool.AddRange(behaviours);
-                    behaviours.Clear();
-
-                    var collidersState = resultObject.colliders;
-                    var collidersStateCount = collidersState.Count;
-                    for (var i = 0; i < collidersStateCount; i++)
-                    {
-                        var cs = collidersState[i];
-                        if (cs is Collider2DRecordState c2d)
-                        {
-                            _collider2DStateObjectPool.Add(c2d);
-                        }
-                        else
-                        {
-                            _colliderStateObjectPool.Add(cs);
-                        }
-                    }
-                    collidersState.Clear();
-
-                    var rigidbodiesState = resultObject.rigidbodies;
-                    var rigidbodiesStateCount = rigidbodiesState.Count;
-                    for (var i = 0; i < rigidbodiesStateCount; i++)
-                    {
-                        var rs = rigidbodiesState[i];
-                        if (rs is Rigidbody2DRecordState r2d)
-                        {
-                            _rigidbody2DStateObjectPool.Add(r2d);
-                        }
-                        else
-                        {
-                            _rigidbodyStateObjectPool.Add(rs);
-                        }
-                    }
-                    rigidbodiesState.Clear();
-
-                    // process the first object here
-                    ProcessTransformComponents(tStatus, behaviours, collidersState, rigidbodiesState);
-
-                    // don't update the dictionary while iterating
-                    _fillInStates.Add(resultObject);
-
-                    parentTransform = parentParentTransform;
-                    parentId = parentParentId;
                 }
             }
 

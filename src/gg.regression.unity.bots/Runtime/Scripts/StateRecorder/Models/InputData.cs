@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class InputData
+    public class InputData: IComponentDataProvider
     {
         // version of this schema, update this if fields change
         public int apiVersion = BotSegment.SDK_API_VERSION_1;

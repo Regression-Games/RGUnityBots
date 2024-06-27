@@ -1,58 +1,29 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.Models
 {
-    public class TransformStatus
+    public class TransformStatus : ObjectStatus
     {
         private TransformStatus()
-        {
-
-        }
-
-        public override string ToString()
-        {
-            // implement for easier debugger usage
-            return "" + Id + " - " + Path + " - " + (screenSpaceBounds!=null?"true":"false") + " - " + (worldSpaceBounds !=null?"true":"false");
-        }
-
-        public int Id;
-        public bool? HasKeyTypes;
-        public string Path;
-        /**
-         * <summary>Has things like ' (1)' and ' (Clone)' stripped off of object names.</summary>
-         */
-        public string NormalizedPath;
+        {}
 
         public Transform Transform;
 
-        /**
-         * <summary>cached pointer to the top level transform of this transform.. must check != null to avoid stale unity object references</summary>
-         */
-        public Transform TopLevelForThisTransform;
-
-        public Bounds? screenSpaceBounds;
-        /**
-         * <summary>The closest distance to the camera, tracked outside of screenSpaceBounds so that screen space bounds is always around 0.0</summary>
-         */
-        public float screenSpaceZOffset;
-
-        public Bounds? worldSpaceBounds;
-
-
         // re-use these objects
-        private static readonly StringBuilder _tPathBuilder = new StringBuilder(500);
-        private static readonly StringBuilder _tNormalizedPathBuilder = new StringBuilder(500);
-        private static readonly List<GameObject> _parentList = new(100);
+        private static readonly StringBuilder PathBuilder = new (500);
+        private static readonly StringBuilder NormalizedPathBuilder = new (500);
+        private static readonly List<GameObject> ParentList = new(100);
 
         // right now this resets on awake from InGameObjectFinder, but we may have to deal with dynamically re-parented transforms better at some point...
-        private static readonly Dictionary<int, TransformStatus> _transformsIveSeen = new(1000);
+        private static readonly Dictionary<int, TransformStatus> TransformsIveSeen = new(1000);
 
         public static void Reset()
         {
-            _transformsIveSeen.Clear();
-            _parentList.Clear();
+            TransformsIveSeen.Clear();
+            ParentList.Clear();
         }
 
         public static TransformStatus GetOrCreateTransformStatus(Transform theTransform)
@@ -62,7 +33,7 @@ namespace RegressionGames.StateRecorder.Models
 
             var id = theTransform.GetInstanceID();
 
-            if (_transformsIveSeen.TryGetValue(id, out var status))
+            if (TransformsIveSeen.TryGetValue(id, out var status))
             {
                 if (status.Path != null)
                 {
@@ -79,32 +50,32 @@ namespace RegressionGames.StateRecorder.Models
             {
                 // now .. get the path in the scene.. but only from 1 level down
                 // iow.. ignore the name of the scene itself for cases where many scenes are loaded together like bossroom
-                _parentList.Clear();
-                _parentList.Add(theTransform.gameObject);
+                ParentList.Clear();
+                ParentList.Add(theTransform.gameObject);
                 var parent = theTransform.parent;
                 while (parent != null)
                 {
-                    _parentList.Add(parent.gameObject);
+                    ParentList.Add(parent.gameObject);
                     parent = parent.parent;
                 }
 
-                _tPathBuilder.Clear();
-                _tNormalizedPathBuilder.Clear();
-                for (var i = _parentList.Count-1; i >=0; i--)
+                PathBuilder.Clear();
+                NormalizedPathBuilder.Clear();
+                for (var i = ParentList.Count-1; i >=0; i--)
                 {
-                    var parentEntry = _parentList[i];
+                    var parentEntry = ParentList[i];
                     var objectName = parentEntry.gameObject.name;
-                    _tPathBuilder.Append(objectName);
-                    _tNormalizedPathBuilder.Append(SanitizeObjectName(objectName));
+                    PathBuilder.Append(objectName);
+                    NormalizedPathBuilder.Append(SanitizeObjectName(objectName));
                     if (i - 1 >= 0)
                     {
-                        _tPathBuilder.Append("/");
-                        _tNormalizedPathBuilder.Append("/");
+                        PathBuilder.Append("/");
+                        NormalizedPathBuilder.Append("/");
                     }
                 }
 
-                tPath = _tPathBuilder.ToString();
-                tPathNormalized = _tNormalizedPathBuilder.ToString();
+                tPath = PathBuilder.ToString();
+                tPathNormalized = NormalizedPathBuilder.ToString();
 
                 if (status == null)
                 {
@@ -113,7 +84,7 @@ namespace RegressionGames.StateRecorder.Models
                         Id = id,
                         Transform = theTransform
                     };
-                    _transformsIveSeen[id] = status;
+                    TransformsIveSeen[id] = status;
                     // update the cache with our result
                 }
                 status.Path = tPath;
@@ -154,6 +125,17 @@ namespace RegressionGames.StateRecorder.Models
             }
 
             return input;
+        }
+
+        public override bool PositionHitsCollider(Vector3 position)
+        {
+            var colliders = Transform.GetComponentsInChildren<Collider>();
+            if (colliders.FirstOrDefault(a => a.bounds.Contains(position)) != null)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

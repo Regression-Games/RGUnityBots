@@ -8,7 +8,7 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RigidbodyRecordState
+    public class RigidbodyRecordState: IComponentDataProvider
     {
         // keep a ref to this instead of updating fields every tick
         public Rigidbody rigidbody;

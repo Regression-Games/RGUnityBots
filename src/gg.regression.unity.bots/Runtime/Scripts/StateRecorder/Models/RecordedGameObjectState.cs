@@ -13,9 +13,9 @@ namespace RegressionGames.StateRecorder.Models
     public class RecordedGameObjectState
     {
 
-        public int id;
+        public long id;
 
-        public int? parentId;
+        public long? parentId;
 
         public string path;
         public string normalizedPath;
@@ -30,22 +30,21 @@ namespace RegressionGames.StateRecorder.Models
 
         public float? screenSpaceZOffset;
 
-        [NonSerialized]
-        // keep reference to this instead of updating its fields every tick
-        public Transform transform;
+        public Vector3? position;
+        public Quaternion? rotation;
 
         public Bounds? worldSpaceBounds;
 
-        public IList<RigidbodyRecordState> rigidbodies;
-        public IList<ColliderRecordState> colliders;
-        public IList<BehaviourState> behaviours;
+        // List of component data provider impls for this object.. allows transform and entity support
+        [NonSerialized]
+        public List<IComponentDataProvider> componentDataProviders;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\n\"id\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, id);
+            LongJsonConverter.WriteToStringBuilder(stringBuilder, id);
             stringBuilder.Append(",\n\"parentId\":");
-            IntJsonConverter.WriteToStringBuilderNullable(stringBuilder, parentId);
+            LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, parentId);
             stringBuilder.Append(",\n\"path\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
             stringBuilder.Append(",\n\"normalizedPath\":");
@@ -63,35 +62,18 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\n\"worldSpaceBounds\":");
             BoundsJsonConverter.WriteToStringBuilderNullable(stringBuilder, worldSpaceBounds);
             stringBuilder.Append(",\n\"position\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, transform.position);
+            VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, position);
             stringBuilder.Append(",\n\"rotation\":");
-            QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, transform.rotation);
-            stringBuilder.Append(",\n\"rigidbodies\":[\n");
-            var rigidbodiesCount = rigidbodies.Count;
-            for (var i = 0; i < rigidbodiesCount; i++)
+            QuaternionJsonConverter.WriteToStringBuilderNullable(stringBuilder, rotation);
+            // TODO: Someday remove these no longer used fields
+            stringBuilder.Append(",\n\"rigidbodies\":[],\n\"colliders\":[],\n\"behaviours\":[]");
+            stringBuilder.Append(",\n\"components\":[\n");
+            var componentDataProvidersCount = componentDataProviders.Count;
+            for (var i = 0; i < componentDataProvidersCount; i++)
             {
-                rigidbodies[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < rigidbodiesCount)
-                {
-                    stringBuilder.Append(",\n");
-                }
-            }
-            stringBuilder.Append("\n],\n\"colliders\":[\n");
-            var collidersCount = colliders.Count;
-            for (var i = 0; i < collidersCount; i++)
-            {
-                colliders[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < collidersCount)
-                {
-                    stringBuilder.Append(",\n");
-                }
-            }
-            stringBuilder.Append("\n],\n\"behaviours\":[\n");
-            var behavioursCount = behaviours.Count;
-            for (var i = 0; i < behavioursCount; i++)
-            {
-                behaviours[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < behavioursCount)
+                var cdp = componentDataProviders[i];
+                cdp.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < componentDataProvidersCount)
                 {
                     stringBuilder.Append(",\n");
                 }

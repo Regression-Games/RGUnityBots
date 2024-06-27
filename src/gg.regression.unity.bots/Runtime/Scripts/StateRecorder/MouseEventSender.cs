@@ -193,9 +193,9 @@ namespace RegressionGames.StateRecorder
              }
         }
 
-        public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<int, TransformStatus> priorUiTransforms, Dictionary<int, TransformStatus> priorGameObjectTransforms, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
+        public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<long, ObjectStatus> priorTransforms, Dictionary<long, ObjectStatus> priorEntities, Dictionary<long, ObjectStatus> transforms, Dictionary<long, ObjectStatus> entities)
         {
-            var clickObjectResult = FindBestClickObject(Camera.main, mouseInput, priorUiTransforms, priorGameObjectTransforms,uiTransforms, gameObjectTransforms);
+            var clickObjectResult = FindBestClickObject(Camera.main, mouseInput, priorTransforms, priorEntities, transforms, entities);
 
             var bestObject = clickObjectResult.Item1;
             var normalizedPosition = clickObjectResult.Item3;
@@ -279,7 +279,7 @@ namespace RegressionGames.StateRecorder
         // Finds the best object to adjust our click position to for a given mouse input
         // Uses the exact path for UI clicks, but the normalized path for world space clicks
         // Returns (the object, whether it was world space, the suggested mouse position)
-        private static (TransformStatus, bool, Vector2, IEnumerable<TransformStatus>) FindBestClickObject(Camera mainCamera, MouseInputActionData mouseInput, Dictionary<int, TransformStatus> priorUiTransforms, Dictionary<int, TransformStatus> priorGameObjectTransforms, Dictionary<int, TransformStatus> uiTransforms, Dictionary<int, TransformStatus> gameObjectTransforms)
+        private static (ObjectStatus, bool, Vector2, IEnumerable<ObjectStatus>) FindBestClickObject(Camera mainCamera, MouseInputActionData mouseInput, Dictionary<long, ObjectStatus> priorTransforms, Dictionary<long, ObjectStatus> priorEntities, Dictionary<long, ObjectStatus> transforms, Dictionary<long, ObjectStatus> entities)
         {
 
             // Mouse is hard... we can't use the raw position, we need to use the position relative to the current resolution
@@ -291,7 +291,7 @@ namespace RegressionGames.StateRecorder
             if (mouseInput.clickedObjectNormalizedPaths == null || mouseInput.clickedObjectNormalizedPaths.Length == 0)
             {
                 // bail out early, no click
-                return (null, false, normalizedPosition, uiTransforms.Values.Concat(gameObjectTransforms.Values));
+                return (null, false, normalizedPosition, transforms.Values.Concat(entities.Values));
             }
 
             var theNp = new Vector3(normalizedPosition.x, normalizedPosition.y, 0f);
@@ -302,9 +302,9 @@ namespace RegressionGames.StateRecorder
             var mousePaths = mouseInput.clickedObjectNormalizedPaths;
             var pathsToFind = mousePaths.ToList();
 
-            var possibleObjects = new List<TransformStatus>();
+            var possibleObjects = new List<ObjectStatus>();
 
-            foreach (var os in uiTransforms)
+            foreach (var os in transforms)
             {
                 var val = os.Value;
                 if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, val.Path))
@@ -314,7 +314,7 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            foreach (var os in gameObjectTransforms)
+            foreach (var os in entities)
             {
                 var val = os.Value;
                 if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, val.NormalizedPath))
@@ -328,21 +328,28 @@ namespace RegressionGames.StateRecorder
             // this is used primarly for mouse up event processing
             if (pathsToFind.Count > 0)
             {
-                foreach (var os in priorUiTransforms)
+                if (priorTransforms != null)
                 {
-                    var val = os.Value;
-                    if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, val.Path))
+                    foreach (var os in priorTransforms)
                     {
-                        possibleObjects.Add(val);
+                        var val = os.Value;
+                        if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, val.Path))
+                        {
+                            possibleObjects.Add(val);
+                        }
                     }
+
                 }
 
-                foreach (var os in priorGameObjectTransforms)
+                if (priorEntities != null)
                 {
-                    var val = os.Value;
-                    if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, val.NormalizedPath))
+                    foreach (var os in priorEntities)
                     {
-                        possibleObjects.Add(val);
+                        var val = os.Value;
+                        if (StateRecorderUtils.OptimizedContainsStringInArray(mousePaths, val.NormalizedPath))
+                        {
+                            possibleObjects.Add(val);
+                        }
                     }
                 }
             }
@@ -359,7 +366,7 @@ namespace RegressionGames.StateRecorder
             var screenHeight = Screen.height;
             float smallestSize = screenWidth * screenHeight;
 
-            TransformStatus bestObject = null;
+            ObjectStatus bestObject = null;
             var worldSpaceObject = false;
 
             var possibleObjectsCount = possibleObjects.Count;
@@ -382,8 +389,7 @@ namespace RegressionGames.StateRecorder
                             // use the world space click location closest to the actual object location
                             var mouseWorldPosition = mouseInput.worldPosition.Value;
                             // uses the collider bounds on that object as colliders are what would drive world space objects' click detection in scripts / etc
-                            var colliders = objectToCheck.Transform.GetComponentsInChildren<Collider>();
-                            if (colliders.FirstOrDefault(a => a.bounds.Contains(mouseWorldPosition)) != null)
+                            if (objectToCheck.PositionHitsCollider( mouseWorldPosition))
                             {
                                 var screenPoint = mainCamera.WorldToScreenPoint(mouseWorldPosition);
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
