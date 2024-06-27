@@ -32,6 +32,22 @@ namespace RegressionGames.ActionManager.Actions
         public override bool IsValidForObject(Object obj)
         {
             Button btn = (Button)obj;
+            if (!btn.IsInteractable())
+            {
+                return false;
+            }
+
+            Transform t = btn.transform.parent;
+            while (t != null)
+            {
+                CanvasGroup canvasGroup = t.gameObject.GetComponent<CanvasGroup>();
+                if (canvasGroup != null && (!canvasGroup.interactable || !canvasGroup.blocksRaycasts))
+                {
+                    return false;
+                }
+                t = t.parent;
+            }
+            
             foreach (string listenerName in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
             {
                 if (listenerName == EventListenerName)
