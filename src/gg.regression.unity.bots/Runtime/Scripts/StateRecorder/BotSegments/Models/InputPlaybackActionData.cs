@@ -4,7 +4,6 @@ using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -22,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public double startTime;
         public InputData inputData;
 
-        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - Processing InputPlaybackActionData");
 
@@ -40,7 +39,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
-        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
+        public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             var result = false;
             var currentTime = Time.unscaledTime;
@@ -67,13 +66,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
                 {
-                    //Need the statuses for the mouse to click correctly when things move a bit or resolution changes
-                    var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
-                    var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
 
                     // send event
                     result = true;
-                    MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, uiTransforms.Item1, gameObjectTransforms.Item1, uiTransforms.Item2, gameObjectTransforms.Item2);
+                    MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, null, null, currentTransforms, currentEntities);
                     replayMouseInputEntry.Replay_IsDone = true;
                 }
             }

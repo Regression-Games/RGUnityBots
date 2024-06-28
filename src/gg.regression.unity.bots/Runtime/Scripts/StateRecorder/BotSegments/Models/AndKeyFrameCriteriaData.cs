@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -11,14 +12,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // version for this schema, update if this top level changes
         public int apiVersion = BotSegment.SDK_API_VERSION_1;
 
-        public KeyFrameCriteria[] criteriaList;
+        public List<KeyFrameCriteria> criteriaList;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"criteriaList\":[");
-            var criteriaListLength = criteriaList.Length;
+            var criteriaListLength = criteriaList.Count;
             for (var i = 0; i < criteriaListLength; i++)
             {
                 var criteria = criteriaList[i];

@@ -8,7 +8,7 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class ColliderRecordState
+    public class ColliderRecordState: IComponentDataProvider
     {
         public Collider collider;
 

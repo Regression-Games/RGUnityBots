@@ -22,17 +22,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? 0);
 
         // Called before the first call to ProcessAction to allow data setup by the action code
-        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            data.StartAction(segmentNumber, currentUITransforms, currentGameObjectTransforms);
+            data.StartAction(segmentNumber, currentTransforms, currentEntities);
         }
 
         // called once per frame
         // returns true if an action was performed
         // out error will have an error string or null if no action performed or no error
-        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
+        public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            return data.ProcessAction(segmentNumber, currentUITransforms, currentGameObjectTransforms, out error);
+            return data.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
         }
 
         public void ReplayReset()
@@ -40,9 +40,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             data.ReplayReset();
         }
 
-        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            data.OnGUI(currentUITransforms, currentGameObjectTransforms);
+            data.OnGUI(currentTransforms, currentEntities);
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

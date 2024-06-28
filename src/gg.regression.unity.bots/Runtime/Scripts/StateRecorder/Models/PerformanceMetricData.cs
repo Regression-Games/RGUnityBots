@@ -7,7 +7,7 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class PerformanceMetricData
+    public class PerformanceMetricData: IComponentDataProvider
     {
         public double previousTickTime;
         public int framesSincePreviousTick;

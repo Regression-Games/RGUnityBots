@@ -11,6 +11,8 @@ using RegressionGames.RGLegacyInputUtility;
 #endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
+
 // ReSharper disable MergeIntoPattern
 
 namespace RegressionGames.StateRecorder
@@ -177,8 +179,13 @@ namespace RegressionGames.StateRecorder
 
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
+            var objectFinders = FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+            foreach (var objectFinder in objectFinders)
+            {
+                objectFinder.Cleanup();
+            }
 
-            InGameObjectFinder.GetInstance()?.Cleanup();
+
         }
 
         public void Reset()
@@ -203,7 +210,11 @@ namespace RegressionGames.StateRecorder
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
 
-            InGameObjectFinder.GetInstance()?.Cleanup();
+            var objectFinders = FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+            foreach (var objectFinder in objectFinders)
+            {
+                objectFinder.Cleanup();
+            }
         }
 
         public void ResetForLooping()
@@ -227,7 +238,11 @@ namespace RegressionGames.StateRecorder
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
 
-            InGameObjectFinder.GetInstance()?.Cleanup();
+            var objectFinders = FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+            foreach (var objectFinder in objectFinders)
+            {
+                objectFinder.Cleanup();
+            }
         }
 
         public bool IsPlaying()
@@ -282,8 +297,22 @@ namespace RegressionGames.StateRecorder
                 unpaused = false;
             }
 
-            var currentUiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
-            var currentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
+            var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+
+            var transformStatuses = new Dictionary<long, ObjectStatus>();
+            var entityStatuses = new Dictionary<long, ObjectStatus>();
+
+            foreach (var objectFinder in objectFinders)
+            {
+                if (objectFinder is TransformObjectFinder)
+                {
+                    transformStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                }
+                else
+                {
+                    entityStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                }
+            }
 
             // ProcessAction will occur up to 2 times in this method
             // once after checking if new inputs need to be processed, and one last time after checking if we need to get the next bot segment
@@ -292,7 +321,7 @@ namespace RegressionGames.StateRecorder
             if (_nextBotSegments.Count > 0)
             {
                 firstActionSegment = _nextBotSegments[0];
-                var didAction = firstActionSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms, out var error);
+                var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
                 // only log this if we're really stuck on it
                 if (error == null && didAction)
                 {
@@ -407,7 +436,7 @@ namespace RegressionGames.StateRecorder
                 var nextSegment = _nextBotSegments[0];
                 if (nextSegment != firstActionSegment)
                 {
-                    var didAction = nextSegment.ProcessAction(currentUiTransforms, currentGameObjectTransforms, out var error);
+                    var didAction = nextSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
                     // only log this if we're really stuck on it
                     if (error == null && didAction)
                     {
@@ -459,9 +488,22 @@ namespace RegressionGames.StateRecorder
                 // render any GUI things for the first segment action
                 if (_nextBotSegments.Count > 0)
                 {
-                    var currentUiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
-                    var currentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
-                    _nextBotSegments[0].OnGUI(currentUiTransforms, currentGameObjectTransforms);
+                    var transformStatuses = new Dictionary<long, ObjectStatus>();
+                    var entityStatuses = new Dictionary<long, ObjectStatus>();
+                    var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+
+                    foreach (var objectFinder in objectFinders)
+                    {
+                        if (objectFinder is TransformObjectFinder)
+                        {
+                            transformStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                        }
+                        else
+                        {
+                            entityStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                        }
+                    }
+                    _nextBotSegments[0].OnGUI(transformStatuses, entityStatuses);
                 }
             }
         }

@@ -8,7 +8,7 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class BehaviourState
+    public class BehaviourState : IComponentDataProvider
     {
         public string name;
         public Behaviour state;

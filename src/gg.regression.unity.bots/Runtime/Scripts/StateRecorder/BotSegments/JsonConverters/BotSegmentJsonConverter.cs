@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
@@ -21,7 +22,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             actionModel.sessionId = jObject.GetValue("sessionId").ToObject<string>(serializer);
             actionModel.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             actionModel.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
-            actionModel.keyFrameCriteria = jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer);
+            actionModel.keyFrameCriteria = new List<KeyFrameCriteria>(jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer));
             return actionModel;
         }
 

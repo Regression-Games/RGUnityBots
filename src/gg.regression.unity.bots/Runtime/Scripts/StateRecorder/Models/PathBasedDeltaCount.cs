@@ -10,7 +10,7 @@ namespace RegressionGames.StateRecorder.Models
             this.path = path;
         }
 
-        public readonly HashSet<int> ids = new();
+        public readonly HashSet<long> ids = new();
         public readonly int pathHash;
         public readonly string path;
 

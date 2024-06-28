@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -11,15 +11,15 @@ namespace RegressionGames.StateRecorder.BotSegments
     {
         public static readonly KeyFrameEvaluator Evaluator = new ();
 
-        private static Dictionary<int, TransformStatus> _priorKeyFrameUIStatus = new ();
-        private static Dictionary<int, TransformStatus> _priorKeyFrameGameObjectStatus = new ();
+        private static Dictionary<long, ObjectStatus> _priorKeyFrameTransformStatus = new ();
+        private static Dictionary<long, ObjectStatus> _priorKeyFrameEntityStatus = new ();
 
         public void Reset()
         {
             _unmatchedCriteria.Clear();
             _newUnmatchedCriteria.Clear();
-            _priorKeyFrameUIStatus.Clear();
-            _priorKeyFrameGameObjectStatus.Clear();
+            _priorKeyFrameTransformStatus.Clear();
+            _priorKeyFrameEntityStatus.Clear();
         }
 
         public string GetUnmatchedCriteria()
@@ -47,21 +47,38 @@ namespace RegressionGames.StateRecorder.BotSegments
         private List<string> _newUnmatchedCriteria = new(1000);
 
         /**
-         * <summary>Called to tell this to persist the current frame as the last succesful key frame.  This is NOT done automatically in matched because we process multiple transient frames in a single pass and you don't want to update to a newer state yet when a later transient frame passes before the earlier one.</summary>
+         * <summary>Called to tell this to persist the current frame as the last successful key frame.  This is NOT done automatically in matched because we process multiple transient frames in a single pass and you don't want to update to a newer state yet when a later transient frame passes before the earlier one.</summary>
          */
         public void PersistPriorFrameStatus()
         {
-            var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
-            var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
-            // copy the dictionaries
-            _priorKeyFrameUIStatus = uiTransforms.Item2.ToDictionary(a => a.Key, a => a.Value);
-            _priorKeyFrameGameObjectStatus = gameObjectTransforms.Item2.ToDictionary(a=>a.Key, a=>a.Value);
+            var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+            var hadEntities = false;
+            foreach (var objectFinder in objectFinders)
+            {
+                if (objectFinder is TransformObjectFinder)
+                {
+                    // copy the dictionary
+                    _priorKeyFrameTransformStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2.ToDictionary((pair => pair.Key), (pair => pair.Value));
+                }
+                else
+                {
+                    // copy the dictionary
+                    hadEntities = true;
+                    _priorKeyFrameEntityStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2.ToDictionary((pair => pair.Key), (pair => pair.Value));
+                }
+            }
+
+            if (!hadEntities)
+            {
+                _priorKeyFrameEntityStatus = new();
+            }
+
         }
 
         /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
          */
-        public bool Matched(int segmentNumber, KeyFrameCriteria[] criteriaList)
+        public bool Matched(int segmentNumber, List<KeyFrameCriteria> criteriaList)
         {
             _newUnmatchedCriteria.Clear();
             bool matched = MatchedHelper(segmentNumber, BooleanCriteria.And, criteriaList);
@@ -81,16 +98,28 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator</summary>
          */
-        internal bool MatchedHelper(int segmentNumber, BooleanCriteria andOr, KeyFrameCriteria[] criteriaList)
+        internal bool MatchedHelper(int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
         {
-            var uiTransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame();
-            var gameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame();
+            var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+            var transformsStatus = new Dictionary<long, ObjectStatus>();
+            var entitiesStatus = new Dictionary<long, ObjectStatus>();
+            foreach (var objectFinder in objectFinders)
+            {
+                if (objectFinder is TransformObjectFinder)
+                {
+                    transformsStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                }
+                else
+                {
+                    entitiesStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                }
+            }
 
             var normalizedPathsToMatch = new List<KeyFrameCriteria>();
             var orsToMatch = new List<KeyFrameCriteria>();
             var andsToMatch = new List<KeyFrameCriteria>();
 
-            var length = criteriaList.Length;
+            var length = criteriaList.Count;
             for (var i = 0; i < length; i++)
             {
                 var entry = criteriaList[i];
@@ -130,7 +159,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             // process each list.. start with the ones for this tier
             if (normalizedPathsToMatch.Count > 0)
             {
-                var pathResults = NormalizedPathCriteriaEvaluator.Matched(segmentNumber, normalizedPathsToMatch, _priorKeyFrameUIStatus, _priorKeyFrameGameObjectStatus, uiTransforms.Item2, gameObjectTransforms.Item2);
+                var pathResults = NormalizedPathCriteriaEvaluator.Matched(segmentNumber, normalizedPathsToMatch, _priorKeyFrameTransformStatus, _priorKeyFrameEntityStatus, transformsStatus, entitiesStatus);
                 var pathResultsCount = pathResults.Count;
                 for (var j = 0; j < pathResultsCount; j++)
                 {
