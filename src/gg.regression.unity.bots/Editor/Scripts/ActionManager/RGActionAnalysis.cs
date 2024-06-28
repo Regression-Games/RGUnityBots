@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
+using System.Linq;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
@@ -33,7 +33,11 @@ namespace RegressionGames.ActionManager
     {
         private List<RGGameAction> _actions;
         private List<RGActionAnalysisWarning> _warnings;
+        private Compilation _currentCompilation;
         private SemanticModel _currentModel;
+        private SyntaxTree _currentTree;
+        private Dictionary<AssignmentExpressionSyntax, DataFlowAnalysis> _assignmentExprs;
+        private Dictionary<LocalDeclarationStatementSyntax, DataFlowAnalysis> _localDeclarationStmts;
 
         public List<RGGameAction> Actions => _actions;
         public List<RGActionAnalysisWarning> Warnings => _warnings;
@@ -115,6 +119,117 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        private IEnumerable<ExpressionSyntax> FindCandidateValuesForLocalVariable(ILocalSymbol localSym)
+        {
+            if (_localDeclarationStmts == null)
+            {
+                var root = _currentTree.GetRoot();
+                _assignmentExprs = new Dictionary<AssignmentExpressionSyntax, DataFlowAnalysis>();
+                foreach (var assignExpr in root.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+                {
+                    _assignmentExprs.Add(assignExpr, _currentModel.AnalyzeDataFlow(assignExpr));
+                }
+
+                _localDeclarationStmts = new Dictionary<LocalDeclarationStatementSyntax, DataFlowAnalysis>();
+                foreach (var declExpr in root.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
+                {
+                    _localDeclarationStmts.Add(declExpr, _currentModel.AnalyzeDataFlow(declExpr));
+                }
+            }
+            foreach (var entry in _assignmentExprs)
+            {
+                if (entry.Value.WrittenInside.Any(v => v.Equals(localSym)))
+                {
+                    var assignExpr = entry.Key;
+                    yield return assignExpr.Right;
+                }
+            }
+
+            foreach (var entry in _localDeclarationStmts)
+            {
+                if (entry.Value.WrittenInside.Any(v => v.Equals(localSym)))
+                {
+                    var declStmt = entry.Key;
+                    foreach (var varDecl in declStmt.Declaration.Variables)
+                    {
+                        if (varDecl.Identifier.Value is string varName)
+                        {
+                            if (varName == localSym.Name)
+                            {
+                                yield return varDecl.Initializer.Value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            yield break;
+        }
+
+        private void VisitKeyExpr(ExpressionSyntax keyExpr)
+        {
+            bool TryMatch(ExpressionSyntax expr)
+            {
+                Debug.Log($"matching {expr}");
+                var symbol = _currentModel.GetSymbolInfo(expr).Symbol;
+                if (symbol != null)
+                {
+                    if (symbol is IFieldSymbol fieldSym)
+                    {
+                        if (fieldSym.IsStatic && fieldSym.ContainingType?.TypeKind == TypeKind.Enum)
+                        {
+                            // constant enum Input.GetKey(KeyCode.<key>)
+                            // TODO create LegacyKeyAction
+                            return true;
+                        }
+                        else
+                        {
+                            // TODO generate LegacyKeyAction using expression for field for key
+                            return true;
+                        }
+                    }
+                } else if (expr is LiteralExpressionSyntax literalExpr)
+                {
+                    var literalKind = literalExpr.Kind();
+                    if (literalKind == SyntaxKind.StringLiteralExpression)
+                    {
+                        // constant string Input.GetKey("<key name>")
+                        // TODO create LegacyKeyAction
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            bool matched = false;
+            var keySym = _currentModel.GetSymbolInfo(keyExpr).Symbol;
+            if (keySym != null)
+            {
+                if (keySym is ILocalSymbol localSym)
+                {
+                    foreach (var valueExpr in FindCandidateValuesForLocalVariable(localSym))
+                    {
+                        if (TryMatch(valueExpr))
+                        {
+                            matched = true;
+                        }
+                    }
+                }
+                else
+                {
+                    matched = TryMatch(keyExpr);
+                }
+            }
+            else
+            {
+                matched = TryMatch(keyExpr);
+            }
+            if (!matched)
+            {
+                AddAnalysisWarning(keyExpr, "Could not identify key code being used");
+            }
+        }
+        
         public override void VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             var nodeSymInfo = _currentModel.GetSymbolInfo(node.Expression);
@@ -130,42 +245,8 @@ namespace RegressionGames.ActionManager
                         case "GetKeyDown":
                         case "GetKeyUp":
                         {
-                            bool matched = false;
                             var keyArg = node.ArgumentList.Arguments[0];
-                            var keyArgSym = _currentModel.GetSymbolInfo(keyArg.Expression).Symbol;
-                            if (keyArgSym != null)
-                            {
-                                if (keyArgSym is ILocalSymbol localSym)
-                                {
-                                    // TODO data-flow analysis
-                                } else if (keyArgSym is IFieldSymbol fieldSym)
-                                {
-                                    if (fieldSym.IsStatic && fieldSym.ContainingType?.TypeKind == TypeKind.Enum)
-                                    {
-                                        // constant enum Input.GetKey(KeyCode.<key>)
-                                        matched = true;
-                                        // TODO create LegacyKeyAction
-                                    }
-                                    else
-                                    {
-                                        // TODO generate expression for field
-                                    }
-                                } 
-                            }
-                            else if (keyArg.Expression is LiteralExpressionSyntax literalExpr)
-                            {
-                                var literalKind = literalExpr.Kind();
-                                if (literalKind == SyntaxKind.StringLiteralExpression)
-                                {
-                                    // constant string Input.GetKey("<key name>")
-                                    matched = true;
-                                    // TODO create LegacyKeyAction
-                                }
-                            }
-                            if (!matched)
-                            {
-                                AddAnalysisWarning(node, "Could not identify key code being used");
-                            }
+                            VisitKeyExpr(keyArg.Expression);
                             break;
                         }
                     }
@@ -184,9 +265,13 @@ namespace RegressionGames.ActionManager
             _warnings = new List<RGActionAnalysisWarning>();
             foreach (var compilation in GetCompilations())
             {
+                _currentCompilation = compilation;
                 foreach (var syntaxTree in compilation.SyntaxTrees)
                 {
                     _currentModel = compilation.GetSemanticModel(syntaxTree);
+                    _currentTree = syntaxTree;
+                    _assignmentExprs = null;
+                    _localDeclarationStmts = null;
                     var root = syntaxTree.GetCompilationUnitRoot();
                     Visit(root);
                 }
