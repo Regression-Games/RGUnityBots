@@ -46,12 +46,14 @@ namespace RegressionGames.StateRecorder.Models
                 }
             }
 
+            var theGameObject = theTransform.gameObject;
+
             if (tPath == null || tPathNormalized == null)
             {
                 // now .. get the path in the scene.. but only from 1 level down
                 // iow.. ignore the name of the scene itself for cases where many scenes are loaded together like bossroom
                 ParentList.Clear();
-                ParentList.Add(theTransform.gameObject);
+                ParentList.Add(theGameObject);
                 var parent = theTransform.parent;
                 while (parent != null)
                 {
@@ -82,7 +84,11 @@ namespace RegressionGames.StateRecorder.Models
                     status = new TransformStatus
                     {
                         Id = id,
-                        Transform = theTransform
+                        ParentId = theTransform.parent != null ? theTransform.parent.GetInstanceID() : null,
+                        Transform = theTransform,
+                        LayerName = LayerMask.LayerToName(theGameObject.layer),
+                        Scene = theGameObject.scene,
+                        Tag = theTransform.tag
                     };
                     TransformsIveSeen[id] = status;
                     // update the cache with our result

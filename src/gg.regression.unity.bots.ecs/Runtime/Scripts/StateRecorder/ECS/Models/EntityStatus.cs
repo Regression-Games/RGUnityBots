@@ -10,12 +10,15 @@ namespace RegressionGames.StateRecorder.ECS.Models
 {
     public class EntityStatus : ObjectStatus
     {
+
+        public Entity Entity;
+
+        public EntityManager EntityManager;
+
         private EntityStatus()
         {
 
         }
-
-        public Entity Entity;
 
 
         // right now this resets on awake from InGameObjectFinder, but we may have to deal with dynamically re-parented transforms better at some point...
@@ -58,6 +61,9 @@ namespace RegressionGames.StateRecorder.ECS.Models
                 status.NormalizedPath = tPath;
             }
 
+            status.Entity = theEntity;
+            status.EntityManager = entityManager;
+
             return status;
         }
 
@@ -79,7 +85,8 @@ namespace RegressionGames.StateRecorder.ECS.Models
 
         public override bool PositionHitsCollider(Vector3 position)
         {
-            throw new System.NotImplementedException();
+            //TODO: Somehow implement me even though we can't easily / efficiently query this for collider components using the entitymanager
+            return false;
         }
     }
 }

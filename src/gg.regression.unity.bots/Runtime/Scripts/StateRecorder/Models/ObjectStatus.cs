@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder.Models
 {
@@ -7,11 +8,22 @@ namespace RegressionGames.StateRecorder.Models
         public override string ToString()
         {
             // implement for easier debugger usage
-            return "" + Id + " - " + Path + " - " + (screenSpaceBounds!=null?"true":"false") + " - " + (worldSpaceBounds !=null?"true":"false");
+            return "" + Id + " - " + ParentId + " - " + Path + " - " + (screenSpaceBounds!=null?"true":"false") + " - " + (worldSpaceBounds !=null?"true":"false");
         }
 
         public long Id;
+
+        //TODO: populate me for entities
+        public long? ParentId;
+        //TODO: populate me for entities
         public string Path;
+        //TODO: populate me for entities
+        public string Tag;
+        //TODO: populate me for entities
+        public string LayerName;
+        //TODO: populate me for entities
+        public Scene? Scene;
+
         /**
          * <summary>Has things like ' (1)' and ' (Clone)' stripped off of object names.</summary>
          */

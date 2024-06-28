@@ -18,19 +18,12 @@ namespace RegressionGames.StateRecorder
         private readonly Dictionary<Type, JsonConverter> _customConverters = new()
         {
             { typeof(float), new FloatJsonConverter() },
-            { typeof(Single), new FloatJsonConverter() },
             { typeof(double), new DoubleJsonConverter() },
-            { typeof(Double), new DoubleJsonConverter() },
             { typeof(decimal), new DecimalJsonConverter() },
-            { typeof(Decimal), new DecimalJsonConverter() },
             { typeof(int), new IntJsonConverter() },
-            { typeof(Int32), new IntJsonConverter() },
             { typeof(long), new LongJsonConverter() },
-            { typeof(Int64), new LongJsonConverter() },
             { typeof(short), new ShortJsonConverter() },
-            { typeof(Int16), new ShortJsonConverter() },
             { typeof(string), new StringJsonConverter() },
-            { typeof(String), new StringJsonConverter() },
 
             { typeof(Bounds), new BoundsJsonConverter() },
             { typeof(Vector2Int), new VectorIntJsonConverter() },

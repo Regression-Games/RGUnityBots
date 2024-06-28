@@ -21,10 +21,12 @@ namespace RegressionGames.StateRecorder.Models
         public string normalizedPath;
 
         [NonSerialized] // used internally for performance, but serialized as the name
-        public Scene scene;
+        public Scene? scene;
 
         public string tag;
         public string layer;
+
+        public ObjectType type;
 
         public Bounds? screenSpaceBounds;
 
@@ -45,12 +47,14 @@ namespace RegressionGames.StateRecorder.Models
             LongJsonConverter.WriteToStringBuilder(stringBuilder, id);
             stringBuilder.Append(",\n\"parentId\":");
             LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, parentId);
+            stringBuilder.Append(",\n\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, type.ToString());
             stringBuilder.Append(",\n\"path\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
             stringBuilder.Append(",\n\"normalizedPath\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
             stringBuilder.Append(",\n\"scene\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, scene.name);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, scene?.name);
             stringBuilder.Append(",\n\"tag\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, tag);
             stringBuilder.Append(",\n\"layer\":");
