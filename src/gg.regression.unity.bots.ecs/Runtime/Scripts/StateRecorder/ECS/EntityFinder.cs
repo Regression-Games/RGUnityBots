@@ -39,6 +39,7 @@ namespace RegressionGames.StateRecorder.ECS
         {
             var uiObjectTransformId = eStatus.Id;
             // only process visible objects into the state
+            // TODO: Until entity statuses are properly populated with their bounds... nothing will show in the state
             if (eStatus.screenSpaceBounds.HasValue)
             {
                 var usingOldObject = _priorStates.TryGetValue(uiObjectTransformId, out var resultObject);
