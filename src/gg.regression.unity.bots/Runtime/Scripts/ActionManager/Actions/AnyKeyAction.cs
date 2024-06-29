@@ -38,7 +38,7 @@ namespace RegressionGames.ActionManager.Actions
             return base.IsEquivalentTo(other);
         }
 
-        protected override void SerializeParameters(List<object> actionParametersOut)
+        protected override void Serialize(RGSerializedAction serializedAction)
         {
         }
     }

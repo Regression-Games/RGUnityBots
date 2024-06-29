@@ -27,7 +27,7 @@ namespace RegressionGames.ActionManager.Actions
         public LegacyAxisAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            AxisNameFunc = new RGActionParamFunc<string>((string)serializedAction.actionParameters[0]);
+            AxisNameFunc = RGActionParamFunc<string>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
         }
 
         // Discretize the axis into three states (negative, zero, positive) so there is an equal chance of not going in either direction
@@ -52,9 +52,9 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
-        protected override void SerializeParameters(List<object> actionParametersOut)
+        protected override void Serialize(RGSerializedAction serializedAction)
         {
-            actionParametersOut.Add(AxisNameFunc.Identifier);
+            (serializedAction.actionFuncType, serializedAction.actionFuncData) = AxisNameFunc.Serialize();
         }
     }
 

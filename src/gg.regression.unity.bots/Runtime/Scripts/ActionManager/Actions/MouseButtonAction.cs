@@ -29,7 +29,7 @@ namespace RegressionGames.ActionManager.Actions
         public MouseButtonAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            MouseButtonFunc = new RGActionParamFunc<MouseButtonActionButton>((string)serializedAction.actionParameters[0]);
+            MouseButtonFunc = RGActionParamFunc<MouseButtonActionButton>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -56,9 +56,9 @@ namespace RegressionGames.ActionManager.Actions
             }
         }
 
-        protected override void SerializeParameters(List<object> actionParametersOut)
+        protected override void Serialize(RGSerializedAction serializedAction)
         {
-            actionParametersOut.Add(MouseButtonFunc.Identifier);
+            (serializedAction.actionFuncType, serializedAction.actionFuncData) = MouseButtonFunc.Serialize();
         }
     }
 

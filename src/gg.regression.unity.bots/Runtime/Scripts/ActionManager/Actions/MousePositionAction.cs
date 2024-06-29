@@ -34,7 +34,7 @@ namespace RegressionGames.ActionManager.Actions
             return new MousePositionInstance(this, obj);
         }
 
-        protected override void SerializeParameters(List<object> actionParametersOut)
+        protected override void Serialize(RGSerializedAction serializedAction)
         {
         }
     }

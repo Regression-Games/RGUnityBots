@@ -21,7 +21,7 @@ namespace RegressionGames.ActionManager.Actions
         public InputSystemKeyAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            KeyFunc = new RGActionParamFunc<Key>((string)serializedAction.actionParameters[0]);
+            KeyFunc = RGActionParamFunc<Key>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -48,9 +48,9 @@ namespace RegressionGames.ActionManager.Actions
             }
         }
 
-        protected override void SerializeParameters(List<object> actionParametersOut)
+        protected override void Serialize(RGSerializedAction serializedAction)
         {
-            actionParametersOut.Add(KeyFunc.Identifier);
+            (serializedAction.actionFuncType, serializedAction.actionFuncData) = KeyFunc.Serialize();
         }
     }
 

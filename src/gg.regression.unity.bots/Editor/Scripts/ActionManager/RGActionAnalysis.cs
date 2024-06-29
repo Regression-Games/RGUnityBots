@@ -3,12 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RegressionGames.Editor.RGLegacyInputUtility;
+using Assembly = UnityEditor.Compilation.Assembly;
 
 namespace RegressionGames.ActionManager
 {
@@ -162,29 +164,108 @@ namespace RegressionGames.ActionManager
                     }
                 }
             }
-
-            yield break;
         }
 
-        private void VisitKeyExpr(ExpressionSyntax keyExpr)
+        private Type FindType(ITypeSymbol typeSymbol)
         {
-            bool TryMatch(ExpressionSyntax expr)
+            var assembly = typeSymbol.ContainingAssembly;
+            var fullyQualName = typeSymbol + ", " + assembly;
+            return Type.GetType(fullyQualName);
+        }
+        
+        /// <summary>
+        /// This generates a function to evaluate a sequence of dynamic field or property accesses at run time.
+        /// For example, if we have an input such as Input.GetKey(mGameSettings.keySettings.leftKey), this will
+        /// evaluate the sequence of fields needed to obtain leftKey.
+        /// </summary>
+        private bool TryGetMemberAccessFunc<T>(ExpressionSyntax memberAccessExpr, out RGActionParamFunc<T> memberAccessFunc)
+        {
+            List<MemberInfo> members = new List<MemberInfo>();
+            var currentExpr = memberAccessExpr;
+            for (;;)
             {
-                Debug.Log($"matching {expr}");
+                var symbol = _currentModel.GetSymbolInfo(currentExpr).Symbol;
+                if (symbol != null)
+                {
+                    MemberInfo member = null;
+                    if (symbol is IFieldSymbol fieldSym)
+                    {
+                        Type type = FindType(fieldSym.ContainingType);
+                        member = type.GetField(fieldSym.Name,
+                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                    } else if (symbol is IPropertySymbol propSym)
+                    {
+                        Type type = FindType(propSym.ContainingType);
+                        member = type.GetProperty(propSym.Name,
+                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                    }
+                    if (member == null)
+                    {
+                        memberAccessFunc = null;
+                        return false;
+                    }
+                    members.Add(member);
+                }
+                else
+                {
+                    memberAccessFunc = null;
+                    return false;
+                }
+
+                if (currentExpr is MemberAccessExpressionSyntax memberExpr && memberExpr.Expression is not ThisExpressionSyntax)
+                {
+                    currentExpr = memberExpr.Expression;
+                } else
+                {
+                    break;
+                }
+            }
+            members.Reverse();
+            
+            // if the first field is not static, then its declaring type should match the class declaration
+            if (members[0] is FieldInfo firstField && !firstField.IsStatic)
+            {
+                var containingClass = memberAccessExpr.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                if (containingClass == null || members[0].DeclaringType.Name != containingClass.Identifier.Text)
+                {
+                    memberAccessFunc = null;
+                    return false;
+                }
+            }
+            
+            memberAccessFunc = RGActionParamFunc<T>.MemberAccesses(members);
+            return true;
+        }
+
+        private IEnumerable<RGActionParamFunc<object>> FindCandidateKeyFuncs(ExpressionSyntax keyExpr)
+        {
+            bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<object> keyFunc)
+            {
                 var symbol = _currentModel.GetSymbolInfo(expr).Symbol;
                 if (symbol != null)
                 {
                     if (symbol is IFieldSymbol fieldSym)
                     {
-                        if (fieldSym.IsStatic && fieldSym.ContainingType?.TypeKind == TypeKind.Enum)
+                        if (fieldSym.IsStatic && fieldSym.ContainingType?.TypeKind == TypeKind.Enum && fieldSym.ContainingType?.ToString() == "UnityEngine.KeyCode")
                         {
-                            // constant enum Input.GetKey(KeyCode.<key>)
-                            // TODO create LegacyKeyAction
+                            // constant keycode (e.g. KeyCode.Space)
+                            KeyCode keyCode = Enum.Parse<KeyCode>(fieldSym.Name);
+                            keyFunc = RGActionParamFunc<object>.Constant(keyCode);
                             return true;
                         }
-                        else
+                        else 
                         {
-                            // TODO generate LegacyKeyAction using expression for field for key
+                            // keycode or name is stored in dynamic field
+                            if (TryGetMemberAccessFunc(expr, out keyFunc))
+                            {
+                                return true;
+                            }
+                        }
+                    } else if (symbol is IPropertySymbol && expr is MemberAccessExpressionSyntax memberAccessExpr)
+                    {
+                        // keycode is stored in a dynamic property
+                        if (TryGetMemberAccessFunc(memberAccessExpr, out keyFunc))
+                        {
                             return true;
                         }
                     }
@@ -193,11 +274,12 @@ namespace RegressionGames.ActionManager
                     var literalKind = literalExpr.Kind();
                     if (literalKind == SyntaxKind.StringLiteralExpression)
                     {
-                        // constant string Input.GetKey("<key name>")
-                        // TODO create LegacyKeyAction
+                        keyFunc = RGActionParamFunc<object>.Constant(literalExpr.Token.ValueText);
                         return true;
                     }
                 }
+
+                keyFunc = null;
                 return false;
             }
 
@@ -207,22 +289,33 @@ namespace RegressionGames.ActionManager
             {
                 if (keySym is ILocalSymbol localSym)
                 {
+                    // key expression refers to a local variable
+                    // check all candidate assignments to the local variable
                     foreach (var valueExpr in FindCandidateValuesForLocalVariable(localSym))
                     {
-                        if (TryMatch(valueExpr))
+                        if (TryMatch(valueExpr, out var keyFunc))
                         {
                             matched = true;
+                            yield return keyFunc;
                         }
                     }
                 }
                 else
                 {
-                    matched = TryMatch(keyExpr);
+                    matched = TryMatch(keyExpr, out var keyFunc);
+                    if (keyFunc != null)
+                    {
+                        yield return keyFunc;
+                    }
                 }
             }
             else
             {
-                matched = TryMatch(keyExpr);
+                matched = TryMatch(keyExpr, out var keyFunc);
+                if (keyFunc != null)
+                {
+                    yield return keyFunc;
+                }
             }
             if (!matched)
             {
@@ -246,7 +339,10 @@ namespace RegressionGames.ActionManager
                         case "GetKeyUp":
                         {
                             var keyArg = node.ArgumentList.Arguments[0];
-                            VisitKeyExpr(keyArg.Expression);
+                            foreach (var keyFunc in FindCandidateKeyFuncs(keyArg.Expression))
+                            {
+                                Debug.Log(keyFunc.ToString());
+                            }
                             break;
                         }
                     }

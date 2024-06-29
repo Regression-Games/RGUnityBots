@@ -23,7 +23,7 @@ namespace RegressionGames.ActionManager.Actions
         public LegacyKeyAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            KeyCodeFunc = new RGActionParamFunc<object>((string)serializedAction.actionParameters[0]);
+            KeyCodeFunc = RGActionParamFunc<object>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -47,9 +47,9 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
-        protected override void SerializeParameters(List<object> actionParametersOut)
+        protected override void Serialize(RGSerializedAction serializedAction)
         {
-            actionParametersOut.Add(KeyCodeFunc.Identifier);
+            (serializedAction.actionFuncType, serializedAction.actionFuncData) = KeyCodeFunc.Serialize();
         }
     }
 

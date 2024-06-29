@@ -1,21 +1,22 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
+using JetBrains.Annotations;
 using UnityEngine;
 using Object = System.Object;
 
 namespace RegressionGames.ActionManager
 {
-    internal enum SerializedActionParamFuncType
+    public enum ActionParamFuncType
     {
         TYPE_CONSTANT,
         TYPE_MEMBER_ACCESS
     }
     
     [Serializable]
-    internal struct SerializedActionParamFunc
+    internal struct SerializedMemberAccessFuncData
     {
-        public SerializedActionParamFuncType Type;
-        public object Value;
+        public SerializedMemberAccess[] MemberAccesses;
     }
 
     [Serializable]
@@ -28,58 +29,59 @@ namespace RegressionGames.ActionManager
     
     /// <summary>
     /// This represents a function of an object that returns a parameter needed for an action,
-    /// such as the key code, button name, axis name, etc.
+    /// such as the key code, button name, axis name, etc. It is designed to be serializable.
     /// </summary>
     public class RGActionParamFunc<T> : IEquatable<RGActionParamFunc<T>>
     {
-        /// <summary>
-        /// This identifier uniquely identifies this function.
-        /// It is used for testing action equivalence, as well as action serialization/deserialization.
-        /// </summary>
-        public string Identifier { get; private set; }
-        
-        private Func<Object, T> _func;
-        
-        public RGActionParamFunc(string identifier)
-        {
-            Identifier = identifier;
+        private readonly ActionParamFuncType _funcType;
+        private readonly string _data;
+        private readonly Func<Object, T> _func;
 
-            // TODO implement this after the analysis is done
-            throw new NotImplementedException();
+        private RGActionParamFunc(ActionParamFuncType funcType, string data, Func<Object, T> func)
+        {
+            _funcType = funcType;
+            _data = data;
+            _func = func;
         }
 
         /// <summary>
         /// Create a constant function that always returns the given value.
         /// </summary>
-        public RGActionParamFunc(T value)
+        public static RGActionParamFunc<T> Constant(T value)
         {
-            InitConstantFunction(value);
+            string data;
+            var type = typeof(T);
+            if (type == typeof(string) || type == typeof(int) || type.IsEnum)
+            {
+                data = value.ToString();
+            } else if (type == typeof(object))
+            {
+                if (value is KeyCode keyCode)
+                {
+                    data = "keycode:" + keyCode;
+                } else if (value is string str)
+                {
+                    data = "string:" + str;
+                }
+                else
+                {
+                    throw new Exception($"unexpected constant value of type {value.GetType()}");
+                }
+            } else
+            {
+                throw new Exception($"serialization of type {type} is unsupported");
+            }
+            Func<Object, T> func = _ => value;
+            return new RGActionParamFunc<T>(ActionParamFuncType.TYPE_CONSTANT, data, func);
         }
-
+        
         /// <summary>
         /// Create a function that performs a sequence of field or property accesses to obtain the value.
         /// </summary>
-        /// <param name="field"></param>
-        public RGActionParamFunc(MemberInfo[] members)
+        public static RGActionParamFunc<T> MemberAccesses(IList<MemberInfo> members)
         {
-            InitMemberAccesses(members);
-        }
-
-        private void InitConstantFunction(T value)
-        {
-            Identifier = JsonUtility.ToJson(new SerializedActionParamFunc
-            {
-                Type = SerializedActionParamFuncType.TYPE_CONSTANT,
-                Value = value
-            });
-
-            _func = _ => value;
-        }
-
-        private void InitMemberAccesses(MemberInfo[] members)
-        {
-            SerializedMemberAccess[] accesses = new SerializedMemberAccess[members.Length];
-            for (int i = 0; i < members.Length; ++i)
+            SerializedMemberAccess[] accesses = new SerializedMemberAccess[members.Count];
+            for (int i = 0; i < members.Count; ++i)
             {
                 ref SerializedMemberAccess access = ref accesses[i];
                 var member = members[i];
@@ -88,13 +90,12 @@ namespace RegressionGames.ActionManager
                 access.MemberName = member.Name;
             }
 
-            Identifier = JsonUtility.ToJson(new SerializedActionParamFunc()
+            string data = JsonUtility.ToJson(new SerializedMemberAccessFuncData
             {
-                Type = SerializedActionParamFuncType.TYPE_MEMBER_ACCESS,
-                Value = accesses
+                MemberAccesses = accesses
             });
             
-            _func = obj =>
+            Func<Object, T> func = obj =>
             {
                 object currentObject = obj;
                 foreach (var member in members)
@@ -113,18 +114,44 @@ namespace RegressionGames.ActionManager
                 }
                 return (T)currentObject;
             };
-        }
 
+            return new RGActionParamFunc<T>(ActionParamFuncType.TYPE_MEMBER_ACCESS, data, func);
+        }
+        
         public T Invoke(Object obj)
         {
             return _func(obj);
+        }
+
+        public static RGActionParamFunc<T> Deserialize(ActionParamFuncType funcType, string data)
+        {
+            switch (funcType)
+            {
+                case ActionParamFuncType.TYPE_CONSTANT:
+                {
+                    
+                    break;
+                }
+                case ActionParamFuncType.TYPE_MEMBER_ACCESS:
+                {
+                    
+                    break;
+                }
+            }
+
+            throw new NotImplementedException();
+        }
+
+        public (ActionParamFuncType, string) Serialize()
+        {
+            return (_funcType, _data);
         }
 
         public bool Equals(RGActionParamFunc<T> other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return Identifier == other.Identifier;
+            return _funcType == other._funcType && _data == other._data;
         }
 
         public override bool Equals(object obj)
@@ -137,7 +164,7 @@ namespace RegressionGames.ActionManager
 
         public override int GetHashCode()
         {
-            return (Identifier != null ? Identifier.GetHashCode() : 0);
+            return HashCode.Combine((int)_funcType, _data);
         }
 
         public static bool operator ==(RGActionParamFunc<T> left, RGActionParamFunc<T> right)
@@ -148,6 +175,11 @@ namespace RegressionGames.ActionManager
         public static bool operator !=(RGActionParamFunc<T> left, RGActionParamFunc<T> right)
         {
             return !Equals(left, right);
+        }
+
+        public override string ToString()
+        {
+            return "RGActionParamFunc<" + typeof(T) + "> { type: " + _funcType + ", data: " + _data + " }";
         }
     }
 }

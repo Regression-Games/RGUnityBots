@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using UnityEngine;
 
 namespace RegressionGames.ActionManager
 {
@@ -86,8 +84,7 @@ namespace RegressionGames.ActionManager
             result.paths = new List<string[]>(Paths);
             result.objectTypeName = ObjectType.AssemblyQualifiedName;
             result.actionGroup = ActionGroup;
-            result.actionParameters = new List<object>();
-            SerializeParameters(result.actionParameters);
+            Serialize(result);
             return result;
         }
 
@@ -96,7 +93,7 @@ namespace RegressionGames.ActionManager
         /// This is stored to the actionParameters field of RGSerializedAction.
         /// </summary>
         /// <param name="actionParametersOut">List where the action-specific data should be placed.</param>
-        protected abstract void SerializeParameters(List<object> actionParametersOut);
+        protected abstract void Serialize(RGSerializedAction serializedAction);
     }
     
     [Serializable]
@@ -106,7 +103,13 @@ namespace RegressionGames.ActionManager
         public List<string[]> paths;
         public string objectTypeName;
         public int actionGroup;
-        public List<object> actionParameters;
+
+        // Used by actions that have a serializable function parameter (e.g. key function, axis name function, etc.)
+        public ActionParamFuncType actionFuncType;
+        public string actionFuncData;
+        
+        // Field where arbitrary string data can be stored
+        public string actionStringData;
 
         public RGGameAction Deserialize()
         {

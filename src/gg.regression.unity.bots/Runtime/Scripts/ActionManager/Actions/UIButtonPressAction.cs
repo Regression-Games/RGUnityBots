@@ -24,7 +24,7 @@ namespace RegressionGames.ActionManager.Actions
         public UIButtonPressAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            EventListenerName = (string)serializedAction.actionParameters[0];
+            EventListenerName = serializedAction.actionStringData;
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -72,9 +72,9 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
-        protected override void SerializeParameters(List<object> actionParametersOut)
+        protected override void Serialize(RGSerializedAction serializedAction)
         {
-            actionParametersOut.Add(EventListenerName);
+            serializedAction.actionStringData = EventListenerName;
         }
     }
 
