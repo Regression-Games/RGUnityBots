@@ -79,6 +79,8 @@ namespace RegressionGames.GenericBots
             }
 
             // Randomly perform inputs from the list 
+            // This repeatedly selects input combinations from the valid input list that do not overlap
+            // with the inputs that have already been performed.
             int numValidInputLists = validInputsBufIdx;
             _performedInputsBuf.Clear();
             for (;;)
