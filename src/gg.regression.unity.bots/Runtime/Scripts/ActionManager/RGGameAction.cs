@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RegressionGames.ActionManager
 {
@@ -29,7 +30,7 @@ namespace RegressionGames.ActionManager
 
         public RGGameAction(RGSerializedAction serializedAction)
         {
-            Paths = new List<string[]>(serializedAction.paths);
+            Paths = new List<string[]>(serializedAction.paths.Select(path => path.Split("/")));
             ObjectType = Type.GetType(serializedAction.objectTypeName);
         }
 
@@ -73,7 +74,7 @@ namespace RegressionGames.ActionManager
         {
             RGSerializedAction result = new RGSerializedAction();
             result.actionTypeName = GetType().AssemblyQualifiedName;
-            result.paths = new List<string[]>(Paths);
+            result.paths = new List<string>(Paths.Select(path => string.Join("/", path)));
             result.objectTypeName = ObjectType.AssemblyQualifiedName;
             Serialize(result);
             return result;
@@ -91,9 +92,8 @@ namespace RegressionGames.ActionManager
     public class RGSerializedAction
     {
         public string actionTypeName;
-        public List<string[]> paths;
+        public List<string> paths;
         public string objectTypeName;
-        public int actionGroup;
 
         // Used by actions that have a serializable function parameter (e.g. key function, axis name function, etc.)
         public ActionParamFuncType actionFuncType;

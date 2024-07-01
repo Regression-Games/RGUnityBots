@@ -24,7 +24,7 @@ namespace RegressionGames.ActionManager
         private static readonly string SETTINGS_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_NAME}.txt";
             
         private static MonoBehaviour _context;
-        private static IRGActionProvider _actionProvider;
+        private static RGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
         private static IList<RGGameAction> _sessionActions;
 
@@ -38,7 +38,7 @@ namespace RegressionGames.ActionManager
         public delegate void ActionsChangedHandler();
         public static event ActionsChangedHandler ActionsChanged;
 
-        public static bool IsAvailable => _actionProvider != null;
+        public static bool IsAvailable => _actionProvider != null && _actionProvider.IsAvailable;
 
         /// <summary>
         /// Provides access to the action manager settings.
@@ -50,14 +50,7 @@ namespace RegressionGames.ActionManager
         [InitializeOnLoadMethod]
         public static void InitializeInEditor()
         {
-            // find the action provider
-            var actionProviders = TypeCache.GetTypesDerivedFrom<IRGActionProvider>();
-            Type providerType = actionProviders.FirstOrDefault();
-            if (providerType != null)
-            {
-                IRGActionProvider provider = (IRGActionProvider)providerType.GetConstructor(Type.EmptyTypes).Invoke(null);
-                SetActionProvider(provider);
-            }
+            ReloadActions();
             LoadSettings();
         }
         #endif
@@ -101,32 +94,18 @@ namespace RegressionGames.ActionManager
             }
             using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
             {
-                sw.Write(JsonUtility.ToJson(_settings));
+                sw.Write(JsonUtility.ToJson(_settings, true));
             }
         }
         #endif
 
-        public static void SetActionProvider(IRGActionProvider actionProvider)
-        {
-            _actionProvider = actionProvider;
-            _actionProvider.ActionsChanged += OnActionsChanged;
-        }
-
-        private static void OnActionsChanged(object sender, EventArgs args)
-        {
-            ActionsChanged?.Invoke();
-        }
-
         public static void StartSession(MonoBehaviour context)
         {
-            if (_actionProvider == null)
-            {
-                throw new Exception("Must set an action provider before starting a session");
-            }
             if (_context != null)
             {
                 throw new Exception($"Session is already active with context {_context}");
             }
+            ReloadActions();
             LoadSettings();
             _context = context;
             _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
@@ -190,6 +169,16 @@ namespace RegressionGames.ActionManager
                         yield return action.GetInstance(obj);
                     }
                 }
+            }
+        }
+
+        public static void ReloadActions()
+        {
+            var prevActionProvider = _actionProvider;
+            _actionProvider = new RGActionProvider();
+            if (prevActionProvider != null)
+            {
+                ActionsChanged?.Invoke();
             }
         }
 

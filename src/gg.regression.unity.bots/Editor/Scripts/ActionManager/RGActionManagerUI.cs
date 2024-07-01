@@ -24,6 +24,7 @@ namespace RegressionGames.ActionManager
 
     public class RGActionManagerUI : EditorWindow
     {
+        private Button _refreshBtn;
         private ToolbarSearchField _searchField;
         private ScrollView _actionsPane;
         private ScrollView _detailsPane;
@@ -31,16 +32,9 @@ namespace RegressionGames.ActionManager
         [MenuItem("Regression Games/Configure Bot Actions")]
         public static void OpenActionManagerUI()
         {
-            if (RGActionManager.IsAvailable)
-            {
-                EditorWindow wnd = GetWindow<RGActionManagerUI>();
-                wnd.titleContent = new GUIContent("RG Action Manager");
-                wnd.minSize = new Vector2(500.0f, 600.0f);
-            }
-            else
-            {
-                EditorUtility.DisplayDialog("Error", "Action manager is currently unavailable", "OK");
-            }
+            EditorWindow wnd = GetWindow<RGActionManagerUI>();
+            wnd.titleContent = new GUIContent("RG Action Manager");
+            wnd.minSize = new Vector2(500.0f, 600.0f);
         }
 
         private IEnumerable<RGGameAction> EnumerateActions()
@@ -264,6 +258,7 @@ namespace RegressionGames.ActionManager
             {
                 CreateActionTreeElements(_actionsPane, rootNode, listViews);
             }
+            _refreshBtn.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
         }
 
         private void ShowActionDetails(ActionTreeNode leafNode)
@@ -288,12 +283,6 @@ namespace RegressionGames.ActionManager
 
         public void CreateGUI()
         {
-            if (!RGActionManager.IsAvailable)
-            {
-                Close();
-                return;
-            }
-            
             _searchField = new ToolbarSearchField();
             _searchField.RegisterValueChangedCallback(evt =>
             {
@@ -302,13 +291,15 @@ namespace RegressionGames.ActionManager
             _searchField.style.width = StyleKeyword.Auto;
             rootVisualElement.Add(_searchField);
 
-            var refreshBtn = new Button();
-            refreshBtn.text = "Refresh";
-            refreshBtn.clicked += () =>
+            _refreshBtn = new Button();
+            _refreshBtn.text = "Run Analysis";
+            _refreshBtn.clicked += () =>
             {
-                new RGActionAnalysis().RunAnalysis();
+                var analysis = new RGActionAnalysis();
+                analysis.RunAnalysis();
+                RGActionManager.ReloadActions();
             };
-            rootVisualElement.Add(refreshBtn);
+            rootVisualElement.Add(_refreshBtn);
                 
             var splitView = new TwoPaneSplitView(1, 250.0f, TwoPaneSplitViewOrientation.Vertical);
             rootVisualElement.Add(splitView);

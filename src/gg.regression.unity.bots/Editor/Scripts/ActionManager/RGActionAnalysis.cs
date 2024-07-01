@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
@@ -30,6 +31,11 @@ namespace RegressionGames.ActionManager
             StartLineNumber = lineSpan.StartLinePosition.Line;
             EndLineNumber = lineSpan.EndLinePosition.Line;
             Message = message;
+        }
+
+        public override string ToString()
+        {
+            return $"{FilePath}:{StartLineNumber}:{EndLineNumber}: {Message}";
         }
     }
     
@@ -355,7 +361,7 @@ namespace RegressionGames.ActionManager
                             var keyArg = node.ArgumentList.Arguments[0];
                             foreach (var keyFunc in FindCandidateLegacyKeyFuncs(keyArg.Expression))
                             {
-                                string[] path = { classDecl.Identifier.Text, $"Input.{methodName}({keyFunc})" };
+                                string[] path = { objectType.FullName, $"Input.{methodName}({keyFunc})" };
                                 AddAction(new LegacyKeyAction(path, objectType, keyFunc));
                             }
                             break;
@@ -494,6 +500,34 @@ namespace RegressionGames.ActionManager
             }
             
             Actions = actions;
+            SaveAnalysisResult();
+
+            if (Warnings.Count > 0)
+            {
+                StringBuilder warningsMessage = new StringBuilder();
+                warningsMessage.AppendLine($"{Warnings.Count} warnings encountered during analysis:");
+                foreach (var warning in Warnings)
+                {
+                    warningsMessage.AppendLine(warning.ToString());
+                }
+                RGDebug.LogWarning(warningsMessage.ToString());
+            }
+        }
+
+        private void SaveAnalysisResult()
+        {
+            RGActionAnalysisResult result = new RGActionAnalysisResult();
+            result.actions = new RGSerializedAction[Actions.Count];
+            int i = 0;
+            foreach (var action in Actions)
+            {
+                result.actions[i] = action.Serialize();
+                ++i;
+            }
+            using (StreamWriter sw = new StreamWriter(RGActionProvider.ANALYSIS_RESULT_PATH))
+            {
+                sw.Write(JsonUtility.ToJson(result, true));
+            }
         }
     }
 }

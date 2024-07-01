@@ -28,6 +28,7 @@ namespace RegressionGames.GenericBots
             _lastActionTime = Time.unscaledTime;
             _validInputsBuf = new List<IList<RGActionInput>>();
             _performedInputsBuf = new List<RGActionInput>();
+            _remainingInputsBuf = new List<IList<RGActionInput>>();
             
             DontDestroyOnLoad(this);
         }
@@ -70,22 +71,27 @@ namespace RegressionGames.GenericBots
                 {
                     inputList.Add(inp);
                 }
-                
-                ++validInputsBufIdx;
+
+                if (inputList.Count > 0)
+                {
+                    ++validInputsBufIdx;
+                }
             }
-            
+
             // Randomly perform inputs from the list 
+            int numValidInputLists = validInputsBufIdx;
             _performedInputsBuf.Clear();
             for (;;)
             {
                 _remainingInputsBuf.Clear();
 
-                // Compute the set of remaining inputs in the list that do not overlap with the ones that have been performed
-                var remainingInputs = _validInputsBuf.Where(inputList =>
-                    !inputList.Any(inp => _performedInputsBuf.Any(perfInp => perfInp.Overlaps(inp))));
-                foreach (var inputList in remainingInputs)
+                for (int i = 0; i < numValidInputLists; ++i)
                 {
-                    _remainingInputsBuf.Add(inputList);
+                    var inputList = _validInputsBuf[i];
+                    if (!inputList.Any(inp => _performedInputsBuf.Any(perfInp => perfInp.Overlaps(inp))))
+                    {
+                        _remainingInputsBuf.Add(inputList);
+                    }
                 }
 
                 if (_remainingInputsBuf.Count > 0)
