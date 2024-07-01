@@ -4,24 +4,16 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
 {
-    public enum MouseButtonActionButton
-    {
-        LEFT_MOUSE_BUTTON,
-        MIDDLE_MOUSE_BUTTON,
-        RIGHT_MOUSE_BUTTON,
-        FORWARD_MOUSE_BUTTON,
-        BACK_MOUSE_BUTTON
-    }
     
     /// <summary>
     /// This is an action to press or release a particular mouse button.
     /// </summary>
     public class MouseButtonAction : RGGameAction
     {
-        public RGActionParamFunc<MouseButtonActionButton> MouseButtonFunc { get; }
+        public RGActionParamFunc<MouseButtonId> MouseButtonFunc { get; }
         
-        public MouseButtonAction(string[] path, Type objectType, RGActionParamFunc<MouseButtonActionButton> mouseButtonFunc, int actionGroup) 
-            : base(path, objectType, actionGroup)
+        public MouseButtonAction(string[] path, Type objectType, RGActionParamFunc<MouseButtonId> mouseButtonFunc) 
+            : base(path, objectType)
         {
             MouseButtonFunc = mouseButtonFunc;
         }
@@ -29,7 +21,7 @@ namespace RegressionGames.ActionManager.Actions
         public MouseButtonAction(RGSerializedAction serializedAction) :
             base(serializedAction)
         {
-            MouseButtonFunc = RGActionParamFunc<MouseButtonActionButton>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
+            MouseButtonFunc = RGActionParamFunc<MouseButtonId>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -68,30 +60,10 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
-            MouseButtonActionButton btn = Action.MouseButtonFunc.Invoke(TargetObject);
-            switch (btn)
-            {
-                case MouseButtonActionButton.LEFT_MOUSE_BUTTON:
-                    RGActionManager.SimulateLeftMouseButton(param);
-                    break;
-                case MouseButtonActionButton.MIDDLE_MOUSE_BUTTON:
-                    RGActionManager.SimulateMiddleMouseButton(param);
-                    break;
-                case MouseButtonActionButton.RIGHT_MOUSE_BUTTON:
-                    RGActionManager.SimulateRightMouseButton(param);
-                    break;
-                case MouseButtonActionButton.FORWARD_MOUSE_BUTTON:
-                    RGActionManager.SimulateForwardMouseButton(param);
-                    break;
-                case MouseButtonActionButton.BACK_MOUSE_BUTTON:
-                    RGActionManager.SimulateBackMouseButton(param);
-                    break;
-                default:
-                    RGDebug.LogWarning($"Unexpected mouse button {btn}");
-                    break;
-            }
+            var btn = Action.MouseButtonFunc.Invoke(TargetObject);
+            yield return new MouseButtonInput(btn, param);
         }
     }
 }

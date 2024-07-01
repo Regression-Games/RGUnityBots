@@ -12,8 +12,8 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePositionAction : RGGameAction
     {
-        public MousePositionAction(string[] path, Type objectType, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public MousePositionAction(string[] path, Type objectType) : 
+            base(path, objectType)
         {
         }
 
@@ -58,12 +58,12 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
-        protected override void PerformAction(Vector2 param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(Vector2 param)
         {
             Vector2 mousePos = new Vector2(Screen.width * param.x, Screen.height * param.y);
             if (!IsCoordOverUIElement(mousePos))
             {
-                RGActionManager.SimulateMouseMovement(mousePos);
+                yield return new MousePositionInput(mousePos);
             }
         }
     }

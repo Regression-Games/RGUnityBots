@@ -14,8 +14,8 @@ namespace RegressionGames.ActionManager.Actions
     {
         public string EventListenerName { get; }
         
-        public UIButtonPressAction(string[] path, Type objectType, string eventListenerName, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public UIButtonPressAction(string[] path, Type objectType, string eventListenerName) : 
+            base(path, objectType)
         {
             Debug.Assert(typeof(Button).IsAssignableFrom(objectType));
             EventListenerName = eventListenerName;
@@ -98,7 +98,7 @@ namespace RegressionGames.ActionManager.Actions
             }
         }
         
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             if (param)
             {
@@ -106,13 +106,13 @@ namespace RegressionGames.ActionManager.Actions
                 if (bounds.HasValue)
                 {
                     Bounds boundsVal = bounds.Value;
-                    RGActionManager.SimulateMouseMovement(boundsVal.center);
-                    RGActionManager.SimulateLeftMouseButton(true);
+                    yield return new MousePositionInput(boundsVal.center);
+                    yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                RGActionManager.SimulateLeftMouseButton(false);
+                yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, false);
             }
         }
     }

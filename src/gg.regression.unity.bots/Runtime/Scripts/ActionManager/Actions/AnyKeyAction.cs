@@ -12,7 +12,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class AnyKeyAction : RGGameAction
     {
-        public AnyKeyAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        public AnyKeyAction(string[] path, Type objectType) : base(path, objectType)
         {
         }
 
@@ -49,15 +49,15 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             if (param)
             {
                 // ensure at least one key is pressed (Enter)
                 #if ENABLE_INPUT_SYSTEM 
-                RGActionManager.SimulateKeyState(Key.Enter, true);
+                yield return new InputSystemKeyInput(Key.Enter, true);
                 #elif ENABLE_LEGACY_INPUT_MANAGER
-                RGActionManager.SimulateKeyState(KeyCode.Return, true);
+                yield return new LegacyKeyInput(KeyCode.Return, true);
                 #endif
             } else
             {
@@ -65,13 +65,13 @@ namespace RegressionGames.ActionManager.Actions
                 #if ENABLE_LEGACY_INPUT_MANAGER
                 foreach (KeyCode kc in Enum.GetValues(typeof(KeyCode)))
                 {
-                    RGActionManager.SimulateKeyState(kc, false);
+                    yield return new LegacyKeyInput(kc, false);
                 }
                 #endif
                 #if ENABLE_INPUT_SYSTEM
                 foreach (Key key in Enum.GetValues(typeof(Key)))
                 {
-                    RGActionManager.SimulateKeyState(key, false);
+                    yield return new InputSystemKeyInput(key, false);
                 }
                 #endif
             }

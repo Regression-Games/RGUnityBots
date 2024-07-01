@@ -18,8 +18,8 @@ namespace RegressionGames.ActionManager.Actions
 
         public float MouseMovementMagnitude = 10.0f; // for axes that read mouse delta, the amount to move/scroll the mouse
 
-        public LegacyAxisAction(string[] path, Type objectType, RGActionParamFunc<string> axisNameFunc, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public LegacyAxisAction(string[] path, Type objectType, RGActionParamFunc<string> axisNameFunc) : 
+            base(path, objectType)
         {
             AxisNameFunc = axisNameFunc;
         }
@@ -64,7 +64,7 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(int param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(int param)
         {
             string axisName = Action.AxisNameFunc.Invoke(TargetObject);
             var inpSettings = RGLegacyInputWrapper.InputManagerSettings;
@@ -85,56 +85,56 @@ namespace RegressionGames.ActionManager.Actions
                         {
                             if (entry.positiveButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.positiveButtonKeyCode.Value, true);
+                                yield return new LegacyKeyInput(entry.positiveButtonKeyCode.Value, true);
                             }
                             if (entry.altPositiveButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.altPositiveButtonKeyCode.Value, true);
+                                yield return new LegacyKeyInput(entry.altPositiveButtonKeyCode.Value, true);
                             }
                             if (entry.negativeButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.negativeButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.negativeButtonKeyCode.Value, false);
                             }
                             if (entry.altNegativeButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.altNegativeButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.altNegativeButtonKeyCode.Value, false);
                             }
                         } else if (paramForEntry == -1)
                         {
                             if (entry.positiveButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.positiveButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.positiveButtonKeyCode.Value, false);
                             }
                             if (entry.altPositiveButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.altPositiveButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.altPositiveButtonKeyCode.Value, false);
                             }
                             if (entry.negativeButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.negativeButtonKeyCode.Value, true);
+                                yield return new LegacyKeyInput(entry.negativeButtonKeyCode.Value, true);
                             }
                             if (entry.altNegativeButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.altNegativeButtonKeyCode.Value, true);
+                                yield return new LegacyKeyInput(entry.altNegativeButtonKeyCode.Value, true);
                             }
                         }
                         else if (paramForEntry == 0)
                         {
                             if (entry.positiveButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.positiveButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.positiveButtonKeyCode.Value, false);
                             }
                             if (entry.altPositiveButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.altPositiveButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.altPositiveButtonKeyCode.Value, false);
                             }
                             if (entry.negativeButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.negativeButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.negativeButtonKeyCode.Value, false);
                             }
                             if (entry.altNegativeButtonKeyCode.HasValue)
                             {
-                                RGActionManager.SimulateKeyState(entry.altNegativeButtonKeyCode.Value, false);
+                                yield return new LegacyKeyInput(entry.altNegativeButtonKeyCode.Value, false);
                             }
                         }
                         else
@@ -150,13 +150,13 @@ namespace RegressionGames.ActionManager.Actions
                             float mouseMoveScale = Action.MouseMovementMagnitude / entry.sensitivity;
                             if (entry.axis == 0) // X Axis
                             {
-                                RGActionManager.SimulateMouseMovementDelta(Vector2.right * (paramForEntry * mouseMoveScale));
+                                yield return new MousePositionDeltaInput(Vector2.right * (paramForEntry * mouseMoveScale));
                             } else if (entry.axis == 1) // Y Axis
                             {
-                                RGActionManager.SimulateMouseMovementDelta(Vector2.up * (paramForEntry * mouseMoveScale));
+                                yield return new MousePositionDeltaInput(Vector2.up * (paramForEntry * mouseMoveScale));
                             } else if (entry.axis == 2) // Scroll Wheel
                             {
-                                RGActionManager.SimulateMouseScroll(Vector2.up * (paramForEntry * mouseMoveScale));
+                                yield return new MouseScrollInput(Vector2.up * (paramForEntry * mouseMoveScale));
                             }
                         }
                         break;

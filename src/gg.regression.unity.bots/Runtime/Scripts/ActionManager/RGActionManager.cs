@@ -26,7 +26,7 @@ namespace RegressionGames.ActionManager
         private static MonoBehaviour _context;
         private static IRGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
-        private static Dictionary<RGGameAction, IList<IRGGameActionInstance>> _sessionActionsBuf;
+        private static IList<RGGameAction> _sessionActions;
 
         /// <summary>
         /// Provides access to the actions obtained from the action provider.
@@ -129,16 +129,7 @@ namespace RegressionGames.ActionManager
             }
             LoadSettings();
             _context = context;
-            
-            _sessionActionsBuf = new Dictionary<RGGameAction, IList<IRGGameActionInstance>>();
-            foreach (RGGameAction action in _actionProvider.Actions)
-            {
-                if (IsActionEnabled(action))
-                {
-                    _sessionActionsBuf.Add(action, new List<IRGGameActionInstance>());
-                }
-            }
-            
+            _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
             RGLegacyInputWrapper.StartSimulation(_context);
             SceneManager.sceneLoaded += OnSceneLoad;
             RGUtils.SetupEventSystem();
@@ -151,7 +142,7 @@ namespace RegressionGames.ActionManager
             {
                 SceneManager.sceneLoaded -= OnSceneLoad;
                 RGLegacyInputWrapper.StopSimulation();
-                _sessionActionsBuf = null;
+                _sessionActions = null;
                 _context = null;
             }
         }
@@ -174,16 +165,12 @@ namespace RegressionGames.ActionManager
         /// A dictionary mapping actions to valid instances in the current state.
         /// The list of valid instances may be empty (i.e. the presence of an action as a key does not imply it has a valid instance in the current state).
         /// </returns>
-        public static IDictionary<RGGameAction, IList<IRGGameActionInstance>> GetValidActions()
+        public static IEnumerable<IRGGameActionInstance> GetValidActions()
         {
             CurrentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
             CurrentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
-            foreach (var entry in _sessionActionsBuf)
+            foreach (RGGameAction action in _sessionActions)
             {
-                RGGameAction action = entry.Key;
-                IList<IRGGameActionInstance> actionInstances = entry.Value;
-                actionInstances.Clear();
-                
                 Debug.Assert(action.ParameterRange != null);
                 UnityEngine.Object[] objects = UnityEngine.Object.FindObjectsOfType(action.ObjectType);
                 foreach (var obj in objects)
@@ -200,11 +187,10 @@ namespace RegressionGames.ActionManager
                     }
                     if (action.IsValidForObject(obj))
                     {
-                        actionInstances.Add(action.GetInstance(obj));
+                        yield return action.GetInstance(obj);
                     }
                 }
             }
-            return _sessionActionsBuf;
         }
 
         private static void OnSceneLoad(Scene s, LoadSceneMode m)
@@ -307,29 +293,9 @@ namespace RegressionGames.ActionManager
             _mouseScroll = mouseScroll;
         }
 
-        public static void SimulateLeftMouseButton(bool isPressed)
+        public static void SimulateMouseButton(MouseButtonId mouseButton, bool isPressed)
         {
-            SimulateKeyState(KeyCode.Mouse0, isPressed);
-        }
-        
-        public static void SimulateMiddleMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse2, isPressed);
-        }
-        
-        public static void SimulateRightMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse1, isPressed);
-        }
-        
-        public static void SimulateForwardMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse3, isPressed);
-        }
-        
-        public static void SimulateBackMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse4, isPressed);
+            SimulateKeyState(mouseButton.ToKeyCode(), isPressed);
         }
     }
 }

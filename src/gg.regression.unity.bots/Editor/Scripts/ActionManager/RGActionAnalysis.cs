@@ -9,7 +9,9 @@ using UnityEngine;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using RegressionGames.ActionManager.Actions;
 using RegressionGames.Editor.RGLegacyInputUtility;
+using UnityEngine.UI;
 using Assembly = UnityEditor.Compilation.Assembly;
 
 namespace RegressionGames.ActionManager
@@ -33,17 +35,16 @@ namespace RegressionGames.ActionManager
     
     public class RGActionAnalysis : CSharpSyntaxWalker
     {
-        private List<RGGameAction> _actions;
-        private List<RGActionAnalysisWarning> _warnings;
+        private Dictionary<string, RGGameAction> _rawActions;
         private Compilation _currentCompilation;
         private SemanticModel _currentModel;
         private SyntaxTree _currentTree;
         private Dictionary<AssignmentExpressionSyntax, DataFlowAnalysis> _assignmentExprs;
         private Dictionary<LocalDeclarationStatementSyntax, DataFlowAnalysis> _localDeclarationStmts;
 
-        public List<RGGameAction> Actions => _actions;
-        public List<RGActionAnalysisWarning> Warnings => _warnings;
-        
+        public ISet<RGGameAction> Actions { get; private set; }
+        public List<RGActionAnalysisWarning> Warnings { get; private set; }
+
         private ISet<string> GetIgnoredAssemblyNames()
         {
             Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
@@ -237,7 +238,10 @@ namespace RegressionGames.ActionManager
             return true;
         }
 
-        private IEnumerable<RGActionParamFunc<object>> FindCandidateKeyFuncs(ExpressionSyntax keyExpr)
+        /// <summary>
+        /// Identify all candidate key codes that could be represented by the given expression.
+        /// </summary>
+        private IEnumerable<RGActionParamFunc<object>> FindCandidateLegacyKeyFuncs(ExpressionSyntax keyExpr)
         {
             bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<object> keyFunc)
             {
@@ -322,15 +326,25 @@ namespace RegressionGames.ActionManager
                 AddAnalysisWarning(keyExpr, "Could not identify key code being used");
             }
         }
-        
+
         public override void VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             var nodeSymInfo = _currentModel.GetSymbolInfo(node.Expression);
             if (nodeSymInfo.Symbol is IMethodSymbol methodSymbol)
             {
                 var containingTypeName = methodSymbol.ContainingType.ToString();
+                
+                // Legacy input manager
                 if (containingTypeName == "UnityEngine.Input")
                 {
+                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                    if (classDecl == null) return;
+                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                    {
+                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                        return;
+                    }
                     string methodName = methodSymbol.Name;
                     switch (methodName)
                     {
@@ -339,9 +353,10 @@ namespace RegressionGames.ActionManager
                         case "GetKeyUp":
                         {
                             var keyArg = node.ArgumentList.Arguments[0];
-                            foreach (var keyFunc in FindCandidateKeyFuncs(keyArg.Expression))
+                            foreach (var keyFunc in FindCandidateLegacyKeyFuncs(keyArg.Expression))
                             {
-                                Debug.Log(keyFunc.ToString());
+                                string[] path = { classDecl.Identifier.Text, $"Input.{methodName}({keyFunc})" };
+                                AddAction(new LegacyKeyAction(path, objectType, keyFunc));
                             }
                             break;
                         }
@@ -352,13 +367,25 @@ namespace RegressionGames.ActionManager
 
         private void AddAnalysisWarning(SyntaxNode node, string message)
         {
-            _warnings.Add(new RGActionAnalysisWarning(node, message));
+            Warnings.Add(new RGActionAnalysisWarning(node, message));
         }
 
-        public void RunAnalysis()
+        private void AddAction(RGGameAction action)
         {
-            _actions = new List<RGGameAction>();
-            _warnings = new List<RGActionAnalysisWarning>();
+            string path = string.Join("/", action.Paths[0]);
+            string currentPath = path;
+            int count = 1;
+            while (_rawActions.ContainsKey(currentPath))
+            {
+                ++count;
+                currentPath = path + count;
+            }
+            action.Paths[0] = currentPath.Split("/");
+            _rawActions.Add(currentPath, action);
+        }
+
+        private void RunCodeAnalysis()
+        {
             foreach (var compilation in GetCompilations())
             {
                 _currentCompilation = compilation;
@@ -372,6 +399,101 @@ namespace RegressionGames.ActionManager
                     Visit(root);
                 }
             }
+        }
+        
+        private static IEnumerable<GameObject> IterateGameObjects(GameObject gameObject)
+        {
+            yield return gameObject;
+            foreach (Transform child in gameObject.transform)
+            {
+                foreach (GameObject go in IterateGameObjects(child.gameObject))
+                {
+                    yield return go;
+                }
+            }
+        }
+            
+        private static IEnumerable<GameObject> IterateGameObjects(UnityEngine.SceneManagement.Scene scn)
+        {
+            foreach (GameObject rootGameObject in scn.GetRootGameObjects())
+            {
+                foreach (GameObject go in IterateGameObjects(rootGameObject))
+                {
+                    yield return go;
+                }
+            }
+        }
+
+        private static bool IsRGOverlayObject(GameObject gameObject)
+        {
+            Transform t = gameObject.transform;
+            while (t != null)
+            {
+                if (t.gameObject.name.Contains("RGOverlayCanvas"))
+                {
+                    return true;
+                }
+                t = t.parent;
+            }
+            return false;
+        }
+        
+        private void RunResourceAnalysis()
+        {
+            ISet<string> buttonClickListeners = new HashSet<string>();
+            string origScenePath = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().path;
+            string[] sceneGuids = UnityEditor.AssetDatabase.FindAssets("t:Scene");
+            foreach (string sceneGuid in sceneGuids)
+            {
+                string scenePath = UnityEditor.AssetDatabase.GUIDToAssetPath(sceneGuid);
+                if (scenePath.StartsWith("Packages/"))
+                {
+                    continue;
+                }
+                UnityEngine.SceneManagement.Scene scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
+                if (scene.IsValid())
+                {
+                    foreach (GameObject gameObject in IterateGameObjects(scene))
+                    {
+                        if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
+                        {
+                            foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
+                            {
+                                buttonClickListeners.Add(listener);
+                            }
+                        }
+                    }
+                }
+            }
+            UnityEditor.SceneManagement.EditorSceneManager.OpenScene(origScenePath);
+
+            foreach (string btnClickListener in buttonClickListeners)
+            {
+                string[] path = {"Unity UI", "Button Click", btnClickListener};
+                AddAction(new UIButtonPressAction(path, typeof(Button), btnClickListener));
+            }
+        }
+
+        public void RunAnalysis()
+        {
+            _rawActions = new Dictionary<string, RGGameAction>();
+            Warnings = new List<RGActionAnalysisWarning>();
+            
+            RunCodeAnalysis();
+            RunResourceAnalysis();
+
+            // Compute the set of unique actions
+            var actions = new HashSet<RGGameAction>();
+            foreach (var rawAction in _rawActions.Values)
+            {
+                var action = actions.FirstOrDefault(a => a.IsEquivalentTo(rawAction));
+                if (action != null)
+                    action.Paths.Add(rawAction.Paths[0]);
+                else
+                    actions.Add(rawAction);
+            }
+            
+            Actions = actions;
         }
     }
 }

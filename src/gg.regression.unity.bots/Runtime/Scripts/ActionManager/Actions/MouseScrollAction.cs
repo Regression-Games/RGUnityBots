@@ -10,8 +10,8 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseScrollAction : RGGameAction
     {
-        public MouseScrollAction(string[] path, Type objectType, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public MouseScrollAction(string[] path, Type objectType) : 
+            base(path, objectType)
         {
         }
 
@@ -45,10 +45,10 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(Vector2Int param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(Vector2Int param)
         {
             Vector2 mouseScroll = param;
-            RGActionManager.SimulateMouseScroll(mouseScroll);
+            yield return new MouseScrollInput(mouseScroll);
         }
     }
 }

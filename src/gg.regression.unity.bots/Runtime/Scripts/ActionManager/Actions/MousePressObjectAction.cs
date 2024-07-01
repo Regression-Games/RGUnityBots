@@ -13,7 +13,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePressObjectAction : RGGameAction
     {
-        public MousePressObjectAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        public MousePressObjectAction(string[] path, Type objectType) : base(path, objectType)
         {
         }
 
@@ -45,20 +45,20 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             if (param)
             {
                 var ssBounds = MouseHoverObjectInstance.GetHoverScreenSpaceBounds(TargetObject);
                 if (ssBounds.HasValue)
                 {
-                    RGActionManager.SimulateMouseMovement(ssBounds.Value.center);
-                    RGActionManager.SimulateLeftMouseButton(true);
+                    yield return new MousePositionInput(ssBounds.Value.center);
+                    yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                RGActionManager.SimulateLeftMouseButton(false);
+                yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, false);
             }
         }
     }

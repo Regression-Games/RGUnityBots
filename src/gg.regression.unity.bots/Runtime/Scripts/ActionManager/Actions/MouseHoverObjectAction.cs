@@ -14,7 +14,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseHoverObjectAction : RGGameAction
     {
-        public MouseHoverObjectAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        public MouseHoverObjectAction(string[] path, Type objectType) : base(path, objectType)
         {
         }
 
@@ -135,18 +135,18 @@ namespace RegressionGames.ActionManager.Actions
             return candidates[0];
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             var ssBounds = GetHoverScreenSpaceBounds(TargetObject);
             if (ssBounds.HasValue)
             {
                 if (param)
                 {
-                    RGActionManager.SimulateMouseMovement(ssBounds.Value.center);
+                    yield return new MousePositionInput(ssBounds.Value.center);
                 }
                 else
                 {
-                    RGActionManager.SimulateMouseMovement(GetPointOutsideBounds(ssBounds.Value));
+                    yield return new MousePositionInput(GetPointOutsideBounds(ssBounds.Value));
                 }
             }
         }

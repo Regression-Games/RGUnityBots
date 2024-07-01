@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using RegressionGames.ActionManager;
 using UnityEngine;
 
@@ -7,11 +8,12 @@ namespace RegressionGames.GenericBots
     public class RGMonkeyBot : MonoBehaviour, IRGBot
     {
         public float actionInterval = 0.1f; // unscaled time
-            
-        private Dictionary<int, Dictionary<RGGameAction, List<IRGGameActionInstance>>> _actionsByGroup;
-        private ISet<int> _validActionGroups;
-        private IList<int> _validActionGroupsList;
+        
         private float _lastActionTime;
+
+        private IList<IList<RGActionInput>> _validInputsBuf;
+        private IList<IList<RGActionInput>> _remainingInputsBuf;
+        private IList<RGActionInput> _performedInputsBuf;
     
         void Start()
         {
@@ -23,21 +25,9 @@ namespace RegressionGames.GenericBots
             }
             RGActionManager.StartSession(this);
             
-            // Initialize buffers
-            _actionsByGroup = new Dictionary<int, Dictionary<RGGameAction, List<IRGGameActionInstance>>>();
-            _validActionGroups = new HashSet<int>();
-            _validActionGroupsList = new List<int>();
-            foreach (RGGameAction action in RGActionManager.Actions)
-            {
-                if (!_actionsByGroup.TryGetValue(action.ActionGroup, out var groupActions))
-                {
-                    groupActions = new Dictionary<RGGameAction, List<IRGGameActionInstance>>();
-                    _actionsByGroup[action.ActionGroup] = groupActions;
-                }
-                groupActions.Add(action, new List<IRGGameActionInstance>());
-            }
-            
             _lastActionTime = Time.unscaledTime;
+            _validInputsBuf = new List<IList<RGActionInput>>();
+            _performedInputsBuf = new List<RGActionInput>();
             
             DontDestroyOnLoad(this);
         }
@@ -56,52 +46,60 @@ namespace RegressionGames.GenericBots
                 return;
             }
             _lastActionTime = currentTimeUnscaled;
-            
-            // Clear buffers
-            foreach (var p in _actionsByGroup)
-            {
-                foreach (var entry in p.Value)
-                {
-                    entry.Value.Clear();
-                }
-            }
-            _validActionGroups.Clear();
-            _validActionGroupsList.Clear();
 
-            // Gather all valid actions in a mapping from group number -> action -> action instances
-            foreach (var entry in RGActionManager.GetValidActions())
+            // Compute the set of valid input combinations
+            int validInputsBufIdx = 0;
+            foreach (var inputList in _validInputsBuf)
             {
-                RGGameAction action = entry.Key;
-                var instances = entry.Value;
-                if (instances.Count > 0)
-                {
-                    _validActionGroups.Add(action.ActionGroup);
-                    var instBuf = _actionsByGroup[action.ActionGroup][action];
-                    foreach (var inst in instances)
-                    {
-                        instBuf.Add(inst);
-                    }
-                }
+                inputList.Clear();
             }
-            foreach (int grp in _validActionGroups)
+            foreach (var actionInstance in RGActionManager.GetValidActions())
             {
-                _validActionGroupsList.Add(grp);
+                IList<RGActionInput> inputList;
+                if (validInputsBufIdx >= _validInputsBuf.Count)
+                {
+                    inputList = new List<RGActionInput>();
+                    _validInputsBuf.Add(inputList);
+                }
+                else
+                {
+                    inputList = _validInputsBuf[validInputsBufIdx];
+                }
+
+                foreach (var inp in actionInstance.GetInputs(actionInstance.BaseAction.ParameterRange.RandomSample()))
+                {
+                    inputList.Add(inp);
+                }
+                
+                ++validInputsBufIdx;
             }
             
-            // 1. Randomly choose an action group
-            // 2. Choose one action instance to perform from each action in the group
-            if (_validActionGroupsList.Count > 0)
+            // Randomly perform inputs from the list 
+            _performedInputsBuf.Clear();
+            for (;;)
             {
-                int grp = _validActionGroupsList[Random.Range(0, _validActionGroupsList.Count)];
-                foreach (var entry in _actionsByGroup[grp])
+                _remainingInputsBuf.Clear();
+
+                // Compute the set of remaining inputs in the list that do not overlap with the ones that have been performed
+                var remainingInputs = _validInputsBuf.Where(inputList =>
+                    !inputList.Any(inp => _performedInputsBuf.Any(perfInp => perfInp.Overlaps(inp))));
+                foreach (var inputList in remainingInputs)
                 {
-                    RGGameAction action = entry.Key;
-                    var instances = entry.Value;
-                    if (instances.Count > 0)
+                    _remainingInputsBuf.Add(inputList);
+                }
+
+                if (_remainingInputsBuf.Count > 0)
+                {
+                    var inputList = _remainingInputsBuf[Random.Range(0, _remainingInputsBuf.Count)];
+                    foreach (var inp in inputList)
                     {
-                        var chosenInst = instances[Random.Range(0, instances.Count)];
-                        chosenInst.Perform(action.ParameterRange.RandomSample());
+                        inp.Perform();
+                        _performedInputsBuf.Add(inp);
                     }
+                }
+                else
+                {
+                    break;
                 }
             }
         }

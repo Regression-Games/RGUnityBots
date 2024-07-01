@@ -12,8 +12,8 @@ namespace RegressionGames.ActionManager.Actions
     {
         public RGActionParamFunc<Key> KeyFunc { get; }
         
-        public InputSystemKeyAction(string[] path, Type objectType, RGActionParamFunc<Key> keyFunc, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public InputSystemKeyAction(string[] path, Type objectType, RGActionParamFunc<Key> keyFunc) : 
+            base(path, objectType)
         {
             KeyFunc = keyFunc;
         }
@@ -60,10 +60,10 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             Key key = Action.KeyFunc.Invoke(TargetObject);
-            RGActionManager.SimulateKeyState(key, param);
+            yield return new InputSystemKeyInput(key, param);
         }
     }
 }

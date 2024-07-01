@@ -15,8 +15,8 @@ namespace RegressionGames.ActionManager.Actions
     {
         public RGActionParamFunc<string> ButtonNameFunc { get; }
 
-        public LegacyButtonAction(string[] path, Type objectType, RGActionParamFunc<string> buttonNameFunc, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public LegacyButtonAction(string[] path, Type objectType, RGActionParamFunc<string> buttonNameFunc) : 
+            base(path, objectType)
         {
             ButtonNameFunc = buttonNameFunc;
         }
@@ -60,7 +60,7 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             string buttonName = Action.ButtonNameFunc.Invoke(TargetObject);
             var inpSettings = RGLegacyInputWrapper.InputManagerSettings;
@@ -71,19 +71,19 @@ namespace RegressionGames.ActionManager.Actions
                 // The Input Manager considers either a positive or negative key code to be sufficient to trigger the button
                 if (entry.positiveButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.positiveButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.positiveButtonKeyCode.Value, param);
                 }
                 if (entry.altPositiveButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.altPositiveButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.altPositiveButtonKeyCode.Value, param);
                 }
                 if (entry.negativeButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.negativeButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.negativeButtonKeyCode.Value, param);
                 }
                 if (entry.altNegativeButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.altNegativeButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.altNegativeButtonKeyCode.Value, param);
                 }
             }
         }

@@ -284,10 +284,6 @@ namespace RegressionGames.ActionManager
             Label paramRange = new Label();
             paramRange.text = "Parameter Range: " + action.ParameterRange;
             _detailsPane.Add(paramRange);
-
-            Label actionGroup = new Label();
-            actionGroup.text = "Group ID: " + action.ActionGroup;
-            _detailsPane.Add(actionGroup);
         }
 
         public void CreateGUI()

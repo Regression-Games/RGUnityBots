@@ -14,8 +14,8 @@ namespace RegressionGames.ActionManager.Actions
     {
         public RGActionParamFunc<object> KeyCodeFunc { get; }
         
-        public LegacyKeyAction(string[] path, Type objectType, RGActionParamFunc<object> keyCodeFunc, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public LegacyKeyAction(string[] path, Type objectType, RGActionParamFunc<object> keyCodeFunc) : 
+            base(path, objectType)
         {
             KeyCodeFunc = keyCodeFunc;
         }
@@ -59,15 +59,15 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
         
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
-            object keyCodeOrName= Action.KeyCodeFunc.Invoke(TargetObject);
+            object keyCodeOrName = Action.KeyCodeFunc.Invoke(TargetObject);
             if (keyCodeOrName is KeyCode keyCode)
             {
-                RGActionManager.SimulateKeyState(keyCode, param);
+                yield return new LegacyKeyInput(keyCode, param);
             } else if (keyCodeOrName is string keyName)
             {
-                RGActionManager.SimulateKeyState(RGLegacyInputWrapper.KeyNameToCode(keyName), param);
+                yield return new LegacyKeyInput(RGLegacyInputWrapper.KeyNameToCode(keyName), param);
             }
             else
             {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
-using JetBrains.Annotations;
 using UnityEngine;
 using Object = System.Object;
 
@@ -36,6 +36,9 @@ namespace RegressionGames.ActionManager
         private readonly ActionParamFuncType _funcType;
         private readonly string _data;
         private readonly Func<Object, T> _func;
+
+        private T _constantValue; // only present if _funcType == TYPE_CONSTANT
+        private SerializedMemberAccessFuncData _memberAccesses; // only present if _funcType == TYPE_MEMBER_ACCESSES
 
         private RGActionParamFunc(ActionParamFuncType funcType, string data, Func<Object, T> func)
         {
@@ -72,7 +75,9 @@ namespace RegressionGames.ActionManager
                 throw new Exception($"serialization of type {type} is unsupported");
             }
             Func<Object, T> func = _ => value;
-            return new RGActionParamFunc<T>(ActionParamFuncType.TYPE_CONSTANT, data, func);
+            var result = new RGActionParamFunc<T>(ActionParamFuncType.TYPE_CONSTANT, data, func);
+            result._constantValue = value;
+            return result;
         }
         
         /// <summary>
@@ -90,10 +95,8 @@ namespace RegressionGames.ActionManager
                 access.MemberName = member.Name;
             }
 
-            string data = JsonUtility.ToJson(new SerializedMemberAccessFuncData
-            {
-                MemberAccesses = accesses
-            });
+            var memberAccessData = new SerializedMemberAccessFuncData { MemberAccesses = accesses };
+            string data = JsonUtility.ToJson(memberAccessData);
             
             Func<Object, T> func = obj =>
             {
@@ -115,7 +118,9 @@ namespace RegressionGames.ActionManager
                 return (T)currentObject;
             };
 
-            return new RGActionParamFunc<T>(ActionParamFuncType.TYPE_MEMBER_ACCESS, data, func);
+            var result = new RGActionParamFunc<T>(ActionParamFuncType.TYPE_MEMBER_ACCESS, data, func);
+            result._memberAccesses = memberAccessData;
+            return result;
         }
         
         public T Invoke(Object obj)
@@ -129,17 +134,69 @@ namespace RegressionGames.ActionManager
             {
                 case ActionParamFuncType.TYPE_CONSTANT:
                 {
-                    
-                    break;
+                    var type = typeof(T);
+                    if (type.IsEnum)
+                    {
+                        return Constant((T)Enum.Parse(type, data));
+                    } else if (type == typeof(string))
+                    {
+                        return Constant((T)(object)data);
+                    } else if (type == typeof(int))
+                    {
+                        return Constant((T)(object)int.Parse(data));
+                    } else if (type == typeof(object))
+                    {
+                        if (data.StartsWith("keycode:"))
+                        {
+                            var keyCode = Enum.Parse<KeyCode>(data.Substring("keycode:".Length));
+                            return Constant((T)(object)keyCode);
+                        } else if (data.StartsWith("string:"))
+                        {
+                            var str = data.Substring("string:".Length);
+                            return Constant((T)(object)str);
+                        }
+                        else
+                        {
+                            throw new Exception($"unexpected data {data}");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception($"deserialization of type {type} is unsupported");
+                    }
                 }
                 case ActionParamFuncType.TYPE_MEMBER_ACCESS:
                 {
-                    
-                    break;
+                    List<MemberInfo> members = new List<MemberInfo>();
+                    var memberData = JsonUtility.FromJson<SerializedMemberAccessFuncData>(data);
+                    foreach (var access in memberData.MemberAccesses)
+                    {
+                        Type type = Type.GetType(access.DeclaringType);
+                        if (type == null)
+                        {
+                            throw new Exception($"type {access.DeclaringType} not available");
+                        }
+                        MemberInfo member;
+                        switch (access.MemberType)
+                        {
+                            case MemberTypes.Field:
+                                member = type.GetField(access.MemberName, 
+                                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                                break;
+                            case MemberTypes.Property:
+                                member = type.GetProperty(access.MemberName,
+                                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                                break;
+                            default:
+                                throw new Exception($"unsupported member type {access.MemberType}");
+                        }
+                        members.Add(member);
+                    }
+                    return MemberAccesses(members);
                 }
+                default:
+                    throw new Exception($"unexpected function type {funcType}");
             }
-
-            throw new NotImplementedException();
         }
 
         public (ActionParamFuncType, string) Serialize()
@@ -179,7 +236,20 @@ namespace RegressionGames.ActionManager
 
         public override string ToString()
         {
-            return "RGActionParamFunc<" + typeof(T) + "> { type: " + _funcType + ", data: " + _data + " }";
+            switch (_funcType)
+            {
+                case ActionParamFuncType.TYPE_CONSTANT:
+                    if (_constantValue is string)
+                        return $"\"{_constantValue}\"";
+                    else if (_constantValue is Enum)
+                        return _constantValue.GetType().Name + "." + _constantValue;
+                    else
+                        return _constantValue.ToString();
+                case ActionParamFuncType.TYPE_MEMBER_ACCESS:
+                    return string.Join(".", _memberAccesses.MemberAccesses.Select(a => a.MemberName));
+                default:
+                    throw new Exception($"unexpected function type {_funcType}");
+            }
         }
     }
 }
