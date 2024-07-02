@@ -45,6 +45,16 @@ namespace ActionManagerTests
             {
                 Debug.Log("Input.GetKey(crouchKey)");
             }
+
+            if (Input.anyKey)
+            {
+                Debug.Log("Input.anyKey");
+            }
+
+            if (Input.anyKeyDown)
+            {
+                Debug.Log("Input.anyKeyDown");
+            }
         }
     
         void Update()

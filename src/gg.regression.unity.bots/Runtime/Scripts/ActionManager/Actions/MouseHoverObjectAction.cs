@@ -40,6 +40,11 @@ namespace RegressionGames.ActionManager.Actions
         protected override void Serialize(RGSerializedAction serializedAction)
         {
         }
+
+        public override bool IsEquivalentTo(RGGameAction other)
+        {
+            return other is MouseHoverObjectAction && base.IsEquivalentTo(other);
+        }
     }
 
     public class MouseHoverObjectInstance : RGGameActionInstance<MouseHoverObjectAction, bool>

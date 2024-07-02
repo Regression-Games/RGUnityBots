@@ -32,6 +32,11 @@ namespace ActionManagerTests
             {
                 Debug.Log("keyboard.altKey.wasPressedThisFrame");
             }
+
+            if (Keyboard.current.anyKey.wasPressedThisFrame)
+            {
+                Debug.Log("Keyboard.current.anyKey.wasPressedThisFrame");
+            }
         }
     }
     

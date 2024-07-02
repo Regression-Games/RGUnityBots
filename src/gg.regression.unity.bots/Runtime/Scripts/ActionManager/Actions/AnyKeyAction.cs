@@ -37,7 +37,7 @@ namespace RegressionGames.ActionManager.Actions
 
         public override bool IsEquivalentTo(RGGameAction other)
         {
-            return base.IsEquivalentTo(other);
+            return other is AnyKeyAction && base.IsEquivalentTo(other);
         }
 
         protected override void Serialize(RGSerializedAction serializedAction)

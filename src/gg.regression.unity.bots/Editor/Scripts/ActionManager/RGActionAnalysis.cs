@@ -601,7 +601,44 @@ namespace RegressionGames.ActionManager
             if (sym is IPropertySymbol propSym)
             {
                 var type = FindType(propSym.ContainingType);
-                if (type == typeof(Keyboard))
+                if (type == typeof(UnityEngine.Input))
+                {
+                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                    if (classDecl == null) return;
+                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                    {
+                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                        return;
+                    }
+                    switch (propSym.Name)
+                    {
+                        // Input.anyKey, Input.anyKeyDown
+                        case "anyKey":
+                        case "anyKeyDown":
+                        {
+                            string[] path = new string[] { objectType.FullName, $"Input.{propSym.Name}" };
+                            AddAction(new AnyKeyAction(path, objectType));
+                            break;
+                        }
+                        
+                        // Input.mousePosition
+                        case "mousePosition":
+                        {
+                            string[] path = new string[] { objectType.FullName, $"Input.mousePosition" };
+                            AddAction(new MousePositionAction(path, objectType));
+                            break;
+                        }
+                        
+                        // Input.mouseScrollDelta
+                        case "mouseScrollDelta":
+                        {
+                            string[] path = new string[] { objectType.FullName, "Input.mouseScrollDelta" };
+                            AddAction(new MouseScrollAction(path, objectType));
+                            break;
+                        }
+                    }
+                } else if (type == typeof(Keyboard))
                 {
                     var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
                     if (exprType != null && typeof(ButtonControl).IsAssignableFrom(exprType))
@@ -615,13 +652,20 @@ namespace RegressionGames.ActionManager
                             AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
                             return;
                         }
-                        Key key = RGActionManagerUtils.InputSystemKeyboardPropertyNameToKey(propSym.Name);
-                        if (key == Key.None)
-                        {
-                            AddAnalysisWarning(node, $"Unrecognized keyboard property '{propSym.Name}'");
-                        }
                         string[] path = { objectType.FullName, $"Keyboard.current.{propSym.Name}" };
-                        AddAction(new InputSystemKeyAction(path, objectType, RGActionParamFunc<Key>.Constant(key)));
+                        if (propSym.Name == "anyKey")
+                        {
+                            AddAction(new AnyKeyAction(path, objectType));
+                        }
+                        else
+                        {
+                            Key key = RGActionManagerUtils.InputSystemKeyboardPropertyNameToKey(propSym.Name);
+                            if (key == Key.None)
+                            {
+                                AddAnalysisWarning(node, $"Unrecognized keyboard property '{propSym.Name}'");
+                            }
+                            AddAction(new InputSystemKeyAction(path, objectType, RGActionParamFunc<Key>.Constant(key)));
+                        }
                     }
                 } else if (type == typeof(Mouse))
                 {
@@ -679,6 +723,27 @@ namespace RegressionGames.ActionManager
                                 string[] path = { objectType.FullName, $"Mouse.current.scroll" };
                                 AddAction(new MouseScrollAction(path, objectType));
                             }
+                        }
+                    }
+                } else if (type == typeof(UnityEngine.InputSystem.Pointer))
+                {
+                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                    if (classDecl == null) return;
+                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                    {
+                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                        return;
+                    }
+
+                    string[] path = { objectType.FullName, "Mouse.current.position" };
+                    switch (propSym.Name)
+                    {
+                        case "position":
+                        case "delta":
+                        {
+                            AddAction(new MousePositionAction(path, objectType));
+                            break;
                         }
                     }
                 }

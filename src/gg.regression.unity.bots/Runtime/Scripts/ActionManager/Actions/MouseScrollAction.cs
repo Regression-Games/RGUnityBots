@@ -39,6 +39,11 @@ namespace RegressionGames.ActionManager.Actions
         protected override void Serialize(RGSerializedAction serializedAction)
         {
         }
+        
+        public override bool IsEquivalentTo(RGGameAction other)
+        {
+            return other is MouseScrollAction && base.IsEquivalentTo(other);
+        }
     }
 
     public class MouseScrollInstance : RGGameActionInstance<MouseScrollAction, Vector2Int>
