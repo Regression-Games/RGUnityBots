@@ -14,8 +14,8 @@ using RegressionGames.ActionManager.Actions;
 using RegressionGames.Editor.RGLegacyInputUtility;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-using UnityEngine.UI;
 using Assembly = UnityEditor.Compilation.Assembly;
+using Button = UnityEngine.UI.Button;
 
 namespace RegressionGames.ActionManager
 {
@@ -570,28 +570,90 @@ namespace RegressionGames.ActionManager
         public override void VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
         {
             var sym = _currentModel.GetSymbolInfo(node).Symbol;
-            if (sym is IPropertySymbol propSym
-                && FindType(propSym.ContainingType) == typeof(Keyboard))
+
+            if (sym is IPropertySymbol propSym)
             {
-                var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
-                if (exprType != null && typeof(ButtonControl).IsAssignableFrom(exprType))
+                var type = FindType(propSym.ContainingType);
+                if (type == typeof(Keyboard))
                 {
-                    // Keyboard.current.<property>
-                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                    if (classDecl == null) return;
-                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                    var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
+                    if (exprType != null && typeof(ButtonControl).IsAssignableFrom(exprType))
                     {
-                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                        return;
+                        // Keyboard.current.<property>
+                        var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                        if (classDecl == null) return;
+                        Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                        if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                        {
+                            AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                            return;
+                        }
+                        Key key = RGActionManagerUtils.InputSystemKeyboardPropertyNameToKey(propSym.Name);
+                        if (key == Key.None)
+                        {
+                            AddAnalysisWarning(node, $"Unrecognized keyboard property '{propSym.Name}'");
+                        }
+                        string[] path = { objectType.FullName, $"Keyboard.current.{propSym.Name}" };
+                        AddAction(new InputSystemKeyAction(path, objectType, RGActionParamFunc<Key>.Constant(key)));
                     }
-                    Key key = RGActionManagerUtils.InputSystemKeyboardPropertyNameToKey(propSym.Name);
-                    if (key == Key.None)
+                } else if (type == typeof(Mouse))
+                {
+                    var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
+                    if (exprType != null)
                     {
-                        AddAnalysisWarning(node, $"Unrecognized keyboard property '{propSym.Name}'");
+                        if (typeof(ButtonControl).IsAssignableFrom(exprType))
+                        {
+                            // Mouse.current.<button>
+                            var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                            if (classDecl == null) return;
+                            Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                            if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                            {
+                                AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                                return;
+                            }
+                            int mouseButton;
+                            switch (propSym.Name)
+                            {
+                                case "leftButton":
+                                    mouseButton = MouseButtonInput.LEFT_MOUSE_BUTTON;
+                                    break;
+                                case "middleButton":
+                                    mouseButton = MouseButtonInput.MIDDLE_MOUSE_BUTTON;
+                                    break;
+                                case "rightButton":
+                                    mouseButton = MouseButtonInput.RIGHT_MOUSE_BUTTON;
+                                    break;
+                                case "forwardButton":
+                                    mouseButton = MouseButtonInput.FORWARD_MOUSE_BUTTON;
+                                    break;
+                                case "backButton":
+                                    mouseButton = MouseButtonInput.BACK_MOUSE_BUTTON;
+                                    break;
+                                default:
+                                    AddAnalysisWarning(node, $"Unrecognized mouse property {propSym.Name}");
+                                    return;
+                            }
+                            string[] path = { objectType.FullName, $"Mouse.current.{propSym.Name}" };
+                            AddAction(new MouseButtonAction(path, objectType, RGActionParamFunc<int>.Constant(mouseButton)));
+                        } else if (typeof(DeltaControl).IsAssignableFrom(exprType))
+                        {
+                            if (propSym.Name == "scroll")
+                            {
+                                // Mouse.current.scroll
+                                var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                                if (classDecl == null) return;
+                                Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                                if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                                {
+                                    AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                                    return;
+                                }
+                                string[] path = { objectType.FullName, $"Mouse.current.scroll" };
+                                AddAction(new MouseScrollAction(path, objectType));
+                            }
+                        }
                     }
-                    string[] path = { objectType.FullName, $"Keyboard.current.{propSym.Name}" };
-                    AddAction(new InputSystemKeyAction(path, objectType, RGActionParamFunc<Key>.Constant(key)));
                 }
             }
             
