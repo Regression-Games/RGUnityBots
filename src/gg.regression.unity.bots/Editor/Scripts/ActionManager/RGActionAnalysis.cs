@@ -525,6 +525,19 @@ namespace RegressionGames.ActionManager
                             }
                             break;
                         }
+                        
+                        // Input.GetAxis(...), Input.GetAxisRaw(...)
+                        case "GetAxis":
+                        case "GetAxisRaw":
+                        {
+                            var axisArg = node.ArgumentList.Arguments[0];
+                            foreach (var axisNameFunc in FindCandidateLiteralFuncs<string>(axisArg.Expression))
+                            {
+                                string[] path = { objectType.FullName, $"Input.{methodName}({axisNameFunc})" };
+                                AddAction(new LegacyAxisAction(path, objectType, axisNameFunc));
+                            }
+                            break;
+                        }
                     }
                 }
             }
