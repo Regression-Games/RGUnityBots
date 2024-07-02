@@ -433,6 +433,8 @@ namespace RegressionGames.StateRecorder
                 {
                     _mouseObserver.ObserveMouse(uiTransforms.Item2.Values.Concat(gameObjectTransforms.Item2.Values));
                 }
+                
+                _profilerObserver.Observe();
 
                 //Compute the delta values we need to record / evaluate to know if we need to record a key frame
                 var uiDeltas = InGameObjectFinder.GetInstance().ComputeNormalizedPathBasedDeltaCounts(uiTransforms.Item1, uiTransforms.Item2, out var hasUIDelta);
@@ -455,8 +457,6 @@ namespace RegressionGames.StateRecorder
                     // record full frame state and screenshot
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
-
-                    ProfilerObserverResult profilerResult = _profilerObserver.SampleProfiler(_frameCountSinceLastTick);
 
                     byte[] jsonData = null;
 
@@ -566,27 +566,7 @@ namespace RegressionGames.StateRecorder
                             framesSincePreviousTick = _frameCountSinceLastTick,
                             previousTickTime = _lastCvFrameTime > 0 ? _lastCvFrameTime : 0,
                             fps = _lastCvFrameTime > 0 ? (int)(_frameCountSinceLastTick / (now - _lastCvFrameTime)) : 0,
-                            cpuTimesPerFrame = profilerResult.cpuTimePerFrame,
-                            memoryPerFrame = profilerResult.systemUsedMemoryPerFrame,
-                            gcMemoryPerFrame = profilerResult.gcUsedMemoryPerFrame,
-                            engineStats = new EngineStatsData()
-                            {
-#if UNITY_EDITOR
-                                frameTime = UnityStats.frameTime,
-                                renderTime = UnityStats.renderTime,
-                                triangles = UnityStats.triangles,
-                                vertices = UnityStats.vertices,
-                                setPassCalls = UnityStats.setPassCalls,
-                                drawCalls = UnityStats.drawCalls,
-                                dynamicBatchedDrawCalls = UnityStats.dynamicBatchedDrawCalls,
-                                staticBatchedDrawCalls = UnityStats.staticBatchedDrawCalls,
-                                instancedBatchedDrawCalls = UnityStats.instancedBatchedDrawCalls,
-                                batches = UnityStats.batches,
-                                dynamicBatches = UnityStats.dynamicBatches,
-                                staticBatches = UnityStats.staticBatches,
-                                instancedBatches = UnityStats.instancedBatches
-#endif
-                            }
+                            perFrameStatistics = _profilerObserver.DequeueAll()
                         };
 
                         _lastCvFrameTime = now;
