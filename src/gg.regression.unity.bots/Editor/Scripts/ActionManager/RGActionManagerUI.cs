@@ -93,6 +93,7 @@ namespace RegressionGames.ActionManager
                 ActionTreeNode node = new ActionTreeNode(new string[] { objectType.FullName });
                 node.children = new List<ActionTreeNode>(actions.Select(act => 
                     new ActionTreeNode(new[] {node.path[0], act.DisplayName}) { action = act } ));
+                node.children.Sort((a, b) => a.path[1].CompareTo(b.path[1]));
                 result.Add(node);
             }
 
