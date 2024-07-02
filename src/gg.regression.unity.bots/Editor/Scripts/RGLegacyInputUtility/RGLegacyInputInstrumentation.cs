@@ -188,7 +188,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         {
             try
             {
-                if (IsAssemblyIgnored(assemblyPath, rgAssembly))
+                if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assemblyPath, rgAssembly))
                 {
                     return;
                 }
