@@ -135,6 +135,9 @@ namespace RegressionGames.ActionManager
                     checkbox.RegisterValueChangedCallback(evt =>
                     {
                         ActionTreeNode leafNode = (ActionTreeNode)checkbox.userData;
+                        if (leafNode == null)
+                            return;
+                        
                         foreach (string[] actionPath in leafNode.action.Paths)
                         {
                             string path = string.Join("/", actionPath);
