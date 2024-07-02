@@ -538,6 +538,20 @@ namespace RegressionGames.ActionManager
                             }
                             break;
                         }
+                        
+                        // Input.GetButton(...), Input.GetButtonDown(...), Input.GetButtonUp(...)
+                        case "GetButton":
+                        case "GetButtonDown":
+                        case "GetButtonUp":
+                        {
+                            var btnArg = node.ArgumentList.Arguments[0];
+                            foreach (var btnNameFunc in FindCandidateLiteralFuncs<string>(btnArg.Expression))
+                            {
+                                string[] path = { objectType.FullName, $"Input.{methodName}({btnNameFunc})" };
+                                AddAction(new LegacyButtonAction(path, objectType, btnNameFunc));
+                            }
+                            break;
+                        }
                     }
                 }
             }
