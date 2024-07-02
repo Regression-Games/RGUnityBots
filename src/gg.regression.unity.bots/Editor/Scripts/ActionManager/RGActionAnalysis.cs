@@ -736,7 +736,7 @@ namespace RegressionGames.ActionManager
                         return;
                     }
 
-                    string[] path = { objectType.FullName, "Mouse.current.position" };
+                    string[] path = { objectType.FullName, $"Mouse.current.{propSym.Name}" };
                     switch (propSym.Name)
                     {
                         case "position":
@@ -750,6 +750,45 @@ namespace RegressionGames.ActionManager
             }
             
             base.VisitMemberAccessExpression(node);
+        }
+
+        public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
+        {
+            var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+            if (classDecl == null) return;
+            Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+            if (typeof(MonoBehaviour).IsAssignableFrom(objectType))
+            {
+                var declSym = _currentModel.GetDeclaredSymbol(node);
+                if (declSym.Parameters.Length == 0)
+                {
+                    switch (declSym.Name)
+                    {
+                        // OnMouseOver(), OnMouseEnter(), OnMouseExit() handler
+                        case "OnMouseOver":
+                        case "OnMouseEnter":
+                        case "OnMouseExit":
+                        {
+                            string[] path = { objectType.FullName, declSym.Name };
+                            AddAction(new MouseHoverObjectAction(path, objectType));
+                            break;
+                        }
+                        
+                        // OnMouseDown(), OnMouseUp(), OnMouseUpAsButton(), OnMouseDrag() handler
+                        case "OnMouseDown":
+                        case "OnMouseUp":
+                        case "OnMouseUpAsButton":
+                        case "OnMouseDrag":
+                        {
+                            string[] path = { objectType.FullName, declSym.Name };
+                            AddAction(new MousePressObjectAction(path, objectType));
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            base.VisitMethodDeclaration(node);
         }
 
         private void AddAnalysisWarning(SyntaxNode node, string message)

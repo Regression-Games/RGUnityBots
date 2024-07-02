@@ -24,7 +24,7 @@ namespace RegressionGames.ActionManager.Actions
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
 
-        public override string DisplayName => $"Press Left Mouse Button On {ObjectType.Name}";
+        public override string DisplayName => $"Mouse Press On {ObjectType.Name}";
 
         public override bool IsValidForObject(Object obj)
         {
