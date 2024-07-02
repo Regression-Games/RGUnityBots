@@ -12,6 +12,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RegressionGames.ActionManager.Actions;
 using RegressionGames.Editor.RGLegacyInputUtility;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.UI;
 using Assembly = UnityEditor.Compilation.Assembly;
 
@@ -99,12 +101,12 @@ namespace RegressionGames.ActionManager
             {
                 string playerAsmName = Path.GetFileNameWithoutExtension(playerAsm.outputPath);
                 if (ignoredAssemblyNames.Contains(playerAsmName) 
-                    || playerAsmName.StartsWith("UnityEngine.") 
-                    || playerAsmName.StartsWith("Unity.")
                     || playerAsm.sourceFiles.Length == 0)
                 {
                     continue;
                 }
+
+                bool shouldSkip = false;
                 
                 List<MetadataReference> references = new List<MetadataReference>();
                 foreach (var playerAsmRef in playerAsm.allReferences)
@@ -115,13 +117,23 @@ namespace RegressionGames.ActionManager
                 List<SyntaxTree> syntaxTrees = new List<SyntaxTree>();
                 foreach (string sourceFile in playerAsm.sourceFiles)
                 {
+                    if (sourceFile.StartsWith("Packages/"))
+                    {
+                        shouldSkip = true;
+                        break;
+                    }
                     using (StreamReader sr = new StreamReader(sourceFile))
                     {
                         SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd(), path: sourceFile);
                         syntaxTrees.Add(tree);
                     }
                 }
-
+                
+                if (shouldSkip)
+                {
+                    continue;
+                }
+                
                 yield return CSharpCompilation.Create(playerAsm.name)
                     .AddReferences(references)
                     .AddSyntaxTrees(syntaxTrees);
@@ -175,6 +187,10 @@ namespace RegressionGames.ActionManager
 
         private Type FindType(ITypeSymbol typeSymbol)
         {
+            if (typeSymbol == null)
+            {
+                return null;
+            }
             var assembly = typeSymbol.ContainingAssembly;
             var fullyQualName = typeSymbol + ", " + assembly;
             return Type.GetType(fullyQualName);
@@ -333,6 +349,70 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        private IEnumerable<RGActionParamFunc<Key>> FindCandidateInputSysKeyFuncs(ExpressionSyntax keyExpr)
+        {
+            bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<Key> keyFunc)
+            {
+                var sym = _currentModel.GetSymbolInfo(expr).Symbol;
+                if (sym != null)
+                {
+                    if (sym is IFieldSymbol fieldSym)
+                    {
+                        if (fieldSym.IsStatic && fieldSym.ContainingType?.TypeKind == TypeKind.Enum &&
+                            FindType(fieldSym.ContainingType) == typeof(Key))
+                        {
+                            // constant key, e.g. Key.F2
+                            Key key = Enum.Parse<Key>(fieldSym.Name);
+                            keyFunc = RGActionParamFunc<Key>.Constant(key);
+                            return true;
+                        }
+                        else
+                        {
+                            // key stored in dynamic field
+                            if (TryGetMemberAccessFunc(expr, out keyFunc))
+                            {
+                                return true;
+                            }
+                        }
+                    } 
+                    else if (sym is IPropertySymbol)
+                    {
+                        if (TryGetMemberAccessFunc(expr, out keyFunc))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                keyFunc = null;
+                return false;
+            }
+            
+            bool matched = false;
+            var keySym = _currentModel.GetSymbolInfo(keyExpr).Symbol;
+            if (keySym != null && keySym is ILocalSymbol localSym)
+            {
+                // key expression is local variable, check all assignments to the local
+                foreach (var valueExpr in FindCandidateValuesForLocalVariable(localSym))
+                {
+                    if (TryMatch(valueExpr, out var keyFunc))
+                    {
+                        matched = true;
+                        yield return keyFunc;
+                    }
+                }
+            }
+            else if (TryMatch(keyExpr, out var keyFunc))
+            {
+                matched = true;
+                yield return keyFunc;
+            }
+            
+            if (!matched)
+            {
+                AddAnalysisWarning(keyExpr, "Could not identify key being used");
+            }
+        }
+
         public override void VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             var nodeSymInfo = _currentModel.GetSymbolInfo(node.Expression);
@@ -354,6 +434,7 @@ namespace RegressionGames.ActionManager
                     string methodName = methodSymbol.Name;
                     switch (methodName)
                     {
+                        // Input.GetKey(...), Input.GetKeyDown(...), Input.GetKeyUp(...)
                         case "GetKey":
                         case "GetKeyDown":
                         case "GetKeyUp":
@@ -369,6 +450,74 @@ namespace RegressionGames.ActionManager
                     }
                 }
             }
+            
+            base.VisitInvocationExpression(node);
+        }
+
+        public override void VisitBracketedArgumentList(BracketedArgumentListSyntax node)
+        {
+            if (node.Parent != null && node.Parent is ElementAccessExpressionSyntax expr && node.Arguments.Count == 1)
+            {
+                var symInfo = _currentModel.GetSymbolInfo(expr);
+                if (symInfo.Symbol != null && symInfo.Symbol is IPropertySymbol propSym)
+                {
+                    var containingType = FindType(propSym.ContainingType);
+                    if (containingType == typeof(Keyboard))
+                    {
+                        var arg = node.Arguments[0].Expression;
+                        var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                        if (classDecl == null) return;
+                        Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                        if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                        {
+                            AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                            return;
+                        }
+                        if (FindType(_currentModel.GetTypeInfo(arg).Type) == typeof(Key))
+                        {
+                            // Bracketed key notation Keyboard.current[<key>]
+                            foreach (var keyFunc in FindCandidateInputSysKeyFuncs(arg))
+                            {
+                                string[] path = { objectType.FullName, $"Keyboard.current[{keyFunc}]" };
+                                AddAction(new InputSystemKeyAction(path, objectType, keyFunc));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            base.VisitBracketedArgumentList(node);
+        }
+
+        public override void VisitMemberAccessExpression(MemberAccessExpressionSyntax node)
+        {
+            var sym = _currentModel.GetSymbolInfo(node).Symbol;
+            if (sym is IPropertySymbol propSym
+                && FindType(propSym.ContainingType) == typeof(Keyboard))
+            {
+                var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
+                if (exprType != null && typeof(ButtonControl).IsAssignableFrom(exprType))
+                {
+                    // Keyboard.current.<property>
+                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                    if (classDecl == null) return;
+                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
+                    {
+                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
+                        return;
+                    }
+                    Key key = RGActionManagerUtils.InputSystemKeyboardPropertyNameToKey(propSym.Name);
+                    if (key == Key.None)
+                    {
+                        AddAnalysisWarning(node, $"Unrecognized keyboard property '{propSym.Name}'");
+                    }
+                    string[] path = { objectType.FullName, $"Keyboard.current.{propSym.Name}" };
+                    AddAction(new InputSystemKeyAction(path, objectType, RGActionParamFunc<Key>.Constant(key)));
+                }
+            }
+            
+            base.VisitMemberAccessExpression(node);
         }
 
         private void AddAnalysisWarning(SyntaxNode node, string message)

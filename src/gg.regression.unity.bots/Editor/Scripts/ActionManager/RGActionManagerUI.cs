@@ -68,31 +68,29 @@ namespace RegressionGames.ActionManager
             ISet<string> children = new HashSet<string>();
             foreach (RGGameAction action in EnumerateActions())
             {
-                foreach (string[] path in action.Paths)
+                string[] path = action.Paths[0];
+                if (path.SequenceEqual(node.path))
                 {
-                    if (path.SequenceEqual(node.path))
+                    if (node.IsLeaf)
                     {
-                        if (node.IsLeaf)
-                        {
-                            throw new ArgumentException($"Invalid duplicate path: {string.Join("/", path)}");
-                        }
-                        node.action = action;
+                        throw new ArgumentException($"Invalid duplicate path: {string.Join("/", path)}");
                     }
-                    else
+                    node.action = action;
+                }
+                else
+                {
+                    bool startsWith = true;
+                    for (int i = 0; i < node.path.Length; ++i)
                     {
-                        bool startsWith = true;
-                        for (int i = 0; i < node.path.Length; ++i)
+                        if (path[i] != node.path[i])
                         {
-                            if (path[i] != node.path[i])
-                            {
-                                startsWith = false;
-                                break;
-                            }
+                            startsWith = false;
+                            break;
                         }
-                        if (startsWith)
-                        {
-                            children.Add(path[node.path.Length]);
-                        }
+                    }
+                    if (startsWith)
+                    {
+                        children.Add(path[node.path.Length]);
                     }
                 }
             }
@@ -126,10 +124,8 @@ namespace RegressionGames.ActionManager
             ISet<string> roots = new HashSet<string>();
             foreach (RGGameAction action in EnumerateActions())
             {
-                foreach (string[] path in action.Paths)
-                {
-                    roots.Add(path[0]);
-                }
+                string[] path = action.Paths[0];
+                roots.Add(path[0]);
             }
 
             string unityUIRoot = "Unity UI";
@@ -179,16 +175,19 @@ namespace RegressionGames.ActionManager
                     checkbox.RegisterValueChangedCallback(evt =>
                     {
                         ActionTreeNode leafNode = (ActionTreeNode)checkbox.userData;
-                        string path = string.Join("/", leafNode.path);
-                        if (evt.newValue)
+                        foreach (string[] actionPath in leafNode.action.Paths)
                         {
-                            RGActionManager.Settings.DisabledActionPaths.Remove(path);
-                        }
-                        else
-                        {
-                            if (!RGActionManager.Settings.DisabledActionPaths.Contains(path))
+                            string path = string.Join("/", actionPath);
+                            if (evt.newValue)
                             {
-                                RGActionManager.Settings.DisabledActionPaths.Add(path);
+                                RGActionManager.Settings.DisabledActionPaths.Remove(path);
+                            }
+                            else
+                            {
+                                if (!RGActionManager.Settings.DisabledActionPaths.Contains(path))
+                                {
+                                    RGActionManager.Settings.DisabledActionPaths.Add(path);
+                                }
                             }
                         }
                         RGActionManager.Settings.MarkDirty();

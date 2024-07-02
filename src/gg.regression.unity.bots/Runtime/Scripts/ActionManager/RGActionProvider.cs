@@ -36,11 +36,21 @@ namespace RegressionGames.ActionManager
             var result = ReadAnalysisResult();
             if (result != null)
             {
-                foreach (var serializedAction in result.actions)
+                try
                 {
-                    _actions.Add(serializedAction.Deserialize());
+                    foreach (var serializedAction in result.actions)
+                    {
+                        _actions.Add(serializedAction.Deserialize());
+                    }
+
+                    IsAvailable = true;
                 }
-                IsAvailable = true;
+                catch (Exception e)
+                {
+                    RGDebug.LogWarning("Failed to read action analysis results (analysis needs to be re-run)\n" + e.StackTrace);
+                    _actions = new List<RGGameAction>();
+                    IsAvailable = false;
+                }
             }
             else
             {
