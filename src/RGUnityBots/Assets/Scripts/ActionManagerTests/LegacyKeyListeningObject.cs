@@ -1,57 +1,61 @@
 ﻿using UnityEngine;
-using UnityEngine.InputSystem;
 
-public class Keybindings
+namespace ActionManagerTests
 {
-    public KeyCode jumpKey = KeyCode.UpArrow;
-    public string fireKey = "space";
-    public KeyCode CrouchKey => KeyCode.DownArrow;
-}
 
-public struct GameSettings
-{
-    public Keybindings bindings;
-}
-
-public class LegacyKeyListeningObject : MonoBehaviour
-{
-    public const KeyCode MOVE_RIGHT_KEY = KeyCode.RightArrow;
-    private GameSettings _gameSettings;
-
-    void Start()
+    public class Keybindings
     {
-        _gameSettings.bindings = new Keybindings();
+        public KeyCode jumpKey = KeyCode.UpArrow;
+        public string fireKey = "space";
+        public KeyCode CrouchKey => KeyCode.DownArrow;
     }
 
-    private void HandleOtherInputs()
+    public struct GameSettings
     {
-        if (Input.GetKey(MOVE_RIGHT_KEY))
+        public Keybindings bindings;
+    }
+
+    public class LegacyKeyListeningObject : MonoBehaviour
+    {
+        public const KeyCode MOVE_RIGHT_KEY = KeyCode.RightArrow;
+        private GameSettings _gameSettings;
+
+        void Start()
         {
-            Debug.Log("GetKey(MOVE_RIGHT_KEY)");
-        } else if (Input.GetKeyDown(_gameSettings.bindings.fireKey))
-        {
-            Debug.Log("GetKeyDown(_gameSettings.bindings.fireKey)");
+            _gameSettings.bindings = new Keybindings();
         }
 
-        if (Input.GetKeyUp(_gameSettings.bindings.jumpKey))
+        private void HandleOtherInputs()
         {
-            Debug.Log("GetKeyUp(_gameSettings.bindings.jumpKey)");
-        }
+            if (Input.GetKey(MOVE_RIGHT_KEY))
+            {
+                Debug.Log("GetKey(MOVE_RIGHT_KEY)");
+            } else if (Input.GetKeyDown(_gameSettings.bindings.fireKey))
+            {
+                Debug.Log("GetKeyDown(_gameSettings.bindings.fireKey)");
+            }
 
-        var crouchKey = _gameSettings.bindings.CrouchKey;
-        if (Input.GetKey(crouchKey))
+            if (Input.GetKeyUp(_gameSettings.bindings.jumpKey))
+            {
+                Debug.Log("GetKeyUp(_gameSettings.bindings.jumpKey)");
+            }
+
+            var crouchKey = _gameSettings.bindings.CrouchKey;
+            if (Input.GetKey(crouchKey))
+            {
+                Debug.Log("Input.GetKey(crouchKey)");
+            }
+        }
+    
+        void Update()
         {
-            Debug.Log("Input.GetKey(crouchKey)");
+            var aimKey = KeyCode.LeftShift;
+            if (Input.GetKey(aimKey))
+            {
+                Debug.Log("GetKey(aimKey)");
+            }
+            HandleOtherInputs();
         }
     }
     
-    void Update()
-    {
-        var aimKey = KeyCode.LeftShift;
-        if (Input.GetKey(aimKey))
-        {
-            Debug.Log("GetKey(aimKey)");
-        }
-        HandleOtherInputs();
-    }
 }

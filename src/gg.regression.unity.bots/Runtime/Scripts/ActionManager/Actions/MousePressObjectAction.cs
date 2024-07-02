@@ -55,12 +55,12 @@ namespace RegressionGames.ActionManager.Actions
                 if (ssBounds.HasValue)
                 {
                     yield return new MousePositionInput(ssBounds.Value.center);
-                    yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, true);
+                    yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, false);
+                yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }
         }
     }

@@ -3,32 +3,36 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class InputSysKeyListeningObject : MonoBehaviour
+namespace ActionManagerTests
 {
-    private Key fireKey = Key.Backspace;
-    
-    void Update()
+    public class InputSysKeyListeningObject : MonoBehaviour
     {
-        if (Keyboard.current[Key.F2].isPressed)
+        private Key fireKey = Key.Backspace;
+    
+        void Update()
         {
-            Debug.Log("Keyboard.current[Key.A].isPressed");
-        }
+            if (Keyboard.current[Key.F2].isPressed)
+            {
+                Debug.Log("Keyboard.current[Key.A].isPressed");
+            }
         
-        if (Keyboard.current.backslashKey.isPressed)
-        {
-            Debug.Log("Keyboard.current.backslashKey.isPressed");
-        }
+            if (Keyboard.current.backslashKey.isPressed)
+            {
+                Debug.Log("Keyboard.current.backslashKey.isPressed");
+            }
 
-        Key key = fireKey;
-        var keyboard = Keyboard.current;
-        if (keyboard[key].isPressed)
-        {
-            Debug.Log("keyboard[key].isPressed");
-        }
+            Key key = fireKey;
+            var keyboard = Keyboard.current;
+            if (keyboard[key].isPressed)
+            {
+                Debug.Log("keyboard[key].isPressed");
+            }
 
-        if (keyboard.altKey.wasPressedThisFrame)
-        {
-            Debug.Log("keyboard.altKey.wasPressedThisFrame");
+            if (keyboard.altKey.wasPressedThisFrame)
+            {
+                Debug.Log("keyboard.altKey.wasPressedThisFrame");
+            }
         }
     }
+    
 }

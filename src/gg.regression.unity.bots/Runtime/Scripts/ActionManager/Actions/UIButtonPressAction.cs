@@ -109,12 +109,12 @@ namespace RegressionGames.ActionManager.Actions
                 {
                     Bounds boundsVal = bounds.Value;
                     yield return new MousePositionInput(boundsVal.center);
-                    yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, true);
+                    yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, false);
+                yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }
         }
     }

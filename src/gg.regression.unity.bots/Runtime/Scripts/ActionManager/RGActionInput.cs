@@ -50,8 +50,8 @@ namespace RegressionGames.ActionManager
                 return KeyCode == RGLegacyInputUtils.InputSystemKeyToKeyCode(inputSysKeyInput.Key);
             } else if (other is MouseButtonInput mouseButtonInput)
             {
-                var mb = MouseButtonHelper.FromKeyCode(KeyCode);
-                return mb.HasValue && mb.Value == mouseButtonInput.MouseButton;
+                return KeyCode >= KeyCode.Mouse0 && KeyCode <= KeyCode.Mouse6 &&
+                       KeyCode - KeyCode.Mouse0 == mouseButtonInput.MouseButton;
             }
             else
             {
@@ -80,14 +80,8 @@ namespace RegressionGames.ActionManager
         {
             if (other is LegacyKeyInput keyInput)
             {
-                if (MouseButtonHelper.FromKeyCode(keyInput.KeyCode).HasValue)
-                {
-                    return false;
-                }
-                else
-                {
-                    return Key == RGLegacyInputUtils.KeyCodeToInputSystemKey(keyInput.KeyCode);
-                }
+                return !(keyInput.KeyCode >= KeyCode.Mouse0 && keyInput.KeyCode <= KeyCode.Mouse6) 
+                       && Key == RGLegacyInputUtils.KeyCodeToInputSystemKey(keyInput.KeyCode);
             } else if (other is InputSystemKeyInput inputSysKeyInput)
             {
                 return Key == inputSysKeyInput.Key;
@@ -161,10 +155,16 @@ namespace RegressionGames.ActionManager
 
     public class MouseButtonInput : RGActionInput
     {
-        public readonly MouseButtonId MouseButton;
+        public const int LEFT_MOUSE_BUTTON = 0;
+        public const int RIGHT_MOUSE_BUTTON = 1;
+        public const int MIDDLE_MOUSE_BUTTON = 2;
+        public const int FORWARD_MOUSE_BUTTON = 3;
+        public const int BACK_MOUSE_BUTTON = 4;
+        
+        public readonly int MouseButton;
         public readonly bool IsPressed;
 
-        public MouseButtonInput(MouseButtonId mouseButton, bool isPressed)
+        public MouseButtonInput(int mouseButton, bool isPressed)
         {
             MouseButton = mouseButton;
             IsPressed = isPressed;
@@ -179,8 +179,8 @@ namespace RegressionGames.ActionManager
         {
             if (other is LegacyKeyInput keyInput)
             {
-                var mb = MouseButtonHelper.FromKeyCode(keyInput.KeyCode);
-                return mb.HasValue && mb.Value == MouseButton;
+                return keyInput.KeyCode >= KeyCode.Mouse0 && keyInput.KeyCode <= KeyCode.Mouse6
+                    && keyInput.KeyCode - KeyCode.Mouse0 == MouseButton;
             } else if (other is MouseButtonInput mouseButtonInput)
             {
                 return MouseButton == mouseButtonInput.MouseButton;

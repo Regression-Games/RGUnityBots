@@ -231,9 +231,16 @@ namespace RegressionGames.ActionManager
             RGGameAction action = leafNode.action;
             
             Label actionName = new Label();
-            actionName.text = "Action: " + string.Join("/", leafNode.path);
+            actionName.text = "Action: " + leafNode.path.Last();
             actionName.style.unityFontStyleAndWeight = FontStyle.Bold;
             _detailsPane.Add(actionName);
+
+            Label paths = new Label();
+            paths.text = "Paths: " + (action.Paths.Count > 1
+                ? "\n" + string.Join("\n",
+                    action.Paths.Select((path, idx) => (idx + 1) + ". " + string.Join("/", path)))
+                : string.Join("/", action.Paths[0]));
+            _detailsPane.Add(paths);
 
             Label targetObject = new Label();
             targetObject.text = "Target Object Type: " + action.ObjectType.FullName;

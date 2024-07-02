@@ -413,6 +413,70 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        private IEnumerable<RGActionParamFunc<T>> FindCandidateLiteralFuncs<T>(ExpressionSyntax expr)
+        {
+            bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<T> func)
+            {
+                var sym = _currentModel.GetSymbolInfo(expr).Symbol;
+                if (sym != null)
+                {
+                    if (sym is IFieldSymbol or IPropertySymbol)
+                    {
+                        if (TryGetMemberAccessFunc(expr, out func))
+                        {
+                            return true;
+                        }
+                    }
+                } else if (expr is LiteralExpressionSyntax literalExpr)
+                {
+                    if (typeof(T) == typeof(int))
+                    {
+                        if (literalExpr.Kind() == SyntaxKind.NumericLiteralExpression)
+                        {
+                            object value = int.Parse(literalExpr.Token.ValueText);
+                            func = RGActionParamFunc<T>.Constant((T)value);
+                            return true;
+                        }
+                    } else if (typeof(T) == typeof(string))
+                    {
+                        if (literalExpr.Kind() == SyntaxKind.StringLiteralExpression)
+                        {
+                            func = RGActionParamFunc<T>.Constant((T)(object)literalExpr.Token.ValueText);
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException();
+                    }
+                }
+                func = null;
+                return false;
+            }
+
+            bool matched = false;
+            var sym = _currentModel.GetSymbolInfo(expr).Symbol;
+            if (sym != null && sym is ILocalSymbol localSym)
+            {
+                foreach (var valueExpr in FindCandidateValuesForLocalVariable(localSym))
+                {
+                    if (TryMatch(valueExpr, out var func))
+                    {
+                        matched = true;
+                        yield return func;
+                    }
+                }
+            } else if (TryMatch(expr, out var func))
+            {
+                matched = true;
+                yield return func;
+            }
+            if (!matched)
+            {
+                AddAnalysisWarning(expr, $"Could not resolve {typeof(T).Name} expression");
+            }
+        }
+
         public override void VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             var nodeSymInfo = _currentModel.GetSymbolInfo(node.Expression);
@@ -444,6 +508,20 @@ namespace RegressionGames.ActionManager
                             {
                                 string[] path = { objectType.FullName, $"Input.{methodName}({keyFunc})" };
                                 AddAction(new LegacyKeyAction(path, objectType, keyFunc));
+                            }
+                            break;
+                        }
+                        
+                        // Input.GetMouseButton(...), Input.GetMouseButtonDown(...), Input.GetMouseButtonUp(...)
+                        case "GetMouseButton":
+                        case "GetMouseButtonDown":
+                        case "GetMouseButtonUp":
+                        {
+                            var btnArg = node.ArgumentList.Arguments[0];
+                            foreach (var btnFunc in FindCandidateLiteralFuncs<int>(btnArg.Expression))
+                            {
+                                string[] path = { objectType.FullName, $"Input.{methodName}({btnFunc})" };
+                                AddAction(new MouseButtonAction(path, objectType, btnFunc));
                             }
                             break;
                         }

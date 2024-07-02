@@ -282,9 +282,9 @@ namespace RegressionGames.ActionManager
             _mouseScroll = mouseScroll;
         }
 
-        public static void SimulateMouseButton(MouseButtonId mouseButton, bool isPressed)
+        public static void SimulateMouseButton(int mouseButton, bool isPressed)
         {
-            SimulateKeyState(mouseButton.ToKeyCode(), isPressed);
+            SimulateKeyState(KeyCode.Mouse0 + mouseButton, isPressed);
         }
     }
 }
