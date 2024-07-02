@@ -566,9 +566,9 @@ namespace RegressionGames.StateRecorder
                             framesSincePreviousTick = _frameCountSinceLastTick,
                             previousTickTime = _lastCvFrameTime > 0 ? _lastCvFrameTime : 0,
                             fps = _lastCvFrameTime > 0 ? (int)(_frameCountSinceLastTick / (now - _lastCvFrameTime)) : 0,
-                            cpuTimeSincePreviousTick = profilerResult.cpuTimeSincePreviousTick,
-                            memory = profilerResult.systemUsedMemory,
-                            gcMemory = profilerResult.gcUsedMemory,
+                            cpuTimesPerFrame = profilerResult.cpuTimePerFrame,
+                            memoryPerFrame = profilerResult.systemUsedMemoryPerFrame,
+                            gcMemoryPerFrame = profilerResult.gcUsedMemoryPerFrame,
                             engineStats = new EngineStatsData()
                             {
 #if UNITY_EDITOR
