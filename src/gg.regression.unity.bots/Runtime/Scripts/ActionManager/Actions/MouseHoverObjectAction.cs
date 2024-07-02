@@ -24,7 +24,9 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => $"Mouse Hover Over {ObjectType.Name}";
+
         public override bool IsValidForObject(Object obj)
         {
             return MouseHoverObjectInstance.GetHoverScreenSpaceBounds(obj).HasValue;

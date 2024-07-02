@@ -5,11 +5,11 @@ namespace RegressionGames.ActionManager
 {
     public enum MouseButtonId
     {
-        LEFT_MOUSE_BUTTON,
-        MIDDLE_MOUSE_BUTTON,
-        RIGHT_MOUSE_BUTTON,
-        FORWARD_MOUSE_BUTTON,
-        BACK_MOUSE_BUTTON
+        LeftMouseButton,
+        MiddleMouseButton,
+        RightMouseButton,
+        ForwardMouseButton,
+        BackMouseButton
     }
 
     public static class MouseButtonHelper
@@ -18,15 +18,15 @@ namespace RegressionGames.ActionManager
         {
             switch (mouseButton)
             {
-                case MouseButtonId.LEFT_MOUSE_BUTTON:
+                case MouseButtonId.LeftMouseButton:
                     return KeyCode.Mouse0;
-                case MouseButtonId.MIDDLE_MOUSE_BUTTON:
+                case MouseButtonId.MiddleMouseButton:
                     return KeyCode.Mouse2;
-                case MouseButtonId.RIGHT_MOUSE_BUTTON:
+                case MouseButtonId.RightMouseButton:
                     return KeyCode.Mouse1;
-                case MouseButtonId.FORWARD_MOUSE_BUTTON:
+                case MouseButtonId.ForwardMouseButton:
                     return KeyCode.Mouse3;
-                case MouseButtonId.BACK_MOUSE_BUTTON:
+                case MouseButtonId.BackMouseButton:
                     return KeyCode.Mouse4;
                 default:
                     throw new ArgumentException();
@@ -38,15 +38,15 @@ namespace RegressionGames.ActionManager
             switch (keyCode)
             {
                 case KeyCode.Mouse0:
-                    return MouseButtonId.LEFT_MOUSE_BUTTON;
+                    return MouseButtonId.LeftMouseButton;
                 case KeyCode.Mouse1:
-                    return MouseButtonId.RIGHT_MOUSE_BUTTON;
+                    return MouseButtonId.RightMouseButton;
                 case KeyCode.Mouse2:
-                    return MouseButtonId.MIDDLE_MOUSE_BUTTON;
+                    return MouseButtonId.MiddleMouseButton;
                 case KeyCode.Mouse3:
-                    return MouseButtonId.FORWARD_MOUSE_BUTTON;
+                    return MouseButtonId.ForwardMouseButton;
                 case KeyCode.Mouse4:
-                    return MouseButtonId.BACK_MOUSE_BUTTON;
+                    return MouseButtonId.BackMouseButton;
                 default:
                     return null;
             }

@@ -21,7 +21,10 @@ namespace RegressionGames.ActionManager
          /// The range of parameter values accepted by this action's
          /// Perform() method.
         public abstract IRGValueRange ParameterRange { get; }
-        
+
+         /// The name of this action as it should be displayed when presented to the user.
+        public abstract string DisplayName { get; }
+
         public RGGameAction(string[] path, Type objectType)
         {
             Paths = new List<string[]> { path };

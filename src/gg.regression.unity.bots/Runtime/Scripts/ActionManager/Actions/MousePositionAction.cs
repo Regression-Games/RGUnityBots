@@ -23,7 +23,9 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGVector2Range(Vector2.zero, Vector2.one);
-        
+
+        public override string DisplayName => "Mouse Position Movement";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;

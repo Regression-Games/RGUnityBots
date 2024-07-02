@@ -55,6 +55,14 @@ namespace RegressionGames.ActionManager
                             break;
                         }
                     }
+                    if (action.ObjectType.FullName.ToLower().Contains(searchQuery))
+                    {
+                        shouldInclude = true;
+                    }
+                    if (action.DisplayName.ToLower().Contains(searchQuery))
+                    {
+                        shouldInclude = true;
+                    }
                 }
                 if (shouldInclude)
                 {
@@ -63,89 +71,41 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        private void BuildActionTree(ActionTreeNode node)
+        private List<ActionTreeNode> BuildActionTrees()
         {
-            ISet<string> children = new HashSet<string>();
+            var actionsByTargetObject = new Dictionary<Type, List<RGGameAction>>();
             foreach (RGGameAction action in EnumerateActions())
             {
-                string[] path = action.Paths[0];
-                if (path.SequenceEqual(node.path))
+                List<RGGameAction> actions;
+                if (!actionsByTargetObject.TryGetValue(action.ObjectType, out actions))
                 {
-                    if (node.IsLeaf)
-                    {
-                        throw new ArgumentException($"Invalid duplicate path: {string.Join("/", path)}");
-                    }
-                    node.action = action;
+                    actions = new List<RGGameAction>();
+                    actionsByTargetObject.Add(action.ObjectType, actions);
                 }
-                else
-                {
-                    bool startsWith = true;
-                    for (int i = 0; i < node.path.Length; ++i)
-                    {
-                        if (path[i] != node.path[i])
-                        {
-                            startsWith = false;
-                            break;
-                        }
-                    }
-                    if (startsWith)
-                    {
-                        children.Add(path[node.path.Length]);
-                    }
-                }
+                actions.Add(action);
             }
 
-            if (children.Count > 0)
+            List<ActionTreeNode> result = new List<ActionTreeNode>();
+            foreach (var entry in actionsByTargetObject)
             {
-                if (node.IsLeaf)
-                {
-                    throw new ArgumentException($"Leaf node cannot have children: {string.Join("/", node.path)}");
-                }
-                node.children = new List<ActionTreeNode>(children.Count);
-                List<string> childrenSorted = new List<string>(children);
-                childrenSorted.Sort();
-                foreach (string child in childrenSorted)
-                {
-                    string[] childPath = new string[node.path.Length + 1];
-                    for (int i = 0; i < node.path.Length; ++i)
-                    {
-                        childPath[i] = node.path[i];
-                    }
-                    childPath[node.path.Length] = child;
-                    ActionTreeNode childNode = new ActionTreeNode(childPath);
-                    BuildActionTree(childNode);
-                    node.children.Add(childNode);
-                }
-            }
-        }
-
-        private ActionTreeNode[] BuildActionTrees()
-        {
-            ISet<string> roots = new HashSet<string>();
-            foreach (RGGameAction action in EnumerateActions())
-            {
-                string[] path = action.Paths[0];
-                roots.Add(path[0]);
+                var objectType = entry.Key;
+                var actions = entry.Value;
+                ActionTreeNode node = new ActionTreeNode(new string[] { objectType.FullName });
+                node.children = new List<ActionTreeNode>(actions.Select(act => 
+                    new ActionTreeNode(new[] {node.path[0], act.DisplayName}) { action = act } ));
+                result.Add(node);
             }
 
-            string unityUIRoot = "Unity UI";
-            bool hasUnityUI = roots.Remove(unityUIRoot);
-            List<string> rootList = new List<string>(roots);
-            rootList.Sort();
-            if (hasUnityUI)
-            {
-                rootList.Add(unityUIRoot);
-            }
-
-            ActionTreeNode[] result = new ActionTreeNode[rootList.Count];
-            for (int i = 0; i < rootList.Count; ++i)
-            {
-                ActionTreeNode node = new ActionTreeNode(new[] { rootList[i] });
-                BuildActionTree(node);
-                result[i] = node;
-            }
-
-            return result;
+            // always have Unity UI elements at the bottom of the list
+            List<ActionTreeNode> sorted =
+                new List<ActionTreeNode>(result.Where(node => !node.path[0].StartsWith("UnityEngine.UI.")));
+            sorted.Sort((a, b) => a.path[0].CompareTo(b.path[0]));
+            List<ActionTreeNode> uiSorted =
+                new List<ActionTreeNode>(result.Where(node => node.path[0].StartsWith("UnityEngine.UI.")));
+            uiSorted.Sort((a, b) => a.path[0].CompareTo(b.path[0]));
+            sorted.AddRange(uiSorted);
+            
+            return sorted;
         }
         
         private void CreateActionTreeElements(VisualElement container, ActionTreeNode node, IList<ListView> listViews)
@@ -251,9 +211,9 @@ namespace RegressionGames.ActionManager
         {
             _actionsPane.Clear();
             _detailsPane.Clear();
-            ActionTreeNode[] rootNodes = BuildActionTrees();
+            var rootNodes = BuildActionTrees();
             IList<ListView> listViews = new List<ListView>();
-            foreach (ActionTreeNode rootNode in rootNodes)
+            foreach (var rootNode in rootNodes)
             {
                 CreateActionTreeElements(_actionsPane, rootNode, listViews);
             }

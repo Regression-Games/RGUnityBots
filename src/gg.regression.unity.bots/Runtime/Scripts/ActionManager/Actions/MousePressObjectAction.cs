@@ -23,7 +23,9 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => $"Press Left Mouse Button On {ObjectType.Name}";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
@@ -53,12 +55,12 @@ namespace RegressionGames.ActionManager.Actions
                 if (ssBounds.HasValue)
                 {
                     yield return new MousePositionInput(ssBounds.Value.center);
-                    yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, true);
+                    yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, true);
                 }
             }
             else
             {
-                yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, false);
+                yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, false);
             }
         }
     }

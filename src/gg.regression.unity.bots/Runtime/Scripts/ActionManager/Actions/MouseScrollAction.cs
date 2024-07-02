@@ -23,7 +23,9 @@ namespace RegressionGames.ActionManager.Actions
         // Discretized to int (rather than using float) so that there is a greater chance of not scrolling at all
         public override IRGValueRange ParameterRange { get; } =
             new RGVector2IntRange(new Vector2Int(-1, -1), new Vector2Int(1, 1));
-        
+
+        public override string DisplayName => "Mouse Scroll";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;

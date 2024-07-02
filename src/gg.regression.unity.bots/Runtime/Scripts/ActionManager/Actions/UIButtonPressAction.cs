@@ -28,7 +28,9 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => $"{EventListenerName}";
+
         public override bool IsValidForObject(Object obj)
         {
             Button btn = (Button)obj;
@@ -107,12 +109,12 @@ namespace RegressionGames.ActionManager.Actions
                 {
                     Bounds boundsVal = bounds.Value;
                     yield return new MousePositionInput(boundsVal.center);
-                    yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, true);
+                    yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, true);
                 }
             }
             else
             {
-                yield return new MouseButtonInput(MouseButtonId.LEFT_MOUSE_BUTTON, false);
+                yield return new MouseButtonInput(MouseButtonId.LeftMouseButton, false);
             }
         }
     }

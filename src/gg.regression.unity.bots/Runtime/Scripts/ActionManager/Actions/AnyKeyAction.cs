@@ -22,7 +22,9 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => "Any Key";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
