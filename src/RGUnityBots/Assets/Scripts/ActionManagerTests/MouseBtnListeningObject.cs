@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ActionManagerTests
 {
@@ -27,6 +28,17 @@ namespace ActionManagerTests
                     Debug.Log("Input.GetMouseButtonUp(btn)");
                 }
             })).Invoke();
+
+            if (Mouse.current.forwardButton.isPressed)
+            {
+                Debug.Log("Mouse.current.forwardButton.isPressed");
+            }
+
+            var mouse = Mouse.current;
+            if (mouse.backButton.wasPressedThisFrame)
+            {
+                Debug.Log("mouse.backButton.wasPressedThisFrame");
+            }
         }
     }
     
