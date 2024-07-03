@@ -939,10 +939,12 @@ namespace RegressionGames.ActionManager
             }
             finally
             {
-                UnityEditor.SceneManagement.EditorSceneManager.OpenScene(origScenePath);
-                
+                // restore the scene that was originally opened
+                if (!string.IsNullOrEmpty(origScenePath))
+                {
+                    UnityEditor.SceneManagement.EditorSceneManager.OpenScene(origScenePath);
+                }
             }
-
         }
 
         /// <summary>
