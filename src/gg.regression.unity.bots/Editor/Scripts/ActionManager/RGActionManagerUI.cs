@@ -262,7 +262,7 @@ namespace RegressionGames.ActionManager
             rootVisualElement.Add(_searchField);
 
             _analyzeBtn = new Button();
-            _analyzeBtn.text = "Analyze Game Actions";
+            _analyzeBtn.text = "Analyze Actions";
             _analyzeBtn.clicked += () =>
             {
                 var analysis = new RGActionAnalysis(displayProgressBar: true);
