@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RegressionGames.ActionManager.Actions;
 using RegressionGames.Editor.RGLegacyInputUtility;
+using UnityEditor;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
@@ -53,6 +54,13 @@ namespace RegressionGames.ActionManager
         public ISet<RGGameAction> Actions { get; private set; }
         public List<RGActionAnalysisWarning> Warnings { get; private set; }
 
+        private bool _displayProgressBar;
+
+        public RGActionAnalysis(bool displayProgressBar = false)
+        {
+            _displayProgressBar = displayProgressBar;
+        }
+
         private ISet<string> GetIgnoredAssemblyNames()
         {
             Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
@@ -93,7 +101,7 @@ namespace RegressionGames.ActionManager
             return null;
         }
 
-        private IEnumerable<Compilation> GetCompilations()
+        private IEnumerable<Assembly> GetTargetAssemblies()
         {
             ISet<string> ignoredAssemblyNames = GetIgnoredAssemblyNames();
             Assembly[] playerAssemblies = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies);
@@ -105,18 +113,7 @@ namespace RegressionGames.ActionManager
                 {
                     continue;
                 }
-
                 bool shouldSkip = false;
-                
-                List<MetadataReference> references = new List<MetadataReference>();
-                foreach (var playerAsmRef in playerAsm.allReferences)
-                {
-                    references.Add(MetadataReference.CreateFromFile(playerAsmRef));
-                }
-
-                CSharpParseOptions parseOptions = new CSharpParseOptions().WithPreprocessorSymbols(playerAsm.defines);
-                
-                List<SyntaxTree> syntaxTrees = new List<SyntaxTree>();
                 foreach (string sourceFile in playerAsm.sourceFiles)
                 {
                     if (sourceFile.StartsWith("Packages/"))
@@ -124,22 +121,37 @@ namespace RegressionGames.ActionManager
                         shouldSkip = true;
                         break;
                     }
-                    using (StreamReader sr = new StreamReader(sourceFile))
-                    {
-                        SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd(), parseOptions, path: sourceFile);
-                        syntaxTrees.Add(tree);
-                    }
                 }
-                
                 if (shouldSkip)
                 {
                     continue;
                 }
-                
-                yield return CSharpCompilation.Create(playerAsm.name)
-                    .AddReferences(references)
-                    .AddSyntaxTrees(syntaxTrees);
+
+                yield return playerAsm;
             }
+        }
+
+        private Compilation GetCompilationForAssembly(Assembly asm)
+        {
+            List<MetadataReference> references = new List<MetadataReference>();
+            foreach (var playerAsmRef in asm.allReferences)
+            {
+                references.Add(MetadataReference.CreateFromFile(playerAsmRef));
+            }
+
+            CSharpParseOptions parseOptions = new CSharpParseOptions().WithPreprocessorSymbols(asm.defines);
+            
+            List<SyntaxTree> syntaxTrees = new List<SyntaxTree>();
+            foreach (string sourceFile in asm.sourceFiles)
+            {
+                using (StreamReader sr = new StreamReader(sourceFile))
+                {
+                    SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd(), parseOptions, path: sourceFile);
+                    syntaxTrees.Add(tree);
+                }
+            }
+            
+            return CSharpCompilation.Create(asm.name).AddReferences(references).AddSyntaxTrees(syntaxTrees);
         }
 
         private IEnumerable<ExpressionSyntax> FindCandidateValuesForLocalVariable(ILocalSymbol localSym)
@@ -812,23 +824,6 @@ namespace RegressionGames.ActionManager
             _rawActions.Add(currentPath, action);
         }
 
-        private void RunCodeAnalysis()
-        {
-            foreach (var compilation in GetCompilations())
-            {
-                _currentCompilation = compilation;
-                foreach (var syntaxTree in compilation.SyntaxTrees)
-                {
-                    _currentModel = compilation.GetSemanticModel(syntaxTree);
-                    _currentTree = syntaxTree;
-                    _assignmentExprs = null;
-                    _localDeclarationStmts = null;
-                    var root = syntaxTree.GetCompilationUnitRoot();
-                    Visit(root);
-                }
-            }
-        }
-        
         private static IEnumerable<GameObject> IterateGameObjects(GameObject gameObject)
         {
             yield return gameObject;
@@ -866,73 +861,140 @@ namespace RegressionGames.ActionManager
             return false;
         }
         
+        private void RunCodeAnalysis()
+        {
+            const float codeAnalysisStartProgress = 0.0f;
+            const float codeAnalysisEndProgress = 0.6f;
+            NotifyProgress("Performing code analysis", codeAnalysisStartProgress);
+            var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
+            for (int i = 0; i < targetAssemblies.Count; ++i)
+            {
+                float asmStartProgress = Mathf.Lerp(codeAnalysisStartProgress, codeAnalysisEndProgress,
+                    i / (float)targetAssemblies.Count);
+                float asmEndProgress = Mathf.Lerp(codeAnalysisStartProgress, codeAnalysisEndProgress,
+                    (i + 1) / (float)targetAssemblies.Count);
+
+                Assembly asm = targetAssemblies[i];
+                int numSyntaxTrees = asm.sourceFiles.Length;
+                Compilation compilation = GetCompilationForAssembly(asm);
+                _currentCompilation = compilation;
+                int syntaxTreeIndex = 0;
+                foreach (var syntaxTree in compilation.SyntaxTrees)
+                {
+                    float progress = Mathf.Lerp(asmStartProgress, asmEndProgress, syntaxTreeIndex / (float)numSyntaxTrees);
+                    NotifyProgress($"Analyzing {asm.name}", progress);
+                    _currentModel = compilation.GetSemanticModel(syntaxTree);
+                    _currentTree = syntaxTree;
+                    _assignmentExprs = null;
+                    _localDeclarationStmts = null;
+                    var root = syntaxTree.GetCompilationUnitRoot();
+                    Visit(root);
+                    ++syntaxTreeIndex;
+                }
+            }
+        }
+        
         private void RunResourceAnalysis()
         {
-            ISet<string> buttonClickListeners = new HashSet<string>();
+            const float resourceAnalysisStartProgress = 0.6f;
+            const float resourceAnalysisEndProgress = 0.9f;
             string origScenePath = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().path;
-            string[] sceneGuids = UnityEditor.AssetDatabase.FindAssets("t:Scene");
-            foreach (string sceneGuid in sceneGuids)
+            NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
+            try
             {
-                string scenePath = UnityEditor.AssetDatabase.GUIDToAssetPath(sceneGuid);
-                if (scenePath.StartsWith("Packages/"))
+                ISet<string> buttonClickListeners = new HashSet<string>();
+                string[] sceneGuids = AssetDatabase.FindAssets("t:Scene");
+                int sceneGuidIndex = 0;
+                foreach (string sceneGuid in sceneGuids)
                 {
-                    continue;
-                }
-                UnityEngine.SceneManagement.Scene scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
-                if (scene.IsValid())
-                {
-                    foreach (GameObject gameObject in IterateGameObjects(scene))
+                    float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                        sceneGuidIndex / (float)sceneGuids.Length);
+                    string scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
+                    if (scenePath.StartsWith("Packages/"))
                     {
-                        if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
+                        continue;
+                    }
+                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
+                    UnityEngine.SceneManagement.Scene scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
+                    if (scene.IsValid())
+                    {
+                        foreach (GameObject gameObject in IterateGameObjects(scene))
                         {
-                            foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
+                            if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
                             {
-                                buttonClickListeners.Add(listener);
+                                foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
+                                {
+                                    buttonClickListeners.Add(listener);
+                                }
                             }
                         }
                     }
+                    ++sceneGuidIndex;
+                }
+                foreach (string btnClickListener in buttonClickListeners)
+                {
+                    string[] path = {"Unity UI", "Button Click", btnClickListener};
+                    AddAction(new UIButtonPressAction(path, typeof(Button), btnClickListener));
                 }
             }
-            UnityEditor.SceneManagement.EditorSceneManager.OpenScene(origScenePath);
-
-            foreach (string btnClickListener in buttonClickListeners)
+            finally
             {
-                string[] path = {"Unity UI", "Button Click", btnClickListener};
-                AddAction(new UIButtonPressAction(path, typeof(Button), btnClickListener));
+                UnityEditor.SceneManagement.EditorSceneManager.OpenScene(origScenePath);
+                
             }
+
         }
 
-        public void RunAnalysis()
+        /// <summary>
+        /// Conduct the action analysis and save the result to a file used by RGActionProvider.
+        /// </summary>
+        /// <returns>Whether the analysis was completed. This could be false if the user requested cancellation.</returns>
+        public bool RunAnalysis()
         {
-            _rawActions = new Dictionary<string, RGGameAction>();
-            Warnings = new List<RGActionAnalysisWarning>();
-            
-            RunCodeAnalysis();
-            RunResourceAnalysis();
-
-            // Compute the set of unique actions
-            var actions = new HashSet<RGGameAction>();
-            foreach (var rawAction in _rawActions.Values)
+            try
             {
-                var action = actions.FirstOrDefault(a => a.IsEquivalentTo(rawAction));
-                if (action != null)
-                    action.Paths.Add(rawAction.Paths[0]);
-                else
-                    actions.Add(rawAction);
-            }
+                _rawActions = new Dictionary<string, RGGameAction>();
+                Warnings = new List<RGActionAnalysisWarning>();
             
-            Actions = actions;
-            SaveAnalysisResult();
+                RunCodeAnalysis();
+                RunResourceAnalysis();
+            
+                NotifyProgress("Saving analysis results", 0.9f);
 
-            if (Warnings.Count > 0)
-            {
-                StringBuilder warningsMessage = new StringBuilder();
-                warningsMessage.AppendLine($"{Warnings.Count} warnings encountered during analysis:");
-                foreach (var warning in Warnings)
+                // Compute the set of unique actions
+                var actions = new HashSet<RGGameAction>();
+                foreach (var rawAction in _rawActions.Values)
                 {
-                    warningsMessage.AppendLine(warning.ToString());
+                    var action = actions.FirstOrDefault(a => a.IsEquivalentTo(rawAction));
+                    if (action != null)
+                        action.Paths.Add(rawAction.Paths[0]);
+                    else
+                        actions.Add(rawAction);
                 }
-                RGDebug.LogWarning(warningsMessage.ToString());
+            
+                Actions = actions;
+                SaveAnalysisResult();
+
+                if (Warnings.Count > 0)
+                {
+                    StringBuilder warningsMessage = new StringBuilder();
+                    warningsMessage.AppendLine($"{Warnings.Count} warnings encountered during analysis:");
+                    foreach (var warning in Warnings)
+                    {
+                        warningsMessage.AppendLine(warning.ToString());
+                    }
+                    RGDebug.LogWarning(warningsMessage.ToString());
+                }
+
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            finally
+            {
+                ClearProgress();
             }
         }
 
@@ -949,6 +1011,26 @@ namespace RegressionGames.ActionManager
             using (StreamWriter sw = new StreamWriter(RGActionProvider.ANALYSIS_RESULT_PATH))
             {
                 sw.Write(JsonUtility.ToJson(result, true));
+            }
+        }
+
+        // Returns true if the analysis was requested to be cancelled
+        private void NotifyProgress(string message, float progress)
+        {
+            if (_displayProgressBar)
+            {
+                if (EditorUtility.DisplayCancelableProgressBar("Action Analysis", message, progress))
+                {
+                    throw new OperationCanceledException("Analysis cancelled by user");
+                }
+            }
+        }
+        
+        private void ClearProgress()
+        {
+            if (_displayProgressBar)
+            {
+                EditorUtility.ClearProgressBar();
             }
         }
     }
