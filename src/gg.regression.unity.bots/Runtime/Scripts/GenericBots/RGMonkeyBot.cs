@@ -7,7 +7,7 @@ namespace RegressionGames.GenericBots
 {
     public class RGMonkeyBot : MonoBehaviour, IRGBot
     {
-        public float actionInterval = 0.1f; // unscaled time
+        public float actionInterval = 0.05f; // unscaled time
         
         private float _lastActionTime;
 
@@ -44,6 +44,11 @@ namespace RegressionGames.GenericBots
             float currentTimeUnscaled = Time.unscaledTime;
             if (currentTimeUnscaled - _lastActionTime < actionInterval)
             {
+                // repeat inputs sent on the last frame
+                foreach (var inp in _performedInputsBuf)
+                {
+                    inp.Perform();
+                }
                 return;
             }
             _lastActionTime = currentTimeUnscaled;
