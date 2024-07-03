@@ -38,7 +38,17 @@ namespace RegressionGames.ActionManager
         public delegate void ActionsChangedHandler();
         public static event ActionsChangedHandler ActionsChanged;
 
-        public static bool IsAvailable => _actionProvider != null && _actionProvider.IsAvailable;
+        public static bool IsAvailable
+        {
+            get
+            {
+                if (_actionProvider == null)
+                {
+                    _actionProvider = new RGActionProvider();
+                }
+                return _actionProvider.IsAvailable;
+            }
+        }
 
         /// <summary>
         /// Provides access to the action manager settings.
