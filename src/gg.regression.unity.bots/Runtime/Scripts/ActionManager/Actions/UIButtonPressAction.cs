@@ -114,6 +114,12 @@ namespace RegressionGames.ActionManager.Actions
             }
             else
             {
+                Bounds? bounds = GetUIScreenSpaceBounds(TargetObject);
+                if (bounds.HasValue)
+                {
+                    Bounds boundsVal = bounds.Value;
+                    yield return new MousePositionInput(boundsVal.center);
+                }
                 yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }
         }

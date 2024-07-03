@@ -65,6 +65,11 @@ namespace RegressionGames.ActionManager.Actions
             }
             else
             {
+                var ssBounds = MouseHoverObjectInstance.GetHoverScreenSpaceBounds(TargetObject);
+                if (ssBounds.HasValue)
+                {
+                    yield return new MousePositionInput(ssBounds.Value.center);
+                }
                 yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }
         }
