@@ -166,8 +166,8 @@ namespace RegressionGames.ActionManager
                     ActionTreeNode leafNode = node.children[index];
                     Toggle checkbox = (Toggle)item[0];
                     Label actionName = (Label)item[1];
-                    checkbox.value =
-                        !RGActionManager.Settings.DisabledActionPaths.Contains(string.Join("/", leafNode.path));
+                    checkbox.value = !leafNode.action.Paths.All(path =>
+                        RGActionManager.Settings.DisabledActionPaths.Contains(string.Join("/", path)));
                     actionName.text = leafNode.path.Last();
                     checkbox.userData = leafNode;
 
