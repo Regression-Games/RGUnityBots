@@ -24,7 +24,7 @@ namespace RegressionGames.ActionManager
 
     public class RGActionManagerUI : EditorWindow
     {
-        private Button _refreshBtn;
+        private Button _analyzeBtn;
         private ToolbarSearchField _searchField;
         private ScrollView _actionsPane;
         private ScrollView _detailsPane;
@@ -221,7 +221,7 @@ namespace RegressionGames.ActionManager
             {
                 CreateActionTreeElements(_actionsPane, rootNode, listViews);
             }
-            _refreshBtn.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
+            _analyzeBtn.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
         }
 
         private void ShowActionDetails(ActionTreeNode leafNode)
@@ -261,15 +261,15 @@ namespace RegressionGames.ActionManager
             _searchField.style.width = StyleKeyword.Auto;
             rootVisualElement.Add(_searchField);
 
-            _refreshBtn = new Button();
-            _refreshBtn.text = "Run Analysis";
-            _refreshBtn.clicked += () =>
+            _analyzeBtn = new Button();
+            _analyzeBtn.text = "Analyze Game Actions";
+            _analyzeBtn.clicked += () =>
             {
                 var analysis = new RGActionAnalysis();
                 analysis.RunAnalysis();
                 RGActionManager.ReloadActions();
             };
-            rootVisualElement.Add(_refreshBtn);
+            rootVisualElement.Add(_analyzeBtn);
                 
             var splitView = new TwoPaneSplitView(1, 250.0f, TwoPaneSplitViewOrientation.Vertical);
             rootVisualElement.Add(splitView);
