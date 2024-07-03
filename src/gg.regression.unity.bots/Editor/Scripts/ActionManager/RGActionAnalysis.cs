@@ -113,6 +113,8 @@ namespace RegressionGames.ActionManager
                 {
                     references.Add(MetadataReference.CreateFromFile(playerAsmRef));
                 }
+
+                CSharpParseOptions parseOptions = new CSharpParseOptions().WithPreprocessorSymbols(playerAsm.defines);
                 
                 List<SyntaxTree> syntaxTrees = new List<SyntaxTree>();
                 foreach (string sourceFile in playerAsm.sourceFiles)
@@ -124,7 +126,7 @@ namespace RegressionGames.ActionManager
                     }
                     using (StreamReader sr = new StreamReader(sourceFile))
                     {
-                        SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd(), path: sourceFile);
+                        SyntaxTree tree = CSharpSyntaxTree.ParseText(sr.ReadToEnd(), parseOptions, path: sourceFile);
                         syntaxTrees.Add(tree);
                     }
                 }
@@ -482,10 +484,10 @@ namespace RegressionGames.ActionManager
             var nodeSymInfo = _currentModel.GetSymbolInfo(node.Expression);
             if (nodeSymInfo.Symbol is IMethodSymbol methodSymbol)
             {
-                var containingTypeName = methodSymbol.ContainingType.ToString();
+                var containingType = FindType(methodSymbol.ContainingType);
                 
                 // Legacy input manager
-                if (containingTypeName == "UnityEngine.Input")
+                if (containingType == typeof(UnityEngine.Input))
                 {
                     var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
                     if (classDecl == null) return;
