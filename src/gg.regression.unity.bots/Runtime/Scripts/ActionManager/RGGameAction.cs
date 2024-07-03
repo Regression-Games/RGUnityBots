@@ -129,6 +129,11 @@ namespace RegressionGames.ActionManager
         public RGGameAction BaseAction { get; }
 
         /// <summary>
+        /// Get the object associated with this action instance.
+        /// </summary>
+        public UnityEngine.Object TargetObject { get; }
+
+        /// <summary>
         /// Get the device inputs needed to perform this action instance.
         /// </summary>
         public IEnumerable<RGActionInput> GetInputs(object param);

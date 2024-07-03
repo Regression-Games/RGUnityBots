@@ -1,19 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.ActionManager;
+using RegressionGames.ActionManager.Actions;
 using UnityEngine;
 
 namespace RegressionGames.GenericBots
 {
+    internal class MonkeyBotActionEntry
+    {
+        public IRGGameActionInstance ActionInstance;
+        public object Parameter;
+        public bool Performed;
+        public IList<RGActionInput> Inputs;
+    }
+    
     public class RGMonkeyBot : MonoBehaviour, IRGBot
     {
         public float actionInterval = 0.05f; // unscaled time
         
         private float _lastActionTime;
 
-        private IList<IList<RGActionInput>> _validInputsBuf;
-        private IList<IList<RGActionInput>> _remainingInputsBuf;
-        private IList<RGActionInput> _performedInputsBuf;
+        private IList<MonkeyBotActionEntry> _actionsBuf;
+        private IList<MonkeyBotActionEntry> _remainingActionsBuf;
     
         void Start()
         {
@@ -26,9 +34,8 @@ namespace RegressionGames.GenericBots
             RGActionManager.StartSession(this);
             
             _lastActionTime = Time.unscaledTime;
-            _validInputsBuf = new List<IList<RGActionInput>>();
-            _performedInputsBuf = new List<RGActionInput>();
-            _remainingInputsBuf = new List<IList<RGActionInput>>();
+            _actionsBuf = new List<MonkeyBotActionEntry>();
+            _remainingActionsBuf = new List<MonkeyBotActionEntry>();
             
             DontDestroyOnLoad(this);
         }
@@ -44,71 +51,84 @@ namespace RegressionGames.GenericBots
             float currentTimeUnscaled = Time.unscaledTime;
             if (currentTimeUnscaled - _lastActionTime < actionInterval)
             {
-                // repeat inputs sent on the last frame
-                foreach (var inp in _performedInputsBuf)
+                // if not deciding on a new action, then repeat inputs sent on the last frame
+                foreach (var act in _actionsBuf.Where(act => act.Performed))
                 {
-                    inp.Perform();
+                    foreach (var inp in act.Inputs)
+                    {
+                        inp.Perform();
+                    }
                 }
                 return;
             }
             _lastActionTime = currentTimeUnscaled;
-
-            // Compute the set of valid input combinations
-            int validInputsBufIdx = 0;
-            foreach (var inputList in _validInputsBuf)
+            
+            // If the last input sent was a press on a button that is still valid, always do a release on this frame to activate the button
+            // This heuristic makes it more likely to trigger a button press.
+            bool didReleaseBtn = false;
+            foreach (var performedAction in _actionsBuf.Where(act => act.Performed))
             {
-                inputList.Clear();
+                if (performedAction.ActionInstance is UIButtonPressInstance && (bool)performedAction.Parameter)
+                {
+                    var action = performedAction.ActionInstance.BaseAction;
+                    var targetObject = performedAction.ActionInstance.TargetObject;
+                    if (targetObject != null && action.IsValidForObject(targetObject))
+                    {
+                        foreach (var inp in action.GetInstance(targetObject).GetInputs(false))
+                        {
+                            inp.Perform();
+                        }
+                        didReleaseBtn = true;
+                    }
+                }
             }
+
+            _actionsBuf.Clear();
+            
+            if (didReleaseBtn)
+            {
+                return;
+            }
+
+            // Compute the set of valid actions
             foreach (var actionInstance in RGActionManager.GetValidActions())
             {
-                IList<RGActionInput> inputList;
-                if (validInputsBufIdx >= _validInputsBuf.Count)
+                var entry = new MonkeyBotActionEntry()
                 {
-                    inputList = new List<RGActionInput>();
-                    _validInputsBuf.Add(inputList);
-                }
-                else
+                    ActionInstance = actionInstance,
+                    Parameter = actionInstance.BaseAction.ParameterRange.RandomSample(),
+                    Performed = false
+                };
+                entry.Inputs = new List<RGActionInput>(actionInstance.GetInputs(entry.Parameter));
+                if (entry.Inputs.Count > 0)
                 {
-                    inputList = _validInputsBuf[validInputsBufIdx];
-                }
-
-                foreach (var inp in actionInstance.GetInputs(actionInstance.BaseAction.ParameterRange.RandomSample()))
-                {
-                    inputList.Add(inp);
-                }
-
-                if (inputList.Count > 0)
-                {
-                    ++validInputsBufIdx;
+                    _actionsBuf.Add(entry);
                 }
             }
 
-            // Randomly perform inputs from the list 
-            // This repeatedly selects input combinations from the valid input list that do not overlap
+            // Randomly perform actions from the list 
+            // This repeatedly selects actions whose inputs do not overlap
             // with the inputs that have already been performed.
-            int numValidInputLists = validInputsBufIdx;
-            _performedInputsBuf.Clear();
             for (;;)
             {
-                _remainingInputsBuf.Clear();
-
-                for (int i = 0; i < numValidInputLists; ++i)
+                _remainingActionsBuf.Clear();
+                foreach (var action in _actionsBuf.Where(act => !act.Performed))
                 {
-                    var inputList = _validInputsBuf[i];
-                    if (!inputList.Any(inp => _performedInputsBuf.Any(perfInp => perfInp.Overlaps(inp))))
+                    if (!_actionsBuf.Any(performedAction =>
+                            performedAction.Performed && performedAction.Inputs.Overlap(action.Inputs)))
                     {
-                        _remainingInputsBuf.Add(inputList);
+                        _remainingActionsBuf.Add(action);
                     }
                 }
 
-                if (_remainingInputsBuf.Count > 0)
+                if (_remainingActionsBuf.Count > 0)
                 {
-                    var inputList = _remainingInputsBuf[Random.Range(0, _remainingInputsBuf.Count)];
-                    foreach (var inp in inputList)
+                    var action = _remainingActionsBuf[Random.Range(0, _remainingActionsBuf.Count)];
+                    foreach (var inp in action.Inputs)
                     {
                         inp.Perform();
-                        _performedInputsBuf.Add(inp);
                     }
+                    action.Performed = true;
                 }
                 else
                 {

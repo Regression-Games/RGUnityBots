@@ -1,4 +1,5 @@
-﻿using RegressionGames.RGLegacyInputUtility;
+﻿using System.Collections.Generic;
+using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -22,6 +23,27 @@ namespace RegressionGames.ActionManager
         /// if two actions affect the same part of the input device then they should NOT be performed together.
         /// </summary>
         public abstract bool Overlaps(RGActionInput other);
+    }
+
+    public static class RGActionInputHelper
+    {
+        /// <summary>
+        /// Helper method to check if two sets of action input lists have any overlap.
+        /// </summary>
+        public static bool Overlap(this IEnumerable<RGActionInput> inputListA, IEnumerable<RGActionInput> inputListB)
+        {
+            foreach (var inpA in inputListA)
+            {
+                foreach (var inpB in inputListB)
+                {
+                    if (inpA.Overlaps(inpB))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
     }
 
     public class LegacyKeyInput : RGActionInput
