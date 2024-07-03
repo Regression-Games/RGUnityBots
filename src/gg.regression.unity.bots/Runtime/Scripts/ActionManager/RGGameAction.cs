@@ -35,6 +35,10 @@ namespace RegressionGames.ActionManager
         {
             Paths = new List<string[]>(serializedAction.paths.Select(path => path.Split("/")));
             ObjectType = Type.GetType(serializedAction.objectTypeName);
+            if (ObjectType == null)
+            {
+                throw new Exception($"Object type {ObjectType} does not exist");
+            }
         }
 
         /// <summary>
