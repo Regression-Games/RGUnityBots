@@ -80,6 +80,11 @@ namespace RegressionGames.ActionManager
                 return false;
             }
         }
+
+        public override string ToString()
+        {
+            return "LegacyKeyInput(" + KeyCode + ", " + IsPressed + ")";
+        }
     }
 
     public class InputSystemKeyInput : RGActionInput
@@ -113,6 +118,11 @@ namespace RegressionGames.ActionManager
                 return false;
             }
         }
+
+        public override string ToString()
+        {
+            return "InputSystemKeyInput(" + Key + ", " + IsPressed + ")";
+        }
     }
 
     public class MousePositionInput : RGActionInput
@@ -132,6 +142,11 @@ namespace RegressionGames.ActionManager
         public override bool Overlaps(RGActionInput other)
         {
             return other is MousePositionInput || other is MousePositionDeltaInput;
+        }
+
+        public override string ToString()
+        {
+            return "MousePositionInput(" + MousePosition + ")";
         }
     }
 
@@ -153,6 +168,11 @@ namespace RegressionGames.ActionManager
         {
             return other is MousePositionInput || other is MousePositionDeltaInput;
         }
+
+        public override string ToString()
+        {
+            return "MousePositionDeltaInput(" + MousePositionDelta + ")";
+        }
     }
 
     public class MouseScrollInput : RGActionInput
@@ -172,6 +192,11 @@ namespace RegressionGames.ActionManager
         public override bool Overlaps(RGActionInput other)
         {
             return other is MouseScrollInput;
+        }
+
+        public override string ToString()
+        {
+            return "MouseScrollInput(" + MouseScroll + ")";
         }
     }
 
@@ -211,6 +236,11 @@ namespace RegressionGames.ActionManager
             {
                 return false;
             }
+        }
+
+        public override string ToString()
+        {
+            return "MouseButtonInput(" + MouseButton + ", " + IsPressed + ")";
         }
     }
 }
