@@ -24,10 +24,11 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\n\"fps\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, fps);
             stringBuilder.Append(",\n\"perFrameStatistics\":[\n");
-            for (int i = 0, n = perFrameStatistics.Count; i < n; ++i)
+            int perFrameStatisticsCount = perFrameStatistics.Count;
+            for (int i = 0; i < perFrameStatisticsCount; ++i)
             {
                 perFrameStatistics[i].WriteToStringBuilder(stringBuilder);
-                if (i < n - 1)
+                if (i + 1 < perFrameStatisticsCount)
                 {
                     stringBuilder.Append(",\n");
                 }
