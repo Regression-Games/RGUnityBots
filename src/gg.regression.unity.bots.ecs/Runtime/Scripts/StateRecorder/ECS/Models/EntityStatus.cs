@@ -4,7 +4,9 @@ using System.Text;
 using System.Threading;
 using RegressionGames.StateRecorder.Models;
 using Unity.Entities;
+using Unity.Transforms;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder.ECS.Models
 {
@@ -14,6 +16,8 @@ namespace RegressionGames.StateRecorder.ECS.Models
         public Entity Entity;
 
         public EntityManager EntityManager;
+
+        public List<IComponentData> ComponentData;
 
         private EntityStatus()
         {
@@ -47,12 +51,33 @@ namespace RegressionGames.StateRecorder.ECS.Models
             {
                 if (status == null)
                 {
+                    long? parentId = null;
+                    if (entityManager.HasComponent<Parent>(theEntity))
+                    {
+                        var theParent = entityManager.GetComponentData<Parent>(theEntity).Value;
+                        parentId = ((long)theParent.Index) << 16 + theParent.Version;
+                    }
+
                     status = new EntityStatus()
                     {
-                        Id = id
+                        Id = id,
+                        ParentId = parentId
                     };
                     EntitiesIveSeen[id] = status;
-                    // update the cache with our result
+
+                    if (entityManager.HasComponent<SceneReference>(theEntity))
+                    {
+                        var sceneReference = entityManager.GetComponentData<SceneReference>(theEntity);
+                        //TODO (reg-1832) : Lookup actual scene name ?
+                        status.Scene = "{guid:\"" + sceneReference.SceneGUID + "\"}";
+                    }
+
+                    // todo (reg-1832) - populate layer name from RenderFilterSettings
+                    //if (entityManager.HasComponent<RenderFilterSettings>(theEntity))
+                    {
+                        //var renderFilterSettings = entityManager.GetComponentData<RenderFilterSettings>(theEntity);
+                        //status.LayerName = LayerMask.LayerToName(renderFilterSettings.Layer);
+                    }
                 }
 
                 tPath = BuildEntityPath(theEntity, entityManager);
@@ -67,26 +92,23 @@ namespace RegressionGames.StateRecorder.ECS.Models
             return status;
         }
 
-        private static readonly ThreadLocal<StringBuilder> PathBuilder = new ThreadLocal<StringBuilder>(() => new(1000));
+        private static readonly ThreadLocal<StringBuilder> PathBuilder = new(() => new(1000));
 
         private static string BuildEntityPath(Entity theEntity, EntityManager entityManager)
         {
             var pathBuilder = PathBuilder.Value;
             pathBuilder.Clear();
             pathBuilder.Append("Entity-");
-            // Iterate all component types alpha to build up the entity 'type' name
-            var componentTypes = entityManager.GetComponentTypes(theEntity);
-            foreach (string s in componentTypes.Select(a=>a.GetType().Name.Substring(0,3)).OrderBy(a=>a))
-            {
-                pathBuilder.Append(s).Append("-");
-            }
+            var entityArchetype = entityManager.GetChunk(theEntity).Archetype;
+            pathBuilder.Append(entityArchetype.ToString());
             return pathBuilder.ToString();
         }
 
         public override bool PositionHitsCollider(Vector3 position)
         {
-            //TODO: Somehow implement me even though we can't easily / efficiently query this for collider components using the entitymanager
+            //TODO (REG-1832): Somehow implement me even though we can't easily / efficiently query this for collider components using the entitymanager
             return false;
         }
+
     }
 }

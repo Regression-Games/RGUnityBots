@@ -87,7 +87,7 @@ namespace RegressionGames.StateRecorder.Models
                         ParentId = theTransform.parent != null ? theTransform.parent.GetInstanceID() : null,
                         Transform = theTransform,
                         LayerName = LayerMask.LayerToName(theGameObject.layer),
-                        Scene = theGameObject.scene,
+                        Scene = theGameObject.scene.name,
                         Tag = theTransform.tag
                     };
                     TransformsIveSeen[id] = status;

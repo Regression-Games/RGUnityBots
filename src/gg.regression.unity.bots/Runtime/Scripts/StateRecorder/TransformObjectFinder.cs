@@ -52,10 +52,10 @@ namespace RegressionGames.StateRecorder
         }
 
         // allocate this rather large list 1 time to avoid realloc on each tick object
-        private readonly List<Renderer> _rendererQueryList = new(1000);
+        private static readonly List<Renderer> RendererQueryList = new(1000);
 
         // avoid re-allocating all these vector3 objects for each element in each tick
-        private readonly Vector3[] _worldCorners =
+        private static readonly Vector3[] WorldCorners =
         {
             new(0, 0, 0),
             new(0, 0, 0),
@@ -183,10 +183,10 @@ namespace RegressionGames.StateRecorder
         }
 
         // allocate these rather large things 1 time to save allocations on each tick object
-        private readonly List<RectTransform> _rectTransformsList = new(100);
+        private static readonly List<RectTransform> RectTransformsList = new(100);
         private readonly HashSet<Transform> _transformsForThisFrame = new (1000);
 
-        private readonly Vector3[] _worldSpaceCorners = new Vector3[4];
+        private static readonly Vector3[] WorldSpaceCorners = new Vector3[4];
 
         private int _objectFrameNumber = -1;
         private int _stateFrameNumber = -1;
@@ -234,15 +234,341 @@ namespace RegressionGames.StateRecorder
             return (_priorObjects, _newObjects);
         }
 
+        public static (Bounds?, float, Bounds?) SelectBoundsForTransform(Transform theTransform)
+        {
+
+            var screenWidth = Screen.width;
+            var screenHeight = Screen.height;
+            var mainCamera = Camera.main;
+
+            var canvasRenderer = theTransform.GetComponent<CanvasRenderer>();
+            if (canvasRenderer != null)
+            {
+                // UI component object
+                var canvas = theTransform.GetComponentInParent<Canvas>();
+                if (canvas == null)
+                {
+                    // did Not think having canvas as a child instead of a parent was allowed.. but one of our partner's games gets away with it :/
+                    canvas = theTransform.GetComponentInChildren<Canvas>();
+                }
+
+                if (canvas != null && canvas.enabled)
+                {
+                    // screen space
+                    var canvasGroup = theTransform.GetComponentInParent<CanvasGroup>();
+                    var cgEnabled = true;
+                    while (cgEnabled && canvasGroup != null)
+                    {
+                        cgEnabled &= canvasGroup.enabled &&
+                                     (canvasGroup.blocksRaycasts || canvasGroup.interactable || canvasGroup.alpha > 0);
+                        if (canvasGroup.ignoreParentGroups)
+                        {
+                            break;
+                        }
+
+                        // see if there are any more above this in the parent
+                        var parent = canvasGroup.transform.parent;
+                        canvasGroup = parent == null ? null : parent.GetComponentInParent<CanvasGroup>();
+                    }
+
+                    if (cgEnabled)
+                    {
+                        var canvasCamera = canvas.worldCamera == null ? mainCamera : canvas.worldCamera;
+                        var isWorldSpace = canvas.renderMode == RenderMode.WorldSpace;
+                        RectTransformsList.Clear();
+                        theTransform.GetComponentsInChildren(RectTransformsList);
+                        var rectTransformsListLength = RectTransformsList.Count;
+
+                        if (rectTransformsListLength > 0)
+                        {
+                            Vector2 min, max;
+                            var worldMin = Vector3.zero;
+                            var worldMax = Vector3.zero;
+                            RectTransformsList[0].GetWorldCorners(WorldSpaceCorners);
+                            if (isWorldSpace)
+                            {
+                                min = mainCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
+                                max = mainCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
+                                worldMin = WorldSpaceCorners[0];
+                                worldMax = WorldSpaceCorners[2];
+                            }
+                            else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
+                            {
+                                min = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
+                                max = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
+                            }
+                            else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                            {
+                                min = WorldSpaceCorners[0];
+                                max = WorldSpaceCorners[2];
+                            }
+
+                            for (var i = 1; i < rectTransformsListLength; ++i)
+                            {
+                                Vector2 nextMin, nextMax;
+                                var nextWorldMin = Vector3.zero;
+                                var nextWorldMax = Vector3.zero;
+                                RectTransformsList[i].GetWorldCorners(WorldSpaceCorners);
+                                if (isWorldSpace)
+                                {
+                                    nextMin = mainCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
+                                    nextMax = mainCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
+                                    nextWorldMin = WorldSpaceCorners[0];
+                                    nextWorldMax = WorldSpaceCorners[2];
+                                }
+                                else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
+                                {
+                                    nextMin = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
+                                    nextMax = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
+                                }
+                                else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                                {
+                                    nextMin = WorldSpaceCorners[0];
+                                    nextMax = WorldSpaceCorners[2];
+                                }
+
+                                // Vector3.min and Vector3.max re-allocate new vectors on each call, avoid using them
+                                min.x = Mathf.Min(min.x, nextMin.x);
+                                min.y = Mathf.Min(min.y, nextMin.y);
+
+                                max.x = Mathf.Max(max.x, nextMax.x);
+                                max.y = Mathf.Max(max.y, nextMax.y);
+
+                                if (isWorldSpace)
+                                {
+                                    worldMin.x = Mathf.Min(worldMin.x, nextWorldMin.x);
+                                    worldMin.y = Mathf.Min(worldMin.y, nextWorldMin.y);
+                                    worldMin.z = Mathf.Min(worldMin.z, nextWorldMin.z);
+                                    worldMax.x = Mathf.Max(worldMax.x, nextWorldMax.x);
+                                    worldMax.y = Mathf.Max(worldMax.y, nextWorldMax.y);
+                                    worldMax.z = Mathf.Max(worldMax.z, nextWorldMax.z);
+                                }
+                            }
+
+                            var onCamera = true;
+                            if (isWorldSpace || canvasCamera != mainCamera)
+                            {
+                                var xLowerLimit = 0;
+                                var xUpperLimit = screenWidth;
+                                var yLowerLimit = 0;
+                                var yUpperLimit = screenHeight;
+                                if (!(min.x <= xUpperLimit && max.x >= xLowerLimit && min.y <= yUpperLimit && max.y >= yLowerLimit))
+                                {
+                                    // not in camera..
+                                    onCamera = false;
+                                }
+                            }
+
+                            if (onCamera)
+                            {
+                                // make sure the screen space bounds has a non-zero Z size around 0
+                                var size = new Vector3((max.x - min.x), (max.y - min.y), 0.05f);
+                                var center = new Vector3(min.x + size.x / 2, min.y + size.y / 2, 0f);
+
+                                if (isWorldSpace)
+                                {
+                                    var worldSize = new Vector3((worldMax.x - worldMin.x), (worldMax.y - worldMin.y), (worldMax.z - worldMin.z));
+                                    var worldCenter = new Vector3(worldMin.x + worldSize.x, worldMin.y + worldSize.y / 2, worldMin.z + worldSize.z / 2);
+
+                                    // get the screen point values for the world max / min and find the screen space z offset closest the camera
+                                    var minSp = mainCamera.WorldToScreenPoint(worldMin);
+                                    var maxSp = mainCamera.WorldToScreenPoint(worldMax);
+                                    return (new Bounds(center, size), Math.Min(minSp.z, maxSp.z), new Bounds(worldCenter, worldSize));
+                                }
+
+                                return (new Bounds(center, size), 0f, null);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+
+                // non ui object
+                // All of this code is verbose in order to optimize performance by avoiding using the Bounds APIs
+                // find the full bounds of the statefulGameObject
+                var statefulGameObject = theTransform.gameObject;
+
+                RendererQueryList.Clear();
+                statefulGameObject.GetComponentsInChildren(RendererQueryList);
+
+                var minWorldX = float.MaxValue;
+                var maxWorldX = float.MinValue;
+
+                var minWorldY = float.MaxValue;
+                var maxWorldY = float.MinValue;
+
+                var minWorldZ = float.MaxValue;
+                var maxWorldZ = float.MinValue;
+
+                var hasVisibleRenderer = false;
+
+                var rendererListLength = RendererQueryList.Count;
+                for (var i = 0; i < rendererListLength; i++)
+                {
+                    var nextRenderer = RendererQueryList[i];
+                    hasVisibleRenderer |= nextRenderer.isVisible;
+                    if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
+                    {
+                        var theBounds = nextRenderer.bounds;
+                        var theMin = theBounds.min;
+                        var theMax = theBounds.max;
+
+                        if (theMin.x < minWorldX)
+                        {
+                            minWorldX = theMin.x;
+                        }
+
+                        if (theMax.x > maxWorldX)
+                        {
+                            maxWorldX = theMax.x;
+                        }
+
+                        if (theMin.y < minWorldY)
+                        {
+                            minWorldY = theMin.y;
+                        }
+
+                        if (theMax.y > maxWorldY)
+                        {
+                            maxWorldY = theMax.y;
+                        }
+
+                        if (theMin.z < minWorldZ)
+                        {
+                            minWorldZ = theMin.z;
+                        }
+
+                        if (theMax.z > maxWorldZ)
+                        {
+                            maxWorldZ = theMax.z;
+                        }
+                    }
+                }
+
+                var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
+                if (onCamera)
+                {
+
+                    // convert world space to screen space
+                    WorldCorners[0].x = minWorldX;
+                    WorldCorners[0].y = minWorldY;
+                    WorldCorners[0].z = minWorldZ;
+
+                    WorldCorners[1].x = maxWorldX;
+                    WorldCorners[1].y = minWorldY;
+                    WorldCorners[1].z = minWorldZ;
+
+                    WorldCorners[2].x = maxWorldX;
+                    WorldCorners[2].y = maxWorldY;
+                    WorldCorners[2].z = minWorldZ;
+
+                    WorldCorners[3].x = minWorldX;
+                    WorldCorners[3].y = maxWorldY;
+                    WorldCorners[3].z = minWorldZ;
+
+                    WorldCorners[4].x = minWorldX;
+                    WorldCorners[4].y = minWorldY;
+                    WorldCorners[4].z = maxWorldZ;
+
+                    WorldCorners[5].x = maxWorldX;
+                    WorldCorners[5].y = minWorldY;
+                    WorldCorners[5].z = maxWorldZ;
+
+                    WorldCorners[6].x = maxWorldX;
+                    WorldCorners[6].y = maxWorldY;
+                    WorldCorners[6].z = maxWorldZ;
+
+                    WorldCorners[7].x = minWorldX;
+                    WorldCorners[7].y = maxWorldY;
+                    WorldCorners[7].z = maxWorldZ;
+
+                    var minX = float.MaxValue;
+                    var maxX = float.MinValue;
+
+                    var minY = float.MaxValue;
+                    var maxY = float.MinValue;
+
+                    var minZ = float.MaxValue;
+                    var maxZ = float.MinValue;
+
+                    var worldCornersLength = WorldCorners.Length;
+                    for (var i = 0; i < worldCornersLength; i++)
+                    {
+                        var screenSpaceObjectCorner = mainCamera.WorldToScreenPoint(WorldCorners[i]);
+                        var x = screenSpaceObjectCorner.x;
+                        if (x < minX)
+                        {
+                            minX = x;
+                        }
+
+                        if (x > maxX)
+                        {
+                            maxX = x;
+                        }
+
+                        var y = screenSpaceObjectCorner.y;
+                        if (y < minY)
+                        {
+                            minY = y;
+                        }
+
+                        if (y > maxY)
+                        {
+                            maxY = y;
+                        }
+
+                        var z = screenSpaceObjectCorner.z;
+                        if (z < minZ)
+                        {
+                            minZ = z;
+                        }
+
+                        if (z > maxZ)
+                        {
+                            maxZ = z;
+                        }
+                    }
+
+                    var xLowerLimit = 0;
+                    var xUpperLimit = screenWidth;
+                    var yLowerLimit = 0;
+                    var yUpperLimit = screenHeight;
+                    if (!(minX <= xUpperLimit && maxX >= xLowerLimit && minY <= yUpperLimit && maxY >= yLowerLimit))
+                    {
+                        // not in camera..
+                        onCamera = false;
+                    }
+
+                    if (onCamera)
+                    {
+                        // make sure the screen space bounds has a non-zero Z size around 0
+                        // we track the true z offset separately for ease of mouse selection on replay
+                        var size = new Vector3((maxX - minX), (maxY - minY), 0.05f);
+                        var center = new Vector3(minX + size.x / 2, minY + size.y / 2, 0);
+
+                        var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
+                        var worldCenter = new Vector3(minWorldX + worldSize.x / 2, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
+
+                        return (new Bounds(center, size), Math.Min(minZ, maxZ), new Bounds(worldCenter, worldSize));
+                    }
+                    else
+                    {
+                        return (null, 0f, null);
+                    }
+                }
+
+            }
+
+
+            return (null, 0f, null);
+        }
+
         private void PopulateUITransformsForCurrentFrame()
         {
 
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
-
-            var screenWidth = UnityEngine.Device.Screen.width;
-            var screenHeight = UnityEngine.Device.Screen.height;
-
-            var mainCamera = Camera.main;
 
             // we re-use this over and over instead of allocating multiple times
             var canvasRenderersLength = canvasRenderers.Length;
@@ -252,153 +578,13 @@ namespace RegressionGames.StateRecorder
                 var statefulUIObject = ((CanvasRenderer)canvasRenderer).gameObject;
                 if (statefulUIObject != null && statefulUIObject.GetComponentInParent<RGExcludeFromState>() == null)
                 {
-                    var canvas = statefulUIObject.GetComponentInParent<Canvas>();
-                    if (canvas == null)
-                    {
-                        // did Not think having canvas as a child instead of a parent was allowed.. but one of our partner's games gets away with it :/
-                        canvas = statefulUIObject.GetComponentInChildren<Canvas>();
-                    }
+                    var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulUIObject.transform);
+                    _newObjects[tStatus.Id] = tStatus;
 
-                    if (canvas != null && canvas.enabled)
-                    {
-                        // screen space
-                        var canvasGroup = statefulUIObject.GetComponentInParent<CanvasGroup>();
-                        var cgEnabled = true;
-                        while (cgEnabled && canvasGroup != null)
-                        {
-                            cgEnabled &= canvasGroup.enabled &&
-                                         (canvasGroup.blocksRaycasts || canvasGroup.interactable || canvasGroup.alpha > 0);
-                            if (canvasGroup.ignoreParentGroups)
-                            {
-                                break;
-                            }
-
-                            // see if there are any more above this in the parent
-                            var parent = canvasGroup.transform.parent;
-                            canvasGroup = parent == null ? null : parent.GetComponentInParent<CanvasGroup>();
-                        }
-
-                        if (cgEnabled)
-                        {
-                            var canvasCamera = canvas.worldCamera == null ? mainCamera : canvas.worldCamera;
-                            var isWorldSpace = canvas.renderMode == RenderMode.WorldSpace;
-                            _rectTransformsList.Clear();
-                            statefulUIObject.GetComponentsInChildren(_rectTransformsList);
-                            var rectTransformsListLength = _rectTransformsList.Count;
-
-                            if (rectTransformsListLength > 0)
-                            {
-                                var objectTransform = statefulUIObject.transform;
-                                var tStatus = TransformStatus.GetOrCreateTransformStatus(objectTransform);
-                                _newObjects[tStatus.Id] = tStatus;
-
-                                Vector2 min, max;
-                                var worldMin = Vector3.zero;
-                                var worldMax = Vector3.zero;
-                                _rectTransformsList[0].GetWorldCorners(_worldSpaceCorners);
-                                if (isWorldSpace)
-                                {
-                                    min = mainCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                    max = mainCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
-                                    worldMin = _worldSpaceCorners[0];
-                                    worldMax = _worldSpaceCorners[2];
-                                }
-                                else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
-                                {
-                                    min = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                    max = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
-                                }
-                                else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
-                                {
-                                    min = _worldSpaceCorners[0];
-                                    max = _worldSpaceCorners[2];
-                                }
-
-                                for (var i = 1; i < rectTransformsListLength; ++i)
-                                {
-                                    Vector2 nextMin, nextMax;
-                                    var nextWorldMin = Vector3.zero;
-                                    var nextWorldMax = Vector3.zero;
-                                    _rectTransformsList[i].GetWorldCorners(_worldSpaceCorners);
-                                    if (isWorldSpace)
-                                    {
-                                        nextMin = mainCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                        nextMax = mainCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
-                                        nextWorldMin = _worldSpaceCorners[0];
-                                        nextWorldMax = _worldSpaceCorners[2];
-                                    }
-                                    else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
-                                    {
-                                        nextMin = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[0]);
-                                        nextMax = canvasCamera.WorldToScreenPoint(_worldSpaceCorners[2]);
-                                    }
-                                    else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
-                                    {
-                                        nextMin = _worldSpaceCorners[0];
-                                        nextMax = _worldSpaceCorners[2];
-                                    }
-
-                                    // Vector3.min and Vector3.max re-allocate new vectors on each call, avoid using them
-                                    min.x = Mathf.Min(min.x, nextMin.x);
-                                    min.y = Mathf.Min(min.y, nextMin.y);
-
-                                    max.x = Mathf.Max(max.x, nextMax.x);
-                                    max.y = Mathf.Max(max.y, nextMax.y);
-
-                                    if (isWorldSpace)
-                                    {
-                                        worldMin.x = Mathf.Min(worldMin.x, nextWorldMin.x);
-                                        worldMin.y = Mathf.Min(worldMin.y, nextWorldMin.y);
-                                        worldMin.z = Mathf.Min(worldMin.z, nextWorldMin.z);
-                                        worldMax.x = Mathf.Max(worldMax.x, nextWorldMax.x);
-                                        worldMax.y = Mathf.Max(worldMax.y, nextWorldMax.y);
-                                        worldMax.z = Mathf.Max(worldMax.z, nextWorldMax.z);
-                                    }
-                                }
-
-                                var onCamera = true;
-                                if (isWorldSpace || canvasCamera != mainCamera)
-                                {
-                                    var xLowerLimit = 0;
-                                    var xUpperLimit = screenWidth;
-                                    var yLowerLimit = 0;
-                                    var yUpperLimit = screenHeight;
-                                    if (!(min.x <= xUpperLimit && max.x >= xLowerLimit && min.y <= yUpperLimit && max.y >= yLowerLimit))
-                                    {
-                                        // not in camera..
-                                        onCamera = false;
-                                    }
-                                }
-
-                                if (onCamera)
-                                {
-                                    // make sure the screen space bounds has a non-zero Z size around 0
-                                    var size = new Vector3((max.x - min.x) , (max.y - min.y) , 0.05f);
-                                    var center = new Vector3(min.x + size.x/2, min.y + size.y/2, 0f);
-                                    tStatus.screenSpaceBounds = new Bounds(center, size);
-                                    tStatus.screenSpaceZOffset = 0f;
-
-                                    if (isWorldSpace)
-                                    {
-                                        var worldSize = new Vector3((worldMax.x - worldMin.x), (worldMax.y - worldMin.y), (worldMax.z - worldMin.z));
-                                        var worldCenter = new Vector3(worldMin.x + worldSize.x, worldMin.y + worldSize.y/2, worldMin.z + worldSize.z/2);
-                                        tStatus.worldSpaceBounds = new Bounds(worldCenter, worldSize);
-
-                                        // get the screen point values for the world max / min and find the screen space z offset closest the camera
-                                        var minSp = mainCamera.WorldToScreenPoint(worldMin);
-                                        var maxSp = mainCamera.WorldToScreenPoint(worldMax);
-                                        tStatus.screenSpaceZOffset = Math.Min(minSp.z, maxSp.z);
-                                    }
-                                }
-                                else
-                                {
-                                    tStatus.screenSpaceZOffset = 0f;
-                                    tStatus.screenSpaceBounds = null;
-                                    tStatus.worldSpaceBounds = null;
-                                }
-                            }
-                        }
-                    }
+                    var bounds = SelectBoundsForTransform(statefulUIObject.transform);
+                    tStatus.screenSpaceBounds = bounds.Item1;
+                    tStatus.screenSpaceZOffset = bounds.Item2;
+                    tStatus.worldSpaceBounds = bounds.Item3;
                 }
             }
         }
@@ -431,202 +617,16 @@ namespace RegressionGames.StateRecorder
                 _transformsForThisFrame.Add(includeInStateObject.transform);
             }
 
-            var screenWidth = Screen.width;
-            var screenHeight = Screen.height;
-
-            var mainCamera = Camera.main;
-
-            foreach (var statefulTransform in _transformsForThisFrame) // can't use for with index as this is a hashset and enumerator is better in this case
+            foreach (var theTransform in _transformsForThisFrame)
             {
-                if (statefulTransform != null)
-                {
-                    // All of this code is verbose in order to optimize performance by avoiding using the Bounds APIs
-                    // find the full bounds of the statefulGameObject
-                    var statefulGameObject = statefulTransform.gameObject;
-
-                    _rendererQueryList.Clear();
-                    statefulGameObject.GetComponentsInChildren(_rendererQueryList);
-
-                    var minWorldX = float.MaxValue;
-                    var maxWorldX = float.MinValue;
-
-                    var minWorldY = float.MaxValue;
-                    var maxWorldY = float.MinValue;
-
-                    var minWorldZ = float.MaxValue;
-                    var maxWorldZ = float.MinValue;
-
-                    var hasVisibleRenderer = false;
-
-                    var rendererListLength = _rendererQueryList.Count;
-                    for (var i = 0; i < rendererListLength; i++)
-                    {
-                        var nextRenderer = _rendererQueryList[i];
-                        hasVisibleRenderer |= nextRenderer.isVisible;
-                        if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
-                        {
-                            var theBounds = nextRenderer.bounds;
-                            var theMin = theBounds.min;
-                            var theMax = theBounds.max;
-
-                            if (theMin.x < minWorldX)
-                            {
-                                minWorldX = theMin.x;
-                            }
-
-                            if (theMax.x > maxWorldX)
-                            {
-                                maxWorldX = theMax.x;
-                            }
-
-                            if (theMin.y < minWorldY)
-                            {
-                                minWorldY = theMin.y;
-                            }
-
-                            if (theMax.y > maxWorldY)
-                            {
-                                maxWorldY = theMax.y;
-                            }
-
-                            if (theMin.z < minWorldZ)
-                            {
-                                minWorldZ = theMin.z;
-                            }
-
-                            if (theMax.z > maxWorldZ)
-                            {
-                                maxWorldZ = theMax.z;
-                            }
-                        }
-                    }
-
-                    // depending on the include only on camera setting, this object may be null
-                    var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulTransform);
-                    _newObjects[tStatus.Id] = tStatus;
-
-                    var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
-                    if (onCamera)
-                    {
-
-                        // convert world space to screen space
-                        _worldCorners[0].x = minWorldX;
-                        _worldCorners[0].y = minWorldY;
-                        _worldCorners[0].z = minWorldZ;
-
-                        _worldCorners[1].x = maxWorldX;
-                        _worldCorners[1].y = minWorldY;
-                        _worldCorners[1].z = minWorldZ;
-
-                        _worldCorners[2].x = maxWorldX;
-                        _worldCorners[2].y = maxWorldY;
-                        _worldCorners[2].z = minWorldZ;
-
-                        _worldCorners[3].x = minWorldX;
-                        _worldCorners[3].y = maxWorldY;
-                        _worldCorners[3].z = minWorldZ;
-
-                        _worldCorners[4].x = minWorldX;
-                        _worldCorners[4].y = minWorldY;
-                        _worldCorners[4].z = maxWorldZ;
-
-                        _worldCorners[5].x = maxWorldX;
-                        _worldCorners[5].y = minWorldY;
-                        _worldCorners[5].z = maxWorldZ;
-
-                        _worldCorners[6].x = maxWorldX;
-                        _worldCorners[6].y = maxWorldY;
-                        _worldCorners[6].z = maxWorldZ;
-
-                        _worldCorners[7].x = minWorldX;
-                        _worldCorners[7].y = maxWorldY;
-                        _worldCorners[7].z = maxWorldZ;
-
-                        var minX = float.MaxValue;
-                        var maxX = float.MinValue;
-
-                        var minY = float.MaxValue;
-                        var maxY = float.MinValue;
-
-                        var minZ = float.MaxValue;
-                        var maxZ = float.MinValue;
-
-                        var worldCornersLength = _worldCorners.Length;
-                        for (var i = 0; i < worldCornersLength; i++)
-                        {
-                            var screenSpaceObjectCorner = mainCamera.WorldToScreenPoint(_worldCorners[i]);
-                            var x = screenSpaceObjectCorner.x;
-                            if (x < minX)
-                            {
-                                minX = x;
-                            }
-
-                            if (x > maxX)
-                            {
-                                maxX = x;
-                            }
-
-                            var y = screenSpaceObjectCorner.y;
-                            if (y < minY)
-                            {
-                                minY = y;
-                            }
-
-                            if (y > maxY)
-                            {
-                                maxY = y;
-                            }
-
-                            var z = screenSpaceObjectCorner.z;
-                            if (z < minZ)
-                            {
-                                minZ = z;
-                            }
-
-                            if (z > maxZ)
-                            {
-                                maxZ = z;
-                            }
-                        }
-
-                        var xLowerLimit = 0;
-                        var xUpperLimit = screenWidth;
-                        var yLowerLimit = 0;
-                        var yUpperLimit = screenHeight;
-                        if (!(minX <= xUpperLimit && maxX >= xLowerLimit && minY <= yUpperLimit && maxY >= yLowerLimit))
-                        {
-                            // not in camera..
-                            onCamera = false;
-                        }
-
-                        if (onCamera)
-                        {
-                            // make sure the screen space bounds has a non-zero Z size around 0
-                            // we track the true z offset separately for ease of mouse selection on replay
-                            var size = new Vector3((maxX - minX), (maxY - minY), 0.05f);
-                            var center = new Vector3(minX + size.x / 2, minY + size.y / 2, 0);
-                            tStatus.screenSpaceBounds = new Bounds(center, size);
-                            tStatus.screenSpaceZOffset = Math.Min(minZ, maxZ);
-
-                            var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
-                            var worldCenter = new Vector3(minWorldX + worldSize.x / 2, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
-                            tStatus.worldSpaceBounds = new Bounds(worldCenter, worldSize);
-                        }
-                        else
-                        {
-                            tStatus.screenSpaceBounds = null;
-                            tStatus.worldSpaceBounds = null;
-                            tStatus.screenSpaceZOffset = 0f;
-                        }
-                    }
-                    else
-                    {
-                        tStatus.screenSpaceBounds = null;
-                        tStatus.worldSpaceBounds = null;
-                        tStatus.screenSpaceZOffset = 0f;
-                    }
-                }
+                var tStatus = TransformStatus.GetOrCreateTransformStatus(theTransform);
+                _newObjects[tStatus.Id] = tStatus;
+                var bounds = SelectBoundsForTransform(theTransform);
+                tStatus.screenSpaceBounds = bounds.Item1;
+                tStatus.screenSpaceZOffset = bounds.Item2;
+                tStatus.worldSpaceBounds = bounds.Item3;
             }
+
         }
 
         private RecordedGameObjectState GetStateForTransformObject(TransformStatus tStatus)
@@ -652,7 +652,7 @@ namespace RegressionGames.StateRecorder
                         {
                             new TransformComponentDataProvider()
                             {
-                                Transform = transform
+                                Transform = tStatus.Transform
                             }
                         }
                     };

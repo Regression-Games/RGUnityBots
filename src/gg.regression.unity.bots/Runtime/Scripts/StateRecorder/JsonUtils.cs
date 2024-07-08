@@ -15,6 +15,39 @@ namespace RegressionGames.StateRecorder
 
         private static JsonSerializer _jsonSerializer = null;
 
+        public static void WriteObjectStateToStringBuilder(StringBuilder stringBuilder, object theObject)
+        {
+            // use the generic and expensive serializer
+            var sbLength = stringBuilder.Length;
+            try
+            {
+                // do this ourselves to bypass all the serializer creation junk for every object :/
+                if (_jsonSerializer == null)
+                {
+                    _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
+                    _jsonSerializer.Formatting = Formatting.None;
+                }
+
+                var sw = new StringWriter(stringBuilder, CultureInfo.InvariantCulture);
+                using (var jsonWriter = new JsonTextWriter(sw))
+                {
+                    jsonWriter.Formatting = _jsonSerializer.Formatting;
+                    _jsonSerializer.Serialize(jsonWriter, theObject, theObject.GetType());
+                }
+
+                if (sbLength == stringBuilder.Length)
+                {
+                    // nothing written ... shouldn't happen... but keeps us running if it does
+                    stringBuilder.Append("{\"EXCEPTION\":\"Could not convert object to JSON\"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                RGDebug.LogException(ex, "Error converting object to JSON");
+                stringBuilder.Append("{}");
+            }
+        }
+
         public static void WriteBehaviourStateToStringBuilder(StringBuilder stringBuilder, Behaviour state)
         {
             var stateType = state.GetType();
