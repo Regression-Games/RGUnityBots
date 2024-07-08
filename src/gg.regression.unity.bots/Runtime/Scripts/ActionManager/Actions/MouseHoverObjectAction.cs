@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -18,7 +20,7 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        public MouseHoverObjectAction(RGSerializedAction serializedAction) :
+        public MouseHoverObjectAction(JObject serializedAction) :
             base(serializedAction)
         {
         }
@@ -37,13 +39,13 @@ namespace RegressionGames.ActionManager.Actions
             return new MouseHoverObjectInstance(this, obj);
         }
 
-        protected override void Serialize(RGSerializedAction serializedAction)
-        {
-        }
-
         public override bool IsEquivalentTo(RGGameAction other)
         {
             return other is MouseHoverObjectAction && base.IsEquivalentTo(other);
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
         }
     }
 

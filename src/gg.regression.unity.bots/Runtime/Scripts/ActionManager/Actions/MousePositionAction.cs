@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -17,7 +19,7 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        public MousePositionAction(RGSerializedAction serializedAction) :
+        public MousePositionAction(JObject serializedAction) :
             base(serializedAction)
         {
         }
@@ -35,14 +37,14 @@ namespace RegressionGames.ActionManager.Actions
         {
             return new MousePositionInstance(this, obj);
         }
-
-        protected override void Serialize(RGSerializedAction serializedAction)
-        {
-        }
         
         public override bool IsEquivalentTo(RGGameAction other)
         {
             return other is MousePositionAction && base.IsEquivalentTo(other);
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
         }
     }
 

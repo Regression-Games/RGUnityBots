@@ -1,6 +1,8 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -20,10 +22,10 @@ namespace RegressionGames.ActionManager.Actions
             KeyCodeFunc = keyCodeFunc;
         }
 
-        public LegacyKeyAction(RGSerializedAction serializedAction) :
+        public LegacyKeyAction(JObject serializedAction) :
             base(serializedAction)
         {
-            KeyCodeFunc = RGActionParamFunc<object>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
+            KeyCodeFunc = RGActionParamFunc<object>.Deserialize(serializedAction["keyCodeFunc"]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -49,9 +51,10 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
-        protected override void Serialize(RGSerializedAction serializedAction)
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
         {
-            (serializedAction.actionFuncType, serializedAction.actionFuncData) = KeyCodeFunc.Serialize();
+            stringBuilder.Append(",\n\"keyCodeFunc\":");
+            KeyCodeFunc.WriteToStringBuilder(stringBuilder);
         }
     }
 

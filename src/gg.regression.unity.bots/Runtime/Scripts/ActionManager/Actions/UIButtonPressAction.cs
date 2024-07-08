@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
+using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,10 +24,10 @@ namespace RegressionGames.ActionManager.Actions
             EventListenerName = eventListenerName;
         }
 
-        public UIButtonPressAction(RGSerializedAction serializedAction) :
+        public UIButtonPressAction(JObject serializedAction) :
             base(serializedAction)
         {
-            EventListenerName = serializedAction.actionStringData;
+            EventListenerName = serializedAction["eventListenerName"].ToString();
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -74,9 +77,10 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
-        protected override void Serialize(RGSerializedAction serializedAction)
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
         {
-            serializedAction.actionStringData = EventListenerName;
+            stringBuilder.Append(",\n\"eventListenerName\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, EventListenerName);
         }
     }
 

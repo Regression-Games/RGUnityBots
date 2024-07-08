@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using Newtonsoft.Json.Linq;
+using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ActionManager
 {
     public abstract class RGGameAction
     {
+        
         /// The path of the action, typically derived from
         /// the location where the associated input handling logic takes place.
         /// An action may have multiple paths if multiple code locations were inferred to
@@ -31,14 +35,11 @@ namespace RegressionGames.ActionManager
             ObjectType = objectType;
         }
 
-        public RGGameAction(RGSerializedAction serializedAction)
+        public RGGameAction(JObject serializedAction)
         {
-            Paths = new List<string[]>(serializedAction.paths.Select(path => path.Split("/")));
-            ObjectType = Type.GetType(serializedAction.objectTypeName);
-            if (ObjectType == null)
-            {
-                throw new Exception($"Object type {ObjectType} does not exist");
-            }
+            JArray paths = (JArray)serializedAction["paths"];
+            Paths = new List<string[]>(paths.Select(path => path.ToString().Split("/")));
+            ObjectType = Type.GetType(serializedAction["objectTypeName"].ToString(), true);
         }
 
         /// <summary>
@@ -74,51 +75,32 @@ namespace RegressionGames.ActionManager
         }
 
         /// <summary>
-        /// Serializes this action into a storable data structure.
+        /// Serializes this action to the specified StringBuilder.
         /// </summary>
-        /// <returns>The serialized action data.</returns>
-        public RGSerializedAction Serialize()
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            RGSerializedAction result = new RGSerializedAction();
-            result.actionTypeName = GetType().AssemblyQualifiedName;
-            result.paths = new List<string>(Paths.Select(path => string.Join("/", path)));
-            result.objectTypeName = ObjectType.AssemblyQualifiedName;
-            Serialize(result);
-            return result;
+            stringBuilder.Append("{\n\"actionTypeName\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, GetType().AssemblyQualifiedName);
+            stringBuilder.Append(",\n\"paths\":[");
+            int pathsCount = Paths.Count;
+            for (int i = 0; i < pathsCount; ++i)
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, string.Join("/", Paths[i]));
+                if (i + 1 < pathsCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"objectTypeName\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, ObjectType.AssemblyQualifiedName);
+            WriteParametersToStringBuilder(stringBuilder);
+            stringBuilder.Append("\n}");
         }
 
         /// <summary>
         /// Serialize the action-specific parameters (such as key code, button name, etc.).
-        /// This is stored to the actionParameters field of RGSerializedAction.
         /// </summary>
-        /// <param name="actionParametersOut">List where the action-specific data should be placed.</param>
-        protected abstract void Serialize(RGSerializedAction serializedAction);
-    }
-    
-    [Serializable]
-    public class RGSerializedAction
-    {
-        public string actionTypeName;
-        public List<string> paths;
-        public string objectTypeName;
-
-        // Used by actions that have a serializable function parameter (e.g. key function, axis name function, etc.)
-        public ActionParamFuncType actionFuncType;
-        public string actionFuncData;
-        
-        // Field where arbitrary string data can be stored
-        public string actionStringData;
-
-        public RGGameAction Deserialize()
-        {
-            Type actionType = Type.GetType(actionTypeName);
-            var constructor = actionType.GetConstructor(new[] { typeof(RGSerializedAction) });
-            if (constructor == null)
-            {
-                throw new Exception($"Missing deserialization constructor for {actionType.FullName}");
-            }
-            return (RGGameAction)constructor.Invoke(new object[] { this });
-        }
+        protected abstract void WriteParametersToStringBuilder(StringBuilder stringBuilder);
     }
 
     public interface IRGGameActionInstance

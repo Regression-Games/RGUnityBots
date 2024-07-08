@@ -17,6 +17,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
+using Newtonsoft.Json;
 
 namespace RegressionGames.ActionManager
 {
@@ -1003,16 +1004,10 @@ namespace RegressionGames.ActionManager
         private void SaveAnalysisResult()
         {
             RGActionAnalysisResult result = new RGActionAnalysisResult();
-            result.actions = new RGSerializedAction[Actions.Count];
-            int i = 0;
-            foreach (var action in Actions)
-            {
-                result.actions[i] = action.Serialize();
-                ++i;
-            }
+            result.Actions = new List<RGGameAction>(Actions);
             using (StreamWriter sw = new StreamWriter(RGActionProvider.ANALYSIS_RESULT_PATH))
             {
-                sw.Write(JsonUtility.ToJson(result, true));
+                sw.Write(JsonConvert.SerializeObject(result, Formatting.Indented, RGActionProvider.JSON_CONVERTERS));
             }
         }
 

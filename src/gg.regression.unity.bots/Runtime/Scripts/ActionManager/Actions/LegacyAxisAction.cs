@@ -1,6 +1,8 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -24,10 +26,10 @@ namespace RegressionGames.ActionManager.Actions
             AxisNameFunc = axisNameFunc;
         }
 
-        public LegacyAxisAction(RGSerializedAction serializedAction) :
+        public LegacyAxisAction(JObject serializedAction) :
             base(serializedAction)
         {
-            AxisNameFunc = RGActionParamFunc<string>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
+            AxisNameFunc = RGActionParamFunc<string>.Deserialize(serializedAction["axisNameFunc"]);
         }
 
         // Discretize the axis into three states (negative, zero, positive) so there is an equal chance of not going in either direction
@@ -54,9 +56,10 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
-        protected override void Serialize(RGSerializedAction serializedAction)
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
         {
-            (serializedAction.actionFuncType, serializedAction.actionFuncData) = AxisNameFunc.Serialize();
+            stringBuilder.Append(",\n\"axisNameFunc\":");
+            AxisNameFunc.WriteToStringBuilder(stringBuilder);
         }
     }
 

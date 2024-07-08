@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
@@ -16,7 +18,7 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        public AnyKeyAction(RGSerializedAction serializedAction) :
+        public AnyKeyAction(JObject serializedAction) :
             base(serializedAction)
         {
         }
@@ -40,7 +42,7 @@ namespace RegressionGames.ActionManager.Actions
             return other is AnyKeyAction && base.IsEquivalentTo(other);
         }
 
-        protected override void Serialize(RGSerializedAction serializedAction)
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
         {
         }
     }

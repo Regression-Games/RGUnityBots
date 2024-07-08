@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
@@ -18,10 +20,10 @@ namespace RegressionGames.ActionManager.Actions
             MouseButtonFunc = mouseButtonFunc;
         }
 
-        public MouseButtonAction(RGSerializedAction serializedAction) :
+        public MouseButtonAction(JObject serializedAction) :
             base(serializedAction)
         {
-            MouseButtonFunc = RGActionParamFunc<int>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
+            MouseButtonFunc = RGActionParamFunc<int>.Deserialize(serializedAction["mouseButtonFunc"]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -50,9 +52,10 @@ namespace RegressionGames.ActionManager.Actions
             }
         }
 
-        protected override void Serialize(RGSerializedAction serializedAction)
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
         {
-            (serializedAction.actionFuncType, serializedAction.actionFuncData) = MouseButtonFunc.Serialize();
+            stringBuilder.Append(",\n\"mouseButtonFunc\":");
+            MouseButtonFunc.WriteToStringBuilder(stringBuilder);
         }
     }
 

@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using RegressionGames.ActionManager.JsonConverters;
 using UnityEngine;
+using Newtonsoft.Json;
 
 namespace RegressionGames.ActionManager
 {
-    [Serializable]
-    public class RGActionAnalysisResult
-    {
-        public RGSerializedAction[] actions;
-    }
     
     /// <summary>
     /// This class reads and makes available the actions produced by RGActionAnalysis.
@@ -19,6 +16,8 @@ namespace RegressionGames.ActionManager
         public static readonly string ANALYSIS_RESULT_DIRECTORY = "Assets/Resources";
         public static readonly string ANALYSIS_RESULT_NAME = "RGActionAnalysisResult";
         public static readonly string ANALYSIS_RESULT_PATH = $"{ANALYSIS_RESULT_DIRECTORY}/{ANALYSIS_RESULT_NAME}.txt";
+        
+        public static readonly JsonConverter[] JSON_CONVERTERS = { new RGGameActionJsonConverter() };
 
         /// <summary>
         /// Provides the static set of all action types identified in the game.
@@ -32,23 +31,24 @@ namespace RegressionGames.ActionManager
         public RGActionProvider()
         {
             _actions = new List<RGGameAction>();
-            
-            var result = ReadAnalysisResult();
-            if (result != null)
+
+            var jsonText = GetResultsJson();
+            if (jsonText != null)
             {
                 try
                 {
-                    foreach (var serializedAction in result.actions)
+                    var result = JsonConvert.DeserializeObject<RGActionAnalysisResult>(jsonText, JSON_CONVERTERS);
+                    if (result.ApiVersion != RGActionAnalysisResult.CURRENT_API_VERSION)
                     {
-                        _actions.Add(serializedAction.Deserialize());
+                        throw new Exception(
+                            $"API version mismatch (current is {RGActionAnalysisResult.CURRENT_API_VERSION}, got {result.ApiVersion})");
                     }
-
+                    _actions = result.Actions;
                     IsAvailable = true;
                 }
                 catch (Exception e)
                 {
-                    RGDebug.LogWarning("Failed to read action analysis results (analysis needs to be re-run)\n" + e.StackTrace);
-                    _actions = new List<RGGameAction>();
+                    RGDebug.LogWarning("Failed to read action analysis results (analysis needs to be re-run)\n" + e.Message + "\n" + e.StackTrace);
                     IsAvailable = false;
                 }
             }
@@ -58,7 +58,7 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        private RGActionAnalysisResult ReadAnalysisResult()
+        private string GetResultsJson()
         {
             string jsonText = null;
             #if UNITY_EDITOR
@@ -75,14 +75,7 @@ namespace RegressionGames.ActionManager
                 jsonText = jsonFile?.text;
             }
             #endif
-            if (jsonText != null)
-            {
-                return JsonUtility.FromJson<RGActionAnalysisResult>(jsonText);
-            }
-            else
-            {
-                return null;
-            }
+            return jsonText;
         }
     }
 }

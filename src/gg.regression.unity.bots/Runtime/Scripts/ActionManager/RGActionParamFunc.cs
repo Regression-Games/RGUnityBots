@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using Newtonsoft.Json.Linq;
+using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using Object = System.Object;
 
@@ -128,8 +131,11 @@ namespace RegressionGames.ActionManager
             return _func(obj);
         }
 
-        public static RGActionParamFunc<T> Deserialize(ActionParamFuncType funcType, string data)
+        public static RGActionParamFunc<T> Deserialize(JToken token)
         {
+            JObject obj = (JObject)token;
+            ActionParamFuncType funcType = Enum.Parse<ActionParamFuncType>(obj["funcType"].ToString());
+            string data = obj["data"].ToString();
             switch (funcType)
             {
                 case ActionParamFuncType.TYPE_CONSTANT:
@@ -199,9 +205,13 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        public (ActionParamFuncType, string) Serialize()
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            return (_funcType, _data);
+            stringBuilder.Append("{\"funcType\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, _funcType.ToString());
+            stringBuilder.Append(",\"data\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, _data);
+            stringBuilder.Append("}");
         }
 
         public bool Equals(RGActionParamFunc<T> other)

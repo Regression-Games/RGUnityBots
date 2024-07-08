@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
 
@@ -18,10 +20,10 @@ namespace RegressionGames.ActionManager.Actions
             KeyFunc = keyFunc;
         }
 
-        public InputSystemKeyAction(RGSerializedAction serializedAction) :
+        public InputSystemKeyAction(JObject serializedAction) :
             base(serializedAction)
         {
-            KeyFunc = RGActionParamFunc<Key>.Deserialize(serializedAction.actionFuncType, serializedAction.actionFuncData);
+            KeyFunc = RGActionParamFunc<Key>.Deserialize(serializedAction["keyFunc"]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
@@ -50,9 +52,10 @@ namespace RegressionGames.ActionManager.Actions
             }
         }
 
-        protected override void Serialize(RGSerializedAction serializedAction)
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
         {
-            (serializedAction.actionFuncType, serializedAction.actionFuncData) = KeyFunc.Serialize();
+            stringBuilder.Append(",\n\"keyFunc\":");
+            KeyFunc.WriteToStringBuilder(stringBuilder);
         }
     }
 

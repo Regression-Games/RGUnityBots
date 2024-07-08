@@ -15,7 +15,8 @@
         "Mono.Cecil.Pdb.dll",
         "Microsoft.CodeAnalysis.dll",
         "Microsoft.CodeAnalysis.CSharp.dll",
-        "System.Collections.Immutable.dll"
+        "System.Collections.Immutable.dll",
+        "Newtonsoft.Json.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
