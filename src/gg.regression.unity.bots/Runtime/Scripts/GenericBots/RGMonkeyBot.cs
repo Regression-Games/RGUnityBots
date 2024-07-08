@@ -164,7 +164,7 @@ namespace RegressionGames.GenericBots
             // Randomly perform actions from the list 
             // This repeatedly selects actions whose inputs do not overlap
             // with the inputs that have already been performed.
-            for (;;)
+            do
             {
                 _remainingActionsBuf.Clear();
                 foreach (var action in _actionsBuf.Where(act => !act.Performed))
@@ -183,13 +183,10 @@ namespace RegressionGames.GenericBots
                     {
                         inp.Perform();
                     }
+
                     action.Performed = true;
                 }
-                else
-                {
-                    break;
-                }
-            }
+            } while (_remainingActionsBuf.Count > 0);
         }
 
         void OnDestroy()
