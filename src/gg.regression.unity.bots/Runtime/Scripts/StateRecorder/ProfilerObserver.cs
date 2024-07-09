@@ -1,36 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using RegressionGames.StateRecorder.Models;
 using Unity.Profiling;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace RegressionGames.StateRecorder
 {
-    public struct ProfilerObserverResult
-    {
-        // Amount of memory (in bytes) the operating system reports in use by the application
-        public long? systemUsedMemory;
-
-        // Used heap size (in bytes) that is garbage collected
-        public long? gcUsedMemory;
-
-        // Time spent (in nanoseconds) by the CPU on the main thread since the last tick
-        public long? cpuTimeSincePreviousTick;
-    }
-
     public class ProfilerObserver : MonoBehaviour
     {
-        private const int MAX_FRAMES_ACCUM = 16384;
-
         private ProfilerRecorder _systemMemoryRecorder;
         private ProfilerRecorder _gcMemoryRecorder;
         private ProfilerRecorder _cpuTimeRecorder;
-        private List<ProfilerRecorderSample> _cpuTimeSampleBuf;
+        private Queue<PerFrameStatisticsData> _perFrameStatistics;
+        private double _lastTime;
 
         public void StartProfiling()
         {
             _systemMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
             _gcMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Used Memory");
-            _cpuTimeRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread", MAX_FRAMES_ACCUM);
-            _cpuTimeSampleBuf = new List<ProfilerRecorderSample>(MAX_FRAMES_ACCUM);
+            _cpuTimeRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Internal, "Main Thread");
+            _perFrameStatistics = new Queue<PerFrameStatisticsData>();
+            _lastTime = Time.unscaledTimeAsDouble;
         }
 
         public void StopProfiling()
@@ -49,53 +43,54 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        /**
-         * Computes the sum of the last N values of the round-robin sample buffer.
-         */
-        private static long SumOfLastFrames(ProfilerRecorder recorder, List<ProfilerRecorderSample> samples, int numFrames, out int framesRead)
+        /// <summary>
+        /// Called every frame to read and store profiler values.
+        /// </summary>
+        public void Observe()
         {
-            long sum = 0;
-            framesRead = 0;
-            for (int frameIndex = recorder.Count - 1; frameIndex >= 0 && framesRead < numFrames; --frameIndex)
+            PerFrameStatisticsData frameData = new PerFrameStatisticsData();
+            double time = Time.unscaledTimeAsDouble;
+            frameData.frameTime = time - _lastTime;
+            if (_cpuTimeRecorder.Valid && _cpuTimeRecorder.Count > 0)
             {
-                sum += samples[frameIndex].Value;
-                ++framesRead;
+                frameData.cpuTimeNs = _cpuTimeRecorder.LastValue;
             }
-            if (framesRead < numFrames && recorder.WrappedAround)
-            {
-                for (int frameIndex = samples.Count - 1, lastIndex = recorder.Count;
-                     frameIndex >= lastIndex && framesRead < numFrames;
-                     --frameIndex)
-                {
-                    sum += samples[frameIndex].Value;
-                    ++framesRead;
-                }
-            }
-            return sum;
-        }
-
-        public ProfilerObserverResult SampleProfiler(int frameCountSinceLastTick)
-        {
-            ProfilerObserverResult result = new ProfilerObserverResult();
             if (_systemMemoryRecorder.Valid && _systemMemoryRecorder.Count > 0)
             {
-                result.systemUsedMemory = _systemMemoryRecorder.LastValue;
+                frameData.memoryBytes = _systemMemoryRecorder.LastValue;
             }
             if (_gcMemoryRecorder.Valid && _gcMemoryRecorder.Count > 0)
             {
-                result.gcUsedMemory = _gcMemoryRecorder.LastValue;
+                frameData.gcMemoryBytes = _gcMemoryRecorder.LastValue;
             }
-            if (_cpuTimeRecorder.Valid)
+            frameData.engineStats = new EngineStatsData()
             {
-                _cpuTimeSampleBuf.Clear();
-                _cpuTimeRecorder.CopyTo(_cpuTimeSampleBuf);
-                int framesRead;
-                long cpuTime = SumOfLastFrames(_cpuTimeRecorder, _cpuTimeSampleBuf, frameCountSinceLastTick,
-                    out framesRead);
-                if (framesRead == frameCountSinceLastTick) // only report the total cpuTime if there were sufficient frames recorded for the request
-                {
-                    result.cpuTimeSincePreviousTick = cpuTime;
-                }
+                #if UNITY_EDITOR
+                frameTime = UnityStats.frameTime,
+                renderTime = UnityStats.renderTime,
+                triangles = UnityStats.triangles,
+                vertices = UnityStats.vertices,
+                setPassCalls = UnityStats.setPassCalls,
+                drawCalls = UnityStats.drawCalls,
+                dynamicBatchedDrawCalls = UnityStats.dynamicBatchedDrawCalls,
+                staticBatchedDrawCalls = UnityStats.staticBatchedDrawCalls,
+                instancedBatchedDrawCalls = UnityStats.instancedBatchedDrawCalls,
+                batches = UnityStats.batches,
+                dynamicBatches = UnityStats.dynamicBatches,
+                staticBatches = UnityStats.staticBatches,
+                instancedBatches = UnityStats.instancedBatches
+                #endif
+            };
+            _perFrameStatistics.Enqueue(frameData);
+            _lastTime = time;
+        }
+
+        public List<PerFrameStatisticsData> DequeueAll()
+        {
+            List<PerFrameStatisticsData> result = new List<PerFrameStatisticsData>(_perFrameStatistics.Count);
+            while (_perFrameStatistics.TryDequeue(out var frameStats))
+            {
+                result.Add(frameStats);
             }
             return result;
         }
