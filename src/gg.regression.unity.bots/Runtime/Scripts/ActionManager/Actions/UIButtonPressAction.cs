@@ -12,8 +12,8 @@ namespace RegressionGames.ActionManager.Actions
     public class UIButtonPressAction : RGGameAction
     {
         public string EventListenerName { get; }
-        
-        public UIButtonPressAction(string[] path, Type objectType, string eventListenerName, int actionGroup) : 
+
+        public UIButtonPressAction(string[] path, Type objectType, string eventListenerName, int actionGroup) :
             base(path, objectType, actionGroup)
         {
             Debug.Assert(typeof(Button).IsAssignableFrom(objectType));
@@ -21,7 +21,7 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
         public override bool IsValidForObject(Object obj)
         {
             Button btn = (Button)obj;
@@ -60,7 +60,7 @@ namespace RegressionGames.ActionManager.Actions
         {
             Button targetBtn = (Button)targetObject;
             var instId = targetBtn.transform.GetInstanceID();
-            if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
+            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out var tStatus))
             {
                 return tStatus.screenSpaceBounds;
             }
@@ -69,7 +69,7 @@ namespace RegressionGames.ActionManager.Actions
                 return null;
             }
         }
-        
+
         protected override void PerformAction(bool param)
         {
             if (param)

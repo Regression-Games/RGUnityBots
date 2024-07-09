@@ -18,7 +18,7 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
         public override bool IsValidForObject(Object obj)
         {
             return MouseHoverObjectInstance.GetHoverScreenSpaceBounds(obj).HasValue;
@@ -42,13 +42,8 @@ namespace RegressionGames.ActionManager.Actions
             GameObject gameObject = c.gameObject;
             var instId = gameObject.transform.GetInstanceID();
             Bounds? ssBounds = null;
-            TransformStatus tStatus;
-            if (RGActionManager.CurrentGameObjectTransforms.TryGetValue(instId, out tStatus))
-            {
-                ssBounds = tStatus.screenSpaceBounds;
-            }
-            if (!ssBounds.HasValue &&
-                RGActionManager.CurrentUITransforms.TryGetValue(instId, out tStatus))
+            ObjectStatus tStatus;
+            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out tStatus))
             {
                 ssBounds = tStatus.screenSpaceBounds;
             }
@@ -96,7 +91,7 @@ namespace RegressionGames.ActionManager.Actions
                     }
                 }
             }
-            
+
             return ssBounds;
         }
 
