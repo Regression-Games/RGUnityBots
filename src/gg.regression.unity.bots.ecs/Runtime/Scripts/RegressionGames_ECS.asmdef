@@ -4,7 +4,9 @@
     "references": [
         "RegressionGames",
         "Unity.Entities",
-        "Unity.Collections"
+        "Unity.Collections",
+        "Unity.Transforms",
+        "Unity.Mathematics"
      ],
     "includePlatforms": [],
     "excludePlatforms": [],
