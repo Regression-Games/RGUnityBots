@@ -27,7 +27,7 @@ namespace RegressionGames.ActionManager
         private ToolbarSearchField _searchField;
         private ScrollView _actionsPane;
         private ScrollView _detailsPane;
-        
+
         [MenuItem("Regression Games/Configure Bot Actions")]
         public static void OpenActionManagerUI()
         {
@@ -157,7 +157,7 @@ namespace RegressionGames.ActionManager
 
             return result;
         }
-        
+
         private void CreateActionTreeElements(VisualElement container, ActionTreeNode node, IList<ListView> listViews)
         {
             if (node.IsLeaf)
@@ -222,7 +222,7 @@ namespace RegressionGames.ActionManager
                     }
                 };
 
-                listView.onSelectionChange += (items) =>
+                listView.selectionChanged += (items) =>
                 {
                     if (items.Any())
                     {
@@ -271,7 +271,7 @@ namespace RegressionGames.ActionManager
             Debug.Assert(leafNode.IsLeaf);
             _detailsPane.Clear();
             RGGameAction action = leafNode.action;
-            
+
             Label actionName = new Label();
             actionName.text = "Action: " + string.Join("/", leafNode.path);
             actionName.style.unityFontStyleAndWeight = FontStyle.Bold;
@@ -297,18 +297,18 @@ namespace RegressionGames.ActionManager
                 Close();
                 return;
             }
-            
+
             _searchField = new ToolbarSearchField();
             _searchField.RegisterValueChangedCallback(evt =>
             {
                 UpdateGUI();
             });
             _searchField.style.width = StyleKeyword.Auto;
-            
+
             var splitView = new TwoPaneSplitView(1, 250.0f, TwoPaneSplitViewOrientation.Vertical);
             rootVisualElement.Add(_searchField);
             rootVisualElement.Add(splitView);
-            
+
             _actionsPane = new ScrollView(ScrollViewMode.VerticalAndHorizontal);
             splitView.Add(_actionsPane);
 
@@ -318,7 +318,7 @@ namespace RegressionGames.ActionManager
             _detailsPane.style.paddingLeft = 8;
             _detailsPane.style.paddingRight = 8;
             _detailsPane.style.paddingBottom = 8;
-            
+
             UpdateGUI();
 
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
@@ -335,7 +335,7 @@ namespace RegressionGames.ActionManager
         {
             UpdateGUI();
         }
-        
+
         private void OnActionsChanged()
         {
             UpdateGUI();
