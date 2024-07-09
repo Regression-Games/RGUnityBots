@@ -36,7 +36,7 @@ namespace RegressionGames.StateRecorder
             Debug.Log(theString);
 
             // Is there a better place to do this, maybe.. but for now, this gets the ECS subsystem loaded on the same object as this behaviour
-            Type t = Type.GetType("RegressionGames.StateRecorder.ECS.EntityFinder, RegressionGames_ECS, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", false);
+            Type t = Type.GetType("RegressionGames.StateRecorder.ECS.EntityObjectFinder, RegressionGames_ECS, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", false);
             if (t == null)
             {
                 RGDebug.LogInfo("Regression Games ECS Package not found, support for ECS won't be loaded");
@@ -47,7 +47,6 @@ namespace RegressionGames.StateRecorder
             {
                 this.gameObject.AddComponent(t);
             }
-
 
         }
 
@@ -725,7 +724,11 @@ namespace RegressionGames.StateRecorder
             {
                 if (oStatus is TransformStatus tStatus)
                 {
-                    _newStates[tStatus.Id] = GetStateForTransformObject(tStatus);
+                    var newState = GetStateForTransformObject(tStatus);
+                    if (newState != null)
+                    {
+                        _newStates[tStatus.Id] = newState;
+                    }
                 }
             }
 

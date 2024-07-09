@@ -21,7 +21,6 @@ namespace RegressionGames.StateRecorder.ECS.Models
 
         private EntityStatus()
         {
-
         }
 
 

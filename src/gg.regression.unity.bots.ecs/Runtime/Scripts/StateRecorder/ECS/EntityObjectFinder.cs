@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using RegressionGames.StateRecorder.ECS.Models;
+using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -39,7 +41,50 @@ namespace RegressionGames.StateRecorder.ECS
             _entitySelectors = types.Select(a => Activator.CreateInstance(a) as IEntitySelector).ToList();
 
             // register our json converters
-            //JsonConverterContractResolver.Instance.RegisterJsonConverterForType();
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(bool2?), new MathematicsBool2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(bool2), new MathematicsBool2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(bool3), new MathematicsBool3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(bool3?), new MathematicsBool3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(bool4), new MathematicsBool4JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(bool4?), new MathematicsBool4JsonConverter());
+
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(double2?), new MathematicsDouble2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(double2), new MathematicsDouble2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(double3), new MathematicsDouble3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(double3?), new MathematicsDouble3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(double4), new MathematicsDouble4JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(double4?), new MathematicsDouble4JsonConverter());
+
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(float2?), new MathematicsFloat2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(float2), new MathematicsFloat2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(float3), new MathematicsFloat3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(float3?), new MathematicsFloat3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(float4), new MathematicsFloat4JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(float4?), new MathematicsFloat4JsonConverter());
+
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(half2?), new MathematicsHalf2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(half2), new MathematicsHalf2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(half3), new MathematicsHalf3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(half3?), new MathematicsHalf3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(half4), new MathematicsHalf4JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(half4?), new MathematicsHalf4JsonConverter());
+
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(int2?), new MathematicsInt2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(int2), new MathematicsInt2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(int3), new MathematicsInt3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(int3?), new MathematicsInt3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(int4), new MathematicsInt4JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(int4?), new MathematicsInt4JsonConverter());
+
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(quaternion), new MathematicsQuaternionJsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(quaternion?), new MathematicsQuaternionJsonConverter());
+
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(uint2?), new MathematicsUint2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(uint2), new MathematicsUint2JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(uint3), new MathematicsUint3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(uint3?), new MathematicsUint3JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(uint4), new MathematicsUint4JsonConverter());
+            JsonConverterContractResolver.Instance.RegisterJsonConverterForType(typeof(uint4?), new MathematicsUint4JsonConverter());
         }
 
         private (Vector3?, Quaternion?)? SelectPositionAndRotationForEntity(Entity entity, EntityManager entityManager)
@@ -82,6 +127,7 @@ namespace RegressionGames.StateRecorder.ECS
                 {
                     id = uiObjectTransformId,
                     parentId = eStatus.ParentId,
+                    type = ObjectType.Entity,
                     path = eStatus.Path,
                     normalizedPath = eStatus.NormalizedPath,
                     tag = eStatus.Tag,

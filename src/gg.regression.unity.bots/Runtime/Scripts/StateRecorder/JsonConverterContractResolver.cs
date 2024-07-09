@@ -24,6 +24,10 @@ namespace RegressionGames.StateRecorder
             { typeof(long), new LongJsonConverter() },
             { typeof(short), new ShortJsonConverter() },
             { typeof(string), new StringJsonConverter() },
+            { typeof(uint), new UIntJsonConverter()},
+            { typeof(ulong), new ULongJsonConverter()},
+            { typeof(ushort), new UShortJsonConverter()},
+            { typeof(bool), new BooleanJsonConverter()},
 
             { typeof(Bounds), new BoundsJsonConverter() },
             { typeof(Vector2Int), new VectorIntJsonConverter() },
