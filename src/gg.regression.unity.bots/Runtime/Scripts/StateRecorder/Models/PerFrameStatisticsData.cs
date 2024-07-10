@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using OpenTelemetry;
 using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.StateRecorder.Models
