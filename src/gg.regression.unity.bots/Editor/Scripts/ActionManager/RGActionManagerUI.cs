@@ -222,7 +222,11 @@ namespace RegressionGames.ActionManager
                     }
                 };
 
+#if UNITY_2022_2_OR_NEWER
                 listView.selectionChanged += (items) =>
+#else
+                listView.onSelectionChange += (items) =>
+#endif
                 {
                     if (items.Any())
                     {

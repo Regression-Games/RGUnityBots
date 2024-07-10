@@ -78,10 +78,11 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
          */
-        public bool Matched(int segmentNumber, List<KeyFrameCriteria> criteriaList)
+
+        public bool Matched(bool firstSegment, int segmentNumber, List<KeyFrameCriteria> criteriaList)
         {
             _newUnmatchedCriteria.Clear();
-            bool matched = MatchedHelper(segmentNumber, BooleanCriteria.And, criteriaList);
+            bool matched = MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.And, criteriaList);
             if (matched)
             {
                 _unmatchedCriteria.Clear();
@@ -96,9 +97,9 @@ namespace RegressionGames.StateRecorder.BotSegments
         }
 
         /**
-         * <summary>Only to be called internally by KeyFrameEvaluator</summary>
+         * <summary>Only to be called internally by KeyFrameEvaluator. firstSegment represents if this is the first segment in the current pass's list of segments to evaluate</summary>
          */
-        internal bool MatchedHelper(int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
+        internal bool MatchedHelper(bool firstSegment, int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
         {
             var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
             var transformsStatus = new Dictionary<long, ObjectStatus>();
@@ -144,7 +145,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                         normalizedPathsToMatch.Add(entry);
                         break;
                     case KeyFrameCriteriaType.UIPixelHash:
-                        if (GameFacePixelHashObserver.GetInstance().HasPixelHashChanged(out _))
+                        // only check the pixel hash change on the first segment being evaluated so we don't pre-emptively pass on future segments that should return false until they are first in the list
+                        if (firstSegment && entry.Replay_TransientMatched || GameFacePixelHashObserver.GetInstance().HasPixelHashChanged(out _))
                         {
                             entry.Replay_TransientMatched = true;
                         }
@@ -188,7 +190,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < orCount; j++)
                 {
                     var orEntry = orsToMatch[j];
-                    var m = OrKeyFrameCriteriaEvaluator.Matched(segmentNumber, orEntry);
+                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, orEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
@@ -214,7 +216,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < andCount; j++)
                 {
                     var andEntry = andsToMatch[j];
-                    var m = AndKeyFrameCriteriaEvaluator.Matched(segmentNumber, andEntry);
+                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, andEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
