@@ -146,7 +146,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         break;
                     case KeyFrameCriteriaType.UIPixelHash:
                         // only check the pixel hash change on the first segment being evaluated so we don't pre-emptively pass on future segments that should return false until they are first in the list
-                        if (firstSegment && entry.Replay_TransientMatched || GameFacePixelHashObserver.GetInstance().HasPixelHashChanged(out _))
+                        if (firstSegment && (entry.Replay_TransientMatched || GameFacePixelHashObserver.GetInstance().HasPixelHashChanged()))
                         {
                             entry.Replay_TransientMatched = true;
                         }

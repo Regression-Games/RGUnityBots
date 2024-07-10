@@ -341,7 +341,7 @@ namespace RegressionGames.StateRecorder
                         RGDebug.LogVerbose("ActionCanceled - updating");
                         // don't set action.isPressed here, we set it before sending back
                         actionData.lastUpdateTime = context.time;
-                        actionData.duration = context.time - actionData.startTime;
+                        actionData.duration = context.time - actionData.startTime.Value;
                     }
                 }
                 else
@@ -413,7 +413,7 @@ namespace RegressionGames.StateRecorder
                             RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.action);
                             // still pushed.. update end time
                             activeAction.lastUpdateTime = context.time;
-                            activeAction.duration = context.time - activeAction.startTime;
+                            activeAction.duration = context.time - activeAction.startTime.Value;
                         }
                     }
                     else
@@ -422,7 +422,7 @@ namespace RegressionGames.StateRecorder
                         RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.action);
                         // still pushed.. update end time
                         activeAction.lastUpdateTime = context.time;
-                        activeAction.duration = context.time - activeAction.startTime;
+                        activeAction.duration = context.time - activeAction.startTime.Value;
                     }
                 }
             }
@@ -488,11 +488,88 @@ namespace RegressionGames.StateRecorder
                         RGDebug.LogVerbose("Flush - still pushed");
                         // windows doesn't keep sending events, so until cancel.. it's still pressed
                         activeAction.Value.lastUpdateTime = currentTime;
-                        activeAction.Value.duration = currentTime - activeAction.Value.startTime;
+                        activeAction.Value.duration = currentTime - activeAction.Value.startTime.Value;
                         AddToResultList(result, activeAction.Value, currentTime);
                     }
                 }
             }
+
+            // sort by start and end times
+            result.Sort((a, b) =>
+            {
+                if (a.startTime == null)
+                {
+                    if (b.startTime == null)
+                    {
+                        if (a.endTime == null)
+                        {
+                            return -1;
+                        }
+
+                        if (b.endTime != null)
+                        {
+                            if (a.endTime <= b.endTime)
+                            {
+                                return -1;
+                            }
+                            else
+                            {
+                                return 1;
+                            }
+                        }
+                        else
+                        {
+                            return 0;
+                        }
+                    }
+                    else
+                    {
+                        // sort null startTime to front
+                        return -1;
+                    }
+                }
+                else
+                {
+                    if (b.startTime == null)
+                    {
+                        return 1;
+                    }
+                    else
+                    {
+                        if (a.startTime < b.startTime)
+                        {
+                            return -1;
+                        }
+                        else if (a.startTime > b.startTime)
+                        {
+                            return 1;
+                        }
+                        else
+                        {
+                            if (a.endTime == null)
+                            {
+                                return -1;
+                            }
+
+                            if (b.endTime != null)
+                            {
+                                if (a.endTime <= b.endTime)
+                                {
+                                    return -1;
+                                }
+                                else
+                                {
+                                    return 1;
+                                }
+                            }
+                        }
+                    }
+
+
+                }
+
+                return 0;
+            });
 
             return result;
         }

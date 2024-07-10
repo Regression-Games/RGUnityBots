@@ -254,9 +254,6 @@ namespace RegressionGames.StateRecorder
             yield return null;
             if (!_isRecording)
             {
-                // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new recording, we want this gone
-                MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
-
                 _lastCvFrameTime = -1;
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
                 _profilerObserver.StartProfiling();
@@ -451,7 +448,7 @@ namespace RegressionGames.StateRecorder
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
                 string pixelHash = null;
-                var pixelHashChanged = gameFacePixelHashObserver != null && gameFacePixelHashObserver.HasPixelHashChanged(out pixelHash);
+                var pixelHashChanged = gameFacePixelHashObserver != null && gameFacePixelHashObserver.HasPixelHashChanged();
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
                 GetKeyFrameType(_tickNumber ==0, hasDeltas, pixelHashChanged);
@@ -483,7 +480,7 @@ namespace RegressionGames.StateRecorder
                         // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                         // update the frame time to be latest of 'now' or the last device event in it
                         // otherwise replay gets messed up trying to read the inputs by time
-                        var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => !a.endTime.HasValue ? a.startTime : Math.Max(a.startTime, a.endTime.Value));
+                        var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => !a.endTime.HasValue ? a.startTime.Value : Math.Max(a.startTime.Value, a.endTime.Value));
                         var mostRecentMouseTime = mouseInputData == null || mouseInputData.Count == 0 ? 0.0 : mouseInputData.Max(a => a.startTime);
                         var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
                         var frameTime = Math.Max(now, mostRecentDeviceEventTime);
@@ -603,8 +600,6 @@ namespace RegressionGames.StateRecorder
                     {
                         RGDebug.LogException(e, $"Exception capturing state for tick # {_tickNumber}");
                     }
-
-                    GameFacePixelHashObserver.GetInstance()?.ClearPixelHash();
 
                     var didQueue = 0;
 

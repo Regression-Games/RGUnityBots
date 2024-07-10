@@ -17,7 +17,11 @@ namespace RegressionGames.StateRecorder.Models
         // version of this schema, update this if fields change
         public int apiVersion = BotSegment.SDK_API_VERSION_1;
 
-        public double startTime;
+        //These 2 fields look a bit weird, but there is a reason.  We always track the start time for these actions during record, but only write it out
+        // to json aon the first tick it occurs.  Then on replay, we need to be able to read in those null values correctly
+        public double? JsonStartTime => !HasBeenSent ? startTime : null;
+        public double? startTime;
+
         public string action;
         public string binding;
         public double? endTime;
@@ -45,7 +49,7 @@ namespace RegressionGames.StateRecorder.Models
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"startTime\":");
             // only send the startTime once.. we can have start and end in the same tick, or different ticks, we can even have ticks in between with neither start or end time while the button is held
-            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, !HasBeenSent ? startTime : null);
+            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, JsonStartTime);
             stringBuilder.Append(",\"action\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, action);
             stringBuilder.Append(",\"binding\":");
