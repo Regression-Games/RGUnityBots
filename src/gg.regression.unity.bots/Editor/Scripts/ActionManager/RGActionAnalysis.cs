@@ -18,6 +18,7 @@ using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
+using UnityEngine.SceneManagement;
 
 namespace RegressionGames.ActionManager
 {
@@ -916,9 +917,10 @@ namespace RegressionGames.ActionManager
                         continue;
                     }
                     NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
-                    UnityEngine.SceneManagement.Scene scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
-                    if (scene.IsValid())
+                    UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
+                    for (int i = 0, n = SceneManager.sceneCount; i < n; ++i)
                     {
+                        var scene = SceneManager.GetSceneAt(i);
                         foreach (GameObject gameObject in IterateGameObjects(scene))
                         {
                             if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
