@@ -10,7 +10,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class AndKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // version for this schema, update if this top level changes
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         public List<KeyFrameCriteria> criteriaList;
 

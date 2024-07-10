@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,6 +14,10 @@ namespace RegressionGames.StateRecorder.Models
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RecordedGameObjectState
     {
+        // version of this schema, update this if fields change
+        public int apiVersion = SdkApiVersion.VERSION_4;
+
+        public int EffectiveApiVersion => Math.Max(apiVersion, componentDataProviders.DefaultIfEmpty().Max(a => a?.ApiVersion() ?? 0));
 
         public long id;
 
@@ -46,6 +52,8 @@ namespace RegressionGames.StateRecorder.Models
             LongJsonConverter.WriteToStringBuilder(stringBuilder, id);
             stringBuilder.Append(",\n\"parentId\":");
             LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, parentId);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\n\"type\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, type.ToString());
             stringBuilder.Append(",\n\"path\":");

@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class InputPlaybackActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.InputPlayback;

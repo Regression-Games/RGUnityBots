@@ -19,7 +19,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class RandomMouseObjectActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = BotSegment.SDK_API_VERSION_2;
+        public int apiVersion = SdkApiVersion.VERSION_2;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.RandomMouse_ClickObject;

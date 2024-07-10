@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using OpenTelemetry;
 using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.StateRecorder.Models
@@ -9,6 +10,8 @@ namespace RegressionGames.StateRecorder.Models
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class PerFrameStatisticsData
     {
+        public int apiVersion = SdkApiVersion.VERSION_4;
+
         public double frameTime;
         public long? cpuTimeNs;
         public long? memoryBytes;
@@ -19,6 +22,8 @@ namespace RegressionGames.StateRecorder.Models
         {
             stringBuilder.Append("{\n\"frameTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, frameTime);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\n\"cpuTimeNs\":");
             LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, cpuTimeNs);
             stringBuilder.Append(",\n\"memoryBytes\":");

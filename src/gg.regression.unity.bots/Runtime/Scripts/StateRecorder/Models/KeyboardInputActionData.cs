@@ -15,7 +15,7 @@ namespace RegressionGames.StateRecorder.Models
     public class KeyboardInputActionData
     {
         // version of this schema, update this if fields change
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         //These 2 fields look a bit weird, but there is a reason.  We always track the start time for these actions during record, but only write it out
         // to json aon the first tick it occurs.  Then on replay, we need to be able to read in those null values correctly

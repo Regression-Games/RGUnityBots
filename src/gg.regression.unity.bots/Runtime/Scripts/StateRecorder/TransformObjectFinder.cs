@@ -650,12 +650,6 @@ namespace RegressionGames.StateRecorder
                         layer = tStatus.LayerName,
                         scene = tStatus.Scene,
                         componentDataProviders = new List<IComponentDataProvider>()
-                        {
-                            new TransformComponentDataProvider()
-                            {
-                                Transform = tStatus.Transform
-                            }
-                        }
                     };
                 }
 

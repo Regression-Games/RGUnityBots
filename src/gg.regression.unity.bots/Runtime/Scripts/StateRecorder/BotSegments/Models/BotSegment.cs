@@ -14,20 +14,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [Serializable]
     public class BotSegment
     {
-        // these values reference key moments in the development of the SDK for bot segments
-        public const int SDK_API_VERSION_1 = 1; // initial version with and/or/normalizedPath criteria and mouse/keyboard input actions
-        public const int SDK_API_VERSION_2 = 2; // added mouse pixel and object random clicking actions
-        public const int SDK_API_VERSION_3 = 3; // added ui pixel hash key frame criteria
-
-        // Update this when new features are used in the SDK
-        public const int CURRENT_SDK_API_VERSION = SDK_API_VERSION_3;
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
-        public int apiVersion = SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), keyFrameCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));

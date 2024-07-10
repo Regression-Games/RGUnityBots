@@ -8,7 +8,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class PathKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         public string path;
         public int removedCount;

@@ -9,7 +9,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [Serializable]
     public class OrKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         public List<KeyFrameCriteria> criteriaList;
 

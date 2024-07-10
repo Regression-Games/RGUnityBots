@@ -9,6 +9,14 @@ namespace RegressionGames.StateRecorder.ECS
 {
     public class EntityComponentDataProvider : IComponentDataProvider
     {
+
+        public int apiVersion = SdkApiVersion.VERSION_4;
+
+        public int ApiVersion()
+        {
+            return apiVersion;
+        }
+
         private static readonly Dictionary<Type, FieldInfo[]> FieldInfoCache = new();
 
         private readonly IComponentData _componentData;
@@ -29,6 +37,8 @@ namespace RegressionGames.StateRecorder.ECS
 
             stringBuilder.Append("{\"name\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, structType.Name);
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"state\":{");
 
             var fieldInfosLength = fieldInfos.Length;

@@ -13,7 +13,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class BotAction
     {
         // api version for this top level schema, update if we add/remove/change fields here
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         public BotActionType type;
         public IBotActionData data;

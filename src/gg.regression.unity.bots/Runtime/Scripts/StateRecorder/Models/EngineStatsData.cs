@@ -9,6 +9,8 @@ namespace RegressionGames.StateRecorder.Models
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class EngineStatsData
     {
+        public int apiVersion = SdkApiVersion.VERSION_4;
+
         public float frameTime;
         public float renderTime;
 
@@ -31,6 +33,8 @@ namespace RegressionGames.StateRecorder.Models
         {
             stringBuilder.Append("{\"frameTime\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, frameTime);
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"renderTime\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, renderTime);
             stringBuilder.Append(",\"triangles\":");
