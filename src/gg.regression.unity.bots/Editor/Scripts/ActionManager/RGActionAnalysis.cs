@@ -18,6 +18,7 @@ using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
+using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 
 namespace RegressionGames.ActionManager
@@ -956,6 +957,7 @@ namespace RegressionGames.ActionManager
                     NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
                     GameObject prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
                     AnalyzeGameObject(prefabContents);
+                    EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                     ++analyzedResourceCount;
                 }
                 
