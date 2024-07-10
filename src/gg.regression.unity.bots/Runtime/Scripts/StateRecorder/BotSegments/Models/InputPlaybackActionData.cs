@@ -45,7 +45,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             var currentTime = Time.unscaledTime;
             foreach (var replayKeyboardInputEntry in inputData.keyboard)
             {
-                // if we don't have one of the times, mark that even as already 'done' so we don't send it
+                // if we don't have one of the times, mark that event send as already 'done' so we don't send it
                 if (!replayKeyboardInputEntry.Replay_StartTime.HasValue)
                 {
                     replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
