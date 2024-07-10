@@ -895,6 +895,19 @@ namespace RegressionGames.ActionManager
                 }
             }
         }
+
+        private ISet<string> _buttonClickListeners;
+
+        private void AnalyzeGameObject(GameObject gameObject)
+        {
+            if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
+            {
+                foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
+                {
+                    _buttonClickListeners.Add(listener);
+                }
+            }
+        }
         
         private void RunResourceAnalysis()
         {
@@ -904,13 +917,15 @@ namespace RegressionGames.ActionManager
             NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
             try
             {
-                ISet<string> buttonClickListeners = new HashSet<string>();
+                _buttonClickListeners = new HashSet<string>();
                 string[] sceneGuids = AssetDatabase.FindAssets("t:Scene");
-                int sceneGuidIndex = 0;
+                string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
+                int analyzedResourceCount = 0;
+                int totalResourceCount = sceneGuids.Length + prefabGuids.Length;
                 foreach (string sceneGuid in sceneGuids)
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                        sceneGuidIndex / (float)sceneGuids.Length);
+                        analyzedResourceCount / (float)totalResourceCount);
                     string scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
                     if (scenePath.StartsWith("Packages/"))
                     {
@@ -923,18 +938,28 @@ namespace RegressionGames.ActionManager
                         var scene = SceneManager.GetSceneAt(i);
                         foreach (GameObject gameObject in IterateGameObjects(scene))
                         {
-                            if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
-                            {
-                                foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
-                                {
-                                    buttonClickListeners.Add(listener);
-                                }
-                            }
+                            AnalyzeGameObject(gameObject);
                         }
                     }
-                    ++sceneGuidIndex;
+                    ++analyzedResourceCount;
                 }
-                foreach (string btnClickListener in buttonClickListeners)
+
+                foreach (string prefabGuid in prefabGuids)
+                {
+                    float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                        analyzedResourceCount / (float)totalResourceCount);
+                    string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+                    if (prefabPath.StartsWith("Packages/"))
+                    {
+                        continue;
+                    }
+                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
+                    GameObject prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+                    AnalyzeGameObject(prefabContents);
+                    ++analyzedResourceCount;
+                }
+                
+                foreach (string btnClickListener in _buttonClickListeners)
                 {
                     string[] path = {"Unity UI", "Button Click", btnClickListener};
                     AddAction(new UIButtonPressAction(path, typeof(Button), btnClickListener));
