@@ -21,6 +21,14 @@ namespace RegressionGames.StateRecorder.Models
 
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, keyboard.DefaultIfEmpty().Max(a => a?.apiVersion ?? 0)), mouse.DefaultIfEmpty().Max(a => a?.apiVersion ?? 0));
 
+        public void MarkSent()
+        {
+            foreach (var keyboardInputActionData in keyboard)
+            {
+                keyboardInputActionData.HasBeenSent = true;
+            }
+        }
+
         public void ReplayReset()
         {
             foreach (var keyboardInputActionData in keyboard)

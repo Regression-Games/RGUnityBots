@@ -351,7 +351,7 @@ namespace RegressionGames.StateRecorder
                     {
                         RGDebug.LogVerbose("ActionCanceled - end action");
                         actionData.lastUpdateTime = context.time;
-                        actionData.duration = context.time - actionData.startTime;
+                        actionData.duration = context.duration;
                         actionData.endTime = context.time;
                         _completedInputActions.Enqueue(actionData);
                     }
@@ -410,7 +410,7 @@ namespace RegressionGames.StateRecorder
                         }
                         else
                         {
-                            RGDebug.LogVerbose("ActionPerformed - still pushed- " + activeAction.action);
+                            RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.action);
                             // still pushed.. update end time
                             activeAction.lastUpdateTime = context.time;
                             activeAction.duration = context.time - activeAction.startTime;
@@ -419,7 +419,7 @@ namespace RegressionGames.StateRecorder
                     else
                     {
                         // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
-                        RGDebug.LogVerbose("ActionPerformed - still pushed- " + activeAction.action);
+                        RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.action);
                         // still pushed.. update end time
                         activeAction.lastUpdateTime = context.time;
                         activeAction.duration = context.time - activeAction.startTime;

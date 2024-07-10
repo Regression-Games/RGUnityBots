@@ -58,7 +58,7 @@ namespace RegressionGames.StateRecorder
         private long _tickNumber;
         private DateTime _startTime;
 
-        private BlockingCollection<((string, long), (BotSegment, byte[], int, int, GraphicsFormat, Color32[], Action))>
+        private BlockingCollection<((string, long), (byte[], byte[], int, int, GraphicsFormat, Color32[], Action))>
             _tickQueue;
 
         private readonly List<AsyncGPUReadbackRequest> _gpuReadbackRequests = new();
@@ -272,8 +272,8 @@ namespace RegressionGames.StateRecorder
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _tickQueue =
-                    new BlockingCollection<((string, long), (BotSegment, byte[], int, int, GraphicsFormat, Color32[], Action))>(
-                        new ConcurrentQueue<((string, long), (BotSegment,byte[], int, int, GraphicsFormat, Color32[],
+                    new BlockingCollection<((string, long), (byte[], byte[], int, int, GraphicsFormat, Color32[], Action))>(
+                        new ConcurrentQueue<((string, long), (byte[], byte[], int, int, GraphicsFormat, Color32[],
                             Action)
                             )>());
 
@@ -446,7 +446,7 @@ namespace RegressionGames.StateRecorder
                 {
                     _mouseObserver.ObserveMouse(transformStatuses.Item2.Values.Concat(entityStatuses.Item2.Values));
                 }
-                
+
                 _profilerObserver.Observe();
 
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
@@ -456,7 +456,6 @@ namespace RegressionGames.StateRecorder
                 // tell if the new frame is a key frame or the first frame (always a key frame)
                 GetKeyFrameType(_tickNumber ==0, hasDeltas, pixelHashChanged);
 
-                BotSegment botSegment = null;
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
                     || (recordingMinFPS > 0 && (int)(1000 * (now - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
@@ -468,6 +467,7 @@ namespace RegressionGames.StateRecorder
                     var screenHeight = Screen.height;
 
                     byte[] jsonData = null;
+                    byte[] botSegmentJson = null;
 
                     try
                     {
@@ -539,7 +539,7 @@ namespace RegressionGames.StateRecorder
                         }
 
                         //record bot segment data for action replay
-                        botSegment = new BotSegment()
+                        var botSegment = new BotSegment()
                         {
                             sessionId = _currentSessionId,
                             keyFrameCriteria = keyFrameCriteria,
@@ -592,6 +592,12 @@ namespace RegressionGames.StateRecorder
                         jsonData = Encoding.UTF8.GetBytes(
                             frameState.ToJsonString()
                         );
+
+                        botSegmentJson = Encoding.UTF8.GetBytes(
+                            botSegment.ToJsonString()
+                        );
+
+                        inputData.MarkSent();
                     }
                     catch (Exception e)
                     {
@@ -602,7 +608,7 @@ namespace RegressionGames.StateRecorder
 
                     var didQueue = 0;
 
-                    if (jsonData != null && botSegment != null)
+                    if (jsonData != null && botSegmentJson != null)
                     {
                         // save this off because we're about to operate on a different thread :)
                         var currentTickNumber = _tickNumber;
@@ -653,7 +659,7 @@ namespace RegressionGames.StateRecorder
                                         _tickQueue.Add((
                                             (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
                                             (
-                                                botSegment,
+                                                botSegmentJson,
                                                 jsonData,
                                                 screenWidth,
                                                 screenHeight,
@@ -678,7 +684,7 @@ namespace RegressionGames.StateRecorder
                                         _tickQueue.Add((
                                             (_currentGameplaySessionDirectoryPrefix, currentTickNumber),
                                             (
-                                                botSegment,
+                                                botSegmentJson,
                                                 jsonData,
                                                 screenWidth,
                                                 screenHeight,
@@ -728,9 +734,9 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void ProcessTick(string directoryPath, long tickNumber, BotSegment botSegment, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
+        private void ProcessTick(string directoryPath, long tickNumber, byte[] botSegmentJson, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
         {
-            RecordBotSegment(directoryPath, tickNumber, botSegment);
+            RecordBotSegment(directoryPath, tickNumber, botSegmentJson);
             RecordJson(directoryPath, tickNumber, jsonData);
             RecordJPG(directoryPath, tickNumber, width, height, graphicsFormat, tickScreenshotData);
         }
@@ -801,11 +807,8 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void RecordBotSegment(string directoryPath, long tickNumber, BotSegment botSegment)
+        private void RecordBotSegment(string directoryPath, long tickNumber, byte[] jsonData)
         {
-            var jsonData = Encoding.UTF8.GetBytes(
-                botSegment.ToJsonString()
-            );
             try
             {
                 // write out the json to file... while these numbers happen to align with the state data at recording time.. they don't mean the same thing
