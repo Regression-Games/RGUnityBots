@@ -41,11 +41,13 @@ namespace RegressionGames.StateRecorder
             {
                 RGDebug.LogInfo("Regression Games ECS Package not found, support for ECS won't be loaded");
             }
-
-            var entityFinder = this.gameObject.GetComponent(t);
-            if (entityFinder == null)
+            else
             {
-                this.gameObject.AddComponent(t);
+                var entityFinder = this.gameObject.GetComponent(t);
+                if (entityFinder == null)
+                {
+                    this.gameObject.AddComponent(t);
+                }
             }
 
         }
