@@ -142,6 +142,7 @@ namespace RegressionGames.ActionManager
             RGLegacyInputWrapper.StartSimulation(_context);
             SceneManager.sceneLoaded += OnSceneLoad;
             RGUtils.SetupEventSystem();
+            RGUtils.ConfigureInputSettings();
             InitInputState();
         }
 
@@ -151,6 +152,7 @@ namespace RegressionGames.ActionManager
             {
                 SceneManager.sceneLoaded -= OnSceneLoad;
                 RGLegacyInputWrapper.StopSimulation();
+                RGUtils.RestoreInputSettings();
                 _sessionActionsBuf = null;
                 _context = null;
             }
@@ -178,6 +180,7 @@ namespace RegressionGames.ActionManager
         {
             CurrentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
             CurrentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
+            RGUtils.ForceApplicationFocus();
             foreach (var entry in _sessionActionsBuf)
             {
                 RGGameAction action = entry.Key;
