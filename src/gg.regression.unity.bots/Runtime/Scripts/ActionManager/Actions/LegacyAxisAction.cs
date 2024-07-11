@@ -69,6 +69,11 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
+        protected override bool IsValidActionParameter(int param)
+        {
+            return true;
+        }
+
         protected override IEnumerable<RGActionInput> GetActionInputs(int param)
         {
             string axisName = Action.AxisNameFunc.Invoke(TargetObject);

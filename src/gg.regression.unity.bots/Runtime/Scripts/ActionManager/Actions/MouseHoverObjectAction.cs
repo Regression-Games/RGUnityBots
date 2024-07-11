@@ -55,7 +55,10 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-
+        protected override bool IsValidActionParameter(bool param)
+        {
+            return true;
+        }
 
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {

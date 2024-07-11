@@ -71,13 +71,16 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
+        protected override bool IsValidActionParameter(Vector2 param)
+        {
+            Vector2 mousePos = new Vector2(Screen.width * param.x, Screen.height * param.y);
+            return !IsCoordOverUIElement(mousePos);
+        }
+
         protected override IEnumerable<RGActionInput> GetActionInputs(Vector2 param)
         {
             Vector2 mousePos = new Vector2(Screen.width * param.x, Screen.height * param.y);
-            if (!IsCoordOverUIElement(mousePos))
-            {
-                yield return new MousePositionInput(mousePos);
-            }
+            yield return new MousePositionInput(mousePos);
         }
     }
 }

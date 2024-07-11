@@ -85,9 +85,13 @@ namespace RegressionGames.GenericBots
                     var targetObject = performedAction.ActionInstance.TargetObject;
                     if (targetObject != null && action.IsValidForObject(targetObject))
                     {
-                        foreach (var inp in action.GetInstance(targetObject).GetInputs(false))
+                        var inst = action.GetInstance(targetObject);
+                        if (inst.IsValidParameter(false))
                         {
-                            inp.Perform();
+                            foreach (var inp in inst.GetInputs(false))
+                            {
+                                inp.Perform();
+                            }
                         }
                         didHeuristic = true;
                     }
@@ -148,10 +152,22 @@ namespace RegressionGames.GenericBots
             // Compute the set of valid actions
             foreach (var actionInstance in RGActionManager.GetValidActions())
             {
+                // try to find a valid parameter within a fixed number of attempts
+                object param = null;
+                bool isParamValid = false;
+                for (int i = 0; i < 64 && !isParamValid; ++i)
+                {
+                    param = actionInstance.BaseAction.ParameterRange.RandomSample();
+                    isParamValid = actionInstance.IsValidParameter(param);
+                }
+                if (!isParamValid)
+                    continue;
+                
+                // store the action inputs
                 var entry = new MonkeyBotActionEntry()
                 {
                     ActionInstance = actionInstance,
-                    Parameter = actionInstance.BaseAction.ParameterRange.RandomSample(),
+                    Parameter = param,
                     Performed = false
                 };
                 entry.Inputs = new List<RGActionInput>(actionInstance.GetInputs(entry.Parameter));

@@ -116,8 +116,20 @@ namespace RegressionGames.ActionManager
         public UnityEngine.Object TargetObject { get; }
 
         /// <summary>
+        /// Determines whether the given parameter is valid for this action in the current state
+        /// </summary>
+        /// <param name="param">The parameter to check, which should be from the action's ParameterRange.</param>
+        /// <returns>Whether the parameter is valid for this action in the current state</returns>
+        public bool IsValidParameter(object param);
+
+        /// <summary>
         /// Get the device inputs needed to perform this action instance.
         /// </summary>
+        /// <param name="param">
+        /// The action parameter, which should be from the action's ParameterRange.
+        /// The caller should first check that the parameter is valid via IsValidParameter.
+        /// </param>
+        /// <returns>The set of inputs needed to perform the action in the current state.</returns>
         public IEnumerable<RGActionInput> GetInputs(object param);
     }
     
@@ -139,10 +151,17 @@ namespace RegressionGames.ActionManager
             TargetObject = targetObject;
         }
 
+        public bool IsValidParameter(object param)
+        {
+            return IsValidActionParameter((TParam)param);
+        }
+
         public IEnumerable<RGActionInput> GetInputs(object param)
         {
             return GetActionInputs((TParam)param);
         }
+
+        protected abstract bool IsValidActionParameter(TParam param);
         
         protected abstract IEnumerable<RGActionInput> GetActionInputs(TParam param);
     }

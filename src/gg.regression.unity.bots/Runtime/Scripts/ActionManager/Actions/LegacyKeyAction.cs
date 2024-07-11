@@ -63,7 +63,12 @@ namespace RegressionGames.ActionManager.Actions
         public LegacyKeyInstance(LegacyKeyAction action, Object targetObject) : base(action, targetObject)
         {
         }
-        
+
+        protected override bool IsValidActionParameter(bool param)
+        {
+            return true;
+        }
+
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             object keyCodeOrName = Action.KeyCodeFunc.Invoke(TargetObject);
