@@ -5,7 +5,6 @@ using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -18,7 +17,6 @@ namespace RegressionGames.ActionManager.Actions
     {
         public string EventListenerName { get; }
 
-        private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
         
         public UIButtonPressAction(string[] path, Type objectType, string eventListenerName) : 
             base(path, objectType)
