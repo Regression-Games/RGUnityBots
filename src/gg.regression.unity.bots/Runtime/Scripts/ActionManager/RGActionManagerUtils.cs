@@ -355,5 +355,77 @@ namespace RegressionGames.ActionManager
             result = Vector2.zero;
             return false;
         }
+
+        private static Camera[] _camerasBuf;
+
+        public static bool GetGameObjectMouseHitPosition(GameObject gameObject, out Vector2 result)
+        {
+            var ssBounds = GetGameObjectScreenSpaceBounds(gameObject);
+            if (!ssBounds.HasValue)
+            {
+                result = Vector2.zero;
+                return false;
+            }
+            
+            IEnumerable<Vector2> GetRaycastPoints()
+            {
+                yield return ssBounds.Value.center;
+                yield return ssBounds.Value.center - ssBounds.Value.extents / 2.0f;
+                yield return ssBounds.Value.center + ssBounds.Value.extents / 2.0f;
+            }
+
+            bool has3DCollider = gameObject.TryGetComponent<Collider>(out _);
+            bool has2DCollider = gameObject.TryGetComponent<Collider2D>(out _);
+            
+            int numCameras = Camera.allCamerasCount;
+            if (_camerasBuf == null || _camerasBuf.Length != numCameras)
+            {
+                _camerasBuf = new Camera[numCameras];
+            }
+            Camera.GetAllCameras(_camerasBuf);
+            foreach (Camera camera in _camerasBuf)
+            {
+                if (camera == null || camera.eventMask == 0 || camera.targetTexture != null)
+                {
+                    continue;
+                }
+                int cameraRaycastMask = camera.cullingMask & camera.eventMask;
+
+                foreach (var screenPt in GetRaycastPoints())
+                {
+                    if (has3DCollider)
+                    {
+                        Ray mouseRay = camera.ScreenPointToRay(screenPt);
+                        if (Physics.Raycast(mouseRay, out RaycastHit hit, maxDistance: Mathf.Infinity,
+                                layerMask: cameraRaycastMask))
+                        {
+                            if (hit.collider.gameObject == gameObject)
+                            {
+                                result = screenPt;
+                                return true;
+                            }
+                        }
+                    }
+
+                    if (has2DCollider)
+                    {
+                        Vector3 mouseWorldPt = camera.ScreenToWorldPoint(screenPt);
+                        RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
+                            layerMask: cameraRaycastMask);
+                        if (hit2D.collider != null)
+                        {
+                            if (hit2D.collider.gameObject == gameObject)
+                            {
+                                result = screenPt;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            result = Vector2.zero;
+            return false;
+        }
     }
 }

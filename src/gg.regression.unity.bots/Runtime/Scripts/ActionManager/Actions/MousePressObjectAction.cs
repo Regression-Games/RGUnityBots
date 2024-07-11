@@ -56,26 +56,35 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override bool IsValidActionParameter(bool param)
         {
-            return true;
+            if (param)
+            {
+                // if trying to click on the object, it must be reachable by a raycast
+                var gameObject = ((Component)TargetObject).gameObject;
+                return RGActionManagerUtils.GetGameObjectMouseHitPosition(gameObject, out _);
+            }
+            else
+            {
+                // if trying to release the object, assume this is always possible (at minimum by just releasing the mouse button)
+                return true;
+            }
         }
 
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
+            var gameObject = ((Component)TargetObject).gameObject;
             if (param)
             {
-                var ssBounds = RGActionManagerUtils.GetGameObjectScreenSpaceBounds(((Component)TargetObject).gameObject);
-                if (ssBounds.HasValue)
+                if (RGActionManagerUtils.GetGameObjectMouseHitPosition(gameObject, out Vector2 mousePos))
                 {
-                    yield return new MousePositionInput(ssBounds.Value.center);
+                    yield return new MousePositionInput(mousePos);
                     yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                var ssBounds = RGActionManagerUtils.GetGameObjectScreenSpaceBounds(((Component)TargetObject).gameObject);
-                if (ssBounds.HasValue)
+                if (RGActionManagerUtils.GetGameObjectMouseHitPosition(gameObject, out Vector2 mousePos))
                 {
-                    yield return new MousePositionInput(ssBounds.Value.center);
+                    yield return new MousePositionInput(mousePos);
                 }
                 yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }

@@ -31,7 +31,8 @@ namespace RegressionGames.ActionManager.Actions
 
         public override bool IsValidForObject(Object obj)
         {
-            return RGActionManagerUtils.GetGameObjectScreenSpaceBounds(((Component)obj).gameObject).HasValue;
+            var gameObject = ((Component)obj).gameObject;
+            return RGActionManagerUtils.GetGameObjectScreenSpaceBounds(gameObject).HasValue;
         }
 
         public override IRGGameActionInstance GetInstance(Object obj)
@@ -57,19 +58,33 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override bool IsValidActionParameter(bool param)
         {
-            return true;
+            if (param)
+            {
+                // if trying to hover over the object, it must be reachable by a raycast
+                var gameObject = ((Component)TargetObject).gameObject;
+                return RGActionManagerUtils.GetGameObjectMouseHitPosition(gameObject, out _);
+            }
+            else
+            {
+                // if trying to hover outside the object, only need the screen space bounds (already determined by IsValidForObject)
+                return true;
+            }
         }
 
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
-            var ssBounds = RGActionManagerUtils.GetGameObjectScreenSpaceBounds(((Component)TargetObject).gameObject);
-            if (ssBounds.HasValue)
+            var gameObject = ((Component)TargetObject).gameObject;
+            if (param)
             {
-                if (param)
+                if (RGActionManagerUtils.GetGameObjectMouseHitPosition(gameObject, out Vector2 mousePos))
                 {
-                    yield return new MousePositionInput(ssBounds.Value.center);
+                    yield return new MousePositionInput(mousePos);
                 }
-                else
+            }
+            else
+            {
+                var ssBounds = RGActionManagerUtils.GetGameObjectScreenSpaceBounds(gameObject);
+                if (ssBounds.HasValue)
                 {
                     yield return new MousePositionInput(RGActionManagerUtils.GetPointOutsideBounds(ssBounds.Value));
                 }
