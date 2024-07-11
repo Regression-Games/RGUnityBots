@@ -15,6 +15,7 @@ namespace RegressionGames.ActionManager
         private static FieldInfo _persistentCallsField;
         private static MethodInfo _countMethod;
         private static MethodInfo _getListenerMethod;
+        private static FieldInfo _targetField;
         private static FieldInfo _targetAssemblyTypeNameField;
         private static FieldInfo _methodNameField;
         
@@ -38,8 +39,9 @@ namespace RegressionGames.ActionManager
             for (int i = 0; i < listenerCount; i++)
             {
                 object listener = _getListenerMethod.Invoke(persistentCalls, new object[] { i });
-                if (_targetAssemblyTypeNameField == null)
+                if (_targetField == null)
                 {
+                    _targetField = listener.GetType().GetField("m_Target", BindingFlags.NonPublic | BindingFlags.Instance);
                     _targetAssemblyTypeNameField = listener.GetType().GetField("m_TargetAssemblyTypeName", BindingFlags.NonPublic | BindingFlags.Instance);
                     _methodNameField = listener.GetType()
                                         .GetField("m_MethodName", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -47,6 +49,16 @@ namespace RegressionGames.ActionManager
 
                 string targetTypeName = (string)_targetAssemblyTypeNameField.GetValue(listener);
                 string methodName = (string)_methodNameField.GetValue(listener);
+
+                if (string.IsNullOrEmpty(targetTypeName))
+                {
+                    // if not available, try deriving from the target
+                    Object target = (Object)_targetField.GetValue(listener);
+                    if (target != null)
+                    {
+                        targetTypeName = target.GetType().FullName;
+                    }
+                }
                 
                 if (!string.IsNullOrEmpty(targetTypeName) && !string.IsNullOrEmpty(methodName))
                 {
