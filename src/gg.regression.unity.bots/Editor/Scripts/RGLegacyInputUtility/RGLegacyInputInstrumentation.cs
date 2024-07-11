@@ -302,6 +302,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
             if (done)
             {
+                _numInstrumentationAttempts = 0;
                 EditorApplication.update -= ScheduledInstrumentationLoop;
             }
         }
