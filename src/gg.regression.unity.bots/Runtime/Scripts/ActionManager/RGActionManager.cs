@@ -5,6 +5,7 @@ using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
@@ -158,6 +159,11 @@ namespace RegressionGames.ActionManager
         {
             CurrentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
             CurrentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
+            
+            var eventSystems = UnityEngine.Object.FindObjectsOfType<EventSystem>();
+            CurrentEventSystems.Clear();
+            CurrentEventSystems.AddRange(eventSystems);
+            
             foreach (RGGameAction action in _sessionActions)
             {
                 Debug.Assert(action.ParameterRange != null);
@@ -211,6 +217,7 @@ namespace RegressionGames.ActionManager
         private static bool _backMouseButton;
         public static Dictionary<int, TransformStatus> CurrentUITransforms { get; private set; }
         public static Dictionary<int, TransformStatus> CurrentGameObjectTransforms { get; private set; }
+        public static List<EventSystem> CurrentEventSystems { get; private set; }
 
         private static void InitInputState()
         {
@@ -221,6 +228,7 @@ namespace RegressionGames.ActionManager
             _rightMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
+            CurrentEventSystems = new List<EventSystem>();
             
             // move mouse off screen
             MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));

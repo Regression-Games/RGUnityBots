@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -16,6 +17,8 @@ namespace RegressionGames.ActionManager.Actions
     public class UIButtonPressAction : RGGameAction
     {
         public string EventListenerName { get; }
+
+        private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
         
         public UIButtonPressAction(string[] path, Type objectType, string eventListenerName) : 
             base(path, objectType)
@@ -52,15 +55,21 @@ namespace RegressionGames.ActionManager.Actions
                 }
                 t = t.parent;
             }
-            
+
+            bool matchesListener = false;
             foreach (string listenerName in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
             {
                 if (listenerName == EventListenerName)
                 {
-                    return true;
+                    matchesListener = true;
+                    break;
                 }
             }
-            return false;
+            if (!matchesListener)
+                return false;
+
+            bool haveMousePos = RGActionManagerUtils.GetUIMouseHitPosition(btn.gameObject, out _);
+            return haveMousePos;
         }
 
         public override IRGGameActionInstance GetInstance(Object obj)
@@ -90,39 +99,24 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        private static Bounds? GetUIScreenSpaceBounds(Object targetObject)
-        {
-            Button targetBtn = (Button)targetObject;
-            var instId = targetBtn.transform.GetInstanceID();
-            if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
-            {
-                return tStatus.screenSpaceBounds;
-            }
-            else
-            {
-                return null;
-            }
-        }
         
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
+            Button targetBtn = (Button)TargetObject;
+            bool haveMousePos = RGActionManagerUtils.GetUIMouseHitPosition(targetBtn.gameObject, out Vector2 mousePos);
             if (param)
             {
-                Bounds? bounds = GetUIScreenSpaceBounds(TargetObject);
-                if (bounds.HasValue)
+                if (haveMousePos)
                 {
-                    Bounds boundsVal = bounds.Value;
-                    yield return new MousePositionInput(boundsVal.center);
+                    yield return new MousePositionInput(mousePos);
                     yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                Bounds? bounds = GetUIScreenSpaceBounds(TargetObject);
-                if (bounds.HasValue)
+                if (haveMousePos)
                 {
-                    Bounds boundsVal = bounds.Value;
-                    yield return new MousePositionInput(boundsVal.center);
+                    yield return new MousePositionInput(mousePos);
                 }
                 yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }

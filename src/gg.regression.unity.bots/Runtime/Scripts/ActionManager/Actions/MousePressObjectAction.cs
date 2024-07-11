@@ -58,7 +58,7 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (param)
             {
-                var ssBounds = MouseHoverObjectInstance.GetHoverScreenSpaceBounds(TargetObject);
+                var ssBounds = RGActionManagerUtils.GetGameObjectScreenSpaceBounds(((Component)TargetObject).gameObject);
                 if (ssBounds.HasValue)
                 {
                     yield return new MousePositionInput(ssBounds.Value.center);
@@ -67,7 +67,7 @@ namespace RegressionGames.ActionManager.Actions
             }
             else
             {
-                var ssBounds = MouseHoverObjectInstance.GetHoverScreenSpaceBounds(TargetObject);
+                var ssBounds = RGActionManagerUtils.GetGameObjectScreenSpaceBounds(((Component)TargetObject).gameObject);
                 if (ssBounds.HasValue)
                 {
                     yield return new MousePositionInput(ssBounds.Value.center);

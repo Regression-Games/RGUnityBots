@@ -1,9 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
+using RegressionGames.StateRecorder.Models;
+using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager
 {
@@ -12,7 +13,7 @@ namespace RegressionGames.ActionManager
         private static FieldInfo _persistentCallsField;
         private static MethodInfo _countMethod;
         private static MethodInfo _getListenerMethod;
-        private static FieldInfo _targetField;
+        private static FieldInfo _targetAssemblyTypeNameField;
         private static FieldInfo _methodNameField;
         
         public static IEnumerable<string> GetEventListenerMethodNames(UnityEvent evt)
@@ -35,19 +36,19 @@ namespace RegressionGames.ActionManager
             for (int i = 0; i < listenerCount; i++)
             {
                 object listener = _getListenerMethod.Invoke(persistentCalls, new object[] { i });
-                if (_targetField == null)
+                if (_targetAssemblyTypeNameField == null)
                 {
-                    _targetField = listener.GetType().GetField("m_Target", BindingFlags.NonPublic | BindingFlags.Instance);
+                    _targetAssemblyTypeNameField = listener.GetType().GetField("m_TargetAssemblyTypeName", BindingFlags.NonPublic | BindingFlags.Instance);
                     _methodNameField = listener.GetType()
                                         .GetField("m_MethodName", BindingFlags.NonPublic | BindingFlags.Instance);
                 }
 
-                object target = _targetField.GetValue(listener);
+                string targetTypeName = (string)_targetAssemblyTypeNameField.GetValue(listener);
                 string methodName = (string)_methodNameField.GetValue(listener);
-            
-                if (target != null && !string.IsNullOrEmpty(methodName))
+                
+                if (!string.IsNullOrEmpty(targetTypeName) && !string.IsNullOrEmpty(methodName))
                 {
-                    yield return target.GetType().FullName + "." + methodName;
+                    yield return targetTypeName.Split(", ")[0] + "." + methodName;
                 }
             }
         }
@@ -185,6 +186,173 @@ namespace RegressionGames.ActionManager
             {
                 return Key.None;
             }
+        }
+        
+        public static Vector2 GetPointOutsideBounds(Bounds ssBounds)
+        {
+            Bounds screenRect = new Bounds(
+                new Vector3(Screen.width/2.0f, Screen.height/2.0f, 0.0f),
+                      new Vector3(Screen.width, Screen.height, 0.0f));
+            float extentScale = 1.5f;
+            Vector2[] candidates = new Vector2[]
+            {
+                ssBounds.center + new Vector3(ssBounds.extents.x*extentScale, 0.0f, 0.0f),
+                ssBounds.center + new Vector3(-ssBounds.extents.x*extentScale, 0.0f, 0.0f),
+                ssBounds.center + new Vector3(0.0f, ssBounds.extents.y*extentScale, 0.0f),
+                ssBounds.center + new Vector3(0.0f, -ssBounds.extents.y*extentScale, 0.0f)
+            };
+            // first try to find a point outside the bounds that are on the screen
+            foreach (Vector2 pt in candidates)
+            {
+                if (screenRect.Contains(pt))
+                {
+                    return pt;
+                }
+            }
+            // if no such point found, just return the first point anyways and have the mouse be off-screen
+            return candidates[0];
+        }
+        
+        public static Bounds? GetGameObjectScreenSpaceBounds(GameObject gameObject)
+        {
+            var instId = gameObject.transform.GetInstanceID();
+            Bounds? ssBounds = null;
+            TransformStatus tStatus;
+            if (RGActionManager.CurrentGameObjectTransforms.TryGetValue(instId, out tStatus))
+            {
+                ssBounds = tStatus.screenSpaceBounds;
+            }
+            if (!ssBounds.HasValue &&
+                RGActionManager.CurrentUITransforms.TryGetValue(instId, out tStatus))
+            {
+                ssBounds = tStatus.screenSpaceBounds;
+            }
+
+            if (!ssBounds.HasValue)
+            {
+                var camera = Camera.main;
+                if (camera != null)
+                {
+                    Bounds? colliderBounds = null;
+                    if (gameObject.TryGetComponent(out Collider col3D))
+                    {
+                        colliderBounds = col3D.bounds;
+                    } else if (gameObject.TryGetComponent(out Collider2D col2D))
+                    {
+                        colliderBounds = col2D.bounds;
+                    }
+
+                    if (colliderBounds.HasValue)
+                    {
+                        Vector3 min = colliderBounds.Value.min;
+                        Vector3 max = colliderBounds.Value.max;
+                        Vector3[] points = new Vector3[8]
+                        {
+                            new Vector3(min.x, min.y, min.z),
+                            new Vector3(max.x, min.y, min.z),
+                            new Vector3(min.x, max.y, min.z),
+                            new Vector3(max.x, max.y, min.z),
+                            new Vector3(min.x, min.y, max.z),
+                            new Vector3(max.x, min.y, max.z),
+                            new Vector3(min.x, max.y, max.z),
+                            new Vector3(max.x, max.y, max.z)
+                        };
+                        Vector3 minScreen = new Vector3(float.PositiveInfinity, float.PositiveInfinity, 0.0f);
+                        Vector3 maxScreen = new Vector3(float.NegativeInfinity, float.NegativeInfinity, 0.0f);
+                        foreach (Vector3 pt in points)
+                        {
+                            Vector3 screenPt = camera.WorldToScreenPoint(pt);
+                            screenPt.x = screenPt.x / camera.pixelWidth * Screen.width;
+                            screenPt.y = screenPt.y / camera.pixelHeight * Screen.height;
+                            minScreen = Vector3.Min(minScreen, screenPt);
+                            maxScreen = Vector3.Max(maxScreen, screenPt);
+                        }
+                        ssBounds = new Bounds((minScreen + maxScreen) / 2.0f, maxScreen - minScreen);
+                    }
+                }
+            }
+            
+            return ssBounds;
+        }
+        
+        public static Bounds? GetUIScreenSpaceBounds(GameObject uiObject)
+        {
+            var instId = uiObject.transform.GetInstanceID();
+            if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
+            {
+                return tStatus.screenSpaceBounds;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
+
+        private static bool IsAncestorOrEqualTo(GameObject ancestor, GameObject gameObject)
+        {
+            do
+            {
+                if (ancestor == gameObject)
+                {
+                    return true;
+                }
+                gameObject = gameObject.transform.parent?.gameObject;
+            } while (gameObject != null);
+            return false;
+        }
+
+        public static bool GetUIMouseHitPosition(GameObject uiObject, out Vector2 result)
+        {
+            bool dbg = uiObject.name == "Host IP Connection Button";
+            
+            var uiObjectBounds = GetUIScreenSpaceBounds(uiObject);
+            if (!uiObjectBounds.HasValue)
+            {
+                result = Vector2.zero;
+                return false;
+            }
+            
+            if (dbg)
+            {
+                Debug.Log($"have uiObjectBounds for {uiObject.name}");
+            }
+            
+            IEnumerable<Vector2> GetRaycastPoints()
+            {
+                yield return uiObjectBounds.Value.center;
+                yield return uiObjectBounds.Value.center - uiObjectBounds.Value.extents / 2.0f;
+                yield return uiObjectBounds.Value.center + uiObjectBounds.Value.extents / 2.0f;
+            }
+
+            foreach (var eventSys in RGActionManager.CurrentEventSystems)
+            {
+                PointerEventData data = new PointerEventData(eventSys);
+                data.pointerId = PointerInputModule.kMouseLeftId;
+                foreach (var mousePos in GetRaycastPoints())
+                {
+                    data.position = mousePos;
+                    data.delta = Vector2.zero;
+                    _raycastResultCache.Clear();
+                    eventSys.RaycastAll(data, _raycastResultCache);
+                    foreach (var raycastRes in _raycastResultCache)
+                    {
+                        if (raycastRes.gameObject != null)
+                        {
+                            if (IsAncestorOrEqualTo(uiObject, raycastRes.gameObject))
+                            {
+                                result = mousePos;
+                                return true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            result = Vector2.zero;
+            return false;
         }
     }
 }
