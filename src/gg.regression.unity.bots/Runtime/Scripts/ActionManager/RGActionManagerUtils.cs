@@ -313,18 +313,11 @@ namespace RegressionGames.ActionManager
 
         public static bool GetUIMouseHitPosition(GameObject uiObject, out Vector2 result)
         {
-            bool dbg = uiObject.name == "Host IP Connection Button";
-            
             var uiObjectBounds = GetUIScreenSpaceBounds(uiObject);
             if (!uiObjectBounds.HasValue)
             {
                 result = Vector2.zero;
                 return false;
-            }
-            
-            if (dbg)
-            {
-                Debug.Log($"have uiObjectBounds for {uiObject.name}");
             }
             
             IEnumerable<Vector2> GetRaycastPoints()
