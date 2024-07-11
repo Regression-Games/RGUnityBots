@@ -311,6 +311,10 @@ namespace RegressionGames.ActionManager
             return false;
         }
 
+        /// <summary>
+        /// Same as GetGameObjectMouseHitPosition, but for UI components.
+        /// This uses the EventSystem raycaster instead of the Physics/Physics2D raycaster.
+        /// </summary>
         public static bool GetUIMouseHitPosition(GameObject uiObject, out Vector2 result)
         {
             var uiObjectBounds = GetUIScreenSpaceBounds(uiObject);
@@ -358,6 +362,11 @@ namespace RegressionGames.ActionManager
 
         private static Camera[] _camerasBuf;
 
+        /// <summary>
+        /// This returns the mouse position on the screen needed in order to hit the
+        /// specified game object's collider. If it is impossible to hit the object (e.g.
+        /// due to another object obstructing it) then this returns false.
+        /// </summary>
         public static bool GetGameObjectMouseHitPosition(GameObject gameObject, out Vector2 result)
         {
             var ssBounds = GetGameObjectScreenSpaceBounds(gameObject);
