@@ -956,7 +956,10 @@ namespace RegressionGames.ActionManager
                     }
                     NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
                     GameObject prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
-                    AnalyzeGameObject(prefabContents);
+                    foreach (GameObject gameObject in IterateGameObjects(prefabContents))
+                    {
+                        AnalyzeGameObject(gameObject);
+                    }
                     EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                     ++analyzedResourceCount;
                 }
