@@ -13,6 +13,14 @@ namespace RegressionGames.StateRecorder.Models
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RecordingFrameStateData
     {
+        //Update me if fields/types change
+        public int apiVersion = SdkApiVersion.VERSION_4;
+
+        /// <summary>
+        /// Effective API version for this state recording considering all sub elements
+        /// </summary>
+        public int EffectiveApiVersion => Math.Max(Math.Max(Math.Max(apiVersion, inputs?.EffectiveApiVersion ?? 0), performance.EffectiveApiVersion), state.DefaultIfEmpty().Max(a => a?.EffectiveApiVersion ?? 0));
+
         /**
          * <summary>UUID of the session</summary>
          */
@@ -41,6 +49,8 @@ namespace RegressionGames.StateRecorder.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
             stringBuilder.Append(",\n\"referenceSessionId\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, referenceSessionId);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\n\"tickNumber\":");
             LongJsonConverter.WriteToStringBuilder(stringBuilder, tickNumber);
             stringBuilder.Append(",\n\"keyFrame\":[");

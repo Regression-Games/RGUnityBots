@@ -28,7 +28,7 @@ namespace RegressionGames.ActionManager
         private ToolbarSearchField _searchField;
         private ScrollView _actionsPane;
         private ScrollView _detailsPane;
-        
+
         [MenuItem("Regression Games/Configure Bot Actions")]
         public static void OpenActionManagerUI()
         {
@@ -108,7 +108,7 @@ namespace RegressionGames.ActionManager
             
             return sorted;
         }
-        
+
         private void CreateActionTreeElements(VisualElement container, ActionTreeNode node, IList<ListView> listViews)
         {
             if (node.IsLeaf)
@@ -179,7 +179,11 @@ namespace RegressionGames.ActionManager
                     }
                 };
 
+#if UNITY_2022_2_OR_NEWER
+                listView.selectionChanged += (items) =>
+#else
                 listView.onSelectionChange += (items) =>
+#endif
                 {
                     if (items.Any())
                     {
@@ -229,7 +233,7 @@ namespace RegressionGames.ActionManager
             Debug.Assert(leafNode.IsLeaf);
             _detailsPane.Clear();
             RGGameAction action = leafNode.action;
-            
+
             Label actionName = new Label();
             actionName.text = "Action: " + leafNode.path.Last();
             actionName.style.unityFontStyleAndWeight = FontStyle.Bold;

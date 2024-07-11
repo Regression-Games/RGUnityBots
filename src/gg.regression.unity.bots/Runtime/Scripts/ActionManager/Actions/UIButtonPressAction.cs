@@ -94,7 +94,7 @@ namespace RegressionGames.ActionManager.Actions
         {
             Button targetBtn = (Button)targetObject;
             var instId = targetBtn.transform.GetInstanceID();
-            if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
+            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out var tStatus))
             {
                 return tStatus.screenSpaceBounds;
             }

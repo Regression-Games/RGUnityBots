@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Collections.Generic;
+using System.Text;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -61,13 +63,8 @@ namespace RegressionGames.ActionManager.Actions
             GameObject gameObject = c.gameObject;
             var instId = gameObject.transform.GetInstanceID();
             Bounds? ssBounds = null;
-            TransformStatus tStatus;
-            if (RGActionManager.CurrentGameObjectTransforms.TryGetValue(instId, out tStatus))
-            {
-                ssBounds = tStatus.screenSpaceBounds;
-            }
-            if (!ssBounds.HasValue &&
-                RGActionManager.CurrentUITransforms.TryGetValue(instId, out tStatus))
+            ObjectStatus tStatus;
+            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out tStatus))
             {
                 ssBounds = tStatus.screenSpaceBounds;
             }
@@ -115,7 +112,7 @@ namespace RegressionGames.ActionManager.Actions
                     }
                 }
             }
-            
+
             return ssBounds;
         }
 

@@ -56,7 +56,7 @@ namespace RegressionGames.ActionManager.Actions
 
         private bool IsCoordOverUIElement(Vector2 pos)
         {
-            foreach (var p in RGActionManager.CurrentUITransforms)
+            foreach (var p in RGActionManager.CurrentTransforms)
             {
                 var tStatus = p.Value;
                 if (tStatus.screenSpaceBounds.HasValue && tStatus.screenSpaceBounds.Value.Contains(pos))

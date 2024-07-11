@@ -27,42 +27,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanRead => false;
 
-        // optimize to avoid string comparisons on every object
-        // our primary testing project, bossroom, is from 'Unity' so we need to clarify our exclusions
-        // (isBossRoom, isUnity)
-        private static readonly Dictionary<Assembly, (bool, bool)> _unityAssemblies = new();
-
         public static bool Convertable(Type objectType)
         {
-            if (InGameObjectFinder.GetInstance().collectStateFromBehaviours == false &&
-                objectType == typeof(Behaviour))
+            if (typeof(Behaviour).IsAssignableFrom(objectType))
             {
                 // in this case, any Behaviour should just be empty unless it has a custom converter
+                // this is to avoid major performance impacts to state capture
                 return true;
             }
-            var fullName = objectType.FullName;
-            // we have added custom serializers for specific unity types
-            if (NetworkVariableJsonConverter.Convertable(objectType))
-            {
-                return false;
-            }
 
-            var assembly = objectType.Assembly;
-            if (!_unityAssemblies.TryGetValue(assembly, out var isUnityType))
-            {
-                var isUnity = fullName.StartsWith("Unity");
-                var isBossRoom = isUnity && fullName.StartsWith("Unity.BossRoom");
-
-                isUnityType = (isBossRoom, isUnity);
-                _unityAssemblies[assembly] = isUnityType;
-            }
-
-            if (!isUnityType.Item1)
-            {
-                return isUnityType.Item2;
-            }
-
-            // let the default object serializer do its thing
+            // (*huge performance impact*) let the default object serializer do its thing
             return false;
         }
 

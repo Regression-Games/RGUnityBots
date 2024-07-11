@@ -8,8 +8,16 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class BehaviourState
+    public class BehaviourState : IComponentDataProvider
     {
+        // update me if fields / json change
+        public int apiVersion = SdkApiVersion.VERSION_4;
+
+        public int ApiVersion()
+        {
+            return apiVersion;
+        }
+
         public string name;
         public Behaviour state;
 
@@ -22,6 +30,8 @@ namespace RegressionGames.StateRecorder.Models
         {
             stringBuilder.Append("{\"name\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, name);
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"state\":");
             JsonUtils.WriteBehaviourStateToStringBuilder(stringBuilder, state);
             stringBuilder.Append("}");

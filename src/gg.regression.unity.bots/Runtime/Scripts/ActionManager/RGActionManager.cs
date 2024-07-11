@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
+using Object = System.Object;
 
 #if UNITY_EDITOR
 using System.IO;
@@ -22,7 +23,7 @@ namespace RegressionGames.ActionManager
         private static readonly string SETTINGS_DIRECTORY = "Assets/Resources";
         private static readonly string SETTINGS_NAME = "RGActionManagerSettings";
         private static readonly string SETTINGS_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_NAME}.txt";
-            
+
         private static MonoBehaviour _context;
         private static RGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
@@ -55,7 +56,7 @@ namespace RegressionGames.ActionManager
         /// The settings should not change while a session is active.
         /// </summary>
         public static RGActionManagerSettings Settings => _settings;
-        
+
         #if UNITY_EDITOR
         [InitializeOnLoadMethod]
         public static void InitializeInEditor()
@@ -156,8 +157,8 @@ namespace RegressionGames.ActionManager
         /// </returns>
         public static IEnumerable<IRGGameActionInstance> GetValidActions()
         {
-            CurrentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
-            CurrentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
+            var tof = UnityEngine.Object.FindObjectOfType<TransformObjectFinder>();
+            CurrentTransforms = tof.GetObjectStatusForCurrentFrame().Item2;
             foreach (RGGameAction action in _sessionActions)
             {
                 Debug.Assert(action.ParameterRange != null);
@@ -197,9 +198,9 @@ namespace RegressionGames.ActionManager
             // configure the event system for simulated input whenever a new scene is loaded
             RGUtils.SetupEventSystem();
         }
-        
-        
-        
+
+
+
         // Input simulation fields and methods used by the various action types
 
         private static Vector3 _mousePosition;
@@ -209,8 +210,7 @@ namespace RegressionGames.ActionManager
         private static bool _rightMouseButton;
         private static bool _forwardMouseButton;
         private static bool _backMouseButton;
-        public static Dictionary<int, TransformStatus> CurrentUITransforms { get; private set; }
-        public static Dictionary<int, TransformStatus> CurrentGameObjectTransforms { get; private set; }
+        public static Dictionary<long, ObjectStatus> CurrentTransforms { get; private set; }
 
         private static void InitInputState()
         {
@@ -221,7 +221,7 @@ namespace RegressionGames.ActionManager
             _rightMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
-            
+
             // move mouse off screen
             MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
         }
@@ -272,7 +272,7 @@ namespace RegressionGames.ActionManager
 
         public static void SimulateMouseMovement(Vector2 mousePosition)
         {
-            MouseEventSender.SendRawPositionMouseEvent(0, mousePosition, leftButton: _leftMouseButton, middleButton: _middleMouseButton, 
+            MouseEventSender.SendRawPositionMouseEvent(0, mousePosition, leftButton: _leftMouseButton, middleButton: _middleMouseButton,
                 rightButton: _rightMouseButton, forwardButton: _forwardMouseButton, backButton: _backMouseButton, scroll: _mouseScroll);
             _mousePosition = mousePosition;
         }

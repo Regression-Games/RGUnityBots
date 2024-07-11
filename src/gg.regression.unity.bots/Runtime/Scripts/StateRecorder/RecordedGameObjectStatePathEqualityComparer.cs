@@ -3,9 +3,9 @@ using RegressionGames.StateRecorder.Models;
 
 namespace RegressionGames.StateRecorder
 {
-    public class RecordedGameObjectStatePathEqualityComparer : IEqualityComparer<TransformStatus>
+    public class RecordedGameObjectStatePathEqualityComparer : IEqualityComparer<ObjectStatus>
     {
-        public bool Equals(TransformStatus x, TransformStatus y)
+        public bool Equals(ObjectStatus x, ObjectStatus y)
         {
             if (x?.worldSpaceBounds != null || y?.worldSpaceBounds != null)
             {
@@ -16,7 +16,7 @@ namespace RegressionGames.StateRecorder
             return x?.Path == y?.Path;
         }
 
-        public int GetHashCode(TransformStatus obj)
+        public int GetHashCode(ObjectStatus obj)
         {
             return obj.Path.GetHashCode();
         }
