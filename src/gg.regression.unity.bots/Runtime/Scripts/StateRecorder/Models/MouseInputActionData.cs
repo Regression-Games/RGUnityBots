@@ -15,7 +15,7 @@ namespace RegressionGames.StateRecorder.Models
     public class MouseInputActionData
     {
         // version of this schema, update this if fields change
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         public double startTime;
 

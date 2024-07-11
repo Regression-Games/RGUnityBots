@@ -3,23 +3,32 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
-using RegressionGames.StateRecorder;
-using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class InputData
+    public class InputData: IComponentDataProvider
     {
         // version of this schema, update this if fields change
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
-
+        public int apiVersion = SdkApiVersion.VERSION_1;
+        public int ApiVersion()
+        {
+            return apiVersion;
+        }
         public List<KeyboardInputActionData> keyboard;
         public List<MouseInputActionData> mouse;
 
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, keyboard.DefaultIfEmpty().Max(a => a?.apiVersion ?? 0)), mouse.DefaultIfEmpty().Max(a => a?.apiVersion ?? 0));
+
+        public void MarkSent()
+        {
+            foreach (var keyboardInputActionData in keyboard)
+            {
+                keyboardInputActionData.HasBeenSent = true;
+            }
+        }
 
         public void ReplayReset()
         {

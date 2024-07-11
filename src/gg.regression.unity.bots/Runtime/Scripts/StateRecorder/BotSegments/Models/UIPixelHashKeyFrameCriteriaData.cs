@@ -8,7 +8,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class UIPixelHashKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = BotSegment.SDK_API_VERSION_3;
+        public int apiVersion = SdkApiVersion.VERSION_3;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {

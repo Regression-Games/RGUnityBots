@@ -11,13 +11,13 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePositionAction : RGGameAction
     {
-        public MousePositionAction(string[] path, Type objectType, int actionGroup) : 
+        public MousePositionAction(string[] path, Type objectType, int actionGroup) :
             base(path, objectType, actionGroup)
         {
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGVector2Range(Vector2.zero, Vector2.one);
-        
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
@@ -37,7 +37,7 @@ namespace RegressionGames.ActionManager.Actions
 
         private bool IsCoordOverUIElement(Vector2 pos)
         {
-            foreach (var p in RGActionManager.CurrentUITransforms)
+            foreach (var p in RGActionManager.CurrentTransforms)
             {
                 var tStatus = p.Value;
                 if (tStatus.screenSpaceBounds.HasValue && tStatus.screenSpaceBounds.Value.Contains(pos))

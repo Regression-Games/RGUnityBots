@@ -11,11 +11,10 @@ namespace RegressionGames.StateRecorder
     {
         private Color32[] _priorPixels;
 
-        private bool _firstRun = true;
+        private volatile bool _firstRun = true;
         private bool _isActive;
 
-        // uses null or not-null to do interlocked threadsafe updates
-        private string _pixelHash;
+        private int _hashFrameNumber = -1;
 
         private string _requestInProgress;
 
@@ -44,6 +43,7 @@ namespace RegressionGames.StateRecorder
 
         public void SetActive(bool active = true)
         {
+            _firstRun = true;
             _isActive = active;
         }
 
@@ -76,16 +76,17 @@ namespace RegressionGames.StateRecorder
             return _instance;
         }
 
-        public void ClearPixelHash()
+        public bool HasPixelHashChanged()
         {
-            Interlocked.Exchange(ref _pixelHash, null);
+            var hfn = Interlocked.CompareExchange(ref _hashFrameNumber, -1, -1);
+            if (Time.frameCount == hfn)
+            {
+                return true;
+            }
+
+            return false;
         }
 
-        public bool HasPixelHashChanged(out string newHash)
-        {
-            newHash = Interlocked.CompareExchange(ref _pixelHash, null, null);
-            return newHash != null;
-        }
 
         private static RenderTexture GetRenderTexture()
         {
@@ -119,15 +120,17 @@ namespace RegressionGames.StateRecorder
                                     var pixels = new Color32[data.Length];
                                     data.CopyTo(pixels);
 
-                                    string newHash = _firstRun ? "FirstPass" : null;
 
                                     var priorPixels = Interlocked.Exchange(ref _priorPixels, pixels);
+                                    // on the first run we just record the starting state, subsequent runs we evaluate differences; we do this because the first tick already records either way
                                     if (!_firstRun)
                                     {
                                         if (priorPixels == null || pixels.Length != priorPixels.Length)
                                         {
                                             // different size image or first pass
-                                            newHash = "NewResolution";
+                                            // mark the next frame as needing to send an update
+                                            Interlocked.Exchange(ref _hashFrameNumber, Time.frameCount+1);
+                                            RGDebug.LogDebug($"Different GameFace UI resolution");
                                         }
                                         else
                                         {
@@ -136,7 +139,8 @@ namespace RegressionGames.StateRecorder
                                             {
                                                 if (pixels[i].r != priorPixels[i].r || pixels[i].g != priorPixels[i].g || pixels[i].b != priorPixels[i].b || pixels[i].a != priorPixels[i].a)
                                                 {
-                                                    newHash = $"{i} - ({pixels[i].r},{pixels[i].g},{pixels[i].b},{pixels[i].a})";
+                                                    // mark the next frame as needing to send an update
+                                                    Interlocked.Exchange(ref _hashFrameNumber, Time.frameCount+1);
                                                     RGDebug.LogDebug($"Different GameFace UI pixel at index {i}");
                                                     break;
                                                 }
@@ -144,7 +148,6 @@ namespace RegressionGames.StateRecorder
                                         }
                                     }
                                     _firstRun = false;
-                                    Interlocked.Exchange(ref _pixelHash, newHash);
                                 }
                             }
                             finally
@@ -157,7 +160,8 @@ namespace RegressionGames.StateRecorder
             }
             else
             {
-                Interlocked.Exchange(ref _pixelHash, null);
+                // mark the next frame as needing to send an update
+                Interlocked.Exchange(ref _hashFrameNumber, -1);
             }
         }
 
