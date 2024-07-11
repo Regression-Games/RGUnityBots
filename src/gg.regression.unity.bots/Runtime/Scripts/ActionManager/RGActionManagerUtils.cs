@@ -219,13 +219,7 @@ namespace RegressionGames.ActionManager
         {
             var instId = gameObject.transform.GetInstanceID();
             Bounds? ssBounds = null;
-            TransformStatus tStatus;
-            if (RGActionManager.CurrentGameObjectTransforms.TryGetValue(instId, out tStatus))
-            {
-                ssBounds = tStatus.screenSpaceBounds;
-            }
-            if (!ssBounds.HasValue &&
-                RGActionManager.CurrentUITransforms.TryGetValue(instId, out tStatus))
+            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out var tStatus))
             {
                 ssBounds = tStatus.screenSpaceBounds;
             }
@@ -280,7 +274,7 @@ namespace RegressionGames.ActionManager
         public static Bounds? GetUIScreenSpaceBounds(GameObject uiObject)
         {
             var instId = uiObject.transform.GetInstanceID();
-            if (RGActionManager.CurrentUITransforms.TryGetValue(instId, out TransformStatus tStatus))
+            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out var tStatus))
             {
                 return tStatus.screenSpaceBounds;
             }

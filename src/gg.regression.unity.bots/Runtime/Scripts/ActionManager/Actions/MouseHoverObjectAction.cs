@@ -31,7 +31,7 @@ namespace RegressionGames.ActionManager.Actions
 
         public override bool IsValidForObject(Object obj)
         {
-            return MouseHoverObjectInstance.GetHoverScreenSpaceBounds(obj).HasValue;
+            return RGActionManagerUtils.GetGameObjectScreenSpaceBounds(((Component)obj).gameObject).HasValue;
         }
 
         public override IRGGameActionInstance GetInstance(Object obj)
