@@ -285,7 +285,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                     // if the instrumentation failed, attempt a couple more times with exponential backoff timeout
                     if (_numInstrumentationAttempts < MaxAttempts-1)
                     {
-                        double timeout = 1.0 * Math.Pow(2.0, _numInstrumentationAttempts); // 3 sec, 6 sec, 12 sec
+                        double timeout = 3.0 * Math.Pow(2.0, _numInstrumentationAttempts); // 3 sec, 6 sec, 12 sec
                         _scheduledInstrumentationTime = EditorApplication.timeSinceStartup + timeout;
                         ++_numInstrumentationAttempts;
                         done = false;
