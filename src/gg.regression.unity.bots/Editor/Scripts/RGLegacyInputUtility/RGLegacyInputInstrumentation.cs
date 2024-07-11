@@ -243,8 +243,8 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 RGDebug.LogException(e, $"Error during legacy input instrumentation for {assemblyPath}");
             }
         }
-
-        private static Assembly FindRGAssembly()
+        
+        public static Assembly FindRGAssembly()
         {
             var rgAsmName = Path.GetFileName(typeof(RGLegacyInputWrapper).Assembly.Location);
             Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);

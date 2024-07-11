@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -12,12 +15,19 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePressObjectAction : RGGameAction
     {
-        public MousePressObjectAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        public MousePressObjectAction(string[] path, Type objectType) : base(path, objectType)
+        {
+        }
+
+        public MousePressObjectAction(JObject serializedAction) :
+            base(serializedAction)
         {
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => $"Mouse Press On {ObjectType.Name}";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
@@ -27,6 +37,15 @@ namespace RegressionGames.ActionManager.Actions
         {
             return new MousePressObjectInstance(this, obj);
         }
+        
+        public override bool IsEquivalentTo(RGGameAction other)
+        {
+            return other is MousePressObjectAction && base.IsEquivalentTo(other);
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
+        }
     }
 
     public class MousePressObjectInstance : RGGameActionInstance<MousePressObjectAction, bool>
@@ -35,20 +54,25 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             if (param)
             {
                 var ssBounds = MouseHoverObjectInstance.GetHoverScreenSpaceBounds(TargetObject);
                 if (ssBounds.HasValue)
                 {
-                    RGActionManager.SimulateMouseMovement(ssBounds.Value.center);
-                    RGActionManager.SimulateLeftMouseButton(true);
+                    yield return new MousePositionInput(ssBounds.Value.center);
+                    yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                RGActionManager.SimulateLeftMouseButton(false);
+                var ssBounds = MouseHoverObjectInstance.GetHoverScreenSpaceBounds(TargetObject);
+                if (ssBounds.HasValue)
+                {
+                    yield return new MousePositionInput(ssBounds.Value.center);
+                }
+                yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }
         }
     }
