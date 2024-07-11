@@ -15,9 +15,13 @@ namespace RegressionGames.StateRecorder.Models
     public class KeyboardInputActionData
     {
         // version of this schema, update this if fields change
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
-        public double startTime;
+        //These 2 fields look a bit weird, but there is a reason.  We always track the start time for these actions during record, but only write it out
+        // to json aon the first tick it occurs.  Then on replay, we need to be able to read in those null values correctly
+        public double? JsonStartTime => !HasBeenSent ? startTime : null;
+        public double? startTime;
+
         public string action;
         public string binding;
         public double? endTime;
@@ -25,11 +29,14 @@ namespace RegressionGames.StateRecorder.Models
         [NonSerialized]
         public double duration;
 
+        //used on osx to 'fix' the key events and as a marker for knowing up vs down key events in recordings
         [NonSerialized]
         public double? lastSentUpdateTime;
 
         [NonSerialized]
         public double lastUpdateTime;
+
+        public bool HasBeenSent;
 
         public bool isPressed => duration > 0 && endTime == null;
 
@@ -41,7 +48,8 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"startTime\":");
-            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
+            // only send the startTime once.. we can have start and end in the same tick, or different ticks, we can even have ticks in between with neither start or end time while the button is held
+            DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, JsonStartTime);
             stringBuilder.Append(",\"action\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, action);
             stringBuilder.Append(",\"binding\":");
@@ -49,7 +57,7 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\"endTime\":");
             DoubleJsonConverter.WriteToStringBuilderNullable(stringBuilder, endTime);
             stringBuilder.Append(",\"isPressed\":");
-            stringBuilder.Append(isPressed ? "true" : "false");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder, isPressed);
             stringBuilder.Append("}");
         }
 
@@ -76,7 +84,7 @@ namespace RegressionGames.StateRecorder.Models
         public double Replay_OffsetTime;
 
         // Replay only
-        public double Replay_StartTime => startTime + Replay_OffsetTime;
+        public double? Replay_StartTime => startTime + Replay_OffsetTime;
 
         // Replay only
         public double? Replay_EndTime => endTime + Replay_OffsetTime;

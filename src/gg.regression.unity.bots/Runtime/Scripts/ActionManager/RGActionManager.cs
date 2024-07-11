@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
+using Object = System.Object;
 
 #if UNITY_EDITOR
 using System.IO;
@@ -22,7 +23,7 @@ namespace RegressionGames.ActionManager
         private static readonly string SETTINGS_DIRECTORY = "Assets/Resources";
         private static readonly string SETTINGS_NAME = "RGActionManagerSettings";
         private static readonly string SETTINGS_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_NAME}.txt";
-            
+
         private static MonoBehaviour _context;
         private static IRGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
@@ -45,7 +46,7 @@ namespace RegressionGames.ActionManager
         /// The settings should not change while a session is active.
         /// </summary>
         public static RGActionManagerSettings Settings => _settings;
-        
+
         #if UNITY_EDITOR
         [InitializeOnLoadMethod]
         public static void InitializeInEditor()
@@ -129,7 +130,7 @@ namespace RegressionGames.ActionManager
             }
             LoadSettings();
             _context = context;
-            
+
             _sessionActionsBuf = new Dictionary<RGGameAction, IList<IRGGameActionInstance>>();
             foreach (RGGameAction action in _actionProvider.Actions)
             {
@@ -138,7 +139,7 @@ namespace RegressionGames.ActionManager
                     _sessionActionsBuf.Add(action, new List<IRGGameActionInstance>());
                 }
             }
-            
+
             RGLegacyInputWrapper.StartSimulation(_context);
             SceneManager.sceneLoaded += OnSceneLoad;
             RGUtils.SetupEventSystem();
@@ -176,14 +177,14 @@ namespace RegressionGames.ActionManager
         /// </returns>
         public static IDictionary<RGGameAction, IList<IRGGameActionInstance>> GetValidActions()
         {
-            CurrentUITransforms = InGameObjectFinder.GetInstance().GetUITransformsForCurrentFrame().Item2;
-            CurrentGameObjectTransforms = InGameObjectFinder.GetInstance().GetGameObjectTransformsForCurrentFrame().Item2;
+            var tof = UnityEngine.Object.FindObjectOfType<TransformObjectFinder>();
+            CurrentTransforms = tof.GetObjectStatusForCurrentFrame().Item2;
             foreach (var entry in _sessionActionsBuf)
             {
                 RGGameAction action = entry.Key;
                 IList<IRGGameActionInstance> actionInstances = entry.Value;
                 actionInstances.Clear();
-                
+
                 Debug.Assert(action.ParameterRange != null);
                 UnityEngine.Object[] objects = UnityEngine.Object.FindObjectsOfType(action.ObjectType);
                 foreach (var obj in objects)
@@ -212,9 +213,9 @@ namespace RegressionGames.ActionManager
             // configure the event system for simulated input whenever a new scene is loaded
             RGUtils.SetupEventSystem();
         }
-        
-        
-        
+
+
+
         // Input simulation fields and methods used by the various action types
 
         private static Vector3 _mousePosition;
@@ -224,8 +225,7 @@ namespace RegressionGames.ActionManager
         private static bool _rightMouseButton;
         private static bool _forwardMouseButton;
         private static bool _backMouseButton;
-        public static Dictionary<int, TransformStatus> CurrentUITransforms { get; private set; }
-        public static Dictionary<int, TransformStatus> CurrentGameObjectTransforms { get; private set; }
+        public static Dictionary<long, ObjectStatus> CurrentTransforms { get; private set; }
 
         private static void InitInputState()
         {
@@ -236,7 +236,7 @@ namespace RegressionGames.ActionManager
             _rightMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
-            
+
             // move mouse off screen
             MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
         }
@@ -287,7 +287,7 @@ namespace RegressionGames.ActionManager
 
         public static void SimulateMouseMovement(Vector2 mousePosition)
         {
-            MouseEventSender.SendRawPositionMouseEvent(0, mousePosition, leftButton: _leftMouseButton, middleButton: _middleMouseButton, 
+            MouseEventSender.SendRawPositionMouseEvent(0, mousePosition, leftButton: _leftMouseButton, middleButton: _middleMouseButton,
                 rightButton: _rightMouseButton, forwardButton: _forwardMouseButton, backButton: _backMouseButton, scroll: _mouseScroll);
             _mousePosition = mousePosition;
         }
@@ -311,22 +311,22 @@ namespace RegressionGames.ActionManager
         {
             SimulateKeyState(KeyCode.Mouse0, isPressed);
         }
-        
+
         public static void SimulateMiddleMouseButton(bool isPressed)
         {
             SimulateKeyState(KeyCode.Mouse2, isPressed);
         }
-        
+
         public static void SimulateRightMouseButton(bool isPressed)
         {
             SimulateKeyState(KeyCode.Mouse1, isPressed);
         }
-        
+
         public static void SimulateForwardMouseButton(bool isPressed)
         {
             SimulateKeyState(KeyCode.Mouse3, isPressed);
         }
-        
+
         public static void SimulateBackMouseButton(bool isPressed)
         {
             SimulateKeyState(KeyCode.Mouse4, isPressed);

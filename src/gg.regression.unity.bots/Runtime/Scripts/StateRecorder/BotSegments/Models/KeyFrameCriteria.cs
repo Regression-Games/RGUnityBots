@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class KeyFrameCriteria
     {
         // api version of this top level schema, update if we add/change fields
-        public int apiVersion = BotSegment.SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         public KeyFrameCriteriaType type;
         public bool transient;
