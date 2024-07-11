@@ -18,7 +18,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class RandomMousePixelActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = BotSegment.SDK_API_VERSION_2;
+        public int apiVersion = SdkApiVersion.VERSION_2;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.RandomMouse_ClickPixel;
@@ -50,12 +50,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
         }
 
-        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             // no-op
         }
 
-        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
+        public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -121,7 +121,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         leftButton = Random.Range(0, 2) == 0,
                         middleButton = Random.Range(0, 2) == 0,
                         rightButton = Random.Range(0, 2) == 0,
-                    }, null, null, currentUITransforms, currentGameObjectTransforms);
+                    }, null, null, currentTransforms, currentEntities);
                     return true;
                 }
             }
@@ -132,7 +132,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         private GUIStyle _guiStyle = null;
 
-        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             if (_guiStyle == null)
             {

@@ -56,12 +56,16 @@ namespace RegressionGames.ActionManager.Actions
 
         private bool IsCoordOverUIElement(Vector2 pos)
         {
-            foreach (var p in RGActionManager.CurrentUITransforms)
+            var canvasRenderers = Object.FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
+            foreach (var canvasRenderer in canvasRenderers)
             {
-                var tStatus = p.Value;
-                if (tStatus.screenSpaceBounds.HasValue && tStatus.screenSpaceBounds.Value.Contains(pos))
+                var uiObject = ((CanvasRenderer)canvasRenderer).gameObject;
+                if (RGActionManager.CurrentTransforms.TryGetValue(uiObject.transform.GetInstanceID(), out var tStatus))
                 {
-                    return true;
+                    if (tStatus.screenSpaceBounds.HasValue && tStatus.screenSpaceBounds.Value.Contains(pos))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;

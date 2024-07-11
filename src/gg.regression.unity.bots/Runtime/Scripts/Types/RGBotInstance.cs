@@ -8,13 +8,12 @@ namespace RegressionGames.Types
         // ReSharper disable InconsistentNaming
         public long id;
         public RGBot bot;
-        public long? lobby;
         public DateTimeOffset createdDate;
         // ReSharper enable InconsistentNaming
 
         public override string ToString()
         {
-            return $"{id} - {lobby} - {bot}";
+            return $"{id} - {bot}";
         }
 
         public override bool Equals(object obj)

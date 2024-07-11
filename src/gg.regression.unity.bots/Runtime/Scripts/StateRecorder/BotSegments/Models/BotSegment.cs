@@ -14,26 +14,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [Serializable]
     public class BotSegment
     {
-        // these values reference key moments in the development of the SDK for bot segments
-        public const int SDK_API_VERSION_1 = 1; // initial version with and/or/normalizedPath criteria and mouse/keyboard input actions
-        public const int SDK_API_VERSION_2 = 2; // added mouse pixel and object random clicking actions
-        public const int SDK_API_VERSION_3 = 3; // added ui pixel hash key frame criteria
-
-        // Update this when new features are used in the SDK
-        public const int CURRENT_SDK_API_VERSION = SDK_API_VERSION_3;
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
-        public int apiVersion = SDK_API_VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_1;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), keyFrameCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
 
         public string sessionId;
-        public KeyFrameCriteria[] keyFrameCriteria;
+        public List<KeyFrameCriteria> keyFrameCriteria = new();
         public BotAction botAction;
 
         // Replay only - if this was fully matched (still not done until actions also completed)
@@ -52,16 +45,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // returns true if botAction.IsCompleted || botAction.IsCompleted==null && Replay_Matched
         public bool Replay_ActionCompleted => botAction == null || (botAction.IsCompleted ?? Replay_Matched);
 
-        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             if (botAction != null)
             {
-                botAction.OnGUI(currentUITransforms, currentGameObjectTransforms);
+                botAction.OnGUI(currentTransforms, currentEntities);
             }
         }
 
         // Replay only - called at least once per frame
-        public bool ProcessAction(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
+        public bool ProcessAction(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             if (botAction == null)
             {
@@ -71,10 +64,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 if (!Replay_ActionStarted)
                 {
-                    botAction.StartAction(Replay_SegmentNumber, currentUITransforms, currentGameObjectTransforms);
+                    botAction.StartAction(Replay_SegmentNumber, currentTransforms, currentEntities);
                     Replay_ActionStarted = true;
                 }
-                return botAction.ProcessAction(Replay_SegmentNumber, currentUITransforms, currentGameObjectTransforms, out error);
+                return botAction.ProcessAction(Replay_SegmentNumber, currentTransforms, currentEntities, out error);
             }
 
             error = null;
@@ -86,7 +79,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             if (keyFrameCriteria != null)
             {
-                var keyFrameCriteriaLength = keyFrameCriteria.Length;
+                var keyFrameCriteriaLength = keyFrameCriteria.Count;
                 for (var i = 0; i < keyFrameCriteriaLength; i++)
                 {
                     keyFrameCriteria[i].ReplayReset();
@@ -105,7 +98,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // Replay only - true if any of this frame's transient criteria have matched
         public bool Replay_TransientMatched => TransientMatchedHelper(keyFrameCriteria);
 
-        private bool TransientMatchedHelper(KeyFrameCriteria[] criteriaList)
+        private bool TransientMatchedHelper(List<KeyFrameCriteria> criteriaList)
         {
             if (criteriaList != null)
             {
@@ -142,7 +135,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // current and next segment must be transient for this to really change behaviour
         public bool HasTransientCriteria => HasTransientCriteriaHelper(keyFrameCriteria);
 
-        private bool HasTransientCriteriaHelper(KeyFrameCriteria[] criteriaList)
+        private bool HasTransientCriteriaHelper(List<KeyFrameCriteria> criteriaList)
         {
             if (criteriaList != null)
             {
@@ -188,7 +181,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append(",\n\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\n\"keyFrameCriteria\":[\n");
-            var keyFrameCriteriaLength = keyFrameCriteria.Length;
+            var keyFrameCriteriaLength = keyFrameCriteria.Count;
             for (var i = 0; i < keyFrameCriteriaLength; i++)
             {
                 var criteria = keyFrameCriteria[i];

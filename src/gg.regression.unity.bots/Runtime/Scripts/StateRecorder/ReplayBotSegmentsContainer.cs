@@ -73,7 +73,7 @@ namespace RegressionGames.StateRecorder
                     using var sr = new StreamReader(entry.Open());
                     var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
 
-                    if (frameData.EffectiveApiVersion > BotSegment.CURRENT_SDK_API_VERSION)
+                    if (frameData.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                     {
                         versionMismatch = frameData.EffectiveApiVersion;
                         break;
@@ -99,7 +99,7 @@ namespace RegressionGames.StateRecorder
 
             if (versionMismatch > 0)
             {
-                throw new Exception($"Error parsing bot segments .zip at segment #{badSegmentNumber}.  File contains segments which require SDK version {versionMismatch}, but currently installed SDK version is {BotSegment.CURRENT_SDK_API_VERSION}");
+                throw new Exception($"Error parsing bot segments .zip at segment #{badSegmentNumber}.  File contains segments which require SDK version {versionMismatch}, but currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
             }
 
             if (_botSegments.Count == bsCount)

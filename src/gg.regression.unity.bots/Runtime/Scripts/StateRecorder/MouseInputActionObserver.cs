@@ -26,7 +26,7 @@ namespace RegressionGames.StateRecorder
                 return (d > 0) ? 1 : (d < 0) ? -1 : 0;
             } );
 
-        public void ObserveMouse(IEnumerable<TransformStatus> statefulObjects)
+        public void ObserveMouse(IEnumerable<ObjectStatus> statefulObjects)
         {
             var mousePosition = Mouse.current.position.ReadValue();
             var newMouseState = GetCurrentMouseState(mousePosition);
@@ -162,11 +162,11 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        private IEnumerable<TransformStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<TransformStatus> statefulObjects, out float maxZDepth)
+        private IEnumerable<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects, out float maxZDepth)
         {
             // make sure screen space position Z is around 0
             var vec3Position = new Vector3(position.x, position.y, 0);
-            List<TransformStatus> result = new();
+            List<ObjectStatus> result = new();
             maxZDepth = 0f;
             var hitUIElement = false;
             foreach (var recordedGameObjectState in statefulObjects)
