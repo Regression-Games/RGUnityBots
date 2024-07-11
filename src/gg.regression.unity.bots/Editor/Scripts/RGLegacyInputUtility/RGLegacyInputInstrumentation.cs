@@ -266,7 +266,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
             catch (IOException e)
             {
-                // If the instrumentation failed here, then there is nothing w can o
+                // If the instrumentation failed here, then there is nothing we can do since this could be part of a player build process
                 RGDebug.Log($"Instrumentation of legacy input APIs failed for {assemblyAssetPath}. Simulating legacy inputs may not work, try re-building the game assemblies.\n{e.Message}\n{e.StackTrace}");
             }
         }
