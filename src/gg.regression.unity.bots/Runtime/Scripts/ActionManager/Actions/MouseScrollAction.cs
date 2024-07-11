@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -9,14 +12,22 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseScrollAction : RGGameAction
     {
-        public MouseScrollAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        public MouseScrollAction(string[] path, Type objectType) : 
+            base(path, objectType)
+        {
+        }
+
+        public MouseScrollAction(JObject serializedAction) :
+            base(serializedAction)
         {
         }
 
         // Discretized to int (rather than using float) so that there is a greater chance of not scrolling at all
         public override IRGValueRange ParameterRange { get; } =
             new RGVector2IntRange(new Vector2Int(-1, -1), new Vector2Int(1, 1));
-        
+
+        public override string DisplayName => "Mouse Scroll";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
@@ -26,6 +37,15 @@ namespace RegressionGames.ActionManager.Actions
         {
             return new MouseScrollInstance(this, obj);
         }
+        
+        public override bool IsEquivalentTo(RGGameAction other)
+        {
+            return other is MouseScrollAction && base.IsEquivalentTo(other);
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
+        }
     }
 
     public class MouseScrollInstance : RGGameActionInstance<MouseScrollAction, Vector2Int>
@@ -34,10 +54,10 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(Vector2Int param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(Vector2Int param)
         {
             Vector2 mouseScroll = param;
-            RGActionManager.SimulateMouseScroll(mouseScroll);
+            yield return new MouseScrollInput(mouseScroll);
         }
     }
 }

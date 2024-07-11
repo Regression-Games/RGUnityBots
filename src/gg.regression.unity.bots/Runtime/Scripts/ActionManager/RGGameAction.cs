@@ -1,22 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Linq;
+using System.Text;
+using Newtonsoft.Json.Linq;
+using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ActionManager
 {
     public abstract class RGGameAction
     {
+        
         /// The path of the action, typically derived from
         /// the location where the associated input handling logic takes place.
         /// An action may have multiple paths if multiple code locations were inferred to
         /// have equivalent actions by IsEquivalentTo and were grouped together.
         public List<string[]> Paths { get; private set; }
-        
-        /// <summary>
-        /// Actions with the same group number can be performed together simultaneously on the same frame.
-        /// Two actions with different group numbers will NOT be performed on the same frame by any bot.
-        /// </summary>
-        public int ActionGroup { get; }
         
         /// The type of object that the action is associated with.
         /// The object must be derived from UnityEngine.Object, and
@@ -27,15 +25,21 @@ namespace RegressionGames.ActionManager
          /// The range of parameter values accepted by this action's
          /// Perform() method.
         public abstract IRGValueRange ParameterRange { get; }
-        
-        /// User-specified data for this action.
-        public Dictionary<string, object> UserData { get; }
-        
-        public RGGameAction(string[] path, Type objectType, int actionGroup)
+
+         /// The name of this action as it should be displayed when presented to the user.
+        public abstract string DisplayName { get; }
+
+        public RGGameAction(string[] path, Type objectType)
         {
             Paths = new List<string[]> { path };
             ObjectType = objectType;
-            ActionGroup = actionGroup;
+        }
+
+        public RGGameAction(JObject serializedAction)
+        {
+            JArray paths = (JArray)serializedAction["paths"];
+            Paths = new List<string[]>(paths.Select(path => path.ToString().Split("/")));
+            ObjectType = Type.GetType(serializedAction["objectTypeName"].ToString(), true);
         }
 
         /// <summary>
@@ -69,6 +73,34 @@ namespace RegressionGames.ActionManager
         {
             return ObjectType == other.ObjectType && ParameterRange.RangeEquals(other.ParameterRange);
         }
+
+        /// <summary>
+        /// Serializes this action to the specified StringBuilder.
+        /// </summary>
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\n\"actionTypeName\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, GetType().AssemblyQualifiedName);
+            stringBuilder.Append(",\n\"paths\":[");
+            int pathsCount = Paths.Count;
+            for (int i = 0; i < pathsCount; ++i)
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, string.Join("/", Paths[i]));
+                if (i + 1 < pathsCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"objectTypeName\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, ObjectType.AssemblyQualifiedName);
+            WriteParametersToStringBuilder(stringBuilder);
+            stringBuilder.Append("\n}");
+        }
+
+        /// <summary>
+        /// Serialize the action-specific parameters (such as key code, button name, etc.).
+        /// </summary>
+        protected abstract void WriteParametersToStringBuilder(StringBuilder stringBuilder);
     }
 
     public interface IRGGameActionInstance
@@ -77,12 +109,16 @@ namespace RegressionGames.ActionManager
         /// Get the action associated with this instance.
         /// </summary>
         public RGGameAction BaseAction { get; }
-        
+
         /// <summary>
-        /// Perform the action by simulating the applicable user inputs.
+        /// Get the object associated with this action instance.
         /// </summary>
-        /// <param name="param">Value from the action's ParameterRange</param>
-        public void Perform(object param);
+        public UnityEngine.Object TargetObject { get; }
+
+        /// <summary>
+        /// Get the device inputs needed to perform this action instance.
+        /// </summary>
+        public IEnumerable<RGActionInput> GetInputs(object param);
     }
     
     public abstract class RGGameActionInstance<TAction, TParam> : IRGGameActionInstance where TAction : RGGameAction
@@ -103,11 +139,11 @@ namespace RegressionGames.ActionManager
             TargetObject = targetObject;
         }
 
-        public void Perform(object param)
+        public IEnumerable<RGActionInput> GetInputs(object param)
         {
-            PerformAction((TParam)param);
+            return GetActionInputs((TParam)param);
         }
         
-        protected abstract void PerformAction(TParam param);
+        protected abstract IEnumerable<RGActionInput> GetActionInputs(TParam param);
     }
 }

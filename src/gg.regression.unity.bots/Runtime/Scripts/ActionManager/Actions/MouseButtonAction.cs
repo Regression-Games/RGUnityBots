@@ -1,34 +1,35 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
 {
-    public enum MouseButtonActionButton
-    {
-        LEFT_MOUSE_BUTTON,
-        MIDDLE_MOUSE_BUTTON,
-        RIGHT_MOUSE_BUTTON,
-        FORWARD_MOUSE_BUTTON,
-        BACK_MOUSE_BUTTON
-    }
     
     /// <summary>
     /// This is an action to press or release a particular mouse button.
     /// </summary>
     public class MouseButtonAction : RGGameAction
     {
-        public Func<Object, MouseButtonActionButton> MouseButtonFunc { get; }
-        public string MouseButtonFuncName { get; }
+        public RGActionParamFunc<int> MouseButtonFunc { get; }
         
-        public MouseButtonAction(string[] path, Type objectType, Func<Object, MouseButtonActionButton> mouseBtnFunc, string mouseBtnFuncName, int actionGroup) 
-            : base(path, objectType, actionGroup)
+        public MouseButtonAction(string[] path, Type objectType, RGActionParamFunc<int> mouseButtonFunc) 
+            : base(path, objectType)
         {
-            MouseButtonFunc = mouseBtnFunc;
-            MouseButtonFuncName = mouseBtnFuncName;
+            MouseButtonFunc = mouseButtonFunc;
+        }
+
+        public MouseButtonAction(JObject serializedAction) :
+            base(serializedAction)
+        {
+            MouseButtonFunc = RGActionParamFunc<int>.Deserialize(serializedAction["mouseButtonFunc"]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => $"Mouse Button {MouseButtonFunc}";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
@@ -43,12 +44,18 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is MouseButtonAction action)
             {
-                return action.MouseButtonFuncName == MouseButtonFuncName;
+                return action.MouseButtonFunc == MouseButtonFunc;
             }
             else
             {
                 return false;
             }
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append(",\n\"mouseButtonFunc\":");
+            MouseButtonFunc.WriteToStringBuilder(stringBuilder);
         }
     }
 
@@ -58,30 +65,10 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
-            MouseButtonActionButton btn = Action.MouseButtonFunc(TargetObject);
-            switch (btn)
-            {
-                case MouseButtonActionButton.LEFT_MOUSE_BUTTON:
-                    RGActionManager.SimulateLeftMouseButton(param);
-                    break;
-                case MouseButtonActionButton.MIDDLE_MOUSE_BUTTON:
-                    RGActionManager.SimulateMiddleMouseButton(param);
-                    break;
-                case MouseButtonActionButton.RIGHT_MOUSE_BUTTON:
-                    RGActionManager.SimulateRightMouseButton(param);
-                    break;
-                case MouseButtonActionButton.FORWARD_MOUSE_BUTTON:
-                    RGActionManager.SimulateForwardMouseButton(param);
-                    break;
-                case MouseButtonActionButton.BACK_MOUSE_BUTTON:
-                    RGActionManager.SimulateBackMouseButton(param);
-                    break;
-                default:
-                    RGDebug.LogWarning($"Unexpected mouse button {btn}");
-                    break;
-            }
+            var btn = Action.MouseButtonFunc.Invoke(TargetObject);
+            yield return new MouseButtonInput(btn, param);
         }
     }
 }

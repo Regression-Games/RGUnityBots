@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
 
@@ -9,18 +12,24 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class InputSystemKeyAction : RGGameAction
     {
-        public Func<Object, Key> KeyFunc { get; }
-        public string KeyFuncName { get; }
+        public RGActionParamFunc<Key> KeyFunc { get; }
         
-        public InputSystemKeyAction(string[] path, Type objectType, Func<Object, Key> keyFunc, string keyFuncName, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public InputSystemKeyAction(string[] path, Type objectType, RGActionParamFunc<Key> keyFunc) : 
+            base(path, objectType)
         {
             KeyFunc = keyFunc;
-            KeyFuncName = keyFuncName;
+        }
+
+        public InputSystemKeyAction(JObject serializedAction) :
+            base(serializedAction)
+        {
+            KeyFunc = RGActionParamFunc<Key>.Deserialize(serializedAction["keyFunc"]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => $"Key {KeyFunc}";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
@@ -35,12 +44,18 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is InputSystemKeyAction action)
             {
-                return KeyFuncName == action.KeyFuncName;
+                return KeyFunc == action.KeyFunc;
             }
             else
             {
                 return false;
             }
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append(",\n\"keyFunc\":");
+            KeyFunc.WriteToStringBuilder(stringBuilder);
         }
     }
 
@@ -50,10 +65,10 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
-            Key key = Action.KeyFunc(TargetObject);
-            RGActionManager.SimulateKeyState(key, param);
+            Key key = Action.KeyFunc.Invoke(TargetObject);
+            yield return new InputSystemKeyInput(key, param);
         }
     }
 }

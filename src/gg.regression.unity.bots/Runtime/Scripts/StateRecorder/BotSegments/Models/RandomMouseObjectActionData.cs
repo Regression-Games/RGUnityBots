@@ -19,7 +19,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class RandomMouseObjectActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = BotSegment.SDK_API_VERSION_2;
+        public int apiVersion = SdkApiVersion.VERSION_2;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.RandomMouse_ClickObject;
@@ -66,12 +66,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
         }
 
-        public void StartAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             // no-op
         }
 
-        public bool ProcessAction(int segmentNumber, Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms, out string error)
+        public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             var now = Time.unscaledTime;
             if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -79,18 +79,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 var screenHeight = Screen.height;
                 var screenWidth = Screen.width;
 
-                List<TransformStatus> possibleTransformsToClick;
+                List<ObjectStatus> possibleTransformsToClick;
                 // pick randomly either UI or gameObject
-                var uiOrGameObject = Random.Range(0, 2) > 0;
+                var uiOrEntityObject = Random.Range(0, 2) > 0;
                 var preconditionsMet = preconditionNormalizedPaths.Count == 0;
                 if (!preconditionsMet)
                 {
-                    preconditionsMet = currentUITransforms.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
+                    preconditionsMet = currentTransforms.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
                 }
 
                 if (!preconditionsMet)
                 {
-                    preconditionsMet = currentGameObjectTransforms.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
+                    preconditionsMet = currentEntities.Any(a => a.Value.screenSpaceBounds != null && StateRecorderUtils.OptimizedContainsStringInList(preconditionNormalizedPaths, a.Value.NormalizedPath));
                 }
 
                 if (!preconditionsMet)
@@ -113,13 +113,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     return false;
                 }
 
-                if (currentGameObjectTransforms.Count == 0 || uiOrGameObject && currentUITransforms.Count > 0)
+                if (currentEntities.Count == 0 || uiOrEntityObject && currentTransforms.Count > 0)
                 {
-                    possibleTransformsToClick = currentUITransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
+                    possibleTransformsToClick = currentTransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
                 }
                 else
                 {
-                    possibleTransformsToClick = currentGameObjectTransforms.Values.Where(a => a.screenSpaceBounds != null).ToList();
+                    possibleTransformsToClick = currentEntities.Values.Where(a => a.screenSpaceBounds != null).ToList();
                 }
 
                 var possibleTransformsCount = possibleTransformsToClick.Count;
@@ -250,7 +250,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             var rb = Random.Range(0, 2) == 0;
                             var fb = Random.Range(0, 2) == 0;
                             var bb = Random.Range(0, 2) == 0;
-                            RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - RandomMouseObjectClicker - {{x:{x}, y:{y}, lb:{(lb?1:0)}, mb:{(mb?1:0)}, rb:{(rb?1:0)}, fb:{(fb?1:0)}, bb:{(bb?1:0)}}} on object with NormalizedPath: {transformOption.NormalizedPath}", transformOption.Transform.gameObject);
+                            RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - RandomMouseObjectClicker - {{x:{x}, y:{y}, lb:{(lb?1:0)}, mb:{(mb?1:0)}, rb:{(rb?1:0)}, fb:{(fb?1:0)}, bb:{(bb?1:0)}}} on object with NormalizedPath: {transformOption.NormalizedPath}");
                             MouseEventSender.SendRawPositionMouseEvent(
                                 segmentNumber,
                                 new Vector2(x, y),
@@ -293,7 +293,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         private GUIStyle _guiStyle = null;
 
-        public void OnGUI(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             if (_guiStyle == null)
             {
@@ -307,17 +307,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 _guiStyle.normal.textColor = textColor;
             }
             OnGUIDrawExcludedAreas();
-            OnGUIDrawExcludedObjects(currentUITransforms, currentGameObjectTransforms);
+            OnGUIDrawExcludedObjects(currentTransforms, currentEntities);
         }
 
-        private void OnGUIDrawExcludedObjects(Dictionary<int, TransformStatus> currentUITransforms, Dictionary<int, TransformStatus> currentGameObjectTransforms)
+        private void OnGUIDrawExcludedObjects(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             if (excludedNormalizedPaths.Count > 0)
             {
                 var screenHeight = Screen.height;
                 var bgColor = (Color.yellow + Color.red) / 2;
                 bgColor.a = 0.4f;
-                foreach (var currentUITransform in currentUITransforms)
+                foreach (var currentUITransform in currentTransforms)
                 {
                     var uiValue = currentUITransform.Value;
                     if (uiValue.screenSpaceBounds.HasValue)
@@ -335,7 +335,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     }
                 }
 
-                foreach (var currentGameObjectTransform in currentGameObjectTransforms)
+                foreach (var currentGameObjectTransform in currentEntities)
                 {
                     var uiValue = currentGameObjectTransform.Value;
                     if (uiValue.screenSpaceBounds.HasValue)

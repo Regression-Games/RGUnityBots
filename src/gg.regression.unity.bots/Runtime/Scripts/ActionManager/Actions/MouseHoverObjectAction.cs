@@ -1,4 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -13,12 +18,19 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseHoverObjectAction : RGGameAction
     {
-        public MouseHoverObjectAction(string[] path, Type objectType, int actionGroup) : base(path, objectType, actionGroup)
+        public MouseHoverObjectAction(string[] path, Type objectType) : base(path, objectType)
+        {
+        }
+
+        public MouseHoverObjectAction(JObject serializedAction) :
+            base(serializedAction)
         {
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
+
+        public override string DisplayName => $"Mouse Hover Over {ObjectType.Name}";
+
         public override bool IsValidForObject(Object obj)
         {
             return MouseHoverObjectInstance.GetHoverScreenSpaceBounds(obj).HasValue;
@@ -27,6 +39,15 @@ namespace RegressionGames.ActionManager.Actions
         public override IRGGameActionInstance GetInstance(Object obj)
         {
             return new MouseHoverObjectInstance(this, obj);
+        }
+
+        public override bool IsEquivalentTo(RGGameAction other)
+        {
+            return other is MouseHoverObjectAction && base.IsEquivalentTo(other);
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
         }
     }
 
@@ -42,13 +63,8 @@ namespace RegressionGames.ActionManager.Actions
             GameObject gameObject = c.gameObject;
             var instId = gameObject.transform.GetInstanceID();
             Bounds? ssBounds = null;
-            TransformStatus tStatus;
-            if (RGActionManager.CurrentGameObjectTransforms.TryGetValue(instId, out tStatus))
-            {
-                ssBounds = tStatus.screenSpaceBounds;
-            }
-            if (!ssBounds.HasValue &&
-                RGActionManager.CurrentUITransforms.TryGetValue(instId, out tStatus))
+            ObjectStatus tStatus;
+            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out tStatus))
             {
                 ssBounds = tStatus.screenSpaceBounds;
             }
@@ -96,7 +112,7 @@ namespace RegressionGames.ActionManager.Actions
                     }
                 }
             }
-            
+
             return ssBounds;
         }
 
@@ -125,18 +141,18 @@ namespace RegressionGames.ActionManager.Actions
             return candidates[0];
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             var ssBounds = GetHoverScreenSpaceBounds(TargetObject);
             if (ssBounds.HasValue)
             {
                 if (param)
                 {
-                    RGActionManager.SimulateMouseMovement(ssBounds.Value.center);
+                    yield return new MousePositionInput(ssBounds.Value.center);
                 }
                 else
                 {
-                    RGActionManager.SimulateMouseMovement(GetPointOutsideBounds(ssBounds.Value));
+                    yield return new MousePositionInput(GetPointOutsideBounds(ssBounds.Value));
                 }
             }
         }

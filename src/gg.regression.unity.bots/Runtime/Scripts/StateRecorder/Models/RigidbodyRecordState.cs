@@ -8,14 +8,27 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class RigidbodyRecordState
+    public class RigidbodyRecordState: IComponentDataProvider
     {
+
+        private static readonly string TypeName = typeof(Rigidbody).FullName;
+
+        public int apiVersion = SdkApiVersion.VERSION_4;
+        public int ApiVersion()
+        {
+            return apiVersion;
+        }
+
         // keep a ref to this instead of updating fields every tick
         public Rigidbody rigidbody;
 
         public virtual void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"is2D\":false");
+            stringBuilder.Append("{\"name\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, TypeName);
+            stringBuilder.Append(",\"is2D\":false");
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"position\":");
             VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.position);
             stringBuilder.Append(",\"rotation\":");

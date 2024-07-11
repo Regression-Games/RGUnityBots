@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Text;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,46 +14,54 @@ namespace RegressionGames.StateRecorder.Models
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RecordedGameObjectState
     {
+        // version of this schema, update this if fields change
+        public int apiVersion = SdkApiVersion.VERSION_4;
 
-        public int id;
+        public int EffectiveApiVersion => Math.Max(apiVersion, componentDataProviders.DefaultIfEmpty().Max(a => a?.ApiVersion() ?? 0));
 
-        public int? parentId;
+        public long id;
+
+        public long? parentId;
 
         public string path;
         public string normalizedPath;
 
-        [NonSerialized] // used internally for performance, but serialized as the name
-        public Scene scene;
+        public string scene;
 
         public string tag;
         public string layer;
+
+        public ObjectType type;
 
         public Bounds? screenSpaceBounds;
 
         public float? screenSpaceZOffset;
 
-        [NonSerialized]
-        // keep reference to this instead of updating its fields every tick
-        public Transform transform;
+        public Vector3? position;
+        public Quaternion? rotation;
 
         public Bounds? worldSpaceBounds;
 
-        public IList<RigidbodyRecordState> rigidbodies;
-        public IList<ColliderRecordState> colliders;
-        public IList<BehaviourState> behaviours;
+        // List of component data provider impls for this object.. allows transform and entity support
+        [NonSerialized]
+        public List<IComponentDataProvider> componentDataProviders;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\n\"id\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, id);
+            LongJsonConverter.WriteToStringBuilder(stringBuilder, id);
             stringBuilder.Append(",\n\"parentId\":");
-            IntJsonConverter.WriteToStringBuilderNullable(stringBuilder, parentId);
+            LongJsonConverter.WriteToStringBuilderNullable(stringBuilder, parentId);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\n\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, type.ToString());
             stringBuilder.Append(",\n\"path\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
             stringBuilder.Append(",\n\"normalizedPath\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, normalizedPath);
             stringBuilder.Append(",\n\"scene\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, scene.name);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, scene);
             stringBuilder.Append(",\n\"tag\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, tag);
             stringBuilder.Append(",\n\"layer\":");
@@ -63,35 +73,18 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\n\"worldSpaceBounds\":");
             BoundsJsonConverter.WriteToStringBuilderNullable(stringBuilder, worldSpaceBounds);
             stringBuilder.Append(",\n\"position\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, transform.position);
+            VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, position);
             stringBuilder.Append(",\n\"rotation\":");
-            QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, transform.rotation);
-            stringBuilder.Append(",\n\"rigidbodies\":[\n");
-            var rigidbodiesCount = rigidbodies.Count;
-            for (var i = 0; i < rigidbodiesCount; i++)
+            QuaternionJsonConverter.WriteToStringBuilderNullable(stringBuilder, rotation);
+            // TODO: Someday remove these no longer used fields
+            stringBuilder.Append(",\n\"rigidbodies\":[],\n\"colliders\":[],\n\"behaviours\":[]");
+            stringBuilder.Append(",\n\"components\":[\n");
+            var componentDataProvidersCount = componentDataProviders.Count;
+            for (var i = 0; i < componentDataProvidersCount; i++)
             {
-                rigidbodies[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < rigidbodiesCount)
-                {
-                    stringBuilder.Append(",\n");
-                }
-            }
-            stringBuilder.Append("\n],\n\"colliders\":[\n");
-            var collidersCount = colliders.Count;
-            for (var i = 0; i < collidersCount; i++)
-            {
-                colliders[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < collidersCount)
-                {
-                    stringBuilder.Append(",\n");
-                }
-            }
-            stringBuilder.Append("\n],\n\"behaviours\":[\n");
-            var behavioursCount = behaviours.Count;
-            for (var i = 0; i < behavioursCount; i++)
-            {
-                behaviours[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < behavioursCount)
+                var cdp = componentDataProviders[i];
+                cdp.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < componentDataProvidersCount)
                 {
                     stringBuilder.Append(",\n");
                 }
