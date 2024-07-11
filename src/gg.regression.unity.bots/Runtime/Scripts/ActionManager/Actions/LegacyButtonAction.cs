@@ -1,5 +1,8 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
+using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -12,18 +15,24 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyButtonAction : RGGameAction
     {
-        public Func<Object, string> ButtonNameFunc { get; }
-        public string ButtonNameFuncName { get; }
+        public RGActionParamFunc<string> ButtonNameFunc { get; }
 
-        public LegacyButtonAction(string[] path, Type objectType, Func<Object, string> buttonNameFunc, string buttonNameFuncName, int actionGroup) : 
-            base(path, objectType, actionGroup)
+        public LegacyButtonAction(string[] path, Type objectType, RGActionParamFunc<string> buttonNameFunc) : 
+            base(path, objectType)
         {
             ButtonNameFunc = buttonNameFunc;
-            ButtonNameFuncName = buttonNameFuncName;
+        }
+
+        public LegacyButtonAction(JObject serializedAction) :
+            base(serializedAction)
+        {
+            ButtonNameFunc = RGActionParamFunc<string>.Deserialize(serializedAction["buttonNameFunc"]);
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
         
+        public override string DisplayName => $"Button {ButtonNameFunc}";
+
         public override bool IsValidForObject(Object obj)
         {
             return true;
@@ -38,9 +47,15 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is LegacyButtonAction action)
             {
-                return ButtonNameFuncName == action.ButtonNameFuncName;
+                return ButtonNameFunc == action.ButtonNameFunc;
             }
             return false;
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append(",\n\"buttonNameFunc\":");
+            ButtonNameFunc.WriteToStringBuilder(stringBuilder);
         }
     }
 
@@ -50,9 +65,9 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        protected override void PerformAction(bool param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
-            string buttonName = Action.ButtonNameFunc(TargetObject);
+            string buttonName = Action.ButtonNameFunc.Invoke(TargetObject);
             var inpSettings = RGLegacyInputWrapper.InputManagerSettings;
             
             // Simulate appropriate button events
@@ -61,19 +76,19 @@ namespace RegressionGames.ActionManager.Actions
                 // The Input Manager considers either a positive or negative key code to be sufficient to trigger the button
                 if (entry.positiveButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.positiveButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.positiveButtonKeyCode.Value, param);
                 }
                 if (entry.altPositiveButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.altPositiveButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.altPositiveButtonKeyCode.Value, param);
                 }
                 if (entry.negativeButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.negativeButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.negativeButtonKeyCode.Value, param);
                 }
                 if (entry.altNegativeButtonKeyCode.HasValue)
                 {
-                    RGActionManager.SimulateKeyState(entry.altNegativeButtonKeyCode.Value, param);
+                    yield return new LegacyKeyInput(entry.altNegativeButtonKeyCode.Value, param);
                 }
             }
         }

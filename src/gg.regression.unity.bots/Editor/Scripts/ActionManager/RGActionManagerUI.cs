@@ -24,6 +24,7 @@ namespace RegressionGames.ActionManager
 
     public class RGActionManagerUI : EditorWindow
     {
+        private Button _analyzeBtn;
         private ToolbarSearchField _searchField;
         private ScrollView _actionsPane;
         private ScrollView _detailsPane;
@@ -31,16 +32,9 @@ namespace RegressionGames.ActionManager
         [MenuItem("Regression Games/Configure Bot Actions")]
         public static void OpenActionManagerUI()
         {
-            if (RGActionManager.IsAvailable)
-            {
-                EditorWindow wnd = GetWindow<RGActionManagerUI>();
-                wnd.titleContent = new GUIContent("RG Action Manager");
-                wnd.minSize = new Vector2(500.0f, 600.0f);
-            }
-            else
-            {
-                EditorUtility.DisplayDialog("Error", "Action manager is currently unavailable", "OK");
-            }
+            EditorWindow wnd = GetWindow<RGActionManagerUI>();
+            wnd.titleContent = new GUIContent("RG Action Manager");
+            wnd.minSize = new Vector2(500.0f, 600.0f);
         }
 
         private IEnumerable<RGGameAction> EnumerateActions()
@@ -61,6 +55,14 @@ namespace RegressionGames.ActionManager
                             break;
                         }
                     }
+                    if (action.ObjectType.FullName.ToLower().Contains(searchQuery))
+                    {
+                        shouldInclude = true;
+                    }
+                    if (action.DisplayName.ToLower().Contains(searchQuery))
+                    {
+                        shouldInclude = true;
+                    }
                 }
                 if (shouldInclude)
                 {
@@ -69,93 +71,42 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        private void BuildActionTree(ActionTreeNode node)
+        private List<ActionTreeNode> BuildActionTrees()
         {
-            ISet<string> children = new HashSet<string>();
+            var actionsByTargetObject = new Dictionary<Type, List<RGGameAction>>();
             foreach (RGGameAction action in EnumerateActions())
             {
-                foreach (string[] path in action.Paths)
+                List<RGGameAction> actions;
+                if (!actionsByTargetObject.TryGetValue(action.ObjectType, out actions))
                 {
-                    if (path.SequenceEqual(node.path))
-                    {
-                        if (node.IsLeaf)
-                        {
-                            throw new ArgumentException($"Invalid duplicate path: {string.Join("/", path)}");
-                        }
-                        node.action = action;
-                    }
-                    else
-                    {
-                        bool startsWith = true;
-                        for (int i = 0; i < node.path.Length; ++i)
-                        {
-                            if (path[i] != node.path[i])
-                            {
-                                startsWith = false;
-                                break;
-                            }
-                        }
-                        if (startsWith)
-                        {
-                            children.Add(path[node.path.Length]);
-                        }
-                    }
+                    actions = new List<RGGameAction>();
+                    actionsByTargetObject.Add(action.ObjectType, actions);
                 }
+                actions.Add(action);
             }
 
-            if (children.Count > 0)
+            List<ActionTreeNode> result = new List<ActionTreeNode>();
+            foreach (var entry in actionsByTargetObject)
             {
-                if (node.IsLeaf)
-                {
-                    throw new ArgumentException($"Leaf node cannot have children: {string.Join("/", node.path)}");
-                }
-                node.children = new List<ActionTreeNode>(children.Count);
-                List<string> childrenSorted = new List<string>(children);
-                childrenSorted.Sort();
-                foreach (string child in childrenSorted)
-                {
-                    string[] childPath = new string[node.path.Length + 1];
-                    for (int i = 0; i < node.path.Length; ++i)
-                    {
-                        childPath[i] = node.path[i];
-                    }
-                    childPath[node.path.Length] = child;
-                    ActionTreeNode childNode = new ActionTreeNode(childPath);
-                    BuildActionTree(childNode);
-                    node.children.Add(childNode);
-                }
-            }
-        }
-
-        private ActionTreeNode[] BuildActionTrees()
-        {
-            ISet<string> roots = new HashSet<string>();
-            foreach (RGGameAction action in EnumerateActions())
-            {
-                foreach (string[] path in action.Paths)
-                {
-                    roots.Add(path[0]);
-                }
+                var objectType = entry.Key;
+                var actions = entry.Value;
+                ActionTreeNode node = new ActionTreeNode(new string[] { objectType.FullName });
+                node.children = new List<ActionTreeNode>(actions.Select(act => 
+                    new ActionTreeNode(new[] {node.path[0], act.DisplayName}) { action = act } ));
+                node.children.Sort((a, b) => a.path[1].CompareTo(b.path[1]));
+                result.Add(node);
             }
 
-            string unityUIRoot = "Unity UI";
-            bool hasUnityUI = roots.Remove(unityUIRoot);
-            List<string> rootList = new List<string>(roots);
-            rootList.Sort();
-            if (hasUnityUI)
-            {
-                rootList.Add(unityUIRoot);
-            }
-
-            ActionTreeNode[] result = new ActionTreeNode[rootList.Count];
-            for (int i = 0; i < rootList.Count; ++i)
-            {
-                ActionTreeNode node = new ActionTreeNode(new[] { rootList[i] });
-                BuildActionTree(node);
-                result[i] = node;
-            }
-
-            return result;
+            // always have Unity UI elements at the bottom of the list
+            List<ActionTreeNode> sorted =
+                new List<ActionTreeNode>(result.Where(node => !node.path[0].StartsWith("UnityEngine.UI.")));
+            sorted.Sort((a, b) => a.path[0].CompareTo(b.path[0]));
+            List<ActionTreeNode> uiSorted =
+                new List<ActionTreeNode>(result.Where(node => node.path[0].StartsWith("UnityEngine.UI.")));
+            uiSorted.Sort((a, b) => a.path[0].CompareTo(b.path[0]));
+            sorted.AddRange(uiSorted);
+            
+            return sorted;
         }
 
         private void CreateActionTreeElements(VisualElement container, ActionTreeNode node, IList<ListView> listViews)
@@ -185,16 +136,22 @@ namespace RegressionGames.ActionManager
                     checkbox.RegisterValueChangedCallback(evt =>
                     {
                         ActionTreeNode leafNode = (ActionTreeNode)checkbox.userData;
-                        string path = string.Join("/", leafNode.path);
-                        if (evt.newValue)
+                        if (leafNode == null)
+                            return;
+                        
+                        foreach (string[] actionPath in leafNode.action.Paths)
                         {
-                            RGActionManager.Settings.DisabledActionPaths.Remove(path);
-                        }
-                        else
-                        {
-                            if (!RGActionManager.Settings.DisabledActionPaths.Contains(path))
+                            string path = string.Join("/", actionPath);
+                            if (evt.newValue)
                             {
-                                RGActionManager.Settings.DisabledActionPaths.Add(path);
+                                RGActionManager.Settings.DisabledActionPaths.Remove(path);
+                            }
+                            else
+                            {
+                                if (!RGActionManager.Settings.DisabledActionPaths.Contains(path))
+                                {
+                                    RGActionManager.Settings.DisabledActionPaths.Add(path);
+                                }
                             }
                         }
                         RGActionManager.Settings.MarkDirty();
@@ -209,8 +166,8 @@ namespace RegressionGames.ActionManager
                     ActionTreeNode leafNode = node.children[index];
                     Toggle checkbox = (Toggle)item[0];
                     Label actionName = (Label)item[1];
-                    checkbox.value =
-                        !RGActionManager.Settings.DisabledActionPaths.Contains(string.Join("/", leafNode.path));
+                    checkbox.value = !leafNode.action.Paths.All(path =>
+                        RGActionManager.Settings.DisabledActionPaths.Contains(string.Join("/", path)));
                     actionName.text = leafNode.path.Last();
                     checkbox.userData = leafNode;
 
@@ -262,12 +219,13 @@ namespace RegressionGames.ActionManager
         {
             _actionsPane.Clear();
             _detailsPane.Clear();
-            ActionTreeNode[] rootNodes = BuildActionTrees();
+            var rootNodes = BuildActionTrees();
             IList<ListView> listViews = new List<ListView>();
-            foreach (ActionTreeNode rootNode in rootNodes)
+            foreach (var rootNode in rootNodes)
             {
                 CreateActionTreeElements(_actionsPane, rootNode, listViews);
             }
+            _analyzeBtn.SetEnabled(!EditorApplication.isPlayingOrWillChangePlaymode);
         }
 
         private void ShowActionDetails(ActionTreeNode leafNode)
@@ -277,9 +235,16 @@ namespace RegressionGames.ActionManager
             RGGameAction action = leafNode.action;
 
             Label actionName = new Label();
-            actionName.text = "Action: " + string.Join("/", leafNode.path);
+            actionName.text = "Action: " + leafNode.path.Last();
             actionName.style.unityFontStyleAndWeight = FontStyle.Bold;
             _detailsPane.Add(actionName);
+
+            Label paths = new Label();
+            paths.text = "Paths: " + (action.Paths.Count > 1
+                ? "\n" + string.Join("\n",
+                    action.Paths.Select((path, idx) => (idx + 1) + ". " + string.Join("/", path)))
+                : string.Join("/", action.Paths[0]));
+            _detailsPane.Add(paths);
 
             Label targetObject = new Label();
             targetObject.text = "Target Object Type: " + action.ObjectType.FullName;
@@ -288,31 +253,33 @@ namespace RegressionGames.ActionManager
             Label paramRange = new Label();
             paramRange.text = "Parameter Range: " + action.ParameterRange;
             _detailsPane.Add(paramRange);
-
-            Label actionGroup = new Label();
-            actionGroup.text = "Group ID: " + action.ActionGroup;
-            _detailsPane.Add(actionGroup);
         }
 
         public void CreateGUI()
         {
-            if (!RGActionManager.IsAvailable)
-            {
-                Close();
-                return;
-            }
-
             _searchField = new ToolbarSearchField();
             _searchField.RegisterValueChangedCallback(evt =>
             {
                 UpdateGUI();
             });
             _searchField.style.width = StyleKeyword.Auto;
-
-            var splitView = new TwoPaneSplitView(1, 250.0f, TwoPaneSplitViewOrientation.Vertical);
             rootVisualElement.Add(_searchField);
-            rootVisualElement.Add(splitView);
 
+            _analyzeBtn = new Button();
+            _analyzeBtn.text = "Analyze Actions";
+            _analyzeBtn.clicked += () =>
+            {
+                var analysis = new RGActionAnalysis(displayProgressBar: true);
+                if (analysis.RunAnalysis())
+                {
+                    RGActionManager.ReloadActions();
+                }
+            };
+            rootVisualElement.Add(_analyzeBtn);
+                
+            var splitView = new TwoPaneSplitView(1, 250.0f, TwoPaneSplitViewOrientation.Vertical);
+            rootVisualElement.Add(splitView);
+            
             _actionsPane = new ScrollView(ScrollViewMode.VerticalAndHorizontal);
             splitView.Add(_actionsPane);
 
@@ -322,7 +289,7 @@ namespace RegressionGames.ActionManager
             _detailsPane.style.paddingLeft = 8;
             _detailsPane.style.paddingRight = 8;
             _detailsPane.style.paddingBottom = 8;
-
+            
             UpdateGUI();
 
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
@@ -339,7 +306,7 @@ namespace RegressionGames.ActionManager
         {
             UpdateGUI();
         }
-
+        
         private void OnActionsChanged()
         {
             UpdateGUI();

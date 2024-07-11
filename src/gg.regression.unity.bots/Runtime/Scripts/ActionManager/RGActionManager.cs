@@ -25,9 +25,9 @@ namespace RegressionGames.ActionManager
         private static readonly string SETTINGS_PATH = $"{SETTINGS_DIRECTORY}/{SETTINGS_NAME}.txt";
 
         private static MonoBehaviour _context;
-        private static IRGActionProvider _actionProvider;
+        private static RGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
-        private static Dictionary<RGGameAction, IList<IRGGameActionInstance>> _sessionActionsBuf;
+        private static IList<RGGameAction> _sessionActions;
 
         /// <summary>
         /// Provides access to the actions obtained from the action provider.
@@ -39,7 +39,17 @@ namespace RegressionGames.ActionManager
         public delegate void ActionsChangedHandler();
         public static event ActionsChangedHandler ActionsChanged;
 
-        public static bool IsAvailable => _actionProvider != null;
+        public static bool IsAvailable
+        {
+            get
+            {
+                if (_actionProvider == null)
+                {
+                    _actionProvider = new RGActionProvider();
+                }
+                return _actionProvider.IsAvailable;
+            }
+        }
 
         /// <summary>
         /// Provides access to the action manager settings.
@@ -51,14 +61,7 @@ namespace RegressionGames.ActionManager
         [InitializeOnLoadMethod]
         public static void InitializeInEditor()
         {
-            // find the action provider
-            var actionProviders = TypeCache.GetTypesDerivedFrom<IRGActionProvider>();
-            Type providerType = actionProviders.FirstOrDefault();
-            if (providerType != null)
-            {
-                IRGActionProvider provider = (IRGActionProvider)providerType.GetConstructor(Type.EmptyTypes).Invoke(null);
-                SetActionProvider(provider);
-            }
+            ReloadActions();
             LoadSettings();
         }
         #endif
@@ -102,44 +105,21 @@ namespace RegressionGames.ActionManager
             }
             using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
             {
-                sw.Write(JsonUtility.ToJson(_settings));
+                sw.Write(JsonUtility.ToJson(_settings, true));
             }
         }
         #endif
 
-        public static void SetActionProvider(IRGActionProvider actionProvider)
-        {
-            _actionProvider = actionProvider;
-            _actionProvider.ActionsChanged += OnActionsChanged;
-        }
-
-        private static void OnActionsChanged(object sender, EventArgs args)
-        {
-            ActionsChanged?.Invoke();
-        }
-
         public static void StartSession(MonoBehaviour context)
         {
-            if (_actionProvider == null)
-            {
-                throw new Exception("Must set an action provider before starting a session");
-            }
             if (_context != null)
             {
                 throw new Exception($"Session is already active with context {_context}");
             }
+            ReloadActions();
             LoadSettings();
             _context = context;
-
-            _sessionActionsBuf = new Dictionary<RGGameAction, IList<IRGGameActionInstance>>();
-            foreach (RGGameAction action in _actionProvider.Actions)
-            {
-                if (IsActionEnabled(action))
-                {
-                    _sessionActionsBuf.Add(action, new List<IRGGameActionInstance>());
-                }
-            }
-
+            _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
             RGLegacyInputWrapper.StartSimulation(_context);
             SceneManager.sceneLoaded += OnSceneLoad;
             RGUtils.SetupEventSystem();
@@ -152,7 +132,7 @@ namespace RegressionGames.ActionManager
             {
                 SceneManager.sceneLoaded -= OnSceneLoad;
                 RGLegacyInputWrapper.StopSimulation();
-                _sessionActionsBuf = null;
+                _sessionActions = null;
                 _context = null;
             }
         }
@@ -175,16 +155,12 @@ namespace RegressionGames.ActionManager
         /// A dictionary mapping actions to valid instances in the current state.
         /// The list of valid instances may be empty (i.e. the presence of an action as a key does not imply it has a valid instance in the current state).
         /// </returns>
-        public static IDictionary<RGGameAction, IList<IRGGameActionInstance>> GetValidActions()
+        public static IEnumerable<IRGGameActionInstance> GetValidActions()
         {
             var tof = UnityEngine.Object.FindObjectOfType<TransformObjectFinder>();
             CurrentTransforms = tof.GetObjectStatusForCurrentFrame().Item2;
-            foreach (var entry in _sessionActionsBuf)
+            foreach (RGGameAction action in _sessionActions)
             {
-                RGGameAction action = entry.Key;
-                IList<IRGGameActionInstance> actionInstances = entry.Value;
-                actionInstances.Clear();
-
                 Debug.Assert(action.ParameterRange != null);
                 UnityEngine.Object[] objects = UnityEngine.Object.FindObjectsOfType(action.ObjectType);
                 foreach (var obj in objects)
@@ -201,11 +177,20 @@ namespace RegressionGames.ActionManager
                     }
                     if (action.IsValidForObject(obj))
                     {
-                        actionInstances.Add(action.GetInstance(obj));
+                        yield return action.GetInstance(obj);
                     }
                 }
             }
-            return _sessionActionsBuf;
+        }
+
+        public static void ReloadActions()
+        {
+            var prevActionProvider = _actionProvider;
+            _actionProvider = new RGActionProvider();
+            if (prevActionProvider != null)
+            {
+                ActionsChanged?.Invoke();
+            }
         }
 
         private static void OnSceneLoad(Scene s, LoadSceneMode m)
@@ -307,29 +292,9 @@ namespace RegressionGames.ActionManager
             _mouseScroll = mouseScroll;
         }
 
-        public static void SimulateLeftMouseButton(bool isPressed)
+        public static void SimulateMouseButton(int mouseButton, bool isPressed)
         {
-            SimulateKeyState(KeyCode.Mouse0, isPressed);
-        }
-
-        public static void SimulateMiddleMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse2, isPressed);
-        }
-
-        public static void SimulateRightMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse1, isPressed);
-        }
-
-        public static void SimulateForwardMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse3, isPressed);
-        }
-
-        public static void SimulateBackMouseButton(bool isPressed)
-        {
-            SimulateKeyState(KeyCode.Mouse4, isPressed);
+            SimulateKeyState(KeyCode.Mouse0 + mouseButton, isPressed);
         }
     }
 }

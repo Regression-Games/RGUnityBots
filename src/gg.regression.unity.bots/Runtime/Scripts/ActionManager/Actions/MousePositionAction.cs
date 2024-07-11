@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -11,12 +14,19 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePositionAction : RGGameAction
     {
-        public MousePositionAction(string[] path, Type objectType, int actionGroup) :
-            base(path, objectType, actionGroup)
+        public MousePositionAction(string[] path, Type objectType) : 
+            base(path, objectType)
+        {
+        }
+
+        public MousePositionAction(JObject serializedAction) :
+            base(serializedAction)
         {
         }
 
         public override IRGValueRange ParameterRange { get; } = new RGVector2Range(Vector2.zero, Vector2.one);
+
+        public override string DisplayName => "Mouse Position";
 
         public override bool IsValidForObject(Object obj)
         {
@@ -26,6 +36,15 @@ namespace RegressionGames.ActionManager.Actions
         public override IRGGameActionInstance GetInstance(Object obj)
         {
             return new MousePositionInstance(this, obj);
+        }
+        
+        public override bool IsEquivalentTo(RGGameAction other)
+        {
+            return other is MousePositionAction && base.IsEquivalentTo(other);
+        }
+
+        protected override void WriteParametersToStringBuilder(StringBuilder stringBuilder)
+        {
         }
     }
 
@@ -37,23 +56,27 @@ namespace RegressionGames.ActionManager.Actions
 
         private bool IsCoordOverUIElement(Vector2 pos)
         {
-            foreach (var p in RGActionManager.CurrentTransforms)
+            var canvasRenderers = Object.FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
+            foreach (var canvasRenderer in canvasRenderers)
             {
-                var tStatus = p.Value;
-                if (tStatus.screenSpaceBounds.HasValue && tStatus.screenSpaceBounds.Value.Contains(pos))
+                var uiObject = ((CanvasRenderer)canvasRenderer).gameObject;
+                if (RGActionManager.CurrentTransforms.TryGetValue(uiObject.transform.GetInstanceID(), out var tStatus))
                 {
-                    return true;
+                    if (tStatus.screenSpaceBounds.HasValue && tStatus.screenSpaceBounds.Value.Contains(pos))
+                    {
+                        return true;
+                    }
                 }
             }
             return false;
         }
 
-        protected override void PerformAction(Vector2 param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(Vector2 param)
         {
             Vector2 mousePos = new Vector2(Screen.width * param.x, Screen.height * param.y);
             if (!IsCoordOverUIElement(mousePos))
             {
-                RGActionManager.SimulateMouseMovement(mousePos);
+                yield return new MousePositionInput(mousePos);
             }
         }
     }
