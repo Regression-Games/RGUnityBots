@@ -6,10 +6,10 @@ namespace RegressionGames.Types
     [Serializable]
     public class RGCreateBotInstanceRequest
     {
-        public Long botId;
+        public long botId;
         public DateTime startDate;
 
-        public RGCreateBotInstanceRequest(Long botId, DateTime startDate)
+        public RGCreateBotInstanceRequest(long botId, DateTime startDate)
         {
             this.botId = botId;
             this.startDate = startDate;
