@@ -6,25 +6,29 @@ using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Pdb;
+using Mono.Cecil.Rocks;
+using RegressionGames.CodeCoverage;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Assembly = UnityEditor.Compilation.Assembly;
 
-namespace RegressionGames.Editor.RGLegacyInputUtility
+namespace RegressionGames.Editor
 {
     /*
      * This class is responsible for hooking into the Unity build process and
-     * applying the wrapper input API instrumentation for the legacy input manager.
+     * applying IL instrumentation performed by the SDK. (Legacy input support, Code coverage)
      */
-    public class RGLegacyInputInstrumentation
+    public class RGInstrumentation
     {
         private const int MaxAttempts = 4;
-        
+
         private static double _scheduledInstrumentationTime;
         private static int _numInstrumentationAttempts;
         
+        private static DefaultAssemblyResolver _assemblyResolver = null;
+
         [InitializeOnLoadMethod]
         static void OnStartup()
         {
@@ -36,20 +40,34 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             EditorApplication.update += ScheduledInstrumentationLoop;
         }
 
-        private static bool IsAssemblyIgnored(string assemblyPath, Assembly rgAssembly)
+        private static bool IsAssemblyIgnored(string assemblyPath)
         {
             string fileName = Path.GetFileName(assemblyPath);
-            if (fileName.StartsWith("UnityEngine.") || fileName.StartsWith("Unity.")) // ignore game engine assemblies
+            
+            var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
+            var asm = assemblies.FirstOrDefault(asm => Path.GetFileName(asm.outputPath) == Path.GetFileName(assemblyPath));
+            if (asm == null)
             {
-                return true;
+                return true; // not a player assembly
             }
 
-            if (fileName.Contains("RegressionGames")) // ignore RG assemblies
+            if (asm.sourceFiles.Length == 0)
             {
+                // don't instrument any assemblies we don't have the source code for
                 return true;
             }
-
+            
+            foreach (var sourceFile in asm.sourceFiles)
+            {
+                if (sourceFile.StartsWith("Packages/"))
+                {
+                    // ignore packages
+                    return true;
+                }
+            }
+            
             // ignore plugin packages referenced by the RG package
+            var rgAssembly = FindRGAssembly();
             if (rgAssembly != null)
             {
                 foreach (string asmPath in rgAssembly.allReferences)
@@ -69,7 +87,6 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             return ns.Contains("RegressionGames");
         }
 
-        private static DefaultAssemblyResolver _assemblyResolver = null;
 
         private static void UpdateAssemblyResolver(object o)
         {
@@ -149,14 +166,24 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             return result;
         }
 
-        // Yields (instruction, wrapper method) pairs indicating the call sites and appropriate wrapper method to use for each
-        private static IEnumerable<(Instruction, MethodReference)> FindInstrumentationPoints(ModuleDefinition module,
-            Dictionary<string, MethodReference> wrapperMethods)
+        public static MethodReference FindCodeCoverageVisitMethod(ModuleDefinition wrapperModule)
+        {
+            TypeDefinition type = wrapperModule.GetType(typeof(RGCodeCoverage).FullName);
+            if (type != null)
+            {
+                return type.Methods.FirstOrDefault(m => m.Name == "Visit");
+            }
+            return null;
+        }
+
+        // Returns whether any changes were made
+        private static bool ApplyLegacyInputInstrumentation(ModuleDefinition module, Dictionary<string, MethodReference> wrapperMethods)
         {
             if (wrapperMethods.Count == 0)
             {
-                yield break;
+                return false;
             }
+            bool anyChanges = false;
             foreach (TypeDefinition type in module.Types)
             {
                 if (IsNamespaceIgnored(type.Namespace))
@@ -169,32 +196,130 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
                     foreach (Instruction inst in method.Body.Instructions)
                     {
-                        if (inst.OpCode.Name == "call" && inst.Operand is MethodReference methodRef
-                                                       && methodRef.DeclaringType.FullName == "UnityEngine.Input")
+                        if (inst.OpCode == OpCodes.Call && inst.Operand is MethodReference methodRef
+                                                         && methodRef.DeclaringType.FullName == "UnityEngine.Input")
                         {
                             string subsig = GetSubsignature(methodRef);
                             if (wrapperMethods.TryGetValue(subsig, out MethodReference wrapperMethodRef))
                             {
-                                yield return (inst, wrapperMethodRef);
+                                inst.Operand = module.ImportReference(wrapperMethodRef);
+                                anyChanges = true;
                             }
                         }
                     }
                 }
             }
+            return anyChanges;
         }
 
-        private static void InstrumentAssemblyIfNeeded(string assemblyPath, Assembly rgAssembly)
+        private static void SaveCodePointCount(string assemblyName, int codePointCount)
+        {
+            var metadata = RGCodeCoverage.GetMetadata();
+            if (metadata == null)
+            {
+                metadata = new CodeCoverageMetadata();
+            }
+            int? assemblyIndex = null;
+            for (int i = 0; i < metadata.assemblyNames.Count; ++i)
+            {
+                if (metadata.assemblyNames[i] == assemblyName)
+                {
+                    assemblyIndex = i;
+                    break;
+                }
+            }
+            if (!assemblyIndex.HasValue)
+            {
+                metadata.assemblyNames.Add(assemblyName);
+                metadata.codePointCounts.Add(codePointCount);
+            } else
+            {
+                metadata.codePointCounts[assemblyIndex.Value] = codePointCount;
+            }
+            RGCodeCoverage.SaveMetadata(metadata);
+        }
+        
+        // Returns whether any changes were made
+        private static bool ApplyCodeCovInstrumentation(ModuleDefinition module, MethodReference visitMethod)
+        {
+            // first check whether the instrumentation is already present
+            foreach (TypeDefinition type in module.Types)
+            {
+                if (IsNamespaceIgnored(type.Namespace))
+                    continue;
+                foreach (MethodDefinition method in type.Methods)
+                {
+                    if (method.Body == null)
+                        continue;
+                    foreach (var inst in method.Body.Instructions)
+                    {
+                        if (inst.OpCode == OpCodes.Call && inst.Operand is MethodReference methodRef)
+                        {
+                            if (methodRef.DeclaringType.Name == "RGCodeCoverage")
+                            {
+                                // code coverage instrumentation is already present
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            int codePointCounter = 0;
+            string assemblyName = module.Assembly.Name.Name;
+            bool anyChanges = false;
+
+            // do the instrumentation
+            foreach (TypeDefinition type in module.Types)
+            {
+                if (IsNamespaceIgnored(type.Namespace))
+                    continue;
+                foreach (MethodDefinition method in type.Methods)
+                {
+                    if (method.Body == null)
+                        continue;
+                    var processor = method.Body.GetILProcessor();
+                    var debugInfo = method.DebugInformation;
+                    if (debugInfo != null)
+                    {
+                        var seqPts = debugInfo.GetSequencePointMapping();
+                        if (seqPts.Count > 0)
+                        {
+                            anyChanges = true;
+                            method.Body.SimplifyMacros(); // Call this before injecting new opcodes to avoid overflow with short-form branches 
+                            foreach (var entry in seqPts)
+                            {
+                                var inst = entry.Key;
+                                processor.InsertBefore(inst, processor.Create(OpCodes.Ldstr, assemblyName));
+                                processor.InsertBefore(inst, processor.Create(OpCodes.Ldc_I4, codePointCounter));
+                                processor.InsertBefore(inst,
+                                    processor.Create(OpCodes.Call, module.ImportReference(visitMethod)));
+                                ++codePointCounter;
+                            }
+                            method.Body.OptimizeMacros(); // Put back short-form branches where possible again
+                        }
+                        
+                    }
+                }
+            }
+
+            SaveCodePointCount(assemblyName, codePointCounter);
+            
+            return anyChanges;
+        }
+        
+        private static void InstrumentAssemblyIfNeeded(string assemblyPath)
         {
             try
             {
-                if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assemblyPath, rgAssembly))
+                if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assemblyPath))
                 {
                     return;
                 }
-
+                
                 bool anyChanges = false;
                 string tmpOutputPath = assemblyPath + ".tmp.dll";
-
+                
                 if (_assemblyResolver == null)
                 {
                     UpdateAssemblyResolver(null);
@@ -204,11 +329,25 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
                 {
                     var wrapperMethods = FindWrapperMethods(wrapperModule);
-                    foreach ((Instruction inst, MethodReference wrapperMethodRef) in FindInstrumentationPoints(module, wrapperMethods))
+                    if (ApplyLegacyInputInstrumentation(module, wrapperMethods))
                     {
-                        inst.Operand = module.ImportReference(wrapperMethodRef);
                         anyChanges = true;
+                        RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
                     }
+
+                    var visitMethod = FindCodeCoverageVisitMethod(wrapperModule);
+                    if (visitMethod != null)
+                    {
+                        if (ApplyCodeCovInstrumentation(module, visitMethod))
+                        {
+                            anyChanges = true;
+                        }
+                    }
+                    else
+                    {
+                        RGDebug.LogError($"Failed to find RGCodeCoverage.Visit method, code coverage instrumentation not applied");
+                    }
+                    
                     if (anyChanges)
                     {
                         module.Write(tmpOutputPath, new WriterParameters()
@@ -216,7 +355,6 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                             WriteSymbols = true,
                             SymbolWriterProvider = new PdbWriterProvider()
                         });
-                        RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
                     }
                 }
 
@@ -261,8 +399,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         {
             try
             {
-                Assembly rgAssembly = FindRGAssembly();
-                InstrumentAssemblyIfNeeded(assemblyAssetPath, rgAssembly);
+                InstrumentAssemblyIfNeeded(assemblyAssetPath);
             }
             catch (IOException e)
             {
@@ -312,10 +449,9 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             try
             {
                 Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
-                Assembly rgAssembly = FindRGAssembly();
                 foreach (Assembly assembly in assemblies)
                 {
-                    InstrumentAssemblyIfNeeded(assembly.outputPath, rgAssembly);
+                    InstrumentAssemblyIfNeeded(assembly.outputPath);
                 }
                 return true;
             }

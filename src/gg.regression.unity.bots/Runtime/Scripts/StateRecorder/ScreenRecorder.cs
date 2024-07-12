@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -311,6 +312,7 @@ namespace RegressionGames.StateRecorder
             {
                 gameFacePixelHashObserver.SetActive(true);
             }
+            RGCodeCoverage.StartRecording();
             StartCoroutine(StartRecordingCoroutine(referenceSessionId));
 
         }
@@ -396,6 +398,8 @@ namespace RegressionGames.StateRecorder
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
             _tokenSource = null;
+            
+            RGCodeCoverage.StopRecording();
         }
 
         private RenderTexture _screenShotTexture = null;
@@ -562,6 +566,17 @@ namespace RegressionGames.StateRecorder
                         _lastCvFrameTime = now;
                         _frameCountSinceLastTick = 0;
 
+                        var codeCovMetadata = RGCodeCoverage.GetMetadata();
+                        RecordingCodeCoverageState codeCoverageState = null;
+                        if (codeCovMetadata != null)
+                        {
+                            codeCoverageState = new RecordingCodeCoverageState()
+                            {
+                                coverageSinceLastTick = RGCodeCoverage.CopyCodeCoverageState(),
+                                codePointCounts = codeCovMetadata.GetCodePointCountsAsDictionary()
+                            };
+                        }
+
                         var frameState = new RecordingFrameStateData()
                         {
                             sessionId = _currentSessionId,
@@ -574,8 +589,11 @@ namespace RegressionGames.StateRecorder
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
                             state = currentStates.Values,
+                            codeCoverage = codeCoverageState, 
                             inputs = inputData
                         };
+                        
+                        RGCodeCoverage.Clear();
 
                         if (frameState.keyFrame != null)
                         {

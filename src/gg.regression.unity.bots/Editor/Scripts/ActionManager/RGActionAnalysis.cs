@@ -11,13 +11,13 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RegressionGames.ActionManager.Actions;
-using RegressionGames.Editor.RGLegacyInputUtility;
 using UnityEditor;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
+using RegressionGames.Editor;
 
 namespace RegressionGames.ActionManager
 {
@@ -64,7 +64,7 @@ namespace RegressionGames.ActionManager
 
         private ISet<string> GetIgnoredAssemblyNames()
         {
-            Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
+            Assembly rgAssembly = RGInstrumentation.FindRGAssembly();
             Assembly rgEditorAssembly = FindRGEditorAssembly();
             if (rgAssembly == null || rgEditorAssembly == null)
             {

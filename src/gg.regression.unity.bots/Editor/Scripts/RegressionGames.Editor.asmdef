@@ -13,6 +13,7 @@
     "precompiledReferences": [
         "Mono.Cecil.dll",
         "Mono.Cecil.Pdb.dll",
+        "Mono.Cecil.Rocks.dll",
         "Microsoft.CodeAnalysis.dll",
         "Microsoft.CodeAnalysis.CSharp.dll",
         "System.Collections.Immutable.dll",
