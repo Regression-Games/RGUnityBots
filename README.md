@@ -1,5 +1,5 @@
 # Regression Games Unity Bots
-[![Static Badge](https://img.shields.io/badge/Latest%20Version-0.0.23-blue)](https://docs.regression.gg)
+[![Static Badge](https://img.shields.io/badge/Latest%20Version-0.0.24-rc1-blue)](https://docs.regression.gg)
 [![Join our Discord](https://img.shields.io/badge/Join%20our%20Discord-8A2BE2)](https://discord.com/invite/925SYVse2H)
 [![Changelog](https://img.shields.io/badge/Visit%20the%20Changelog-orange)](https://docs.regression.gg/changelog)
 
@@ -30,7 +30,7 @@ In the Unity Editor, open the Package Manager by navigating to  **Window** > **P
 Then add a new package with  **+** > **Add package from git URL** and paste the following URL:
 
 ```
-https://github.com/Regression-Games/RGUnityBots.git?path=src/gg.regression.unity.bots#v0.0.23
+https://github.com/Regression-Games/RGUnityBots.git?path=src/gg.regression.unity.bots#v0.0.24-rc1
 ```
 
 Once the package has been added, restart the Unity Editor and create an account at 
