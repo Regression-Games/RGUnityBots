@@ -316,9 +316,9 @@ namespace RegressionGames
             if (LoadAuth())
             {
                 await SendWebRequest(
-                    uri: $"{GetRgServiceBaseUri()}/bot/{botId}/bot-instance",
+                    uri: $"{GetRgServiceBaseUri()}/bot-instance",
                     method: "POST",
-                    payload: JsonConvert.SerializeObject(new RGCreateBotInstanceRequest(startDate)),
+                    payload: JsonConvert.SerializeObject(new RGCreateBotInstanceRequest(botId, startDate)),
                     onSuccess: (s) =>
                     {
                         RGBotInstance response = JsonUtility.FromJson<RGBotInstance>(s);
