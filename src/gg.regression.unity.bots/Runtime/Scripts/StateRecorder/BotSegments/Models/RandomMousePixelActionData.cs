@@ -53,6 +53,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void ReplayReset()
         {
+            IsStopped = false;
         }
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
