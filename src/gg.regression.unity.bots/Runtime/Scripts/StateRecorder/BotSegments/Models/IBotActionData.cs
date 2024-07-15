@@ -29,10 +29,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void ReplayReset();
 
-        /**
-         * Returns null if the action runs until the keyframecriteria match
-         */
-        public bool? IsCompleted();
+        public bool IsCompleted();
 
         public int EffectiveApiVersion();
 

@@ -59,7 +59,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         private bool IsStopped;
 
-        public bool? IsCompleted()
+        public bool IsCompleted()
         {
             return IsStopped;
         }
