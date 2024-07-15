@@ -172,6 +172,7 @@ namespace RegressionGames.StateRecorder
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
             #endif
+            RGUtils.RestoreInputSettings();
 
             _dataContainer = null;
             KeyboardEventSender.Reset();
@@ -259,6 +260,7 @@ namespace RegressionGames.StateRecorder
                     #if ENABLE_LEGACY_INPUT_MANAGER
                     RGLegacyInputWrapper.StartSimulation(this);
                     #endif
+                    RGUtils.ConfigureInputSettings();
                     _startPlaying = false;
                     _isPlaying = true;
                     _nextBotSegments.Add(_dataContainer.DequeueBotSegment());
@@ -267,6 +269,10 @@ namespace RegressionGames.StateRecorder
                     {
                         _screenRecorder.StartRecording(_dataContainer.SessionId);
                     }
+                }
+                if (_isPlaying)
+                {
+                    RGUtils.ForceApplicationFocus();
                 }
             }
         }
