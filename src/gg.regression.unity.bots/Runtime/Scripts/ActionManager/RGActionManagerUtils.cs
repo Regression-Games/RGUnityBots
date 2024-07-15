@@ -19,6 +19,9 @@ namespace RegressionGames.ActionManager
         private static FieldInfo _targetAssemblyTypeNameField;
         private static FieldInfo _methodNameField;
         
+        private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
+        private static Camera[] _camerasBuf;
+        
         public static IEnumerable<string> GetEventListenerMethodNames(UnityEvent evt)
         {
             if (_persistentCallsField == null)
@@ -296,8 +299,6 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
-
         private static bool IsAncestorOrEqualTo(GameObject ancestor, GameObject gameObject)
         {
             do
@@ -311,6 +312,81 @@ namespace RegressionGames.ActionManager
             return false;
         }
 
+        public static bool IsMouseOverUI(Vector2 mousePos)
+        {
+            foreach (var eventSys in RGActionManager.CurrentEventSystems)
+            {
+                PointerEventData data = new PointerEventData(eventSys);
+                data.pointerId = PointerInputModule.kMouseLeftId;
+                data.position = mousePos;
+                data.delta = Vector2.zero;
+                _raycastResultCache.Clear();
+                eventSys.RaycastAll(data, _raycastResultCache);
+                foreach (var raycastRes in _raycastResultCache)
+                {
+                    if (raycastRes.gameObject != null && raycastRes.gameObject.TryGetComponent<CanvasRenderer>(out _))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public static bool IsMouseOverCollider3D(Vector2 mousePos, int layerMask)
+        {
+            int numCameras = Camera.allCamerasCount;
+            if (_camerasBuf == null || _camerasBuf.Length != numCameras)
+            {
+                _camerasBuf = new Camera[numCameras];
+            }
+            Camera.GetAllCameras(_camerasBuf);
+
+            foreach (var camera in _camerasBuf)
+            {
+                if (camera == null || camera.eventMask == 0 || camera.targetTexture != null)
+                {
+                    continue;
+                }
+                
+                Ray mouseRay = camera.ScreenPointToRay(mousePos);
+                if (Physics.Raycast(mouseRay, out RaycastHit hit, maxDistance: Mathf.Infinity, layerMask: layerMask))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool IsMouseOverCollider2D(Vector2 mousePos, int layerMask)
+        {
+            int numCameras = Camera.allCamerasCount;
+            if (_camerasBuf == null || _camerasBuf.Length != numCameras)
+            {
+                _camerasBuf = new Camera[numCameras];
+            }
+            Camera.GetAllCameras(_camerasBuf);
+
+            foreach (var camera in _camerasBuf)
+            {
+                if (camera == null || camera.eventMask == 0 || camera.targetTexture != null)
+                {
+                    continue;
+                }
+                
+                Vector3 mouseWorldPt = camera.ScreenToWorldPoint(mousePos);
+                RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity,
+                    layerMask: layerMask);
+                if (hit2D.collider != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        
         /// <summary>
         /// Same as GetGameObjectMouseHitPosition, but for UI components.
         /// This uses the EventSystem raycaster instead of the Physics/Physics2D raycaster.
@@ -360,7 +436,6 @@ namespace RegressionGames.ActionManager
             return false;
         }
 
-        private static Camera[] _camerasBuf;
 
         /// <summary>
         /// This returns the mouse position on the screen needed in order to hit the
