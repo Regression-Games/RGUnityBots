@@ -6,11 +6,11 @@
         InputPlayback,
         RandomMouse_ClickPixel,
         RandomMouse_ClickObject,
+        Behaviour,
 
         //FUTURE
         //Timer,
         //FrameCount,
-        //Behaviour,
         //AgentBuilder,
         //OrchestratedInput,
         //RandomKeyboard_Key,
