@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 
 namespace RegressionGames
@@ -112,6 +113,60 @@ namespace RegressionGames
                     }
                 }
                 #endif
+            }
+        }
+
+        /// <summary>
+        /// If any event systems don't have focus, then this forces a focused event
+        /// for all MonoBehaviours in the scene.
+        /// </summary>
+        public static void ForceApplicationFocus()
+        {
+            bool anyNotFocused = UnityEngine.Object.FindObjectsOfType<EventSystem>().Any(eventSys => !eventSys.isFocused);
+            if (anyNotFocused)
+            {
+                foreach (var behaviour in UnityEngine.Object.FindObjectsOfType<Behaviour>())
+                {
+                    behaviour.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
+                }
+            }
+        }
+        
+        
+        #if UNITY_EDITOR
+        private static InputSettings.EditorInputBehaviorInPlayMode? _origEditorInputBehaviorInPlayMode;
+        #endif
+        private static InputSettings.BackgroundBehavior? _origBackgroundBehavior;
+
+        /// <summary>
+        /// Configures the input system settings for replay and bots.
+        /// </summary>
+        public static void ConfigureInputSettings()
+        {
+            #if ENABLE_INPUT_SYSTEM
+            #if UNITY_EDITOR
+            _origEditorInputBehaviorInPlayMode = InputSystem.settings.editorInputBehaviorInPlayMode;
+            InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            #endif
+            _origBackgroundBehavior = InputSystem.settings.backgroundBehavior;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            #endif
+        }
+
+        /// <summary>
+        /// Restores the input system settings to their previous values prior to the call to ConfigureInputSettings().
+        /// </summary>
+        public static void RestoreInputSettings()
+        {
+            #if UNITY_EDITOR
+            if (_origEditorInputBehaviorInPlayMode.HasValue)
+            {
+                InputSystem.settings.editorInputBehaviorInPlayMode = _origEditorInputBehaviorInPlayMode.Value;
+            }
+            #endif
+            if (_origBackgroundBehavior.HasValue)
+            {
+                InputSystem.settings.backgroundBehavior = _origBackgroundBehavior.Value;
             }
         }
     }

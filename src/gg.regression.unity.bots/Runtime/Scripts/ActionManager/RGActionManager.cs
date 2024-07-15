@@ -123,6 +123,7 @@ namespace RegressionGames.ActionManager
             RGLegacyInputWrapper.StartSimulation(_context);
             SceneManager.sceneLoaded += OnSceneLoad;
             RGUtils.SetupEventSystem();
+            RGUtils.ConfigureInputSettings();
             InitInputState();
         }
 
@@ -132,6 +133,7 @@ namespace RegressionGames.ActionManager
             {
                 SceneManager.sceneLoaded -= OnSceneLoad;
                 RGLegacyInputWrapper.StopSimulation();
+                RGUtils.RestoreInputSettings();
                 _sessionActions = null;
                 _context = null;
             }
@@ -163,6 +165,8 @@ namespace RegressionGames.ActionManager
             var eventSystems = UnityEngine.Object.FindObjectsOfType<EventSystem>();
             CurrentEventSystems.Clear();
             CurrentEventSystems.AddRange(eventSystems);
+            
+            RGUtils.ForceApplicationFocus();
             
             foreach (RGGameAction action in _sessionActions)
             {

@@ -20,21 +20,20 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
      */
     public class RGLegacyInputInstrumentation
     {
+        private const int MaxAttempts = 4;
+        
+        private static double _scheduledInstrumentationTime;
+        private static int _numInstrumentationAttempts;
+        
         [InitializeOnLoadMethod]
         static void OnStartup()
         {
-            // Safer to do any initial instrumentation within the editor update loop.
-            // Initial experiments with running directly from static initializers
-            // caused errors sometimes.
-            EditorApplication.update += SetUpHooks;
-        }
-
-        static void SetUpHooks()
-        {
-            EditorApplication.update -= SetUpHooks;
             CompilationPipeline.compilationStarted += UpdateAssemblyResolver;
             CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
-            InstrumentExistingAssemblies();
+            
+            _numInstrumentationAttempts = 0;
+            _scheduledInstrumentationTime = EditorApplication.timeSinceStartup;
+            EditorApplication.update += ScheduledInstrumentationLoop;
         }
 
         private static bool IsAssemblyIgnored(string assemblyPath, Assembly rgAssembly)
@@ -260,17 +259,78 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
         private static void OnAssemblyCompiled(string assemblyAssetPath, CompilerMessage[] messages)
         {
-            Assembly rgAssembly = FindRGAssembly();
-            InstrumentAssemblyIfNeeded(assemblyAssetPath, rgAssembly);
+            try
+            {
+                Assembly rgAssembly = FindRGAssembly();
+                InstrumentAssemblyIfNeeded(assemblyAssetPath, rgAssembly);
+            }
+            catch (IOException e)
+            {
+                // If the instrumentation failed here, then there is nothing we can do since this could be part of a player build process
+                RGDebug.Log($"Instrumentation of legacy input APIs failed for {assemblyAssetPath}. Simulating legacy inputs may not work, try re-building the game assemblies.\n{e.Message}\n{e.StackTrace}");
+            }
         }
 
-        private static void InstrumentExistingAssemblies()
+        static void ScheduledInstrumentationLoop()
         {
-            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
-            Assembly rgAssembly = FindRGAssembly();
-            foreach (Assembly assembly in assemblies)
+            bool done;
+            if (EditorApplication.timeSinceStartup >= _scheduledInstrumentationTime)
             {
-                InstrumentAssemblyIfNeeded(assembly.outputPath, rgAssembly);
+                if (InstrumentExistingAssemblies())
+                {
+                    done = true;
+                }
+                else
+                {
+                    // if the instrumentation failed, attempt a couple more times with exponential backoff timeout
+                    if (_numInstrumentationAttempts < MaxAttempts-1)
+                    {
+                        double timeout = 3.0 * Math.Pow(2.0, _numInstrumentationAttempts); // 3 sec, 6 sec, 12 sec
+                        _scheduledInstrumentationTime = EditorApplication.timeSinceStartup + timeout;
+                        ++_numInstrumentationAttempts;
+                        done = false;
+                    }
+                    else
+                    {
+                        done = true;
+                    }
+                }
+            }
+            else
+            {
+                done = false;
+            }
+            if (done)
+            {
+                _numInstrumentationAttempts = 0;
+                EditorApplication.update -= ScheduledInstrumentationLoop;
+            }
+        }
+        
+        private static bool InstrumentExistingAssemblies()
+        {
+            try
+            {
+                Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
+                Assembly rgAssembly = FindRGAssembly();
+                foreach (Assembly assembly in assemblies)
+                {
+                    InstrumentAssemblyIfNeeded(assembly.outputPath, rgAssembly);
+                }
+                return true;
+            }
+            catch (IOException e)
+            {
+                // If the instrumentation fails, the ScheduledInstrumentationLoop will schedule a re-attempt a couple more times
+                if (_numInstrumentationAttempts+1 == MaxAttempts)
+                {
+                    RGDebug.LogError($"Instrumenting legacy input APIs failed, maximum number of attempts exhausted. Simulating legacy inputs will not work, try re-building the game assemblies.\n{e.Message}\n{e.StackTrace}");
+                }
+                else
+                {
+                    RGDebug.LogWarning($"Attempt {_numInstrumentationAttempts+1}/{MaxAttempts} at instrumenting legacy input APIs failed, scheduling re-attempt\n{e.Message}\n{e.StackTrace}");
+                }
+                return false;
             }
         }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -38,6 +39,27 @@ namespace RegressionGames.StateRecorder
             if (!mouse.enabled)
             {
                 InputSystem.EnableDevice(mouse);
+            }
+
+            if (!mouse.canRunInBackground)
+            {
+                // Forcibly allow the virtual mouse to send events while the application is backgrounded
+                // Note that if the user continues creating mouse events while outside the application, this could still interfere
+                // with the game if it is reading mouse input via the Input System.
+                var deviceFlagsField = mouse.GetType().GetField("m_DeviceFlags", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (deviceFlagsField != null)
+                {
+                    int canRunInBackground = 1 << 11;
+                    int canRunInBackgroundHasBeenQueried = 1 << 12;
+                    var deviceFlags = (int)deviceFlagsField.GetValue(mouse);
+                    deviceFlags |= canRunInBackground;
+                    deviceFlags |= canRunInBackgroundHasBeenQueried;
+                    deviceFlagsField.SetValue(mouse, deviceFlags);
+                }
+                else
+                {
+                    RGDebug.LogWarning("Unable to check device flags for virtual mouse");
+                }
             }
 
             if (_mouseEventHandler == null)
