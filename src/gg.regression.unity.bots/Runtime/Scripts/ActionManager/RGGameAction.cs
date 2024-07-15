@@ -101,6 +101,21 @@ namespace RegressionGames.ActionManager
         /// Serialize the action-specific parameters (such as key code, button name, etc.).
         /// </summary>
         protected abstract void WriteParametersToStringBuilder(StringBuilder stringBuilder);
+
+        /// <summary>
+        /// Returns a set of (attribute name, attribute value) pairs to be displayed to the user
+        /// in the action manager user interface.
+        /// </summary>
+        public virtual IEnumerable<(string, string)> GetDisplayActionAttributes()
+        {
+            yield return ("Paths", (Paths.Count > 1 
+                ? "\n" + string.Join("\n", Paths.Select((path, idx) => (idx + 1) + ". " + string.Join("/", path))) 
+                : string.Join("/", Paths[0])));
+
+            yield return ("Target Object Type", ObjectType.FullName);
+
+            yield return ("Parameter Range", ParameterRange.ToString());
+        }
     }
 
     public interface IRGGameActionInstance

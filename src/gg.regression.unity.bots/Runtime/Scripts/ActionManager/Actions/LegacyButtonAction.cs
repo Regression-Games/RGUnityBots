@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RegressionGames.RGLegacyInputUtility;
-using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
@@ -56,6 +55,14 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"buttonNameFunc\":");
             ButtonNameFunc.WriteToStringBuilder(stringBuilder);
+        }
+        
+        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
+        {
+            foreach (var attr in base.GetDisplayActionAttributes())
+                yield return attr;
+
+            yield return ("Button Name", ButtonNameFunc.ToString());
         }
     }
 

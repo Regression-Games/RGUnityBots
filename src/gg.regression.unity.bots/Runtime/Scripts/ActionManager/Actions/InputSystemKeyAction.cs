@@ -57,6 +57,14 @@ namespace RegressionGames.ActionManager.Actions
             stringBuilder.Append(",\n\"keyFunc\":");
             KeyFunc.WriteToStringBuilder(stringBuilder);
         }
+
+        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
+        {
+            foreach (var attr in base.GetDisplayActionAttributes())
+                yield return attr;
+
+            yield return ("Key", KeyFunc.ToString());
+        }
     }
 
     public class InputSystemKeyInstance : RGGameActionInstance<InputSystemKeyAction, bool>

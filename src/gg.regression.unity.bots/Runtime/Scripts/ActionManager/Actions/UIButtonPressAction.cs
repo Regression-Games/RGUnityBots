@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
-using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -88,6 +87,14 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"eventListenerName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, EventListenerName);
+        }
+        
+        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
+        {
+            foreach (var attr in base.GetDisplayActionAttributes())
+                yield return attr;
+
+            yield return ("Target Event Listener", EventListenerName);
         }
     }
 
