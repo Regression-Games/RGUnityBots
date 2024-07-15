@@ -19,6 +19,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error);
 
+        /**
+         * Called when a segment completes to stop any outstanding actions or mark the action as should stop.
+         * For segments with action sequences, they should still finish processing all their actions before stopping.
+         */
+        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities);
+
         public void WriteToStringBuilder(StringBuilder stringBuilder);
 
         public void ReplayReset();

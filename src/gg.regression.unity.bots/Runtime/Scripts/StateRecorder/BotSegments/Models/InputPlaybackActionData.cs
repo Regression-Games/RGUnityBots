@@ -89,6 +89,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return result;
         }
 
+        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
+        {
+            // for input playback, we finish the action queue even if criteria match before hand (no-op)
+        }
+
         public bool? IsCompleted()
         {
             foreach (var keyboardInputActionData in inputData.keyboard)

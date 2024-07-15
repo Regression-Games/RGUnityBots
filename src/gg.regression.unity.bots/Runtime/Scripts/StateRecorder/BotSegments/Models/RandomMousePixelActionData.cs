@@ -41,9 +41,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public List<RectInt> excludedAreas = new();
 
+
+        private GUIStyle _guiStyle = null;
+
+        private bool IsStopped;
+
         public bool? IsCompleted()
         {
-            return null;
+            return IsStopped;
         }
 
         public void ReplayReset()
@@ -130,7 +135,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
-        private GUIStyle _guiStyle = null;
+        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
+        {
+            IsStopped = true;
+        }
 
         public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
