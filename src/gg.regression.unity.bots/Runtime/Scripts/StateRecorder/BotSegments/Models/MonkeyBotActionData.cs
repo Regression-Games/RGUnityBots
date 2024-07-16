@@ -30,7 +30,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            Debug.Log("StartAction called");
             var controller = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
             RGActionManager.StartSession(controller, actionSettings);
             monkey = new RGMonkeyBotLogic();
@@ -52,7 +51,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            Debug.Log("StopAction called");
             RGActionManager.StopSession();
             isStopped = true;
         }
