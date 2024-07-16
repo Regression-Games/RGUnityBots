@@ -266,8 +266,10 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
         static void ScheduledInstrumentationLoop()
         {
+            bool editorIsBusy = EditorApplication.isCompiling || EditorApplication.isUpdating;
+            
             bool done;
-            if (EditorApplication.timeSinceStartup >= _scheduledInstrumentationTime)
+            if (!editorIsBusy && EditorApplication.timeSinceStartup >= _scheduledInstrumentationTime)
             {
                 if (InstrumentExistingAssemblies())
                 {
