@@ -185,61 +185,54 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
         private static void InstrumentAssemblyIfNeeded(string assemblyPath, Assembly rgAssembly)
         {
-            try
+            if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assemblyPath, rgAssembly))
             {
-                if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assemblyPath, rgAssembly))
+                return;
+            }
+
+            bool anyChanges = false;
+            string tmpOutputPath = assemblyPath + ".tmp.dll";
+
+            if (_assemblyResolver == null)
+            {
+                UpdateAssemblyResolver(null);
+            }
+
+            using (ModuleDefinition module = ReadAssembly(assemblyPath))
+            using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
+            {
+                var wrapperMethods = FindWrapperMethods(wrapperModule);
+                foreach ((Instruction inst, MethodReference wrapperMethodRef) in FindInstrumentationPoints(module, wrapperMethods))
                 {
-                    return;
+                    inst.Operand = module.ImportReference(wrapperMethodRef);
+                    anyChanges = true;
                 }
-
-                bool anyChanges = false;
-                string tmpOutputPath = assemblyPath + ".tmp.dll";
-
-                if (_assemblyResolver == null)
-                {
-                    UpdateAssemblyResolver(null);
-                }
-
-                using (ModuleDefinition module = ReadAssembly(assemblyPath))
-                using (ModuleDefinition wrapperModule = ReadWrapperAssembly())
-                {
-                    var wrapperMethods = FindWrapperMethods(wrapperModule);
-                    foreach ((Instruction inst, MethodReference wrapperMethodRef) in FindInstrumentationPoints(module, wrapperMethods))
-                    {
-                        inst.Operand = module.ImportReference(wrapperMethodRef);
-                        anyChanges = true;
-                    }
-                    if (anyChanges)
-                    {
-                        module.Write(tmpOutputPath, new WriterParameters()
-                        {
-                            WriteSymbols = true,
-                            SymbolWriterProvider = new PdbWriterProvider()
-                        });
-                        RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
-                    }
-                }
-
                 if (anyChanges)
                 {
-                    string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
-                    File.Delete(assemblyPath);
-                    if (File.Exists(pdbPath))
+                    module.Write(tmpOutputPath, new WriterParameters()
                     {
-                        File.Delete(pdbPath);
-                    }
-
-                    string outPdbPath = Path.ChangeExtension(tmpOutputPath, ".pdb");
-                    File.Move(tmpOutputPath, assemblyPath);
-                    if (File.Exists(outPdbPath))
-                    {
-                        File.Move(outPdbPath, pdbPath);
-                    }
+                        WriteSymbols = true,
+                        SymbolWriterProvider = new PdbWriterProvider()
+                    });
+                    RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
                 }
             }
-            catch (Exception e)
+
+            if (anyChanges)
             {
-                RGDebug.LogException(e, $"Error during legacy input instrumentation for {assemblyPath}");
+                string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
+                File.Delete(assemblyPath);
+                if (File.Exists(pdbPath))
+                {
+                    File.Delete(pdbPath);
+                }
+
+                string outPdbPath = Path.ChangeExtension(tmpOutputPath, ".pdb");
+                File.Move(tmpOutputPath, assemblyPath);
+                if (File.Exists(outPdbPath))
+                {
+                    File.Move(outPdbPath, pdbPath);
+                }
             }
         }
         
@@ -264,7 +257,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 Assembly rgAssembly = FindRGAssembly();
                 InstrumentAssemblyIfNeeded(assemblyAssetPath, rgAssembly);
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 // If the instrumentation failed here, then there is nothing we can do since this could be part of a player build process
                 RGDebug.Log($"Instrumentation of legacy input APIs failed for {assemblyAssetPath}. Simulating legacy inputs may not work, try re-building the game assemblies.\n{e.Message}\n{e.StackTrace}");
@@ -319,7 +312,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 }
                 return true;
             }
-            catch (IOException e)
+            catch (Exception e)
             {
                 // If the instrumentation fails, the ScheduledInstrumentationLoop will schedule a re-attempt a couple more times
                 if (_numInstrumentationAttempts+1 == MaxAttempts)
