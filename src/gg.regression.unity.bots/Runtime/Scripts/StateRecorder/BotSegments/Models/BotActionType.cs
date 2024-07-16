@@ -7,6 +7,7 @@
         RandomMouse_ClickPixel,
         RandomMouse_ClickObject,
         Behaviour,
+        MonkeyBot,
 
         //FUTURE
         //Timer,
