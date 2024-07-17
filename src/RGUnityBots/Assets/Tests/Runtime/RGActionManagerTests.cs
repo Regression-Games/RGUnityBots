@@ -91,10 +91,16 @@ namespace Tests.Runtime
             }
         }
 
-        private GameObject FindRootGameObject(string name)
+        private GameObject FindGameObject(string name)
         {
-            var scn = SceneManager.GetActiveScene();
-            return scn.GetRootGameObjects().FirstOrDefault(go => go.name == name);
+            foreach (var t in UnityEngine.Object.FindObjectsOfType<Transform>(true))
+            {
+                if (t.gameObject.name == name)
+                {
+                    return t.gameObject;
+                }
+            }
+            return null;
         }
 
         private void FindAndPerformAction(string pathSuffix, object param)
@@ -119,7 +125,7 @@ namespace Tests.Runtime
             
             // Test Input System Keyboard
             RGActionManager.StartSession(eventSys);
-            GameObject inputSysKeyListener = FindRootGameObject("InputSysKeyListener");
+            GameObject inputSysKeyListener = FindGameObject("InputSysKeyListener");
             inputSysKeyListener.SetActive(true);
             try
             {
@@ -151,7 +157,7 @@ namespace Tests.Runtime
             
             // Test Legacy Input Manager Axis
             RGActionManager.StartSession(eventSys);
-            GameObject legacyAxisListener = FindRootGameObject("LegacyAxisListener");
+            GameObject legacyAxisListener = FindGameObject("LegacyAxisListener");
             legacyAxisListener.SetActive(true);
             try
             {
@@ -177,7 +183,7 @@ namespace Tests.Runtime
             
             // Test Legacy Input Manager Button 
             RGActionManager.StartSession(eventSys);
-            GameObject legacyButtonListener = FindRootGameObject("LegacyButtonListener");
+            GameObject legacyButtonListener = FindGameObject("LegacyButtonListener");
             legacyButtonListener.SetActive(true);
             try
             {
@@ -205,7 +211,7 @@ namespace Tests.Runtime
             
             // Test Legacy Input Manager Key
             RGActionManager.StartSession(eventSys);
-            GameObject legacyKeyListener = FindRootGameObject("LegacyKeyListener");
+            GameObject legacyKeyListener = FindGameObject("LegacyKeyListener");
             legacyKeyListener.SetActive(true);
             try
             {
@@ -248,7 +254,7 @@ namespace Tests.Runtime
             
             // Test Mouse Button
             RGActionManager.StartSession(eventSys);
-            GameObject mouseBtnListener = FindRootGameObject("MouseBtnListener");
+            GameObject mouseBtnListener = FindGameObject("MouseBtnListener");
             mouseBtnListener.SetActive(true);
             try
             {
@@ -284,7 +290,7 @@ namespace Tests.Runtime
             
             // Test Mouse Movement
             RGActionManager.StartSession(eventSys);
-            GameObject mouseMovementListener = FindRootGameObject("MouseMovementListener");
+            GameObject mouseMovementListener = FindGameObject("MouseMovementListener");
             mouseMovementListener.SetActive(true);
             try
             {
@@ -311,7 +317,7 @@ namespace Tests.Runtime
             
             // Test Mouse Handlers
             RGActionManager.StartSession(eventSys);
-            GameObject mouseHandlerListener = FindRootGameObject("MouseHandlerListener");
+            GameObject mouseHandlerListener = FindGameObject("MouseHandlerListener");
             mouseHandlerListener.SetActive(true);
             try
             {
@@ -350,8 +356,8 @@ namespace Tests.Runtime
             
             // Test Mouse Raycast 2D
             RGActionManager.StartSession(eventSys);
-            GameObject mouseRaycast2DListener = FindRootGameObject("MouseRaycast2DListener");
-            GameObject theSquare = FindRootGameObject("The_Square");
+            GameObject mouseRaycast2DListener = FindGameObject("MouseRaycast2DListener");
+            GameObject theSquare = FindGameObject("The_Square");
             mouseRaycast2DListener.SetActive(true);
             theSquare.SetActive(true);
             try
@@ -395,8 +401,8 @@ namespace Tests.Runtime
             
             // Test Mouse Raycast 3D
             RGActionManager.StartSession(eventSys);
-            GameObject mouseRaycast3DListener = FindRootGameObject("MouseRaycast3DListener");
-            GameObject theCube = FindRootGameObject("The_Cube");
+            GameObject mouseRaycast3DListener = FindGameObject("MouseRaycast3DListener");
+            GameObject theCube = FindGameObject("The_Cube");
             mouseRaycast3DListener.SetActive(true);
             theCube.SetActive(true);
             try
@@ -435,6 +441,26 @@ namespace Tests.Runtime
             {
                 mouseRaycast3DListener.SetActive(false);
                 theCube.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test UI button press
+            RGActionManager.StartSession(eventSys);
+            GameObject theButton = FindGameObject("The_Button");
+            theButton.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("ActionManagerTests.ButtonHandler.OnBtnClick", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("ActionManagerTests.ButtonHandler.OnBtnClick", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Clicked button The_Button");
+            }
+            finally
+            {
                 RGActionManager.StopSession();
             }
         }

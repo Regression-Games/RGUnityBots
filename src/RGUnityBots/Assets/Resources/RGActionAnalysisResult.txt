@@ -110,7 +110,7 @@
 "objectTypeName":"ActionManagerTests.MouseRaycast3DObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "positionType":"COLLIDER_3D",
 "layerMasks":[
-{"funcType":"TYPE_CONSTANT","data":"3"}
+{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.MouseRaycast3DObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"layerMask\"}]}"}
 ]
 },
     {
@@ -264,6 +264,12 @@
 "paths":["ActionManagerTests.LegacyAxisListeningObject/Input.GetAxis(\"Mouse ScrollWheel\")"],
 "objectTypeName":"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse ScrollWheel"}
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Button Click/ActionManagerTests.ButtonHandler.OnBtnClick"],
+"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"eventListenerName":"ActionManagerTests.ButtonHandler.OnBtnClick"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
