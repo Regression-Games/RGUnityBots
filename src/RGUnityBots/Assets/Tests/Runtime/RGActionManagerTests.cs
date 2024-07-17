@@ -1,7 +1,15 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
+using RegressionGames;
 using RegressionGames.ActionManager;
+using RegressionGames.ActionManager.Actions;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 
 namespace Tests.Runtime
 {
@@ -80,6 +88,354 @@ namespace Tests.Runtime
                 Assert.IsTrue(Mathf.Approximately(((Vector2)disc[3].MaxValue).x, 1.0f));
                 Assert.IsTrue(Mathf.Approximately(((Vector2)disc[3].MinValue).y, 0.0f));
                 Assert.IsTrue(Mathf.Approximately(((Vector2)disc[3].MaxValue).y, 1.0f));
+            }
+        }
+
+        private GameObject FindRootGameObject(string name)
+        {
+            var scn = SceneManager.GetActiveScene();
+            return scn.GetRootGameObjects().FirstOrDefault(go => go.name == name);
+        }
+
+        private void FindAndPerformAction(string pathSuffix, object param)
+        {
+            var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
+                actionInst.BaseAction.Paths[0].Last() == pathSuffix);
+            Debug.Assert(actionInst != null, $"Action {pathSuffix} is missing");
+            foreach (var inp in actionInst.GetInputs(param))
+            {
+                inp.Perform();
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator TestActionManager()
+        {
+            SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
+            
+            GameObject eventSystem = GameObject.Find("EventSystem");
+            var eventSys = eventSystem.GetComponent<EventSystem>();
+            
+            // Test Input System Keyboard
+            RGActionManager.StartSession(eventSys);
+            GameObject inputSysKeyListener = FindRootGameObject("InputSysKeyListener");
+            inputSysKeyListener.SetActive(true);
+            try
+            {
+                FindAndPerformAction("Keyboard.current.anyKey", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Keyboard.current.anyKey.wasPressedThisFrame");
+
+                FindAndPerformAction("[key]", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "keyboard[key].isPressed");
+                
+                FindAndPerformAction("Keyboard.current.backslashKey", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Keyboard.current.backslashKey.isPressed");
+                
+                FindAndPerformAction("keyboard.altKey", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "keyboard.altKey.wasPressedThisFrame");
+                
+                FindAndPerformAction("[Key.F2]", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Keyboard.current[Key.F2].isPressed");
+            }
+            finally
+            {
+                inputSysKeyListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Legacy Input Manager Axis
+            RGActionManager.StartSession(eventSys);
+            GameObject legacyAxisListener = FindRootGameObject("LegacyAxisListener");
+            legacyAxisListener.SetActive(true);
+            try
+            {
+                FindAndPerformAction("Input.GetAxisRaw(\"Mouse X\")", 1);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetAxisRaw(\"Mouse X\")");
+                
+                FindAndPerformAction("Input.GetAxis(\"Mouse ScrollWheel\")", 1);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetAxis(\"Mouse ScrollWheel\")");
+                
+                FindAndPerformAction("Input.GetAxis(axis)", 1);
+                FindAndPerformAction("Input.GetAxis(axis) (2)", 1);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetAxis(axis)");
+            }
+            finally
+            {
+                legacyAxisListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Legacy Input Manager Button 
+            RGActionManager.StartSession(eventSys);
+            GameObject legacyButtonListener = FindRootGameObject("LegacyButtonListener");
+            legacyButtonListener.SetActive(true);
+            try
+            {
+                FindAndPerformAction("Input.GetButton(ButtonName)", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetButton(ButtonName)");
+                
+                FindAndPerformAction("Input.GetButtonDown(btn)", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetButtonDown(btn)");
+                
+                FindAndPerformAction("Input.GetButtonUp(\"Fire2\")", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Input.GetButtonUp(\"Fire2\")", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetButtonUp(\"Fire2\")");
+            }
+            finally
+            {
+                legacyButtonListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Legacy Input Manager Key
+            RGActionManager.StartSession(eventSys);
+            GameObject legacyKeyListener = FindRootGameObject("LegacyKeyListener");
+            legacyKeyListener.SetActive(true);
+            try
+            {
+                FindAndPerformAction("Input.anyKey", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.anyKey");
+                LogAssert.Expect(LogType.Log, "Input.anyKeyDown");
+                
+                FindAndPerformAction("Input.GetKey(crouchKey)", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetKey(crouchKey)");
+                
+                FindAndPerformAction("Input.GetKeyDown(_gameSettings.bindings.fireKey)", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetKeyDown(_gameSettings.bindings.fireKey)");
+                
+                FindAndPerformAction("Input.GetKeyUp(_gameSettings.bindings.jumpKey)", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Input.GetKeyUp(_gameSettings.bindings.jumpKey)", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
+                
+                FindAndPerformAction("Input.GetKey(aimKey)", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetKey(aimKey)");
+                
+                FindAndPerformAction("Input.GetKey(MOVE_RIGHT_KEY)", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetKey(MOVE_RIGHT_KEY)");
+            }
+            finally
+            {
+                legacyKeyListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Mouse Button
+            RGActionManager.StartSession(eventSys);
+            GameObject mouseBtnListener = FindRootGameObject("MouseBtnListener");
+            mouseBtnListener.SetActive(true);
+            try
+            {
+                FindAndPerformAction("Input.GetMouseButton(0)", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetMouseButton(0)");
+                
+                FindAndPerformAction("Input.GetMouseButtonDown(mouseBtn)", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetMouseButtonDown(mouseBtn)");
+                
+                FindAndPerformAction("Input.GetMouseButtonUp(btn)", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Input.GetMouseButtonUp(btn)", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.GetMouseButtonUp(btn)");
+                
+                FindAndPerformAction("Mouse.current.forwardButton", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Mouse.current.forwardButton.isPressed");
+                
+                FindAndPerformAction("mouse.backButton", true);
+                yield return null;
+                LogAssert.Expect(LogType.Log, "mouse.backButton.wasPressedThisFrame");
+            }
+            finally
+            {
+                mouseBtnListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Mouse Movement
+            RGActionManager.StartSession(eventSys);
+            GameObject mouseMovementListener = FindRootGameObject("MouseMovementListener");
+            mouseMovementListener.SetActive(true);
+            try
+            {
+                FindAndPerformAction("Input.mousePosition", new Vector2(0.1f, 0.1f));
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Input.mousePosition", new Vector2(0.8f, 0.7f));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos");
+                LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos");
+
+                FindAndPerformAction("Input.mouseScrollDelta", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
+                LogAssert.Expect(LogType.Log, "Mouse.current.scroll.value.sqrMagnitude");
+            }
+            finally
+            {
+                mouseMovementListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Mouse Handlers
+            RGActionManager.StartSession(eventSys);
+            GameObject mouseHandlerListener = FindRootGameObject("MouseHandlerListener");
+            mouseHandlerListener.SetActive(true);
+            try
+            {
+                string hoverAction = "OnMouseOver";
+                string pressAction = "OnMouseDown";
+                
+                FindAndPerformAction(hoverAction, true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnMouseEnter MouseHandlerListener");
+                LogAssert.Expect(LogType.Log, "OnMouseOver MouseHandlerListener");
+                
+                FindAndPerformAction(hoverAction, false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnMouseExit MouseHandlerListener");
+                
+                FindAndPerformAction(pressAction, true);
+                yield return null;
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnMouseDown MouseHandlerListener");
+                LogAssert.Expect(LogType.Log, "OnMouseDrag MouseHandlerListener");
+                
+                FindAndPerformAction(pressAction, false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnMouseUpAsButton MouseHandlerListener");
+                LogAssert.Expect(LogType.Log, "OnMouseUp MouseHandlerListener");
+            }
+            finally
+            {
+                mouseHandlerListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Mouse Raycast 2D
+            RGActionManager.StartSession(eventSys);
+            GameObject mouseRaycast2DListener = FindRootGameObject("MouseRaycast2DListener");
+            GameObject theSquare = FindRootGameObject("The_Square");
+            mouseRaycast2DListener.SetActive(true);
+            theSquare.SetActive(true);
+            try
+            {
+                var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
+                    actionInst.BaseAction is MousePositionAction && actionInst.TargetObject.GetType().Name == "MouseRaycast2DObject");
+                Debug.Assert(actionInst != null);
+
+                Vector2? hitCoord = null;
+                int gridLength = 16;
+                for (int x = 0; x < gridLength; ++x)
+                {
+                    for (int y = 0; y < gridLength; ++y)
+                    {
+                        Vector2 coord = new Vector2(x / (float)gridLength, y / (float)gridLength);
+                        if (actionInst.IsValidParameter(coord))
+                        {
+                            hitCoord = coord;
+                            break;
+                        }
+                    }
+                }
+                
+                Debug.Assert(hitCoord.HasValue);
+                foreach (var inp in actionInst.GetInputs(hitCoord.Value))
+                {
+                    inp.Perform();
+                }
+
+                yield return null;
+                yield return null;
+                
+                LogAssert.Expect(LogType.Log, "Hit 2D game object The_Square");
+            }
+            finally
+            {
+                mouseRaycast2DListener.SetActive(false);
+                theSquare.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test Mouse Raycast 3D
+            RGActionManager.StartSession(eventSys);
+            GameObject mouseRaycast3DListener = FindRootGameObject("MouseRaycast3DListener");
+            GameObject theCube = FindRootGameObject("The_Cube");
+            mouseRaycast3DListener.SetActive(true);
+            theCube.SetActive(true);
+            try
+            {
+                var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
+                    actionInst.BaseAction is MousePositionAction && actionInst.TargetObject.GetType().Name == "MouseRaycast3DObject");
+                Debug.Assert(actionInst != null);
+                
+                Vector2? hitCoord = null;
+                int gridLength = 16;
+                for (int x = 0; x < gridLength; ++x)
+                {
+                    for (int y = 0; y < gridLength; ++y)
+                    {
+                        Vector2 coord = new Vector2(x / (float)gridLength, y / (float)gridLength);
+                        if (actionInst.IsValidParameter(coord))
+                        {
+                            hitCoord = coord;
+                            break;
+                        }
+                    }
+                }
+                
+                Debug.Assert(hitCoord.HasValue);
+                foreach (var inp in actionInst.GetInputs(hitCoord.Value))
+                {
+                    inp.Perform();
+                }
+
+                yield return null;
+                yield return null;
+                
+                LogAssert.Expect(LogType.Log, "Hit 3D game object The_Cube");
+            }
+            finally
+            {
+                mouseRaycast3DListener.SetActive(false);
+                theCube.SetActive(false);
+                RGActionManager.StopSession();
             }
         }
     }

@@ -11,7 +11,7 @@ namespace ActionManagerTests
             var hit2D = Physics2D.Raycast(worldPt, Vector2.zero);
             if (hit2D.collider != null)
             {
-                Debug.Log("Hit game object " + hit2D.collider.gameObject.name);
+                Debug.Log("Hit 2D game object " + hit2D.collider.gameObject.name);
             }
 
             var pos = gameObject.transform.position;

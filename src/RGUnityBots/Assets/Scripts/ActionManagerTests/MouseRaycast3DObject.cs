@@ -11,7 +11,7 @@ namespace ActionManagerTests
             int layerMask = 3;
             if (Physics.Raycast(ray, out var hit, Mathf.Infinity, layerMask))
             {
-                Debug.Log("Hit game object " + hit.collider.gameObject.name);
+                Debug.Log("Hit 3D game object " + hit.collider.gameObject.name);
             }
 
         }

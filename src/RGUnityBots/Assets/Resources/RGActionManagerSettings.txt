@@ -1,1 +1,3 @@
-{"DisabledActionPaths":[]}
+{
+    "DisabledActionPaths": []
+}

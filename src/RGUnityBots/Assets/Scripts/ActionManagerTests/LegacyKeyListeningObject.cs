@@ -29,15 +29,15 @@ namespace ActionManagerTests
         {
             if (Input.GetKey(MOVE_RIGHT_KEY))
             {
-                Debug.Log("GetKey(MOVE_RIGHT_KEY)");
+                Debug.Log("Input.GetKey(MOVE_RIGHT_KEY)");
             } else if (Input.GetKeyDown(_gameSettings.bindings.fireKey))
             {
-                Debug.Log("GetKeyDown(_gameSettings.bindings.fireKey)");
+                Debug.Log("Input.GetKeyDown(_gameSettings.bindings.fireKey)");
             }
 
             if (Input.GetKeyUp(_gameSettings.bindings.jumpKey))
             {
-                Debug.Log("GetKeyUp(_gameSettings.bindings.jumpKey)");
+                Debug.Log("Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
             }
 
             var crouchKey = _gameSettings.bindings.CrouchKey;
@@ -62,7 +62,7 @@ namespace ActionManagerTests
             var aimKey = KeyCode.LeftShift;
             if (Input.GetKey(aimKey))
             {
-                Debug.Log("GetKey(aimKey)");
+                Debug.Log("Input.GetKey(aimKey)");
             }
             HandleOtherInputs();
         }

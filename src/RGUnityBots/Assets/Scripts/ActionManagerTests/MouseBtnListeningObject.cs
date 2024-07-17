@@ -21,13 +21,10 @@ namespace ActionManagerTests
             }
 
             int btn = otherMouseBtn;
-            ((System.Action)(() =>
+            if (Input.GetMouseButtonUp(btn))
             {
-                if (Input.GetMouseButtonUp(btn))
-                {
-                    Debug.Log("Input.GetMouseButtonUp(btn)");
-                }
-            })).Invoke();
+                Debug.Log("Input.GetMouseButtonUp(btn)");
+            }
 
             if (Mouse.current.forwardButton.isPressed)
             {

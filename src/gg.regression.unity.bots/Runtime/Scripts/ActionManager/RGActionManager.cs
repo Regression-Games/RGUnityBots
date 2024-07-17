@@ -223,7 +223,11 @@ namespace RegressionGames.ActionManager
 
         private static void InitInputState()
         {
-            _mousePosition = RGLegacyInputWrapper.mousePosition;
+            // move mouse off screen
+            var mousePos = new Vector2(Screen.width + 20, -20);
+            MouseEventSender.SendRawPositionMouseEvent(-1, mousePos);
+
+            _mousePosition = mousePos;
             _mouseScroll = RGLegacyInputWrapper.mouseScrollDelta;
             _leftMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse0);
             _middleMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse2);
@@ -231,9 +235,6 @@ namespace RegressionGames.ActionManager
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
             CurrentEventSystems = new List<EventSystem>();
-            
-            // move mouse off screen
-            MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
         }
 
         public static void SimulateKeyState(KeyCode keyCode, bool isPressed)

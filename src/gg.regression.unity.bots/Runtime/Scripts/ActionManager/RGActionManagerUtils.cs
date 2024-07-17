@@ -375,7 +375,7 @@ namespace RegressionGames.ActionManager
                     continue;
                 }
                 
-                Vector3 mouseWorldPt = camera.ScreenToWorldPoint(mousePos);
+                Vector3 mouseWorldPt = camera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, camera.nearClipPlane));
                 RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity,
                     layerMask: layerMask);
                 if (hit2D.collider != null)
@@ -493,7 +493,7 @@ namespace RegressionGames.ActionManager
 
                     if (has2DCollider)
                     {
-                        Vector3 mouseWorldPt = camera.ScreenToWorldPoint(screenPt);
+                        Vector3 mouseWorldPt = camera.ScreenToWorldPoint(new Vector3(screenPt.x, screenPt.y, camera.nearClipPlane));
                         RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
                             layerMask: cameraRaycastMask);
                         if (hit2D.collider != null)
