@@ -355,6 +355,8 @@ namespace RegressionGames.StateRecorder
                         nextBotSegment.Replay_Matched = true;
                         // log this the first time
                         RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched");
+                        // tell the action that our segment completed
+                        nextBotSegment.StopAction(transformStatuses, entityStatuses);
                         if (i == 0)
                         {
                             _lastTimeLoggedKeyFrameConditions = now;

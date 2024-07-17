@@ -41,13 +41,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public List<RectInt> excludedAreas = new();
 
-        public bool? IsCompleted()
+
+        private GUIStyle _guiStyle = null;
+
+        private bool IsStopped;
+
+        public bool IsCompleted()
         {
-            return null;
+            return IsStopped;
         }
 
         public void ReplayReset()
         {
+            IsStopped = false;
         }
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
@@ -57,80 +63,87 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            var now = Time.unscaledTime;
-            if (now - timeBetweenClicks > Replay_LastClickTime)
+            if (!IsStopped)
             {
-                var screenWidth = Screen.width;
-                var screenHeight = Screen.height;
-
-                var x = Random.Range(0, screenWidth);
-                var y = Random.Range(0, screenHeight);
-
-                var RESTART_LIMIT = 20;
-
-                var count = excludedAreas.Count;
-                var restartCount = 0;
-                // try up to 20 times per frame to find a valid click spot, but after that, give up till the next frame as none may be available
-                // helps prevent long searches, or cases where the user excludes the whole screen
-                for (var i = 0; i < count && restartCount < RESTART_LIMIT; i++)
+                var now = Time.unscaledTime;
+                if (now - timeBetweenClicks > Replay_LastClickTime)
                 {
-                    var excludedArea = excludedAreas[i];
-                    var xMin = excludedArea.xMin;
-                    var xMax = excludedArea.xMax;
-                    var yMin = excludedArea.yMin;
-                    var yMax = excludedArea.yMax;
+                    var screenWidth = Screen.width;
+                    var screenHeight = Screen.height;
 
-                    // normalize the location to the current resolution
-                    if (screenWidth != screenSize.x)
+                    var x = Random.Range(0, screenWidth);
+                    var y = Random.Range(0, screenHeight);
+
+                    var RESTART_LIMIT = 20;
+
+                    var count = excludedAreas.Count;
+                    var restartCount = 0;
+                    // try up to 20 times per frame to find a valid click spot, but after that, give up till the next frame as none may be available
+                    // helps prevent long searches, or cases where the user excludes the whole screen
+                    for (var i = 0; i < count && restartCount < RESTART_LIMIT; i++)
                     {
-                        var ratio = screenWidth / screenSize.x;
-                        xMin *= ratio;
-                        xMax *= ratio;
+                        var excludedArea = excludedAreas[i];
+                        var xMin = excludedArea.xMin;
+                        var xMax = excludedArea.xMax;
+                        var yMin = excludedArea.yMin;
+                        var yMax = excludedArea.yMax;
+
+                        // normalize the location to the current resolution
+                        if (screenWidth != screenSize.x)
+                        {
+                            var ratio = screenWidth / screenSize.x;
+                            xMin *= ratio;
+                            xMax *= ratio;
+                        }
+
+                        if (screenHeight != screenSize.y)
+                        {
+                            var ratio = screenHeight / screenSize.y;
+                            yMin *= ratio;
+                            yMax *= ratio;
+                        }
+
+                        if (x >= xMin && x <= xMax)
+                        {
+                            x = Random.Range(0, screenWidth);
+                            // restart the loop
+                            i = -1;
+                            restartCount++;
+                        }
+
+                        if (y >= yMin && y <= yMax)
+                        {
+                            y = Random.Range(0, screenHeight);
+                            // restart the loop
+                            i = -1;
+                            restartCount++;
+                        }
                     }
 
-                    if (screenHeight != screenSize.y)
+                    if (restartCount < RESTART_LIMIT)
                     {
-                        var ratio = screenHeight / screenSize.y;
-                        yMin *= ratio;
-                        yMax *= ratio;
-                    }
-
-                    if (x >= xMin && x <= xMax)
-                    {
-                        x = Random.Range(0, screenWidth);
-                        // restart the loop
-                        i = -1;
-                        restartCount++;
-                    }
-
-                    if (y >= yMin && y <= yMax)
-                    {
-                        y = Random.Range(0, screenHeight);
-                        // restart the loop
-                        i = -1;
-                        restartCount++;
+                        error = null;
+                        MouseEventSender.SendMouseEvent(segmentNumber, new MouseInputActionData()
+                        {
+                            position = new Vector2Int(x, y),
+                            leftButton = Random.Range(0, 2) == 0,
+                            middleButton = Random.Range(0, 2) == 0,
+                            rightButton = Random.Range(0, 2) == 0,
+                        }, null, null, currentTransforms, currentEntities);
+                        return true;
                     }
                 }
 
-                if (restartCount < RESTART_LIMIT)
-                {
-                    error = null;
-                    MouseEventSender.SendMouseEvent(segmentNumber, new MouseInputActionData()
-                    {
-                        position = new Vector2Int(x, y),
-                        leftButton = Random.Range(0, 2) == 0,
-                        middleButton = Random.Range(0, 2) == 0,
-                        rightButton = Random.Range(0, 2) == 0,
-                    }, null, null, currentTransforms, currentEntities);
-                    return true;
-                }
             }
 
             error = null;
             return false;
         }
 
-        private GUIStyle _guiStyle = null;
+        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
+        {
+            IsStopped = true;
+        }
 
         public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
