@@ -15,26 +15,32 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             JObject jObject = JObject.Load(reader);
-            BotAction action = new();
-            action.type = jObject["type"].ToObject<BotActionType>();
-            IBotActionData data = null;
-            switch (action.type)
+            // ensure this segment HAS an action
+            if (jObject.Count > 0)
             {
-                case BotActionType.InputPlayback:
-                    data = jObject["data"].ToObject<InputPlaybackActionData>(serializer);
-                    break;
-                case BotActionType.RandomMouse_ClickPixel:
-                    data = jObject["data"].ToObject<RandomMousePixelActionData>(serializer);
-                    break;
-                case BotActionType.RandomMouse_ClickObject:
-                    data = jObject["data"].ToObject<RandomMouseObjectActionData>(serializer);
-                    break;
-                default:
-                    throw new JsonSerializationException($"Unsupported BotAction type: '{action.type}'");
+                BotAction action = new();
+                IBotActionData data = null;
+                action.type = jObject["type"].ToObject<BotActionType>();
+                switch (action.type)
+                {
+                    case BotActionType.InputPlayback:
+                        data = jObject["data"].ToObject<InputPlaybackActionData>(serializer);
+                        break;
+                    case BotActionType.RandomMouse_ClickPixel:
+                        data = jObject["data"].ToObject<RandomMousePixelActionData>(serializer);
+                        break;
+                    case BotActionType.RandomMouse_ClickObject:
+                        data = jObject["data"].ToObject<RandomMouseObjectActionData>(serializer);
+                        break;
+                    default:
+                        throw new JsonSerializationException($"Unsupported BotAction type: '{action.type}'");
+                }
+
+                action.data = data;
+                return action;
             }
 
-            action.data = data;
-            return action;
+            return null;
         }
 
         public override bool CanWrite => false;
