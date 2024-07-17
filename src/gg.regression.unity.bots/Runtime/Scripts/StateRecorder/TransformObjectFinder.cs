@@ -195,7 +195,7 @@ namespace RegressionGames.StateRecorder
         // pre-allocate a big list we can re-use
         private Dictionary<long,RecordedGameObjectState> _priorStates = new (1000);
         private Dictionary<long,RecordedGameObjectState> _newStates = new(1000);
-        private readonly List<RecordedGameObjectState> _fillInStates = new (1000);
+        private readonly Dictionary<long,RecordedGameObjectState> _fillInStates = new (1000);
 
         private Dictionary<long,ObjectStatus> _priorObjects = new(1000);
         private Dictionary<long,ObjectStatus> _newObjects = new(1000);
@@ -633,7 +633,7 @@ namespace RegressionGames.StateRecorder
         private RecordedGameObjectState GetStateForTransformObject(TransformStatus tStatus)
         {
             // only process visible objects into the state
-            if (tStatus.Transform != null && tStatus.screenSpaceBounds.HasValue)
+            if (tStatus.Transform != null)
             {
                 var usingOldObject = _priorStates.TryGetValue(tStatus.Id, out var resultObject);
 
@@ -657,7 +657,7 @@ namespace RegressionGames.StateRecorder
                 resultObject.rotation = tStatus.Transform.rotation;
 
                 resultObject.screenSpaceZOffset = tStatus.screenSpaceZOffset;
-                resultObject.screenSpaceBounds = tStatus.screenSpaceBounds.Value;
+                resultObject.screenSpaceBounds = tStatus.screenSpaceBounds;
                 resultObject.worldSpaceBounds = tStatus.worldSpaceBounds;
 
                 var dataProviders = resultObject.componentDataProviders;
@@ -735,23 +735,27 @@ namespace RegressionGames.StateRecorder
                 var parentId = newStateEntry.parentId;
                 if (parentId.HasValue)
                 {
-                    if (statusList.TryGetValue(parentId.Value, out var parentStatus))
+                    if (statusList.TryGetValue(newStateEntry.id, out var status))
                     {
-                        var parentTransform = (parentStatus is TransformStatus ptStatus) ? ptStatus.Transform : null;
+                        var theTransform = (status is TransformStatus transformStatus) ? transformStatus.Transform : null;
 
-                        // go up the tree until we find something in our parent hierarchy existing..
-                        // stop if we hit the top
-                        while (parentId.HasValue && parentTransform != null && !_newStates.ContainsKey(parentId.Value))
+                        if (theTransform != null)
                         {
+                            var parentTransform = theTransform.parent;
+                            // go up the tree until we find something in our parent hierarchy existing..
+                            // stop if we hit the top
+                            while (parentId.HasValue && parentTransform != null && !_newStates.ContainsKey(parentId.Value) && !_fillInStates.ContainsKey(parentId.Value))
+                            {
 
-                            var tStatus = TransformStatus.GetOrCreateTransformStatus(parentTransform);
-                            var resultObject = GetStateForTransformObject(tStatus);
+                                var tStatus = TransformStatus.GetOrCreateTransformStatus(parentTransform);
+                                var resultObject = GetStateForTransformObject(tStatus);
 
-                            // don't update the _newStates dictionary while iterating
-                            _fillInStates.Add(resultObject);
+                                // don't update the _newStates dictionary while iterating
+                                _fillInStates[parentId.Value] = resultObject;
 
-                            parentTransform = parentTransform.parent;
-                            parentId = resultObject.parentId;
+                                parentTransform = parentTransform.parent;
+                                parentId = resultObject.parentId;
+                            }
                         }
                     }
                 }
@@ -759,7 +763,7 @@ namespace RegressionGames.StateRecorder
 
             foreach (var recordedGameObjectState in _fillInStates)
             {
-                _newStates[recordedGameObjectState.id] = recordedGameObjectState;
+                _newStates[recordedGameObjectState.Key] = recordedGameObjectState.Value;
             }
 
             return (_priorStates, _newStates);
