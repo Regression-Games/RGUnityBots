@@ -104,11 +104,11 @@ namespace Tests.Runtime
             return null;
         }
 
-        private void FindAndPerformAction(string pathSuffix, object param)
+        private void FindAndPerformAction(string name, object param)
         {
             var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
-                actionInst.BaseAction.Paths[0].Last() == pathSuffix);
-            Debug.Assert(actionInst != null, $"Action {pathSuffix} is missing");
+                actionInst.BaseAction.DisplayName == name);
+            Debug.Assert(actionInst != null, $"Action {name} is missing");
             foreach (var inp in actionInst.GetInputs(param))
             {
                 inp.Perform();
@@ -135,27 +135,27 @@ namespace Tests.Runtime
             inputSysKeyListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Keyboard.current.anyKey", true);
+                FindAndPerformAction("Any Key", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current.anyKey.wasPressedThisFrame");
 
-                FindAndPerformAction("[key]", true);
+                FindAndPerformAction("Key fireKey", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "keyboard[key].isPressed");
                 
-                FindAndPerformAction("Keyboard.current.backslashKey", true);
+                FindAndPerformAction("Key Key.Backslash", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current.backslashKey.isPressed");
                 
-                FindAndPerformAction("keyboard.altKey", true);
+                FindAndPerformAction("Key Key.LeftAlt", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "keyboard.altKey.wasPressedThisFrame");
                 
-                FindAndPerformAction("[Key.F2]", true);
+                FindAndPerformAction("Key Key.F2", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current[Key.F2].isPressed");
@@ -172,18 +172,18 @@ namespace Tests.Runtime
             legacyAxisListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.GetAxisRaw(\"Mouse X\")", 1);
+                FindAndPerformAction("Axis \"Mouse X\"", 1);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxisRaw(\"Mouse X\")");
                 
-                FindAndPerformAction("Input.GetAxis(\"Mouse ScrollWheel\")", 1);
+                FindAndPerformAction("Axis \"Mouse ScrollWheel\"", 1);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxis(\"Mouse ScrollWheel\")");
                 
-                FindAndPerformAction("Input.GetAxis(axis)", 1);
-                FindAndPerformAction("Input.GetAxis(axis) (2)", 1);
+                FindAndPerformAction("Axis axisName", 1);
+                FindAndPerformAction("Axis axisName2", 1);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxis(axis)");
@@ -200,20 +200,20 @@ namespace Tests.Runtime
             legacyButtonListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.GetButton(ButtonName)", true);
+                FindAndPerformAction("Button ButtonName", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButton(ButtonName)");
                 
-                FindAndPerformAction("Input.GetButtonDown(btn)", true);
+                FindAndPerformAction("Button \"Fire1\"", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButtonDown(btn)");
                 
-                FindAndPerformAction("Input.GetButtonUp(\"Fire2\")", true);
+                FindAndPerformAction("Button \"Fire2\"", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.GetButtonUp(\"Fire2\")", false);
+                FindAndPerformAction("Button \"Fire2\"", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButtonUp(\"Fire2\")");
@@ -230,36 +230,36 @@ namespace Tests.Runtime
             legacyKeyListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.anyKey", true);
+                FindAndPerformAction("Any Key", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.anyKey");
                 LogAssert.Expect(LogType.Log, "Input.anyKeyDown");
                 
-                FindAndPerformAction("Input.GetKey(crouchKey)", true);
+                FindAndPerformAction("Key _gameSettings.bindings.CrouchKey", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(crouchKey)");
                 
-                FindAndPerformAction("Input.GetKeyDown(_gameSettings.bindings.fireKey)", true);
+                FindAndPerformAction("Key _gameSettings.bindings.fireKey", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKeyDown(_gameSettings.bindings.fireKey)");
                 
-                FindAndPerformAction("Input.GetKeyUp(_gameSettings.bindings.jumpKey)", true);
+                FindAndPerformAction("Key _gameSettings.bindings.jumpKey", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.GetKeyUp(_gameSettings.bindings.jumpKey)", false);
+                FindAndPerformAction("Key _gameSettings.bindings.jumpKey", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
                 
-                FindAndPerformAction("Input.GetKey(aimKey)", true);
+                FindAndPerformAction("Key KeyCode.LeftShift", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(aimKey)");
                 
-                FindAndPerformAction("Input.GetKey(MOVE_RIGHT_KEY)", true);
+                FindAndPerformAction("Key MOVE_RIGHT_KEY", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(MOVE_RIGHT_KEY)");
@@ -276,30 +276,30 @@ namespace Tests.Runtime
             mouseBtnListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.GetMouseButton(0)", true);
+                FindAndPerformAction("Mouse Button 0", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButton(0)");
                 
-                FindAndPerformAction("Input.GetMouseButtonDown(mouseBtn)", true);
+                FindAndPerformAction("Mouse Button mouseBtn", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonDown(mouseBtn)");
                 
-                FindAndPerformAction("Input.GetMouseButtonUp(btn)", true);
+                FindAndPerformAction("Mouse Button otherMouseBtn", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.GetMouseButtonUp(btn)", false);
+                FindAndPerformAction("Mouse Button otherMouseBtn", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonUp(btn)");
                 
-                FindAndPerformAction("Mouse.current.forwardButton", true);
+                FindAndPerformAction("Mouse Button 3", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Mouse.current.forwardButton.isPressed");
                 
-                FindAndPerformAction("mouse.backButton", true);
+                FindAndPerformAction("Mouse Button 4", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "mouse.backButton.wasPressedThisFrame");
@@ -316,16 +316,16 @@ namespace Tests.Runtime
             mouseMovementListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.mousePosition", new Vector2(0.1f, 0.1f));
+                FindAndPerformAction("Mouse Position", new Vector2(0.1f, 0.1f));
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.mousePosition", new Vector2(0.8f, 0.7f));
+                FindAndPerformAction("Mouse Position", new Vector2(0.8f, 0.7f));
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos");
                 LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos");
 
-                FindAndPerformAction("Input.mouseScrollDelta", new Vector2Int(1, 1));
+                FindAndPerformAction("Mouse Scroll", new Vector2Int(1, 1));
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
@@ -343,8 +343,8 @@ namespace Tests.Runtime
             mouseHandlerListener.SetActive(true);
             try
             {
-                string hoverAction = "OnMouseOver";
-                string pressAction = "OnMouseDown";
+                string hoverAction = "Mouse Hover Over MouseHandlerObject";
+                string pressAction = "Mouse Press On MouseHandlerObject";
                 
                 FindAndPerformAction(hoverAction, true);
                 yield return null;
