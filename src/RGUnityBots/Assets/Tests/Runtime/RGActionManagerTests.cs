@@ -8,12 +8,13 @@ using RegressionGames.ActionManager;
 using RegressionGames.ActionManager.Actions;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace Tests.Runtime
 {
-    public class RGActionManagerTests
+    public class RGActionManagerTests : InputTestFixture
     {
         [Test]
         public void TestValueRanges()
@@ -117,6 +118,11 @@ namespace Tests.Runtime
         [UnityTest]
         public IEnumerator TestActionManager()
         {
+            if (Keyboard.current == null)
+            {
+                InputSystem.AddDevice<Keyboard>();
+            }
+            
             SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
             
@@ -131,21 +137,26 @@ namespace Tests.Runtime
             {
                 FindAndPerformAction("Keyboard.current.anyKey", true);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current.anyKey.wasPressedThisFrame");
 
                 FindAndPerformAction("[key]", true);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "keyboard[key].isPressed");
                 
                 FindAndPerformAction("Keyboard.current.backslashKey", true);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current.backslashKey.isPressed");
                 
                 FindAndPerformAction("keyboard.altKey", true);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "keyboard.altKey.wasPressedThisFrame");
                 
                 FindAndPerformAction("[Key.F2]", true);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current[Key.F2].isPressed");
             }
@@ -163,9 +174,11 @@ namespace Tests.Runtime
             {
                 FindAndPerformAction("Input.GetAxisRaw(\"Mouse X\")", 1);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxisRaw(\"Mouse X\")");
                 
                 FindAndPerformAction("Input.GetAxis(\"Mouse ScrollWheel\")", 1);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxis(\"Mouse ScrollWheel\")");
                 
@@ -189,9 +202,11 @@ namespace Tests.Runtime
             {
                 FindAndPerformAction("Input.GetButton(ButtonName)", true);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButton(ButtonName)");
                 
                 FindAndPerformAction("Input.GetButtonDown(btn)", true);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButtonDown(btn)");
                 
@@ -223,9 +238,11 @@ namespace Tests.Runtime
                 
                 FindAndPerformAction("Input.GetKey(crouchKey)", true);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(crouchKey)");
                 
                 FindAndPerformAction("Input.GetKeyDown(_gameSettings.bindings.fireKey)", true);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKeyDown(_gameSettings.bindings.fireKey)");
                 
@@ -238,6 +255,7 @@ namespace Tests.Runtime
                 LogAssert.Expect(LogType.Log, "Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
                 
                 FindAndPerformAction("Input.GetKey(aimKey)", true);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(aimKey)");
                 
@@ -260,9 +278,11 @@ namespace Tests.Runtime
             {
                 FindAndPerformAction("Input.GetMouseButton(0)", true);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButton(0)");
                 
                 FindAndPerformAction("Input.GetMouseButtonDown(mouseBtn)", true);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonDown(mouseBtn)");
                 
@@ -276,9 +296,11 @@ namespace Tests.Runtime
                 
                 FindAndPerformAction("Mouse.current.forwardButton", true);
                 yield return null;
+                yield return null;
                 LogAssert.Expect(LogType.Log, "Mouse.current.forwardButton.isPressed");
                 
                 FindAndPerformAction("mouse.backButton", true);
+                yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "mouse.backButton.wasPressedThisFrame");
             }
@@ -450,6 +472,7 @@ namespace Tests.Runtime
             theButton.SetActive(true);
             try
             {
+                yield return null;
                 yield return null;
                 FindAndPerformAction("ActionManagerTests.ButtonHandler.OnBtnClick", true);
                 yield return null;
