@@ -18,7 +18,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         [NonSerialized] 
         public static readonly BotActionType Type = BotActionType.MonkeyBot;
         
-        public int apiVersion = SdkApiVersion.VERSION_5;
+        public int apiVersion = SdkApiVersion.VERSION_6;
         public float actionInterval = 0.05f;
         public RGActionManagerSettings actionSettings;
 
