@@ -134,6 +134,76 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 }
             ]
+        },
+        {
+            ""name"": ""ActionMap2"",
+            ""id"": ""2ea5e167-e493-476d-acbd-25b588e7fc38"",
+            ""actions"": [
+                {
+                    ""name"": ""Crouch"",
+                    ""type"": ""Button"",
+                    ""id"": ""1ab6d824-7e5d-486a-a7c8-e973ab78e892"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Horizontal"",
+                    ""type"": ""Button"",
+                    ""id"": ""e4db4165-f29f-483a-b6f3-292141b24435"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""830ab157-c894-49ef-bcca-6673b484febb"",
+                    ""path"": ""<Keyboard>/c"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Crouch"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""1D Axis"",
+                    ""id"": ""342d21b9-4d2b-47aa-b3c0-dfd3543e550a"",
+                    ""path"": ""1DAxis"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Horizontal"",
+                    ""isComposite"": true,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": ""negative"",
+                    ""id"": ""66dbc0d0-a7d7-4315-a0e2-26b324efd426"",
+                    ""path"": ""<Keyboard>/j"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Horizontal"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": ""positive"",
+                    ""id"": ""1c1881ea-f64c-4d2f-9b28-49b9969ea37f"",
+                    ""path"": ""<Keyboard>/l"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Horizontal"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": true
+                }
+            ]
         }
     ],
     ""controlSchemes"": []
@@ -143,6 +213,10 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
         m_ActionMap1_Move = m_ActionMap1.FindAction("Move", throwIfNotFound: true);
         m_ActionMap1_Jump = m_ActionMap1.FindAction("Jump", throwIfNotFound: true);
         m_ActionMap1_Aim = m_ActionMap1.FindAction("Aim", throwIfNotFound: true);
+        // ActionMap2
+        m_ActionMap2 = asset.FindActionMap("ActionMap2", throwIfNotFound: true);
+        m_ActionMap2_Crouch = m_ActionMap2.FindAction("Crouch", throwIfNotFound: true);
+        m_ActionMap2_Horizontal = m_ActionMap2.FindAction("Horizontal", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -262,10 +336,69 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
         }
     }
     public ActionMap1Actions @ActionMap1 => new ActionMap1Actions(this);
+
+    // ActionMap2
+    private readonly InputActionMap m_ActionMap2;
+    private List<IActionMap2Actions> m_ActionMap2ActionsCallbackInterfaces = new List<IActionMap2Actions>();
+    private readonly InputAction m_ActionMap2_Crouch;
+    private readonly InputAction m_ActionMap2_Horizontal;
+    public struct ActionMap2Actions
+    {
+        private @MyInputs m_Wrapper;
+        public ActionMap2Actions(@MyInputs wrapper) { m_Wrapper = wrapper; }
+        public InputAction @Crouch => m_Wrapper.m_ActionMap2_Crouch;
+        public InputAction @Horizontal => m_Wrapper.m_ActionMap2_Horizontal;
+        public InputActionMap Get() { return m_Wrapper.m_ActionMap2; }
+        public void Enable() { Get().Enable(); }
+        public void Disable() { Get().Disable(); }
+        public bool enabled => Get().enabled;
+        public static implicit operator InputActionMap(ActionMap2Actions set) { return set.Get(); }
+        public void AddCallbacks(IActionMap2Actions instance)
+        {
+            if (instance == null || m_Wrapper.m_ActionMap2ActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_ActionMap2ActionsCallbackInterfaces.Add(instance);
+            @Crouch.started += instance.OnCrouch;
+            @Crouch.performed += instance.OnCrouch;
+            @Crouch.canceled += instance.OnCrouch;
+            @Horizontal.started += instance.OnHorizontal;
+            @Horizontal.performed += instance.OnHorizontal;
+            @Horizontal.canceled += instance.OnHorizontal;
+        }
+
+        private void UnregisterCallbacks(IActionMap2Actions instance)
+        {
+            @Crouch.started -= instance.OnCrouch;
+            @Crouch.performed -= instance.OnCrouch;
+            @Crouch.canceled -= instance.OnCrouch;
+            @Horizontal.started -= instance.OnHorizontal;
+            @Horizontal.performed -= instance.OnHorizontal;
+            @Horizontal.canceled -= instance.OnHorizontal;
+        }
+
+        public void RemoveCallbacks(IActionMap2Actions instance)
+        {
+            if (m_Wrapper.m_ActionMap2ActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        public void SetCallbacks(IActionMap2Actions instance)
+        {
+            foreach (var item in m_Wrapper.m_ActionMap2ActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_ActionMap2ActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    public ActionMap2Actions @ActionMap2 => new ActionMap2Actions(this);
     public interface IActionMap1Actions
     {
         void OnMove(InputAction.CallbackContext context);
         void OnJump(InputAction.CallbackContext context);
         void OnAim(InputAction.CallbackContext context);
+    }
+    public interface IActionMap2Actions
+    {
+        void OnCrouch(InputAction.CallbackContext context);
+        void OnHorizontal(InputAction.CallbackContext context);
     }
 }
