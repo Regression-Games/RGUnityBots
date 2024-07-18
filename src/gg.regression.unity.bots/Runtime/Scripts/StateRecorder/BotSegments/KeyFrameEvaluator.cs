@@ -152,6 +152,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         }
                         else
                         {
+                            _newUnmatchedCriteria.Add("UIPixelHash has not changed");
                             return false;
                         }
                         break;
