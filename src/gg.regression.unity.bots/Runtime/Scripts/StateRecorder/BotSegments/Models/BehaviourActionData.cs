@@ -1,13 +1,14 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -21,85 +22,116 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // api version for this object, update if object format changes
         public int apiVersion = SdkApiVersion.VERSION_5;
 
-        [NonSerialized]
-        public static readonly BotActionType Type = BotActionType.Behaviour;
+        private static readonly Dictionary<string, Type> CachedTypes = new();
 
-        public string BehaviourFullName;
+        public string behaviourFullName;
 
-        private bool IsStopped;
+        private bool _isStopped;
 
-        private GameObject myGameObject;
+        private GameObject _myGameObject;
 
         public bool IsCompleted()
         {
-            return IsStopped;
+            return _isStopped;
         }
 
         public void ReplayReset()
         {
-            IsStopped = false;
+            _isStopped = false;
         }
+
+        private volatile Type _typeToCreate = null;
+        private volatile bool _readyToCreate;
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            Type t = null;
-            // load our script type without knowing the assembly name, just the full type
-            foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
+            // load the type on another thread to avoid 'hitching' the game
+            new Thread(() =>
             {
-                foreach (var type in a.GetTypes())
+                if (!CachedTypes.TryGetValue(behaviourFullName, out var t))
                 {
-                    if (type.FullName != null && type.FullName.Equals(BehaviourFullName))
+                    // load our script type without knowing the assembly name, just the full type
+                    foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
                     {
-                        t = type;
-                        break;
+                        foreach (var type in a.GetTypes())
+                        {
+                            if (type.FullName != null && type.FullName.Equals(behaviourFullName))
+                            {
+                                t = type;
+                                CachedTypes[behaviourFullName] = t;
+                                break;
+                            }
+                        }
                     }
                 }
-            }
-            if (t == null)
-            {
-                RGDebug.LogError($"Regression Games could not load Bot Segment Behaviour Action for Type - {BehaviourFullName}. Type was not found in any assembly in the current runtime.");
-            }
-            else
-            {
-                // load behaviour and set as a child of the playback controller
-                var pbController = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
-                myGameObject = new GameObject($"BehaviourAction_{BehaviourFullName}")
-                {
-                    transform =
-                    {
-                        parent = pbController.transform
-                    }
-                };
 
-                // Attach our behaviour
-                myGameObject.AddComponent(t);
-            }
+                if (t == null)
+                {
+                    RGDebug.LogError($"Regression Games could not load Bot Segment Behaviour Action for Type - {behaviourFullName}. Type was not found in any assembly in the current runtime.");
+                }
+                else
+                {
+                    _typeToCreate = t;
+                }
+
+                _readyToCreate = true;
+            }).Start();
         }
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            // Behaviour is expected to perform its actions in its own 'Update' or 'LateUpdate' calls
-            // It can get the current state information from the runtime directly... or can access our information by using
-            // UnityEngine.Object.FindObjectOfType<TransformObjectFinder>().GetObjectStatusForCurrentFrame();
-            // and/or
-            // UnityEngine.Object.FindObjectOfType<EntityObjectFinder>().GetObjectStatusForCurrentFrame(); - for runtimes with ECS support
-            error = null;
-            if (!IsStopped)
+            if (!_isStopped)
             {
-                return true;
+                if (_readyToCreate)
+                {
+                    if (_typeToCreate != null)
+                    {
+                        // load behaviour and set as a child of the playback controller
+                        var pbController = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
+                        _myGameObject = new GameObject($"BehaviourAction_{behaviourFullName}")
+                        {
+                            transform =
+                            {
+                                parent = pbController.transform
+                            }
+                        };
+
+                        // Attach our behaviour
+                        _myGameObject.AddComponent(_typeToCreate);
+                    }
+                    else
+                    {
+                        // couldn't load the type.. just stop
+                        _isStopped = true;
+                    }
+
+                    _readyToCreate = false;
+                }
+
+                if (_myGameObject != null)
+                {
+                    // Behaviour is expected to perform its actions in its own 'Update' or 'LateUpdate' calls
+                    // It can get the current state information from the runtime directly... or can access our information by using
+                    // UnityEngine.Object.FindObjectOfType<TransformObjectFinder>().GetObjectStatusForCurrentFrame();
+                    // and/or
+                    // UnityEngine.Object.FindObjectOfType<EntityObjectFinder>().GetObjectStatusForCurrentFrame(); - for runtimes with ECS support
+                    error = null;
+                    return true;
+                }
             }
 
+            error = null;
             return false;
         }
 
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            IsStopped = true;
-            if (myGameObject != null)
+            _isStopped = true;
+            if (_myGameObject != null)
             {
-                UnityEngine.Object.Destroy(myGameObject);
+                UnityEngine.Object.Destroy(_myGameObject);
             }
-            myGameObject = null;
+            _myGameObject = null;
         }
 
         public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
@@ -112,7 +144,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"behaviourFullName\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, BehaviourFullName);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, behaviourFullName);
             stringBuilder.Append("}");
         }
 

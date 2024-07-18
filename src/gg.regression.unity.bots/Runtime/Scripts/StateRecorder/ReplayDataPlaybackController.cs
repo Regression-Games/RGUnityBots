@@ -161,6 +161,15 @@ namespace RegressionGames.StateRecorder
 
         public void Stop()
         {
+            if (_nextBotSegments.Count > 0)
+            {
+                foreach (var nextBotSegment in _nextBotSegments)
+                {
+                    // stop any action
+                    nextBotSegment.StopAction(new(), new());
+                }
+            }
+
             _nextBotSegments.Clear();
             _startPlaying = false;
             _isPlaying = false;
@@ -185,7 +194,6 @@ namespace RegressionGames.StateRecorder
             {
                 objectFinder.Cleanup();
             }
-
 
         }
 
