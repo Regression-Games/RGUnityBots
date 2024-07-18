@@ -22,6 +22,9 @@ namespace RegressionGames.ActionManager
         private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
         private static Camera[] _camerasBuf;
         
+        /// <summary>
+        /// This method computes and returns the full method signature of all the event listeners that are bound to the given event
+        /// </summary>
         public static IEnumerable<string> GetEventListenerMethodNames(UnityEvent evt)
         {
             if (_persistentCallsField == null)
@@ -70,6 +73,7 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        // Mapping from keyboard property (Keyboard.current.<property>) to the associated key code
         private static readonly Dictionary<string, Key> KeyboardPropNameToKeyCode = new Dictionary<string, Key>()
         {
             { "aKey", Key.A },
@@ -205,6 +209,11 @@ namespace RegressionGames.ActionManager
             }
         }
         
+        /// <summary>
+        /// This finds a point on the screen that is outside of the given rectangle.
+        /// It tries to prioritize points that are on the screen, but if no such point exists then
+        /// it will fall back to a point off the screen.
+        /// </summary>
         public static Vector2 GetPointOutsideBounds(Bounds ssBounds)
         {
             Bounds screenRect = new Bounds(
@@ -230,6 +239,9 @@ namespace RegressionGames.ActionManager
             return candidates[0];
         }
         
+        /// <summary>
+        /// Compute the screen space bounds of the given game object's collider.
+        /// </summary>
         public static Bounds? GetGameObjectScreenSpaceBounds(GameObject gameObject)
         {
             var instId = gameObject.transform.GetInstanceID();
@@ -286,6 +298,9 @@ namespace RegressionGames.ActionManager
             return ssBounds;
         }
         
+        /// <summary>
+        /// Compute the screen space bounds of the given UI object (must have a CanvasRenderer component).
+        /// </summary>
         public static Bounds? GetUIScreenSpaceBounds(GameObject uiObject)
         {
             var instId = uiObject.transform.GetInstanceID();
@@ -312,6 +327,9 @@ namespace RegressionGames.ActionManager
             return false;
         }
 
+        /// <summary>
+        /// Returns whether the given mouse position is hovering over any UI element on the screen.
+        /// </summary>
         public static bool IsMouseOverUI(Vector2 mousePos)
         {
             foreach (var eventSys in RGActionManager.CurrentEventSystems)
@@ -333,6 +351,9 @@ namespace RegressionGames.ActionManager
             return false;
         }
 
+        /// <summary>
+        /// Returns whether the given mouse position is hovering over any 3D collider on the screen.
+        /// </summary>
         public static bool IsMouseOverCollider3D(Vector2 mousePos, int layerMask)
         {
             int numCameras = Camera.allCamerasCount;
@@ -359,6 +380,9 @@ namespace RegressionGames.ActionManager
             return false;
         }
 
+        /// <summary>
+        /// Returns whether the given mouse position is hovering over any 2D collider on the screen.
+        /// </summary>
         public static bool IsMouseOverCollider2D(Vector2 mousePos, int layerMask)
         {
             int numCameras = Camera.allCamerasCount;
@@ -388,8 +412,9 @@ namespace RegressionGames.ActionManager
         }
         
         /// <summary>
-        /// Same as GetGameObjectMouseHitPosition, but for UI components.
-        /// This uses the EventSystem raycaster instead of the Physics/Physics2D raycaster.
+        /// This returns the mouse position on the screen needed in order to interact with the
+        /// specified UI element. If it is impossible to hit the UI element (e.g.
+        /// due to another object obstructing it) then this returns false.
         /// </summary>
         public static bool GetUIMouseHitPosition(GameObject uiObject, out Vector2 result)
         {
@@ -400,6 +425,8 @@ namespace RegressionGames.ActionManager
                 return false;
             }
             
+            // In order to handle the case of partial overlap, multiple raycasts are performed (center, bottom left, and top right).
+            // The set of raycasts performed should be deterministic, since the action manager tries to behave deterministically as much as possible.
             IEnumerable<Vector2> GetRaycastPoints()
             {
                 yield return uiObjectBounds.Value.center;
@@ -407,6 +434,7 @@ namespace RegressionGames.ActionManager
                 yield return uiObjectBounds.Value.center + uiObjectBounds.Value.extents / 2.0f;
             }
 
+            // Perform a UI raycast using every event system available in the scene (normally there should just be one)
             foreach (var eventSys in RGActionManager.CurrentEventSystems)
             {
                 PointerEventData data = new PointerEventData(eventSys);
@@ -421,6 +449,8 @@ namespace RegressionGames.ActionManager
                     {
                         if (raycastRes.gameObject != null)
                         {
+                            // If the raycast hit either the object or one of its ancestors, then the given 
+                            // mouse position can be used to interact with the object.
                             if (IsAncestorOrEqualTo(uiObject, raycastRes.gameObject))
                             {
                                 result = mousePos;
@@ -451,6 +481,8 @@ namespace RegressionGames.ActionManager
                 return false;
             }
             
+            // In order to handle the case of partial overlap, multiple raycasts are performed (center, bottom left, and top right).
+            // The set of raycasts performed should be deterministic, since the action manager tries to behave deterministically as much as possible.
             IEnumerable<Vector2> GetRaycastPoints()
             {
                 yield return ssBounds.Value.center;
@@ -467,6 +499,8 @@ namespace RegressionGames.ActionManager
                 _camerasBuf = new Camera[numCameras];
             }
             Camera.GetAllCameras(_camerasBuf);
+            
+            // Perform a raycast from each rendering camera in the scene
             foreach (Camera camera in _camerasBuf)
             {
                 if (camera == null || camera.eventMask == 0 || camera.targetTexture != null)
@@ -479,6 +513,8 @@ namespace RegressionGames.ActionManager
                 {
                     if (has3DCollider)
                     {
+                        // If this is a 3D collider, and the Physics.Raycast call hits the desired object, then we've
+                        // found the appropriate mouse position to use to interact with the object.
                         Ray mouseRay = camera.ScreenPointToRay(screenPt);
                         if (Physics.Raycast(mouseRay, out RaycastHit hit, maxDistance: Mathf.Infinity,
                                 layerMask: cameraRaycastMask))
@@ -493,6 +529,8 @@ namespace RegressionGames.ActionManager
 
                     if (has2DCollider)
                     {
+                        // If this is a 2D collider, and the Physics2D.Raycast call hits the desired object, then we've
+                        // found the appropriate mouse position to use to interact with the object.
                         Vector3 mouseWorldPt = camera.ScreenToWorldPoint(new Vector3(screenPt.x, screenPt.y, camera.nearClipPlane));
                         RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
                             layerMask: cameraRaycastMask);

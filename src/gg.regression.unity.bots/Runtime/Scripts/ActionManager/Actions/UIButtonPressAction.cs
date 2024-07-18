@@ -37,11 +37,14 @@ namespace RegressionGames.ActionManager.Actions
         public override bool IsValidForObject(Object obj)
         {
             Button btn = (Button)obj;
+            
+            // If the button isn't interactable, button press is invalid
             if (!btn.IsInteractable())
             {
                 return false;
             }
 
+            // If the containing canvas group of this button is not interactable, the button press is invalid
             Transform t = btn.transform.parent;
             while (t != null)
             {
@@ -53,6 +56,7 @@ namespace RegressionGames.ActionManager.Actions
                 t = t.parent;
             }
 
+            // If this action does not target the event listeners associated with this button, then this action is not valid for this button
             bool matchesListener = false;
             foreach (string listenerName in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
             {
@@ -65,6 +69,7 @@ namespace RegressionGames.ActionManager.Actions
             if (!matchesListener)
                 return false;
 
+            // Finally, check that it is actually possible to click the button via a raycast (i.e. that it is not obscured by another UI element)
             bool haveMousePos = RGActionManagerUtils.GetUIMouseHitPosition(btn.gameObject, out _);
             return haveMousePos;
         }
