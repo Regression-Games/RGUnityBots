@@ -486,6 +486,23 @@ namespace Tests.Runtime
             {
                 RGActionManager.StopSession();
             }
+            
+            // Test interprocedural analysis
+            RGActionManager.StartSession(eventSys);
+            GameObject interprocObj = FindGameObject("InterprocListener");
+            interprocObj.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("Key jumpKeyCode", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Player jumped");
+            }
+            finally
+            {
+                RGActionManager.StopSession();
+            }
         }
     }
 }
