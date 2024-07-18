@@ -1,21 +1,40 @@
 ﻿using System;
+using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using RegressionGames.ActionManager.JsonConverters;
+using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace RegressionGames.ActionManager
 {
+    public enum RGValueRangeType
+    {
+        RANGE_VOID,
+        RANGE_BOOL,
+        RANGE_INT,
+        RANGE_VECTOR2_INT,
+        RANGE_FLOAT,
+        RANGE_VECTOR2
+    }
+    
     // This class is used to define the range of acceptable values for action parameters.
+    [JsonConverter(typeof(RGValueRangeJsonConverter))]
     public interface IRGValueRange
     {
+        public RGValueRangeType Type { get; }
         public object MinValue { get; }
         public object MaxValue { get; }
         public object RandomSample();
         public bool RangeEquals(IRGValueRange other);
+        public void WriteToStringBuilder(StringBuilder stringBuilder);
     }
     
     // All discrete value types (bool, char, int, etc.) derived from RGDiscreteValueRange
     public abstract class RGDiscreteValueRange : IRGValueRange
     {
+        public abstract RGValueRangeType Type { get; }
         public abstract object MinValue { get; }
         public abstract object MaxValue { get; }
         
@@ -31,11 +50,14 @@ namespace RegressionGames.ActionManager
         }
 
         public abstract bool RangeEquals(IRGValueRange other);
+
+        public abstract void WriteToStringBuilder(StringBuilder stringBuilder);
     }
     
     // All continuous value types (float, Vector2, etc.) derived from RGContinuousValueRange
     public abstract class RGContinuousValueRange : IRGValueRange
     {
+        public abstract RGValueRangeType Type { get; }
         public abstract object MinValue { get; }
         public abstract object MidPoint { get; }
         public abstract object MaxValue { get; }
@@ -46,18 +68,32 @@ namespace RegressionGames.ActionManager
         public abstract RGContinuousValueRange[] Discretize(int n);
         
         public abstract bool RangeEquals(IRGValueRange other);
+        
+        public abstract void WriteToStringBuilder(StringBuilder stringBuilder);
     }
 
     public class RGVoidRange : RGDiscreteValueRange
     {
+        public override RGValueRangeType Type => RGValueRangeType.RANGE_VOID;
         public override object MinValue => null;
         public override object MaxValue => null;
         public override int NumValues => 1;
         public override object this[int index] => null;
+
+        public RGVoidRange(JObject serializedRange)
+        {
+        }
         
         public override bool RangeEquals(IRGValueRange other)
         {
             return other is RGVoidRange;
+        }
+
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, Type.ToString());
+            stringBuilder.Append("}");
         }
 
         public override string ToString()
@@ -68,6 +104,8 @@ namespace RegressionGames.ActionManager
 
     public class RGBoolRange : RGDiscreteValueRange
     {
+        public override RGValueRangeType Type => RGValueRangeType.RANGE_BOOL;
+        
         private int _minValue;
         private int _maxValue;
 
@@ -81,6 +119,12 @@ namespace RegressionGames.ActionManager
             _minValue = minValue ? 1 : 0;
             _maxValue = maxValue ? 1 : 0;
             Debug.Assert(_minValue <= _maxValue);
+        }
+        
+        public RGBoolRange(JObject serializedRange)
+        {
+            _minValue = serializedRange["minValue"].ToObject<int>();
+            _maxValue = serializedRange["maxValue"].ToObject<int>();
         }
 
         public RGBoolRange() : this(false, true)
@@ -109,6 +153,17 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, Type.ToString());
+            stringBuilder.Append(",\"minValue\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _minValue);
+            stringBuilder.Append(",\"maxValue\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue);
+            stringBuilder.Append("}");
+        }
+
         public override string ToString()
         {
             return $"bool ({MinValue}, {MaxValue})";
@@ -117,6 +172,8 @@ namespace RegressionGames.ActionManager
 
     public class RGVector2IntRange : RGDiscreteValueRange
     {
+        public override RGValueRangeType Type => RGValueRangeType.RANGE_VECTOR2_INT;
+        
         private Vector2Int _minValue;
         private Vector2Int _maxValue;
         
@@ -129,6 +186,16 @@ namespace RegressionGames.ActionManager
             _maxValue = maxValue;
         }
         
+        public RGVector2IntRange(JObject serializedRange)
+        {
+            int minValueX = serializedRange["minValueX"].ToObject<int>();
+            int minValueY = serializedRange["minValueY"].ToObject<int>();
+            int maxValueX = serializedRange["maxValueX"].ToObject<int>();
+            int maxValueY = serializedRange["maxValueY"].ToObject<int>();
+            _minValue = new Vector2Int(minValueX, minValueY);
+            _maxValue = new Vector2Int(maxValueX, maxValueY);
+        }
+        
         public override bool RangeEquals(IRGValueRange other)
         {
             if (other is RGVector2IntRange v2Range)
@@ -139,6 +206,21 @@ namespace RegressionGames.ActionManager
             {
                 return false;
             }
+        }
+
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, Type.ToString());
+            stringBuilder.Append(",\"minValueX\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _minValue.x);
+            stringBuilder.Append(",\"minValueY\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _minValue.y);
+            stringBuilder.Append(",\"maxValueX\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue.x);
+            stringBuilder.Append(",\"maxValueY\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue.y);
+            stringBuilder.Append("}");
         }
 
         public int Width => (_maxValue.x - _minValue.x + 1);
@@ -159,6 +241,8 @@ namespace RegressionGames.ActionManager
 
     public class RGIntRange : RGDiscreteValueRange
     {
+        public override RGValueRangeType Type => RGValueRangeType.RANGE_INT;
+        
         private int _minValue;
         private int _maxValue;
 
@@ -169,6 +253,12 @@ namespace RegressionGames.ActionManager
         {
             _minValue = minValue;
             _maxValue = maxValue;
+        }
+        
+        public RGIntRange(JObject serializedRange)
+        {
+            _minValue = serializedRange["minValue"].ToObject<int>();
+            _maxValue = serializedRange["maxValue"].ToObject<int>();
         }
         
         public override bool RangeEquals(IRGValueRange other)
@@ -183,6 +273,17 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, Type.ToString());
+            stringBuilder.Append(",\"minValue\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _minValue);
+            stringBuilder.Append(",\"maxValue\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue);
+            stringBuilder.Append("}");
+        }
+
         public override int NumValues => _maxValue - _minValue + 1;
 
         public override object this[int index] => _minValue + index;
@@ -195,6 +296,8 @@ namespace RegressionGames.ActionManager
 
     public class RGFloatRange : RGContinuousValueRange
     {
+        public override RGValueRangeType Type => RGValueRangeType.RANGE_FLOAT;
+        
         private float _minValue;
         private float _maxValue;
 
@@ -207,6 +310,12 @@ namespace RegressionGames.ActionManager
             _minValue = minValue;
             _maxValue = maxValue;
             Debug.Assert(_minValue <= _maxValue);
+        }
+        
+        public RGFloatRange(JObject serializedRange)
+        {
+            _minValue = serializedRange["minValue"].ToObject<float>();
+            _maxValue = serializedRange["maxValue"].ToObject<float>();
         }
         
         public override object RandomSample()
@@ -225,6 +334,17 @@ namespace RegressionGames.ActionManager
             {
                 return false;
             }
+        }
+
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, Type.ToString());
+            stringBuilder.Append(",\"minValue\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, _minValue);
+            stringBuilder.Append(",\"maxValue\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue);
+            stringBuilder.Append("}");
         }
 
         public override RGContinuousValueRange[] Discretize(int n)
@@ -247,6 +367,8 @@ namespace RegressionGames.ActionManager
 
     public class RGVector2Range : RGContinuousValueRange
     {
+        public override RGValueRangeType Type => RGValueRangeType.RANGE_VECTOR2;
+        
         private Vector2 _minValue;
         private Vector2 _maxValue;
 
@@ -260,6 +382,16 @@ namespace RegressionGames.ActionManager
             _maxValue = maxValue;
             Debug.Assert(minValue.x <= maxValue.x);
             Debug.Assert(minValue.y <= maxValue.y);
+        }
+
+        public RGVector2Range(JObject serializedRange)
+        {
+            float minValueX = serializedRange["minValueX"].ToObject<float>();
+            float minValueY = serializedRange["minValueY"].ToObject<float>();
+            float maxValueX = serializedRange["maxValueX"].ToObject<float>();
+            float maxValueY = serializedRange["maxValueY"].ToObject<float>();
+            _minValue = new Vector2(minValueX, minValueY);
+            _maxValue = new Vector2(maxValueX, maxValueY);
         }
         
         public override object RandomSample()
@@ -278,6 +410,21 @@ namespace RegressionGames.ActionManager
             {
                 return false;
             }
+        }
+
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, Type.ToString());
+            stringBuilder.Append(",\"minValueX\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, _minValue.x);
+            stringBuilder.Append(",\"minValueY\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, _minValue.y);
+            stringBuilder.Append(",\"maxValueX\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue.x);
+            stringBuilder.Append(",\"maxValueY\":");
+            FloatJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue.y);
+            stringBuilder.Append("}");
         }
 
         public override RGContinuousValueRange[] Discretize(int n)

@@ -21,7 +21,8 @@ namespace RegressionGames.ActionManager.Actions
         public float MouseMovementMagnitude = 10.0f; // for axes that read mouse delta, the amount to move/scroll the mouse
 
         public LegacyAxisAction(string[] path, Type objectType, RGActionParamFunc<string> axisNameFunc) : 
-            base(path, objectType)
+            base(path, objectType, 
+                new RGIntRange(-1, 1)) // Discretize the axis into three states (negative, zero, positive) so there is an equal chance of not going in either direction
         {
             AxisNameFunc = axisNameFunc;
         }
@@ -31,9 +32,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             AxisNameFunc = RGActionParamFunc<string>.Deserialize(serializedAction["axisNameFunc"]);
         }
-
-        // Discretize the axis into three states (negative, zero, positive) so there is an equal chance of not going in either direction
-        public override IRGValueRange ParameterRange { get; } = new RGIntRange(-1, 1);
 
         public override string DisplayName => $"Axis {AxisNameFunc}";
 

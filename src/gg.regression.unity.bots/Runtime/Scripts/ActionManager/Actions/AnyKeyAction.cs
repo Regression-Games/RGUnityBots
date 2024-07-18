@@ -14,7 +14,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class AnyKeyAction : RGGameAction
     {
-        public AnyKeyAction(string[] path, Type objectType) : base(path, objectType)
+        public AnyKeyAction(string[] path, Type objectType) : base(path, objectType, new RGBoolRange())
         {
         }
 
@@ -22,8 +22,6 @@ namespace RegressionGames.ActionManager.Actions
             base(serializedAction)
         {
         }
-
-        public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
 
         public override string DisplayName => "Any Key";
 

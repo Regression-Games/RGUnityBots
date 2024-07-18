@@ -18,7 +18,7 @@ namespace RegressionGames.ActionManager.Actions
 
         
         public UIButtonPressAction(string[] path, Type objectType, string eventListenerName) : 
-            base(path, objectType)
+            base(path, objectType, new RGBoolRange())
         {
             Debug.Assert(typeof(Button).IsAssignableFrom(objectType));
             EventListenerName = eventListenerName;
@@ -29,8 +29,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             EventListenerName = serializedAction["eventListenerName"].ToString();
         }
-
-        public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
 
         public override string DisplayName => $"{EventListenerName}";
 

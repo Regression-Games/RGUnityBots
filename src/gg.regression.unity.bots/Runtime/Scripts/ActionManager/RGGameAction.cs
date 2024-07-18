@@ -9,6 +9,7 @@ using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ActionManager
 {
+    [JsonConverter(typeof(RGGameActionJsonConverter))]
     public abstract class RGGameAction : ICloneable
     {
         
@@ -26,15 +27,16 @@ namespace RegressionGames.ActionManager
         
          /// The range of parameter values accepted by this action's
          /// Perform() method.
-        public abstract IRGValueRange ParameterRange { get; }
+        public IRGValueRange ParameterRange { get; set; }
 
          /// The name of this action as it should be displayed when presented to the user.
         public abstract string DisplayName { get; }
 
-        public RGGameAction(string[] path, Type objectType)
+        public RGGameAction(string[] path, Type objectType, IRGValueRange paramRange)
         {
             Paths = new List<string[]> { path };
             ObjectType = objectType;
+            ParameterRange = paramRange;
         }
 
         public RGGameAction(JObject serializedAction)
@@ -47,6 +49,8 @@ namespace RegressionGames.ActionManager
             {
                 ObjectType = Type.GetType(objectTypeName.ToString(), true);
             }
+
+            ParameterRange = serializedAction["parameterRange"].ToObject<IRGValueRange>();
         }
 
         /// <summary>
@@ -100,6 +104,8 @@ namespace RegressionGames.ActionManager
             }
             stringBuilder.Append("],\n\"objectTypeName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, ObjectType?.AssemblyQualifiedName);
+            stringBuilder.Append(",\n\"parameterRange\":");
+            ParameterRange.WriteToStringBuilder(stringBuilder);
             WriteParametersToStringBuilder(stringBuilder);
             stringBuilder.Append("\n}");
         }

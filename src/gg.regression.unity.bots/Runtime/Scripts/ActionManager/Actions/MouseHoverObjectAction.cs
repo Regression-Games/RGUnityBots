@@ -14,7 +14,8 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseHoverObjectAction : RGGameAction
     {
-        public MouseHoverObjectAction(string[] path, Type objectType) : base(path, objectType)
+        public MouseHoverObjectAction(string[] path, Type objectType) : 
+            base(path, objectType, new RGBoolRange())
         {
         }
 
@@ -22,8 +23,6 @@ namespace RegressionGames.ActionManager.Actions
             base(serializedAction)
         {
         }
-
-        public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
 
         public override string DisplayName => $"Mouse Hover Over {ObjectType.Name}";
 
