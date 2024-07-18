@@ -76,7 +76,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StopAction(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            botAction.StopAction(Replay_SegmentNumber, currentTransforms, currentEntities);
+            if (botAction != null)
+            {
+                botAction.StopAction(Replay_SegmentNumber, currentTransforms, currentEntities);
+            }
         }
 
         // Replay only
