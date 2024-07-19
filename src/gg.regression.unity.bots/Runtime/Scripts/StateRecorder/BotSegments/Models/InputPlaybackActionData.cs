@@ -60,7 +60,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 {
                     // send start event
                     result = true;
-                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry, KeyState.Down);
+                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Down);
                     replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
                 }
 
@@ -68,7 +68,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 {
                     // send end event
                     result = true;
-                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry, KeyState.Up);
+                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Up);
                     replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                 }
             }

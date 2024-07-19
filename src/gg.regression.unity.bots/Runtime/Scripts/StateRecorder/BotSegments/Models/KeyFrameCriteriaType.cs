@@ -6,6 +6,7 @@
         And,
         UIPixelHash,
         NormalizedPath,
+        PartialNormalizedPath,
 
         //FUTURE
         //Path,

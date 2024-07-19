@@ -297,15 +297,7 @@ namespace RegressionGames.ActionManager
         {
             if (key != Key.None)
             {
-                KeyControl control = Keyboard.current[key];
-                KeyboardInputActionData data = new KeyboardInputActionData()
-                {
-                    action = control.name,
-                    binding = control.path,
-                    startTime = Time.unscaledTime,
-                    endTime = isPressed ? null : Time.unscaledTime
-                };
-                KeyboardEventSender.SendKeyEvent(0, data, isPressed ? KeyState.Down : KeyState.Up);
+                KeyboardEventSender.SendKeyEvent(0, key, isPressed ? KeyState.Down : KeyState.Up);
             }
         }
 

@@ -19,8 +19,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             JObject jObject = JObject.Load(reader);
             // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug lines without this
             BehaviourActionData data = new();
-            data.BehaviourFullName = jObject.GetValue("behaviourFullName").ToObject<string>(serializer);
+            data.behaviourFullName = jObject.GetValue("behaviourFullName").ToObject<string>(serializer);
             data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>();
+            data.maxRuntimeSeconds = jObject.GetValue("maxRuntimeSeconds").ToObject<float>(serializer);
             return data;
         }
 
