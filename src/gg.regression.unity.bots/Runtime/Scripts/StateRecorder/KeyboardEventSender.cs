@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine.InputSystem;
@@ -16,9 +18,94 @@ namespace RegressionGames.StateRecorder
             _isShiftDown = false;
         }
 
-        public static void SendKeyEvent(int replaySegment, KeyboardInputActionData keyboardData, KeyState upOrDown)
+        /**
+         * Allows updating multiple keys in the same event.  This will break up into multiple events if the same key is passed more than once
+         * or if the shift key is pressed
+         */
+        public static void SendKeysInOneEvent(int replaySegment, List<(Key, KeyState)> keyStates)
         {
-            var key = keyboardData.Key;
+            var time = InputState.currentTime;
+            var keyboard = Keyboard.current;
+
+            var keys = new HashSet<Key>();
+            InputEventPtr? deltaStateEvent = null;
+
+            List<(Key, KeyState)> logList = new();
+
+            foreach (var valueTuple in keyStates)
+            {
+                var key = valueTuple.Item1;
+                var upOrDown = valueTuple.Item2;
+
+                if (deltaStateEvent.HasValue)
+                {
+                    if (key == Key.LeftShift || key == Key.RightShift)
+                    {
+                        // start a new event
+                        _isShiftDown = upOrDown == KeyState.Down;
+                        RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" + string.Join(", ", logList.Select(a => a.Item1 + ":" + a.Item2).ToArray()) + "]");
+                        logList.Clear();
+                        InputSystem.QueueEvent(deltaStateEvent.Value);
+                        deltaStateEvent = null;
+                    }
+                    else
+                    {
+                        if (keys.Contains(key))
+                        {
+                            RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" + string.Join(", ", logList.Select(a => a.Item1 + ":" + a.Item2).ToArray()) + "]");
+                            logList.Clear();
+                            InputSystem.QueueEvent(deltaStateEvent.Value);
+                            deltaStateEvent = null;
+                            keys.Clear();
+                        }
+                    }
+                }
+                if (!deltaStateEvent.HasValue)
+                {
+                    DeltaStateEvent.From(keyboard, out var newEvent);
+                    deltaStateEvent = newEvent;
+                }
+
+                logList.Add(valueTuple);
+                keys.Add(key);
+                var inputControl = keyboard.allControls
+                    .FirstOrDefault(a => a is KeyControl kc && kc.keyCode == key) ?? keyboard.anyKey;
+                if (inputControl != null)
+                {
+                    inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, deltaStateEvent.Value);
+
+                    if (upOrDown == KeyState.Down)
+                    {
+                        // send a text event so that 'onChange' text events fire
+                        // convert key to text
+                        if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(((KeyControl)inputControl).keyCode, out var possibleValues))
+                        {
+                            var value = _isShiftDown ? possibleValues.Item2 : possibleValues.Item1;
+                            if (value == 0x00)
+                            {
+                                RGDebug.LogError($"Found null value for keyboard input {key}");
+                                return;
+                            }
+
+                            var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
+                            RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
+                            InputSystem.QueueEvent(ref inputEvent);
+                        }
+                    }
+                }
+
+            }
+
+            if (deltaStateEvent.HasValue)
+            {
+                RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" + string.Join(", ", logList.Select(a => a.Item1 + ":" + a.Item2).ToArray()) + "]");
+                InputSystem.QueueEvent(deltaStateEvent.Value);
+                logList.Clear();
+            }
+        }
+
+        public static void SendKeyEvent(int replaySegment, Key key, KeyState upOrDown)
+        {
             #if ENABLE_LEGACY_INPUT_MANAGER
             SendKeyEventLegacy(key, upOrDown);
             #endif
@@ -42,7 +129,7 @@ namespace RegressionGames.StateRecorder
 
                 if (inputControl != null)
                 {
-                    RGDebug.LogInfo($"({replaySegment}) Sending Key Event: [{keyboardData.Replay_StartTime}] [{keyboardData.Replay_EndTime}] - {key} - {upOrDown}");
+                    RGDebug.LogInfo($"({replaySegment}) Sending Key Event: {key} - {upOrDown}");
 
                     // queue input event
                     inputControl.WriteValueIntoEvent(upOrDown == KeyState.Down ? 1f : 0f, eventPtr);
@@ -65,6 +152,7 @@ namespace RegressionGames.StateRecorder
                         }
 
                         var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, time);
+                        RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
                         InputSystem.QueueEvent(ref inputEvent);
                     }
                 }

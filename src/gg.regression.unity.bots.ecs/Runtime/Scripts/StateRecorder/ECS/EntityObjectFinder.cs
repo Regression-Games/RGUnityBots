@@ -271,7 +271,7 @@ namespace RegressionGames.StateRecorder.ECS
                 var entities = new List<Entity>();
                 foreach (var entitySelector in _entitySelectors)
                 {
-                    entities.AddRange(entitySelector.SelectEntities(entityManager));
+                    entities.AddRange(entitySelector.SelectEntities(entityManager).Where(a => entityManager.Exists(a)));
                 }
                 return entities;
             }
