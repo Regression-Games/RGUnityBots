@@ -26,6 +26,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public string behaviourFullName;
 
+        public float? maxRuntimeSeconds;
+
         private bool _isStopped;
 
         private GameObject _myGameObject;
@@ -42,6 +44,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         private volatile Type _typeToCreate = null;
         private volatile bool _readyToCreate;
+
+        private float _startTime = -1f;
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
@@ -80,6 +84,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
+            var time = Time.unscaledTime;
+
             if (!_isStopped)
             {
                 if (_readyToCreate)
@@ -98,6 +104,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                         // Attach our behaviour
                         _myGameObject.AddComponent(_typeToCreate);
+                        _startTime = time;
                     }
                     else
                     {
@@ -110,13 +117,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 if (_myGameObject != null)
                 {
+                    if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
+                    {
+                        StopAction(segmentNumber, currentTransforms, currentEntities);
+                        // will return false
+                    }
+                    else
+                    {
+                        error = null;
+                        return true;
+                    }
                     // Behaviour is expected to perform its actions in its own 'Update' or 'LateUpdate' calls
                     // It can get the current state information from the runtime directly... or can access our information by using
                     // UnityEngine.Object.FindObjectOfType<TransformObjectFinder>().GetObjectStatusForCurrentFrame();
                     // and/or
                     // UnityEngine.Object.FindObjectOfType<EntityObjectFinder>().GetObjectStatusForCurrentFrame(); - for runtimes with ECS support
-                    error = null;
-                    return true;
                 }
             }
 
@@ -143,6 +158,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"maxRuntimeSeconds\":");
+            FloatJsonConverter.WriteToStringBuilderNullable(stringBuilder, maxRuntimeSeconds);
             stringBuilder.Append(",\"behaviourFullName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, behaviourFullName);
             stringBuilder.Append("}");

@@ -9,7 +9,6 @@
         public const int VERSION_4 = 4; // changed state format to enable entity support including 'type' and 'components' fields; added versioning to 'state' recording not just 'bot_segments'
         public const int VERSION_5 = 5; // added support for monobehaviour bot segment actions
         public const int VERSION_6 = 6; // add support for monkey bot
-
         public const int VERSION_7 = 7; // added partial normalized path matching
 
         // Update this when new features are used in the SDK
