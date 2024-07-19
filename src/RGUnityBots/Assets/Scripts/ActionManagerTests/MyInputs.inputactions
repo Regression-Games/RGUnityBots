@@ -118,18 +118,18 @@
             "id": "2ea5e167-e493-476d-acbd-25b588e7fc38",
             "actions": [
                 {
-                    "name": "Crouch",
+                    "name": "Horizontal",
                     "type": "Button",
-                    "id": "1ab6d824-7e5d-486a-a7c8-e973ab78e892",
+                    "id": "e4db4165-f29f-483a-b6f3-292141b24435",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Horizontal",
+                    "name": "Crouch",
                     "type": "Button",
-                    "id": "e4db4165-f29f-483a-b6f3-292141b24435",
+                    "id": "1ab6d824-7e5d-486a-a7c8-e973ab78e892",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -160,7 +160,7 @@
                     "isPartOfComposite": false
                 },
                 {
-                    "name": "negative",
+                    "name": "positive",
                     "id": "66dbc0d0-a7d7-4315-a0e2-26b324efd426",
                     "path": "<Keyboard>/j",
                     "interactions": "",

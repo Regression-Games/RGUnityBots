@@ -30,18 +30,28 @@ namespace RegressionGames.ActionManager
         public int EndLineNumber { get; }
         public string Message { get; }
 
-        public RGActionAnalysisWarning(SyntaxNode node, string message)
+        public RGActionAnalysisWarning(string message, SyntaxNode node = null)
         {
-            FilePath = node.SyntaxTree.FilePath;
-            var lineSpan = node.SyntaxTree.GetLineSpan(node.Span);
-            StartLineNumber = lineSpan.StartLinePosition.Line;
-            EndLineNumber = lineSpan.EndLinePosition.Line;
+            if (node != null)
+            {
+                FilePath = node.SyntaxTree.FilePath;
+                var lineSpan = node.SyntaxTree.GetLineSpan(node.Span);
+                StartLineNumber = lineSpan.StartLinePosition.Line;
+                EndLineNumber = lineSpan.EndLinePosition.Line;
+            }
             Message = message;
         }
 
         public override string ToString()
         {
-            return $"{FilePath}:{StartLineNumber}:{EndLineNumber}: {Message}";
+            if (FilePath != null)
+            {
+                return $"{FilePath}:{StartLineNumber}:{EndLineNumber}: {Message}";
+            }
+            else
+            {
+                return Message;
+            }
         }
     }
     
@@ -424,7 +434,7 @@ namespace RegressionGames.ActionManager
             }
             if (!matched)
             {
-                AddAnalysisWarning(keyExpr, "Could not identify key code being used");
+                AddAnalysisWarning("Could not identify key code being used", keyExpr);
             }
         }
 
@@ -488,7 +498,7 @@ namespace RegressionGames.ActionManager
             
             if (!matched)
             {
-                AddAnalysisWarning(keyExpr, "Could not identify key being used");
+                AddAnalysisWarning("Could not identify key being used", keyExpr);
             }
         }
 
@@ -552,7 +562,7 @@ namespace RegressionGames.ActionManager
             }
             if (!matched)
             {
-                AddAnalysisWarning(expr, $"Could not resolve {typeof(T).Name} expression");
+                AddAnalysisWarning($"Could not resolve {typeof(T).Name} expression", expr);
             }
         }
 
@@ -769,7 +779,7 @@ namespace RegressionGames.ActionManager
                             Key key = RGActionManagerUtils.InputSystemKeyboardPropertyNameToKey(propSym.Name);
                             if (key == Key.None)
                             {
-                                AddAnalysisWarning(node, $"Unrecognized keyboard property '{propSym.Name}'");
+                                AddAnalysisWarning($"Unrecognized keyboard property '{propSym.Name}'", node);
                             }
                             AddAction(new InputSystemKeyAction(path, null, RGActionParamFunc<Key>.Constant(key)), node);
                         }
@@ -801,7 +811,7 @@ namespace RegressionGames.ActionManager
                                     mouseButton = MouseButtonInput.BACK_MOUSE_BUTTON;
                                     break;
                                 default:
-                                    AddAnalysisWarning(node, $"Unrecognized mouse property {propSym.Name}");
+                                    AddAnalysisWarning($"Unrecognized mouse property {propSym.Name}", node);
                                     return;
                             }
                             string[] path = GetActionPathFromSyntaxNode(node);
@@ -871,9 +881,9 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        private void AddAnalysisWarning(SyntaxNode node, string message)
+        private void AddAnalysisWarning(string message, SyntaxNode node = null)
         {
-            Warnings.Add(new RGActionAnalysisWarning(node, message));
+            Warnings.Add(new RGActionAnalysisWarning(message, node));
         }
         
         private string[] GetActionPathFromSyntaxNode(SyntaxNode node, string[] pathSuffix = null)
@@ -955,7 +965,7 @@ namespace RegressionGames.ActionManager
                 var methodDecl = sourceNode.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
                 if (methodDecl == null)
                 {
-                    AddAnalysisWarning(sourceNode, "Actions used outside of MonoBehaviour that are not contained in a method are not supported");
+                    AddAnalysisWarning("Actions used outside of MonoBehaviour that are not contained in a method are not supported", sourceNode);
                     return;
                 }
                 var methodSym = _currentModel.GetDeclaredSymbol(methodDecl);
@@ -1097,17 +1107,24 @@ namespace RegressionGames.ActionManager
         /// </summary>
         private void AnalyzeInputAction(InputAction action, MemberInfo embeddedMember = null)
         {
+            InputActionAction result;
             if (embeddedMember != null)
             {
                 string[] path = new[] { embeddedMember.DeclaringType.FullName, embeddedMember.Name };
                 var actionFunc = RGActionParamFunc<InputAction>.MemberAccesses(new[] { embeddedMember });
-                AddAction(new InputActionAction(path, embeddedMember.DeclaringType, actionFunc, action), null);
+                result = new InputActionAction(path, embeddedMember.DeclaringType, actionFunc, action);
             }
             else
             {
                 string[] path = new[] { action.actionMap.asset.name, action.actionMap.name, action.name };
-                AddAction(new InputActionAction(path, action), null);
+                result = new InputActionAction(path, action);
             }
+            if (result.ParameterRange == null)
+            {
+                AddAnalysisWarning($"Unable to resolve parameter range for input action {string.Join("/", result.Paths[0])}");
+                return;
+            }
+            AddAction(result, null);
         }
         
         private void RunResourceAnalysis()

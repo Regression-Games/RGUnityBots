@@ -359,16 +359,6 @@
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["MyInputs/ActionMap2/Crouch"],
-"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
-"actionAssetName":"MyInputs",
-"embeddedActionFunc":null,
-"actionName":"Crouch",
-"actionGuid":"1ab6d824-7e5d-486a-a7c8-e973ab78e892"
-},
-    {
-"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["MyInputs/ActionMap2/Horizontal"],
 "objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
@@ -376,6 +366,16 @@
 "embeddedActionFunc":null,
 "actionName":"Horizontal",
 "actionGuid":"e4db4165-f29f-483a-b6f3-292141b24435"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap2/Crouch"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Crouch",
+"actionGuid":"1ab6d824-7e5d-486a-a7c8-e973ab78e892"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",

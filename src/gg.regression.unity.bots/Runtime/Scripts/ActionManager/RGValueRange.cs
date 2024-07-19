@@ -15,6 +15,7 @@ namespace RegressionGames.ActionManager
         RANGE_BOOL,
         RANGE_INT,
         RANGE_VECTOR2_INT,
+        RANGE_VECTOR3_INT,
         RANGE_FLOAT,
         RANGE_VECTOR2
     }
@@ -176,9 +177,9 @@ namespace RegressionGames.ActionManager
         
         private Vector2Int _minValue;
         private Vector2Int _maxValue;
-        
-        public override object MinValue { get; }
-        public override object MaxValue { get; }
+
+        public override object MinValue => _minValue;
+        public override object MaxValue => _maxValue;
 
         public RGVector2IntRange(Vector2Int minValue, Vector2Int maxValue)
         {
@@ -237,6 +238,73 @@ namespace RegressionGames.ActionManager
                 return new Vector2Int(_minValue.x + xi, _minValue.y + yi);
             }
         }
+    }
+
+    public class RGVector3IntRange : RGDiscreteValueRange
+    {
+        public override RGValueRangeType Type => RGValueRangeType.RANGE_VECTOR3_INT;
+
+        private Vector3Int _minValue;
+        private Vector3Int _maxValue;
+
+        public override object MinValue => _minValue;
+        public override object MaxValue => _maxValue;
+
+        public RGVector3IntRange(Vector3Int minValue, Vector3Int maxValue)
+        {
+            _minValue = minValue;
+            _maxValue = maxValue;
+        }
+
+        public RGVector3IntRange(JObject serializedRange)
+        {
+            int minValueX = serializedRange["minValueX"].ToObject<int>();
+            int minValueY = serializedRange["minValueY"].ToObject<int>();
+            int minValueZ = serializedRange["minValueZ"].ToObject<int>();
+            int maxValueX = serializedRange["maxValueX"].ToObject<int>();
+            int maxValueY = serializedRange["maxValueY"].ToObject<int>();
+            int maxValueZ = serializedRange["maxValueZ"].ToObject<int>();
+            _minValue = new Vector3Int(minValueX, minValueY, minValueZ);
+            _maxValue = new Vector3Int(maxValueX, maxValueY, maxValueZ);
+        }
+
+        public override bool RangeEquals(IRGValueRange other)
+        {
+            if (other is RGVector3IntRange v3Range)
+            {
+                return _minValue == v3Range._minValue && _maxValue == v3Range._maxValue;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public override void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, Type.ToString());
+            stringBuilder.Append(",\"minValueX\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _minValue.x);
+            stringBuilder.Append(",\"minValueY\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _minValue.y);
+            stringBuilder.Append(",\"minValueZ\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _minValue.z);
+            stringBuilder.Append(",\"maxValueX\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue.x);
+            stringBuilder.Append(",\"maxValueY\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue.y);
+            stringBuilder.Append(",\"maxValueZ\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, _maxValue.z);
+            stringBuilder.Append("}");
+        }
+
+        public int Width => _maxValue.x - _minValue.x + 1;
+        public int Height => _maxValue.y - _minValue.y + 1;
+        public int Length => _maxValue.z - _minValue.z + 1;
+
+        public override int NumValues => Width * Height * Length;
+
     }
 
     public class RGIntRange : RGDiscreteValueRange

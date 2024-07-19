@@ -140,18 +140,18 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
             ""id"": ""2ea5e167-e493-476d-acbd-25b588e7fc38"",
             ""actions"": [
                 {
-                    ""name"": ""Crouch"",
+                    ""name"": ""Horizontal"",
                     ""type"": ""Button"",
-                    ""id"": ""1ab6d824-7e5d-486a-a7c8-e973ab78e892"",
+                    ""id"": ""e4db4165-f29f-483a-b6f3-292141b24435"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""Horizontal"",
+                    ""name"": ""Crouch"",
                     ""type"": ""Button"",
-                    ""id"": ""e4db4165-f29f-483a-b6f3-292141b24435"",
+                    ""id"": ""1ab6d824-7e5d-486a-a7c8-e973ab78e892"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
@@ -182,7 +182,7 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""negative"",
+                    ""name"": ""positive"",
                     ""id"": ""66dbc0d0-a7d7-4315-a0e2-26b324efd426"",
                     ""path"": ""<Keyboard>/j"",
                     ""interactions"": """",
@@ -215,8 +215,8 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
         m_ActionMap1_Aim = m_ActionMap1.FindAction("Aim", throwIfNotFound: true);
         // ActionMap2
         m_ActionMap2 = asset.FindActionMap("ActionMap2", throwIfNotFound: true);
-        m_ActionMap2_Crouch = m_ActionMap2.FindAction("Crouch", throwIfNotFound: true);
         m_ActionMap2_Horizontal = m_ActionMap2.FindAction("Horizontal", throwIfNotFound: true);
+        m_ActionMap2_Crouch = m_ActionMap2.FindAction("Crouch", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -340,14 +340,14 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
     // ActionMap2
     private readonly InputActionMap m_ActionMap2;
     private List<IActionMap2Actions> m_ActionMap2ActionsCallbackInterfaces = new List<IActionMap2Actions>();
-    private readonly InputAction m_ActionMap2_Crouch;
     private readonly InputAction m_ActionMap2_Horizontal;
+    private readonly InputAction m_ActionMap2_Crouch;
     public struct ActionMap2Actions
     {
         private @MyInputs m_Wrapper;
         public ActionMap2Actions(@MyInputs wrapper) { m_Wrapper = wrapper; }
-        public InputAction @Crouch => m_Wrapper.m_ActionMap2_Crouch;
         public InputAction @Horizontal => m_Wrapper.m_ActionMap2_Horizontal;
+        public InputAction @Crouch => m_Wrapper.m_ActionMap2_Crouch;
         public InputActionMap Get() { return m_Wrapper.m_ActionMap2; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -357,22 +357,22 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
         {
             if (instance == null || m_Wrapper.m_ActionMap2ActionsCallbackInterfaces.Contains(instance)) return;
             m_Wrapper.m_ActionMap2ActionsCallbackInterfaces.Add(instance);
-            @Crouch.started += instance.OnCrouch;
-            @Crouch.performed += instance.OnCrouch;
-            @Crouch.canceled += instance.OnCrouch;
             @Horizontal.started += instance.OnHorizontal;
             @Horizontal.performed += instance.OnHorizontal;
             @Horizontal.canceled += instance.OnHorizontal;
+            @Crouch.started += instance.OnCrouch;
+            @Crouch.performed += instance.OnCrouch;
+            @Crouch.canceled += instance.OnCrouch;
         }
 
         private void UnregisterCallbacks(IActionMap2Actions instance)
         {
-            @Crouch.started -= instance.OnCrouch;
-            @Crouch.performed -= instance.OnCrouch;
-            @Crouch.canceled -= instance.OnCrouch;
             @Horizontal.started -= instance.OnHorizontal;
             @Horizontal.performed -= instance.OnHorizontal;
             @Horizontal.canceled -= instance.OnHorizontal;
+            @Crouch.started -= instance.OnCrouch;
+            @Crouch.performed -= instance.OnCrouch;
+            @Crouch.canceled -= instance.OnCrouch;
         }
 
         public void RemoveCallbacks(IActionMap2Actions instance)
@@ -398,7 +398,7 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
     }
     public interface IActionMap2Actions
     {
-        void OnCrouch(InputAction.CallbackContext context);
         void OnHorizontal(InputAction.CallbackContext context);
+        void OnCrouch(InputAction.CallbackContext context);
     }
 }

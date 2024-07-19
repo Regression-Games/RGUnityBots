@@ -5,6 +5,8 @@ using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Composites;
+using UnityEngine.InputSystem.Utilities;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager.Actions
@@ -61,9 +63,73 @@ namespace RegressionGames.ActionManager.Actions
             ActionGuid = Guid.Parse(serializedAction["actionGuid"].ToString());
         }
 
+        private static bool TryFindCompositePartBinding(InputAction action, int compositeBindingIndex, string partName, out InputBinding result)
+        {
+            for (int partIndex = compositeBindingIndex + 1; partIndex < action.bindings.Count; ++partIndex)
+            {
+                var binding = action.bindings[partIndex];
+                if (binding.isPartOfComposite)
+                {
+                    if (binding.name == partName)
+                    {
+                        result = binding;
+                        return true;
+                    }
+                }
+            }
+            result = new InputBinding();
+            return false;
+        }
+
         private static IRGValueRange GetDefaultParamRange(InputAction action)
         {
-            // TODO
+            IRGValueRange ParamRangeFromBinding(InputBinding binding)
+            {
+                // TODO
+                return new RGBoolRange();
+            }
+
+            for (int bindingIndex = 0; bindingIndex < action.bindings.Count; ++bindingIndex)
+            {
+                var binding = action.bindings[bindingIndex];
+                if (binding.isComposite)
+                {
+                    string compositeName = binding.GetNameOfComposite();
+                    Type compositeType = InputSystem.TryGetBindingComposite(compositeName);
+                    if (compositeType == null)
+                    {
+                        RGDebug.LogWarning($"Unable to resolve composite \"{compositeName}\"");
+                        return null;
+                    }
+                    if (typeof(AxisComposite).IsAssignableFrom(compositeType))
+                    {
+                        return new RGIntRange(-1, 1); // discretized axis range (equal chance of negative, zero, positive)
+                    } else if (typeof(Vector2Composite).IsAssignableFrom(compositeType))
+                    {
+                        return new RGVector2IntRange(new Vector2Int(-1, -1), new Vector2Int(1, 1));
+                    } else if (typeof(Vector3Composite).IsAssignableFrom(compositeType))
+                    {
+                        
+                    } else if (typeof(ButtonWithOneModifier).IsAssignableFrom(compositeType))
+                    {
+                        
+                    } else if (typeof(ButtonWithTwoModifiers).IsAssignableFrom(compositeType))
+                    {
+                        
+                    } else if (typeof(OneModifierComposite).IsAssignableFrom(compositeType))
+                    {
+                        
+                    } else if (typeof(TwoModifiersComposite).IsAssignableFrom(compositeType))
+                    {
+                        
+                    }
+                }
+                else
+                {
+                    
+                }
+            }
+            
             return new RGBoolRange();
         }
 
