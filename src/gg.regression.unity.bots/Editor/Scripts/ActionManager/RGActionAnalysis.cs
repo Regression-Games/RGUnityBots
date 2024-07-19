@@ -23,6 +23,9 @@ using UnityEngine.SceneManagement;
 
 namespace RegressionGames.ActionManager
 {
+    /// <summary>
+    /// Class used to store any warnings that occur during the analysis.
+    /// </summary>
     public class RGActionAnalysisWarning
     {
         public string FilePath { get; }
@@ -47,8 +50,14 @@ namespace RegressionGames.ActionManager
     
     public class RGActionAnalysis : CSharpSyntaxWalker
     {
-        private Dictionary<string, RGGameAction> _rawActions;
-        private Dictionary<SyntaxNode, List<RGGameAction>> _rawActionsByNode;
+        // Mapping from action path to action. Populated as the analysis proceeds.
+        // This is considered a "raw" set of actions, in that it is possible that redundant/equivalent
+        // actions are generated. The final output of the analysis combines any equivalent actions.
+        private Dictionary<string, RGGameAction> _rawActions; 
+        
+        // Mapping that associates syntax nodes with the actions that were identified at those points.
+        private Dictionary<SyntaxNode, List<RGGameAction>> _rawActionsByNode; 
+        
         private Compilation _currentCompilation;
         private SemanticModel _currentModel;
         private SyntaxTree _currentTree;
@@ -65,6 +74,9 @@ namespace RegressionGames.ActionManager
             _displayProgressBar = displayProgressBar;
         }
 
+        /// <summary>
+        /// Returns the set of assembly names that should be ignored by the analysis
+        /// </summary>
         private ISet<string> GetIgnoredAssemblyNames()
         {
             Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
@@ -105,6 +117,9 @@ namespace RegressionGames.ActionManager
             return null;
         }
 
+        /// <summary>
+        /// Determines the set of assemblies that should be analyzed.
+        /// </summary>
         private IEnumerable<Assembly> GetTargetAssemblies()
         {
             ISet<string> ignoredAssemblyNames = GetIgnoredAssemblyNames();
@@ -135,6 +150,10 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        /// <summary>
+        /// Produces a Roslyn Compilation object for the given assembly, accounting for
+        /// all source files, assembly references, and preprocessor directives defined for the assembly.
+        /// </summary>
         private Compilation GetCompilationForAssembly(Assembly asm)
         {
             List<MetadataReference> references = new List<MetadataReference>();
@@ -158,6 +177,11 @@ namespace RegressionGames.ActionManager
             return CSharpCompilation.Create(asm.name).AddReferences(references).AddSyntaxTrees(syntaxTrees);
         }
 
+        /// <summary>
+        /// For the given local variable symbol, this searches for all assignment expressions that
+        /// could have possibly assigned a value to the local variable. The set of possible values that
+        /// were assigned are returned.
+        /// </summary>
         private IEnumerable<ExpressionSyntax> FindCandidateValuesForLocalVariable(ILocalSymbol localSym)
         {
             if (_localDeclarationStmts == null)
@@ -259,6 +283,10 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        /// <summary>
+        /// Find a reflection System.Type for the given type symbol.
+        /// We can do this because the editor runtime has all the assemblies under analysis already loaded.
+        /// </summary>
         private Type FindType(ITypeSymbol typeSymbol)
         {
             if (typeSymbol == null)
@@ -423,6 +451,10 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        /// <summary>
+        /// Find a set of all candidate Input System key codes that could be referred to by the given
+        /// expression.
+        /// </summary>
         private IEnumerable<RGActionParamFunc<Key>> FindCandidateInputSysKeyFuncs(ExpressionSyntax keyExpr)
         {
             bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<Key> keyFunc)
@@ -487,6 +519,10 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        /// <summary>
+        /// Find the set of literal values that could be referred to by the given expression.
+        /// Currently this supports either int or string.
+        /// </summary>
         private IEnumerable<RGActionParamFunc<T>> FindCandidateLiteralFuncs<T>(ExpressionSyntax expr)
         {
             bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<T> func)
@@ -636,9 +672,10 @@ namespace RegressionGames.ActionManager
                         : MousePositionType.COLLIDER_2D;
                     
                     string methodName = methodSymbol.Name;
-                    // Raycast
+                    // A call to Physics.Raycast or Physics2D.Raycast was discovered
                     switch (methodName)
                     {
+                        // Three variants (Physics.Raycast, Physics.RaycastAll, Physics.RaycastNonAlloc)
                         case "Raycast":
                         case "RaycastAll":
                         case "RaycastNonAlloc":
@@ -646,17 +683,23 @@ namespace RegressionGames.ActionManager
                             var firstArg = node.ArgumentList.Arguments[0]; // first argument is either the origin point or ray
                             List<RGActionParamFunc<int>> layerMasks = null;
                             bool didCheckLayerMask = false;
+                            // Find any inputs that the point/ray could be derived from
                             foreach (var inpNode in FindDerivedUserInput(firstArg.Expression))
                             {
                                 if (!didCheckLayerMask)
                                 {
+                                    // Examine the layerMask parameter (if any) in the Raycast invocation.
+                                    // Compute all the values that it could be referring to and store them in the layerMasks list.
+                                    // If any layer masks are present, then they will be used to further filter down the set of valid mouse coordinates.
                                     didCheckLayerMask = true;
                                     for (int argIndex = 0, numArgs = node.ArgumentList.Arguments.Count;
                                          argIndex < numArgs; ++argIndex)
                                     {
+                                        // Check whether any argument parameter is named "layerMask"
                                         var paramSymbol = RGAnalysisUtils.FindArgumentParameter(node.ArgumentList, argIndex, methodSymbol);
                                         if (paramSymbol.Name == "layerMask")
                                         {
+                                            // We've found the layer mask parameter, now try to identify all candidate integer values.
                                             layerMasks = new List<RGActionParamFunc<int>>();
                                             var layerMaskExpr = node.ArgumentList.Arguments[argIndex].Expression;
                                             foreach (var layerMaskFunc in FindCandidateLiteralFuncs<int>(layerMaskExpr))
@@ -926,6 +969,10 @@ namespace RegressionGames.ActionManager
             return new[] { objectType.FullName, sourceNode.ToString() };
         }
 
+        /// <summary>
+        /// Called while the analysis is running when actions are discovered in the code or resources.
+        /// The syntax node parameter is optional (may be null) if the action was not derived from code.
+        /// </summary>
         private void AddAction(RGGameAction action, SyntaxNode sourceNode)
         {
             string path = string.Join("/", action.Paths[0]);
@@ -1021,8 +1068,13 @@ namespace RegressionGames.ActionManager
 
         private ISet<string> _buttonClickListeners;
 
+        /// <summary>
+        /// Identify any actions that may be defined by the game object.
+        /// </summary>
         private void AnalyzeGameObject(GameObject gameObject)
         {
+            // Check whether this game object has a Button component.
+            // If so, then inspect all the button event listeners and generate actions for them.
             if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
             {
                 foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
@@ -1045,6 +1097,8 @@ namespace RegressionGames.ActionManager
                 string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
                 int analyzedResourceCount = 0;
                 int totalResourceCount = sceneGuids.Length + prefabGuids.Length;
+                
+                // Examine the game objects in all scenes in the project
                 foreach (string sceneGuid in sceneGuids)
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
@@ -1067,6 +1121,7 @@ namespace RegressionGames.ActionManager
                     ++analyzedResourceCount;
                 }
 
+                // Examine all the prefabs in the project
                 foreach (string prefabGuid in prefabGuids)
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
@@ -1086,6 +1141,7 @@ namespace RegressionGames.ActionManager
                     ++analyzedResourceCount;
                 }
                 
+                // Generate actions for the identified button click events
                 foreach (string btnClickListener in _buttonClickListeners)
                 {
                     string[] path = {"Unity UI", "Button Click", btnClickListener};
