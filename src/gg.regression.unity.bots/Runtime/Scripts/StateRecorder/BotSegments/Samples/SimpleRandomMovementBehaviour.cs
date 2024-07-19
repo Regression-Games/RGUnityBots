@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -15,12 +16,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
         private const float ActionTimeSprint = 3f;
         private const float ActionTimeNone = 1f;
 
-        private const float MoveTimeMax = 9f;
-        private const float MoveTimeMin = 3f;
+        private const float MoveTimeMax = 15f;
+        private const float MoveTimeMin = 5f;
 
         private float _moveTimeLimit = MoveTimeMin;
 
-        private const float StuckTime = MoveTimeMin;
+        private const float StuckTime = 2f;
 
         private float _actionTime;
 
@@ -41,6 +42,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
         {
             var time = Time.unscaledTime;
 
+            List<(Key, KeyState)> keyStates = new();
+
             // check every StuckTime interval to see if we've gotten stuck or died
             if (time - _lastPositionTime > StuckTime)
             {
@@ -54,19 +57,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
                         RGDebug.LogInfo("RandomMovement - Dead - Respawning");
                         if (_currentDirectionMain.HasValue)
                         {
-                            KeyboardEventSender.SendKeyEvent(0, _currentDirectionMain.Value, KeyState.Up);
+                            keyStates.Add((_currentDirectionMain.Value, KeyState.Up));
                         }
 
                         if (_currentDirectionSecondary.HasValue)
                         {
-                            KeyboardEventSender.SendKeyEvent(0, _currentDirectionSecondary.Value, KeyState.Up);
+                            keyStates.Add((_currentDirectionSecondary.Value, KeyState.Up));
                         }
 
                         var keysToSend = new[] { Key.Enter, Key.Slash, Key.R, Key.E, Key.L, Key.I, Key.F, Key.E, Key.Enter, Key.Escape };
                         foreach (var key in keysToSend)
                         {
-                            KeyboardEventSender.SendKeyEvent(0, key, KeyState.Down);
-                            KeyboardEventSender.SendKeyEvent(0, key, KeyState.Up);
+                            keyStates.Add((key, KeyState.Down));
+                            keyStates.Add((key, KeyState.Up));
                         }
 
                         _currentDirectionMain = null;
@@ -104,11 +107,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
 
                 if (_currentDirectionMain.HasValue)
                 {
-                    KeyboardEventSender.SendKeyEvent(0, _currentDirectionMain.Value, KeyState.Up);
+                    keyStates.Add((_currentDirectionMain.Value, KeyState.Up));
                 }
                 if (_currentDirectionSecondary.HasValue)
                 {
-                    KeyboardEventSender.SendKeyEvent(0, _currentDirectionSecondary.Value, KeyState.Up);
+                    keyStates.Add((_currentDirectionSecondary.Value, KeyState.Up));
                 }
 
                 var previousMainDirection = _currentDirectionMain;
@@ -191,12 +194,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
                 }
 
                 RGDebug.LogInfo("RandomMovement - Primary Movement Key - " + _currentDirectionMain.Value.ToString());
-                KeyboardEventSender.SendKeyEvent(0, _currentDirectionMain.Value, KeyState.Down);
+                keyStates.Add((_currentDirectionMain.Value, KeyState.Down));
 
                 if (_currentDirectionSecondary.HasValue)
                 {
                     RGDebug.LogInfo("RandomMovement - Secondary Movement Key - " + _currentDirectionSecondary.Value.ToString());
-                    KeyboardEventSender.SendKeyEvent(0, _currentDirectionSecondary.Value, KeyState.Down);
+                    keyStates.Add((_currentDirectionSecondary.Value, KeyState.Down));
                 }
                 else
                 {
@@ -210,7 +213,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
                 var action = Random.Range(0, 7);
                 if (_lastActionKey.HasValue)
                 {
-                    KeyboardEventSender.SendKeyEvent(0, _lastActionKey.Value, KeyState.Up);
+                    keyStates.Add((_lastActionKey.Value, KeyState.Up));
                 }
 
                 var resumeMoving = false;
@@ -257,12 +260,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
                         if (_currentDirectionMain.HasValue)
                         {
                             resumeMoving = true;
-                            KeyboardEventSender.SendKeyEvent(0, _currentDirectionMain.Value, KeyState.Up);
+                            keyStates.Add((_currentDirectionMain.Value, KeyState.Up));
                         }
                         if (_currentDirectionSecondary.HasValue)
                         {
                             resumeMoving = true;
-                            KeyboardEventSender.SendKeyEvent(0, _currentDirectionSecondary.Value, KeyState.Up);
+                            keyStates.Add((_currentDirectionSecondary.Value, KeyState.Up));
                         }
                         break;
                 }
@@ -270,41 +273,53 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
                 if (_lastActionKey.HasValue)
                 {
                     RGDebug.LogInfo("RandomMovement - Action Key - " + _lastActionKey.Value.ToString());
-                    KeyboardEventSender.SendKeyEvent(0, _lastActionKey.Value, KeyState.Down);
+                    keyStates.Add((_lastActionKey.Value, KeyState.Down));
                 }
 
                 if (resumeMoving)
                 {
                     if (_currentDirectionMain.HasValue)
                     {
-                        KeyboardEventSender.SendKeyEvent(0, _currentDirectionMain.Value, KeyState.Down);
+                        keyStates.Add((_currentDirectionMain.Value, KeyState.Down));
                     }
                     if ( _currentDirectionSecondary.HasValue)
                     {
-                        KeyboardEventSender.SendKeyEvent(0, _currentDirectionSecondary.Value, KeyState.Down);
+                        keyStates.Add((_currentDirectionSecondary.Value, KeyState.Down));
                     }
                 }
 
                 lastActionTime = time;
             }
 
+            if (keyStates.Count > 0)
+            {
+                KeyboardEventSender.SendKeysInOneEvent(0, keyStates);
+            }
+
         }
 
         private void OnDestroy()
         {
+            List<(Key, KeyState)> keyStates = new();
+
             if (_currentDirectionMain.HasValue)
             {
-                KeyboardEventSender.SendKeyEvent(0, _currentDirectionMain.Value, KeyState.Up);
+                keyStates.Add((_currentDirectionMain.Value, KeyState.Up));
             }
 
             if (_currentDirectionSecondary.HasValue)
             {
-                KeyboardEventSender.SendKeyEvent(0, _currentDirectionSecondary.Value, KeyState.Up);
+                keyStates.Add((_currentDirectionSecondary.Value, KeyState.Up));
             }
 
             if (_lastActionKey.HasValue)
             {
-                KeyboardEventSender.SendKeyEvent(0, _lastActionKey.Value, KeyState.Up);
+                keyStates.Add((_lastActionKey.Value, KeyState.Up));
+            }
+
+            if (keyStates.Count > 0)
+            {
+                KeyboardEventSender.SendKeysInOneEvent(0, keyStates);
             }
         }
     }
