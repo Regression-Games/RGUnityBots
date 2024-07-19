@@ -318,6 +318,66 @@
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse ScrollWheel"}
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["ActionManagerTests.InputActionListeningObject/fireAction"],
+"objectTypeName":"ActionManagerTests.InputActionListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":null,
+"embeddedActionFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputActionListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"fireAction\"}]}"},
+"actionName":"Fire",
+"actionGuid":"431b2f3f-c383-4004-b5f1-b0f2b079f907"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap1/Move"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Move",
+"actionGuid":"7ce4e894-5799-45a7-bb66-6f883cf3bdd2"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap1/Jump"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Jump",
+"actionGuid":"5d5b6520-318b-4c14-ae4f-53841541ec74"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap1/Aim"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Aim",
+"actionGuid":"2495bebb-372e-4719-bfdd-09be37cf37ee"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap2/Crouch"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Crouch",
+"actionGuid":"1ab6d824-7e5d-486a-a7c8-e973ab78e892"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap2/Horizontal"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Horizontal",
+"actionGuid":"e4db4165-f29f-483a-b6f3-292141b24435"
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Button Click/ActionManagerTests.ButtonHandler.OnBtnClick"],
 "objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",

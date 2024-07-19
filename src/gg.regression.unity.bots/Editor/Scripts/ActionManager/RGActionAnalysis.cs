@@ -1047,12 +1047,66 @@ namespace RegressionGames.ActionManager
 
         private void AnalyzeGameObject(GameObject gameObject)
         {
+            // check for UI buttons
             if (gameObject.TryGetComponent(out Button btn) && !IsRGOverlayObject(gameObject))
             {
                 foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
                 {
                     _buttonClickListeners.Add(listener);
                 }
+            }
+
+            // search for embedded InputActions
+            foreach (Component c in gameObject.GetComponents<Component>())
+            {
+                Type type = c.GetType();
+                foreach (var fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic |
+                                                         BindingFlags.Static |
+                                                         BindingFlags.Instance))
+                {
+                    if (typeof(InputAction).IsAssignableFrom(fieldInfo.FieldType))
+                    {
+                        InputAction action = (InputAction)fieldInfo.GetValue(c);
+                        if (action != null)
+                        {
+                            AnalyzeInputAction(action, fieldInfo);
+                        }
+                    }
+                }
+
+                foreach (var propInfo in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic |
+                                                        BindingFlags.Static | BindingFlags.Instance))
+                {
+                    if (typeof(InputAction).IsAssignableFrom(propInfo.PropertyType))
+                    {
+                        InputAction action = (InputAction)propInfo.GetValue(c);
+                        if (action != null)
+                        {
+                            AnalyzeInputAction(action, propInfo);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Generates an RGGameAction for the given InputAction.
+        /// If this was an embedded action (directly defined in a component) rather than
+        /// from an InputActionAsset, then the embeddedMember parameter is the
+        /// member to access in order to obtain the InputAction at run time.
+        /// </summary>
+        private void AnalyzeInputAction(InputAction action, MemberInfo embeddedMember = null)
+        {
+            if (embeddedMember != null)
+            {
+                string[] path = new[] { embeddedMember.DeclaringType.FullName, embeddedMember.Name };
+                var actionFunc = RGActionParamFunc<InputAction>.MemberAccesses(new[] { embeddedMember });
+                AddAction(new InputActionAction(path, embeddedMember.DeclaringType, actionFunc, action), null);
+            }
+            else
+            {
+                string[] path = new[] { action.actionMap.asset.name, action.actionMap.name, action.name };
+                AddAction(new InputActionAction(path, action), null);
             }
         }
         
@@ -1067,8 +1121,9 @@ namespace RegressionGames.ActionManager
                 _buttonClickListeners = new HashSet<string>();
                 string[] sceneGuids = AssetDatabase.FindAssets("t:Scene");
                 string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
+                string[] inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
                 int analyzedResourceCount = 0;
-                int totalResourceCount = sceneGuids.Length + prefabGuids.Length;
+                int totalResourceCount = sceneGuids.Length + prefabGuids.Length + inputActionAssetGuids.Length;
                 foreach (string sceneGuid in sceneGuids)
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
@@ -1108,6 +1163,26 @@ namespace RegressionGames.ActionManager
                     }
                     EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                     ++analyzedResourceCount;
+                }
+
+                foreach (string inputAssetGuid in inputActionAssetGuids)
+                {
+                    float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                        analyzedResourceCount / (float)totalResourceCount);
+                    string inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
+                    if (inputAssetPath.StartsWith("Packages/"))
+                    {
+                        continue;
+                    }
+                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
+                    var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
+                    foreach (var actionMap in inputAsset.actionMaps)
+                    {
+                        foreach (var act in actionMap.actions)
+                        {
+                            AnalyzeInputAction(act, null);
+                        }
+                    }
                 }
                 
                 foreach (string btnClickListener in _buttonClickListeners)
