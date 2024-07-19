@@ -16,8 +16,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
         private const float ActionTimeSprint = 3f;
         private const float ActionTimeNone = 1f;
 
-        private const float MoveTimeMax = 15f;
-        private const float MoveTimeMin = 5f;
+        private const float MoveTimeMax = 20f;
+        private const float MoveTimeMin = 4f;
 
         private float _moveTimeLimit = MoveTimeMin;
 
