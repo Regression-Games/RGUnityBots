@@ -96,26 +96,39 @@ namespace RegressionGames.StateRecorder.BotSegments
             return matched;
         }
 
+        private static readonly List<Dictionary<long, PathBasedDeltaCount>> _deltaCounts = new ();
+        private static int _lastFrameEvaluated = -1;
+
+
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator. firstSegment represents if this is the first segment in the current pass's list of segments to evaluate</summary>
          */
         internal bool MatchedHelper(bool firstSegment, int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
         {
             var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
-            var transformsStatus = new Dictionary<long, ObjectStatus>();
-            var entitiesStatus = new Dictionary<long, ObjectStatus>();
-            foreach (var objectFinder in objectFinders)
+            var currentFrameCount = Time.frameCount;
+            if (_lastFrameEvaluated != currentFrameCount)
             {
-                if (objectFinder is TransformObjectFinder)
+                _lastFrameEvaluated = currentFrameCount;
+                _deltaCounts.Clear();
+                foreach (var objectFinder in objectFinders)
                 {
-                    transformsStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
-                }
-                else
-                {
-                    entitiesStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                    if (objectFinder is TransformObjectFinder)
+                    {
+                        var transformsStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                        var hashes = objectFinder.ComputeNormalizedPathBasedDeltaCounts(_priorKeyFrameTransformStatus, transformsStatus, out _);
+                        _deltaCounts.Add(hashes);
+                    }
+                    else
+                    {
+                        var entitiesStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                        var hashes = objectFinder.ComputeNormalizedPathBasedDeltaCounts(_priorKeyFrameEntityStatus, entitiesStatus, out _);
+                        _deltaCounts.Add(hashes);
+                    }
                 }
             }
 
+            var partialNormalizedPathsToMatch = new List<KeyFrameCriteria>();
             var normalizedPathsToMatch = new List<KeyFrameCriteria>();
             var orsToMatch = new List<KeyFrameCriteria>();
             var andsToMatch = new List<KeyFrameCriteria>();
@@ -144,6 +157,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                     case KeyFrameCriteriaType.NormalizedPath:
                         normalizedPathsToMatch.Add(entry);
                         break;
+                    case KeyFrameCriteriaType.PartialNormalizedPath:
+                        partialNormalizedPathsToMatch.Add(entry);
+                        break;
                     case KeyFrameCriteriaType.UIPixelHash:
                         // only check the pixel hash change on the first segment being evaluated so we don't pre-emptively pass on future segments that should return false until they are first in the list
                         if (firstSegment && (entry.Replay_TransientMatched || GameFacePixelHashObserver.GetInstance().HasPixelHashChanged()))
@@ -152,6 +168,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         }
                         else
                         {
+                            _newUnmatchedCriteria.Add("UIPixelHash has not changed");
                             return false;
                         }
                         break;
@@ -159,9 +176,37 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
 
             // process each list.. start with the ones for this tier
+
+            // we do this before the partial as this one is far more efficient computationally..
             if (normalizedPathsToMatch.Count > 0)
             {
-                var pathResults = NormalizedPathCriteriaEvaluator.Matched(segmentNumber, normalizedPathsToMatch, _priorKeyFrameTransformStatus, _priorKeyFrameEntityStatus, transformsStatus, entitiesStatus);
+                var pathResults = NormalizedPathCriteriaEvaluator.Matched(segmentNumber, normalizedPathsToMatch, _deltaCounts);
+                var pathResultsCount = pathResults.Count;
+                for (var j = 0; j < pathResultsCount; j++)
+                {
+                    var pathEntry = pathResults[j];
+                    if (pathEntry == null)
+                    {
+                        if (andOr == BooleanCriteria.Or)
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        if (andOr == BooleanCriteria.And)
+                        {
+                            _newUnmatchedCriteria.Add(pathEntry);
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // process each list.. start with the ones for this tier
+            if (partialNormalizedPathsToMatch.Count > 0)
+            {
+                var pathResults = PartialNormalizedPathCriteriaEvaluator.Matched(segmentNumber, partialNormalizedPathsToMatch, _deltaCounts);
                 var pathResultsCount = pathResults.Count;
                 for (var j = 0; j < pathResultsCount; j++)
                 {
