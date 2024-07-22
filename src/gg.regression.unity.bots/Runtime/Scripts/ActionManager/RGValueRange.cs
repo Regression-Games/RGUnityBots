@@ -238,6 +238,11 @@ namespace RegressionGames.ActionManager
                 return new Vector2Int(_minValue.x + xi, _minValue.y + yi);
             }
         }
+
+        public override string ToString()
+        {
+            return $"Vector2Int ({_minValue}, {_maxValue})";
+        }
     }
 
     public class RGVector3IntRange : RGDiscreteValueRange
@@ -314,6 +319,11 @@ namespace RegressionGames.ActionManager
                 int zi = index / (Width * Height);
                 return new Vector3Int(_minValue.x + xi, _minValue.y + yi, _minValue.z + zi);
             }
+        }
+        
+        public override string ToString()
+        {
+            return $"Vector3Int ({_minValue}, {_maxValue})";
         }
     }
 

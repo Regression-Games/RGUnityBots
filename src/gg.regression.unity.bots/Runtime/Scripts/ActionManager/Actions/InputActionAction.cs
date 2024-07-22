@@ -6,6 +6,7 @@ using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Composites;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.Utilities;
 using Object = UnityEngine.Object;
 
@@ -13,6 +14,7 @@ namespace RegressionGames.ActionManager.Actions
 {
     /// <summary>
     /// Action to simulate inputs for a given InputAction from the new Input System.
+    /// Currently this only supports keyboard/mouse bindings.
     /// </summary>
     public class InputActionAction : RGGameAction
     {
@@ -81,17 +83,74 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
+        private static int? FindKeyboardMouseBinding(InputAction action)
+        {
+            bool IsKeyboardMouseBinding(InputBinding binding)
+            {
+                return binding.path.StartsWith("<Keyboard>") || binding.path.StartsWith("<Mouse>");
+            }
+            int bindingsCount = action.bindings.Count;
+            for (int bindingIndex = 0; bindingIndex < bindingsCount; ++bindingIndex)
+            {
+                var binding = action.bindings[bindingIndex];
+                if (binding.isComposite)
+                {
+                    for (int childBindingIndex = bindingIndex + 1; childBindingIndex < bindingsCount; ++childBindingIndex)
+                    {
+                        var childBinding = action.bindings[childBindingIndex];
+                        if (!childBinding.isPartOfComposite)
+                            break;
+                        if (IsKeyboardMouseBinding(childBinding))
+                        {
+                            return bindingIndex;
+                        }
+                    }
+                }
+                else if (IsKeyboardMouseBinding(binding))
+                {
+                    return bindingIndex;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Figures out the range of the action by examining
+        /// the first keyboard/mouse binding of the action.
+        /// </summary>
         private static IRGValueRange GetDefaultParamRange(InputAction action)
         {
             IRGValueRange ParamRangeFromBinding(InputBinding binding)
             {
-                // TODO
-                return new RGBoolRange();
+                Debug.Assert(!binding.isComposite);
+                var control = InputSystem.FindControl(binding.path);
+                if (control == null)
+                    return null;
+
+                if (control is ButtonControl)
+                {
+                    return new RGBoolRange();
+                } else if (control is Vector2Control)
+                {
+                    return new RGVector2IntRange(new Vector2Int(-1, -1), new Vector2Int(1, 1));
+                } else if (control is Vector3Control)
+                {
+                    return new RGVector3IntRange(new Vector3Int(-1, -1, -1), new Vector3Int(1, 1, 1));
+                } else if (control is AxisControl)
+                {
+                    return new RGIntRange(-1, 1);
+                }
+                else
+                {
+                    RGDebug.LogWarning($"Unsupported control type {control.GetType()} ({control})");
+                }
+                return null;
             }
 
-            for (int bindingIndex = 0; bindingIndex < action.bindings.Count; ++bindingIndex)
+            int? keybdMouseBindingIndex = FindKeyboardMouseBinding(action);
+            if (keybdMouseBindingIndex.HasValue)
             {
-                var binding = action.bindings[bindingIndex];
+                var binding = action.bindings[keybdMouseBindingIndex.Value];
                 if (binding.isComposite)
                 {
                     string compositeName = binding.GetNameOfComposite();
@@ -109,28 +168,34 @@ namespace RegressionGames.ActionManager.Actions
                         return new RGVector2IntRange(new Vector2Int(-1, -1), new Vector2Int(1, 1));
                     } else if (typeof(Vector3Composite).IsAssignableFrom(compositeType))
                     {
-                        
+                        return new RGVector3IntRange(new Vector3Int(-1, -1, -1), new Vector3Int(1, 1, 1));
                     } else if (typeof(ButtonWithOneModifier).IsAssignableFrom(compositeType))
                     {
-                        
+                        return new RGBoolRange();
                     } else if (typeof(ButtonWithTwoModifiers).IsAssignableFrom(compositeType))
                     {
-                        
+                        return new RGBoolRange();
                     } else if (typeof(OneModifierComposite).IsAssignableFrom(compositeType))
                     {
-                        
+                        if (TryFindCompositePartBinding(action, keybdMouseBindingIndex.Value, "binding", out InputBinding childBinding))
+                        {
+                            return ParamRangeFromBinding(childBinding);
+                        }
                     } else if (typeof(TwoModifiersComposite).IsAssignableFrom(compositeType))
                     {
-                        
+                        if (TryFindCompositePartBinding(action, keybdMouseBindingIndex.Value, "binding", out InputBinding childBinding))
+                        {
+                            return ParamRangeFromBinding(childBinding);
+                        }
                     }
                 }
                 else
                 {
-                    
+                    return ParamRangeFromBinding(binding);
                 }
             }
-            
-            return new RGBoolRange();
+
+            return null;
         }
 
         public override string DisplayName => $"InputAction {ActionName}";
