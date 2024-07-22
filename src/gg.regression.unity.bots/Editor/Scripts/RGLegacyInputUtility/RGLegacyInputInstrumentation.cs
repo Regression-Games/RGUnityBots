@@ -28,7 +28,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         [InitializeOnLoadMethod]
         static void OnStartup()
         {
-            CompilationPipeline.compilationStarted += UpdateAssemblyResolver;
+            CompilationPipeline.compilationStarted += ResetAssemblyResolver;
             CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
             
             _numInstrumentationAttempts = 0;
@@ -71,8 +71,9 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
         private static DefaultAssemblyResolver _assemblyResolver = null;
 
-        private static void UpdateAssemblyResolver(object o)
+        private static void ResetAssemblyResolver(object o)
         {
+            _assemblyResolver?.Dispose();
             _assemblyResolver = CreateAssemblyResolver();
         }
 
@@ -195,7 +196,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
             if (_assemblyResolver == null)
             {
-                UpdateAssemblyResolver(null);
+                ResetAssemblyResolver(null);
             }
 
             using (ModuleDefinition module = ReadAssembly(assemblyPath))
@@ -306,6 +307,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         {
             try
             {
+                ResetAssemblyResolver(null);
                 Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
                 Assembly rgAssembly = FindRGAssembly();
                 foreach (Assembly assembly in assemblies)
