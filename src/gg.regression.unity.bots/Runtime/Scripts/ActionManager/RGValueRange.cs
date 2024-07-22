@@ -305,6 +305,16 @@ namespace RegressionGames.ActionManager
 
         public override int NumValues => Width * Height * Length;
 
+        public override object this[int index]
+        {
+            get
+            {
+                int xi = index % Width;
+                int yi = (index / Width) % Height;
+                int zi = index / (Width * Height);
+                return new Vector3Int(_minValue.x + xi, _minValue.y + yi, _minValue.z + zi);
+            }
+        }
     }
 
     public class RGIntRange : RGDiscreteValueRange

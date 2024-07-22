@@ -20,6 +20,8 @@ namespace RegressionGames.ActionManager.JsonConverters
                     return new RGIntRange(obj);
                 case RGValueRangeType.RANGE_VECTOR2_INT:
                     return new RGVector2IntRange(obj);
+                case RGValueRangeType.RANGE_VECTOR3_INT:
+                    return new RGVector3IntRange(obj);
                 case RGValueRangeType.RANGE_FLOAT:
                     return new RGFloatRange(obj);
                 case RGValueRangeType.RANGE_VECTOR2:

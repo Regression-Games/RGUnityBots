@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using RegressionGames;
 using RegressionGames.ActionManager;
@@ -16,11 +18,22 @@ namespace Tests.Runtime
 {
     public class RGActionManagerTests : InputTestFixture
     {
+        private void TestRangeSerialization(IRGValueRange rng)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            rng.WriteToStringBuilder(stringBuilder);
+            JObject obj = JObject.Parse(stringBuilder.ToString());
+            var parsedRange = obj.ToObject<IRGValueRange>();
+            Assert.IsTrue(parsedRange.RangeEquals(rng));
+            Assert.IsTrue(rng.RangeEquals(parsedRange));
+        }
+        
         [Test]
         public void TestValueRanges()
         {
             {
                 RGBoolRange rng = new RGBoolRange(false, true);
+                TestRangeSerialization(rng);
                 Assert.IsFalse((bool)rng.MinValue);
                 Assert.IsTrue((bool)rng.MaxValue);
                 Assert.AreEqual(rng.NumValues, 2);
@@ -29,6 +42,7 @@ namespace Tests.Runtime
             }
             {
                 RGBoolRange rng = new RGBoolRange(true, true);
+                TestRangeSerialization(rng);
                 Assert.IsTrue((bool)rng.MinValue);
                 Assert.IsTrue((bool)rng.MaxValue);
                 Assert.AreEqual(rng.NumValues, 1);
@@ -36,6 +50,7 @@ namespace Tests.Runtime
             }
             {
                 RGIntRange rng = new RGIntRange(-1, 1);
+                TestRangeSerialization(rng);
                 Assert.AreEqual(rng.MinValue, -1);
                 Assert.AreEqual(rng.MaxValue, 1);
                 Assert.AreEqual(rng.NumValues, 3);
@@ -46,6 +61,7 @@ namespace Tests.Runtime
             {
                 RGVector2IntRange rng = new RGVector2IntRange(new Vector2Int(-2, -1), new Vector2Int(2, 1));
                 RGVector2IntRange rng2 = new RGVector2IntRange(new Vector2Int(-2, -1), new Vector2Int(2, 1));
+                TestRangeSerialization(rng);
                 Assert.IsTrue(rng.RangeEquals(rng2));
                 Assert.AreEqual(rng.Width, 5);
                 Assert.AreEqual(rng.Height, 3);
@@ -67,7 +83,45 @@ namespace Tests.Runtime
                 Assert.AreEqual(rng[14], new Vector2Int(2, 1));
             }
             {
+                RGVector3IntRange rng = new RGVector3IntRange(new Vector3Int(3, 0, -1), new Vector3Int(5, 2, 1));
+                RGVector3IntRange rng2 = new RGVector3IntRange(new Vector3Int(3, 0, -1), new Vector3Int(5, 2, 1));
+                TestRangeSerialization(rng);
+                Assert.IsTrue(rng.RangeEquals(rng2));
+                Assert.AreEqual(rng.Width, 3);
+                Assert.AreEqual(rng.Height, 3);
+                Assert.AreEqual(rng.Length, 3);
+                Assert.AreEqual(rng.NumValues, 27);
+                Assert.AreEqual(rng[0], new Vector3Int(3, 0, -1));
+                Assert.AreEqual(rng[1], new Vector3Int(4, 0, -1));
+                Assert.AreEqual(rng[2], new Vector3Int(5, 0, -1));
+                Assert.AreEqual(rng[3], new Vector3Int(3, 1, -1));
+                Assert.AreEqual(rng[4], new Vector3Int(4, 1, -1));
+                Assert.AreEqual(rng[5], new Vector3Int(5, 1, -1));
+                Assert.AreEqual(rng[6], new Vector3Int(3, 2, -1));
+                Assert.AreEqual(rng[7], new Vector3Int(4, 2, -1));
+                Assert.AreEqual(rng[8], new Vector3Int(5, 2, -1));
+                Assert.AreEqual(rng[9], new Vector3Int(3, 0, 0));
+                Assert.AreEqual(rng[10], new Vector3Int(4, 0, 0));
+                Assert.AreEqual(rng[11], new Vector3Int(5, 0, 0));
+                Assert.AreEqual(rng[12], new Vector3Int(3, 1, 0));
+                Assert.AreEqual(rng[13], new Vector3Int(4, 1, 0));
+                Assert.AreEqual(rng[14], new Vector3Int(5, 1, 0));
+                Assert.AreEqual(rng[15], new Vector3Int(3, 2, 0));
+                Assert.AreEqual(rng[16], new Vector3Int(4, 2, 0));
+                Assert.AreEqual(rng[17], new Vector3Int(5, 2, 0));
+                Assert.AreEqual(rng[18], new Vector3Int(3, 0, 1));
+                Assert.AreEqual(rng[19], new Vector3Int(4, 0, 1));
+                Assert.AreEqual(rng[20], new Vector3Int(5, 0, 1));
+                Assert.AreEqual(rng[21], new Vector3Int(3, 1, 1));
+                Assert.AreEqual(rng[22], new Vector3Int(4, 1, 1));
+                Assert.AreEqual(rng[23], new Vector3Int(5, 1, 1));
+                Assert.AreEqual(rng[24], new Vector3Int(3, 2, 1));
+                Assert.AreEqual(rng[25], new Vector3Int(4, 2, 1));
+                Assert.AreEqual(rng[26], new Vector3Int(5, 2, 1));
+            }
+            {
                 RGFloatRange rng = new RGFloatRange(-1.0f, 1.0f);
+                TestRangeSerialization(rng);
                 Assert.IsTrue(Mathf.Approximately((float)rng.MinValue, -1.0f));
                 Assert.IsTrue(Mathf.Approximately((float)rng.MaxValue, 1.0f));
 
@@ -79,6 +133,7 @@ namespace Tests.Runtime
             }
             {
                 RGVector2Range rng = new RGVector2Range(new Vector2(-1.0f, -1.0f), new Vector2(1.0f, 1.0f));
+                TestRangeSerialization(rng);
                 Assert.IsTrue(Mathf.Approximately(((Vector2)rng.MidPoint).x, 0.0f));
                 RGContinuousValueRange[] disc = rng.Discretize(4);
                 Assert.IsTrue(Mathf.Approximately(((Vector2)disc[0].MinValue).x, -1.0f));
