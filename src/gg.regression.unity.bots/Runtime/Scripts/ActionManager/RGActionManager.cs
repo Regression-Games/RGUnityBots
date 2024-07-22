@@ -83,11 +83,21 @@ namespace RegressionGames.ActionManager
                 jsonText = jsonFile?.text;
             }
             #endif
+            bool needsCreate = false;
             if (jsonText != null)
             {
                 _settings = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
+                if (!_settings.IsValid())
+                {
+                    needsCreate = true;
+                }
             }
             else
+            {
+                needsCreate = true;
+            }
+            
+            if (needsCreate) 
             {
                 _settings = new RGActionManagerSettings();
                 #if UNITY_EDITOR

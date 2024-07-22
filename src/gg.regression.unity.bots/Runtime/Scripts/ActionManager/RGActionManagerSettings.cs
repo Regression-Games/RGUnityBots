@@ -32,5 +32,10 @@ namespace RegressionGames.ActionManager
         {
             _disabledActionPathSet = null;
         }
+
+        public bool IsValid()
+        {
+            return DisabledActionPaths != null;
+        }
     }
 }
