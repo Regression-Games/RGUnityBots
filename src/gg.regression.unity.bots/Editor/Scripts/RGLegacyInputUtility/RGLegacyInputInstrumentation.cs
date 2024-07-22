@@ -69,7 +69,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             return ns.Contains("RegressionGames");
         }
 
-        private static DefaultAssemblyResolver _assemblyResolver = null;
+        private static RGAssemblyResolver _assemblyResolver = null;
 
         private static void ResetAssemblyResolver(object o)
         {
@@ -77,7 +77,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             _assemblyResolver = CreateAssemblyResolver();
         }
 
-        private static DefaultAssemblyResolver CreateAssemblyResolver()
+        private static RGAssemblyResolver CreateAssemblyResolver()
         {
             ISet<string> compiledSearchDirs = new HashSet<string>();
             Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
@@ -93,7 +93,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 precompiledSearchDirs.Add(Path.GetDirectoryName(path));
             }
 
-            DefaultAssemblyResolver resolver = new DefaultAssemblyResolver();
+            RGAssemblyResolver resolver = new RGAssemblyResolver();
             foreach (string searchDir in compiledSearchDirs)
             {
                 resolver.AddSearchDirectory(searchDir);
@@ -307,7 +307,6 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         {
             try
             {
-                ResetAssemblyResolver(null);
                 Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
                 Assembly rgAssembly = FindRGAssembly();
                 foreach (Assembly assembly in assemblies)
