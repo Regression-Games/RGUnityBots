@@ -87,7 +87,8 @@ namespace RegressionGames.ActionManager.Actions
         {
             bool IsKeyboardMouseBinding(InputBinding binding)
             {
-                return binding.path.StartsWith("<Keyboard>") || binding.path.StartsWith("<Mouse>");
+                var control = InputSystem.FindControl(binding.path);
+                return control != null && control.device is Keyboard or Mouse;
             }
             int bindingsCount = action.bindings.Count;
             for (int bindingIndex = 0; bindingIndex < bindingsCount; ++bindingIndex)
