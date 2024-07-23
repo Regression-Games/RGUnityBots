@@ -4,6 +4,8 @@ using System.Text;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -81,10 +83,34 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public bool Matched(bool firstSegment, int segmentNumber, List<KeyFrameCriteria> criteriaList)
         {
+            var hasCvCriteria = criteriaList.Count(a => a.type == KeyFrameCriteriaType.CVText) > 0;
+
+            CVImageRequestData screenshotData = null;
+            if (hasCvCriteria)
+            {
+                // get screenshot data, may be null .. but that will kick off a readback of the gpu so it will be ready next call
+                var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height, out var graphicsFormat);
+                if (imageData != null)
+                {
+                    if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
+                    {
+                        // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
+                        graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
+                    }
+
+                    screenshotData = new CVImageRequestData()
+                    {
+                        data = ImageConversion.EncodeArrayToJPG(imageData, graphicsFormat, (uint)width, (uint)height)
+                    };
+                }
+            }
+
             _newUnmatchedCriteria.Clear();
-            bool matched = MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.And, criteriaList);
+            bool matched = MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.And, criteriaList, screenshotData);
             if (matched)
             {
+
+                CVTextCriteriaEvaluator.Cleanup(segmentNumber);
                 _unmatchedCriteria.Clear();
                 _newUnmatchedCriteria.Clear();
             }
@@ -96,34 +122,34 @@ namespace RegressionGames.StateRecorder.BotSegments
             return matched;
         }
 
-        private static readonly List<Dictionary<long, PathBasedDeltaCount>> _deltaCounts = new ();
+        private static readonly List<Dictionary<long, PathBasedDeltaCount>> DeltaCounts = new ();
         private static int _lastFrameEvaluated = -1;
 
 
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator. firstSegment represents if this is the first segment in the current pass's list of segments to evaluate</summary>
          */
-        internal bool MatchedHelper(bool firstSegment, int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
+        internal bool MatchedHelper(bool firstSegment, int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList, CVImageRequestData screenshotData)
         {
             var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
             var currentFrameCount = Time.frameCount;
             if (_lastFrameEvaluated != currentFrameCount)
             {
                 _lastFrameEvaluated = currentFrameCount;
-                _deltaCounts.Clear();
+                DeltaCounts.Clear();
                 foreach (var objectFinder in objectFinders)
                 {
                     if (objectFinder is TransformObjectFinder)
                     {
                         var transformsStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
                         var hashes = objectFinder.ComputeNormalizedPathBasedDeltaCounts(_priorKeyFrameTransformStatus, transformsStatus, out _);
-                        _deltaCounts.Add(hashes);
+                        DeltaCounts.Add(hashes);
                     }
                     else
                     {
                         var entitiesStatus = objectFinder.GetObjectStatusForCurrentFrame().Item2;
                         var hashes = objectFinder.ComputeNormalizedPathBasedDeltaCounts(_priorKeyFrameEntityStatus, entitiesStatus, out _);
-                        _deltaCounts.Add(hashes);
+                        DeltaCounts.Add(hashes);
                     }
                 }
             }
@@ -132,6 +158,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             var normalizedPathsToMatch = new List<KeyFrameCriteria>();
             var orsToMatch = new List<KeyFrameCriteria>();
             var andsToMatch = new List<KeyFrameCriteria>();
+            var cvTextsToMatch = new List<KeyFrameCriteria>();
 
             var length = criteriaList.Count;
             for (var i = 0; i < length; i++)
@@ -172,15 +199,56 @@ namespace RegressionGames.StateRecorder.BotSegments
                             return false;
                         }
                         break;
+                    case KeyFrameCriteriaType.CVText:
+                        cvTextsToMatch.Add(entry);
+                        break;
                 }
             }
 
             // process each list.. start with the ones for this tier
 
+            // start cv stuff first.. it runs async anyway, but the sooner we can start it the better
+            if (cvTextsToMatch.Count > 0)
+            {
+                var cvTextResults = CVTextCriteriaEvaluator.Matched(segmentNumber, cvTextsToMatch, DeltaCounts, screenshotData);
+                if (cvTextResults == null)
+                {
+                    // cvText results will be null until we get the async response back
+                    if (andOr == BooleanCriteria.And)
+                    {
+                        _newUnmatchedCriteria.Add("Waiting for CVText evaluation results ...");
+                        return false;
+                    }
+                }
+                else
+                {
+                    var cvTextResultsCount = cvTextResults.Count;
+                    for (var i = 0; i < cvTextResultsCount; i++)
+                    {
+                        var resultEntry = cvTextResults[i];
+                        if (resultEntry == null)
+                        {
+                            if (andOr == BooleanCriteria.Or)
+                            {
+                                return true;
+                            }
+                        }
+                        else
+                        {
+                            if (andOr == BooleanCriteria.And)
+                            {
+                                _newUnmatchedCriteria.Add(resultEntry);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
             // we do this before the partial as this one is far more efficient computationally..
             if (normalizedPathsToMatch.Count > 0)
             {
-                var pathResults = NormalizedPathCriteriaEvaluator.Matched(segmentNumber, normalizedPathsToMatch, _deltaCounts);
+                var pathResults = NormalizedPathCriteriaEvaluator.Matched(segmentNumber, normalizedPathsToMatch, DeltaCounts);
                 var pathResultsCount = pathResults.Count;
                 for (var j = 0; j < pathResultsCount; j++)
                 {
@@ -206,7 +274,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             // process each list.. start with the ones for this tier
             if (partialNormalizedPathsToMatch.Count > 0)
             {
-                var pathResults = PartialNormalizedPathCriteriaEvaluator.Matched(segmentNumber, partialNormalizedPathsToMatch, _deltaCounts);
+                var pathResults = PartialNormalizedPathCriteriaEvaluator.Matched(segmentNumber, partialNormalizedPathsToMatch, DeltaCounts);
                 var pathResultsCount = pathResults.Count;
                 for (var j = 0; j < pathResultsCount; j++)
                 {
@@ -235,7 +303,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < orCount; j++)
                 {
                     var orEntry = orsToMatch[j];
-                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, orEntry);
+                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, orEntry, screenshotData);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
@@ -261,7 +329,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < andCount; j++)
                 {
                     var andEntry = andsToMatch[j];
-                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, andEntry);
+                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, andEntry, screenshotData);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)

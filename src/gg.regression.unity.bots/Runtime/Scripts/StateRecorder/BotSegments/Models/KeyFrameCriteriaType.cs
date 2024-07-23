@@ -7,6 +7,7 @@
         UIPixelHash,
         NormalizedPath,
         PartialNormalizedPath,
+        CVText,
 
         //FUTURE
         //Path,
