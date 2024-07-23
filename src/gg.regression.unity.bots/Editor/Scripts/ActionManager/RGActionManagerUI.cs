@@ -155,7 +155,7 @@ namespace RegressionGames.ActionManager
                             }
                         }
                         RGActionManager.Settings.MarkDirty();
-                        RGActionManager.SaveSettings();
+                        RGActionManager.SaveSettings(RGActionManager.Settings);
                     });
 
                     return item;

@@ -93,7 +93,7 @@ namespace RegressionGames.ActionManager
             {
                 result = new RGActionManagerSettings();
                 #if UNITY_EDITOR
-                SaveSettings();
+                SaveSettings(result);
                 #endif
             }
 
@@ -101,7 +101,7 @@ namespace RegressionGames.ActionManager
         }
 
         #if UNITY_EDITOR
-        public static void SaveSettings()
+        public static void SaveSettings(RGActionManagerSettings settings)
         {
             if (!Directory.Exists(SETTINGS_DIRECTORY))
             {
@@ -109,7 +109,7 @@ namespace RegressionGames.ActionManager
             }
             using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
             {
-                sw.Write(JsonUtility.ToJson(_settings, true));
+                sw.Write(JsonUtility.ToJson(settings, true));
             }
         }
         #endif
