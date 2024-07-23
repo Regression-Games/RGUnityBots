@@ -1069,6 +1069,11 @@ namespace RegressionGames.ActionManager
             // search for embedded InputActions
             foreach (Component c in gameObject.GetComponents<Component>())
             {
+                if (c == null)
+                {
+                    continue;
+                }
+
                 Type type = c.GetType();
                 foreach (var fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic |
                                                          BindingFlags.Static |
