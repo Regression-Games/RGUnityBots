@@ -7,7 +7,6 @@ using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR
@@ -62,11 +61,11 @@ namespace RegressionGames.ActionManager
         public static void InitializeInEditor()
         {
             ReloadActions();
-            LoadSettings();
+            _settings = LoadSettings();
         }
         #endif
 
-        private static void LoadSettings()
+        private static RGActionManagerSettings LoadSettings()
         {
             string jsonText = null;
             #if UNITY_EDITOR
@@ -83,31 +82,26 @@ namespace RegressionGames.ActionManager
                 jsonText = jsonFile?.text;
             }
             #endif
-            bool needsCreate = false;
+
+            RGActionManagerSettings result = null;
             if (jsonText != null)
             {
-                _settings = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
-                if (!_settings.IsValid())
-                {
-                    needsCreate = true;
-                }
-            }
-            else
-            {
-                needsCreate = true;
+                result = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
             }
             
-            if (needsCreate) 
+            if (result == null || !result.IsValid())
             {
-                _settings = new RGActionManagerSettings();
+                result = new RGActionManagerSettings();
                 #if UNITY_EDITOR
-                SaveSettings();
+                SaveSettings(result);
                 #endif
             }
+
+            return result;
         }
 
         #if UNITY_EDITOR
-        public static void SaveSettings()
+        public static void SaveSettings(RGActionManagerSettings settings)
         {
             if (!Directory.Exists(SETTINGS_DIRECTORY))
             {
@@ -115,37 +109,69 @@ namespace RegressionGames.ActionManager
             }
             using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
             {
-                sw.Write(JsonUtility.ToJson(_settings, true));
+                sw.Write(JsonUtility.ToJson(settings, true));
             }
         }
         #endif
 
-        public static void StartSession(MonoBehaviour context)
+        /// <summary>
+        /// Returns whether the given context needs the game environment to be configured
+        /// (starting input wrapper, hooking scenes, etc.)
+        /// </summary>
+        private static bool DoesContextNeedSetUp()
+        {
+            return _context is not ReplayDataPlaybackController;
+        }
+
+        /// <summary>
+        /// Start an action manager session. This should be called prior to any calls to GetValidActions().
+        /// </summary>
+        /// <param name="context">The MonoBehaviour context under which actions will be simulated.</param>
+        /// <param name="actionSettings">Session-specific action settings (optional - if null will use saved configuration)</param>
+        public static void StartSession(MonoBehaviour context, RGActionManagerSettings actionSettings = null)
         {
             if (_context != null)
             {
                 throw new Exception($"Session is already active with context {_context}");
             }
             ReloadActions();
-            LoadSettings();
+            if (actionSettings != null)
+            {
+                _settings = actionSettings;
+            }
+            else
+            {
+                _settings = LoadSettings();
+            }
             _context = context;
             _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
-            RGLegacyInputWrapper.StartSimulation(_context);
-            SceneManager.sceneLoaded += OnSceneLoad;
-            RGUtils.SetupEventSystem();
-            RGUtils.ConfigureInputSettings();
             InitInputState();
+
+            if (DoesContextNeedSetUp())
+            {
+                RGLegacyInputWrapper.StartSimulation(_context);
+                SceneManager.sceneLoaded += OnSceneLoad;
+                RGUtils.SetupEventSystem();
+                RGUtils.ConfigureInputSettings();
+            }
         }
 
+        /// <summary>
+        /// Stop an action manager session.
+        /// </summary>
         public static void StopSession()
         {
             if (_context != null)
             {
-                SceneManager.sceneLoaded -= OnSceneLoad;
-                RGLegacyInputWrapper.StopSimulation();
-                RGUtils.RestoreInputSettings();
+                if (DoesContextNeedSetUp())
+                {
+                    SceneManager.sceneLoaded -= OnSceneLoad;
+                    RGLegacyInputWrapper.StopSimulation();
+                    RGUtils.RestoreInputSettings();
+                }
                 _sessionActions = null;
                 _context = null;
+                _settings = LoadSettings(); // restore settings back to the saved configuration 
             }
         }
 
@@ -282,15 +308,7 @@ namespace RegressionGames.ActionManager
         {
             if (key != Key.None)
             {
-                KeyControl control = Keyboard.current[key];
-                KeyboardInputActionData data = new KeyboardInputActionData()
-                {
-                    action = control.name,
-                    binding = control.path,
-                    startTime = Time.unscaledTime,
-                    endTime = isPressed ? null : Time.unscaledTime
-                };
-                KeyboardEventSender.SendKeyEvent(0, data, isPressed ? KeyState.Down : KeyState.Up);
+                KeyboardEventSender.SendKeyEvent(0, key, isPressed ? KeyState.Down : KeyState.Up);
             }
         }
 

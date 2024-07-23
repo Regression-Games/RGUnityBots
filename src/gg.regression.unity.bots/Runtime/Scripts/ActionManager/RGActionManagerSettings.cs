@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Text;
+using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ActionManager
 {
@@ -36,6 +37,23 @@ namespace RegressionGames.ActionManager
         public bool IsValid()
         {
             return DisabledActionPaths != null;
+        }
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\n");
+            stringBuilder.Append("\"DisabledActionPaths\":[\n");
+            int disabledActionPathCount = DisabledActionPaths.Count;
+            for (int i = 0; i < disabledActionPathCount; ++i)
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, DisabledActionPaths[i]);
+                if (i + 1 < disabledActionPathCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]");
+            stringBuilder.Append("\n}");
         }
     }
 }
