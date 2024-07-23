@@ -182,7 +182,7 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 },
                 {
-                    ""name"": ""positive"",
+                    ""name"": ""negative"",
                     ""id"": ""66dbc0d0-a7d7-4315-a0e2-26b324efd426"",
                     ""path"": ""<Keyboard>/j"",
                     ""interactions"": """",

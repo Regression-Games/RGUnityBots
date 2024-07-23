@@ -8,9 +8,11 @@ using NUnit.Framework;
 using RegressionGames;
 using RegressionGames.ActionManager;
 using RegressionGames.ActionManager.Actions;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
@@ -170,6 +172,12 @@ namespace Tests.Runtime
             }
         }
 
+        private void ResetInputSystem()
+        {
+            InputSystem.ResetDevice(Keyboard.current, true);
+            InputSystem.ResetDevice(MouseEventSender.GetMouse(), true);
+        }
+
         [UnityTest]
         public IEnumerator TestActionManager()
         {
@@ -222,6 +230,7 @@ namespace Tests.Runtime
             }
             
             // Test Legacy Input Manager Axis
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject legacyAxisListener = FindGameObject("LegacyAxisListener");
             legacyAxisListener.SetActive(true);
@@ -250,6 +259,7 @@ namespace Tests.Runtime
             }
             
             // Test Legacy Input Manager Button 
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject legacyButtonListener = FindGameObject("LegacyButtonListener");
             legacyButtonListener.SetActive(true);
@@ -280,6 +290,7 @@ namespace Tests.Runtime
             }
             
             // Test Legacy Input Manager Key
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject legacyKeyListener = FindGameObject("LegacyKeyListener");
             legacyKeyListener.SetActive(true);
@@ -326,6 +337,7 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Button
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseBtnListener = FindGameObject("MouseBtnListener");
             mouseBtnListener.SetActive(true);
@@ -366,6 +378,7 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Movement
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseMovementListener = FindGameObject("MouseMovementListener");
             mouseMovementListener.SetActive(true);
@@ -393,6 +406,7 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Handlers
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseHandlerListener = FindGameObject("MouseHandlerListener");
             mouseHandlerListener.SetActive(true);
@@ -432,6 +446,7 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Raycast 2D
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseRaycast2DListener = FindGameObject("MouseRaycast2DListener");
             GameObject theSquare = FindGameObject("The_Square");
@@ -477,6 +492,7 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Raycast 3D
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseRaycast3DListener = FindGameObject("MouseRaycast3DListener");
             GameObject theCube = FindGameObject("The_Cube");
@@ -522,6 +538,7 @@ namespace Tests.Runtime
             }
             
             // Test UI button press
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject theButton = FindGameObject("The_Button");
             theButton.SetActive(true);
@@ -544,6 +561,7 @@ namespace Tests.Runtime
             }
             
             // Test interprocedural analysis
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject interprocObj = FindGameObject("InterprocListener");
             interprocObj.SetActive(true);
@@ -562,6 +580,7 @@ namespace Tests.Runtime
             }
             
             // Test triggering inputs handled via InputActionAsset and embedded InputAction
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject inputActionListener = FindGameObject("InputActionListener");
             inputActionListener.SetActive(true);
@@ -572,17 +591,17 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "moveVal.sqrMagnitude");
-                
+
                 FindAndPerformAction("InputAction Jump", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "jumpAction.IsPressed()");
-                
+
                 FindAndPerformAction("InputAction Fire", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "fireAction pressed this frame");
-                
+
                 FindAndPerformAction("InputAction Aim", new Vector2Int(-1, -1));
                 yield return null;
                 yield return null;
@@ -598,6 +617,7 @@ namespace Tests.Runtime
             }
             
             // Test triggering inputs handled via InputActionAsset C# wrapper
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject csWrapperListener = FindGameObject("CsWrapperInputListener");
             csWrapperListener.SetActive(true);
@@ -626,6 +646,7 @@ namespace Tests.Runtime
             }
             
             // Test triggering inputs handled via PlayerInput
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject playerInputListener = FindGameObject("PlayerInputListener");
             playerInputListener.SetActive(true);
