@@ -5,13 +5,13 @@ namespace RegressionGames.StateRecorder.BotSegments
 {
     public static class AndKeyFrameCriteriaEvaluator
     {
-        public static bool Matched(bool firstSegment, int segmentNumber, KeyFrameCriteria criteria)
+        public static bool Matched(bool firstSegment, int segmentNumber, KeyFrameCriteria criteria, CVImageRequestData screenshotData)
         {
             if (criteria.data is AndKeyFrameCriteriaData { criteriaList: not null } andCriteria)
             {
                 try
                 {
-                    return KeyFrameEvaluator.Evaluator.MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.And, andCriteria.criteriaList);
+                    return KeyFrameEvaluator.Evaluator.MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.And, andCriteria.criteriaList, screenshotData);
                 }
                 catch (Exception)
                 {
