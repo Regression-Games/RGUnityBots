@@ -181,7 +181,10 @@ namespace RegressionGames.ActionManager
             foreach (RGGameAction action in _sessionActions)
             {
                 Debug.Assert(action.ParameterRange != null);
-                UnityEngine.Object[] objects = UnityEngine.Object.FindObjectsOfType(action.ObjectType);
+                
+                // Fetch all objects of the target object type (use Resources API to support ANY type of loaded object)
+                UnityEngine.Object[] objects = Resources.FindObjectsOfTypeAll(action.ObjectType);
+                
                 foreach (var obj in objects)
                 {
                     if (obj is Component c && !c.gameObject.activeInHierarchy)

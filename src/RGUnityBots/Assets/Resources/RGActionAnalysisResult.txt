@@ -325,7 +325,7 @@
 "actionAssetName":null,
 "embeddedActionFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputActionListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"fireAction\"}]}"},
 "actionName":"Fire",
-"actionGuid":"431b2f3f-c383-4004-b5f1-b0f2b079f907"
+"actionGuid":"00000000-0000-0000-0000-000000000000"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",

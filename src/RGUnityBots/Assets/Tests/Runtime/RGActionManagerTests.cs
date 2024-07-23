@@ -539,6 +539,7 @@ namespace Tests.Runtime
             }
             finally
             {
+                theButton.SetActive(false);
                 RGActionManager.StopSession();
             }
             
@@ -556,6 +557,102 @@ namespace Tests.Runtime
             }
             finally
             {
+                interprocObj.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test triggering inputs handled via InputActionAsset and embedded InputAction
+            RGActionManager.StartSession(eventSys);
+            GameObject inputActionListener = FindGameObject("InputActionListener");
+            inputActionListener.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("InputAction Move", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "moveVal.sqrMagnitude");
+                
+                FindAndPerformAction("InputAction Jump", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "jumpAction.IsPressed()");
+                
+                FindAndPerformAction("InputAction Fire", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "fireAction pressed this frame");
+                
+                FindAndPerformAction("InputAction Aim", new Vector2Int(-1, -1));
+                yield return null;
+                yield return null;
+                FindAndPerformAction("InputAction Aim", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Aim changed");
+            }
+            finally
+            {
+                inputActionListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test triggering inputs handled via InputActionAsset C# wrapper
+            RGActionManager.StartSession(eventSys);
+            GameObject csWrapperListener = FindGameObject("CsWrapperInputListener");
+            csWrapperListener.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("InputAction Crouch", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Crouch pressed");
+                
+                FindAndPerformAction("InputAction Horizontal", 1);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "horizVal > 0");
+                
+                FindAndPerformAction("InputAction Horizontal", -1);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "horizVal < 0");
+            }
+            finally
+            {
+                csWrapperListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test triggering inputs handled via PlayerInput
+            RGActionManager.StartSession(eventSys);
+            GameObject playerInputListener = FindGameObject("PlayerInputListener");
+            playerInputListener.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("InputAction Move", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnMove()");
+                
+                FindAndPerformAction("InputAction Jump", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnJump()");
+                
+                FindAndPerformAction("InputAction Aim", new Vector2Int(-1, -1));
+                yield return null;
+                yield return null;
+                FindAndPerformAction("InputAction Aim", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnAim()");
+            }
+            finally
+            {
+                playerInputListener.SetActive(false);
                 RGActionManager.StopSession();
             }
         }
