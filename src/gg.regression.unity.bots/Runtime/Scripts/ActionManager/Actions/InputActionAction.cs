@@ -12,7 +12,7 @@ using Object = UnityEngine.Object;
 namespace RegressionGames.ActionManager.Actions
 {
     /// <summary>
-    /// Action to simulate inputs for a given InputAction from the new Input System.
+    /// Action to determine and simulate valid inputs for a given InputAction from the new Input System.
     /// Currently this only supports keyboard/mouse bindings.
     /// </summary>
     public class InputActionAction : RGGameAction
@@ -25,7 +25,9 @@ namespace RegressionGames.ActionManager.Actions
         public float MouseMovementMagnitude = 10.0f; // for axes that read mouse delta, the amount to move/scroll the mouse
 
         /// <summary>
-        /// Constructor for embedded InputActions
+        /// Constructor for embedded InputActions.
+        /// An embedded InputAction is one that is directly defined on a game object's component, rather than being part of an InputActionAsset.
+        /// The given embeddedActionFunc is used to perform the sequence of field/property accesses on the component to obtain the InputAction.
         /// </summary>
         public InputActionAction(string[] path, Type embeddedObjectType, RGActionParamFunc<InputAction> embeddedActionFunc, InputAction action) : 
             base(path, embeddedObjectType, GetDefaultParamRange(action))
@@ -36,7 +38,9 @@ namespace RegressionGames.ActionManager.Actions
         }
 
         /// <summary>
-        /// Constructor for InputActions within InputActionAssets
+        /// Constructor for InputActions within InputActionAssets.
+        /// We determine that the action is valid if its InputActionAsset is loaded and enabled in the scene, and
+        /// identify the action by its GUID.
         /// </summary>
         public InputActionAction(string[] path, InputAction action) : 
             base(path, typeof(InputActionAsset), GetDefaultParamRange(action))
@@ -47,6 +51,9 @@ namespace RegressionGames.ActionManager.Actions
             ActionGuid = action.id;
         }
 
+        /// <summary>
+        /// Deserialization constructor
+        /// </summary>
         public InputActionAction(JObject serializedAction) : base(serializedAction)
         {
             var actionAssetName = serializedAction["actionAssetName"];
@@ -65,8 +72,13 @@ namespace RegressionGames.ActionManager.Actions
             ActionGuid = Guid.Parse(serializedAction["actionGuid"].ToString());
         }
 
+        /// <summary>
+        /// For a given composite binding, this finds the part with the name partName.
+        /// partName will be the name of one of the InputControl fields on an InputBindingComposite.
+        /// </summary>
         public static bool TryFindCompositePartBinding(InputAction action, int compositeBindingIndex, string partName, out InputBinding result)
         {
+            // The parts of a composite binding follow the composite binding
             for (int partIndex = compositeBindingIndex + 1; partIndex < action.bindings.Count; ++partIndex)
             {
                 var binding = action.bindings[partIndex];
@@ -80,6 +92,7 @@ namespace RegressionGames.ActionManager.Actions
                 }
                 else
                 {
+                    // We've reached the end of the composite part bindings
                     break;
                 }
             }
@@ -87,6 +100,11 @@ namespace RegressionGames.ActionManager.Actions
             return false;
         }
 
+        /// <summary>
+        /// This finds the first keyboard or mouse binding for the given InputAction.
+        /// The underlying binding is then used to determine the applicable keyboard/mouse inputs to simulate.
+        /// Note that non-keyboard/mouse bindings such as joysticks are not supported.
+        /// </summary>
         public static int? FindKeyboardMouseBinding(InputAction action)
         {
             bool IsKeyboardMouseBinding(InputBinding binding)
@@ -220,15 +238,21 @@ namespace RegressionGames.ActionManager.Actions
             }
         }
 
+        /// <summary>
+        /// This obtains the associated InputAction from the target object.
+        /// </summary>
         public InputAction GetActionFromObject(Object obj)
         {
             InputAction action = null;
             if (EmbeddedActionFunc != null)
             {
+                // For embedded actions, perform the sequence of field/property accesses to obtain the InputAction
                 action = EmbeddedActionFunc.Invoke(obj);
             }
             else
             {
+                // For actions that are part of an InputActionAsset, check that the asset is enabled
+                // and fetch the action by its GUID.
                 InputActionAsset asset = (InputActionAsset)obj;
                 if (asset.name == ActionAssetName && asset.enabled)
                 {
@@ -240,6 +264,7 @@ namespace RegressionGames.ActionManager.Actions
         
         public override bool IsValidForObject(Object obj)
         {
+            // The action is valid if it can be obtained from the target object and is itself enabled.
             InputAction action = GetActionFromObject(obj);
             return action != null && action.enabled;
         }
@@ -302,6 +327,9 @@ namespace RegressionGames.ActionManager.Actions
             return true;
         }
 
+        /// <summary>
+        /// This computes the keyboard/mouse inputs needed to bring the given binding into the desired state.
+        /// </summary>
         private IEnumerable<RGActionInput> GetInputsForBinding(InputBinding binding, object param)
         {
             Debug.Assert(!binding.isComposite); // this should only be given non-composite bindings (either standalone or part of a composite)
@@ -408,6 +436,10 @@ namespace RegressionGames.ActionManager.Actions
             }
         }
 
+        /// <summary>
+        /// Determines whether the parameter corresponds to a zero value (used to
+        /// decide whether the action should be considered "activated").
+        /// </summary>
         private bool IsZeroInputParam(object param)
         {
             if (param is bool boolVal)
@@ -658,6 +690,8 @@ namespace RegressionGames.ActionManager.Actions
                         }
                     } else if (typeof(TwoModifiersComposite).IsAssignableFrom(compositeType))
                     {
+                        // Parameter range is the same as the child binding
+                        // If the parameter is non-zero, then the modifier bindings are activated
                         if (InputActionAction.TryFindCompositePartBinding(inputAction, bindingIndex.Value, "modifier1",
                                 out InputBinding modifier1)
                             && InputActionAction.TryFindCompositePartBinding(inputAction, bindingIndex.Value, "modifier2", 
