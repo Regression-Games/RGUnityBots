@@ -328,6 +328,27 @@
 "actionGuid":"00000000-0000-0000-0000-000000000000"
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Button/ActionManagerTests.UIHandler.OnBtnClick"],
+"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"eventListenerName":"ActionManagerTests.UIHandler.OnBtnClick"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UITogglePressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Toggle/The_Toggle"],
+"objectTypeName":"UnityEngine.UI.Toggle, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"The_Toggle"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Button/LegacyButton.ClickedHandler"],
+"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"eventListenerName":"LegacyButton.ClickedHandler"
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["MyInputs/ActionMap1/Move"],
 "objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
@@ -376,20 +397,6 @@
 "embeddedActionFunc":null,
 "actionName":"Crouch",
 "actionGuid":"1ab6d824-7e5d-486a-a7c8-e973ab78e892"
-},
-    {
-"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["Unity UI/Button Click/ActionManagerTests.ButtonHandler.OnBtnClick"],
-"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
-"eventListenerName":"ActionManagerTests.ButtonHandler.OnBtnClick"
-},
-    {
-"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["Unity UI/Button Click/LegacyButton.ClickedHandler"],
-"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
-"eventListenerName":"LegacyButton.ClickedHandler"
 }
   ]
 }

@@ -534,26 +534,51 @@ namespace Tests.Runtime
                 RGActionManager.StopSession();
             }
             
-            // Test UI button press
+            // Test Unity UI interaction
+            string[] uiObjects = { "The_Button", "The_Toggle" };
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
-            GameObject theButton = FindGameObject("The_Button");
-            theButton.SetActive(true);
+            foreach (var uiObjectName in uiObjects)
+            {
+                GameObject uiObject = FindGameObject(uiObjectName);
+                uiObject.SetActive(true);
+            }
             try
             {
+                // UI Button Click
                 yield return null;
                 yield return null;
-                FindAndPerformAction("ActionManagerTests.ButtonHandler.OnBtnClick", true);
+                FindAndPerformAction("ActionManagerTests.UIHandler.OnBtnClick", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("ActionManagerTests.ButtonHandler.OnBtnClick", false);
+                FindAndPerformAction("ActionManagerTests.UIHandler.OnBtnClick", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Clicked button The_Button");
+                
+                // Toggle Click
+                FindAndPerformAction("Press The_Toggle", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press The_Toggle", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "The_Toggle changed to True");
+                FindAndPerformAction("Press The_Toggle", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press The_Toggle", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "The_Toggle changed to False");
             }
             finally
             {
-                theButton.SetActive(false);
+                foreach (var uiObjectName in uiObjects)
+                {
+                    GameObject uiObject = FindGameObject(uiObjectName);
+                    uiObject.SetActive(false);
+                }
                 RGActionManager.StopSession();
             }
             

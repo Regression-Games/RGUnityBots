@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager
@@ -409,6 +410,33 @@ namespace RegressionGames.ActionManager
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Determines whether the given UI component is interactable based on the
+        /// object's and its ancestors' properties.
+        /// </summary>
+        public static bool IsUIObjectInteractable(Selectable uiComponent)
+        {
+            // If the object itself is not interactable, return false
+            if (!uiComponent.IsInteractable())
+            {
+                return false;
+            }
+            
+            // If the containing canvas group of the UI object is not interactable, return false
+            Transform t = uiComponent.transform.parent;
+            while (t != null)
+            {
+                CanvasGroup canvasGroup = t.gameObject.GetComponent<CanvasGroup>();
+                if (canvasGroup != null && (!canvasGroup.interactable || !canvasGroup.blocksRaycasts))
+                {
+                    return false;
+                }
+                t = t.parent;
+            }
+
+            return true;
         }
         
         /// <summary>

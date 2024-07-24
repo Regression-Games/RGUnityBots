@@ -20,6 +20,7 @@ using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace RegressionGames.ActionManager
 {
@@ -1095,8 +1096,6 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        private ISet<string> _buttonClickListeners;
-
         /// <summary>
         /// Identify any actions that may be defined by the game object.
         /// </summary>
@@ -1108,8 +1107,15 @@ namespace RegressionGames.ActionManager
             {
                 foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
                 {
-                    _buttonClickListeners.Add(listener);
+                    string[] path = {"Unity UI", "Button", listener};
+                    AddAction(new UIButtonPressAction(path, typeof(Button), listener), null);
                 }
+            }
+            if (gameObject.TryGetComponent(out Toggle _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] path = { "Unity UI", "Toggle", normName };
+                AddAction(new UITogglePressAction(path, typeof(Toggle), normName), null);
             }
 
             // search for embedded InputActions
@@ -1186,7 +1192,6 @@ namespace RegressionGames.ActionManager
             NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
             try
             {
-                _buttonClickListeners = new HashSet<string>();
                 string[] sceneGuids = AssetDatabase.FindAssets("t:Scene");
                 string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
                 string[] inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
@@ -1255,13 +1260,6 @@ namespace RegressionGames.ActionManager
                             AnalyzeInputAction(act, null);
                         }
                     }
-                }
-                
-                // Generate actions for the identified button click events
-                foreach (string btnClickListener in _buttonClickListeners)
-                {
-                    string[] path = {"Unity UI", "Button Click", btnClickListener};
-                    AddAction(new UIButtonPressAction(path, typeof(Button), btnClickListener), null);
                 }
             }
             finally

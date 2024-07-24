@@ -35,23 +35,10 @@ namespace RegressionGames.ActionManager.Actions
         public override bool IsValidForObject(Object obj)
         {
             Button btn = (Button)obj;
-            
-            // If the button isn't interactable, button press is invalid
-            if (!btn.IsInteractable())
+
+            if (!RGActionManagerUtils.IsUIObjectInteractable(btn))
             {
                 return false;
-            }
-
-            // If the containing canvas group of this button is not interactable, the button press is invalid
-            Transform t = btn.transform.parent;
-            while (t != null)
-            {
-                CanvasGroup canvasGroup = t.gameObject.GetComponent<CanvasGroup>();
-                if (canvasGroup != null && (!canvasGroup.interactable || !canvasGroup.blocksRaycasts))
-                {
-                    return false;
-                }
-                t = t.parent;
             }
 
             // If this action does not target the event listeners associated with this button, then this action is not valid for this button
