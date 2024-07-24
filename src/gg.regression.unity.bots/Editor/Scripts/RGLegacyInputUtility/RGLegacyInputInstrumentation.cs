@@ -28,7 +28,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         [InitializeOnLoadMethod]
         static void OnStartup()
         {
-            CompilationPipeline.compilationStarted += UpdateAssemblyResolver;
+            CompilationPipeline.compilationStarted += ResetAssemblyResolver;
             CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
             
             _numInstrumentationAttempts = 0;
@@ -69,14 +69,15 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             return ns.Contains("RegressionGames");
         }
 
-        private static DefaultAssemblyResolver _assemblyResolver = null;
+        private static RGAssemblyResolver _assemblyResolver = null;
 
-        private static void UpdateAssemblyResolver(object o)
+        private static void ResetAssemblyResolver(object o)
         {
+            _assemblyResolver?.Dispose();
             _assemblyResolver = CreateAssemblyResolver();
         }
 
-        private static DefaultAssemblyResolver CreateAssemblyResolver()
+        private static RGAssemblyResolver CreateAssemblyResolver()
         {
             ISet<string> compiledSearchDirs = new HashSet<string>();
             Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
@@ -92,7 +93,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
                 precompiledSearchDirs.Add(Path.GetDirectoryName(path));
             }
 
-            DefaultAssemblyResolver resolver = new DefaultAssemblyResolver();
+            RGAssemblyResolver resolver = new RGAssemblyResolver();
             foreach (string searchDir in compiledSearchDirs)
             {
                 resolver.AddSearchDirectory(searchDir);
@@ -195,7 +196,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
 
             if (_assemblyResolver == null)
             {
-                UpdateAssemblyResolver(null);
+                ResetAssemblyResolver(null);
             }
 
             using (ModuleDefinition module = ReadAssembly(assemblyPath))
