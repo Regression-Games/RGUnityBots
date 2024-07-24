@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
 using UnityEngine.Networking;
 
@@ -27,16 +26,16 @@ namespace RegressionGames
 
         private String GetCvServiceBaseUri()
         {
-            return "127.0.0.1:10080";
+            return "127.0.0.1:18888";
         }
 
-        public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortHook, Action<List<CVTextResult>> onSuccess, Action onFailure)
+        public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)
         {
             await SendWebRequest(
                 uri: $"{GetCvServiceBaseUri()}/criteria-text-discover",
                 method: "POST",
                 payload: request.ToJsonString(),
-                abortHook: abortHook.Invoke,
+                abortRegistrationHook: abortRegistrationHook.Invoke,
                 onSuccess: (s) =>
                 {
                     var response = JsonConvert.DeserializeObject<List<CVTextResult>>(s);
@@ -56,7 +55,7 @@ namespace RegressionGames
          * MUST be called on main thread only... This is because `new UnityWebRequest` makes a .Create call internally
          */
         private Task SendWebRequest(
-            string uri, string method, string payload, Action<Action> abortHook, Action<string> onSuccess, Action<string> onFailure,
+            string uri, string method, string payload, Action<Action> abortRegistrationHook, Action<string> onSuccess, Action<string> onFailure,
             bool isAuth = false, string contentType = "application/json")
             => SendWebRequest(
                 uri,
@@ -64,7 +63,7 @@ namespace RegressionGames
                 payload,
                 s =>
                 {
-                    abortHook(s);
+                    abortRegistrationHook(s);
                     return Task.CompletedTask;
                 },
                 s =>
@@ -80,7 +79,7 @@ namespace RegressionGames
                 isAuth,
                 contentType);
 
-        private async Task SendWebRequest(string uri, string method, string payload, Func<Action, Task> abortHook, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth = false, string contentType = "application/json")
+        private async Task SendWebRequest(string uri, string method, string payload, Func<Action, Task> abortRegistrationHook, Func<string, Task> onSuccess, Func<string, Task> onFailure, bool isAuth = false, string contentType = "application/json")
         {
             var messageId = ++_correlationId;
             // don't log the details of auth requests :)
@@ -109,7 +108,7 @@ namespace RegressionGames
                 }
                 var task = request.SendWebRequest();
                 // pass them back a hook to abort this request
-                await abortHook.Invoke(() => task.webRequest.Abort());
+                await abortRegistrationHook.Invoke(() => task.webRequest.Abort());
                 RGDebug.LogVerbose($"<{messageId}> API request sent ...");
                 await new UnityWebRequestAwaiter(task);
                 RGDebug.LogVerbose($"<{messageId}> API request complete ...");

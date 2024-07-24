@@ -66,7 +66,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     requestInProgress = _requestTracker.TryGetValue(segmentNumber, out _);
                     if (!requestInProgress)
                     {
-                        var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out _, out _);
+                        var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
                         if (imageData != null)
                         {
                             // do NOT await this, let it run async
@@ -75,10 +75,12 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 {
                                     screenshot = new CVImageRequestData()
                                     {
+                                        width = width,
+                                        height = height,
                                         data = imageData
                                     }
                                 },
-                                abortHook: action =>
+                                abortRegistrationHook: action =>
                                 {
                                     RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback");
                                     lock (_requestTracker)
