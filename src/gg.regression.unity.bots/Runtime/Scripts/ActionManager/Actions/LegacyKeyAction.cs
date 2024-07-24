@@ -56,6 +56,14 @@ namespace RegressionGames.ActionManager.Actions
             stringBuilder.Append(",\n\"keyCodeFunc\":");
             KeyCodeFunc.WriteToStringBuilder(stringBuilder);
         }
+        
+        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
+        {
+            foreach (var attr in base.GetDisplayActionAttributes())
+                yield return attr;
+
+            yield return ("Key Code", KeyCodeFunc.ToString());
+        }
     }
 
     public class LegacyKeyInstance : RGGameActionInstance<LegacyKeyAction, bool>
@@ -63,7 +71,12 @@ namespace RegressionGames.ActionManager.Actions
         public LegacyKeyInstance(LegacyKeyAction action, Object targetObject) : base(action, targetObject)
         {
         }
-        
+
+        protected override bool IsValidActionParameter(bool param)
+        {
+            return true;
+        }
+
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
             object keyCodeOrName = Action.KeyCodeFunc.Invoke(TargetObject);

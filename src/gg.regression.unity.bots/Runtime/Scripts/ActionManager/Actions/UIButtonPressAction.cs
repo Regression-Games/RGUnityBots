@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
-using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -16,6 +15,7 @@ namespace RegressionGames.ActionManager.Actions
     public class UIButtonPressAction : RGGameAction
     {
         public string EventListenerName { get; }
+
         
         public UIButtonPressAction(string[] path, Type objectType, string eventListenerName) : 
             base(path, objectType)
@@ -37,11 +37,14 @@ namespace RegressionGames.ActionManager.Actions
         public override bool IsValidForObject(Object obj)
         {
             Button btn = (Button)obj;
+            
+            // If the button isn't interactable, button press is invalid
             if (!btn.IsInteractable())
             {
                 return false;
             }
 
+            // If the containing canvas group of this button is not interactable, the button press is invalid
             Transform t = btn.transform.parent;
             while (t != null)
             {
@@ -52,15 +55,23 @@ namespace RegressionGames.ActionManager.Actions
                 }
                 t = t.parent;
             }
-            
+
+            // If this action does not target the event listeners associated with this button, then this action is not valid for this button
+            bool matchesListener = false;
             foreach (string listenerName in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
             {
                 if (listenerName == EventListenerName)
                 {
-                    return true;
+                    matchesListener = true;
+                    break;
                 }
             }
-            return false;
+            if (!matchesListener)
+                return false;
+
+            // Finally, check that it is actually possible to click the button via a raycast (i.e. that it is not obscured by another UI element)
+            bool haveMousePos = RGActionManagerUtils.GetUIMouseHitPosition(btn.gameObject, out _);
+            return haveMousePos;
         }
 
         public override IRGGameActionInstance GetInstance(Object obj)
@@ -82,6 +93,14 @@ namespace RegressionGames.ActionManager.Actions
             stringBuilder.Append(",\n\"eventListenerName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, EventListenerName);
         }
+        
+        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
+        {
+            foreach (var attr in base.GetDisplayActionAttributes())
+                yield return attr;
+
+            yield return ("Target Event Listener", EventListenerName);
+        }
     }
 
     public class UIButtonPressInstance : RGGameActionInstance<UIButtonPressAction, bool>
@@ -90,39 +109,29 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        private static Bounds? GetUIScreenSpaceBounds(Object targetObject)
+
+        protected override bool IsValidActionParameter(bool param)
         {
-            Button targetBtn = (Button)targetObject;
-            var instId = targetBtn.transform.GetInstanceID();
-            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out var tStatus))
-            {
-                return tStatus.screenSpaceBounds;
-            }
-            else
-            {
-                return null;
-            }
+            return true;
         }
-        
+
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
+            Button targetBtn = (Button)TargetObject;
+            bool haveMousePos = RGActionManagerUtils.GetUIMouseHitPosition(targetBtn.gameObject, out Vector2 mousePos);
             if (param)
             {
-                Bounds? bounds = GetUIScreenSpaceBounds(TargetObject);
-                if (bounds.HasValue)
+                if (haveMousePos)
                 {
-                    Bounds boundsVal = bounds.Value;
-                    yield return new MousePositionInput(boundsVal.center);
+                    yield return new MousePositionInput(mousePos);
                     yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, true);
                 }
             }
             else
             {
-                Bounds? bounds = GetUIScreenSpaceBounds(TargetObject);
-                if (bounds.HasValue)
+                if (haveMousePos)
                 {
-                    Bounds boundsVal = bounds.Value;
-                    yield return new MousePositionInput(boundsVal.center);
+                    yield return new MousePositionInput(mousePos);
                 }
                 yield return new MouseButtonInput(MouseButtonInput.LEFT_MOUSE_BUTTON, false);
             }

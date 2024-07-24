@@ -13,14 +13,14 @@ namespace ActionManagerTests
         {
             if (Keyboard.current[Key.F2].isPressed)
             {
-                Debug.Log("Keyboard.current[Key.A].isPressed");
+                Debug.Log("Keyboard.current[Key.F2].isPressed");
             }
         
             if (Keyboard.current.backslashKey.isPressed)
             {
                 Debug.Log("Keyboard.current.backslashKey.isPressed");
             }
-
+            
             Key key = fireKey;
             var keyboard = Keyboard.current;
             if (keyboard[key].isPressed)

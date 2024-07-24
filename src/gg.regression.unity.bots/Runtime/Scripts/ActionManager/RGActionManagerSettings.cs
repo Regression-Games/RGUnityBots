@@ -35,6 +35,11 @@ namespace RegressionGames.ActionManager
             _disabledActionPathSet = null;
         }
 
+        public bool IsValid()
+        {
+            return DisabledActionPaths != null;
+        }
+
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\n");

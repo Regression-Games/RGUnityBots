@@ -4,7 +4,6 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
-using RegressionGames.StateRecorder.Models;
 
 namespace RegressionGames.ActionManager.Actions
 {
@@ -30,7 +29,8 @@ namespace RegressionGames.ActionManager.Actions
 
         public override bool IsValidForObject(Object obj)
         {
-            return MouseHoverObjectInstance.GetHoverScreenSpaceBounds(obj).HasValue;
+            var gameObject = ((Component)obj).gameObject;
+            return RGActionManagerUtils.GetGameObjectScreenSpaceBounds(gameObject).HasValue;
         }
 
         public override IRGGameActionInstance GetInstance(Object obj)
@@ -54,102 +54,37 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
-        public static Bounds? GetHoverScreenSpaceBounds(Object targetObject)
+        protected override bool IsValidActionParameter(bool param)
         {
-            Component c = (Component)targetObject;
-            GameObject gameObject = c.gameObject;
-            var instId = gameObject.transform.GetInstanceID();
-            Bounds? ssBounds = null;
-            ObjectStatus tStatus;
-            if (RGActionManager.CurrentTransforms.TryGetValue(instId, out tStatus))
+            if (param)
             {
-                ssBounds = tStatus.screenSpaceBounds;
+                // if trying to hover over the object, it must be reachable by a raycast
+                var gameObject = ((Component)TargetObject).gameObject;
+                return RGActionManagerUtils.GetGameObjectMouseHitPosition(gameObject, out _);
             }
-
-            if (!ssBounds.HasValue)
+            else
             {
-                var camera = Camera.main;
-                if (camera != null)
-                {
-                    Bounds? colliderBounds = null;
-                    if (gameObject.TryGetComponent(out Collider col3D))
-                    {
-                        colliderBounds = col3D.bounds;
-                    } else if (gameObject.TryGetComponent(out Collider2D col2D))
-                    {
-                        colliderBounds = col2D.bounds;
-                    }
-
-                    if (colliderBounds.HasValue)
-                    {
-                        Vector3 min = colliderBounds.Value.min;
-                        Vector3 max = colliderBounds.Value.max;
-                        Vector3[] points = new Vector3[8]
-                        {
-                            new Vector3(min.x, min.y, min.z),
-                            new Vector3(max.x, min.y, min.z),
-                            new Vector3(min.x, max.y, min.z),
-                            new Vector3(max.x, max.y, min.z),
-                            new Vector3(min.x, min.y, max.z),
-                            new Vector3(max.x, min.y, max.z),
-                            new Vector3(min.x, max.y, max.z),
-                            new Vector3(max.x, max.y, max.z)
-                        };
-                        Vector3 minScreen = new Vector3(float.PositiveInfinity, float.PositiveInfinity, 0.0f);
-                        Vector3 maxScreen = new Vector3(float.NegativeInfinity, float.NegativeInfinity, 0.0f);
-                        foreach (Vector3 pt in points)
-                        {
-                            Vector3 screenPt = camera.WorldToScreenPoint(pt);
-                            screenPt.x = screenPt.x / camera.pixelWidth * Screen.width;
-                            screenPt.y = screenPt.y / camera.pixelHeight * Screen.height;
-                            minScreen = Vector3.Min(minScreen, screenPt);
-                            maxScreen = Vector3.Max(maxScreen, screenPt);
-                        }
-                        ssBounds = new Bounds((minScreen + maxScreen) / 2.0f, maxScreen - minScreen);
-                    }
-                }
+                // if trying to hover outside the object, only need the screen space bounds (already determined by IsValidForObject)
+                return true;
             }
-
-            return ssBounds;
-        }
-
-        public static Vector2 GetPointOutsideBounds(Bounds ssBounds)
-        {
-            Bounds screenRect = new Bounds(
-                new Vector3(Screen.width/2.0f, Screen.height/2.0f, 0.0f),
-                      new Vector3(Screen.width, Screen.height, 0.0f));
-            float extentScale = 1.5f;
-            Vector2[] candidates = new Vector2[]
-            {
-                ssBounds.center + new Vector3(ssBounds.extents.x*extentScale, 0.0f, 0.0f),
-                ssBounds.center + new Vector3(-ssBounds.extents.x*extentScale, 0.0f, 0.0f),
-                ssBounds.center + new Vector3(0.0f, ssBounds.extents.y*extentScale, 0.0f),
-                ssBounds.center + new Vector3(0.0f, -ssBounds.extents.y*extentScale, 0.0f)
-            };
-            // first try to find a point outside the bounds that are on the screen
-            foreach (Vector2 pt in candidates)
-            {
-                if (screenRect.Contains(pt))
-                {
-                    return pt;
-                }
-            }
-            // if no such point found, just return the first point anyways and have the mouse be off-screen
-            return candidates[0];
         }
 
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)
         {
-            var ssBounds = GetHoverScreenSpaceBounds(TargetObject);
-            if (ssBounds.HasValue)
+            var gameObject = ((Component)TargetObject).gameObject;
+            if (param)
             {
-                if (param)
+                if (RGActionManagerUtils.GetGameObjectMouseHitPosition(gameObject, out Vector2 mousePos))
                 {
-                    yield return new MousePositionInput(ssBounds.Value.center);
+                    yield return new MousePositionInput(mousePos);
                 }
-                else
+            }
+            else
+            {
+                var ssBounds = RGActionManagerUtils.GetGameObjectScreenSpaceBounds(gameObject);
+                if (ssBounds.HasValue)
                 {
-                    yield return new MousePositionInput(GetPointOutsideBounds(ssBounds.Value));
+                    yield return new MousePositionInput(RGActionManagerUtils.GetPointOutsideBounds(ssBounds.Value));
                 }
             }
         }

@@ -21,12 +21,12 @@ namespace ActionManagerTests
 
             if (Input.GetAxis(axis) > 0.0f)
             {
-                Debug.Log($"Input.GetAxis({axis})");
+                Debug.Log($"Input.GetAxis(axis)");
             }
 
             if (Input.GetAxisRaw("Mouse X") > 0.0f)
             {
-                Debug.Log("Input.GetAxis(\"Mouse X\")");
+                Debug.Log("Input.GetAxisRaw(\"Mouse X\")");
             }
 
             if (Input.GetAxis("Mouse ScrollWheel") > 0.0f)

@@ -5,10 +5,10 @@ using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.SceneManagement;
-using Object = System.Object;
 
 #if UNITY_EDITOR
 using System.IO;
@@ -83,17 +83,18 @@ namespace RegressionGames.ActionManager
                 jsonText = jsonFile?.text;
             }
             #endif
-            
-            RGActionManagerSettings result;
+
+            RGActionManagerSettings result = null;
             if (jsonText != null)
             {
                 result = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
             }
-            else
+            
+            if (result == null || !result.IsValid())
             {
                 result = new RGActionManagerSettings();
                 #if UNITY_EDITOR
-                SaveSettings();
+                SaveSettings(result);
                 #endif
             }
 
@@ -101,7 +102,7 @@ namespace RegressionGames.ActionManager
         }
 
         #if UNITY_EDITOR
-        public static void SaveSettings()
+        public static void SaveSettings(RGActionManagerSettings settings)
         {
             if (!Directory.Exists(SETTINGS_DIRECTORY))
             {
@@ -109,7 +110,7 @@ namespace RegressionGames.ActionManager
             }
             using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
             {
-                sw.Write(JsonUtility.ToJson(_settings, true));
+                sw.Write(JsonUtility.ToJson(settings, true));
             }
         }
         #endif
@@ -197,7 +198,13 @@ namespace RegressionGames.ActionManager
         {
             var tof = UnityEngine.Object.FindObjectOfType<TransformObjectFinder>();
             CurrentTransforms = tof.GetObjectStatusForCurrentFrame().Item2;
+            
+            var eventSystems = UnityEngine.Object.FindObjectsOfType<EventSystem>();
+            CurrentEventSystems.Clear();
+            CurrentEventSystems.AddRange(eventSystems);
+            
             RGUtils.ForceApplicationFocus();
+            
             foreach (RGGameAction action in _sessionActions)
             {
                 Debug.Assert(action.ParameterRange != null);
@@ -239,7 +246,6 @@ namespace RegressionGames.ActionManager
         }
 
 
-
         // Input simulation fields and methods used by the various action types
 
         private static Vector3 _mousePosition;
@@ -250,19 +256,22 @@ namespace RegressionGames.ActionManager
         private static bool _forwardMouseButton;
         private static bool _backMouseButton;
         public static Dictionary<long, ObjectStatus> CurrentTransforms { get; private set; }
+        public static List<EventSystem> CurrentEventSystems { get; private set; }
 
         private static void InitInputState()
         {
-            _mousePosition = RGLegacyInputWrapper.mousePosition;
+            // move mouse off screen
+            var mousePos = new Vector2(Screen.width + 20, -20);
+            MouseEventSender.SendRawPositionMouseEvent(-1, mousePos);
+
+            _mousePosition = mousePos;
             _mouseScroll = RGLegacyInputWrapper.mouseScrollDelta;
             _leftMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse0);
             _middleMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse2);
             _rightMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
-
-            // move mouse off screen
-            MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
+            CurrentEventSystems = new List<EventSystem>();
         }
 
         public static void SimulateKeyState(KeyCode keyCode, bool isPressed)

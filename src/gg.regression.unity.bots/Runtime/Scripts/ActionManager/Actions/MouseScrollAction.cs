@@ -54,6 +54,11 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
 
+        protected override bool IsValidActionParameter(Vector2Int param)
+        {
+            return true;
+        }
+
         protected override IEnumerable<RGActionInput> GetActionInputs(Vector2Int param)
         {
             Vector2 mouseScroll = param;

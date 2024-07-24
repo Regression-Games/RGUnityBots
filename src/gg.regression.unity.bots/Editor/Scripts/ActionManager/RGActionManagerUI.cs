@@ -155,7 +155,7 @@ namespace RegressionGames.ActionManager
                             }
                         }
                         RGActionManager.Settings.MarkDirty();
-                        RGActionManager.SaveSettings();
+                        RGActionManager.SaveSettings(RGActionManager.Settings);
                     });
 
                     return item;
@@ -239,20 +239,12 @@ namespace RegressionGames.ActionManager
             actionName.style.unityFontStyleAndWeight = FontStyle.Bold;
             _detailsPane.Add(actionName);
 
-            Label paths = new Label();
-            paths.text = "Paths: " + (action.Paths.Count > 1
-                ? "\n" + string.Join("\n",
-                    action.Paths.Select((path, idx) => (idx + 1) + ". " + string.Join("/", path)))
-                : string.Join("/", action.Paths[0]));
-            _detailsPane.Add(paths);
-
-            Label targetObject = new Label();
-            targetObject.text = "Target Object Type: " + action.ObjectType.FullName;
-            _detailsPane.Add(targetObject);
-
-            Label paramRange = new Label();
-            paramRange.text = "Parameter Range: " + action.ParameterRange;
-            _detailsPane.Add(paramRange);
+            foreach ((string attrName, string attrValue) in action.GetDisplayActionAttributes())
+            {
+                Label attrLabel = new Label();
+                attrLabel.text = attrName + ": " + attrValue;
+                _detailsPane.Add(attrLabel);
+            }
         }
 
         public void CreateGUI()
