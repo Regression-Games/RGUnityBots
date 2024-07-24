@@ -11,4 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LegacyInputTestScene.unity
     guid: 0b1c7c4fe7d7bad46a0a5a290506f21f
+  - enabled: 1
+    path: Assets/Scenes/ActionManagerTestScene.unity
+    guid: 15b3ffb91df791b46bc4943aa3fc42ec
   m_configObjects: {}

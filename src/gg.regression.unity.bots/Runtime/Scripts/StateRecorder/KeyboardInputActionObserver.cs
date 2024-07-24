@@ -79,7 +79,7 @@ namespace RegressionGames.StateRecorder
             { "p", Key.P },
             { "leftBracket", Key.LeftBracket },
             { "rightBracket", Key.RightBracket },
-            { "backSlash", Key.Backslash },
+            { "backslash", Key.Backslash },
             { "delete", Key.Delete },
             { "end", Key.End },
             { "pageDown", Key.PageDown },

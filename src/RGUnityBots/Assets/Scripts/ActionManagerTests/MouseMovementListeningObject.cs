@@ -14,20 +14,18 @@ namespace ActionManagerTests
         
         void Update()
         {
-            Vector3 mousePos;
-            if (Random.Range(0, 2) == 1)
+            Vector3 mousePos1 = Input.mousePosition;
+            Vector3 mousePos2 = Mouse.current.position.value;
+            if (mousePos1 != lastMousePos)
             {
-                mousePos = Mouse.current.position.value;
+                Debug.Log("mousePos1 != lastMousePos");
             }
-            else
+            if (mousePos2 != lastMousePos)
             {
-                mousePos = Input.mousePosition;
+                Debug.Log("mousePos2 != lastMousePos");
             }
-            if (mousePos != lastMousePos)
-            {
-                Debug.Log("mousePos != lastMousePos");
-                lastMousePos = mousePos;
-            }
+
+            lastMousePos = mousePos1;
 
             if (Input.mouseScrollDelta.sqrMagnitude > 0.1f)
             {

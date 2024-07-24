@@ -118,7 +118,14 @@ namespace RegressionGames.ActionManager
                         throw new Exception($"Unexpected member {member} of type {member.GetType()})");
                     }
                 }
-                return (T)currentObject;
+                
+                // Heuristic to convert LayerMask to int
+                if (typeof(T) == typeof(int) && currentObject is LayerMask mask)
+                {
+                    currentObject = (int)mask;
+                }
+
+                return (T)Convert.ChangeType(currentObject, typeof(T));
             };
 
             var result = new RGActionParamFunc<T>(ActionParamFuncType.TYPE_MEMBER_ACCESS, data, func);

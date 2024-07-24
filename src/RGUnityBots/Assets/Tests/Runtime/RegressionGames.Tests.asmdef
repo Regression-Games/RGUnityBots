@@ -4,6 +4,8 @@
         "TestAssemblies"
     ],
     "references": [
-        "RegressionGames"
+        "RegressionGames",
+        "Unity.InputSystem",
+        "Unity.InputSystem.TestFramework"
     ]
 }

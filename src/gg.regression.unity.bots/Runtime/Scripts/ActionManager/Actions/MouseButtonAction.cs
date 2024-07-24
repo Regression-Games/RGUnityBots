@@ -57,12 +57,25 @@ namespace RegressionGames.ActionManager.Actions
             stringBuilder.Append(",\n\"mouseButtonFunc\":");
             MouseButtonFunc.WriteToStringBuilder(stringBuilder);
         }
+        
+        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
+        {
+            foreach (var attr in base.GetDisplayActionAttributes())
+                yield return attr;
+
+            yield return ("Mouse Button", MouseButtonFunc.ToString());
+        }
     }
 
     public class MouseButtonInstance : RGGameActionInstance<MouseButtonAction, bool>
     {
         public MouseButtonInstance(MouseButtonAction action, Object targetObject) : base(action, targetObject)
         {
+        }
+
+        protected override bool IsValidActionParameter(bool param)
+        {
+            return true;
         }
 
         protected override IEnumerable<RGActionInput> GetActionInputs(bool param)

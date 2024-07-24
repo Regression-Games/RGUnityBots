@@ -309,7 +309,7 @@ namespace RegressionGames.RGLegacyInputUtility
                         
                         // 2D raycast
                         {
-                            Vector3 mouseWorldPt = camera.ScreenToWorldPoint(_mousePosition);
+                            Vector3 mouseWorldPt = camera.ScreenToWorldPoint(new Vector3(_mousePosition.x, _mousePosition.y, camera.nearClipPlane));
                             RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
                                 layerMask: cameraRaycastMask);
                             if (hit2D.collider != null)
