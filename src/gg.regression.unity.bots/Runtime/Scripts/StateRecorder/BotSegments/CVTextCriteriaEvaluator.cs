@@ -4,6 +4,8 @@ using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -210,6 +212,12 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                 }
             }
+            else
+            {
+                resultList.Add("Awaiting CVText evaluation result from server...");
+            }
+
+            RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
 
             RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
 

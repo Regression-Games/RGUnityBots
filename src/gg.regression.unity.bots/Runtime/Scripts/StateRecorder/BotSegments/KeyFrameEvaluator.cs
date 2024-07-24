@@ -4,8 +4,6 @@ using System.Text;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -85,30 +83,8 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public bool Matched(bool firstSegment, int segmentNumber, List<KeyFrameCriteria> criteriaList)
         {
-            var hasCvCriteria = criteriaList.Count(a => a.type == KeyFrameCriteriaType.CVText) > 0;
-
-            CVImageRequestData screenshotData = null;
-            if (hasCvCriteria)
-            {
-                // get screenshot data, may be null .. but that will kick off a readback of the gpu so it will be ready next call
-                var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height, out var graphicsFormat);
-                if (imageData != null)
-                {
-                    if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
-                    {
-                        // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
-                        graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
-                    }
-
-                    screenshotData = new CVImageRequestData()
-                    {
-                        data = ImageConversion.EncodeArrayToJPG(imageData, graphicsFormat, (uint)width, (uint)height)
-                    };
-                }
-            }
-
             _newUnmatchedCriteria.Clear();
-            bool matched = MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.And, criteriaList, screenshotData);
+            bool matched = MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.And, criteriaList);
             if (matched)
             {
 
@@ -131,7 +107,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator. firstSegment represents if this is the first segment in the current pass's list of segments to evaluate</summary>
          */
-        internal bool MatchedHelper(bool firstSegment, int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList, CVImageRequestData screenshotData)
+        internal bool MatchedHelper(bool firstSegment, int segmentNumber, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
         {
             var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
             var currentFrameCount = Time.frameCount;
@@ -346,7 +322,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < orCount; j++)
                 {
                     var orEntry = orsToMatch[j];
-                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, orEntry, screenshotData);
+                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, orEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
@@ -372,7 +348,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < andCount; j++)
                 {
                     var andEntry = andsToMatch[j];
-                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, andEntry, screenshotData);
+                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, andEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
