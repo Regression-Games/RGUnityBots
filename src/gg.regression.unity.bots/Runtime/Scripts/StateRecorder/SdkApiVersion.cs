@@ -13,6 +13,6 @@
         public const int VERSION_8 = 8; // add cv text key frame criteria matching
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_7;
+        public const int CURRENT_VERSION = VERSION_8;
     }
 }

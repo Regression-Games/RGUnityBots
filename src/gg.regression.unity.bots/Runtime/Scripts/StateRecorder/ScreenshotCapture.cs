@@ -17,15 +17,20 @@ namespace RegressionGames.StateRecorder
         // we use a lock on this object to control thread safety of updates and data reads for the lastN frames and completion actions
         private static readonly object SyncLock = new();
 
+        // if the current frame request is within this many frames of the most recent image, just use that image
+        private const int MaxCurrentScreenshotAge = 10;
+
         // track the last N frames captured
         private const int MaxTrackedFrames = 5;
         // if a request comes in that is OLDER than one of those last MaxTrackedFrames.. give them the latest one captured, else wait for that next frame
-        private static readonly List<(int, (Color32[], int, int, GraphicsFormat)?)> LastNFrames = new(MaxTrackedFrames);
+        // tracks the data as jpg encoded bytes as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
+        private static readonly List<(int, (byte[], int, int)?)> LastNFrames = new(MaxTrackedFrames);
 
         // if completion actions are requested for a given frame number.. complete them as soon as their frame number finishes, or complete immediately if a later frame has already finished
-        private static readonly Dictionary<int, List<Action<(Color32[], int, int, GraphicsFormat)?>>> CompletionActions = new();
+        // tracks the data as jpg encoded bytes as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
+        private static readonly Dictionary<int, List<Action<(byte[], int, int)?>>> CompletionActions = new();
 
-        private static (Color32[], int, int, GraphicsFormat)? GetDataForFrame(int frame)
+        private static (byte[], int, int)? GetDataForFrame(int frame)
         {
             lock (SyncLock)
             {
@@ -48,7 +53,7 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private static void AddFrame(int frame, (Color32[], int, int, GraphicsFormat)? data)
+        private static void AddFrame(int frame, (byte[], int, int)? data)
         {
             lock (SyncLock)
             {
@@ -220,7 +225,7 @@ namespace RegressionGames.StateRecorder
         /**
          * <summary>Calls the onSuccess callback when the readback request finishes or if data is already available</summary>
          */
-        public static void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(Color32[], int, int, GraphicsFormat)?> onCompletion)
+        public static void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
         {
             var frame = UnityEngine.Time.frameCount;
             var frameData = GetDataForFrame(frame);
@@ -230,7 +235,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private static void UpdateGPUData(int frame, Action<(Color32[], int, int, GraphicsFormat)?> onCompletion)
+        private static void UpdateGPUData(int frame, Action<(byte[], int, int)?> onCompletion)
         {
             lock (SyncLock)
             {
@@ -238,7 +243,7 @@ namespace RegressionGames.StateRecorder
                 {
                     if (!CompletionActions.TryGetValue(frame, out var caList))
                     {
-                        caList = new List<Action<(Color32[], int, int, GraphicsFormat)?>>() { onCompletion };
+                        caList = new List<Action<(byte[], int, int)?>>() { onCompletion };
                         CompletionActions[frame] = caList;
                     }
                     else
@@ -293,8 +298,16 @@ namespace RegressionGames.StateRecorder
                                 }
                             } //else.. we're fine
 
+                            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
+                            {
+                                // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
+                                theGraphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
+                            }
+
+                            var imageOutput = ImageConversion.EncodeArrayToJPG(pixels, theGraphicsFormat, (uint)screenWidth, (uint)screenHeight);
+
                             RGDebug.LogDebug($"ScreenshotCapture - Captured screenshot for frame # {frame}");
-                            AddFrame(frame, (pixels, screenWidth, screenHeight, theGraphicsFormat));
+                            AddFrame(frame, (imageOutput, screenWidth, screenHeight));
                         }
                         else
                         {
@@ -316,31 +329,34 @@ namespace RegressionGames.StateRecorder
 
 
         /**
-         * <summary>Returns Color32[] array of the pixels IF there is a valid screenshot buffered for this segment/frame.
+         * <summary>Returns Color32[] array of the pixels IF there is a valid screenshot buffered for a frame within MaxCurrentScreenshotAge of this frame.
          * If not buffered, starts a new readback request</summary>
          */
-        public static Color32[] GetCurrentScreenshot(long segmentNumber, out int width, out int height, out GraphicsFormat graphicsFormat)
+        public static byte[] GetCurrentScreenshot(long segmentNumber, out int width, out int height)
         {
             var frame = UnityEngine.Time.frameCount;
 
             HandleCompletedActionCallbacks();
 
-            var frameData = GetDataForFrame(frame);
-            if (frameData == null)
+            (int, (byte[], int,int)?)? mostRecentFrameData = LastNFrames.Count > 0 ? LastNFrames[^1] : null;
+            var frameData = mostRecentFrameData?.Item2;
+
+            if (!frameData.HasValue || frame - mostRecentFrameData.Value.Item1 > MaxCurrentScreenshotAge)
             {
+                // frame is non-existent or too old
                 UpdateGPUData(frame, null);
+                frameData = null;
             }
-            else
+
+            if (frameData.HasValue)
             {
                 width = frameData.Value.Item2;
                 height = frameData.Value.Item3;
-                graphicsFormat = frameData.Value.Item4;
                 return frameData.Value.Item1;
             }
 
             width = -1;
             height = -1;
-            graphicsFormat = GraphicsFormat.None;
             return null;
 
         }

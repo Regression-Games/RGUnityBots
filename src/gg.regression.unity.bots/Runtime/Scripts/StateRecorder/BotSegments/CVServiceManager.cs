@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
 using UnityEngine.Networking;
 
 namespace RegressionGames
@@ -13,12 +14,11 @@ namespace RegressionGames
 
         private static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 30;
 
-        private static CVServiceManager _this = null;
+        private static readonly CVServiceManager _this = new ();
 
         private long _correlationId = 0L;
 
         private readonly string _cvAuthToken = "TODO:GenerateADeploymentTokenOnReleaseAndReadFromAnArgument";
-
 
         public static CVServiceManager GetInstance()
         {

@@ -2,7 +2,7 @@
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
 {
     public class CVTextResult
     {
