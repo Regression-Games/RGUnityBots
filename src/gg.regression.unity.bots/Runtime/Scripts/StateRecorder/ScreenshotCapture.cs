@@ -29,13 +29,18 @@ namespace RegressionGames.StateRecorder
         {
             lock (SyncLock)
             {
-                foreach (var lastNFrame in LastNFrames)
+                // make sure this frame's request isn't outstanding
+                if (!GPUReadbackRequests.ContainsKey(frame))
                 {
-                    var lnFrame = lastNFrame.Item1;
-                    var lnData = lastNFrame.Item2;
-                    if (lnFrame >= frame)
+                    //assumes these are kept numerically ordered by frame
+                    foreach (var lastNFrame in LastNFrames)
                     {
-                        return lnData;
+                        var lnFrame = lastNFrame.Item1;
+                        var lnData = lastNFrame.Item2;
+                        if (lnFrame >= frame)
+                        {
+                            return lnData;
+                        }
                     }
                 }
             }
@@ -47,9 +52,9 @@ namespace RegressionGames.StateRecorder
         {
             lock (SyncLock)
             {
-                var LastNFramesCount = LastNFrames.Count;
+                var lastNFramesCount = LastNFrames.Count;
                 var added = false;
-                for (var i = 0; i < LastNFramesCount; i++)
+                for (var i = 0; i < lastNFramesCount; i++)
                 {
                     var lastNFrame = LastNFrames[i];
                     // keep the frames numerically ordered
@@ -57,6 +62,7 @@ namespace RegressionGames.StateRecorder
                     {
                         added = true;
                         LastNFrames.Insert(i,(frame,data));
+                        RGDebug.LogDebug($"ScreenshotCapture - Added tracked screenshot for frame # {frame} at index: {i}");
                         break;
                     }
                 }
@@ -64,11 +70,16 @@ namespace RegressionGames.StateRecorder
                 if (!added)
                 {
                     LastNFrames.Add((frame, data));
+                    RGDebug.LogDebug($"ScreenshotCapture - Added tracked screenshot for frame # {frame} at index: {LastNFrames.Count-1}");
                 }
+
+
 
                 if (LastNFrames.Count > MaxTrackedFrames)
                 {
+                    var oldFrame = LastNFrames[0];
                     LastNFrames.RemoveAt(0);
+                    RGDebug.LogDebug($"ScreenshotCapture - Removed old tracked frame # {oldFrame.Item1}");
                 }
             }
         }
@@ -108,7 +119,19 @@ namespace RegressionGames.StateRecorder
                             {
                                 var lnFrame = lastNFrame.Item1;
                                 var lnData = lastNFrame.Item2;
-                                if (lnFrame >= caFrame)
+                                if (lnFrame == caFrame)
+                                {
+                                    // found a frame > my frame
+                                    foreach (var caAction in caActions)
+                                    {
+                                        caAction.Invoke(lnData);
+                                    }
+
+                                    caActions.Clear();
+                                    toRemoveList.Add(caFrame);
+                                    break;
+                                }
+                                else if (lnFrame > caFrame)
                                 {
                                     // found a frame > my frame
                                     foreach (var caAction in caActions)
@@ -136,7 +159,7 @@ namespace RegressionGames.StateRecorder
         {
             if (GPUReadbackRequests.Count > 0)
             {
-                RGDebug.LogInfo($"Waiting for " + GPUReadbackRequests.Count + " unfinished GPU Read back requests before stopping");
+                RGDebug.LogInfo($"ScreenshotCapture - Waiting for " + GPUReadbackRequests.Count + " unfinished GPU Read back requests before stopping");
             }
 
             // wait for all the GPU data to come back
@@ -211,14 +234,17 @@ namespace RegressionGames.StateRecorder
         {
             lock (SyncLock)
             {
-                if (!CompletionActions.TryGetValue(frame, out var caList))
+                if (onCompletion != null)
                 {
-                    caList = new List<Action<(Color32[], int, int, GraphicsFormat)?>>() { onCompletion };
-                    CompletionActions[frame] = caList;
-                }
-                else
-                {
-                    caList.Add(onCompletion);
+                    if (!CompletionActions.TryGetValue(frame, out var caList))
+                    {
+                        caList = new List<Action<(Color32[], int, int, GraphicsFormat)?>>() { onCompletion };
+                        CompletionActions[frame] = caList;
+                    }
+                    else
+                    {
+                        caList.Add(onCompletion);
+                    }
                 }
             }
 
@@ -267,11 +293,12 @@ namespace RegressionGames.StateRecorder
                                 }
                             } //else.. we're fine
 
+                            RGDebug.LogDebug($"ScreenshotCapture - Captured screenshot for frame # {frame}");
                             AddFrame(frame, (pixels, screenWidth, screenHeight, theGraphicsFormat));
                         }
                         else
                         {
-                            RGDebug.LogWarning($"Error capturing screenshot for frame # {frame}");
+                            RGDebug.LogWarning($"ScreenshotCapture - Error capturing screenshot for frame # {frame}");
                             AddFrame(frame, null);
                         }
                         HandleCompletedActionCallbacks();
@@ -282,7 +309,7 @@ namespace RegressionGames.StateRecorder
                 }
                 catch (Exception e)
                 {
-                    RGDebug.LogWarning($"Exception starting to capture screenshot for frame # {frame} - {e.Message}");
+                    RGDebug.LogWarning($"ScreenshotCapture - Exception starting to capture screenshot for frame # {frame} - {e.Message}");
                 }
             }
         }

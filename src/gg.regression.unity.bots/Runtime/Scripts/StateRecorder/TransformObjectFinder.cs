@@ -235,9 +235,8 @@ namespace RegressionGames.StateRecorder
             return (_priorObjects, _newObjects);
         }
 
-        public static (Bounds?, float, Bounds?) SelectBoundsForTransform(Transform theTransform)
+        private static (Bounds?, float, Bounds?) SelectBoundsForTransform(Transform theTransform)
         {
-
             var screenWidth = Screen.width;
             var screenHeight = Screen.height;
             var mainCamera = Camera.main;
@@ -260,8 +259,7 @@ namespace RegressionGames.StateRecorder
                     var cgEnabled = true;
                     while (cgEnabled && canvasGroup != null)
                     {
-                        cgEnabled &= canvasGroup.enabled &&
-                                     (canvasGroup.blocksRaycasts || canvasGroup.interactable || canvasGroup.alpha > 0);
+                        cgEnabled &= canvasGroup.enabled && (canvasGroup.blocksRaycasts || canvasGroup.interactable) && (canvasGroup.alpha > 0.01f); // 0ish float comparisons ... lovely but necessary
                         if (canvasGroup.ignoreParentGroups)
                         {
                             break;
@@ -554,21 +552,14 @@ namespace RegressionGames.StateRecorder
 
                         return (new Bounds(center, size), Math.Min(minZ, maxZ), new Bounds(worldCenter, worldSize));
                     }
-                    else
-                    {
-                        return (null, 0f, null);
-                    }
                 }
-
             }
-
 
             return (null, 0f, null);
         }
 
         private void PopulateUITransformsForCurrentFrame()
         {
-
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
 
             // we re-use this over and over instead of allocating multiple times
@@ -580,12 +571,17 @@ namespace RegressionGames.StateRecorder
                 if (statefulUIObject != null && statefulUIObject.GetComponentInParent<RGExcludeFromState>() == null)
                 {
                     var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulUIObject.transform);
-                    _newObjects[tStatus.Id] = tStatus;
 
                     var bounds = SelectBoundsForTransform(statefulUIObject.transform);
                     tStatus.screenSpaceBounds = bounds.Item1;
                     tStatus.screenSpaceZOffset = bounds.Item2;
                     tStatus.worldSpaceBounds = bounds.Item3;
+
+                    // only include visible UI elements
+                    if (bounds.Item1 != null)
+                    {
+                        _newObjects[tStatus.Id] = tStatus;
+                    }
                 }
             }
         }
