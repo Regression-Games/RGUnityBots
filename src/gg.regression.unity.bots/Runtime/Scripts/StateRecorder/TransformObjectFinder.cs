@@ -401,13 +401,10 @@ namespace RegressionGames.StateRecorder
                 var minWorldZ = float.MaxValue;
                 var maxWorldZ = float.MinValue;
 
-                var hasVisibleRenderer = false;
-
                 var rendererListLength = RendererQueryList.Count;
                 for (var i = 0; i < rendererListLength; i++)
                 {
                     var nextRenderer = RendererQueryList[i];
-                    hasVisibleRenderer |= nextRenderer.isVisible;
                     if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
                     {
                         var theBounds = nextRenderer.bounds;
@@ -446,7 +443,7 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
+                var onCamera = minWorldX < float.MaxValue;
                 if (onCamera)
                 {
 
@@ -578,7 +575,7 @@ namespace RegressionGames.StateRecorder
                     tStatus.worldSpaceBounds = bounds.Item3;
 
                     // only include visible UI elements
-                    if (bounds.Item1 != null)
+                    if (tStatus.screenSpaceBounds != null)
                     {
                         _newObjects[tStatus.Id] = tStatus;
                     }
@@ -617,11 +614,17 @@ namespace RegressionGames.StateRecorder
             foreach (var theTransform in _transformsForThisFrame)
             {
                 var tStatus = TransformStatus.GetOrCreateTransformStatus(theTransform);
-                _newObjects[tStatus.Id] = tStatus;
+
                 var bounds = SelectBoundsForTransform(theTransform);
                 tStatus.screenSpaceBounds = bounds.Item1;
                 tStatus.screenSpaceZOffset = bounds.Item2;
                 tStatus.worldSpaceBounds = bounds.Item3;
+
+                // only include visible elements
+                if (tStatus.screenSpaceBounds != null)
+                {
+                    _newObjects[tStatus.Id] = tStatus;
+                }
             }
 
         }
