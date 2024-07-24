@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // update this if this schema changes
         public int apiVersion = SdkApiVersion.VERSION_8;
 
-        public Vector2Int resolution;
+        public Vector2Int screenSize;
         public string text;
         public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
         public TextCaseRule textCaseRule = TextCaseRule.Matches;
