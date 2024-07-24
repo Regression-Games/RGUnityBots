@@ -26,7 +26,30 @@ namespace RegressionGames
 
         private String GetCvServiceBaseUri()
         {
-            return "127.0.0.1:18888";
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            string host = rgSettings.GetCvHostAddress();
+
+            // If env var is set, use that instead
+            string hostOverride = RGEnvConfigs.ReadCvHost();
+            if (hostOverride != null && hostOverride.Trim() != "")
+            {
+                host = hostOverride.Trim();
+            }
+
+            if (host.EndsWith('/'))
+            {
+                host = host.Substring(0, host.Length - 1);
+            }
+
+            Uri hostUri = new(host);
+            if (hostUri.IsLoopback)
+            {
+                return $"{host}";
+            }
+            else
+            {
+                return $"{host}/rgservice";
+            }
         }
 
         public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)

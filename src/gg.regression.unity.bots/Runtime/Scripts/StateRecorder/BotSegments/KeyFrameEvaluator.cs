@@ -20,6 +20,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             _newUnmatchedCriteria.Clear();
             _priorKeyFrameTransformStatus.Clear();
             _priorKeyFrameEntityStatus.Clear();
+            CVTextCriteriaEvaluator.Reset();
         }
 
         public string GetUnmatchedCriteria()

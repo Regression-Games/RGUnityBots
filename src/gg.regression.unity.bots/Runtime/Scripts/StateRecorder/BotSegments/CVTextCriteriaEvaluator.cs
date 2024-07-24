@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
 using RegressionGames.StateRecorder.Models;
@@ -21,6 +22,21 @@ namespace RegressionGames.StateRecorder.BotSegments
         // if an entry is NULL, request is in progress for that segment
         // if an entry has a value, then it is completed for that segment.. it should be cleared out on the next matched call if the result didn't match so it can run again
         private static readonly Dictionary<int, List<CVTextResult>> _resultTracker = new();
+
+        public static void Reset()
+        {
+            lock (_requestTracker)
+            {
+                foreach (var keyValuePair in _requestTracker.Where((pair => pair.Value != null)))
+                {
+                    RGDebug.LogDebug($"CVTextCriteriaEvaluator - Reset - botSegment: {keyValuePair.Key} - abortingWebRequest");
+                    keyValuePair.Value.Invoke();
+                }
+
+                _requestTracker.Clear();
+                _resultTracker.Clear();
+            }
+        }
 
 
         // cleanup async and results tracking for that segment

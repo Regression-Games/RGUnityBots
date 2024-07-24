@@ -10,7 +10,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
         public Vector2Int resolution;
         public RectInt rect;
 
-        public string ToString()
+        public new string ToString()
         {
             StringBuilder sb = new(1000);
             sb.Append("{\ntext\":");
