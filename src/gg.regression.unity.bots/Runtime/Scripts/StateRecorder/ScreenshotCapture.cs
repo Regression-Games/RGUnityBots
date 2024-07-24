@@ -18,8 +18,8 @@ namespace RegressionGames.StateRecorder
         private static readonly object SyncLock = new();
 
         // track the last N frames captured
-        private const int MaxTrackedFrames = 3;
-        // if a request comes in that is OLDER than one of those last 3.. give them the latest one captured, else wait for that next frame
+        private const int MaxTrackedFrames = 5;
+        // if a request comes in that is OLDER than one of those last MaxTrackedFrames.. give them the latest one captured, else wait for that next frame
         private static readonly List<(int, (Color32[], int, int, GraphicsFormat)?)> LastNFrames = new(MaxTrackedFrames);
 
         // if completion actions are requested for a given frame number.. complete them as soon as their frame number finishes, or complete immediately if a later frame has already finished
@@ -47,12 +47,29 @@ namespace RegressionGames.StateRecorder
         {
             lock (SyncLock)
             {
-                if (LastNFrames.Count >= MaxTrackedFrames)
+                var LastNFramesCount = LastNFrames.Count;
+                var added = false;
+                for (var i = 0; i < LastNFramesCount; i++)
+                {
+                    var lastNFrame = LastNFrames[i];
+                    // keep the frames numerically ordered
+                    if (lastNFrame.Item1 > frame)
+                    {
+                        added = true;
+                        LastNFrames.Insert(i,(frame,data));
+                        break;
+                    }
+                }
+
+                if (!added)
+                {
+                    LastNFrames.Add((frame, data));
+                }
+
+                if (LastNFrames.Count > MaxTrackedFrames)
                 {
                     LastNFrames.RemoveAt(0);
                 }
-
-                LastNFrames.Add((frame, data));
             }
         }
 
@@ -86,13 +103,14 @@ namespace RegressionGames.StateRecorder
                         var caActions = keyValuePair.Value;
                         if (caActions != null)
                         {
+                            //assumes these are kept numerically ordered by frame
                             foreach (var lastNFrame in LastNFrames)
                             {
                                 var lnFrame = lastNFrame.Item1;
                                 var lnData = lastNFrame.Item2;
                                 if (lnFrame >= caFrame)
                                 {
-                                    // found a frame >= my frame
+                                    // found a frame > my frame
                                     foreach (var caAction in caActions)
                                     {
                                         caAction.Invoke(lnData);
@@ -137,6 +155,7 @@ namespace RegressionGames.StateRecorder
                     var caActions = keyValuePair.Value;
                     if (caActions != null)
                     {
+                        //assumes these are kept numerically ordered by frame
                         foreach (var lastNFrame in LastNFrames)
                         {
                             var lnFrame = lastNFrame.Item1;

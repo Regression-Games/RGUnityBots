@@ -591,6 +591,11 @@ namespace RegressionGames.StateRecorder
                         // save this off because we're about to operate on a different thread :)
                         var currentTickNumber = _tickNumber;
 
+                        if (RGDebug.IsDebugEnabled)
+                        {
+                            RGDebug.LogDebug($"Capturing screenshot for tick # {currentTickNumber}");
+                        }
+
                         ScreenshotCapture.GetCurrentScreenshotWithCallback(
                             currentTickNumber,
                             (result) =>
