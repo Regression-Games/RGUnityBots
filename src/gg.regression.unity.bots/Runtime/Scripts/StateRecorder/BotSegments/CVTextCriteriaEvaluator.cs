@@ -255,6 +255,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                                 _resultTracker[segmentNumber] = list;
                                                 // cleanup the request tracker
                                                 _requestTracker.Remove(segmentNumber);
+                                                _priorResultsTracker.Remove(segmentNumber);
                                             }
                                         }
                                     },

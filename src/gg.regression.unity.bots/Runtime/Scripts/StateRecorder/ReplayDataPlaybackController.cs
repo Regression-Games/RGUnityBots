@@ -265,6 +265,9 @@ namespace RegressionGames.StateRecorder
             {
                 if (_startPlaying)
                 {
+                    // start the mouse off the screen.. this avoids CV or other things failing because the virtual mouse is in the way at the start
+                    MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
+
                     #if ENABLE_LEGACY_INPUT_MANAGER
                     RGLegacyInputWrapper.StartSimulation(this);
                     #endif
