@@ -13,9 +13,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
         public new string ToString()
         {
             StringBuilder sb = new(1000);
-            sb.Append("{\ntext\":");
+            sb.Append("{\"text\":");
             StringJsonConverter.WriteToStringBuilder(sb, text);
-            sb.Append(",\resolution\":");
+            sb.Append(",\"resolution\":");
             VectorIntJsonConverter.WriteToStringBuilder(sb, resolution);
             sb.Append(",\"rect\":");
             RectIntJsonConverter.WriteToStringBuilder(sb, rect);

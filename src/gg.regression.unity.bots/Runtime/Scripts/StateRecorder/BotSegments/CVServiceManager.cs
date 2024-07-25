@@ -61,10 +61,8 @@ namespace RegressionGames
                 abortRegistrationHook: abortRegistrationHook.Invoke,
                 onSuccess: (s) =>
                 {
-                    var response = JsonConvert.DeserializeObject<List<CVTextResult>>(s);
-                    RGDebug.LogDebug(
-                        $"CVService POST criteria-text-discover response received: {response}");
-                    onSuccess.Invoke(response);
+                    var response = JsonConvert.DeserializeObject<CVTextResultList>(s);
+                    onSuccess.Invoke(response.results);
                 },
                 onFailure: (f) =>
                 {
@@ -107,7 +105,7 @@ namespace RegressionGames
             var messageId = ++_correlationId;
             // don't log the details of auth requests :)
             string payloadToLog = isAuth ? "{***:***, ...}" : payload;
-            RGDebug.LogVerbose($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload) ? $"\r\n{payloadToLog}" : "")}");
+            RGDebug.LogDebug($"<{messageId}> API request - {method}  {uri}{(!string.IsNullOrEmpty(payload) ? $"\r\n{payloadToLog}" : "")}");
             UnityWebRequest request = new UnityWebRequest(uri, method);
 
             try
@@ -149,7 +147,7 @@ namespace RegressionGames
                 if (request.result == UnityWebRequest.Result.Success)
                 {
                     // pretty print
-                    RGDebug.LogVerbose($"<{messageId}> API response - {method}  {uri}\r\n{resultToLog}");
+                    RGDebug.LogDebug($"<{messageId}> API response - {method}  {uri}\r\n{resultToLog}");
                     await onSuccess.Invoke(resultText);
                 }
                 else

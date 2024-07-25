@@ -39,10 +39,10 @@ namespace RegressionGames.StateRecorder.BotSegments
         // cleanup async and results tracking for that segment
         public static void Cleanup(int segmentNumber)
         {
-            RGDebug.LogDebug($"CVTextCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - BEGIN");
+            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - BEGIN");
             lock (_requestTracker)
             {
-                RGDebug.LogDebug($"CVTextCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - insideLock");
+                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - insideLock");
                 if (_requestTracker.Remove(segmentNumber, out var request))
                 {
                     try
@@ -59,7 +59,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                 // remove the tracked result
                 _resultTracker.Remove(segmentNumber, out _);
-                RGDebug.LogDebug($"CVTextCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - END");
+                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - END");
             }
         }
 
@@ -67,7 +67,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         // Returns a list of non-matched entries
         public static List<string> Matched(int segmentNumber, List<KeyFrameCriteria> criteriaList)
         {
-            RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - BEGIN");
+            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - BEGIN");
             var resultList = new List<string>();
 
             // Handle possibly starting the web request for evaluation
@@ -96,10 +96,10 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 },
                                 abortRegistrationHook: action =>
                                 {
-                                    RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback");
+                                    RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback");
                                     lock (_requestTracker)
                                     {
-                                        RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback - insideLock");
+                                        RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback - insideLock");
                                         // make sure we haven't already cleaned this up
                                         if (_requestTracker.ContainsKey(segmentNumber))
                                         {
@@ -109,14 +109,14 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 },
                                 onSuccess: list =>
                                 {
-                                    RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback");
+                                    RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback");
                                     lock (_requestTracker)
                                     {
-                                        RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
+                                        RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
                                         // make sure we haven't already cleaned this up
                                         if (_resultTracker.ContainsKey(segmentNumber))
                                         {
-                                            RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
+                                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
                                             // store the result
                                             _resultTracker[segmentNumber] = list;
                                             // cleanup the request tracker
@@ -125,7 +125,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     }
                                 },
                                 onFailure: () => { RGDebug.LogWarning("CVTextCriteriaEvaluator - failure invoking CVService text criteria evaluation"); });
-                            RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - SENT");
+                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - SENT");
 
                             // mark a request in progress inside the lock to avoid race conditions
                             // mark that we are in progress by putting entries in the dictionary
@@ -143,7 +143,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 _resultTracker.TryGetValue(segmentNumber, out cvTextResults);
                 hasResults = cvTextResults != null;
                 var resultsString = cvTextResults == null ? "null":$"\n[{string.Join(",\n", cvTextResults)}]";
-                RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - hasResults: {(hasResults?"true":"false")} - cvTextResults: {resultsString}");
+                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - hasResults: {(hasResults?"true":"false")} - cvTextResults: {resultsString}");
             }
 
             // Evaluate the results if we have some
@@ -156,7 +156,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     var cvTextResult = cvTextResults[k];
                     var cvText = cvTextResult.text.Trim();
-                    for (var i = criteriaList.Count; i >=0; i--)
+                    for (var i = criteriaList.Count-1; i >=0; i--)
                     {
                         var criteria = criteriaList[i];
                         if (!criteria.transient || !criteria.Replay_TransientMatched)
@@ -173,7 +173,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 cvText = cvText.ToLower();
                             }
 
-                            for (var j = textParts.Count(); j >= 0; j--)
+                            for (var j = textParts.Count - 1; j >= 0; j--)
                             {
                                 var matched = false;
                                 var textToMatch = textParts[j];
@@ -252,7 +252,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 resultList.Add("Awaiting CVText evaluation result from server...");
             }
 
-            RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
+            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
 
             return resultList;
         }
