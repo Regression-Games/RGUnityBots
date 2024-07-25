@@ -99,9 +99,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                 // we do our best to make this faster by removing from the lists as we match to reduce future iterations
                 for (var i = criteriaList.Count - 1; i >= 0; i--)
                 {
-                    var cvTextResult = cvTextResults[k];
-                    var cvText = cvTextResult.text.Trim();
-                    for (var i = criteriaList.Count-1; i >=0; i--)
+                    var criteria = criteriaList[i];
+                    if (!criteria.transient || !criteria.Replay_TransientMatched)
                     {
                         var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
 
