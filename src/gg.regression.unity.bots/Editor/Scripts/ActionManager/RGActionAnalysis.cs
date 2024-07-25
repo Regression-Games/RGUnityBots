@@ -930,9 +930,17 @@ namespace RegressionGames.ActionManager
         
         private string[] GetActionPathFromSyntaxNode(SyntaxNode node, string[] pathSuffix = null)
         {
+            string typeName;
             var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-            var typeSymbol = _currentModel.GetDeclaredSymbol(classDecl);
-            string typeName = typeSymbol.ToString();
+            if (classDecl != null)
+            {
+                var typeSymbol = _currentModel.GetDeclaredSymbol(classDecl);
+                typeName = typeSymbol.ToString();
+            }
+            else
+            {
+                typeName = "<global>";
+            }
             
             var filePath = _currentTree.FilePath;
             var lineSpan = _currentTree.GetLineSpan(node.Span);
