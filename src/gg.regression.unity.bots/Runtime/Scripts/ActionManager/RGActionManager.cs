@@ -150,6 +150,7 @@ namespace RegressionGames.ActionManager
             if (DoesContextNeedSetUp())
             {
                 RGLegacyInputWrapper.StartSimulation(_context);
+                KeyboardEventSender.Initialize();
                 SceneManager.sceneLoaded += OnSceneLoad;
                 RGUtils.SetupEventSystem();
                 RGUtils.ConfigureInputSettings();
@@ -257,8 +258,6 @@ namespace RegressionGames.ActionManager
         private static bool _rightMouseButton;
         private static bool _forwardMouseButton;
         private static bool _backMouseButton;
-        private static Dictionary<Key, KeyState> _keyStates;
-        private static List<(Key, KeyState)> _keyStatesBuf;
         public static Dictionary<long, ObjectStatus> CurrentTransforms { get; private set; }
         public static List<EventSystem> CurrentEventSystems { get; private set; }
 
@@ -275,8 +274,6 @@ namespace RegressionGames.ActionManager
             _rightMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
-            _keyStates = new Dictionary<Key, KeyState>();
-            _keyStatesBuf = new List<(Key, KeyState)>();
             CurrentEventSystems = new List<EventSystem>();
         }
 
@@ -312,16 +309,7 @@ namespace RegressionGames.ActionManager
         {
             if (key != Key.None)
             {
-                // The new Input System does not support generating multiple keyboard events
-                // within one frame for individual keys. So, we generate events for multiple keys
-                // at once whenever sending keyboard events.
-                _keyStates[key] = isPressed ? KeyState.Down : KeyState.Up;
-                _keyStatesBuf.Clear();
-                foreach (var entry in _keyStates)
-                {
-                    _keyStatesBuf.Add((entry.Key, entry.Value));
-                }
-                KeyboardEventSender.SendKeysInOneEvent(0, _keyStatesBuf);
+                KeyboardEventSender.SendKeyEvent(0, key, isPressed ? KeyState.Down : KeyState.Up);
             }
         }
 

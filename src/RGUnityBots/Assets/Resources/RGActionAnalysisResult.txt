@@ -133,6 +133,13 @@
 ]
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["ActionManagerTests.InterprocObject/InterprocObject.cs:8:12:8:49/InputUtil.CheckPlayerJump(gameObject)/ActionManagerTests.InputUtil/InputUtil.cs:15:16:15:32/ReadPlayerJump()/ActionManagerTests.InputUtil/InputUtil.cs:10:19:10:44/Input.GetKey(jumpKeyCode)/jumpKeyCode"],
+"objectTypeName":"ActionManagerTests.InterprocObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputUtil, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"jumpKeyCode\"}]}"}
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["LegacyMouseHandler/LegacyMouseHandler.cs:7:33:7:60/Input.GetAxisRaw(\"Mouse X\")/\"Mouse X\""],
 "objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
@@ -309,13 +316,6 @@
 "objectTypeName":"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse ScrollWheel"}
-},
-    {
-"actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.InterprocObject/InterprocObject.cs:8:12:8:49/InputUtil.CheckPlayerJump(gameObject)/ActionManagerTests.InputUtil/InputUtil.cs:15:16:15:32/ReadPlayerJump()/ActionManagerTests.InputUtil/InputUtil.cs:10:19:10:44/Input.GetKey(jumpKeyCode)/jumpKeyCode"],
-"objectTypeName":"ActionManagerTests.InterprocObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
-"keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputUtil, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"jumpKeyCode\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",

@@ -331,11 +331,21 @@ namespace RegressionGames.ActionManager
                     if (symbol is IFieldSymbol fieldSym)
                     {
                         Type type = FindType(fieldSym.ContainingType);
+                        if (type == null)
+                        {
+                            memberAccessFunc = null;
+                            return false;
+                        }
                         member = type.GetField(fieldSym.Name,
                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                     } else if (symbol is IPropertySymbol propSym)
                     {
                         Type type = FindType(propSym.ContainingType);
+                        if (type == null)
+                        {
+                            memberAccessFunc = null;
+                            return false;
+                        }
                         member = type.GetProperty(propSym.Name,
                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                     }
@@ -931,9 +941,17 @@ namespace RegressionGames.ActionManager
         
         private string[] GetActionPathFromSyntaxNode(SyntaxNode node, string[] pathSuffix = null)
         {
+            string typeName;
             var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-            var typeSymbol = _currentModel.GetDeclaredSymbol(classDecl);
-            string typeName = typeSymbol.ToString();
+            if (classDecl != null)
+            {
+                var typeSymbol = _currentModel.GetDeclaredSymbol(classDecl);
+                typeName = typeSymbol.ToString();
+            }
+            else
+            {
+                typeName = "<global>";
+            }
             
             var filePath = _currentTree.FilePath;
             var lineSpan = _currentTree.GetLineSpan(node.Span);
@@ -1211,20 +1229,27 @@ namespace RegressionGames.ActionManager
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
                         analyzedResourceCount / (float)totalResourceCount);
-                    string scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
-                    if (scenePath.StartsWith("Packages/"))
+                    try
                     {
-                        continue;
-                    }
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
-                    UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
-                    for (int i = 0, n = SceneManager.sceneCount; i < n; ++i)
-                    {
-                        var scene = SceneManager.GetSceneAt(i);
-                        foreach (GameObject gameObject in IterateGameObjects(scene))
+                        string scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
+                        if (scenePath.StartsWith("Packages/"))
                         {
-                            AnalyzeGameObject(gameObject);
+                            continue;
                         }
+                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
+                        UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
+                        for (int i = 0, n = SceneManager.sceneCount; i < n; ++i)
+                        {
+                            var scene = SceneManager.GetSceneAt(i);
+                            foreach (GameObject gameObject in IterateGameObjects(scene))
+                            {
+                                AnalyzeGameObject(gameObject);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        RGDebug.LogWarning("Exception when opening scene: " + e.Message + "\n" + e.StackTrace);
                     }
                     ++analyzedResourceCount;
                 }
@@ -1234,40 +1259,56 @@ namespace RegressionGames.ActionManager
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
                         analyzedResourceCount / (float)totalResourceCount);
-                    string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
-                    if (prefabPath.StartsWith("Packages/"))
+                    try
                     {
-                        continue;
+                        string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+                        if (prefabPath.StartsWith("Packages/"))
+                        {
+                            continue;
+                        }
+                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
+                        GameObject prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+                        foreach (GameObject gameObject in IterateGameObjects(prefabContents))
+                        {
+                            AnalyzeGameObject(gameObject);
+                        }
+                        EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                     }
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
-                    GameObject prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
-                    foreach (GameObject gameObject in IterateGameObjects(prefabContents))
+                    catch (Exception e)
                     {
-                        AnalyzeGameObject(gameObject);
+                        RGDebug.LogWarning("Exception when opening prefab: " + e.Message + "\n" + e.StackTrace);
                     }
-                    EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                     ++analyzedResourceCount;
                 }
 
                 // Examine all the InputActionAssets in the project
                 foreach (string inputAssetGuid in inputActionAssetGuids)
                 {
-                    float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                        analyzedResourceCount / (float)totalResourceCount);
-                    string inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
-                    if (inputAssetPath.StartsWith("Packages/"))
+                    try
                     {
-                        continue;
-                    }
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
-                    var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
-                    foreach (var actionMap in inputAsset.actionMaps)
-                    {
-                        foreach (var act in actionMap.actions)
+                        float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                            analyzedResourceCount / (float)totalResourceCount);
+                        string inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
+                        if (inputAssetPath.StartsWith("Packages/"))
                         {
-                            AnalyzeInputAction(act, null);
+                            continue;
+                        }
+
+                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
+                        var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
+                        foreach (var actionMap in inputAsset.actionMaps)
+                        {
+                            foreach (var act in actionMap.actions)
+                            {
+                                AnalyzeInputAction(act, null);
+                            }
                         }
                     }
+                    catch (Exception e)
+                    {
+                        RGDebug.LogWarning("Exception when opening input asset: " + e.Message + "\n" + e.StackTrace);
+                    }
+                    ++analyzedResourceCount;
                 }
             }
             finally
