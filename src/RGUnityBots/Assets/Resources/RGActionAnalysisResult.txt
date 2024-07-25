@@ -370,6 +370,34 @@
 "normalizedGameObjectName":"Slider_Vertical"
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Press/Scrollbar_Horizontal"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VOID"},
+"normalizedGameObjectName":"Scrollbar_Horizontal"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Release/Scrollbar_Horizontal"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar_Horizontal"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Press/Scrollbar_Vertical"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VOID"},
+"normalizedGameObjectName":"Scrollbar_Vertical"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Release/Scrollbar_Vertical"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar_Vertical"
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Button/LegacyButton.ClickedHandler"],
 "objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",

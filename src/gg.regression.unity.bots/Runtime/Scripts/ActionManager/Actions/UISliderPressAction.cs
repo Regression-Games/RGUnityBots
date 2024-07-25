@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 namespace RegressionGames.ActionManager.Actions
 {
     /// <summary>
-    /// Action to press down on a Unity UI slider.
+    /// Action to press down on a Unity UI slider or scrollbar.
     /// This action is only for pressing down. To actually set the slider value,
     /// the UISliderReleaseAction needs to be performed with the desired value.
     /// </summary>
@@ -21,7 +21,7 @@ namespace RegressionGames.ActionManager.Actions
         public UISliderPressAction(string[] path, Type objectType, string normalizedGameObjectName) : 
             base(path, objectType, new RGVoidRange())
         {
-            Debug.Assert(typeof(Slider).IsAssignableFrom(objectType));
+            Debug.Assert(typeof(Slider).IsAssignableFrom(objectType) || typeof(Scrollbar).IsAssignableFrom(objectType));
             NormalizedGameObjectName = normalizedGameObjectName;
         }
 
@@ -30,7 +30,7 @@ namespace RegressionGames.ActionManager.Actions
             NormalizedGameObjectName = serializedAction["normalizedGameObjectName"].ToString();
         }
 
-        public static IEnumerable<CanvasRenderer> FindSliderRenderables(Slider slider)
+        public static IEnumerable<CanvasRenderer> FindSliderRenderables(Selectable slider)
         {
             foreach (var canvasRenderer in slider.gameObject.transform.GetComponentsInChildren<CanvasRenderer>())
             {
@@ -42,7 +42,7 @@ namespace RegressionGames.ActionManager.Actions
 
         public override bool IsValidForObject(Object obj)
         {
-            Slider slider = (Slider)obj;
+            Selectable slider = (Selectable)obj;
             
             if (!RGActionManagerUtils.IsUIObjectInteractable(slider))
                 return false;
@@ -115,7 +115,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override IEnumerable<RGActionInput> GetActionInputs(object param)
         {
-            Slider slider = (Slider)TargetObject;
+            Selectable slider = (Selectable)TargetObject;
             Vector2? mousePos = null;
             foreach (var renderer in UISliderPressAction.FindSliderRenderables(slider))
             {

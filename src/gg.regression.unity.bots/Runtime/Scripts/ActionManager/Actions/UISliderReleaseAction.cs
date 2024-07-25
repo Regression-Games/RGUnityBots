@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 namespace RegressionGames.ActionManager.Actions
 {
     /// <summary>
-    /// Action to release a Unity UI slider in the desired position,
+    /// Action to release a Unity UI slider or scrollbar in the desired position,
     /// given that it is held on the current frame.
     /// </summary>
     public class UISliderReleaseAction : RGGameAction
@@ -21,7 +21,7 @@ namespace RegressionGames.ActionManager.Actions
         public UISliderReleaseAction(string[] path, Type objectType, string normalizedGameObjectName) : 
             base(path, objectType, new RGFloatRange(0.0f, 1.0f))
         {
-            Debug.Assert(typeof(Slider).IsAssignableFrom(objectType));
+            Debug.Assert(typeof(Slider).IsAssignableFrom(objectType) || typeof(Scrollbar).IsAssignableFrom(objectType));
             NormalizedGameObjectName = normalizedGameObjectName;
         }
 
@@ -34,7 +34,7 @@ namespace RegressionGames.ActionManager.Actions
 
         public override bool IsValidForObject(Object obj)
         {
-            Slider slider = (Slider)obj;
+            Selectable slider = (Selectable)obj;
             if (!RGActionManagerUtils.IsUIObjectInteractable(slider))
             {
                 return false;
@@ -90,14 +90,14 @@ namespace RegressionGames.ActionManager.Actions
         {
         }
         
-        public static Image FindSliderBackground(Slider slider)
+        public static Image FindSliderBackground(Selectable slider)
         {
             return slider.gameObject.transform.GetComponentInChildren<Image>();
         }
 
         private Vector2? GetMousePosForParam(float param)
         {
-            Slider slider = (Slider)TargetObject;
+            Selectable slider = (Selectable)TargetObject;
             Image sliderBg = FindSliderBackground(slider);
             if (sliderBg == null)
                 return null;
@@ -107,18 +107,41 @@ namespace RegressionGames.ActionManager.Actions
             Vector2 min = ssBounds.Value.min;
             Vector2 max = ssBounds.Value.max;
             Vector2 center = ssBounds.Value.center;
-            switch (slider.direction)
+
+            if (slider is Slider uiSlider)
             {
-                case Slider.Direction.LeftToRight:
-                    return new Vector2(Mathf.Lerp(min.x, max.x, param), center.y);
-                case Slider.Direction.RightToLeft:
-                    return new Vector2(Mathf.Lerp(max.x, min.x, param), center.y);
-                case Slider.Direction.BottomToTop:
-                    return new Vector2(center.x, Mathf.Lerp(min.y, max.y, param));
-                case Slider.Direction.TopToBottom:
-                    return new Vector2(center.x, Mathf.Lerp(max.y, min.y, param));
-                default:
-                    throw new Exception("Unexpected slider direction " + slider.direction);
+                switch (uiSlider.direction)
+                {
+                    case Slider.Direction.LeftToRight:
+                        return new Vector2(Mathf.Lerp(min.x, max.x, param), center.y);
+                    case Slider.Direction.RightToLeft:
+                        return new Vector2(Mathf.Lerp(max.x, min.x, param), center.y);
+                    case Slider.Direction.BottomToTop:
+                        return new Vector2(center.x, Mathf.Lerp(min.y, max.y, param));
+                    case Slider.Direction.TopToBottom:
+                        return new Vector2(center.x, Mathf.Lerp(max.y, min.y, param));
+                    default:
+                        throw new Exception("Unexpected slider direction " + uiSlider.direction);
+                }
+            } else if (slider is Scrollbar uiScrollbar)
+            {
+                switch (uiScrollbar.direction)
+                {
+                    case Scrollbar.Direction.LeftToRight:
+                        return new Vector2(Mathf.Lerp(min.x, max.x, param), center.y);
+                    case Scrollbar.Direction.RightToLeft:
+                        return new Vector2(Mathf.Lerp(max.x, min.x, param), center.y);
+                    case Scrollbar.Direction.BottomToTop:
+                        return new Vector2(center.x, Mathf.Lerp(min.y, max.y, param));
+                    case Scrollbar.Direction.TopToBottom:
+                        return new Vector2(center.x, Mathf.Lerp(max.y, min.y, param));
+                    default:
+                        throw new Exception("Unexpected scrollbar direction " + uiScrollbar.direction);
+                }
+            }
+            else
+            {
+                return null;
             }
         }
 

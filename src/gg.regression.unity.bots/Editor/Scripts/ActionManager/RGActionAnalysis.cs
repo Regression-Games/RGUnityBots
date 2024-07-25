@@ -1143,6 +1143,14 @@ namespace RegressionGames.ActionManager
                 AddAction(new UISliderPressAction(pathPress, typeof(Slider), normName), null);
                 AddAction(new UISliderReleaseAction(pathRelease, typeof(Slider), normName), null);
             }
+            if (gameObject.TryGetComponent(out Scrollbar _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] pathPress = { "Unity UI", "Scrollbar", "Press", normName };
+                string[] pathRelease = { "Unity UI", "Scrollbar", "Release", normName };
+                AddAction(new UISliderPressAction(pathPress, typeof(Scrollbar), normName), null);
+                AddAction(new UISliderReleaseAction(pathRelease, typeof(Scrollbar), normName), null);
+            }
 
             // search for embedded InputActions
             foreach (Component c in gameObject.GetComponents<Component>())

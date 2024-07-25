@@ -535,7 +535,12 @@ namespace Tests.Runtime
             }
             
             // Test Unity UI interaction
-            string[] uiObjects = { "The_Button", "The_Toggle", "Slider_Horizontal", "Slider_Vertical" };
+            string[] uiObjects =
+            {
+                "The_Button", "The_Toggle", 
+                "Slider_Horizontal", "Slider_Vertical", 
+                "Scrollbar_Horizontal", "Scrollbar_Vertical"
+            };
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             foreach (var uiObjectName in uiObjects)
@@ -603,6 +608,38 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Slider_Vertical changed to second half");
+                
+                // Horizontal Scrollbar Movement
+                FindAndPerformAction("Press Scrollbar_Horizontal", null);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Scrollbar_Horizontal", 0.25f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to first half");
+                FindAndPerformAction("Press Scrollbar_Horizontal", null);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Scrollbar_Horizontal", 0.75f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to second half");
+                
+                // Vertical Scrollbar Movement
+                FindAndPerformAction("Press Scrollbar_Vertical", null);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Scrollbar_Vertical", 0.25f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to first half");
+                FindAndPerformAction("Press Scrollbar_Vertical", null);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Scrollbar_Vertical", 0.75f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to second half");
             }
             finally
             {

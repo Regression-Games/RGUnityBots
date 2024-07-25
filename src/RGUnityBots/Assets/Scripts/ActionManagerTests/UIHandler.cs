@@ -17,28 +17,39 @@ namespace ActionManagerTests
             Debug.Log(gameObject.name + " changed to " + toggle.isOn);
         }
 
-        public void OnSliderValueChanged()
+        private string SliderPositionName(float value)
         {
-            var slider = GetComponent<Slider>();
-            string posName;
-            if (slider.value < 0.01f)
+            if (value < 0.01f)
             {
-                posName = "start";
-            } else if (slider.value <= 0.5f)
+                return "start";
+            } else if (value <= 0.5f)
             {
-                posName = "first half";
-            } else if (slider.value < 0.99f)
+                return "first half";
+            } else if (value < 0.99f)
             {
-                posName = "second half";
+                return "second half";
             }
-            else if (slider.value >= 0.99f)
+            else if (value >= 0.99f)
             {
-                posName = "end";
+                return "end";
             }
             else
             {
-                posName = "";
+                return "";
             }
+        }
+
+        public void OnSliderValueChanged()
+        {
+            var slider = GetComponent<Slider>();
+            string posName = SliderPositionName(slider.value);
+            Debug.Log(gameObject.name + " changed to " + posName);
+        }
+
+        public void OnScrollbarValueChanged()
+        {
+            var scrollbar = GetComponent<Scrollbar>();
+            string posName = SliderPositionName(scrollbar.value);
             Debug.Log(gameObject.name + " changed to " + posName);
         }
     }
