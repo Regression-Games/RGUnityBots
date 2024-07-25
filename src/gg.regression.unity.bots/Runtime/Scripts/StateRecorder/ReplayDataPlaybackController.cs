@@ -49,6 +49,7 @@ namespace RegressionGames.StateRecorder
         private void Start()
         {
             SetupEventSystem();
+            KeyboardEventSender.Initialize();
             SceneManager.sceneLoaded += OnSceneLoad;
 #if UNITY_EDITOR
             EditorApplication.pauseStateChanged += ResetErrorTimer;

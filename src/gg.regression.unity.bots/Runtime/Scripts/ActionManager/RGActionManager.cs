@@ -147,11 +147,10 @@ namespace RegressionGames.ActionManager
             _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
             InitInputState();
 
-            InputSystem.onAfterUpdate += OnAfterInputSystemUpdate;
-
             if (DoesContextNeedSetUp())
             {
                 RGLegacyInputWrapper.StartSimulation(_context);
+                KeyboardEventSender.Initialize();
                 SceneManager.sceneLoaded += OnSceneLoad;
                 RGUtils.SetupEventSystem();
                 RGUtils.ConfigureInputSettings();
@@ -165,7 +164,6 @@ namespace RegressionGames.ActionManager
         {
             if (_context != null)
             {
-                InputSystem.onAfterUpdate -= OnAfterInputSystemUpdate;
                 if (DoesContextNeedSetUp())
                 {
                     SceneManager.sceneLoaded -= OnSceneLoad;
@@ -260,8 +258,6 @@ namespace RegressionGames.ActionManager
         private static bool _rightMouseButton;
         private static bool _forwardMouseButton;
         private static bool _backMouseButton;
-        private static Dictionary<Key, KeyState> _keyStates;
-        private static List<(Key, KeyState)> _keyStatesBuf;
         public static Dictionary<long, ObjectStatus> CurrentTransforms { get; private set; }
         public static List<EventSystem> CurrentEventSystems { get; private set; }
 
@@ -278,14 +274,7 @@ namespace RegressionGames.ActionManager
             _rightMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
-            _keyStates = new Dictionary<Key, KeyState>();
-            _keyStatesBuf = new List<(Key, KeyState)>();
             CurrentEventSystems = new List<EventSystem>();
-        }
-
-        private static void OnAfterInputSystemUpdate()
-        {
-            _keyStates.Clear(); // can clear the key state buffer once the input system completes an update
         }
 
         public static void SimulateKeyState(KeyCode keyCode, bool isPressed)
@@ -320,16 +309,7 @@ namespace RegressionGames.ActionManager
         {
             if (key != Key.None)
             {
-                // The new Input System does not support generating multiple keyboard events
-                // within one frame for individual keys. So, we generate events for multiple keys
-                // at once whenever sending keyboard events.
-                _keyStates[key] = isPressed ? KeyState.Down : KeyState.Up;
-                _keyStatesBuf.Clear();
-                foreach (var entry in _keyStates)
-                {
-                    _keyStatesBuf.Add((entry.Key, entry.Value));
-                }
-                KeyboardEventSender.SendKeysInOneEvent(0, _keyStatesBuf);
+                KeyboardEventSender.SendKeyEvent(0, key, isPressed ? KeyState.Down : KeyState.Up);
             }
         }
 
