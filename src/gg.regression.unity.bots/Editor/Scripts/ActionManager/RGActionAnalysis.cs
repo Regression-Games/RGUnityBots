@@ -330,11 +330,21 @@ namespace RegressionGames.ActionManager
                     if (symbol is IFieldSymbol fieldSym)
                     {
                         Type type = FindType(fieldSym.ContainingType);
+                        if (type == null)
+                        {
+                            memberAccessFunc = null;
+                            return false;
+                        }
                         member = type.GetField(fieldSym.Name,
                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                     } else if (symbol is IPropertySymbol propSym)
                     {
                         Type type = FindType(propSym.ContainingType);
+                        if (type == null)
+                        {
+                            memberAccessFunc = null;
+                            return false;
+                        }
                         member = type.GetProperty(propSym.Name,
                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                     }
