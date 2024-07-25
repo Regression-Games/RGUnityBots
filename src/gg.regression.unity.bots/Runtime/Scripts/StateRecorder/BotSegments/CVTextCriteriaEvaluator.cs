@@ -4,8 +4,6 @@ using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -101,8 +99,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                 // we do our best to make this faster by removing from the lists as we match to reduce future iterations
                 for (var i = criteriaList.Count - 1; i >= 0; i--)
                 {
-                    var criteria = criteriaList[i];
-                    if (!criteria.transient || !criteria.Replay_TransientMatched)
+                    var cvTextResult = cvTextResults[k];
+                    var cvText = cvTextResult.text.Trim();
+                    for (var i = criteriaList.Count; i >=0; i--)
                     {
                         var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
 
