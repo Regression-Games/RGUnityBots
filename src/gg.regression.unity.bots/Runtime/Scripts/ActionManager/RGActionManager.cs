@@ -147,6 +147,8 @@ namespace RegressionGames.ActionManager
             _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
             InitInputState();
 
+            InputSystem.onAfterUpdate += OnAfterInputSystemUpdate;
+
             if (DoesContextNeedSetUp())
             {
                 RGLegacyInputWrapper.StartSimulation(_context);
@@ -163,6 +165,7 @@ namespace RegressionGames.ActionManager
         {
             if (_context != null)
             {
+                InputSystem.onAfterUpdate -= OnAfterInputSystemUpdate;
                 if (DoesContextNeedSetUp())
                 {
                     SceneManager.sceneLoaded -= OnSceneLoad;
@@ -278,6 +281,11 @@ namespace RegressionGames.ActionManager
             _keyStates = new Dictionary<Key, KeyState>();
             _keyStatesBuf = new List<(Key, KeyState)>();
             CurrentEventSystems = new List<EventSystem>();
+        }
+
+        private static void OnAfterInputSystemUpdate()
+        {
+            _keyStates.Clear(); // can clear the key state buffer once the input system completes an update
         }
 
         public static void SimulateKeyState(KeyCode keyCode, bool isPressed)
