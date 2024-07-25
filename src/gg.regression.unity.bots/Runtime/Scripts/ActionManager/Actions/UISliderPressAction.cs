@@ -11,15 +11,15 @@ namespace RegressionGames.ActionManager.Actions
 {
     /// <summary>
     /// Action to press down on a Unity UI slider or scrollbar.
-    /// This action is only for pressing down. To actually set the slider value,
-    /// the UISliderReleaseAction needs to be performed with the desired value.
+    /// This action is only for pressing down. To fully set the slider value,
+    /// the UISliderReleaseAction needs to also be performed with the desired value.
     /// </summary>
     public class UISliderPressAction : RGGameAction
     {
         public string NormalizedGameObjectName;
         
         public UISliderPressAction(string[] path, Type objectType, string normalizedGameObjectName) : 
-            base(path, objectType, new RGVoidRange())
+            base(path, objectType, new RGFloatRange(0.0f, 1.0f))
         {
             Debug.Assert(typeof(Slider).IsAssignableFrom(objectType) || typeof(Scrollbar).IsAssignableFrom(objectType));
             NormalizedGameObjectName = normalizedGameObjectName;
@@ -102,29 +102,21 @@ namespace RegressionGames.ActionManager.Actions
         }
     }
 
-    public class UISliderPressInstance : RGGameActionInstance<UISliderPressAction, object>
+    public class UISliderPressInstance : RGGameActionInstance<UISliderPressAction, float>
     {
         public UISliderPressInstance(UISliderPressAction action, Object targetObject) : base(action, targetObject)
         {
         }
 
-        protected override bool IsValidActionParameter(object param)
+        protected override bool IsValidActionParameter(float param)
         {
             return true;
         }
 
-        protected override IEnumerable<RGActionInput> GetActionInputs(object param)
+        protected override IEnumerable<RGActionInput> GetActionInputs(float param)
         {
             Selectable slider = (Selectable)TargetObject;
-            Vector2? mousePos = null;
-            foreach (var renderer in UISliderPressAction.FindSliderRenderables(slider))
-            {
-                if (RGActionManagerUtils.GetUIMouseHitPosition(renderer.gameObject, out Vector2 rendererMousePos))
-                {
-                    mousePos = rendererMousePos;
-                    break;
-                }
-            }
+            Vector2? mousePos = UISliderReleaseInstance.GetMousePosForParam(param, slider);
             if (mousePos.HasValue)
             {
                 yield return new MousePositionInput(mousePos.Value);

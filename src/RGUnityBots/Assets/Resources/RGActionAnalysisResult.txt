@@ -345,7 +345,7 @@
 "actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Slider/Press/Slider_Horizontal"],
 "objectTypeName":"UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_VOID"},
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
 "normalizedGameObjectName":"Slider_Horizontal"
 },
     {
@@ -359,7 +359,7 @@
 "actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Slider/Press/Slider_Vertical"],
 "objectTypeName":"UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_VOID"},
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
 "normalizedGameObjectName":"Slider_Vertical"
 },
     {
@@ -373,7 +373,7 @@
 "actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Scrollbar/Press/Scrollbar_Horizontal"],
 "objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_VOID"},
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
 "normalizedGameObjectName":"Scrollbar_Horizontal"
 },
     {
@@ -387,7 +387,7 @@
 "actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Scrollbar/Press/Scrollbar_Vertical"],
 "objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_VOID"},
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
 "normalizedGameObjectName":"Scrollbar_Vertical"
 },
     {

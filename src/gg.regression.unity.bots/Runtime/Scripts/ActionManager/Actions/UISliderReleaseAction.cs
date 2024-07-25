@@ -95,9 +95,8 @@ namespace RegressionGames.ActionManager.Actions
             return slider.gameObject.transform.GetComponentInChildren<Image>();
         }
 
-        private Vector2? GetMousePosForParam(float param)
+        public static Vector2? GetMousePosForParam(float param, Selectable slider)
         {
-            Selectable slider = (Selectable)TargetObject;
             Image sliderBg = FindSliderBackground(slider);
             if (sliderBg == null)
                 return null;
@@ -152,7 +151,7 @@ namespace RegressionGames.ActionManager.Actions
 
         protected override IEnumerable<RGActionInput> GetActionInputs(float param)
         {
-            Vector2? mousePos = GetMousePosForParam(param);
+            Vector2? mousePos = GetMousePosForParam(param, (Selectable)TargetObject);
             if (mousePos.HasValue)
             {
                 yield return new MousePositionInput(mousePos.Value);

@@ -578,14 +578,14 @@ namespace Tests.Runtime
                 LogAssert.Expect(LogType.Log, "The_Toggle changed to False");
                 
                 // Horizontal Slider Movement
-                FindAndPerformAction("Press Slider_Horizontal", null);
+                FindAndPerformAction("Press Slider_Horizontal", 0.25f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Slider_Horizontal", 0.25f);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Slider_Horizontal changed to first half");
-                FindAndPerformAction("Press Slider_Horizontal", null);
+                FindAndPerformAction("Press Slider_Horizontal", 0.75f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Slider_Horizontal", 0.75f);
@@ -594,14 +594,14 @@ namespace Tests.Runtime
                 LogAssert.Expect(LogType.Log, "Slider_Horizontal changed to second half");
                 
                 // Vertical Slider Movement
-                FindAndPerformAction("Press Slider_Vertical", null);
+                FindAndPerformAction("Press Slider_Vertical", 0.25f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Slider_Vertical", 0.25f);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Slider_Vertical changed to first half");
-                FindAndPerformAction("Press Slider_Vertical", null);
+                FindAndPerformAction("Press Slider_Vertical", 0.75f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Slider_Vertical", 0.75f);
@@ -610,14 +610,14 @@ namespace Tests.Runtime
                 LogAssert.Expect(LogType.Log, "Slider_Vertical changed to second half");
                 
                 // Horizontal Scrollbar Movement
-                FindAndPerformAction("Press Scrollbar_Horizontal", null);
+                FindAndPerformAction("Press Scrollbar_Horizontal", 0.25f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Scrollbar_Horizontal", 0.25f);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to first half");
-                FindAndPerformAction("Press Scrollbar_Horizontal", null);
+                FindAndPerformAction("Press Scrollbar_Horizontal", 0.75f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Scrollbar_Horizontal", 0.75f);
@@ -626,14 +626,14 @@ namespace Tests.Runtime
                 LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to second half");
                 
                 // Vertical Scrollbar Movement
-                FindAndPerformAction("Press Scrollbar_Vertical", null);
+                FindAndPerformAction("Press Scrollbar_Vertical", 0.25f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Scrollbar_Vertical", 0.25f);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to first half");
-                FindAndPerformAction("Press Scrollbar_Vertical", null);
+                FindAndPerformAction("Press Scrollbar_Vertical", 0.75f);
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Release Scrollbar_Vertical", 0.75f);
