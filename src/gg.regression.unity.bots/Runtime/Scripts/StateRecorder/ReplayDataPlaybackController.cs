@@ -19,7 +19,7 @@ namespace RegressionGames.StateRecorder
 {
     public class ReplayDataPlaybackController : MonoBehaviour
     {
-        public bool pauseEditorOnPlaybackWarning = true;
+        public bool pauseEditorOnPlaybackWarning = false;
 
         private ReplayBotSegmentsContainer _dataContainer;
 
