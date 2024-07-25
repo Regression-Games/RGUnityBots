@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // update this if this schema changes
         public int apiVersion = SdkApiVersion.VERSION_8;
 
-        public Vector2Int screenSize;
+        public Vector2Int resolution;
         public string text;
         public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
         public TextCaseRule textCaseRule = TextCaseRule.Matches;
@@ -27,8 +27,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textMatchingRule.ToString());
             stringBuilder.Append(",\"textCaseRule\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
-            stringBuilder.Append(",\"screenSize\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            stringBuilder.Append(",\"resolution\":");
+            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, resolution);
             stringBuilder.Append(",\"withinRect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append("}");

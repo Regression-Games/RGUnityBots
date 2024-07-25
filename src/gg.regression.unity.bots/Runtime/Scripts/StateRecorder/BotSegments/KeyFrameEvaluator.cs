@@ -187,7 +187,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             // start cv stuff first.. it runs async anyway, but the sooner we can start it the better
             if (cvTextsToMatch.Count > 0)
             {
-                var cvTextResults = CVTextCriteriaEvaluator.Matched(segmentNumber, cvTextsToMatch, DeltaCounts);
+                var cvTextResults = CVTextCriteriaEvaluator.Matched(segmentNumber, cvTextsToMatch);
                 if (cvTextResults == null)
                 {
                     // cvText results will be null until we get the async response back

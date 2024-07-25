@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
-using RegressionGames.StateRecorder.Models;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -66,13 +63,14 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
-        // Track counts from the last keyframe completion and use that as the 'prior' data
+        // Note: This modifies / removes from the criteriaList
         // Returns a list of non-matched entries
-        public static List<string> Matched(int segmentNumber, List<KeyFrameCriteria> criteriaList, List<Dictionary<long, PathBasedDeltaCount>> deltaCounts)
+        public static List<string> Matched(int segmentNumber, List<KeyFrameCriteria> criteriaList)
         {
             RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - BEGIN");
             var resultList = new List<string>();
 
+            // Handle possibly starting the web request for evaluation
             var requestInProgress = _requestTracker.TryGetValue(segmentNumber, out _);
             if (!requestInProgress)
             {
@@ -148,87 +146,102 @@ namespace RegressionGames.StateRecorder.BotSegments
                 RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - hasResults: {(hasResults?"true":"false")} - cvTextResults: {resultsString}");
             }
 
+            // Evaluate the results if we have some
             if (hasResults)
             {
-                // Detailed evaluation of the results vs our criteria, this is currently n^2 (loop in a loop), but somewhat needs to be due to allowing partial word matching
-                var criteriaListCount = criteriaList.Count;
-                for (var i = 0; i < criteriaListCount; i++)
+                // Detailed evaluation of the results vs our criteria, this is currently n^3 (loop in a loop in a loop), but needs to be due to allowing partial word matching
+                // we do our best to make this faster by removing from the lists as we match to reduce future iterations
+                var cvTextResultsCount = cvTextResults.Count;
+                for (var k = 0; k < cvTextResultsCount && criteriaList.Count > 0; k++)
                 {
-                    var criteria = criteriaList[i];
-                    if (!criteria.transient || !criteria.Replay_TransientMatched)
+                    var cvTextResult = cvTextResults[k];
+                    var cvText = cvTextResult.text.Trim();
+                    for (var i = criteriaList.Count; i >=0; i--)
                     {
-                        var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
-                        var textToMatch = criteriaData.text.Trim();
-                        bool matched = false;
-                        bool? rectMatched = null;
-                        foreach (var cvTextResult in cvTextResults)
+                        var criteria = criteriaList[i];
+                        if (!criteria.transient || !criteria.Replay_TransientMatched)
                         {
-                            matched = false;
-                            rectMatched = null;
+                            var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
 
-                            var cvText = cvTextResult.text.Trim();
+                            // setup a tracker of each text part and whether it is found.. remove from this as we match to improve performance and as a way of marking what was found
+                            // We treat a criteria multi word phrase as separate words that must ALL exist within the defined rect
+                            // If no rect is defined, all the words must simply exist on the screen, but their relative positions are then not considered
+                            var textParts = criteriaData.text.Trim().Split(' ').Select(a=>a.Trim()).Where(a=>a.Length > 0).ToList();
 
                             if (criteriaData.textCaseRule == TextCaseRule.Ignore)
                             {
-                                textToMatch = textToMatch.ToLower();
                                 cvText = cvText.ToLower();
                             }
 
-                            switch (criteriaData.textMatchingRule)
+                            for (var j = textParts.Count(); j >= 0; j--)
                             {
-                                case TextMatchingRule.Matches:
-                                    if (textToMatch.Equals(cvText))
-                                    {
-                                        matched = true;
-                                    }
-                                    break;
-                                case TextMatchingRule.Contains:
-                                    if (cvText.Contains(textToMatch))
-                                    {
-                                        matched = true;
-                                    }
-                                    break;
-                            }
+                                var matched = false;
+                                var textToMatch = textParts[j];
 
-                            if (matched)
-                            {
-                                if (!criteriaData.withinRect.HasValue)
+                                if (criteriaData.textCaseRule == TextCaseRule.Ignore)
                                 {
-                                    // all good
-                                    break;
+                                    textToMatch = textToMatch.ToLower();
                                 }
-                                else
+
+                                switch (criteriaData.textMatchingRule)
                                 {
-                                    // ensure result rect is inside
-                                    var withinRect = criteriaData.withinRect.Value;
+                                    case TextMatchingRule.Matches:
+                                        if (textToMatch.Equals(cvText))
+                                        {
+                                            matched = true;
+                                        }
 
-                                    var relativeScaling = new Vector2(criteriaData.screenSize.x / (float)cvTextResult.resolution.x, criteriaData.screenSize.y / (float)cvTextResult.resolution.y);
+                                        break;
+                                    case TextMatchingRule.Contains:
+                                        if (cvText.Contains(textToMatch))
+                                        {
+                                            matched = true;
+                                        }
 
-                                    // check the bottom left and top right to see if it intersects our rect
-                                    var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvTextResult.rect.x * relativeScaling.x), Mathf.CeilToInt(cvTextResult.rect.y * relativeScaling.y));
-                                    var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvTextResult.rect.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(cvTextResult.rect.height * relativeScaling.y));
+                                        break;
+                                }
 
-                                    if (!( withinRect.Contains(bottomLeft) || withinRect.Contains(topRight)))
+                                if (matched)
+                                {
+                                    if (!criteriaData.withinRect.HasValue)
                                     {
-                                        rectMatched = false;
+                                        textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
+                                        break;
                                     }
                                     else
                                     {
-                                        rectMatched = true;
-                                        break;
+                                        // ensure result rect is inside
+                                        var withinRect = criteriaData.withinRect.Value;
+
+                                        var relativeScaling = new Vector2(criteriaData.resolution.x / (float)cvTextResult.resolution.x, criteriaData.resolution.y / (float)cvTextResult.resolution.y);
+
+                                        // check the bottom left and top right to see if it intersects our rect
+                                        var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvTextResult.rect.x * relativeScaling.x), Mathf.CeilToInt(cvTextResult.rect.y * relativeScaling.y));
+                                        var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvTextResult.rect.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(cvTextResult.rect.height * relativeScaling.y));
+
+                                        // we currently test overlap, should we test fully inside instead ??
+                                        if (withinRect.Contains(bottomLeft) || withinRect.Contains(topRight))
+                                        {
+                                            textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
+                                            break;
+                                        }
                                     }
                                 }
                             }
 
-                        }
-
-                        if (!matched || rectMatched is false)
-                        {
-                            resultList.Add($"Missing CVText - text: {textToMatch}, caseRule: {criteriaData.textCaseRule}, matchRule: {criteriaData.textMatchingRule}, rectMatched: {(!rectMatched.HasValue?"null":"false")}");
+                            if (textParts.Count != 0)
+                            {
+                                resultList.Add($"Missing CVText - text: {criteriaData.text.Trim()}, caseRule: {criteriaData.textCaseRule}, matchRule: {criteriaData.textMatchingRule}, missingWords: [{string.Join(',',textParts)}]");
+                            }
+                            else
+                            {
+                                criteria.Replay_TransientMatched = true;
+                                criteriaList.RemoveAt(i); // we matched this one, remove it to speed up future loops
+                            }
                         }
                         else
                         {
-                            criteria.Replay_TransientMatched = true;
+                            criteriaList.RemoveAt(i); // we matched this one, remove it to speed up future loops
                         }
                     }
 
