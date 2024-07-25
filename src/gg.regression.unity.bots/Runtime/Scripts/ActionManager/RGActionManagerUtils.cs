@@ -19,6 +19,7 @@ namespace RegressionGames.ActionManager
         private static FieldInfo _targetField;
         private static FieldInfo _targetAssemblyTypeNameField;
         private static FieldInfo _methodNameField;
+        private static PropertyInfo _currentSelectionStateProperty;
         
         private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
         private static Camera[] _camerasBuf;
@@ -74,6 +75,16 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        public static bool IsUIObjectPressed(Selectable uiComponent)
+        {
+            if (_currentSelectionStateProperty == null)
+            {
+                _currentSelectionStateProperty = typeof(Selectable).GetProperty("currentSelectionState", 
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            return _currentSelectionStateProperty.GetValue(uiComponent).ToString() == "Pressed";
+        }
+        
         // Mapping from keyboard property (Keyboard.current.<property>) to the associated key code
         private static readonly Dictionary<string, Key> KeyboardPropNameToKeyCode = new Dictionary<string, Key>()
         {
@@ -331,7 +342,7 @@ namespace RegressionGames.ActionManager
         /// <summary>
         /// Returns whether the given mouse position is hovering over any UI element on the screen.
         /// </summary>
-        public static bool IsMouseOverUI(Vector2 mousePos)
+        public static bool IsMouseOverUI(Vector2 mousePos, out CanvasRenderer uiComponent)
         {
             foreach (var eventSys in RGActionManager.CurrentEventSystems)
             {
@@ -343,12 +354,13 @@ namespace RegressionGames.ActionManager
                 eventSys.RaycastAll(data, _raycastResultCache);
                 foreach (var raycastRes in _raycastResultCache)
                 {
-                    if (raycastRes.gameObject != null && raycastRes.gameObject.TryGetComponent<CanvasRenderer>(out _))
+                    if (raycastRes.gameObject != null && raycastRes.gameObject.TryGetComponent(out uiComponent))
                     {
                         return true;
                     }
                 }
             }
+            uiComponent = null;
             return false;
         }
 

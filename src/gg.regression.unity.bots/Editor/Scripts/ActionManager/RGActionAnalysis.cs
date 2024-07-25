@@ -1117,6 +1117,14 @@ namespace RegressionGames.ActionManager
                 string[] path = { "Unity UI", "Toggle", normName };
                 AddAction(new UITogglePressAction(path, typeof(Toggle), normName), null);
             }
+            if (gameObject.TryGetComponent(out Slider _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] pathPress = { "Unity UI", "Slider", "Press", normName };
+                string[] pathRelease = { "Unity UI", "Slider", "Release", normName };
+                AddAction(new UISliderPressAction(pathPress, typeof(Slider), normName), null);
+                AddAction(new UISliderReleaseAction(pathRelease, typeof(Slider), normName), null);
+            }
 
             // search for embedded InputActions
             foreach (Component c in gameObject.GetComponents<Component>())
