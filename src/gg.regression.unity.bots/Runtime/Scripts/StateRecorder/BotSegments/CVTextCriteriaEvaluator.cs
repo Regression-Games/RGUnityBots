@@ -20,6 +20,8 @@ namespace RegressionGames.StateRecorder.BotSegments
         // if an entry has a value, then it is completed for that segment.. it should be cleared out on the next matched call if the result didn't match so it can run again
         private static readonly Dictionary<int, List<CVTextResult>> _resultTracker = new();
 
+        private static readonly Dictionary<int, List<string>> _priorResultsTracker = new();
+
         public static void Reset()
         {
             lock (_requestTracker)
@@ -32,6 +34,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                 _requestTracker.Clear();
                 _resultTracker.Clear();
+                _priorResultsTracker.Clear();
             }
         }
 
@@ -59,6 +62,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                 // remove the tracked result
                 _resultTracker.Remove(segmentNumber, out _);
+                _priorResultsTracker.Remove(segmentNumber, out _);
                 RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - END");
             }
         }
@@ -70,87 +74,19 @@ namespace RegressionGames.StateRecorder.BotSegments
             var resultList = new List<string>();
 
             List<CVTextResult> cvTextResults = null;
+            List<string> priorResults = null;
             lock (_requestTracker)
             {
                 _resultTracker.TryGetValue(segmentNumber, out cvTextResults);
+                _priorResultsTracker.TryGetValue(segmentNumber, out priorResults);
                 var resultsString = cvTextResults == null ? "null":$"\n[{string.Join(",\n", cvTextResults)}]";
                 if (cvTextResults != null)
                 {
                     RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - cvTextResults: {resultsString}");
                 }
-
             }
 
-            if (cvTextResults == null)
-            {
-                // Handle possibly starting the web request for evaluation
-                var requestInProgress = _requestTracker.TryGetValue(segmentNumber, out _);
-                if (!requestInProgress)
-                {
-                    // double checked locking paradigm to avoid race conditions from multiple threads while still optimizing for the repeated call path not having to lock
-                    lock (_requestTracker)
-                    {
-                        requestInProgress = _requestTracker.TryGetValue(segmentNumber, out _);
-                        if (!requestInProgress)
-                        {
-                            var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
-                            if (imageData != null)
-                            {
-                                // do NOT await this, let it run async
-                                _ = CVServiceManager.GetInstance().PostCriteriaTextDiscover(
-                                    new CVTextCriteriaRequest()
-                                    {
-                                        screenshot = new CVImageRequestData()
-                                        {
-                                            width = width,
-                                            height = height,
-                                            data = imageData
-                                        }
-                                    },
-                                    abortRegistrationHook: action =>
-                                    {
-                                        RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback");
-                                        lock (_requestTracker)
-                                        {
-                                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback - insideLock");
-                                            // make sure we haven't already cleaned this up
-                                            if (_requestTracker.ContainsKey(segmentNumber))
-                                            {
-                                                _requestTracker[segmentNumber] = action;
-                                            }
-                                        }
-                                    },
-                                    onSuccess: list =>
-                                    {
-                                        RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback");
-                                        lock (_requestTracker)
-                                        {
-                                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
-                                            // make sure we haven't already cleaned this up
-                                            if (_resultTracker.ContainsKey(segmentNumber))
-                                            {
-                                                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
-                                                // store the result
-                                                _resultTracker[segmentNumber] = list;
-                                                // cleanup the request tracker
-                                                _requestTracker.Remove(segmentNumber);
-                                            }
-                                        }
-                                    },
-                                    onFailure: () => { RGDebug.LogWarning("CVTextCriteriaEvaluator - failure invoking CVService text criteria evaluation"); });
-                                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - SENT");
-
-                                // mark a request in progress inside the lock to avoid race conditions
-                                // mark that we are in progress by putting entries in the dictionary
-                                _requestTracker[segmentNumber] = null;
-                                _resultTracker[segmentNumber] = null;
-                            }
-                        }
-                    }
-                }
-                resultList.Add("Awaiting CV text evaluation result ...");
-            }
-            else
+            if (priorResults == null && cvTextResults != null)
             {
                 // Evaluate the results if we have some
 
@@ -242,7 +178,11 @@ namespace RegressionGames.StateRecorder.BotSegments
                         }
                         else
                         {
-                            criteria.Replay_TransientMatched = true;
+                            lock (_requestTracker)
+                            {
+                                _priorResultsTracker[segmentNumber] = new();
+                                criteria.Replay_TransientMatched = true;
+                            }
                         }
                     }
                 }
@@ -252,7 +192,94 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     lock (_requestTracker)
                     {
-                        _resultTracker.Remove(segmentNumber, out _);
+                        _priorResultsTracker[segmentNumber] = resultList;
+                    }
+                }
+            }
+
+            if (priorResults is not { Count: 0 } || cvTextResults == null)
+            {
+                // Handle possibly starting the web request for evaluation
+                var requestInProgress = _requestTracker.TryGetValue(segmentNumber, out _);
+                if (!requestInProgress)
+                {
+                    // double checked locking paradigm to avoid race conditions from multiple threads while still optimizing for the repeated call path not having to lock
+                    lock (_requestTracker)
+                    {
+                        requestInProgress = _requestTracker.TryGetValue(segmentNumber, out _);
+                        if (!requestInProgress)
+                        {
+                            var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
+                            if (imageData != null)
+                            {
+                                // mark a request in progress inside the lock to avoid race conditions.. must be done before starting async process
+                                // mark that we are in progress by putting entries in the dictionary
+                                _requestTracker[segmentNumber] = null;
+                                _resultTracker[segmentNumber] = null;
+
+                                // do NOT await this, let it run async
+                                _ = CVServiceManager.GetInstance().PostCriteriaTextDiscover(
+                                    new CVTextCriteriaRequest()
+                                    {
+                                        screenshot = new CVImageRequestData()
+                                        {
+                                            width = width,
+                                            height = height,
+                                            data = imageData
+                                        }
+                                    },
+                                    abortRegistrationHook: action =>
+                                    {
+                                        RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback");
+                                        lock (_requestTracker)
+                                        {
+                                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - abortHook registration callback - insideLock");
+                                            // make sure we haven't already cleaned this up
+                                            if (_requestTracker.ContainsKey(segmentNumber))
+                                            {
+                                                _requestTracker[segmentNumber] = action;
+                                            }
+                                        }
+                                    },
+                                    onSuccess: list =>
+                                    {
+                                        RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback");
+                                        lock (_requestTracker)
+                                        {
+                                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
+                                            // make sure we haven't already cleaned this up
+                                            if (_resultTracker.ContainsKey(segmentNumber))
+                                            {
+                                                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
+                                                // store the result
+                                                _resultTracker[segmentNumber] = list;
+                                                // cleanup the request tracker
+                                                _requestTracker.Remove(segmentNumber);
+                                            }
+                                        }
+                                    },
+                                    onFailure: () => { RGDebug.LogWarning("CVTextCriteriaEvaluator - failure invoking CVService text criteria evaluation"); });
+                                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - SENT");
+                                requestInProgress = true;
+                            }
+                            else
+                            {
+                                resultList.Add("Awaiting screenshot data ...");
+                            }
+                        }
+                    }
+                }
+
+                if (requestInProgress)
+                {
+                    if (priorResults == null )
+                    {
+                        resultList.Add("Awaiting CV text evaluation result ...");
+                    }
+                    else
+                    {
+                        // show the prior failures
+                        resultList.AddRange(priorResults);
                     }
                 }
             }
