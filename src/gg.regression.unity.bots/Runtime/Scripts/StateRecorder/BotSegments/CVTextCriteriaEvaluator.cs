@@ -101,7 +101,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     var cvTextResult = cvTextResults[k];
                     var cvText = cvTextResult.text.Trim();
-                    for (var i = criteriaList.Count; i >=0; i--)
+                    for (var i = criteriaList.Count-1; i >=0; i--)
                     {
                         var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
 
