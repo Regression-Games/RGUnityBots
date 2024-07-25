@@ -101,7 +101,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     var cvTextResult = cvTextResults[k];
                     var cvText = cvTextResult.text.Trim();
-                    for (var i = criteriaList.Count; i >=0; i--)
+                    for (var i = criteriaList.Count-1; i >=0; i--)
                     {
                         var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
 
@@ -216,7 +216,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 resultList.Add("Awaiting CVText evaluation result from server...");
             }
 
-            RGDebug.LogDebug($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
+            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
 
             RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
 
