@@ -131,10 +131,17 @@ namespace RegressionGames
                 }
                 var task = request.SendWebRequest();
                 // pass them back a hook to abort this request
-                await abortRegistrationHook.Invoke(() => task.webRequest.Abort());
+                await abortRegistrationHook.Invoke(() =>
+                {
+                    if (!task.webRequest.isDone)
+                    {
+                        task.webRequest.Abort();
+                    }
+                });
                 RGDebug.LogVerbose($"<{messageId}> API request sent ...");
                 await new UnityWebRequestAwaiter(task);
-                RGDebug.LogVerbose($"<{messageId}> API request complete ...");
+                var responseCode = task.webRequest.responseCode;
+                RGDebug.LogVerbose($"<{messageId}> API request complete ({responseCode})...");
 
                 string resultText = request.downloadHandler?.text;
                 string resultToLog = isAuth ? "{***:***, ...}" : resultText;
