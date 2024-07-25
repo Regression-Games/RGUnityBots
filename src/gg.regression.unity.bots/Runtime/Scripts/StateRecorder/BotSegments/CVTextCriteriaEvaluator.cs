@@ -7,10 +7,15 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
-    // This class uses explicit locking for thread safety as we have multiple different threads affecting the state of the tracking dictionaries, as well as async web responses
+
+
+    /**
+     * <summary>Evaluates CV Text criteria using CVServiceManager to send/receive HTTP requests to a python server for doing the actual CV evaluations.
+     * Python 'detects' text in a provided image and then this class evaluates those results against the specified bot segment criteria.</summary>
+     */
     public static class CVTextCriteriaEvaluator
     {
-
+        // This class uses explicit locking for thread safety as we have multiple different threads affecting the state of the tracking dictionaries, as well as async web responses
         // We manage locks by locking just on the _requestTracker for access to both dictionaries
 
         // if an entry is missing, no request for that segment in progress
