@@ -99,9 +99,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                 // we do our best to make this faster by removing from the lists as we match to reduce future iterations
                 for (var i = criteriaList.Count - 1; i >= 0; i--)
                 {
-                    var cvTextResult = cvTextResults[k];
-                    var cvText = cvTextResult.text.Trim();
-                    for (var i = criteriaList.Count-1; i >=0; i--)
+                    var criteria = criteriaList[i];
+                    if (!criteria.transient || !criteria.Replay_TransientMatched)
                     {
                         var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
 
@@ -201,10 +200,15 @@ namespace RegressionGames.StateRecorder.BotSegments
                         _priorResultsTracker[segmentNumber] = resultList;
                     }
                 }
-            }
-            else
-            {
-                resultList.Add("Awaiting CVText evaluation result from server...");
+
+                // clear out the result as we've evaluated it as failed and need to get a new result
+                if (resultList.Count > 0)
+                {
+                    lock (_requestTracker)
+                    {
+                        _resultTracker.Remove(segmentNumber, out _);
+                    }
+                }
             }
 
             RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
