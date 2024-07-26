@@ -1131,9 +1131,29 @@ namespace RegressionGames.ActionManager
             }
             if (gameObject.TryGetComponent(out Toggle _) && !IsRGOverlayObject(gameObject))
             {
+                string[] path = { "Unity UI", "Toggle", null };
                 string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
-                string[] path = { "Unity UI", "Toggle", normName };
-                AddAction(new UITogglePressAction(path, typeof(Toggle), normName), null);
+                string dropdownName = null;
+                
+                // if this toggle is the child of a dropdown, inherit part of the identifier from the dropdown
+                var dropdownParent = gameObject.transform.GetComponentInParent<Dropdown>(true);
+                if (dropdownParent != null)
+                {
+                    dropdownName = UIObjectPressAction.GetNormalizedGameObjectName(dropdownParent.gameObject.name);
+                    path[2] = dropdownName + " " + normName;
+                }
+                else
+                {
+                    path[2] = normName;
+                }
+                
+                AddAction(new UITogglePressAction(path, typeof(Toggle), normName, dropdownName), null);
+            }
+            if (gameObject.TryGetComponent(out Dropdown _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] path = { "Unity UI", "Dropdown", normName };
+                AddAction(new UIObjectPressAction(path, typeof(Dropdown), normName), null);
             }
             if (gameObject.TryGetComponent(out Slider _) && !IsRGOverlayObject(gameObject))
             {

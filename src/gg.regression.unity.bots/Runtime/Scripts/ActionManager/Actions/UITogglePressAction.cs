@@ -24,19 +24,32 @@ namespace RegressionGames.ActionManager.Actions
         /// </summary>
         public string NormalizedGameObjectName { get; }
 
-        public UITogglePressAction(string[] path, Type objectType, string normalizedGameObjectName) : 
+        /// <summary>
+        /// If this toggle is part of a dropdown, then this is the name of the dropdown.
+        /// </summary>
+        public string NormalizedDropdownName { get; }
+
+        public UITogglePressAction(string[] path, Type objectType, string normalizedGameObjectName, string normalizedDropdownName = null) : 
             base(path, objectType, new RGBoolRange())
         {
             Debug.Assert(typeof(Toggle).IsAssignableFrom(objectType));
             NormalizedGameObjectName = normalizedGameObjectName;
+            NormalizedDropdownName = normalizedDropdownName;
         }
 
         public UITogglePressAction(JObject serializedAction) : base(serializedAction)
         {
             NormalizedGameObjectName = serializedAction["normalizedGameObjectName"].ToString();
+
+            var dropdownName = serializedAction["normalizedDropdownName"];
+            if (dropdownName.Type != JTokenType.Null)
+            {
+                NormalizedDropdownName = dropdownName.ToString();
+            }
         }
 
-        public override string DisplayName => $"Press {NormalizedGameObjectName}";
+        public override string DisplayName => $"Press {NormalizedGameObjectName}" 
+                                              + (NormalizedDropdownName != null ? " (Dropdown " + NormalizedDropdownName + ")" : "");
 
         public static IEnumerable<CanvasRenderer> FindToggleRenderables(Toggle toggle)
         {
@@ -53,9 +66,25 @@ namespace RegressionGames.ActionManager.Actions
             {
                 return false;
             }
+            
+            Dropdown parentDropdown = toggle.gameObject.transform.GetComponentInParent<Dropdown>(true);
+            if (parentDropdown != null)
+            {
+                string dropdownName = UIObjectPressAction.GetNormalizedGameObjectName(parentDropdown.gameObject.name);
+                if (dropdownName != NormalizedDropdownName)
+                {
+                    return false;
+                }
+            }
 
             string normName = UIObjectPressAction.GetNormalizedGameObjectName(toggle.gameObject.name);
-            if (normName != NormalizedGameObjectName)
+            if (parentDropdown != null)
+            {
+                if (!normName.StartsWith(NormalizedGameObjectName))
+                {
+                    return false;
+                }
+            } else if (normName != NormalizedGameObjectName)
             {
                 return false;
             }
@@ -67,6 +96,7 @@ namespace RegressionGames.ActionManager.Actions
                 if (haveMousePos)
                     break;
             }
+            
             return haveMousePos;
         }
 
@@ -88,6 +118,8 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"normalizedGameObjectName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, NormalizedGameObjectName);
+            stringBuilder.Append(",\n\"normalizedDropdownName\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, NormalizedDropdownName);
         }
         
         public override IEnumerable<(string, string)> GetDisplayActionAttributes()

@@ -539,7 +539,8 @@ namespace Tests.Runtime
             {
                 "The_Button", "The_Toggle", 
                 "Slider_Horizontal", "Slider_Vertical", 
-                "Scrollbar_Horizontal", "Scrollbar_Vertical"
+                "Scrollbar_Horizontal", "Scrollbar_Vertical",
+                "Dropdown"
             };
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -576,6 +577,21 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "The_Toggle changed to False");
+                
+                // Dropdown Press
+                FindAndPerformAction("Press Dropdown", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press Dropdown", false);
+                for (int i = 0; i < 10; ++i) // need to wait several frames before the dropdown items become interactable
+                    yield return null;
+                FindAndPerformAction("Press Item (Dropdown Dropdown)", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press Item (Dropdown Dropdown)", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Dropdown value changed");
                 
                 // Horizontal Slider Movement
                 FindAndPerformAction("Press Slider_Horizontal", 0.25f);

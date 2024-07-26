@@ -339,7 +339,8 @@
 "paths":["Unity UI/Toggle/The_Toggle"],
 "objectTypeName":"UnityEngine.UI.Toggle, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
-"normalizedGameObjectName":"The_Toggle"
+"normalizedGameObjectName":"The_Toggle",
+"normalizedDropdownName":null
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
@@ -396,6 +397,35 @@
 "objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
 "normalizedGameObjectName":"Scrollbar_Vertical"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIObjectPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Dropdown/Dropdown"],
+"objectTypeName":"UnityEngine.UI.Dropdown, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Dropdown"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UITogglePressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Toggle/Dropdown Item"],
+"objectTypeName":"UnityEngine.UI.Toggle, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Item",
+"normalizedDropdownName":"Dropdown"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Press/Scrollbar"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Release/Scrollbar"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",

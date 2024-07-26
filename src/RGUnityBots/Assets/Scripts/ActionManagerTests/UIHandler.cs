@@ -52,5 +52,10 @@ namespace ActionManagerTests
             string posName = SliderPositionName(scrollbar.value);
             Debug.Log(gameObject.name + " changed to " + posName);
         }
+
+        public void OnDropdownValueChanged()
+        {
+            Debug.Log(gameObject.name + " value changed");
+        }
     }
 }
