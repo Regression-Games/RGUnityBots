@@ -235,7 +235,7 @@ namespace RegressionGames.StateRecorder
             return (_priorObjects, _newObjects);
         }
 
-        // Keep this method public, while not called from this package module, it is called from some of our extension packages
+        // ReSharper disable once MemberCanBePrivate.Global - Keep this method public, while not called from this package module, it is called from some of our extension packages
         public static (Bounds?, float, Bounds?) SelectBoundsForTransform(Transform theTransform)
         {
             var screenWidth = Screen.width;
