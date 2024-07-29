@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿#if UNITY_EDITOR
+using System.Reflection;
 using Mono.Cecil;
 using UnityEngine;
 
@@ -31,3 +32,4 @@ namespace RegressionGames.RGLegacyInputUtility
         }
     }
 }
+#endif
