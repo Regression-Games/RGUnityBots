@@ -44,8 +44,13 @@ namespace RegressionGames.StateRecorder
 
         private static IEnumerator WaitForInputSystemUpdate()
         {
+            #if ENABLE_INPUT_SYSTEM
             _inputSystemUpdated = false;
             yield return new WaitUntil(() => _inputSystemUpdated);
+            #else
+            // If the input system is not in use, just wait for a single frame
+            yield return null;
+            #endif
         }
 
         /// <summary>
@@ -176,6 +181,7 @@ namespace RegressionGames.StateRecorder
             if (keyStates.Count > 0)
             {
                 SendKeysInOneEvent(replaySegment, keyStates);
+                yield return WaitForInputSystemUpdate();
             }
         }
 
