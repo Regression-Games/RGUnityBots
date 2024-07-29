@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder.Models;
-using Unity.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -110,6 +108,11 @@ namespace RegressionGames.StateRecorder
             foreach (var (key, upOrDown) in keyStates)
             {
                 _keyStates[key] = upOrDown;
+                
+                if (key == Key.LeftShift || key == Key.RightShift)
+                {
+                    _isShiftDown = upOrDown == KeyState.Down;
+                }
             }
             
             QueueKeyboardUpdateEvent();

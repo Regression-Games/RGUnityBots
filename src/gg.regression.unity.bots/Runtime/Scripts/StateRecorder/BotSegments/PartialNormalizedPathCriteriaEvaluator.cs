@@ -8,6 +8,7 @@ namespace RegressionGames.StateRecorder.BotSegments
     public static class PartialNormalizedPathCriteriaEvaluator
     {
         // Track counts from the last keyframe completion and use that as the 'prior' data
+        // Returns a list of non-matched entries
         public static List<string> Matched(int segmentNumber, List<KeyFrameCriteria> criteriaList, List<Dictionary<long, PathBasedDeltaCount>> deltaCounts)
         {
             var resultList = new List<string>();
