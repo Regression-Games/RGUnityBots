@@ -40,8 +40,20 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
 
         private float _lastPositionTime = float.MinValue;
 
+        private bool _sendingKeysInProgress = false;
+
+        private IEnumerator SendKeys(List<(Key, KeyState)> keyStates)
+        {
+            _sendingKeysInProgress = true;
+            yield return KeyboardEventSender.SendKeyEvents(0, keyStates);
+            _sendingKeysInProgress = false;
+        }
+        
         private void Update()
         {
+            if (_sendingKeysInProgress)
+                return;
+            
             var time = Time.unscaledTime;
 
             List<(Key, KeyState)> keyStates = new();
@@ -295,7 +307,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
 
             if (keyStates.Count > 0)
             {
-                StartCoroutine(KeyboardEventSender.SendKeyEvents(0, keyStates));
+                StartCoroutine(SendKeys(keyStates));
             }
         }
 
