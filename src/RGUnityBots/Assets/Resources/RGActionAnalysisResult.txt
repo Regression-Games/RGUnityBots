@@ -428,6 +428,21 @@
 "normalizedGameObjectName":"Scrollbar"
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIObjectPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/TMP_Dropdown/TMP_Dropdown"],
+"objectTypeName":"TMPro.TMP_Dropdown, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"TMP_Dropdown"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UITogglePressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Toggle/TMP_Dropdown Item"],
+"objectTypeName":"UnityEngine.UI.Toggle, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Item",
+"normalizedDropdownName":"TMP_Dropdown"
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Button/LegacyButton.ClickedHandler"],
 "objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",

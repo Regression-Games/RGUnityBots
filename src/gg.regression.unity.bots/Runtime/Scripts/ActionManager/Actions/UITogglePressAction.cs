@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -67,7 +68,9 @@ namespace RegressionGames.ActionManager.Actions
                 return false;
             }
             
-            Dropdown parentDropdown = toggle.gameObject.transform.GetComponentInParent<Dropdown>(true);
+            Selectable parentDropdown = toggle.gameObject.transform.GetComponentInParent<Dropdown>(true);
+            if (parentDropdown == null)
+                parentDropdown = toggle.gameObject.transform.GetComponentInParent<TMP_Dropdown>(true);
             if (parentDropdown != null)
             {
                 string dropdownName = UIObjectPressAction.GetNormalizedGameObjectName(parentDropdown.gameObject.name);
@@ -104,7 +107,8 @@ namespace RegressionGames.ActionManager.Actions
         {
             if (base.IsEquivalentTo(other) && other is UITogglePressAction action)
             {
-                return NormalizedGameObjectName == action.NormalizedGameObjectName;
+                return NormalizedGameObjectName == action.NormalizedGameObjectName &&
+                       NormalizedDropdownName == action.NormalizedDropdownName;
             }
             return false;
         }

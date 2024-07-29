@@ -18,6 +18,7 @@ using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
+using TMPro;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -1136,7 +1137,9 @@ namespace RegressionGames.ActionManager
                 string dropdownName = null;
                 
                 // if this toggle is the child of a dropdown, inherit part of the identifier from the dropdown
-                var dropdownParent = gameObject.transform.GetComponentInParent<Dropdown>(true);
+                Selectable dropdownParent = gameObject.transform.GetComponentInParent<Dropdown>(true);
+                if (dropdownParent == null)
+                    dropdownParent = gameObject.transform.GetComponentInParent<TMP_Dropdown>(true);
                 if (dropdownParent != null)
                 {
                     dropdownName = UIObjectPressAction.GetNormalizedGameObjectName(dropdownParent.gameObject.name);
@@ -1154,6 +1157,12 @@ namespace RegressionGames.ActionManager
                 string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
                 string[] path = { "Unity UI", "Dropdown", normName };
                 AddAction(new UIObjectPressAction(path, typeof(Dropdown), normName), null);
+            }
+            if (gameObject.TryGetComponent(out TMP_Dropdown _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] path = { "Unity UI", "TMP_Dropdown", normName };
+                AddAction(new UIObjectPressAction(path, typeof(TMP_Dropdown), normName), null);
             }
             if (gameObject.TryGetComponent(out Slider _) && !IsRGOverlayObject(gameObject))
             {

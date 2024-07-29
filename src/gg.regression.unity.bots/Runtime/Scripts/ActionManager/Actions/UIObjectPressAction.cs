@@ -51,7 +51,7 @@ namespace RegressionGames.ActionManager.Actions
             {
                 return false;
             }
-
+            
             bool haveMousePos = RGActionManagerUtils.GetUIMouseHitPosition(uiComponent.gameObject, out _);
             return haveMousePos;
         }

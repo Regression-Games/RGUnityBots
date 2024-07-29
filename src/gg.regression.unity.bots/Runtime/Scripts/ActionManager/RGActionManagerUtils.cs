@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
-using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -450,7 +448,7 @@ namespace RegressionGames.ActionManager
 
             return true;
         }
-        
+
         /// <summary>
         /// This returns the mouse position on the screen needed in order to interact with the
         /// specified UI element. If it is impossible to hit the UI element (e.g.
@@ -489,7 +487,7 @@ namespace RegressionGames.ActionManager
                     {
                         if (raycastRes.gameObject != null)
                         {
-                            // If the raycast hit either the object or one of its ancestors, then the given 
+                            // If the raycast hit either the object or one of its children, then the given 
                             // mouse position can be used to interact with the object.
                             if (IsAncestorOrEqualTo(uiObject, raycastRes.gameObject))
                             {

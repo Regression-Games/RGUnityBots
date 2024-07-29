@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json.Linq;
@@ -12,6 +13,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace Tests.Runtime
 {
@@ -158,6 +160,13 @@ namespace Tests.Runtime
             return null;
         }
 
+        private static bool IsValidAction(string name)
+        {
+            var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
+                actionInst.BaseAction.DisplayName == name);
+            return actionInst != null;
+        }
+
         private void FindAndPerformAction(string name, object param)
         {
             var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
@@ -182,7 +191,6 @@ namespace Tests.Runtime
             {
                 InputSystem.AddDevice<Keyboard>();
             }
-            
             SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
             
@@ -540,7 +548,7 @@ namespace Tests.Runtime
                 "The_Button", "The_Toggle", 
                 "Slider_Horizontal", "Slider_Vertical", 
                 "Scrollbar_Horizontal", "Scrollbar_Vertical",
-                "Dropdown"
+                "Dropdown", "TMP_Dropdown"
             };
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -583,8 +591,7 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 FindAndPerformAction("Press Dropdown", false);
-                for (int i = 0; i < 10; ++i) // need to wait several frames before the dropdown items become interactable
-                    yield return null;
+                yield return RGTestUtils.WaitUntil(() => IsValidAction("Press Item (Dropdown Dropdown)"));
                 FindAndPerformAction("Press Item (Dropdown Dropdown)", true);
                 yield return null;
                 yield return null;
@@ -592,6 +599,22 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Dropdown value changed");
+                yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null);
+                
+                // TextMeshPro Dropdown Press
+                FindAndPerformAction("Press TMP_Dropdown", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press TMP_Dropdown", false);
+                yield return RGTestUtils.WaitUntil(() => IsValidAction("Press Item (Dropdown TMP_Dropdown)"));
+                FindAndPerformAction("Press Item (Dropdown TMP_Dropdown)", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press Item (Dropdown TMP_Dropdown)", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "TMP_Dropdown value changed");
+                yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null);
                 
                 // Horizontal Slider Movement
                 FindAndPerformAction("Press Slider_Horizontal", 0.25f);
