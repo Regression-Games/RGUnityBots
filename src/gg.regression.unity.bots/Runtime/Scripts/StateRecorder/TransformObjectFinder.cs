@@ -235,9 +235,9 @@ namespace RegressionGames.StateRecorder
             return (_priorObjects, _newObjects);
         }
 
+        // ReSharper disable once MemberCanBePrivate.Global - Keep this method public, while not called from this package module, it is called from some of our extension packages
         public static (Bounds?, float, Bounds?) SelectBoundsForTransform(Transform theTransform)
         {
-
             var screenWidth = Screen.width;
             var screenHeight = Screen.height;
             var mainCamera = Camera.main;
@@ -260,8 +260,7 @@ namespace RegressionGames.StateRecorder
                     var cgEnabled = true;
                     while (cgEnabled && canvasGroup != null)
                     {
-                        cgEnabled &= canvasGroup.enabled &&
-                                     (canvasGroup.blocksRaycasts || canvasGroup.interactable || canvasGroup.alpha > 0);
+                        cgEnabled &= canvasGroup.enabled && (canvasGroup.blocksRaycasts || canvasGroup.interactable) && (canvasGroup.alpha > 0.01f); // 0ish float comparisons ... lovely but necessary
                         if (canvasGroup.ignoreParentGroups)
                         {
                             break;
@@ -403,13 +402,10 @@ namespace RegressionGames.StateRecorder
                 var minWorldZ = float.MaxValue;
                 var maxWorldZ = float.MinValue;
 
-                var hasVisibleRenderer = false;
-
                 var rendererListLength = RendererQueryList.Count;
                 for (var i = 0; i < rendererListLength; i++)
                 {
                     var nextRenderer = RendererQueryList[i];
-                    hasVisibleRenderer |= nextRenderer.isVisible;
                     if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
                     {
                         var theBounds = nextRenderer.bounds;
@@ -448,7 +444,7 @@ namespace RegressionGames.StateRecorder
                     }
                 }
 
-                var onCamera = minWorldX < float.MaxValue && hasVisibleRenderer;
+                var onCamera = minWorldX < float.MaxValue;
                 if (onCamera)
                 {
 
@@ -554,21 +550,14 @@ namespace RegressionGames.StateRecorder
 
                         return (new Bounds(center, size), Math.Min(minZ, maxZ), new Bounds(worldCenter, worldSize));
                     }
-                    else
-                    {
-                        return (null, 0f, null);
-                    }
                 }
-
             }
-
 
             return (null, 0f, null);
         }
 
         private void PopulateUITransformsForCurrentFrame()
         {
-
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
 
             // we re-use this over and over instead of allocating multiple times
@@ -580,12 +569,17 @@ namespace RegressionGames.StateRecorder
                 if (statefulUIObject != null && statefulUIObject.GetComponentInParent<RGExcludeFromState>() == null)
                 {
                     var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulUIObject.transform);
-                    _newObjects[tStatus.Id] = tStatus;
 
                     var bounds = SelectBoundsForTransform(statefulUIObject.transform);
                     tStatus.screenSpaceBounds = bounds.Item1;
                     tStatus.screenSpaceZOffset = bounds.Item2;
                     tStatus.worldSpaceBounds = bounds.Item3;
+
+                    // only include visible UI elements
+                    if (tStatus.screenSpaceBounds != null)
+                    {
+                        _newObjects[tStatus.Id] = tStatus;
+                    }
                 }
             }
         }
@@ -621,11 +615,17 @@ namespace RegressionGames.StateRecorder
             foreach (var theTransform in _transformsForThisFrame)
             {
                 var tStatus = TransformStatus.GetOrCreateTransformStatus(theTransform);
-                _newObjects[tStatus.Id] = tStatus;
+
                 var bounds = SelectBoundsForTransform(theTransform);
                 tStatus.screenSpaceBounds = bounds.Item1;
                 tStatus.screenSpaceZOffset = bounds.Item2;
                 tStatus.worldSpaceBounds = bounds.Item3;
+
+                // only include visible elements
+                if (tStatus.screenSpaceBounds != null)
+                {
+                    _newObjects[tStatus.Id] = tStatus;
+                }
             }
 
         }

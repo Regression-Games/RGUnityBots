@@ -83,7 +83,6 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 return;
             }
 
-
             if (value > 999_999)
             {
                 // no padding

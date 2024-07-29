@@ -58,10 +58,8 @@ namespace RegressionGames.StateRecorder
         private long _tickNumber;
         private DateTime _startTime;
 
-        private BlockingCollection<((string, long), (byte[], byte[], int, int, GraphicsFormat, Color32[], Action))>
+        private BlockingCollection<((string, long), (byte[], byte[], int, int, byte[], Action))>
             _tickQueue;
-
-        private readonly List<AsyncGPUReadbackRequest> _gpuReadbackRequests = new();
 
         private readonly List<(string, Task)> _fileWriteTasks = new();
 
@@ -227,7 +225,6 @@ namespace RegressionGames.StateRecorder
 
         private void LateUpdate()
         {
-            _gpuReadbackRequests.RemoveAll(a => a.done);
             _fileWriteTasks.RemoveAll(a => a.Item2 == null || a.Item2.IsCompleted);
 
             while (_texture2Ds.TryDequeue(out var tex))
@@ -269,8 +266,8 @@ namespace RegressionGames.StateRecorder
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _tickQueue =
-                    new BlockingCollection<((string, long), (byte[], byte[], int, int, GraphicsFormat, Color32[], Action))>(
-                        new ConcurrentQueue<((string, long), (byte[], byte[], int, int, GraphicsFormat, Color32[],
+                    new BlockingCollection<((string, long), (byte[], byte[], int, int, byte[], Action))>(
+                        new ConcurrentQueue<((string, long), (byte[], byte[], int, int, byte[],
                             Action)
                             )>());
 
@@ -354,20 +351,7 @@ namespace RegressionGames.StateRecorder
                 _profilerObserver.StopProfiling();
             }
 
-            _gpuReadbackRequests.RemoveAll(a => a.done);
-
-            if (_gpuReadbackRequests.Count > 0)
-            {
-                RGDebug.LogInfo($"Waiting for " + _gpuReadbackRequests.Count + " unfinished GPU Readback requests before stopping");
-            }
-
-            // wait for all the GPU data to come back
-            foreach (var asyncGPUReadbackRequest in _gpuReadbackRequests)
-            {
-                asyncGPUReadbackRequest.WaitForCompletion();
-            }
-
-            _gpuReadbackRequests.Clear();
+            ScreenshotCapture.WaitForCompletion();
 
             _tickQueue?.CompleteAdding();
 
@@ -397,8 +381,6 @@ namespace RegressionGames.StateRecorder
             _tokenSource?.Dispose();
             _tokenSource = null;
         }
-
-        private RenderTexture _screenShotTexture = null;
 
         private IEnumerator RecordFrame()
         {
@@ -585,7 +567,7 @@ namespace RegressionGames.StateRecorder
                             }
                         }
 
-                        // serialize to json byte[]
+                        // serialize to json byte[] - Maybe find a way to re-use the byte[] buffers here to avoid so much GC and alloc overhead on each write ?
                         jsonData = Encoding.UTF8.GetBytes(
                             frameState.ToJsonString()
                         );
@@ -608,46 +590,17 @@ namespace RegressionGames.StateRecorder
                         // save this off because we're about to operate on a different thread :)
                         var currentTickNumber = _tickNumber;
 
-                        if (_screenShotTexture == null || _screenShotTexture.width != screenWidth || _screenShotTexture.height != screenHeight)
+                        if (RGDebug.IsDebugEnabled)
                         {
-                            if (_screenShotTexture != null)
-                            {
-                                Object.Destroy(_screenShotTexture);
-                            }
-
-                            _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
+                            RGDebug.LogDebug($"Capturing screenshot for tick # {currentTickNumber}");
                         }
 
-                        var graphicsFormat = _screenShotTexture.graphicsFormat;
-
-                        try
-                        {
-                            ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
-                            var readbackRequest = AsyncGPUReadback.Request(_screenShotTexture, 0, GraphicsFormat.R8G8B8A8_SRGB, request =>
+                        ScreenshotCapture.GetCurrentScreenshotWithCallback(
+                            currentTickNumber,
+                            (result) =>
                             {
-                                if (!request.hasError)
+                                if (result.HasValue)
                                 {
-                                    //RGDebug.LogDebug("Tick " + currentTickNumber + " Got Back Screenshot Data From GPU");
-                                    var data = request.GetData<Color32>();
-                                    var pixels = new Color32[data.Length];
-                                    var copyBuffer = new Color32[screenWidth];
-                                    data.CopyTo(pixels);
-                                    if (SystemInfo.graphicsUVStartsAtTop)
-                                    {
-                                        // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
-                                        var halfHeight = screenHeight / 2;
-                                        for (var i = 0; i <= halfHeight; i++)
-                                        {
-                                            // swap rows
-                                            // bottom row to buffer
-                                            Array.Copy(pixels, i * screenWidth, copyBuffer, 0, screenWidth);
-                                            // top row to bottom
-                                            Array.Copy(pixels, (screenHeight - i - 1) * screenWidth, pixels, i * screenWidth, screenWidth);
-                                            // buffer to top row
-                                            Array.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
-                                        }
-                                    } //else.. we're fine
-
                                     if (Interlocked.CompareExchange(ref didQueue, 1, 0) == 0)
                                     {
                                         // queue up writing the tick data to disk async
@@ -656,10 +609,9 @@ namespace RegressionGames.StateRecorder
                                             (
                                                 botSegmentJson,
                                                 jsonData,
-                                                screenWidth,
-                                                screenHeight,
-                                                graphicsFormat,
-                                                pixels,
+                                                result.Value.Item2,
+                                                result.Value.Item3,
+                                                result.Value.Item1,
                                                 () => { }
                                             )
                                         ));
@@ -683,7 +635,6 @@ namespace RegressionGames.StateRecorder
                                                 jsonData,
                                                 screenWidth,
                                                 screenHeight,
-                                                graphicsFormat,
                                                 null,
                                                 () => { }
                                             )
@@ -694,14 +645,8 @@ namespace RegressionGames.StateRecorder
                                         }
                                     }
                                 }
-                            });
-
-                            _gpuReadbackRequests.Add(readbackRequest);
-                        }
-                        catch (Exception e)
-                        {
-                            RGDebug.LogWarning($"Exception starting to capture screenshot for tick # {currentTickNumber} - {e.Message}");
-                        }
+                            }
+                        );
                     }
                 }
             }
@@ -715,9 +660,9 @@ namespace RegressionGames.StateRecorder
                 {
                     var tuple = _tickQueue.Take(_tokenSource.Token);
                     ProcessTick(tuple.Item1.Item1, tuple.Item1.Item2, tuple.Item2.Item1, tuple.Item2.Item2,
-                        tuple.Item2.Item3, tuple.Item2.Item4, tuple.Item2.Item5, tuple.Item2.Item6);
+                        tuple.Item2.Item3, tuple.Item2.Item4, tuple.Item2.Item5);
                     // invoke the cleanup callback function
-                    tuple.Item2.Item7();
+                    tuple.Item2.Item6();
                 }
                 catch (Exception e)
                 {
@@ -729,33 +674,23 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void ProcessTick(string directoryPath, long tickNumber, byte[] botSegmentJson, byte[] jsonData, int width, int height, GraphicsFormat graphicsFormat, Color32[] tickScreenshotData)
+        private void ProcessTick(string directoryPath, long tickNumber, byte[] botSegmentJson, byte[] jsonData, int tickScreenshotWidth, int tickScreenshotHeight, byte[] tickScreenshotData)
         {
             RecordBotSegment(directoryPath, tickNumber, botSegmentJson);
             RecordJson(directoryPath, tickNumber, jsonData);
-            RecordJPG(directoryPath, tickNumber, width, height, graphicsFormat, tickScreenshotData);
+            RecordJPG(directoryPath, tickNumber, tickScreenshotWidth, tickScreenshotHeight, tickScreenshotData);
         }
 
-        private void RecordJPG(string directoryPath, long tickNumber, int width, int height, GraphicsFormat graphicsFormat,
-            Color32[] tickScreenshotData)
+        private void RecordJPG(string directoryPath, long tickNumber, int tickScreenshotWidth, int tickScreenshotHeight, byte[] tickScreenshotData)
         {
             if (tickScreenshotData != null)
             {
                 try
                 {
-                    if (_usingIOSMetalGraphics)
-                    {
-                        // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
-                        graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
-                    }
-
-                    var imageOutput =
-                        ImageConversion.EncodeArrayToJPG(tickScreenshotData, graphicsFormat, (uint)width, (uint)height);
-
                     // write out the image to file
                     var path = $"{directoryPath}/screenshots/{tickNumber}".PadLeft(9, '0') + ".jpg";
                     // Save the byte array as a file
-                    var fileWriteTask = File.WriteAllBytesAsync(path, imageOutput.ToArray(), _tokenSource.Token);
+                    var fileWriteTask = File.WriteAllBytesAsync(path, tickScreenshotData.ToArray(), _tokenSource.Token);
                     fileWriteTask.ContinueWith((nextTask) =>
                     {
                         if (nextTask.Exception != null)

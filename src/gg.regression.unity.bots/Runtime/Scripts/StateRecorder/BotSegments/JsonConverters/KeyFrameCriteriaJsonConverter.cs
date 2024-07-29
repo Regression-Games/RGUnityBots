@@ -29,6 +29,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                 case KeyFrameCriteriaType.UIPixelHash:
                     data = jObject["data"].ToObject<UIPixelHashKeyFrameCriteriaData>(serializer);
                     break;
+                case KeyFrameCriteriaType.CVText:
+                    data = jObject["data"].ToObject<CVTextKeyFrameCriteriaData>(serializer);
+                    break;
                 default:
                     throw new JsonSerializationException($"Unsupported KeyFrameCriteria type: '{criteria.type}'");
             }
