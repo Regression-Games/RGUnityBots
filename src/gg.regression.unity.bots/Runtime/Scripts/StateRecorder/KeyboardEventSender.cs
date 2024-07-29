@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder.Models;
 using Unity.Collections;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
@@ -19,6 +21,7 @@ namespace RegressionGames.StateRecorder
         private static Dictionary<Key, KeyState> _keyStates = new Dictionary<Key, KeyState>();
 
         private static bool _isInitialized = false;
+        private static bool _inputSystemUpdated = false; // flag used for waiting for the next input system update
 
         public static void Initialize()
         {
@@ -32,12 +35,19 @@ namespace RegressionGames.StateRecorder
         private static void OnAfterInputSystemUpdate()
         {
             _keyStates.Clear();
+            _inputSystemUpdated = true;
         }
 
         public static void Reset()
         {
             _isShiftDown = false;
             _keyStates.Clear();
+        }
+
+        private static IEnumerator WaitForInputSystemUpdate()
+        {
+            _inputSystemUpdated = false;
+            yield return new WaitUntil(() => _inputSystemUpdated);
         }
 
         /// <summary>
@@ -88,13 +98,14 @@ namespace RegressionGames.StateRecorder
         /**
          * Allows updating multiple keys in the same event. 
          */
-        public static void SendKeysInOneEvent(int replaySegment, List<(Key, KeyState)> keyStates)
+        public static void SendKeysInOneEvent(int replaySegment, IDictionary<Key, KeyState> keyStates)
         {
             #if ENABLE_LEGACY_INPUT_MANAGER
             SendKeysInOneEventLegacy(keyStates);
             #endif
             
-            RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" + string.Join(", ", keyStates.Select(a => a.Item1 + ":" + a.Item2).ToArray()) + "]");
+            RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" + 
+                            string.Join(", ", keyStates.Select(a => a.Key + ":" + a.Value).ToArray()) + "]");
             
             foreach (var (key, upOrDown) in keyStates)
             {
@@ -103,15 +114,17 @@ namespace RegressionGames.StateRecorder
             
             QueueKeyboardUpdateEvent();
 
-            foreach (var (key, upOrDown) in keyStates)
+            foreach (var entry in keyStates)
             {
+                var key = entry.Key;
+                var upOrDown = entry.Value;
                 if (upOrDown == KeyState.Down)
                 {
                     QueueTextEvent(replaySegment, key);
                 }
             }
         }
-
+        
         public static void SendKeyEvent(int replaySegment, Key key, KeyState upOrDown)
         {
             #if ENABLE_LEGACY_INPUT_MANAGER
@@ -135,8 +148,36 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        /**
+         * Coroutine to send key events in the given list.
+         * If the same key is encountered multiple times in the list, or the Shift key is encountered, this will
+         * schedule a new event to occur on the next input system update cycle.
+         */
+        public static IEnumerator SendKeyEvents(int replaySegment, IList<(Key, KeyState)> keyStateList)
+        {
+            Dictionary<Key, KeyState> keyStates = new();
+            foreach (var (key, upOrDown) in keyStateList)
+            {
+                if (key == Key.LeftShift || key == Key.RightShift || keyStates.ContainsKey(key))
+                {
+                    if (keyStates.Count > 0)
+                    {
+                        // send the current key states and start a new event after the input system update
+                        SendKeysInOneEvent(replaySegment, keyStates);
+                        yield return WaitForInputSystemUpdate();
+                        keyStates.Clear();
+                    }
+                }
+                keyStates[key] = upOrDown;
+            }
+            if (keyStates.Count > 0)
+            {
+                SendKeysInOneEvent(replaySegment, keyStates);
+            }
+        }
+
 #if ENABLE_LEGACY_INPUT_MANAGER
-        private static void SendKeysInOneEventLegacy(List<(Key, KeyState)> keyStates)
+        private static void SendKeysInOneEventLegacy(IDictionary<Key, KeyState> keyStates)
         {
             if (RGLegacyInputWrapper.IsPassthrough)
             {
@@ -144,9 +185,9 @@ namespace RegressionGames.StateRecorder
                 return;
             }
 
-            foreach ((Key key, KeyState upOrDown) in keyStates)
+            foreach (var entry in keyStates)
             {
-                SendKeyEventLegacy(key, upOrDown);
+                SendKeyEventLegacy(entry.Key, entry.Value);
             }
         }
         

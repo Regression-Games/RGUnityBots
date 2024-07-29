@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -293,28 +295,27 @@ namespace RegressionGames.StateRecorder.BotSegments.Samples
 
             if (keyStates.Count > 0)
             {
-                KeyboardEventSender.SendKeysInOneEvent(0, keyStates);
+                StartCoroutine(KeyboardEventSender.SendKeyEvents(0, keyStates));
             }
-
         }
 
         private void OnDestroy()
         {
-            List<(Key, KeyState)> keyStates = new();
+            Dictionary<Key, KeyState> keyStates = new();
 
             if (_currentDirectionMain.HasValue)
             {
-                keyStates.Add((_currentDirectionMain.Value, KeyState.Up));
+                keyStates[_currentDirectionMain.Value] = KeyState.Up;
             }
 
             if (_currentDirectionSecondary.HasValue)
             {
-                keyStates.Add((_currentDirectionSecondary.Value, KeyState.Up));
+                keyStates[_currentDirectionSecondary.Value] = KeyState.Up;
             }
 
             if (_lastActionKey.HasValue)
             {
-                keyStates.Add((_lastActionKey.Value, KeyState.Up));
+                keyStates[_lastActionKey.Value] = KeyState.Up;
             }
 
             if (keyStates.Count > 0)
