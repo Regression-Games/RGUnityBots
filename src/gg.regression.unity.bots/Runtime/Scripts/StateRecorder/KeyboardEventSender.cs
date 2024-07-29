@@ -119,7 +119,7 @@ namespace RegressionGames.StateRecorder
 
             // 1f == true == pressed state
             // 0f == false == un-pressed state
-            using (DeltaStateEvent.From(keyboard, out var eventPtr))
+            using (StateEvent.From(keyboard, out var eventPtr))
             {
                 var time = InputState.currentTime;
                 eventPtr.time = time;
