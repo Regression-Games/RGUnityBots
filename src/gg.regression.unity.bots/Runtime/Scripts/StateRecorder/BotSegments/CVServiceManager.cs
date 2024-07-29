@@ -48,8 +48,28 @@ namespace RegressionGames
             }
             else
             {
-                return $"{host}/rgservice";
+                return $"{host}/rgcvservice";
             }
+        }
+
+        public async Task PostCriteriaImageDiscover(CVImageCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVImageResult>> onSuccess, Action onFailure)
+        {
+            await SendWebRequest(
+                uri: $"{GetCvServiceBaseUri()}/criteria-image-discover",
+                method: "POST",
+                payload: request.ToJsonString(),
+                abortRegistrationHook: abortRegistrationHook.Invoke,
+                onSuccess: (s) =>
+                {
+                    var response = JsonConvert.DeserializeObject<CVImageResultList>(s);
+                    onSuccess.Invoke(response.results);
+                },
+                onFailure: (f) =>
+                {
+                    RGDebug.LogWarning($"Failed to evaluate CV Image criteria: {f}");
+                    onFailure.Invoke();
+                }
+            );
         }
 
         public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)

@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Text;
+using Newtonsoft.Json;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
 {
-    public class CVImageRequestData
+    [JsonConverter(typeof(CVImageEncodedDataJsonConverter))]
+    public class CVImageEncodedData
     {
         /**
-         * <summary>This must be the image data as a PNG/JPG/etc encoded as that is what python is expecting.  NOT just the data bytes</summary>
+         * <summary>This must be the image data as a base64 JPG encoded as that is what python is expecting.  NOT just the data bytes</summary>
          */
-        public byte[] data;
+        public string data;
         public int width;
         public int height;
 
@@ -20,7 +23,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
             stringBuilder.Append(",\n\"height\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, height);
             stringBuilder.Append(",\n\"data\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, Convert.ToBase64String(data));
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, data);
             stringBuilder.Append("}");
         }
     }

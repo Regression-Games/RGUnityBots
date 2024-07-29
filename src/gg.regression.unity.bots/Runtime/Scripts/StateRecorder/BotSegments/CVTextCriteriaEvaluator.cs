@@ -229,7 +229,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                             if (imageData != null)
                             {
                                 // mark a request in progress inside the lock to avoid race conditions.. must be done before starting async process
-                                // mark that we are in progress by putting entries in the dictionary
+                                // mark that we are in progress by putting entries in the dictionary of null until we replace with the real data
+                                // thus contains key returns true
                                 _requestTracker[segmentNumber] = null;
                                 _resultTracker[segmentNumber] = null;
 
@@ -237,7 +238,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 _ = CVServiceManager.GetInstance().PostCriteriaTextDiscover(
                                     new CVTextCriteriaRequest()
                                     {
-                                        screenshot = new CVImageRequestData()
+                                        screenshot = new CVImageBinaryData()
                                         {
                                             width = width,
                                             height = height,
