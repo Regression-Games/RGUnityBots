@@ -1,33 +1,33 @@
 ﻿using System;
 using System.Text;
 using System.Threading;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
+using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class CVTextKeyFrameCriteriaData : IKeyFrameCriteriaData
+    public class CVImageKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_8;
+        public int apiVersion = SdkApiVersion.VERSION_9;
 
         public Vector2Int resolution;
-        public string text;
-        public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
-        public TextCaseRule textCaseRule = TextCaseRule.Matches;
+
+        /**
+         * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
+         */
+        public CVImageEncodedData imageData;
         public RectInt? withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"text\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, text);
+            stringBuilder.Append("{\"imageData\":");
+            imageData.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append(",\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"textMatchingRule\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, textMatchingRule.ToString());
-            stringBuilder.Append(",\"textCaseRule\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
             stringBuilder.Append(",\"resolution\":");
             VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, resolution);
             stringBuilder.Append(",\"withinRect\":");

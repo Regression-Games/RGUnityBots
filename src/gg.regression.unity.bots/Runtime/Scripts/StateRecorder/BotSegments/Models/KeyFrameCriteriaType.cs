@@ -8,6 +8,7 @@
         NormalizedPath,
         PartialNormalizedPath,
         CVText,
+        CVImage,
 
         //FUTURE
         //Path,
