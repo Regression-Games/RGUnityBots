@@ -1237,43 +1237,6 @@ namespace RegressionGames.ActionManager
                     }
                 }
             }
-
-            // search for embedded InputActions
-            foreach (Component c in gameObject.GetComponents<Component>())
-            {
-                if (c == null)
-                {
-                    continue;
-                }
-
-                Type type = c.GetType();
-                foreach (var fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic |
-                                                         BindingFlags.Static |
-                                                         BindingFlags.Instance))
-                {
-                    if (typeof(InputAction).IsAssignableFrom(fieldInfo.FieldType))
-                    {
-                        InputAction action = (InputAction)fieldInfo.GetValue(c);
-                        if (action != null)
-                        {
-                            AnalyzeInputAction(action, fieldInfo);
-                        }
-                    }
-                }
-
-                foreach (var propInfo in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic |
-                                                        BindingFlags.Static | BindingFlags.Instance))
-                {
-                    if (typeof(InputAction).IsAssignableFrom(propInfo.PropertyType))
-                    {
-                        InputAction action = (InputAction)propInfo.GetValue(c);
-                        if (action != null)
-                        {
-                            AnalyzeInputAction(action, propInfo);
-                        }
-                    }
-                }
-            }
         }
 
         /// <summary>
