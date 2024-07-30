@@ -3,7 +3,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace RegressionGames.RGLegacyInputUtility
 {
@@ -324,8 +327,36 @@ namespace RegressionGames.RGLegacyInputUtility
                     _lastHitObject = hitObject;
                     _lastHitObject2D = hitObject2D;
                 }
+                
+                // If there are active UI input fields, simulate a KeyDown UI event for newly pressed keys
+                // This simulation is done directly on the components, because there is no way to directly queue the event to Unity's event manager
+                if (_newKeysDown.Count > 0) 
+                {
+                    var inputFields = UnityEngine.Object.FindObjectsOfType<InputField>();
+                    var tmpInputFields = UnityEngine.Object.FindObjectsOfType<TMP_InputField>();
+                    if (inputFields.Length > 0 || tmpInputFields.Length > 0)
+                    {
+                        foreach (var keyCode in _newKeysDown)
+                        {
+                            Event evt = RGLegacyInputUtils.CreateUIKeyboardEvent(keyCode, _keysHeld);
+                            foreach (var inputField in inputFields)
+                            {
+                                if (inputField.isFocused)
+                                {
+                                    inputField.ProcessEvent(evt);
+                                }
+                            }
+                            foreach (var tmpInputField in tmpInputFields)
+                            {
+                                if (tmpInputField.isFocused)
+                                {
+                                    tmpInputField.ProcessEvent(evt);
+                                }
+                            }
+                        }
+                    }
+                }
 
-                // Wait one frame
                 yield return null;
                 
                 // Clear all "new" flags and deltas

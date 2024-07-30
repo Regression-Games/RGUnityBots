@@ -34,16 +34,15 @@ namespace RegressionGames.ActionManager.Actions
         
         public override bool IsValidForObject(Object obj)
         {
-            Selectable inputField = (Selectable)obj;
+            InputField inputField = (InputField)obj;
             
             string normName = UIObjectPressAction.GetNormalizedGameObjectName(inputField.gameObject.name);
             if (normName != NormalizedGameObjectName)
             {
                 return false;
             }
-            
-            // At least one selectable of the input field must be focused to be able to submit text
-            if (!inputField.transform.GetComponentsInChildren<Selectable>().Any(RGActionManagerUtils.IsUIObjectFocused))
+
+            if (!inputField.isFocused)
             {
                 return false;
             }

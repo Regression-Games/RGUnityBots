@@ -51,7 +51,7 @@ namespace RegressionGames.ActionManager.Actions
         
         public override bool IsValidForObject(Object obj)
         {
-            Selectable inputField = (Selectable)obj;
+            InputField inputField = (InputField)obj;
             if (!RGActionManagerUtils.IsUIObjectInteractable(inputField))
             {
                 return false;
@@ -62,9 +62,8 @@ namespace RegressionGames.ActionManager.Actions
             {
                 return false;
             }
-            
-            // at least one selectable on the input field must be focused to be able to enter text
-            if (!inputField.transform.GetComponentsInChildren<Selectable>().Any(RGActionManagerUtils.IsUIObjectFocused))
+
+            if (!inputField.isFocused)
             {
                 return false;
             }

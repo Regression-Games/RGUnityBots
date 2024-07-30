@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace RegressionGames.RGLegacyInputUtility
@@ -235,6 +236,29 @@ namespace RegressionGames.RGLegacyInputUtility
                     RGDebug.LogWarning($"Unsupported legacy input key: {keyCode}");
                     return Key.None;
             }
+        }
+
+        public static Event CreateUIKeyboardEvent(KeyCode keyCode, ISet<KeyCode> keysHeld)
+        {
+            Event evt = new Event(0) { type = EventType.KeyDown };
+            if (keysHeld.Contains(KeyCode.LeftShift) || keysHeld.Contains(KeyCode.RightShift))
+            {
+                evt.modifiers |= EventModifiers.Shift;
+            }
+            if (keysHeld.Contains(KeyCode.LeftCommand) || keysHeld.Contains(KeyCode.RightCommand))
+            {
+                evt.modifiers |= EventModifiers.Command;
+            }
+            if (keysHeld.Contains(KeyCode.LeftAlt) || keysHeld.Contains(KeyCode.RightAlt))
+            {
+                evt.modifiers |= EventModifiers.Alt;
+            }
+            if (keysHeld.Contains(KeyCode.LeftControl) || keysHeld.Contains(KeyCode.RightControl))
+            {
+                evt.modifiers |= EventModifiers.Control;
+            }
+            
+            
         }
     }
 }

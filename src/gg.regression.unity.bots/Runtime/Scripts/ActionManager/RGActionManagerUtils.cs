@@ -88,11 +88,6 @@ namespace RegressionGames.ActionManager
         {
             return GetUIObjectSelectionState(uiComponent) == "Pressed";
         }
-
-        public static bool IsUIObjectFocused(Selectable uiComponent)
-        {
-            return GetUIObjectSelectionState(uiComponent) is "Pressed" or "Selected";
-        }
         
         // Mapping from keyboard property (Keyboard.current.<property>) to the associated key code
         private static readonly Dictionary<string, Key> KeyboardPropNameToKeyCode = new Dictionary<string, Key>()
