@@ -127,6 +127,11 @@ namespace RegressionGames.ActionManager.Actions
                 {
                     yield return new InputSystemKeyInput(key, false);
                 }
+                yield return new InputSystemKeyInput(Key.Backspace, false);
+                yield return new InputSystemKeyInput(Key.Enter, false);
+                yield return new InputSystemKeyInput(Key.NumpadEnter, false);
+                yield return new InputSystemKeyInput(Key.LeftShift, false);
+                yield return new InputSystemKeyInput(Key.RightShift, false);
             } else if (param == UIInputFieldTextEntryAction.PARAM_BACKSPACE)
             {
                 foreach (Key key in TextEntryKeys())
@@ -136,6 +141,11 @@ namespace RegressionGames.ActionManager.Actions
                         yield return new InputSystemKeyInput(key, false);
                     }
                 }
+                
+                yield return new InputSystemKeyInput(Key.Enter, false);
+                yield return new InputSystemKeyInput(Key.NumpadEnter, false);
+                yield return new InputSystemKeyInput(Key.LeftShift, false);
+                yield return new InputSystemKeyInput(Key.RightShift, false);
                 yield return new InputSystemKeyInput(Key.Backspace, true);
             }
             else if (param >= UIInputFieldTextEntryAction.PARAM_FIRST_KEY)
@@ -152,6 +162,11 @@ namespace RegressionGames.ActionManager.Actions
                     yield return new InputSystemKeyInput(Key.LeftShift, false);
                     yield return new InputSystemKeyInput(Key.RightShift, false);
                 }
+                
+                yield return new InputSystemKeyInput(Key.Backspace, false);
+                yield return new InputSystemKeyInput(Key.Enter, false);
+                yield return new InputSystemKeyInput(Key.NumpadEnter, false);
+                
                 foreach (Key key in TextEntryKeys())
                 {
                     if (key != targetKey && key != Key.LeftShift && key != Key.RightShift)

@@ -343,14 +343,14 @@ namespace RegressionGames.RGLegacyInputUtility
                             {
                                 if (inputField.isFocused)
                                 {
-                                    inputField.ProcessEvent(evt);
+                                    RGLegacyInputUtils.SendKeyEventToInputField(evt, inputField);
                                 }
                             }
                             foreach (var tmpInputField in tmpInputFields)
                             {
                                 if (tmpInputField.isFocused)
                                 {
-                                    tmpInputField.ProcessEvent(evt);
+                                    RGLegacyInputUtils.SendKeyEventToInputField(evt, tmpInputField);
                                 }
                             }
                         }

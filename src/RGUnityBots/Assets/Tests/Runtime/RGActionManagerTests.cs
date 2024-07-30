@@ -615,7 +615,6 @@ namespace Tests.Runtime
                 LogAssert.Expect(LogType.Log, "TMP_Dropdown value changed");
                 yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null);
                 
-                Debug.Log("Down start!");
                 // InputField text entry
                 FindAndPerformAction("Press InputField", true);
                 yield return null;
@@ -632,15 +631,13 @@ namespace Tests.Runtime
                     FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_FIRST_KEY + keyIndex);
                     yield return null;
                     yield return null;
+                    FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_NULL);
+                    yield return null;
+                    yield return null;
                 }
                 FindAndPerformAction("Text Submit InputField", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Text Submit InputField", false);
-                yield return null;
-                yield return null;
-                for (;;)
-                    yield return null;
                 LogAssert.Expect(LogType.Log, "InputField submitted with text Hello");
                 
                 // Horizontal Slider Movement

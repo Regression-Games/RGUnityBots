@@ -1,6 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using RegressionGames.StateRecorder;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace RegressionGames.RGLegacyInputUtility
 {
@@ -257,8 +262,77 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 evt.modifiers |= EventModifiers.Control;
             }
-            
-            
+            evt.keyCode = keyCode;
+
+            var key = KeyCodeToInputSystemKey(keyCode);
+            if (key != Key.None)
+            {
+                if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(key, out var keyVal))
+                {
+                    if ((evt.modifiers & EventModifiers.Shift) != 0)
+                    {
+                        evt.character = keyVal.Item2;
+                    }
+                    else
+                    {
+                        evt.character = keyVal.Item1;
+                    }
+                }
+            }
+
+            return evt;
+        }
+
+        private static MethodInfo _inputFieldKeyPressedMethod;
+        private static MethodInfo _tmpInputFieldKeyPressedMethod;
+
+        /// <summary>
+        /// Send the event to the given input field (either TMP_InputField or InputField)
+        /// Note that this method should be used instead of the ProcessEvent() method that is already available,
+        /// because ProcessEvent() does not correctly update the label or handle text submission
+        /// </summary>
+        public static void SendKeyEventToInputField(Event evt, InputField inputField)
+        {
+            if (_inputFieldKeyPressedMethod == null)
+            {
+                _inputFieldKeyPressedMethod =
+                    typeof(InputField).GetMethod("KeyPressed", BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            var editState = _inputFieldKeyPressedMethod.Invoke(inputField, new object[] { evt });
+            if (editState.ToString() == "Finish")
+            {
+                if (!inputField.wasCanceled)
+                {
+                    if (inputField.onSubmit != null)
+                        inputField.onSubmit.Invoke(inputField.text);
+                }
+                inputField.DeactivateInputField();
+            }
+            inputField.ForceLabelUpdate();
+        }
+
+        /// <summary>
+        /// Sends key event to TextMeshPro input field (behaves the same as the one that targets the
+        /// legacy InputField, just targets TextMeshPro instead)
+        /// </summary>
+        public static void SendKeyEventToInputField(Event evt, TMP_InputField inputField)
+        {
+            if (_tmpInputFieldKeyPressedMethod == null)
+            {
+                _tmpInputFieldKeyPressedMethod =
+                    typeof(TMP_InputField).GetMethod("KeyPressed", BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            var editState = _tmpInputFieldKeyPressedMethod.Invoke(inputField, new object[] { evt });
+            if (editState.ToString() == "Finish")
+            {
+                if (!inputField.wasCanceled)
+                {
+                    if (inputField.onSubmit != null)
+                        inputField.onSubmit.Invoke(inputField.text);
+                }
+                inputField.DeactivateInputField();
+            }
+            inputField.ForceLabelUpdate();
         }
     }
 }
