@@ -13,7 +13,9 @@ namespace RegressionGames.ActionManager.Actions
     public class MouseScrollAction : RGGameAction
     {
         public MouseScrollAction(string[] path, Type objectType) : 
-            base(path, objectType)
+            base(path, objectType, 
+                new RGVector2IntRange(new Vector2Int(-1, -1), new Vector2Int(1, 1))) // Discretized to int (rather than using float)
+                                                                                             // so that there is a greater chance of not scrolling at all
         {
         }
 
@@ -21,10 +23,6 @@ namespace RegressionGames.ActionManager.Actions
             base(serializedAction)
         {
         }
-
-        // Discretized to int (rather than using float) so that there is a greater chance of not scrolling at all
-        public override IRGValueRange ParameterRange { get; } =
-            new RGVector2IntRange(new Vector2Int(-1, -1), new Vector2Int(1, 1));
 
         public override string DisplayName => "Mouse Scroll";
 

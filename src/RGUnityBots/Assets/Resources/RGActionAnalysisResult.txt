@@ -1,280 +1,394 @@
 {
-  "ApiVersion": 1,
+  "ApiVersion": 2,
   "Actions": [
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseHoverObjectAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["ActionManagerTests.MouseHandlerObject/OnMouseOver","ActionManagerTests.MouseHandlerObject/OnMouseEnter","ActionManagerTests.MouseHandlerObject/OnMouseExit"],
-"objectTypeName":"ActionManagerTests.MouseHandlerObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"objectTypeName":"ActionManagerTests.MouseHandlerObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePressObjectAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["ActionManagerTests.MouseHandlerObject/OnMouseDown","ActionManagerTests.MouseHandlerObject/OnMouseUp","ActionManagerTests.MouseHandlerObject/OnMouseUpAsButton","ActionManagerTests.MouseHandlerObject/OnMouseDrag"],
-"objectTypeName":"ActionManagerTests.MouseHandlerObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"objectTypeName":"ActionManagerTests.MouseHandlerObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePositionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseRaycast2DObject/Input.mousePosition (2)"],
+"paths":["ActionManagerTests.MouseRaycast2DObject/MouseRaycast2DObject.cs:8:27:8:46/Input.mousePosition/ActionManagerTests.MouseRaycast2DObject/MouseRaycast2DObject.cs:10:24:10:64/Physics2D.Raycast(worldPt, Vector2.zero)"],
 "objectTypeName":"ActionManagerTests.MouseRaycast2DObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VECTOR2","minValueX":0,"minValueY":0,"maxValueX":1,"maxValueY":1},
 "positionType":"COLLIDER_2D"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputSystemKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.InputSysKeyListeningObject/[Key.F2]"],
+"paths":["ActionManagerTests.InputSysKeyListeningObject/InputSysKeyListeningObject.cs:13:32:13:40/[Key.F2]/Key.F2"],
 "objectTypeName":"ActionManagerTests.InputSysKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyFunc":{"funcType":"TYPE_CONSTANT","data":"F2"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputSystemKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.InputSysKeyListeningObject/Keyboard.current.backslashKey"],
+"paths":["ActionManagerTests.InputSysKeyListeningObject/InputSysKeyListeningObject.cs:18:16:18:45/Keyboard.current.backslashKey"],
 "objectTypeName":"ActionManagerTests.InputSysKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyFunc":{"funcType":"TYPE_CONSTANT","data":"Backslash"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputSystemKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.InputSysKeyListeningObject/[key]"],
+"paths":["ActionManagerTests.InputSysKeyListeningObject/InputSysKeyListeningObject.cs:25:24:25:29/[key]/fireKey"],
 "objectTypeName":"ActionManagerTests.InputSysKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputSysKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"fireKey\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputSystemKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.InputSysKeyListeningObject/keyboard.altKey"],
+"paths":["ActionManagerTests.InputSysKeyListeningObject/InputSysKeyListeningObject.cs:30:16:30:31/keyboard.altKey"],
 "objectTypeName":"ActionManagerTests.InputSysKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyFunc":{"funcType":"TYPE_CONSTANT","data":"LeftAlt"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.AnyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.InputSysKeyListeningObject/Keyboard.current.anyKey"],
-"objectTypeName":"ActionManagerTests.InputSysKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"paths":["ActionManagerTests.InputSysKeyListeningObject/InputSysKeyListeningObject.cs:35:16:35:39/Keyboard.current.anyKey"],
+"objectTypeName":"ActionManagerTests.InputSysKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePositionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseMovementListeningObject/Input.mousePosition","ActionManagerTests.MouseMovementListeningObject/Input.mousePosition (2)","ActionManagerTests.MouseMovementListeningObject/Mouse.current.position"],
+"paths":["ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:11:27:11:46/Input.mousePosition","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:16:32:16:51/Input.mousePosition","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:17:32:17:54/Mouse.current.position"],
 "objectTypeName":"ActionManagerTests.MouseMovementListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VECTOR2","minValueX":0,"minValueY":0,"maxValueX":1,"maxValueY":1},
 "positionType":"NON_UI"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseScrollAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseMovementListeningObject/Input.mouseScrollDelta","ActionManagerTests.MouseMovementListeningObject/Mouse.current.scroll"],
-"objectTypeName":"ActionManagerTests.MouseMovementListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"paths":["ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:29:16:29:38/Input.mouseScrollDelta","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:34:16:34:36/Mouse.current.scroll"],
+"objectTypeName":"ActionManagerTests.MouseMovementListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VECTOR2_INT","minValueX":-1,"minValueY":-1,"maxValueX":1,"maxValueY":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyKeyListeningObject/Input.GetKey(MOVE_RIGHT_KEY)"],
+"paths":["ActionManagerTests.LegacyKeyListeningObject/LegacyKeyListeningObject.cs:29:16:29:44/Input.GetKey(MOVE_RIGHT_KEY)/MOVE_RIGHT_KEY"],
 "objectTypeName":"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"MOVE_RIGHT_KEY\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyKeyListeningObject/Input.GetKeyDown(_gameSettings.bindings.fireKey)"],
+"paths":["ActionManagerTests.LegacyKeyListeningObject/LegacyKeyListeningObject.cs:32:23:32:71/Input.GetKeyDown(_gameSettings.bindings.fireKey)/_gameSettings.bindings.fireKey"],
 "objectTypeName":"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"_gameSettings\"},{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.GameSettings, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"bindings\"},{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.Keybindings, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"fireKey\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyKeyListeningObject/Input.GetKeyUp(_gameSettings.bindings.jumpKey)"],
+"paths":["ActionManagerTests.LegacyKeyListeningObject/LegacyKeyListeningObject.cs:37:16:37:62/Input.GetKeyUp(_gameSettings.bindings.jumpKey)/_gameSettings.bindings.jumpKey"],
 "objectTypeName":"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"_gameSettings\"},{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.GameSettings, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"bindings\"},{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.Keybindings, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"jumpKey\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyKeyListeningObject/Input.GetKey(crouchKey)"],
+"paths":["ActionManagerTests.LegacyKeyListeningObject/LegacyKeyListeningObject.cs:43:16:43:39/Input.GetKey(crouchKey)/_gameSettings.bindings.CrouchKey"],
 "objectTypeName":"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"_gameSettings\"},{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.GameSettings, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"bindings\"},{\"MemberType\":16,\"DeclaringType\":\"ActionManagerTests.Keybindings, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"CrouchKey\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.AnyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyKeyListeningObject/Input.anyKey","ActionManagerTests.LegacyKeyListeningObject/Input.anyKeyDown"],
-"objectTypeName":"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"paths":["ActionManagerTests.LegacyKeyListeningObject/LegacyKeyListeningObject.cs:48:16:48:28/Input.anyKey","ActionManagerTests.LegacyKeyListeningObject/LegacyKeyListeningObject.cs:53:16:53:32/Input.anyKeyDown"],
+"objectTypeName":"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyKeyListeningObject/Input.GetKey(aimKey)"],
+"paths":["ActionManagerTests.LegacyKeyListeningObject/LegacyKeyListeningObject.cs:62:16:62:36/Input.GetKey(aimKey)/KeyCode.LeftShift"],
 "objectTypeName":"ActionManagerTests.LegacyKeyListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_CONSTANT","data":"keycode:LeftShift"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyAxisHandler/Input.GetAxis(\"Horizontal\")","LegacyAxisHandler/Input.GetAxis(\"Horizontal\") (2)"],
+"paths":["LegacyAxisHandler/LegacyAxisHandler.cs:6:12:6:39/Input.GetAxis(\"Horizontal\")/\"Horizontal\"","LegacyAxisHandler/LegacyAxisHandler.cs:9:19:9:46/Input.GetAxis(\"Horizontal\")/\"Horizontal\""],
 "objectTypeName":"LegacyAxisHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Horizontal"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyAxisHandler/Input.GetAxisRaw(\"Vertical\")","LegacyAxisHandler/Input.GetAxisRaw(\"Vertical\") (2)"],
+"paths":["LegacyAxisHandler/LegacyAxisHandler.cs:14:12:14:40/Input.GetAxisRaw(\"Vertical\")/\"Vertical\"","LegacyAxisHandler/LegacyAxisHandler.cs:17:19:17:47/Input.GetAxisRaw(\"Vertical\")/\"Vertical\""],
 "objectTypeName":"LegacyAxisHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Vertical"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePositionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseRaycast3DObject/Input.mousePosition (2)"],
+"paths":["ActionManagerTests.MouseRaycast3DObject/MouseRaycast3DObject.cs:10:27:10:46/Input.mousePosition/ActionManagerTests.MouseRaycast3DObject/MouseRaycast3DObject.cs:12:16:12:76/Physics.Raycast(ray, out var hit, Mathf.Infinity, layerMask)"],
 "objectTypeName":"ActionManagerTests.MouseRaycast3DObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VECTOR2","minValueX":0,"minValueY":0,"maxValueX":1,"maxValueY":1},
 "positionType":"COLLIDER_3D",
 "layerMasks":[
 {"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.MouseRaycast3DObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"layerMask\"}]}"}
 ]
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["ActionManagerTests.InterprocObject/InterprocObject.cs:8:12:8:49/InputUtil.CheckPlayerJump(gameObject)/ActionManagerTests.InputUtil/InputUtil.cs:15:16:15:32/ReadPlayerJump()/ActionManagerTests.InputUtil/InputUtil.cs:10:19:10:44/Input.GetKey(jumpKeyCode)/jumpKeyCode"],
+"objectTypeName":"ActionManagerTests.InterprocObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputUtil, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"jumpKeyCode\"}]}"}
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyMouseHandler/Input.GetAxisRaw(\"Mouse X\")"],
+"paths":["LegacyMouseHandler/LegacyMouseHandler.cs:7:33:7:60/Input.GetAxisRaw(\"Mouse X\")/\"Mouse X\""],
 "objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse X"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyMouseHandler/Input.GetAxisRaw(\"Mouse Y\")"],
+"paths":["LegacyMouseHandler/LegacyMouseHandler.cs:11:33:11:60/Input.GetAxisRaw(\"Mouse Y\")/\"Mouse Y\""],
 "objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse Y"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyMouseHandler/Input.GetAxisRaw(\"Mouse ScrollWheel\")"],
+"paths":["LegacyMouseHandler/LegacyMouseHandler.cs:15:12:15:49/Input.GetAxisRaw(\"Mouse ScrollWheel\")/\"Mouse ScrollWheel\""],
 "objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse ScrollWheel"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseScrollAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyMouseHandler/Input.mouseScrollDelta"],
-"objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"paths":["LegacyMouseHandler/LegacyMouseHandler.cs:19:12:19:34/Input.mouseScrollDelta"],
+"objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VECTOR2_INT","minValueX":-1,"minValueY":-1,"maxValueX":1,"maxValueY":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyMouseHandler/Input.GetMouseButtonDown(1)"],
+"paths":["LegacyMouseHandler/LegacyMouseHandler.cs:24:12:24:39/Input.GetMouseButtonDown(1)/1"],
 "objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"1"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyMouseHandler/Input.GetMouseButton(2)"],
+"paths":["LegacyMouseHandler/LegacyMouseHandler.cs:28:12:28:35/Input.GetMouseButton(2)/2"],
 "objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"2"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyMouseHandler/Input.GetMouseButtonUp(0)"],
+"paths":["LegacyMouseHandler/LegacyMouseHandler.cs:32:12:32:37/Input.GetMouseButtonUp(0)/0"],
 "objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"0"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePressObjectAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["LegacyMouseHandler/OnMouseDown","LegacyMouseHandler/OnMouseUpAsButton","LegacyMouseHandler/OnMouseUp","LegacyMouseHandler/OnMouseDrag"],
-"objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseHoverObjectAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["LegacyMouseHandler/OnMouseEnter","LegacyMouseHandler/OnMouseExit","LegacyMouseHandler/OnMouseOver"],
-"objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"objectTypeName":"LegacyMouseHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyButtonListeningObject/Input.GetButton(ButtonName)"],
+"paths":["ActionManagerTests.LegacyButtonListeningObject/LegacyButtonListeningObject.cs:10:16:10:43/Input.GetButton(ButtonName)/ButtonName"],
 "objectTypeName":"ActionManagerTests.LegacyButtonListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "buttonNameFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.LegacyButtonListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"ButtonName\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyButtonListeningObject/Input.GetButtonDown(btn)"],
+"paths":["ActionManagerTests.LegacyButtonListeningObject/LegacyButtonListeningObject.cs:16:16:16:40/Input.GetButtonDown(btn)/\"Fire1\""],
 "objectTypeName":"ActionManagerTests.LegacyButtonListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "buttonNameFunc":{"funcType":"TYPE_CONSTANT","data":"Fire1"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyButtonListeningObject/Input.GetButtonUp(\"Fire2\")"],
+"paths":["ActionManagerTests.LegacyButtonListeningObject/LegacyButtonListeningObject.cs:21:16:21:42/Input.GetButtonUp(\"Fire2\")/\"Fire2\""],
 "objectTypeName":"ActionManagerTests.LegacyButtonListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "buttonNameFunc":{"funcType":"TYPE_CONSTANT","data":"Fire2"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyKeyHandler/Input.GetKey(KeyCode.X)","LegacyKeyHandler/Input.GetKeyUp(KeyCode.X)"],
+"paths":["LegacyKeyHandler/LegacyKeyHandler.cs:8:12:8:35/Input.GetKey(KeyCode.X)/KeyCode.X","LegacyKeyHandler/LegacyKeyHandler.cs:18:12:18:37/Input.GetKeyUp(KeyCode.X)/KeyCode.X"],
 "objectTypeName":"LegacyKeyHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_CONSTANT","data":"keycode:X"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyKeyHandler/Input.GetKeyDown(\"x\")"],
+"paths":["LegacyKeyHandler/LegacyKeyHandler.cs:13:12:13:33/Input.GetKeyDown(\"x\")/\"x\""],
 "objectTypeName":"LegacyKeyHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_CONSTANT","data":"string:x"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.AnyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyKeyHandler/Input.anyKey","LegacyKeyHandler/Input.anyKeyDown"],
-"objectTypeName":"LegacyKeyHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"
+"paths":["LegacyKeyHandler/LegacyKeyHandler.cs:23:12:23:24/Input.anyKey","LegacyKeyHandler/LegacyKeyHandler.cs:28:12:28:28/Input.anyKeyDown"],
+"objectTypeName":"LegacyKeyHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyKeyHandler/Input.GetButton(\"Jump\")","LegacyKeyHandler/Input.GetButtonUp(\"Jump\")"],
+"paths":["LegacyKeyHandler/LegacyKeyHandler.cs:33:12:33:35/Input.GetButton(\"Jump\")/\"Jump\"","LegacyKeyHandler/LegacyKeyHandler.cs:36:19:36:44/Input.GetButtonUp(\"Jump\")/\"Jump\""],
 "objectTypeName":"LegacyKeyHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "buttonNameFunc":{"funcType":"TYPE_CONSTANT","data":"Jump"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["LegacyKeyHandler/Input.GetButtonDown(\"Fire1\")"],
+"paths":["LegacyKeyHandler/LegacyKeyHandler.cs:41:12:41:40/Input.GetButtonDown(\"Fire1\")/\"Fire1\""],
 "objectTypeName":"LegacyKeyHandler, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "buttonNameFunc":{"funcType":"TYPE_CONSTANT","data":"Fire1"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/Input.GetMouseButton(0)"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:12:16:12:39/Input.GetMouseButton(0)/0"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"0"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/Input.GetMouseButtonDown(mouseBtn)"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:17:16:17:50/Input.GetMouseButtonDown(mouseBtn)/mouseBtn"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"mouseBtn\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/Input.GetMouseButtonUp(btn)"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:23:16:23:43/Input.GetMouseButtonUp(btn)/otherMouseBtn"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"otherMouseBtn\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/Mouse.current.forwardButton"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:28:16:28:43/Mouse.current.forwardButton"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"3"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/mouse.backButton"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:34:16:34:32/mouse.backButton"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"4"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyAxisListeningObject/Input.GetAxis(axis)"],
+"paths":["ActionManagerTests.LegacyAxisListeningObject/LegacyAxisListeningObject.cs:21:16:21:35/Input.GetAxis(axis)/axisName"],
 "objectTypeName":"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"axisName\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyAxisListeningObject/Input.GetAxis(axis) (2)"],
+"paths":["ActionManagerTests.LegacyAxisListeningObject/LegacyAxisListeningObject.cs:21:16:21:35/Input.GetAxis(axis)/axisName2"],
 "objectTypeName":"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"axisName2\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyAxisListeningObject/Input.GetAxisRaw(\"Mouse X\")"],
+"paths":["ActionManagerTests.LegacyAxisListeningObject/LegacyAxisListeningObject.cs:26:16:26:43/Input.GetAxisRaw(\"Mouse X\")/\"Mouse X\""],
 "objectTypeName":"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse X"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyAxisAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.LegacyAxisListeningObject/Input.GetAxis(\"Mouse ScrollWheel\")"],
+"paths":["ActionManagerTests.LegacyAxisListeningObject/LegacyAxisListeningObject.cs:31:16:31:50/Input.GetAxis(\"Mouse ScrollWheel\")/\"Mouse ScrollWheel\""],
 "objectTypeName":"ActionManagerTests.LegacyAxisListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
 "axisNameFunc":{"funcType":"TYPE_CONSTANT","data":"Mouse ScrollWheel"}
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["ActionManagerTests.InputActionListeningObject/fireAction"],
+"objectTypeName":"ActionManagerTests.InputActionListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":null,
+"embeddedActionFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputActionListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"fireAction\"}]}"},
+"actionName":"Fire",
+"actionGuid":"00000000-0000-0000-0000-000000000000"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap1/Move"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VECTOR2_INT","minValueX":-1,"minValueY":-1,"maxValueX":1,"maxValueY":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Move",
+"actionGuid":"7ce4e894-5799-45a7-bb66-6f883cf3bdd2"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap1/Jump"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Jump",
+"actionGuid":"5d5b6520-318b-4c14-ae4f-53841541ec74"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap1/Aim"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_VECTOR2_INT","minValueX":-1,"minValueY":-1,"maxValueX":1,"maxValueY":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Aim",
+"actionGuid":"2495bebb-372e-4719-bfdd-09be37cf37ee"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap2/Horizontal"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":-1,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Horizontal",
+"actionGuid":"e4db4165-f29f-483a-b6f3-292141b24435"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["MyInputs/ActionMap2/Crouch"],
+"objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"actionAssetName":"MyInputs",
+"embeddedActionFunc":null,
+"actionName":"Crouch",
+"actionGuid":"1ab6d824-7e5d-486a-a7c8-e973ab78e892"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Button Click/ActionManagerTests.ButtonHandler.OnBtnClick"],
 "objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "eventListenerName":"ActionManagerTests.ButtonHandler.OnBtnClick"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Button Click/LegacyButton.ClickedHandler"],
 "objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "eventListenerName":"LegacyButton.ClickedHandler"
 }
   ]

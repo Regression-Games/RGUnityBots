@@ -17,7 +17,7 @@ namespace RegressionGames.ActionManager.Actions
         public RGActionParamFunc<object> KeyCodeFunc { get; }
         
         public LegacyKeyAction(string[] path, Type objectType, RGActionParamFunc<object> keyCodeFunc) : 
-            base(path, objectType)
+            base(path, objectType, new RGBoolRange())
         {
             KeyCodeFunc = keyCodeFunc;
         }
@@ -27,8 +27,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             KeyCodeFunc = RGActionParamFunc<object>.Deserialize(serializedAction["keyCodeFunc"]);
         }
-
-        public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
 
         public override string DisplayName => $"Key {KeyCodeFunc}";
 

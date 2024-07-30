@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Linq;
+using System.Text;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using RegressionGames;
 using RegressionGames.ActionManager;
 using RegressionGames.ActionManager.Actions;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -16,11 +17,22 @@ namespace Tests.Runtime
 {
     public class RGActionManagerTests : InputTestFixture
     {
+        private void TestRangeSerialization(IRGValueRange rng)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            rng.WriteToStringBuilder(stringBuilder);
+            JObject obj = JObject.Parse(stringBuilder.ToString());
+            var parsedRange = obj.ToObject<IRGValueRange>();
+            Assert.IsTrue(parsedRange.RangeEquals(rng));
+            Assert.IsTrue(rng.RangeEquals(parsedRange));
+        }
+        
         [Test]
         public void TestValueRanges()
         {
             {
                 RGBoolRange rng = new RGBoolRange(false, true);
+                TestRangeSerialization(rng);
                 Assert.IsFalse((bool)rng.MinValue);
                 Assert.IsTrue((bool)rng.MaxValue);
                 Assert.AreEqual(rng.NumValues, 2);
@@ -29,6 +41,7 @@ namespace Tests.Runtime
             }
             {
                 RGBoolRange rng = new RGBoolRange(true, true);
+                TestRangeSerialization(rng);
                 Assert.IsTrue((bool)rng.MinValue);
                 Assert.IsTrue((bool)rng.MaxValue);
                 Assert.AreEqual(rng.NumValues, 1);
@@ -36,6 +49,7 @@ namespace Tests.Runtime
             }
             {
                 RGIntRange rng = new RGIntRange(-1, 1);
+                TestRangeSerialization(rng);
                 Assert.AreEqual(rng.MinValue, -1);
                 Assert.AreEqual(rng.MaxValue, 1);
                 Assert.AreEqual(rng.NumValues, 3);
@@ -46,6 +60,7 @@ namespace Tests.Runtime
             {
                 RGVector2IntRange rng = new RGVector2IntRange(new Vector2Int(-2, -1), new Vector2Int(2, 1));
                 RGVector2IntRange rng2 = new RGVector2IntRange(new Vector2Int(-2, -1), new Vector2Int(2, 1));
+                TestRangeSerialization(rng);
                 Assert.IsTrue(rng.RangeEquals(rng2));
                 Assert.AreEqual(rng.Width, 5);
                 Assert.AreEqual(rng.Height, 3);
@@ -67,7 +82,45 @@ namespace Tests.Runtime
                 Assert.AreEqual(rng[14], new Vector2Int(2, 1));
             }
             {
+                RGVector3IntRange rng = new RGVector3IntRange(new Vector3Int(3, 0, -1), new Vector3Int(5, 2, 1));
+                RGVector3IntRange rng2 = new RGVector3IntRange(new Vector3Int(3, 0, -1), new Vector3Int(5, 2, 1));
+                TestRangeSerialization(rng);
+                Assert.IsTrue(rng.RangeEquals(rng2));
+                Assert.AreEqual(rng.Width, 3);
+                Assert.AreEqual(rng.Height, 3);
+                Assert.AreEqual(rng.Length, 3);
+                Assert.AreEqual(rng.NumValues, 27);
+                Assert.AreEqual(rng[0], new Vector3Int(3, 0, -1));
+                Assert.AreEqual(rng[1], new Vector3Int(4, 0, -1));
+                Assert.AreEqual(rng[2], new Vector3Int(5, 0, -1));
+                Assert.AreEqual(rng[3], new Vector3Int(3, 1, -1));
+                Assert.AreEqual(rng[4], new Vector3Int(4, 1, -1));
+                Assert.AreEqual(rng[5], new Vector3Int(5, 1, -1));
+                Assert.AreEqual(rng[6], new Vector3Int(3, 2, -1));
+                Assert.AreEqual(rng[7], new Vector3Int(4, 2, -1));
+                Assert.AreEqual(rng[8], new Vector3Int(5, 2, -1));
+                Assert.AreEqual(rng[9], new Vector3Int(3, 0, 0));
+                Assert.AreEqual(rng[10], new Vector3Int(4, 0, 0));
+                Assert.AreEqual(rng[11], new Vector3Int(5, 0, 0));
+                Assert.AreEqual(rng[12], new Vector3Int(3, 1, 0));
+                Assert.AreEqual(rng[13], new Vector3Int(4, 1, 0));
+                Assert.AreEqual(rng[14], new Vector3Int(5, 1, 0));
+                Assert.AreEqual(rng[15], new Vector3Int(3, 2, 0));
+                Assert.AreEqual(rng[16], new Vector3Int(4, 2, 0));
+                Assert.AreEqual(rng[17], new Vector3Int(5, 2, 0));
+                Assert.AreEqual(rng[18], new Vector3Int(3, 0, 1));
+                Assert.AreEqual(rng[19], new Vector3Int(4, 0, 1));
+                Assert.AreEqual(rng[20], new Vector3Int(5, 0, 1));
+                Assert.AreEqual(rng[21], new Vector3Int(3, 1, 1));
+                Assert.AreEqual(rng[22], new Vector3Int(4, 1, 1));
+                Assert.AreEqual(rng[23], new Vector3Int(5, 1, 1));
+                Assert.AreEqual(rng[24], new Vector3Int(3, 2, 1));
+                Assert.AreEqual(rng[25], new Vector3Int(4, 2, 1));
+                Assert.AreEqual(rng[26], new Vector3Int(5, 2, 1));
+            }
+            {
                 RGFloatRange rng = new RGFloatRange(-1.0f, 1.0f);
+                TestRangeSerialization(rng);
                 Assert.IsTrue(Mathf.Approximately((float)rng.MinValue, -1.0f));
                 Assert.IsTrue(Mathf.Approximately((float)rng.MaxValue, 1.0f));
 
@@ -79,6 +132,7 @@ namespace Tests.Runtime
             }
             {
                 RGVector2Range rng = new RGVector2Range(new Vector2(-1.0f, -1.0f), new Vector2(1.0f, 1.0f));
+                TestRangeSerialization(rng);
                 Assert.IsTrue(Mathf.Approximately(((Vector2)rng.MidPoint).x, 0.0f));
                 RGContinuousValueRange[] disc = rng.Discretize(4);
                 Assert.IsTrue(Mathf.Approximately(((Vector2)disc[0].MinValue).x, -1.0f));
@@ -104,15 +158,21 @@ namespace Tests.Runtime
             return null;
         }
 
-        private void FindAndPerformAction(string pathSuffix, object param)
+        private void FindAndPerformAction(string name, object param)
         {
             var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
-                actionInst.BaseAction.Paths[0].Last() == pathSuffix);
-            Debug.Assert(actionInst != null, $"Action {pathSuffix} is missing");
+                actionInst.BaseAction.DisplayName == name);
+            Debug.Assert(actionInst != null, $"Action {name} is missing");
             foreach (var inp in actionInst.GetInputs(param))
             {
                 inp.Perform();
             }
+        }
+
+        private void ResetInputSystem()
+        {
+            InputSystem.ResetDevice(Keyboard.current, true);
+            InputSystem.ResetDevice(MouseEventSender.GetMouse(), true);
         }
 
         [UnityTest]
@@ -135,27 +195,27 @@ namespace Tests.Runtime
             inputSysKeyListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Keyboard.current.anyKey", true);
+                FindAndPerformAction("Any Key", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current.anyKey.wasPressedThisFrame");
 
-                FindAndPerformAction("[key]", true);
+                FindAndPerformAction("Key fireKey", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "keyboard[key].isPressed");
                 
-                FindAndPerformAction("Keyboard.current.backslashKey", true);
+                FindAndPerformAction("Key Key.Backslash", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current.backslashKey.isPressed");
                 
-                FindAndPerformAction("keyboard.altKey", true);
+                FindAndPerformAction("Key Key.LeftAlt", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "keyboard.altKey.wasPressedThisFrame");
                 
-                FindAndPerformAction("[Key.F2]", true);
+                FindAndPerformAction("Key Key.F2", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Keyboard.current[Key.F2].isPressed");
@@ -167,23 +227,24 @@ namespace Tests.Runtime
             }
             
             // Test Legacy Input Manager Axis
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject legacyAxisListener = FindGameObject("LegacyAxisListener");
             legacyAxisListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.GetAxisRaw(\"Mouse X\")", 1);
+                FindAndPerformAction("Axis \"Mouse X\"", 1);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxisRaw(\"Mouse X\")");
                 
-                FindAndPerformAction("Input.GetAxis(\"Mouse ScrollWheel\")", 1);
+                FindAndPerformAction("Axis \"Mouse ScrollWheel\"", 1);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxis(\"Mouse ScrollWheel\")");
                 
-                FindAndPerformAction("Input.GetAxis(axis)", 1);
-                FindAndPerformAction("Input.GetAxis(axis) (2)", 1);
+                FindAndPerformAction("Axis axisName", 1);
+                FindAndPerformAction("Axis axisName2", 1);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetAxis(axis)");
@@ -195,25 +256,26 @@ namespace Tests.Runtime
             }
             
             // Test Legacy Input Manager Button 
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject legacyButtonListener = FindGameObject("LegacyButtonListener");
             legacyButtonListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.GetButton(ButtonName)", true);
+                FindAndPerformAction("Button ButtonName", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButton(ButtonName)");
                 
-                FindAndPerformAction("Input.GetButtonDown(btn)", true);
+                FindAndPerformAction("Button \"Fire1\"", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButtonDown(btn)");
                 
-                FindAndPerformAction("Input.GetButtonUp(\"Fire2\")", true);
+                FindAndPerformAction("Button \"Fire2\"", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.GetButtonUp(\"Fire2\")", false);
+                FindAndPerformAction("Button \"Fire2\"", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetButtonUp(\"Fire2\")");
@@ -225,41 +287,42 @@ namespace Tests.Runtime
             }
             
             // Test Legacy Input Manager Key
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject legacyKeyListener = FindGameObject("LegacyKeyListener");
             legacyKeyListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.anyKey", true);
+                FindAndPerformAction("Any Key", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.anyKey");
                 LogAssert.Expect(LogType.Log, "Input.anyKeyDown");
                 
-                FindAndPerformAction("Input.GetKey(crouchKey)", true);
+                FindAndPerformAction("Key _gameSettings.bindings.CrouchKey", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(crouchKey)");
                 
-                FindAndPerformAction("Input.GetKeyDown(_gameSettings.bindings.fireKey)", true);
+                FindAndPerformAction("Key _gameSettings.bindings.fireKey", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKeyDown(_gameSettings.bindings.fireKey)");
                 
-                FindAndPerformAction("Input.GetKeyUp(_gameSettings.bindings.jumpKey)", true);
+                FindAndPerformAction("Key _gameSettings.bindings.jumpKey", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.GetKeyUp(_gameSettings.bindings.jumpKey)", false);
+                FindAndPerformAction("Key _gameSettings.bindings.jumpKey", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
                 
-                FindAndPerformAction("Input.GetKey(aimKey)", true);
+                FindAndPerformAction("Key KeyCode.LeftShift", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(aimKey)");
                 
-                FindAndPerformAction("Input.GetKey(MOVE_RIGHT_KEY)", true);
+                FindAndPerformAction("Key MOVE_RIGHT_KEY", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetKey(MOVE_RIGHT_KEY)");
@@ -271,35 +334,36 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Button
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseBtnListener = FindGameObject("MouseBtnListener");
             mouseBtnListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.GetMouseButton(0)", true);
+                FindAndPerformAction("Mouse Button 0", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButton(0)");
                 
-                FindAndPerformAction("Input.GetMouseButtonDown(mouseBtn)", true);
+                FindAndPerformAction("Mouse Button mouseBtn", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonDown(mouseBtn)");
                 
-                FindAndPerformAction("Input.GetMouseButtonUp(btn)", true);
+                FindAndPerformAction("Mouse Button otherMouseBtn", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.GetMouseButtonUp(btn)", false);
+                FindAndPerformAction("Mouse Button otherMouseBtn", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonUp(btn)");
                 
-                FindAndPerformAction("Mouse.current.forwardButton", true);
+                FindAndPerformAction("Mouse Button 3", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Mouse.current.forwardButton.isPressed");
                 
-                FindAndPerformAction("mouse.backButton", true);
+                FindAndPerformAction("Mouse Button 4", true);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "mouse.backButton.wasPressedThisFrame");
@@ -311,21 +375,22 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Movement
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseMovementListener = FindGameObject("MouseMovementListener");
             mouseMovementListener.SetActive(true);
             try
             {
-                FindAndPerformAction("Input.mousePosition", new Vector2(0.1f, 0.1f));
+                FindAndPerformAction("Mouse Position", new Vector2(0.1f, 0.1f));
                 yield return null;
                 yield return null;
-                FindAndPerformAction("Input.mousePosition", new Vector2(0.8f, 0.7f));
+                FindAndPerformAction("Mouse Position", new Vector2(0.8f, 0.7f));
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos");
                 LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos");
 
-                FindAndPerformAction("Input.mouseScrollDelta", new Vector2Int(1, 1));
+                FindAndPerformAction("Mouse Scroll", new Vector2Int(1, 1));
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
@@ -338,13 +403,14 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Handlers
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseHandlerListener = FindGameObject("MouseHandlerListener");
             mouseHandlerListener.SetActive(true);
             try
             {
-                string hoverAction = "OnMouseOver";
-                string pressAction = "OnMouseDown";
+                string hoverAction = "Mouse Hover Over MouseHandlerObject";
+                string pressAction = "Mouse Press On MouseHandlerObject";
                 
                 FindAndPerformAction(hoverAction, true);
                 yield return null;
@@ -377,6 +443,7 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Raycast 2D
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseRaycast2DListener = FindGameObject("MouseRaycast2DListener");
             GameObject theSquare = FindGameObject("The_Square");
@@ -422,6 +489,7 @@ namespace Tests.Runtime
             }
             
             // Test Mouse Raycast 3D
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject mouseRaycast3DListener = FindGameObject("MouseRaycast3DListener");
             GameObject theCube = FindGameObject("The_Cube");
@@ -467,6 +535,7 @@ namespace Tests.Runtime
             }
             
             // Test UI button press
+            ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject theButton = FindGameObject("The_Button");
             theButton.SetActive(true);
@@ -484,6 +553,124 @@ namespace Tests.Runtime
             }
             finally
             {
+                theButton.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test interprocedural analysis
+            ResetInputSystem();
+            RGActionManager.StartSession(eventSys);
+            GameObject interprocObj = FindGameObject("InterprocListener");
+            interprocObj.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("Key jumpKeyCode", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Player jumped");
+            }
+            finally
+            {
+                interprocObj.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test triggering inputs handled via InputActionAsset and embedded InputAction
+            ResetInputSystem();
+            RGActionManager.StartSession(eventSys);
+            GameObject inputActionListener = FindGameObject("InputActionListener");
+            inputActionListener.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("InputAction Move", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "moveVal.sqrMagnitude");
+
+                FindAndPerformAction("InputAction Jump", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "jumpAction.IsPressed()");
+
+                FindAndPerformAction("InputAction Fire", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "fireAction pressed this frame");
+
+                FindAndPerformAction("InputAction Aim", new Vector2Int(-1, -1));
+                yield return null;
+                yield return null;
+                FindAndPerformAction("InputAction Aim", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Aim changed");
+            }
+            finally
+            {
+                inputActionListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test triggering inputs handled via InputActionAsset C# wrapper
+            ResetInputSystem();
+            RGActionManager.StartSession(eventSys);
+            GameObject csWrapperListener = FindGameObject("CsWrapperInputListener");
+            csWrapperListener.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("InputAction Crouch", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Crouch pressed");
+                
+                FindAndPerformAction("InputAction Horizontal", 1);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "horizVal > 0");
+                
+                FindAndPerformAction("InputAction Horizontal", -1);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "horizVal < 0");
+            }
+            finally
+            {
+                csWrapperListener.SetActive(false);
+                RGActionManager.StopSession();
+            }
+            
+            // Test triggering inputs handled via PlayerInput
+            ResetInputSystem();
+            RGActionManager.StartSession(eventSys);
+            GameObject playerInputListener = FindGameObject("PlayerInputListener");
+            playerInputListener.SetActive(true);
+            try
+            {
+                yield return null;
+                FindAndPerformAction("InputAction Move", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnMove()");
+                
+                FindAndPerformAction("InputAction Jump", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnJump()");
+                
+                FindAndPerformAction("InputAction Aim", new Vector2Int(-1, -1));
+                yield return null;
+                yield return null;
+                FindAndPerformAction("InputAction Aim", new Vector2Int(1, 1));
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "OnAim()");
+            }
+            finally
+            {
+                playerInputListener.SetActive(false);
                 RGActionManager.StopSession();
             }
         }
