@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.JsonConverters;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -21,7 +22,7 @@ namespace RegressionGames.ActionManager.Actions
         public UIInputFieldSubmitAction(string[] path, Type objectType, string normalizedGameObjectName) : 
             base(path, objectType, new RGBoolRange())
         {
-            Debug.Assert(typeof(InputField).IsAssignableFrom(objectType));
+            Debug.Assert(typeof(InputField).IsAssignableFrom(objectType) || typeof(TMP_InputField).IsAssignableFrom(objectType));
             NormalizedGameObjectName = normalizedGameObjectName;
         }
 
@@ -34,17 +35,30 @@ namespace RegressionGames.ActionManager.Actions
         
         public override bool IsValidForObject(Object obj)
         {
-            InputField inputField = (InputField)obj;
+            Selectable inputField = (Selectable)obj;
             
             string normName = UIObjectPressAction.GetNormalizedGameObjectName(inputField.gameObject.name);
             if (normName != NormalizedGameObjectName)
             {
                 return false;
             }
-
-            if (!inputField.isFocused)
+            
+            if (inputField is InputField legacyInputField)
             {
-                return false;
+                if (!legacyInputField.isFocused)
+                {
+                    return false;
+                }
+            } else if (inputField is TMP_InputField tmpInputField)
+            {
+                if (!tmpInputField.isFocused)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                throw new Exception("Unexpected object " + obj);
             }
 
             return true;

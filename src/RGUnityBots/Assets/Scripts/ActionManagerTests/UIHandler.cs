@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using TMPro;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace ActionManagerTests
@@ -61,7 +62,19 @@ namespace ActionManagerTests
         public void OnInputFieldSubmit()
         {
             InputField field = gameObject.GetComponent<InputField>();
-            Debug.Log(gameObject.name + " submitted with text " + field.text);
+            if (field != null)
+            {
+                Debug.Log(gameObject.name + " submitted with text " + field.text);
+            }
+        }
+
+        public void OnTMPInputFieldEndEdit()
+        {
+            TMP_InputField field = gameObject.GetComponent<TMP_InputField>();
+            if (field != null)
+            {
+                Debug.Log(gameObject.name + " submitted with text " + field.text);
+            }
         }
     }
 }

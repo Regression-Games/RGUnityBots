@@ -464,6 +464,27 @@
 "normalizedGameObjectName":"InputField"
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIObjectPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field (TMP)/Press/TMP_InputField"],
+"objectTypeName":"TMPro.TMP_InputField, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"TMP_InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIInputFieldTextEntryAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field (TMP)/Text Entry/TMP_InputField"],
+"objectTypeName":"TMPro.TMP_InputField, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":0,"maxValue":103},
+"normalizedGameObjectName":"TMP_InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIInputFieldSubmitAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field (TMP)/Text Submit/TMP_InputField"],
+"objectTypeName":"TMPro.TMP_InputField, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"TMP_InputField"
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["Unity UI/Button/LegacyButton.ClickedHandler"],
 "objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",

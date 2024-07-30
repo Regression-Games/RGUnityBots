@@ -547,7 +547,7 @@ namespace Tests.Runtime
                 "The_Button", "The_Toggle", 
                 "Slider_Horizontal", "Slider_Vertical", 
                 "Scrollbar_Horizontal", "Scrollbar_Vertical",
-                "Dropdown", "TMP_Dropdown", "InputField"
+                "Dropdown", "TMP_Dropdown", "InputField", "TMP_InputField"
             };
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -639,6 +639,31 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "InputField submitted with text Hello");
+                
+                // TextMeshPro InputField text entry
+                FindAndPerformAction("Press TMP_InputField", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press TMP_InputField", false);
+                yield return null;
+                yield return null;
+                (Key, bool)[] keyEntryTest2 = { (Key.W, true), (Key.O, false), (Key.R, false), (Key.L, false), (Key.D, false) };
+                foreach (var (key, shiftPressed) in keyEntryTest2)
+                {
+                    int keyIndex = (key - UIInputFieldTextEntryAction.MinKey) * 2;
+                    if (shiftPressed)
+                        keyIndex += 1;
+                    FindAndPerformAction("Text Entry TMP_InputField", UIInputFieldTextEntryAction.PARAM_FIRST_KEY + keyIndex);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Text Entry TMP_InputField", UIInputFieldTextEntryAction.PARAM_NULL);
+                    yield return null;
+                    yield return null;
+                }
+                FindAndPerformAction("Text Submit TMP_InputField", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "TMP_InputField submitted with text World");
                 
                 // Horizontal Slider Movement
                 FindAndPerformAction("Press Slider_Horizontal", 0.25f);
