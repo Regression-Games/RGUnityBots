@@ -1164,6 +1164,16 @@ namespace RegressionGames.ActionManager
                 string[] path = { "Unity UI", "TMP_Dropdown", normName };
                 AddAction(new UIObjectPressAction(path, typeof(TMP_Dropdown), normName), null);
             }
+            if (gameObject.TryGetComponent(out InputField _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] pathPress = { "Unity UI", "Input Field", "Press", normName };
+                string[] pathTextEntry = { "Unity UI", "Input Field", "Text Entry", normName };
+                string[] pathTextSubmit = { "Unity UI", "Input Field", "Text Submit", normName };
+                AddAction(new UIObjectPressAction(pathPress, typeof(InputField), normName), null);
+                AddAction(new UIInputFieldTextEntryAction(pathTextEntry, typeof(InputField), normName), null);
+                AddAction(new UIInputFieldSubmitAction(pathTextSubmit, typeof(InputField), normName), null);
+            }
             if (gameObject.TryGetComponent(out Slider _) && !IsRGOverlayObject(gameObject))
             {
                 string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);

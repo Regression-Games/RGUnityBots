@@ -73,14 +73,25 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        public static bool IsUIObjectPressed(Selectable uiComponent)
+        private static string GetUIObjectSelectionState(Selectable uiComponent)
         {
             if (_currentSelectionStateProperty == null)
             {
                 _currentSelectionStateProperty = typeof(Selectable).GetProperty("currentSelectionState", 
                     BindingFlags.NonPublic | BindingFlags.Instance);
             }
-            return _currentSelectionStateProperty.GetValue(uiComponent).ToString() == "Pressed";
+
+            return _currentSelectionStateProperty.GetValue(uiComponent).ToString();
+        }
+
+        public static bool IsUIObjectPressed(Selectable uiComponent)
+        {
+            return GetUIObjectSelectionState(uiComponent) == "Pressed";
+        }
+
+        public static bool IsUIObjectFocused(Selectable uiComponent)
+        {
+            return GetUIObjectSelectionState(uiComponent) is "Pressed" or "Selected";
         }
         
         // Mapping from keyboard property (Keyboard.current.<property>) to the associated key code

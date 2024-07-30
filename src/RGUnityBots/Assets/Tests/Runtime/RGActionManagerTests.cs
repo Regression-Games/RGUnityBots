@@ -548,7 +548,7 @@ namespace Tests.Runtime
                 "The_Button", "The_Toggle", 
                 "Slider_Horizontal", "Slider_Vertical", 
                 "Scrollbar_Horizontal", "Scrollbar_Vertical",
-                "Dropdown", "TMP_Dropdown"
+                "Dropdown", "TMP_Dropdown", "InputField"
             };
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -615,6 +615,34 @@ namespace Tests.Runtime
                 yield return null;
                 LogAssert.Expect(LogType.Log, "TMP_Dropdown value changed");
                 yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null);
+                
+                Debug.Log("Down start!");
+                // InputField text entry
+                FindAndPerformAction("Press InputField", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press InputField", false);
+                yield return null;
+                yield return null;
+                (Key, bool)[] keyEntryTest = { (Key.H, true), (Key.E, false), (Key.L, false), (Key.L, false), (Key.O, false) };
+                foreach (var (key, shiftPressed) in keyEntryTest)
+                {
+                    int keyIndex = (key - UIInputFieldTextEntryAction.MinKey) * 2;
+                    if (shiftPressed)
+                        keyIndex += 1;
+                    FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_FIRST_KEY + keyIndex);
+                    yield return null;
+                    yield return null;
+                }
+                FindAndPerformAction("Text Submit InputField", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Text Submit InputField", false);
+                yield return null;
+                yield return null;
+                for (;;)
+                    yield return null;
+                LogAssert.Expect(LogType.Log, "InputField submitted with text Hello");
                 
                 // Horizontal Slider Movement
                 FindAndPerformAction("Press Slider_Horizontal", 0.25f);

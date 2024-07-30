@@ -57,5 +57,11 @@ namespace ActionManagerTests
         {
             Debug.Log(gameObject.name + " value changed");
         }
+
+        public void OnInputFieldSubmit()
+        {
+            InputField field = gameObject.GetComponent<InputField>();
+            Debug.Log(gameObject.name + " submitted with text " + field.text);
+        }
     }
 }
