@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections;
 using System.Linq;
 using System.Text;
@@ -770,6 +769,7 @@ namespace Tests.Runtime
             }
             finally
             {
+                RGActionManager.StopSession();
                 inputActionListener.SetActive(false);
                 RGActionManager.StopSession();
             }
@@ -832,7 +832,6 @@ namespace Tests.Runtime
             finally
             {
                 playerInputListener.SetActive(false);
-                RGActionManager.StopSession();
             }
         }
     }
