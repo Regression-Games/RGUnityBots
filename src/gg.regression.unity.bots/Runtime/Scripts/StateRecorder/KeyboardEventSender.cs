@@ -19,7 +19,6 @@ namespace RegressionGames.StateRecorder
         private static Dictionary<Key, KeyState> _keyStates = new Dictionary<Key, KeyState>();
 
         private static bool _isInitialized = false;
-        private static bool _inputSystemUpdated = false; // flag used for waiting for the next input system update
 
         public static void Initialize()
         {
@@ -33,24 +32,12 @@ namespace RegressionGames.StateRecorder
         private static void OnAfterInputSystemUpdate()
         {
             _keyStates.Clear();
-            _inputSystemUpdated = true;
         }
 
         public static void Reset()
         {
             _isShiftDown = false;
             _keyStates.Clear();
-        }
-
-        private static IEnumerator WaitForInputSystemUpdate()
-        {
-            #if ENABLE_INPUT_SYSTEM
-            _inputSystemUpdated = false;
-            yield return new WaitUntil(() => _inputSystemUpdated);
-            #else
-            // If the input system is not in use, just wait for a single frame
-            yield return null;
-            #endif
         }
 
         /// <summary>
@@ -112,6 +99,11 @@ namespace RegressionGames.StateRecorder
             
             foreach (var (key, upOrDown) in keyStates)
             {
+                if (_keyStates.ContainsKey(key))
+                {
+                    RGDebug.LogWarning($"KeyboardEventSender - Multiple key events have been sent within one frame for {key}. Only the last state ({upOrDown}) will be kept.");
+                }
+            
                 _keyStates[key] = upOrDown;
                 
                 if (key == Key.LeftShift || key == Key.RightShift)
@@ -143,6 +135,11 @@ namespace RegressionGames.StateRecorder
             {
                 _isShiftDown = upOrDown == KeyState.Down;
             }
+
+            if (_keyStates.ContainsKey(key))
+            {
+                RGDebug.LogWarning($"KeyboardEventSender - Multiple key events have been sent within one frame for {key}. Only the last state ({upOrDown}) will be kept.");
+            }
             
             RGDebug.LogInfo($"({replaySegment}) Sending Key Event: {key} - {upOrDown}");
             
@@ -153,35 +150,6 @@ namespace RegressionGames.StateRecorder
             if (upOrDown == KeyState.Down)
             {
                 QueueTextEvent(replaySegment, key);
-            }
-        }
-
-        /**
-         * Coroutine to send key events in the given list.
-         * If the same key is encountered multiple times in the list, or the Shift key is encountered, this will
-         * schedule a new event to occur on the next input system update cycle.
-         */
-        public static IEnumerator SendKeyEvents(int replaySegment, IList<(Key, KeyState)> keyStateList)
-        {
-            Dictionary<Key, KeyState> keyStates = new();
-            foreach (var (key, upOrDown) in keyStateList)
-            {
-                if (key == Key.LeftShift || key == Key.RightShift || keyStates.ContainsKey(key))
-                {
-                    if (keyStates.Count > 0)
-                    {
-                        // send the current key states and start a new event after the input system update
-                        SendKeysInOneEvent(replaySegment, keyStates);
-                        yield return WaitForInputSystemUpdate();
-                        keyStates.Clear();
-                    }
-                }
-                keyStates[key] = upOrDown;
-            }
-            if (keyStates.Count > 0)
-            {
-                SendKeysInOneEvent(replaySegment, keyStates);
-                yield return WaitForInputSystemUpdate();
             }
         }
 
