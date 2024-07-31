@@ -22,12 +22,19 @@ The static analysis implementation is contained in the [RGActionAnalysis](../../
 
 A key design choice is that all the generated actions apply to a **single frame**. The final outcome of the action manager is the set of _immediate_ keyboard/mouse inputs that are applicable for a particular game frame (such as pressing/releasing keys, moving the mouse to a position, etc.).
 
+The analysis currently supports the following types of actions:
+1. Keyboard/mouse inputs handled via the Legacy Input Manager (`Input.GetAxis`, `Input.GetButton`, `Input.GetKey`, `Input.mousePosition`, etc.)
+2. Keyboard/mouse inputs handled via the new Input System (`Keyboard.current`, `Mouse.current`)
+3. Mouse input handled via MonoBehaviour callbacks (`OnMouseDown`, `OnMouseOver`, etc.)
+4. Actions defined via InputActions and InputActionAssets in the new Input System
+5. Unity UI (uGUI) interactable components (buttons, input fields, etc.)
+
 ## RGActionManager Usage
 
 The [RGActionManager](RGActionManager.cs) class is the public interface to Action Manager that offers the following capabilities:
 1. Iterating over the complete set of actions that were identified from the static analysis
 2. Obtaining the subset of actions that are valid for the current game state
-3. Obtaining the keyboard/mouse inputs needed to perform the actions
+3. Determining and simulating the appropriate keyboard/mouse inputs needed to perform the actions
 
 The following example code for a simple random exploration bot illustrates all of the above functionality:
 ```
@@ -70,7 +77,7 @@ public class RandomBot : MonoBehaviour, IRGBot
             validActions.Add(actionInstance);
         }
 
-        // Randomly select an action, generate a random parameter for it, and perform the identified inputs
+        // Randomly select an action, generate a random parameter for it, and simulate the appropriate inputs
         var chosenAction = validActions[UnityEngine.Random.Range(0, validActions.Count)]; 
         var actionParam = chosenAction.BaseAction.ParameterRange.RandomSample();
         foreach (RGActionInput input in chosenAction.GetInputs(actionParam))
@@ -87,8 +94,9 @@ public class RandomBot : MonoBehaviour, IRGBot
 }
 ```
 
-The above random bot implementation could be added in anywhere in the game's code and then deployed through the Regression Games Bot Manager overlay. However, in general the action manager API allows for performing multiple actions at once, and for some common actions such as mouse clicking it is good to have heuristics that prioritize certain sequences of actions. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is shipped as part of the Regression Games SDK and is always available through the overlay.
+The above random bot implementation could be added in anywhere in the game's code and then deployed through the Regression Games Bot Manager overlay. The above example is limited in some ways: the action manager API allows for performing multiple actions at once (the above example only does one action at a time), and for some common actions such as mouse clicks it is good to have heuristics that prioritize certain sequences of actions, such as releasing the mouse button over the same coordinate on the next frame. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is built into the Regression Games SDK and is always available through the overlay.
 
 ## Extending The Action Manager
+
 
 ## Example Bots
