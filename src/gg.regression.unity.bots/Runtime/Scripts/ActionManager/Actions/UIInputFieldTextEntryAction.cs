@@ -37,7 +37,7 @@ namespace RegressionGames.ActionManager.Actions
                 // Parameter 1 presses backspace and releases all others (PARAM_BACKSPACE)
                 // All even-numbered values afterwards are the key without any modifiers
                 // All odd-numbered values afterwards are the key while holding shift (e.g. upper-case, symbols)
-                new RGIntRange(0, 3 + (MaxKey - MinKey + 1)*2))
+                new RGIntRange(0, 2 + (MaxKey - MinKey + 1)*2))
         {
             Debug.Assert(typeof(InputField).IsAssignableFrom(objectType) || typeof(TMP_InputField).IsAssignableFrom(objectType));
             NormalizedGameObjectName = normalizedGameObjectName;
