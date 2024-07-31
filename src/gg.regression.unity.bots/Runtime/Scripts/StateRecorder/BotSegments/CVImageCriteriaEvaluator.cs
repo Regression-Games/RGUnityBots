@@ -222,7 +222,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                                 height = height,
                                                 data = imageData
                                             },
-                                            ImageRequestToMatch = criteriaData.imageData
+                                            imageToMatch = criteriaData.imageData
                                         },
                                         abortRegistrationHook:
                                         action =>
