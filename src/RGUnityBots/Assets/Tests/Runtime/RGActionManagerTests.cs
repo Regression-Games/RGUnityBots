@@ -696,38 +696,42 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Slider_Vertical changed to second half");
+
+                // Scrollbar tests do not work when running in the CI pipeline, only run these locally
+                if (!Application.isBatchMode)
+                {
+                    // Horizontal Scrollbar Movement
+                    FindAndPerformAction("Press Scrollbar_Horizontal", 0.25f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Horizontal", 0.25f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to first half");
+                    FindAndPerformAction("Press Scrollbar_Horizontal", 0.75f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Horizontal", 0.75f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to second half");
                 
-                // Horizontal Scrollbar Movement
-                FindAndPerformAction("Press Scrollbar_Horizontal", 0.25f);
-                yield return null;
-                yield return null;
-                FindAndPerformAction("Release Scrollbar_Horizontal", 0.25f);
-                yield return null;
-                yield return null;
-                LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to first half");
-                FindAndPerformAction("Press Scrollbar_Horizontal", 0.75f);
-                yield return null;
-                yield return null;
-                FindAndPerformAction("Release Scrollbar_Horizontal", 0.75f);
-                yield return null;
-                yield return null;
-                LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to second half");
-                
-                // Vertical Scrollbar Movement
-                FindAndPerformAction("Press Scrollbar_Vertical", 0.25f);
-                yield return null;
-                yield return null;
-                FindAndPerformAction("Release Scrollbar_Vertical", 0.25f);
-                yield return null;
-                yield return null;
-                LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to first half");
-                FindAndPerformAction("Press Scrollbar_Vertical", 0.75f);
-                yield return null;
-                yield return null;
-                FindAndPerformAction("Release Scrollbar_Vertical", 0.75f);
-                yield return null;
-                yield return null;
-                LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to second half");
+                    // Vertical Scrollbar Movement
+                    FindAndPerformAction("Press Scrollbar_Vertical", 0.25f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Vertical", 0.25f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to first half");
+                    FindAndPerformAction("Press Scrollbar_Vertical", 0.75f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Vertical", 0.75f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to second half");
+                }
             }
             finally
             {
