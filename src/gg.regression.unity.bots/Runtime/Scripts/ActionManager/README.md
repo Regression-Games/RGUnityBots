@@ -26,7 +26,7 @@ The analysis currently supports the following types of actions:
 1. Keyboard/mouse inputs handled via the Legacy Input Manager (`Input.GetAxis`, `Input.GetButton`, `Input.GetKey`, `Input.mousePosition`, etc.)
 2. Keyboard/mouse inputs handled via the new Input System (`Keyboard.current`, `Mouse.current`)
 3. Mouse input handled via MonoBehaviour callbacks (`OnMouseDown`, `OnMouseOver`, etc.)
-4. Actions defined via InputActions and InputActionAssets in the new Input System
+4. Keyboard/mouse actions defined via InputActions and InputActionAssets in the new Input System
 5. Unity UI (uGUI) interactable components (buttons, input fields, etc.)
 
 ## RGActionManager Usage
@@ -98,6 +98,11 @@ The above random bot implementation could be added in anywhere in the game's cod
 
 ## Extending The Action Manager
 
-
+To introduce support for a new action type in the action manager:
+1. Define the new action type in the [Actions](Actions) directory, following the pattern established by the existing actions.
+2. Add analysis code to [RGActionAnalysis](../../../Editor/Scripts/ActionManager/RGActionAnalysis.cs) that matches the appropriate code/resource pattern and calls the `AddAction` method to add the action to the analysis results.
+3. Add a Play Mode test case to [RGActionManagerTests.cs](../../../../RGUnityBots/Assets/Tests/Runtime/RGActionManagerTests) that verifies that the action's validity and inputs are correctly determined.
 
 ## Example Bots
+
+[RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) - Random testing bot that performs actions from the action manager and also includes some heuristics to prioritize some common sequences of actions (such as pressing down and releasing a mouse button over the same coordinate over the course of two frames)
