@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ActionManagerTests
 {
@@ -6,7 +7,11 @@ namespace ActionManagerTests
     {
         void Update()
         {
+            #if ENABLE_LEGACY_INPUT_MANAGER
             var mousePos = Input.mousePosition;
+            #else
+            var mousePos = Mouse.current.position.value;
+            #endif
             var worldPt = Camera.main.ScreenToWorldPoint(mousePos);
             var hit2D = Physics2D.Raycast(worldPt, Vector2.zero);
             if (hit2D.collider != null)

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if ENABLE_LEGACY_INPUT_MANAGER
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace RegressionGames.RGLegacyInputUtility
@@ -41,3 +42,4 @@ namespace RegressionGames.RGLegacyInputUtility
         }
     }
 }
+#endif

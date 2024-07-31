@@ -5,32 +5,43 @@ namespace ActionManagerTests
 {
     public class MouseMovementListeningObject : MonoBehaviour
     {
-        private Vector3 lastMousePos;
+        #if ENABLE_LEGACY_INPUT_MANAGER
+        private Vector3 lastMousePos1;
+        #endif
+        private Vector3 lastMousePos2;
 
         void Start()
         {
-            lastMousePos = Input.mousePosition;
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            lastMousePos1 = Input.mousePosition;
+            #endif
+            lastMousePos2 = Mouse.current.position.value;
         }
         
         void Update()
         {
+            #if ENABLE_LEGACY_INPUT_MANAGER
             Vector3 mousePos1 = Input.mousePosition;
+            if (mousePos1 != lastMousePos1)
+            {
+                Debug.Log("mousePos1 != lastMousePos1");
+            }
+            lastMousePos1 = mousePos1;
+            #endif
+            
             Vector3 mousePos2 = Mouse.current.position.value;
-            if (mousePos1 != lastMousePos)
+            if (mousePos2 != lastMousePos2)
             {
-                Debug.Log("mousePos1 != lastMousePos");
+                Debug.Log("mousePos2 != lastMousePos2");
             }
-            if (mousePos2 != lastMousePos)
-            {
-                Debug.Log("mousePos2 != lastMousePos");
-            }
+            lastMousePos2 = mousePos2;
 
-            lastMousePos = mousePos1;
-
+            #if ENABLE_LEGACY_INPUT_MANAGER
             if (Input.mouseScrollDelta.sqrMagnitude > 0.1f)
             {
                 Debug.Log("Input.mouseScrollDelta.sqrMagnitude");
             }
+            #endif
 
             if (Mouse.current.scroll.value.sqrMagnitude > 0.1f)
             {
