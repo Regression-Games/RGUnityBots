@@ -52,10 +52,10 @@ namespace RegressionGames
             }
         }
 
-        public async Task PostCriteriaImageDiscover(CVImageCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVImageResult>> onSuccess, Action onFailure)
+        public async Task PostCriteriaImageMatch(CVImageCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVImageResult>> onSuccess, Action onFailure)
         {
             await SendWebRequest(
-                uri: $"{GetCvServiceBaseUri()}/criteria-image-discover",
+                uri: $"{GetCvServiceBaseUri()}/criteria-image-match",
                 method: "POST",
                 payload: request.ToJsonString(),
                 abortRegistrationHook: abortRegistrationHook.Invoke,
@@ -151,9 +151,16 @@ namespace RegressionGames
                 // pass them back a hook to abort this request
                 await abortRegistrationHook.Invoke(() =>
                 {
-                    if (!task.webRequest.isDone)
+                    try
                     {
-                        task.webRequest.Abort();
+                        if (!task.webRequest.isDone)
+                        {
+                            task.webRequest.Abort();
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // we tried to help
                     }
                 });
                 RGDebug.LogVerbose($"<{messageId}> API request sent ...");

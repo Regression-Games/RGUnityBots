@@ -276,7 +276,24 @@ namespace RegressionGames.StateRecorder.BotSegments
                                             }
                                         }
                                     },
-                                    onFailure: () => { RGDebug.LogWarning("CVTextCriteriaEvaluator - failure invoking CVService text criteria evaluation"); });
+                                    onFailure: () =>
+                                    {
+                                        RGDebug.LogWarning($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService text criteria evaluation");
+                                        lock (_requestTracker)
+                                        {
+                                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
+                                            // make sure we haven't already cleaned this up
+                                            if (_resultTracker.ContainsKey(segmentNumber))
+                                            {
+                                                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
+                                                // store the result as empty so we know we finished, but won't pass
+                                                _resultTracker[segmentNumber] = new();
+                                                // cleanup the request tracker
+                                                _requestTracker.Remove(segmentNumber);
+                                                _priorResultsTracker.Remove(segmentNumber);
+                                            }
+                                        }
+                                    });
                                 RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - SENT");
                                 requestInProgress = true;
                             }

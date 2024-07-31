@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Text;
 using System.Threading;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
-using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
@@ -14,18 +12,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // update this if this schema changes
         public int apiVersion = SdkApiVersion.VERSION_9;
 
-        public Vector2Int resolution;
-
         /**
          * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
          */
-        public CVImageEncodedData imageData;
+        public string imageData;
+
+        public Vector2Int resolution;
         public RectInt? withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"imageData\":");
-            imageData.WriteToStringBuilder(stringBuilder);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, imageData);
             stringBuilder.Append(",\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"resolution\":");

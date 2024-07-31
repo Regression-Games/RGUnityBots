@@ -12,10 +12,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // update this if this schema changes
         public int apiVersion = SdkApiVersion.VERSION_8;
 
-        public Vector2Int resolution;
+
         public string text;
         public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
         public TextCaseRule textCaseRule = TextCaseRule.Matches;
+
+        public Vector2Int resolution;
         public RectInt? withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
