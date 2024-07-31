@@ -338,6 +338,11 @@ namespace RegressionGames.RGLegacyInputUtility
                     {
                         foreach (var keyCode in _newKeysDown)
                         {
+                            if (keyCode >= KeyCode.Mouse0 && keyCode <= KeyCode.Mouse6)
+                            {
+                                // ignore mouse buttons
+                                continue;
+                            }
                             Event evt = RGLegacyInputUtils.CreateUIKeyboardEvent(keyCode, _keysHeld);
                             foreach (var inputField in inputFields)
                             {
