@@ -14,7 +14,7 @@ Before the action manager can be used, a static analysis of the game actions mus
 
 ![Action Manager Panel](https://github.com/Regression-Games/RegressionDocs/blob/9bba4d4faa06e47c529506c68da3a3b60d33d8d2/docs/generic-bots/img/action-manager-panel-final.png)
 
-The result of the analysis produces a set of actions, each of which are associated with a component type. At this point the user can further configure the actions through the UI, for example disabling undesirable actions such as Pause/Quit buttons. The action analysis outcome is saved as a JSON resource in the game at `Assets/Resources/RGActionAnalysisResult.txt`, and the user's configuration is saved to `Assets/Resources/RGActionManagerSettings.txt`. Both of these can be commited to the game's repository and re-used by other developers/testers of the game. Both of these can be commited to the game's repository and re-used by other developers/testers of the game.
+The result of the analysis produces a set of actions, each of which are associated with a component type. At this point the user can further configure the actions through the UI, for example disabling undesirable actions such as Pause/Quit buttons. The action analysis outcome is saved as a JSON resource in the game at `Assets/Resources/RGActionAnalysisResult.txt`, and the user's configuration is saved to `Assets/Resources/RGActionManagerSettings.txt`. Both of these can be commited to the game's repository and re-used by other developers/testers of the game.
 
 During gameplay, when the bot requests the set of valid actions, an _instance_ of each action will be created for each active component in the scene that the action is associated with. This means that if the component is not present, the action will be considered invalid. 
 
@@ -94,9 +94,10 @@ public class RandomBot : MonoBehaviour, IRGBot
 }
 ```
 
-The above random bot implementation could be added in anywhere in the game's code and then deployed through the Regression Games Bot Manager overlay. The above example is limited in some ways: the action manager API allows for performing multiple actions at once (the above example only does one action at a time), and for some common actions such as mouse clicks it is good to have heuristics that prioritize certain sequences of actions, such as releasing the mouse button over the same coordinate on the next frame. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is built into the Regression Games SDK and is always available through the overlay.
+The above random bot implementation could be added in anywhere in the game's code and then deployed through the Regression Games Bot Manager overlay. The above example is limited in some ways: the action manager API allows for performing multiple actions at once (the above example only does one action at a time), and for some common actions such as mouse clicks it can improve performance to have heuristics that prioritize certain sequences of actions, such as pressing and releasing the mouse button over the same coordinate over two frames. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is built into the Regression Games SDK and is always available through the overlay.
 
 ## Extending The Action Manager
+
 
 
 ## Example Bots
