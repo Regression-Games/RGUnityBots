@@ -16,8 +16,6 @@ Before the action manager can be used, a static analysis of the game actions mus
 
 The result of the analysis produces a set of actions, each of which are associated with a component type. For example, it could recognize that a MonoBehaviour listens for a certain keyboard input and generate an action for that. At this point the user can further configure the actions through the UI, such as by disabling undesirable actions like Pause/Quit buttons. The action analysis outcome is saved as a JSON resource in the game at `Assets/Resources/RGActionAnalysisResult.txt`, and the user's configuration is saved to `Assets/Resources/RGActionManagerSettings.txt`. Both of these can be commited to the game's repository and re-used by other developers/testers of the game.
 
-During gameplay, the bot invokes the `RGActionManager.GetValidActions()` method to request the set of valid actions. An _instance_ of each action will be created for each active component in the scene that the action is associated with. This means that if the component is not present, the action will be considered invalid since it does not have any instances.
-
 The static analysis implementation is contained in the [RGActionAnalysis](../../../Editor/Scripts/ActionManager/RGActionAnalysis.cs) class. This is an analysis that associates keyboard/mouse input handlers found in the code (using the [Roslyn](https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/) code analysis SDK) with the components that listen for them and generates an [RGGameAction](RGGameAction.cs) for each identified action. It also iterates through all the scenes, game objects, and prefabs in the project to find Unity UI components and InputActionAssets (from the new Input System), generating appropriate actions for these as well.
 
 A key design choice is that all the generated actions apply to a **single frame**. The final outcome of the action manager is the set of _immediate_ keyboard/mouse inputs that are applicable for a particular game frame (such as pressing/releasing keys, moving the mouse to a position, etc.).
@@ -28,6 +26,8 @@ The analysis currently supports the following types of actions:
 3. Mouse input handled via MonoBehaviour callbacks (`OnMouseDown`, `OnMouseOver`, etc.)
 4. Keyboard/mouse actions defined via InputActions and InputActionAssets in the new Input System
 5. Unity UI (uGUI) interactable components (buttons, input fields, etc.)
+
+During gameplay, the bot invokes the `RGActionManager.GetValidActions()` method to request the set of valid actions. An _instance_ of each action will be created for each active component in the scene that the action is associated with. This means that if the component is not present, the action will be considered invalid since it does not have any instances.
 
 ## RGActionManager Usage
 
