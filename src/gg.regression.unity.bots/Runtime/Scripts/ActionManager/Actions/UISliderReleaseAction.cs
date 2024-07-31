@@ -21,7 +21,11 @@ namespace RegressionGames.ActionManager.Actions
         public UISliderReleaseAction(string[] path, Type objectType, string normalizedGameObjectName) : 
             base(path, objectType, new RGFloatRange(0.0f, 1.0f))
         {
-            Debug.Assert(typeof(Slider).IsAssignableFrom(objectType) || typeof(Scrollbar).IsAssignableFrom(objectType));
+            if (!(typeof(Slider).IsAssignableFrom(objectType) 
+                  || typeof(Scrollbar).IsAssignableFrom(objectType)))
+            {
+                throw new ArgumentException($"Expected Slider or Scrollbar, received {objectType}");
+            }
             NormalizedGameObjectName = normalizedGameObjectName;
         }
 

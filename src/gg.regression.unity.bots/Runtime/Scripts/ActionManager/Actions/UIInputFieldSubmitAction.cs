@@ -22,7 +22,11 @@ namespace RegressionGames.ActionManager.Actions
         public UIInputFieldSubmitAction(string[] path, Type objectType, string normalizedGameObjectName) : 
             base(path, objectType, new RGBoolRange())
         {
-            Debug.Assert(typeof(InputField).IsAssignableFrom(objectType) || typeof(TMP_InputField).IsAssignableFrom(objectType));
+            if (!(typeof(InputField).IsAssignableFrom(objectType) ||
+                  typeof(TMP_InputField).IsAssignableFrom(objectType)))
+            {
+                throw new ArgumentException($"Expected input field, received {objectType}");
+            }
             NormalizedGameObjectName = normalizedGameObjectName;
         }
 

@@ -33,7 +33,10 @@ namespace RegressionGames.ActionManager.Actions
         public UITogglePressAction(string[] path, Type objectType, string normalizedGameObjectName, string normalizedDropdownName = null) : 
             base(path, objectType, new RGBoolRange())
         {
-            Debug.Assert(typeof(Toggle).IsAssignableFrom(objectType));
+            if (!typeof(Toggle).IsAssignableFrom(objectType))
+            {
+                throw new ArgumentException($"Expected Toggle, received {objectType}");
+            }
             NormalizedGameObjectName = normalizedGameObjectName;
             NormalizedDropdownName = normalizedDropdownName;
         }

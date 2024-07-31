@@ -20,7 +20,10 @@ namespace RegressionGames.ActionManager.Actions
         public UIButtonPressAction(string[] path, Type objectType, string eventListenerName) : 
             base(path, objectType, new RGBoolRange())
         {
-            Debug.Assert(typeof(Button).IsAssignableFrom(objectType));
+            if (!typeof(Button).IsAssignableFrom(objectType))
+            {
+                throw new ArgumentException($"Expected button, received {objectType}");
+            }
             EventListenerName = eventListenerName;
         }
 

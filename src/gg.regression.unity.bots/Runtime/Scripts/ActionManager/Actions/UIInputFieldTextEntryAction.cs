@@ -39,7 +39,11 @@ namespace RegressionGames.ActionManager.Actions
                 // All odd-numbered values afterwards are the key while holding shift (e.g. upper-case, symbols)
                 new RGIntRange(0, 2 + (MaxKey - MinKey + 1)*2))
         {
-            Debug.Assert(typeof(InputField).IsAssignableFrom(objectType) || typeof(TMP_InputField).IsAssignableFrom(objectType));
+            if (!(typeof(InputField).IsAssignableFrom(objectType) ||
+                  typeof(TMP_InputField).IsAssignableFrom(objectType)))
+            {
+                throw new ArgumentException($"Expected input field, received {objectType}");
+            }
             NormalizedGameObjectName = normalizedGameObjectName;
         }
 

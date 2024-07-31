@@ -26,7 +26,10 @@ namespace RegressionGames.ActionManager.Actions
         public UIObjectPressAction(string[] path, Type objectType, string normalizedGameObjectName) : 
             base(path, objectType, new RGBoolRange())
         {
-            Debug.Assert(typeof(Selectable).IsAssignableFrom(objectType));
+            if (!typeof(Selectable).IsAssignableFrom(objectType))
+            {
+                throw new ArgumentException($"Expected Selectable, received {objectType}");
+            }
             NormalizedGameObjectName = normalizedGameObjectName;
         }
 
