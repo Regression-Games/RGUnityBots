@@ -7,7 +7,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
     public class CVImageCriteriaRequest
     {
         public CVImageBinaryData screenshot;
-        public CVImageEncodedData ImageRequestToMatch;
+        public CVImageEncodedData imageToMatch;
         // track the index in this bot segment for correlation of the responses
         public int index;
 
@@ -25,7 +25,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
             stringBuilder.Append("{\"screenshot\":");
             screenshot.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append(",\"imageToMatch\":");
-            ImageRequestToMatch.WriteToStringBuilder(stringBuilder);
+            imageToMatch.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append(",\"index\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, index);
             stringBuilder.Append("}");
