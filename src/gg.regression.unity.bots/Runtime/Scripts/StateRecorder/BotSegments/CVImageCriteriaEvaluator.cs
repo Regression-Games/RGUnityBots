@@ -92,7 +92,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 _resultTracker.TryGetValue(segmentNumber, out cvImageResults);
                 _priorResultsTracker.TryGetValue(segmentNumber, out priorResults);
-                var resultsString = cvImageResults == null ? "null":$"\n[{string.Join(",\n", cvImageResults.Select(pair => $"{pair.Key}:[{string.Join(",\n", pair.Value)}]"))}]";
+                var resultsString = cvImageResults == null ? "null":$"\n[{string.Join(",\n", cvImageResults.Select(pair => $"{pair.Key}:[{(pair.Value==null?"null":string.Join(",\n", pair.Value))}]"))}]";
                 if (cvImageResults != null)
                 {
                     RGDebug.LogDebug($"CVImageCriteriaEvaluator - Matched - botSegment: {segmentNumber} - cvImageResults: {resultsString}");
@@ -101,7 +101,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
             var criteriaListCount = criteriaList.Count;
 
-            if (priorResults == null && cvImageResults != null && cvImageResults.Count == criteriaListCount)
+            if (priorResults == null && cvImageResults != null && cvImageResults.Count == criteriaListCount && cvImageResults.All(cv => cv.Value != null))
             {
                 // Evaluate the results if we have them all for each criteria
                 for (var i = criteriaListCount - 1; i >= 0; i--)
@@ -112,7 +112,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     {
                         var criteriaData = criteria.data as CVImageKeyFrameCriteriaData;
 
-                        if (cvImageResults.TryGetValue(i, out var cvImageResultList) && cvImageResultList.Count > 0)
+                        if (cvImageResults.TryGetValue(i, out var cvImageResultList) && cvImageResultList is { Count: > 0 })
                         {
                             var withinRect = criteriaData.withinRect;
                             // we had the result for this criteria
@@ -213,7 +213,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
 
                                     // do NOT await this, let it run async
-                                    _ = CVServiceManager.GetInstance().PostCriteriaImageDiscover(
+                                    _ = CVServiceManager.GetInstance().PostCriteriaImageMatch(
                                         request: new CVImageCriteriaRequest()
                                         {
                                             screenshot = new CVImageBinaryData()
@@ -270,7 +270,27 @@ namespace RegressionGames.StateRecorder.BotSegments
                                         onFailure:
                                         () =>
                                         {
-                                            RGDebug.LogWarning($"CVImageCriteriaEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - failure invoking CVService image criteria evaluation");
+                                            RGDebug.LogWarning($"CVImageCriteriaEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - onFailure callback - failure invoking CVService image criteria evaluation");
+                                            lock (_requestTracker)
+                                            {
+                                                RGDebug.LogVerbose($"CVImageCriteriaEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - onFailure callback - insideLock");
+                                                // make sure we haven't already cleaned this up
+                                                if (_resultTracker.TryGetValue(segmentNumber, out var value))
+                                                {
+                                                    RGDebug.LogVerbose($"CVImageCriteriaEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - onFailure callback - storingResult");
+                                                    // store the result as no result so we know we 'finished', but won't pass this criteria yet
+                                                    value[index] = new();
+                                                    // cleanup the request tracker
+                                                    var reqSeg = _requestTracker[segmentNumber];
+                                                    reqSeg.Remove(index, out _);
+                                                    // last one to come back.. cleanup all the way
+                                                    if (reqSeg.Count == 0)
+                                                    {
+                                                        _priorResultsTracker.Remove(segmentNumber);
+                                                        _requestTracker.Remove(segmentNumber);
+                                                    }
+                                                }
+                                            }
 
                                         });
                                     RGDebug.LogVerbose($"CVImageCriteriaEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - SENT");

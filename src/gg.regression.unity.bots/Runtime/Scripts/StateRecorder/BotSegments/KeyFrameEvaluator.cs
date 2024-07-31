@@ -21,6 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             _priorKeyFrameTransformStatus.Clear();
             _priorKeyFrameEntityStatus.Clear();
             CVTextCriteriaEvaluator.Reset();
+            CVImageCriteriaEvaluator.Reset();
         }
 
         public string GetUnmatchedCriteria()
