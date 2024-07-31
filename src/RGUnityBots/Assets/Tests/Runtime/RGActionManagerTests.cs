@@ -854,6 +854,7 @@ namespace Tests.Runtime
             finally
             {
                 playerInputListener.SetActive(false);
+                RGActionManager.StopSession();
             }
         }
     }
