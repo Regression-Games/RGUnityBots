@@ -18,7 +18,7 @@ The result of the analysis produces a set of actions, each of which are associat
 
 The static analysis implementation is contained in the [RGActionAnalysis](../../../Editor/Scripts/ActionManager/RGActionAnalysis.cs) class. This is an analysis that associates keyboard/mouse input handlers found in the code (using the [Roslyn](https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/) code analysis SDK) with the components that listen for them and generates an [RGGameAction](RGGameAction.cs) for each identified action. It also iterates through all the scenes, game objects, and prefabs in the project to find Unity UI components and InputActionAssets (from the new Input System), generating appropriate actions for these as well.
 
-A key design choice is that all the generated actions apply to a **single frame**. The final outcome of the action manager is the set of _immediate_ keyboard/mouse inputs that are applicable for a particular game frame (such as pressing/releasing keys, moving the mouse to a position, etc.).
+A key design choice is that all the generated actions apply to a **single frame**. The final outcome of the action manager is the set of _immediate_ keyboard/mouse inputs that are applicable for the current game frame (such as pressing/releasing keys, moving the mouse to a position, etc.).
 
 The analysis currently supports the following types of actions:
 1. Keyboard/mouse inputs handled via the Legacy Input Manager (`Input.GetAxis`, `Input.GetButton`, `Input.GetKey`, `Input.mousePosition`, etc.)
@@ -27,7 +27,7 @@ The analysis currently supports the following types of actions:
 4. Keyboard/mouse actions defined via InputActions and InputActionAssets in the new Input System
 5. Unity UI (uGUI) interactable components (buttons, input fields, etc.)
 
-During gameplay, the bot invokes the `RGActionManager.GetValidActions()` method to request the set of valid actions. An _instance_ of each action will be created for each active component in the scene that the action is associated with. This means that if the component is not present, the action will be considered invalid since it does not have any instances.
+During gameplay, the bot invokes the `RGActionManager.GetValidActions()` method to request the set of valid actions, which is a subset of the full set of identified actions. An _instance_ of each action will be created for each active component in the scene that the action is associated with. This means that if the component is not present, the action will be considered invalid since it does not have any instances.
 
 ## RGActionManager Usage
 
@@ -77,7 +77,7 @@ public class RandomBot : MonoBehaviour, IRGBot
             validActions.Add(actionInstance);
         }
 
-        // Randomly select an action, generate a random parameter for it, and simulate the appropriate inputs
+        // Randomly select an action and a random parameter for it, then simulate the appropriate inputs
         var chosenAction = validActions[UnityEngine.Random.Range(0, validActions.Count)]; 
         var actionParam = chosenAction.BaseAction.ParameterRange.RandomSample();
         foreach (RGActionInput input in chosenAction.GetInputs(actionParam))
@@ -94,14 +94,14 @@ public class RandomBot : MonoBehaviour, IRGBot
 }
 ```
 
-The above random bot implementation could be added in anywhere in the game's code and then deployed through the Regression Games Bot Manager overlay. The above example is limited in some ways: the action manager API allows for performing multiple actions at once (the above example only does one action at a time), and for some common actions such as mouse clicks it can improve performance to have heuristics that prioritize certain sequences of actions, such as pressing and releasing the mouse button over the same coordinate over two frames. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is built into the Regression Games SDK and is always available through the overlay.
+The above example can be added to the game project and then deployed through the Regression Games Bot Manager overlay. The example is limited in some ways: the action manager API allows for performing multiple actions at once (the above example only does one action at a time), and for some common actions such as mouse clicks it can improve performance to have heuristics that prioritize certain sequences of actions, such as pressing and releasing the mouse button over the same coordinate over two frames. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is built into the Regression Games SDK and is always available through the overlay.
 
 ## Extending The Action Manager
 
 To introduce support for a new action type in the action manager:
 1. Define the new action type in the [Actions](Actions) directory, following the pattern established by the existing actions.
 2. Add analysis code to [RGActionAnalysis](../../../Editor/Scripts/ActionManager/RGActionAnalysis.cs) that matches the appropriate code/resource pattern and calls the `AddAction` method to add the action to the analysis results.
-3. Add a Play Mode test case to [RGActionManagerTests.cs](../../../../RGUnityBots/Assets/Tests/Runtime/RGActionManagerTests) that verifies that the action's validity and inputs are correctly determined.
+3. Add a Play Mode test case to [RGActionManagerTests.cs](../../../../RGUnityBots/Assets/Tests/Runtime/RGActionManagerTests.cs) that verifies that the action's validity and inputs are correctly determined.
 
 ## Example Bots
 
