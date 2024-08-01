@@ -1,6 +1,6 @@
 ﻿# Action Manager Technical Reference
 
-This document provides a technical reference Action Manager to enable developers to use and extend it for the purpose of creating generic bots that work with a wide variety of games.
+This document provides a technical reference for the Action Manager to enable developers to use and extend it for the purpose of creating generic bots that work with a wide variety of games.
 
 ## Overview
 
@@ -80,10 +80,13 @@ public class RandomBot : MonoBehaviour, IRGBot
         // Randomly select an action and a random parameter for it, then simulate the appropriate inputs
         var chosenAction = validActions[UnityEngine.Random.Range(0, validActions.Count)]; 
         var actionParam = chosenAction.BaseAction.ParameterRange.RandomSample();
-        foreach (RGActionInput input in chosenAction.GetInputs(actionParam))
-        {
-            input.Perform();
-        }
+	if (chosenAction.IsValidParameter(actionParam))
+	{
+		foreach (RGActionInput input in chosenAction.GetInputs(actionParam))
+		{
+			input.Perform();
+		}
+	}
     }
 
     void OnDestroy()
@@ -94,7 +97,7 @@ public class RandomBot : MonoBehaviour, IRGBot
 }
 ```
 
-The above example can be added to the game project and then deployed through the Regression Games Bot Manager overlay. The example is limited in some ways: the action manager API allows for performing multiple actions at once (the above example only does one action at a time), and for some common actions such as mouse clicks it can improve performance to have heuristics that prioritize certain sequences of actions, such as pressing and releasing the mouse button over the same coordinate over two frames. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is built into the Regression Games SDK and is always available through the overlay.
+The above example can be added to the game project and then deployed through the Regression Games Bot Manager overlay. The example is limited in various ways. For one, the action manager API allows for performing multiple actions at once, while the above example only does one action at a time. For some common actions such as mouse clicks it can improve performance to have heuristics that prioritize certain sequences of actions, such as pressing and releasing the mouse button over the same coordinate over two frames. Also, the `IsValidParameter` method could potentially return false, which could warrant making another attempt at randomly sampling the parameter space. An expanded version of this random bot can be found in the [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) implementation, which is built into the Regression Games SDK and is always available through the overlay.
 
 ## Extending The Action Manager
 
