@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
 {
@@ -8,6 +9,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
     {
         public CVImageBinaryData screenshot;
         public string imageToMatch;
+
+        /**
+         * <summary>Rect relative to the screenshot resolution</summary>
+         */
+        public RectInt? withinRect;
+
         // track the index in this bot segment for correlation of the responses
         public int index;
 
@@ -26,6 +33,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
             screenshot.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append(",\"imageToMatch\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, imageToMatch);
+            stringBuilder.Append(",\"withinRect\":");
+            RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append(",\"index\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, index);
             stringBuilder.Append("}");
