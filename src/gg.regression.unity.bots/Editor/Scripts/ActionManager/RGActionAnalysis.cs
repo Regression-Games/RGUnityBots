@@ -11,15 +11,19 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RegressionGames.ActionManager.Actions;
-using RegressionGames.Editor.RGLegacyInputUtility;
 using UnityEditor;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
+using RegressionGames.Editor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+using RegressionGames.Editor.RGLegacyInputUtility;
+#endif
 
 namespace RegressionGames.ActionManager
 {
@@ -87,13 +91,13 @@ namespace RegressionGames.ActionManager
         {
             _displayProgressBar = displayProgressBar;
         }
-
+        
         /// <summary>
         /// Returns the set of assembly names that should be ignored by the analysis
         /// </summary>
         private ISet<string> GetIgnoredAssemblyNames()
         {
-            Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
+            Assembly rgAssembly = RGEditorUtils.FindRGAssembly();
             Assembly rgEditorAssembly = FindRGEditorAssembly();
             if (rgAssembly == null || rgEditorAssembly == null)
             {
@@ -253,7 +257,7 @@ namespace RegressionGames.ActionManager
         /// </summary>
         private IEnumerable<SyntaxNode> FindDerivedUserInput(ExpressionSyntax expr)
         {
-            const int maxDepth = 5;
+            const int maxDepth = 10;
             ISet<SyntaxNode> visited = new HashSet<SyntaxNode>();
             IEnumerable<SyntaxNode> Search(SyntaxNode node, int depth)
             {
@@ -275,7 +279,7 @@ namespace RegressionGames.ActionManager
                         else
                         {
                             var type = FindType(sym.ContainingType);
-                            if (type == typeof(Input) || type == typeof(InputControl))
+                            if (type == typeof(Input) || typeof(InputControl).IsAssignableFrom(type))
                             {
                                 yield return node;
                                 yield break; // no need to examine children
@@ -623,6 +627,7 @@ namespace RegressionGames.ActionManager
                 // Legacy input manager
                 if (containingType == typeof(UnityEngine.Input))
                 {
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     string methodName = methodSymbol.Name;
                     switch (methodName)
                     {
@@ -681,7 +686,9 @@ namespace RegressionGames.ActionManager
                             break;
                         }
                     }
-                } else if (containingType == typeof(Physics) || containingType == typeof(Physics2D))
+                    #endif
+                } 
+                else if (containingType == typeof(Physics) || containingType == typeof(Physics2D))
                 {
                     MousePositionType posType = containingType == typeof(Physics)
                         ? MousePositionType.COLLIDER_3D
@@ -788,6 +795,7 @@ namespace RegressionGames.ActionManager
                 var type = FindType(propSym.ContainingType);
                 if (type == typeof(UnityEngine.Input))
                 {
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     switch (propSym.Name)
                     {
                         // Input.anyKey, Input.anyKeyDown
@@ -815,6 +823,7 @@ namespace RegressionGames.ActionManager
                             break;
                         }
                     }
+                    #endif
                 } else if (type == typeof(Keyboard))
                 {
                     var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
@@ -906,6 +915,7 @@ namespace RegressionGames.ActionManager
                 var declSym = _currentModel.GetDeclaredSymbol(node);
                 if (declSym.Parameters.Length == 0)
                 {
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     switch (declSym.Name)
                     {
                         // OnMouseOver(), OnMouseEnter(), OnMouseExit() handler
@@ -929,6 +939,7 @@ namespace RegressionGames.ActionManager
                             break;
                         }
                     }
+                    #endif
                 }
             }
         }
