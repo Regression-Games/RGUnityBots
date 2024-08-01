@@ -1,4 +1,4 @@
-﻿
+﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -109,3 +109,4 @@ namespace RegressionGames.RGLegacyInputUtility
         }
     }
 }
+#endif

@@ -15,7 +15,7 @@
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePositionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseRaycast2DObject/MouseRaycast2DObject.cs:8:27:8:46/Input.mousePosition/ActionManagerTests.MouseRaycast2DObject/MouseRaycast2DObject.cs:10:24:10:64/Physics2D.Raycast(worldPt, Vector2.zero)"],
+"paths":["ActionManagerTests.MouseRaycast2DObject/MouseRaycast2DObject.cs:10:27:10:46/Input.mousePosition/ActionManagerTests.MouseRaycast2DObject/MouseRaycast2DObject.cs:15:24:15:64/Physics2D.Raycast(worldPt, Vector2.zero)"],
 "objectTypeName":"ActionManagerTests.MouseRaycast2DObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_VECTOR2","minValueX":0,"minValueY":0,"maxValueX":1,"maxValueY":1},
 "positionType":"COLLIDER_2D"
@@ -56,14 +56,14 @@
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePositionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:11:27:11:46/Input.mousePosition","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:16:32:16:51/Input.mousePosition","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:17:32:17:54/Mouse.current.position"],
+"paths":["ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:15:28:15:47/Input.mousePosition","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:17:28:17:50/Mouse.current.position","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:23:32:23:51/Input.mousePosition","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:31:32:31:54/Mouse.current.position"],
 "objectTypeName":"ActionManagerTests.MouseMovementListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_VECTOR2","minValueX":0,"minValueY":0,"maxValueX":1,"maxValueY":1},
 "positionType":"NON_UI"
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseScrollAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:29:16:29:38/Input.mouseScrollDelta","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:34:16:34:36/Mouse.current.scroll"],
+"paths":["ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:39:16:39:38/Input.mouseScrollDelta","ActionManagerTests.MouseMovementListeningObject/MouseMovementListeningObject.cs:45:16:45:36/Mouse.current.scroll"],
 "objectTypeName":"ActionManagerTests.MouseMovementListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_VECTOR2_INT","minValueX":-1,"minValueY":-1,"maxValueX":1,"maxValueY":1}
 },
@@ -124,7 +124,7 @@
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MousePositionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseRaycast3DObject/MouseRaycast3DObject.cs:10:27:10:46/Input.mousePosition/ActionManagerTests.MouseRaycast3DObject/MouseRaycast3DObject.cs:12:16:12:76/Physics.Raycast(ray, out var hit, Mathf.Infinity, layerMask)"],
+"paths":["ActionManagerTests.MouseRaycast3DObject/MouseRaycast3DObject.cs:12:27:12:46/Input.mousePosition/ActionManagerTests.MouseRaycast3DObject/MouseRaycast3DObject.cs:17:16:17:76/Physics.Raycast(ray, out var hit, Mathf.Infinity, layerMask)"],
 "objectTypeName":"ActionManagerTests.MouseRaycast3DObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_VECTOR2","minValueX":0,"minValueY":0,"maxValueX":1,"maxValueY":1},
 "positionType":"COLLIDER_3D",
@@ -134,7 +134,7 @@
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.LegacyKeyAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.InterprocObject/InterprocObject.cs:8:12:8:49/InputUtil.CheckPlayerJump(gameObject)/ActionManagerTests.InputUtil/InputUtil.cs:15:16:15:32/ReadPlayerJump()/ActionManagerTests.InputUtil/InputUtil.cs:10:19:10:44/Input.GetKey(jumpKeyCode)/jumpKeyCode"],
+"paths":["ActionManagerTests.InterprocObject/InterprocObject.cs:8:12:8:49/InputUtil.CheckPlayerJump(gameObject)/ActionManagerTests.InputUtil/InputUtil.cs:24:16:24:32/ReadPlayerJump()/ActionManagerTests.InputUtil/InputUtil.cs:16:19:16:44/Input.GetKey(jumpKeyCode)/jumpKeyCode"],
 "objectTypeName":"ActionManagerTests.InterprocObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "keyCodeFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.InputUtil, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"jumpKeyCode\"}]}"}
@@ -256,35 +256,35 @@
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:12:16:12:39/Input.GetMouseButton(0)/0"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:13:16:13:39/Input.GetMouseButton(0)/0"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"0"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:17:16:17:50/Input.GetMouseButtonDown(mouseBtn)/mouseBtn"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:18:16:18:50/Input.GetMouseButtonDown(mouseBtn)/mouseBtn"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"mouseBtn\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:23:16:23:43/Input.GetMouseButtonUp(btn)/otherMouseBtn"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:24:16:24:43/Input.GetMouseButtonUp(btn)/otherMouseBtn"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_MEMBER_ACCESS","data":"{\"MemberAccesses\":[{\"MemberType\":4,\"DeclaringType\":\"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\",\"MemberName\":\"otherMouseBtn\"}]}"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:28:16:28:43/Mouse.current.forwardButton"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:30:16:30:43/Mouse.current.forwardButton"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"3"}
 },
     {
 "actionTypeName":"RegressionGames.ActionManager.Actions.MouseButtonAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:34:16:34:32/mouse.backButton"],
+"paths":["ActionManagerTests.MouseBtnListeningObject/MouseBtnListeningObject.cs:36:16:36:32/mouse.backButton"],
 "objectTypeName":"ActionManagerTests.MouseBtnListeningObject, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
 "mouseButtonFunc":{"funcType":"TYPE_CONSTANT","data":"4"}

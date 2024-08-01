@@ -1,4 +1,5 @@
-﻿#if UNITY_EDITOR
+﻿#if ENABLE_LEGACY_INPUT_MANAGER
+#if UNITY_EDITOR
 using System.Linq;
 using System.IO;
 using UnityEngine;
@@ -24,4 +25,5 @@ namespace RegressionGames.RGLegacyInputUtility
         }
     }
 }
+#endif
 #endif
