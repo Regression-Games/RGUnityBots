@@ -243,22 +243,22 @@ namespace RegressionGames.RGLegacyInputUtility
             }
         }
 
-        public static Event CreateUIKeyboardEvent(KeyCode keyCode, ISet<KeyCode> keysHeld)
+        public static Event CreateUIKeyboardEvent(KeyCode keyCode, bool isShiftDown, bool isCommandDown, bool isAltDown, bool isControlDown)
         {
             Event evt = new Event(0) { type = EventType.KeyDown };
-            if (keysHeld.Contains(KeyCode.LeftShift) || keysHeld.Contains(KeyCode.RightShift))
+            if (isShiftDown)
             {
                 evt.modifiers |= EventModifiers.Shift;
             }
-            if (keysHeld.Contains(KeyCode.LeftCommand) || keysHeld.Contains(KeyCode.RightCommand))
+            if (isCommandDown)
             {
                 evt.modifiers |= EventModifiers.Command;
             }
-            if (keysHeld.Contains(KeyCode.LeftAlt) || keysHeld.Contains(KeyCode.RightAlt))
+            if (isAltDown)
             {
                 evt.modifiers |= EventModifiers.Alt;
             }
-            if (keysHeld.Contains(KeyCode.LeftControl) || keysHeld.Contains(KeyCode.RightControl))
+            if (isControlDown)
             {
                 evt.modifiers |= EventModifiers.Control;
             }

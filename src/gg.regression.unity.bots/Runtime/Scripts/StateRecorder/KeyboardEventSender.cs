@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder.Models;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder
 {
@@ -66,6 +68,15 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        /// <summary>
+        /// Returns whether the key is already pressed or has a pending state change to be pressed
+        /// </summary>
+        private static bool IsKeyPressedOrPending(Key key)
+        {
+            return Keyboard.current[key].isPressed
+                   || (_keyStates.TryGetValue(key, out KeyState state) && state == KeyState.Down);
+        }
+
         private static void QueueTextEvent(int replaySegment, Key key)
         {
             // send a text event so that 'onChange' text events fire
@@ -82,6 +93,34 @@ namespace RegressionGames.StateRecorder
                 var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, InputState.currentTime);
                 RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
                 InputSystem.QueueEvent(ref inputEvent);
+            }
+            
+            // If there are active UI input fields, simulate a KeyDown UI event for newly pressed keys
+            // This simulation is done directly on the components, because there is no way to directly queue the event to Unity's event manager
+            var inputFields = UnityEngine.Object.FindObjectsOfType<InputField>();
+            var tmpInputFields = UnityEngine.Object.FindObjectsOfType<TMP_InputField>();
+            if (inputFields.Length > 0 || tmpInputFields.Length > 0)
+            {
+                var keyCode = RGLegacyInputUtils.InputSystemKeyToKeyCode(key);
+                Event evt = RGLegacyInputUtils.CreateUIKeyboardEvent(keyCode, 
+                    isShiftDown: _isShiftDown,
+                    isCommandDown: IsKeyPressedOrPending(Key.LeftCommand) || IsKeyPressedOrPending(Key.RightCommand),
+                    isAltDown: IsKeyPressedOrPending(Key.LeftAlt) || IsKeyPressedOrPending(Key.RightAlt),
+                    isControlDown: IsKeyPressedOrPending(Key.LeftCtrl) || IsKeyPressedOrPending(Key.RightCtrl));
+                foreach (var inputField in inputFields)
+                {
+                    if (inputField.isFocused)
+                    {
+                        RGLegacyInputUtils.SendKeyEventToInputField(evt, inputField);
+                    }
+                }
+                foreach (var tmpInputField in tmpInputFields)
+                {
+                    if (tmpInputField.isFocused)
+                    {
+                        RGLegacyInputUtils.SendKeyEventToInputField(evt, tmpInputField);
+                    }
+                }
             }
         }
 
