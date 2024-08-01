@@ -226,6 +226,7 @@ namespace Tests.Runtime
                 RGActionManager.StopSession();
             }
             
+            #if ENABLE_LEGACY_INPUT_MANAGER
             // Test Legacy Input Manager Axis
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -332,6 +333,7 @@ namespace Tests.Runtime
                 legacyKeyListener.SetActive(false);
                 RGActionManager.StopSession();
             }
+            #endif
             
             // Test Mouse Button
             ResetInputSystem();
@@ -340,6 +342,7 @@ namespace Tests.Runtime
             mouseBtnListener.SetActive(true);
             try
             {
+                #if ENABLE_LEGACY_INPUT_MANAGER
                 FindAndPerformAction("Mouse Button 0", true);
                 yield return null;
                 yield return null;
@@ -357,6 +360,7 @@ namespace Tests.Runtime
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonUp(btn)");
+                #endif
                 
                 FindAndPerformAction("Mouse Button 3", true);
                 yield return null;
@@ -387,13 +391,17 @@ namespace Tests.Runtime
                 FindAndPerformAction("Mouse Position", new Vector2(0.8f, 0.7f));
                 yield return null;
                 yield return null;
-                LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos");
-                LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos");
+                #if ENABLE_LEGACY_INPUT_MANAGER
+                LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos1");
+                #endif
+                LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos2");
 
                 FindAndPerformAction("Mouse Scroll", new Vector2Int(1, 1));
                 yield return null;
                 yield return null;
+                #if ENABLE_LEGACY_INPUT_MANAGER
                 LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
+                #endif
                 LogAssert.Expect(LogType.Log, "Mouse.current.scroll.value.sqrMagnitude");
             }
             finally
@@ -402,6 +410,7 @@ namespace Tests.Runtime
                 RGActionManager.StopSession();
             }
             
+            #if ENABLE_LEGACY_INPUT_MANAGER
             // Test Mouse Handlers
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -441,6 +450,7 @@ namespace Tests.Runtime
                 mouseHandlerListener.SetActive(false);
                 RGActionManager.StopSession();
             }
+            #endif
             
             // Test Mouse Raycast 2D
             ResetInputSystem();

@@ -145,16 +145,19 @@ namespace RegressionGames.ActionManager
             }
             _context = context;
             _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
-            InitInputState();
 
             if (DoesContextNeedSetUp())
             {
+                #if ENABLE_LEGACY_INPUT_MANAGER
                 RGLegacyInputWrapper.StartSimulation(_context);
+                #endif
                 KeyboardEventSender.Initialize();
                 SceneManager.sceneLoaded += OnSceneLoad;
                 RGUtils.SetupEventSystem();
                 RGUtils.ConfigureInputSettings();
             }
+            
+            InitInputState();
         }
 
         /// <summary>
@@ -167,7 +170,9 @@ namespace RegressionGames.ActionManager
                 if (DoesContextNeedSetUp())
                 {
                     SceneManager.sceneLoaded -= OnSceneLoad;
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     RGLegacyInputWrapper.StopSimulation();
+                    #endif
                     RGUtils.RestoreInputSettings();
                 }
                 _sessionActions = null;
@@ -268,12 +273,23 @@ namespace RegressionGames.ActionManager
             MouseEventSender.SendRawPositionMouseEvent(-1, mousePos);
 
             _mousePosition = mousePos;
+            
+            #if ENABLE_LEGACY_INPUT_MANAGER
             _mouseScroll = RGLegacyInputWrapper.mouseScrollDelta;
             _leftMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse0);
             _middleMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse2);
             _rightMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse1);
             _forwardMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse3);
             _backMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse4);
+            #else
+            _mouseScroll = Mouse.current.delta.value;
+            _leftMouseButton = Mouse.current.leftButton.isPressed;
+            _middleMouseButton = Mouse.current.middleButton.isPressed;
+            _rightMouseButton = Mouse.current.rightButton.isPressed;
+            _forwardMouseButton = Mouse.current.forwardButton.isPressed;
+            _backMouseButton = Mouse.current.backButton.isPressed;
+            #endif
+            
             CurrentEventSystems = new List<EventSystem>();
         }
 
