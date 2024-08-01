@@ -20,6 +20,8 @@ using Newtonsoft.Json;
 using RegressionGames.Editor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 #if ENABLE_LEGACY_INPUT_MANAGER
 using RegressionGames.Editor.RGLegacyInputUtility;
