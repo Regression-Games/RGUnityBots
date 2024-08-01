@@ -211,6 +211,20 @@ namespace RegressionGames.StateRecorder.BotSegments
                                         resValue[index] = null;
                                     }
 
+                                    RectInt? withinRect = null;
+
+                                    if (criteriaData.withinRect != null)
+                                    {
+                                        // compute the relative withinRect for the request
+                                        var xScale = width / criteriaData.withinRect.screenSize.x;
+                                        var yScale = height / criteriaData.withinRect.screenSize.y;
+                                        withinRect = new RectInt(
+                                            Mathf.FloorToInt(xScale * criteriaData.withinRect.rect.x),
+                                            Mathf.FloorToInt(yScale * criteriaData.withinRect.rect.y),
+                                            Mathf.FloorToInt(xScale * criteriaData.withinRect.rect.width),
+                                            Mathf.FloorToInt(yScale * criteriaData.withinRect.rect.height)
+                                            );
+                                    }
 
                                     // do NOT await this, let it run async
                                     _ = CVServiceManager.GetInstance().PostCriteriaImageMatch(
@@ -222,7 +236,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                                                 height = height,
                                                 data = imageData
                                             },
-                                            imageToMatch = criteriaData.imageData
+                                            imageToMatch = criteriaData.imageData,
+                                            withinRect = withinRect
                                         },
                                         abortRegistrationHook:
                                         action =>
