@@ -2,6 +2,7 @@
 using System.Text;
 using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder.BotSegments.Models;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
@@ -10,15 +11,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVTextKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_8;
-
+        public int apiVersion = SdkApiVersion.VERSION_9;
 
         public string text;
         public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
         public TextCaseRule textCaseRule = TextCaseRule.Matches;
 
-        public Vector2Int resolution;
-        public RectInt? withinRect;
+        public CVWithinRect withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -30,10 +29,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textMatchingRule.ToString());
             stringBuilder.Append(",\"textCaseRule\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
-            stringBuilder.Append(",\"resolution\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, resolution);
             stringBuilder.Append(",\"withinRect\":");
-            RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
+            withinRect.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
         }
 
