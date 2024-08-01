@@ -24,7 +24,15 @@ namespace RegressionGames.StateRecorder
 
         public static void Reset()
         {
-            _mouseEventHandler?.Dispose();
+            try
+            {
+                _mouseEventHandler?.Dispose();
+            }
+            catch (Exception)
+            {
+                // do nothing
+            }
+
             _mouseEventHandler = null;
         }
 

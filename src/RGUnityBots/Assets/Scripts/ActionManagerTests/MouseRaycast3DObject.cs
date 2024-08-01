@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ActionManagerTests
 {
@@ -8,7 +9,11 @@ namespace ActionManagerTests
         
         void Update()
         {
+            #if ENABLE_LEGACY_INPUT_MANAGER
             var mousePos = Input.mousePosition;
+            #else
+            var mousePos = Mouse.current.position.value;
+            #endif
             var ray = Camera.main.ScreenPointToRay(mousePos);
             if (Physics.Raycast(ray, out var hit, Mathf.Infinity, layerMask))
             {

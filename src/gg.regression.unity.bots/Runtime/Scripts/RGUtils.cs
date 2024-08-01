@@ -84,7 +84,11 @@ namespace RegressionGames
             {
                 BaseInputModule inputModule = eventSystem.gameObject
                     .GetComponents<BaseInputModule>()
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     .FirstOrDefault(module => module is not RGStandaloneInputModule);
+                    #else
+                    .FirstOrDefault();
+                    #endif
                 
                 // If there is no module, add the appropriate input module so that the replay can simulate UI inputs.
                 // If both the new and old input systems are active, prefer the new input system's UI module.

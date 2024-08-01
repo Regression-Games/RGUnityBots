@@ -2,44 +2,55 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RegressionGames.ActionManager.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ActionManager
 {
-    public abstract class RGGameAction
+    [JsonConverter(typeof(RGGameActionJsonConverter))]
+    public abstract class RGGameAction : ICloneable
     {
         
         /// The path of the action, typically derived from
         /// the location where the associated input handling logic takes place.
         /// An action may have multiple paths if multiple code locations were inferred to
         /// have equivalent actions by IsEquivalentTo and were grouped together.
-        public List<string[]> Paths { get; private set; }
+        public List<string[]> Paths { get; set; }
         
         /// The type of object that the action is associated with.
         /// The object must be derived from UnityEngine.Object, and
         /// all instances of the object should be retrievable via
         /// UnityEngine.Object.FindObjectsOfType(ObjectType).
-        public Type ObjectType { get; private set; }
+        public Type ObjectType { get; set; }
         
          /// The range of parameter values accepted by this action's
          /// Perform() method.
-        public abstract IRGValueRange ParameterRange { get; }
+        public IRGValueRange ParameterRange { get; set; }
 
          /// The name of this action as it should be displayed when presented to the user.
         public abstract string DisplayName { get; }
 
-        public RGGameAction(string[] path, Type objectType)
+        public RGGameAction(string[] path, Type objectType, IRGValueRange paramRange)
         {
             Paths = new List<string[]> { path };
             ObjectType = objectType;
+            ParameterRange = paramRange;
         }
 
         public RGGameAction(JObject serializedAction)
         {
             JArray paths = (JArray)serializedAction["paths"];
             Paths = new List<string[]>(paths.Select(path => path.ToString().Split("/")));
-            ObjectType = Type.GetType(serializedAction["objectTypeName"].ToString(), true);
+
+            var objectTypeName = serializedAction["objectTypeName"];
+            if (objectTypeName.Type != JTokenType.Null)
+            {
+                ObjectType = Type.GetType(objectTypeName.ToString(), true);
+            }
+
+            ParameterRange = serializedAction["parameterRange"].ToObject<IRGValueRange>();
         }
 
         /// <summary>
@@ -92,7 +103,9 @@ namespace RegressionGames.ActionManager
                 }
             }
             stringBuilder.Append("],\n\"objectTypeName\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, ObjectType.AssemblyQualifiedName);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, ObjectType?.AssemblyQualifiedName);
+            stringBuilder.Append(",\n\"parameterRange\":");
+            ParameterRange.WriteToStringBuilder(stringBuilder);
             WriteParametersToStringBuilder(stringBuilder);
             stringBuilder.Append("\n}");
         }
@@ -115,6 +128,14 @@ namespace RegressionGames.ActionManager
             yield return ("Target Object Type", ObjectType.FullName);
 
             yield return ("Parameter Range", ParameterRange.ToString());
+        }
+
+        public object Clone()
+        {
+            // Clone via serialization/deserialization
+            StringBuilder stringBuilder = new StringBuilder();
+            WriteToStringBuilder(stringBuilder);
+            return JsonConvert.DeserializeObject<RGGameAction>(stringBuilder.ToString(), new RGGameActionJsonConverter());
         }
     }
 

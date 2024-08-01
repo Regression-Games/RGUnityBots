@@ -11,15 +11,19 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RegressionGames.ActionManager.Actions;
-using RegressionGames.Editor.RGLegacyInputUtility;
 using UnityEditor;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
+using RegressionGames.Editor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+using RegressionGames.Editor.RGLegacyInputUtility;
+#endif
 
 namespace RegressionGames.ActionManager
 {
@@ -33,23 +37,36 @@ namespace RegressionGames.ActionManager
         public int EndLineNumber { get; }
         public string Message { get; }
 
-        public RGActionAnalysisWarning(SyntaxNode node, string message)
+        public RGActionAnalysisWarning(string message, SyntaxNode node = null)
         {
-            FilePath = node.SyntaxTree.FilePath;
-            var lineSpan = node.SyntaxTree.GetLineSpan(node.Span);
-            StartLineNumber = lineSpan.StartLinePosition.Line;
-            EndLineNumber = lineSpan.EndLinePosition.Line;
+            if (node != null)
+            {
+                FilePath = node.SyntaxTree.FilePath;
+                var lineSpan = node.SyntaxTree.GetLineSpan(node.Span);
+                StartLineNumber = lineSpan.StartLinePosition.Line;
+                EndLineNumber = lineSpan.EndLinePosition.Line;
+            }
             Message = message;
         }
 
         public override string ToString()
         {
-            return $"{FilePath}:{StartLineNumber}:{EndLineNumber}: {Message}";
+            if (FilePath != null)
+            {
+                return $"{FilePath}:{StartLineNumber}:{EndLineNumber}: {Message}";
+            }
+            else
+            {
+                return Message;
+            }
         }
     }
     
     public class RGActionAnalysis : CSharpSyntaxWalker
     {
+        // actions that were identified in a method outside of a MonoBehaviour (mapping from method name -> action path -> action)
+        private Dictionary<string, Dictionary<string, RGGameAction>> _unboundActions;  
+        
         // Mapping from action path to action. Populated as the analysis proceeds.
         // This is considered a "raw" set of actions, in that it is possible that redundant/equivalent
         // actions are generated. The final output of the analysis combines any equivalent actions.
@@ -63,6 +80,7 @@ namespace RegressionGames.ActionManager
         private SyntaxTree _currentTree;
         private Dictionary<AssignmentExpressionSyntax, DataFlowAnalysis> _assignmentExprs;
         private Dictionary<LocalDeclarationStatementSyntax, DataFlowAnalysis> _localDeclarationStmts;
+        private bool _changed;
 
         public ISet<RGGameAction> Actions { get; private set; }
         public List<RGActionAnalysisWarning> Warnings { get; private set; }
@@ -73,13 +91,13 @@ namespace RegressionGames.ActionManager
         {
             _displayProgressBar = displayProgressBar;
         }
-
+        
         /// <summary>
         /// Returns the set of assembly names that should be ignored by the analysis
         /// </summary>
         private ISet<string> GetIgnoredAssemblyNames()
         {
-            Assembly rgAssembly = RGLegacyInputInstrumentation.FindRGAssembly();
+            Assembly rgAssembly = RGEditorUtils.FindRGAssembly();
             Assembly rgEditorAssembly = FindRGEditorAssembly();
             if (rgAssembly == null || rgEditorAssembly == null)
             {
@@ -239,7 +257,7 @@ namespace RegressionGames.ActionManager
         /// </summary>
         private IEnumerable<SyntaxNode> FindDerivedUserInput(ExpressionSyntax expr)
         {
-            const int maxDepth = 5;
+            const int maxDepth = 10;
             ISet<SyntaxNode> visited = new HashSet<SyntaxNode>();
             IEnumerable<SyntaxNode> Search(SyntaxNode node, int depth)
             {
@@ -261,7 +279,7 @@ namespace RegressionGames.ActionManager
                         else
                         {
                             var type = FindType(sym.ContainingType);
-                            if (type == typeof(Input) || type == typeof(InputControl))
+                            if (type == typeof(Input) || typeof(InputControl).IsAssignableFrom(type))
                             {
                                 yield return node;
                                 yield break; // no need to examine children
@@ -316,11 +334,21 @@ namespace RegressionGames.ActionManager
                     if (symbol is IFieldSymbol fieldSym)
                     {
                         Type type = FindType(fieldSym.ContainingType);
+                        if (type == null)
+                        {
+                            memberAccessFunc = null;
+                            return false;
+                        }
                         member = type.GetField(fieldSym.Name,
                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                     } else if (symbol is IPropertySymbol propSym)
                     {
                         Type type = FindType(propSym.ContainingType);
+                        if (type == null)
+                        {
+                            memberAccessFunc = null;
+                            return false;
+                        }
                         member = type.GetProperty(propSym.Name,
                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
                     }
@@ -447,7 +475,7 @@ namespace RegressionGames.ActionManager
             }
             if (!matched)
             {
-                AddAnalysisWarning(keyExpr, "Could not identify key code being used");
+                AddAnalysisWarning("Could not identify key code being used", keyExpr);
             }
         }
 
@@ -515,7 +543,7 @@ namespace RegressionGames.ActionManager
             
             if (!matched)
             {
-                AddAnalysisWarning(keyExpr, "Could not identify key being used");
+                AddAnalysisWarning("Could not identify key being used", keyExpr);
             }
         }
 
@@ -583,7 +611,7 @@ namespace RegressionGames.ActionManager
             }
             if (!matched)
             {
-                AddAnalysisWarning(expr, $"Could not resolve {typeof(T).Name} expression");
+                AddAnalysisWarning($"Could not resolve {typeof(T).Name} expression", expr);
             }
         }
 
@@ -599,14 +627,7 @@ namespace RegressionGames.ActionManager
                 // Legacy input manager
                 if (containingType == typeof(UnityEngine.Input))
                 {
-                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                    if (classDecl == null) return;
-                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                    {
-                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                        return;
-                    }
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     string methodName = methodSymbol.Name;
                     switch (methodName)
                     {
@@ -618,8 +639,8 @@ namespace RegressionGames.ActionManager
                             var keyArg = node.ArgumentList.Arguments[0];
                             foreach (var keyFunc in FindCandidateLegacyKeyFuncs(keyArg.Expression))
                             {
-                                string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                                AddAction(new LegacyKeyAction(path, objectType, keyFunc), node);
+                                string[] path = GetActionPathFromSyntaxNode(node, new[] { keyFunc.ToString() });
+                                AddAction(new LegacyKeyAction(path, null, keyFunc), node);
                             }
                             break;
                         }
@@ -632,8 +653,8 @@ namespace RegressionGames.ActionManager
                             var btnArg = node.ArgumentList.Arguments[0];
                             foreach (var btnFunc in FindCandidateLiteralFuncs<int>(btnArg.Expression))
                             {
-                                string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                                AddAction(new MouseButtonAction(path, objectType, btnFunc), node);
+                                string[] path = GetActionPathFromSyntaxNode(node, new[] { btnFunc.ToString() });
+                                AddAction(new MouseButtonAction(path, null, btnFunc), node);
                             }
                             break;
                         }
@@ -645,8 +666,8 @@ namespace RegressionGames.ActionManager
                             var axisArg = node.ArgumentList.Arguments[0];
                             foreach (var axisNameFunc in FindCandidateLiteralFuncs<string>(axisArg.Expression))
                             {
-                                string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                                AddAction(new LegacyAxisAction(path, objectType, axisNameFunc), node);
+                                string[] path = GetActionPathFromSyntaxNode(node, new[] { axisNameFunc.ToString() });
+                                AddAction(new LegacyAxisAction(path, null, axisNameFunc), node);
                             }
                             break;
                         }
@@ -659,13 +680,15 @@ namespace RegressionGames.ActionManager
                             var btnArg = node.ArgumentList.Arguments[0];
                             foreach (var btnNameFunc in FindCandidateLiteralFuncs<string>(btnArg.Expression))
                             {
-                                string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                                AddAction(new LegacyButtonAction(path, objectType, btnNameFunc), node);
+                                string[] path = GetActionPathFromSyntaxNode(node, new[] { btnNameFunc.ToString() });
+                                AddAction(new LegacyButtonAction(path, null, btnNameFunc), node);
                             }
                             break;
                         }
                     }
-                } else if (containingType == typeof(Physics) || containingType == typeof(Physics2D))
+                    #endif
+                } 
+                else if (containingType == typeof(Physics) || containingType == typeof(Physics2D))
                 {
                     MousePositionType posType = containingType == typeof(Physics)
                         ? MousePositionType.COLLIDER_3D
@@ -709,19 +732,26 @@ namespace RegressionGames.ActionManager
                                         }
                                     }
                                 }
-                                var classDecl = inpNode.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                                if (classDecl == null) continue;
-                                Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                                if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                                {
-                                    AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                                    continue;
-                                }
-                                string[] path = GetActionPathFromSyntaxNode(objectType, inpNode);
-                                AddAction(new MousePositionAction(path, posType, layerMasks, objectType), inpNode);
+                                string[] path = GetActionPathFromSyntaxNode(inpNode, GetActionPathFromSyntaxNode(node));
+                                AddAction(new MousePositionAction(path, posType, layerMasks, null), inpNode);
                             }
                         }
                         break;
+                    }
+                }
+                else
+                {
+                    // Add any unbound actions that are associated with this method invocation
+                    string methodSig = methodSymbol.ToString();
+                    if (_unboundActions.TryGetValue(methodSig, out var methodUnboundActions))
+                    {
+                        foreach (var act in methodUnboundActions.Values)
+                        {
+                            string[] path = GetActionPathFromSyntaxNode(node, act.Paths[0]);
+                            var clonedAction = (RGGameAction)act.Clone();
+                            clonedAction.Paths[0] = path;
+                            AddAction(clonedAction, node);
+                        }
                     }
                 }
             }
@@ -740,21 +770,13 @@ namespace RegressionGames.ActionManager
                     if (containingType == typeof(Keyboard))
                     {
                         var arg = node.Arguments[0].Expression;
-                        var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                        if (classDecl == null) return;
-                        Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                        if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                        {
-                            AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                            return;
-                        }
                         if (FindType(_currentModel.GetTypeInfo(arg).Type) == typeof(Key))
                         {
                             // Bracketed key notation Keyboard.current[<key>]
                             foreach (var keyFunc in FindCandidateInputSysKeyFuncs(arg))
                             {
-                                string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                                AddAction(new InputSystemKeyAction(path, objectType, keyFunc), node);
+                                string[] path = GetActionPathFromSyntaxNode(node, new[] { keyFunc.ToString() });
+                                AddAction(new InputSystemKeyAction(path, null, keyFunc), node);
                             }
                         }
                     }
@@ -773,68 +795,54 @@ namespace RegressionGames.ActionManager
                 var type = FindType(propSym.ContainingType);
                 if (type == typeof(UnityEngine.Input))
                 {
-                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                    if (classDecl == null) return;
-                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                    {
-                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                        return;
-                    }
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     switch (propSym.Name)
                     {
                         // Input.anyKey, Input.anyKeyDown
                         case "anyKey":
                         case "anyKeyDown":
                         {
-                            string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                            AddAction(new AnyKeyAction(path, objectType), node);
+                            string[] path = GetActionPathFromSyntaxNode(node);
+                            AddAction(new AnyKeyAction(path, null), node);
                             break;
                         }
                         
                         // Input.mousePosition
                         case "mousePosition":
                         {
-                            string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                            AddAction(new MousePositionAction(path, objectType), node);
+                            string[] path = GetActionPathFromSyntaxNode(node);
+                            AddAction(new MousePositionAction(path, null), node);
                             break;
                         }
                         
                         // Input.mouseScrollDelta
                         case "mouseScrollDelta":
                         {
-                            string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                            AddAction(new MouseScrollAction(path, objectType), node);
+                            string[] path = GetActionPathFromSyntaxNode(node);
+                            AddAction(new MouseScrollAction(path, null), node);
                             break;
                         }
                     }
+                    #endif
                 } else if (type == typeof(Keyboard))
                 {
                     var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
                     if (exprType != null && typeof(ButtonControl).IsAssignableFrom(exprType))
                     {
                         // Keyboard.current.<property>
-                        var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                        if (classDecl == null) return;
-                        Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                        if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                        {
-                            AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                            return;
-                        }
-                        string[] path = GetActionPathFromSyntaxNode(objectType, node);
+                        string[] path = GetActionPathFromSyntaxNode(node);
                         if (propSym.Name == "anyKey")
                         {
-                            AddAction(new AnyKeyAction(path, objectType), node);
+                            AddAction(new AnyKeyAction(path, null), node);
                         }
                         else
                         {
                             Key key = RGActionManagerUtils.InputSystemKeyboardPropertyNameToKey(propSym.Name);
                             if (key == Key.None)
                             {
-                                AddAnalysisWarning(node, $"Unrecognized keyboard property '{propSym.Name}'");
+                                AddAnalysisWarning($"Unrecognized keyboard property '{propSym.Name}'", node);
                             }
-                            AddAction(new InputSystemKeyAction(path, objectType, RGActionParamFunc<Key>.Constant(key)), node);
+                            AddAction(new InputSystemKeyAction(path, null, RGActionParamFunc<Key>.Constant(key)), node);
                         }
                     }
                 } else if (type == typeof(Mouse))
@@ -845,14 +853,6 @@ namespace RegressionGames.ActionManager
                         if (typeof(ButtonControl).IsAssignableFrom(exprType))
                         {
                             // Mouse.current.<button>
-                            var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                            if (classDecl == null) return;
-                            Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                            if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                            {
-                                AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                                return;
-                            }
                             int mouseButton;
                             switch (propSym.Name)
                             {
@@ -872,47 +872,30 @@ namespace RegressionGames.ActionManager
                                     mouseButton = MouseButtonInput.BACK_MOUSE_BUTTON;
                                     break;
                                 default:
-                                    AddAnalysisWarning(node, $"Unrecognized mouse property {propSym.Name}");
+                                    AddAnalysisWarning($"Unrecognized mouse property {propSym.Name}", node);
                                     return;
                             }
-                            string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                            AddAction(new MouseButtonAction(path, objectType, RGActionParamFunc<int>.Constant(mouseButton)), node);
+                            string[] path = GetActionPathFromSyntaxNode(node);
+                            AddAction(new MouseButtonAction(path, null, RGActionParamFunc<int>.Constant(mouseButton)), node);
                         } else if (typeof(DeltaControl).IsAssignableFrom(exprType))
                         {
                             if (propSym.Name == "scroll")
                             {
                                 // Mouse.current.scroll
-                                var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                                if (classDecl == null) return;
-                                Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                                if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                                {
-                                    AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                                    return;
-                                }
-                                string[] path = GetActionPathFromSyntaxNode(objectType, node);
-                                AddAction(new MouseScrollAction(path, objectType), node);
+                                string[] path = GetActionPathFromSyntaxNode(node);
+                                AddAction(new MouseScrollAction(path, null), node);
                             }
                         }
                     }
                 } else if (type == typeof(UnityEngine.InputSystem.Pointer))
                 {
-                    var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                    if (classDecl == null) return;
-                    Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
-                    if (!typeof(MonoBehaviour).IsAssignableFrom(objectType))
-                    {
-                        AddAnalysisWarning(node, "Inputs handled outside of a MonoBehaviour are not supported");
-                        return;
-                    }
-
-                    string[] path = GetActionPathFromSyntaxNode(objectType, node);
+                    string[] path = GetActionPathFromSyntaxNode(node);
                     switch (propSym.Name)
                     {
                         case "position":
                         case "delta":
                         {
-                            AddAction(new MousePositionAction(path, objectType), node);
+                            AddAction(new MousePositionAction(path, null), node);
                             break;
                         }
                     }
@@ -932,6 +915,7 @@ namespace RegressionGames.ActionManager
                 var declSym = _currentModel.GetDeclaredSymbol(node);
                 if (declSym.Parameters.Length == 0)
                 {
+                    #if ENABLE_LEGACY_INPUT_MANAGER
                     switch (declSym.Name)
                     {
                         // OnMouseOver(), OnMouseEnter(), OnMouseExit() handler
@@ -955,47 +939,121 @@ namespace RegressionGames.ActionManager
                             break;
                         }
                     }
+                    #endif
                 }
             }
         }
 
-        private void AddAnalysisWarning(SyntaxNode node, string message)
+        private void AddAnalysisWarning(string message, SyntaxNode node = null)
         {
-            Warnings.Add(new RGActionAnalysisWarning(node, message));
+            Warnings.Add(new RGActionAnalysisWarning(message, node));
         }
-
-        private string[] GetActionPathFromSyntaxNode(Type objectType, SyntaxNode sourceNode)
+        
+        private string[] GetActionPathFromSyntaxNode(SyntaxNode node, string[] pathSuffix = null)
         {
-            return new[] { objectType.FullName, sourceNode.ToString() };
-        }
+            string typeName;
+            var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+            if (classDecl != null)
+            {
+                var typeSymbol = _currentModel.GetDeclaredSymbol(classDecl);
+                typeName = typeSymbol.ToString();
+            }
+            else
+            {
+                typeName = "<global>";
+            }
+            
+            var filePath = _currentTree.FilePath;
+            var lineSpan = _currentTree.GetLineSpan(node.Span);
+            int startLine = lineSpan.StartLinePosition.Line;
+            int startChar = lineSpan.StartLinePosition.Character;
+            int endLine = lineSpan.EndLinePosition.Line;
+            int endChar = lineSpan.EndLinePosition.Character;
 
+            int pathLen = 3;
+            if (pathSuffix != null)
+            {
+                pathLen += pathSuffix.Length;
+            }
+            string[] path = new string[pathLen];
+
+            path[0] = typeName;
+            path[1] = Path.GetFileName(filePath) + ":" + startLine + ":" + startChar +
+                      ":" + endLine + ":" + endChar;
+            path[2] = node.ToString();
+            if (pathSuffix != null)
+            {
+                for (int i = 0; i < pathSuffix.Length; ++i)
+                {
+                    path[3 + i] = pathSuffix[i];
+                }
+            }
+
+            return path;
+        }
+        
         /// <summary>
-        /// Called while the analysis is running when actions are discovered in the code or resources.
-        /// The syntax node parameter is optional (may be null) if the action was not derived from code.
+        /// Adds the specified action associated with the given syntax node (optional).
+        /// If the ObjectType is not specified on the action (null), then it is automatically inferred from
+        /// the given syntax node.
         /// </summary>
         private void AddAction(RGGameAction action, SyntaxNode sourceNode)
         {
-            string path = string.Join("/", action.Paths[0]);
-            string currentPath = path;
-            int count = 1;
-            while (_rawActions.ContainsKey(currentPath))
+            if (action.ObjectType == null)
             {
-                ++count;
-                currentPath = path + " (" + count + ")";
-            }
-            action.Paths[0] = currentPath.Split("/");
-            _rawActions.Add(currentPath, action);
-            if (sourceNode != null)
-            {
-                if (!_rawActionsByNode.TryGetValue(sourceNode, out var nodeActions))
+                var classDecl = sourceNode.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+                if (classDecl == null) return;
+                Type objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                if (typeof(MonoBehaviour).IsAssignableFrom(objectType))
                 {
-                    nodeActions = new List<RGGameAction>();
-                    _rawActionsByNode.Add(sourceNode, nodeActions);
+                    action.ObjectType = objectType;
                 }
-                nodeActions.Add(action);
+            }
+            if (action.ObjectType != null)
+            {
+                string path = string.Join("/", action.Paths[0]);
+                if (_rawActions.TryAdd(path, action))
+                {
+                    if (sourceNode != null)
+                    {
+                        if (!_rawActionsByNode.TryGetValue(sourceNode, out var nodeActions))
+                        {
+                            nodeActions = new List<RGGameAction>();
+                            _rawActionsByNode.Add(sourceNode, nodeActions);
+                        }
+                        nodeActions.Add(action);
+                    }
+                    _changed = true;
+                }
+            }
+            else
+            {
+                // If an action was identified outside a MonoBehaviour (e.g. in a helper method), then
+                // it is added as an "unbound" action (i.e. it is unknown what component is listening for it).
+                // The action is associated with its containing method. Eventually, if a method invocation is found
+                // from a MonoBehaviour to the method that contained the actions, then copies of all the unbound actions
+                // will be associated with the containing MonoBehaviour.
+                var methodDecl = sourceNode.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+                if (methodDecl == null)
+                {
+                    AddAnalysisWarning("Actions used outside of MonoBehaviour that are not contained in a method are not supported", sourceNode);
+                    return;
+                }
+                var methodSym = _currentModel.GetDeclaredSymbol(methodDecl);
+                string methodSig = methodSym.ToString();
+                if (!_unboundActions.TryGetValue(methodSig, out var methodUnboundActions))
+                {
+                    methodUnboundActions = new Dictionary<string, RGGameAction>();
+                    _unboundActions.Add(methodSig, methodUnboundActions);
+                }
+                string path = string.Join("/", action.Paths[0]);
+                if (methodUnboundActions.TryAdd(path, action))
+                {
+                    _changed = true;
+                }
             }
         }
-
+        
         private static IEnumerable<GameObject> IterateGameObjects(GameObject gameObject)
         {
             yield return gameObject;
@@ -1033,11 +1091,11 @@ namespace RegressionGames.ActionManager
             return false;
         }
         
-        private void RunCodeAnalysis()
+        private void RunCodeAnalysis(int passNum)
         {
             const float codeAnalysisStartProgress = 0.0f;
             const float codeAnalysisEndProgress = 0.6f;
-            NotifyProgress("Performing code analysis", codeAnalysisStartProgress);
+            NotifyProgress($"Performing code analysis (pass {passNum})", codeAnalysisStartProgress);
             var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
             for (int i = 0; i < targetAssemblies.Count; ++i)
             {
@@ -1054,7 +1112,7 @@ namespace RegressionGames.ActionManager
                 foreach (var syntaxTree in compilation.SyntaxTrees)
                 {
                     float progress = Mathf.Lerp(asmStartProgress, asmEndProgress, syntaxTreeIndex / (float)numSyntaxTrees);
-                    NotifyProgress($"Analyzing {asm.name}", progress);
+                    NotifyProgress($"Analyzing {asm.name} (pass {passNum})", progress);
                     _currentModel = compilation.GetSemanticModel(syntaxTree);
                     _currentTree = syntaxTree;
                     _assignmentExprs = null;
@@ -1082,6 +1140,71 @@ namespace RegressionGames.ActionManager
                     _buttonClickListeners.Add(listener);
                 }
             }
+
+            // search for embedded InputActions
+            foreach (Component c in gameObject.GetComponents<Component>())
+            {
+                if (c == null)
+                {
+                    continue;
+                }
+
+                Type type = c.GetType();
+                foreach (var fieldInfo in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic |
+                                                         BindingFlags.Static |
+                                                         BindingFlags.Instance))
+                {
+                    if (typeof(InputAction).IsAssignableFrom(fieldInfo.FieldType))
+                    {
+                        InputAction action = (InputAction)fieldInfo.GetValue(c);
+                        if (action != null)
+                        {
+                            AnalyzeInputAction(action, fieldInfo);
+                        }
+                    }
+                }
+
+                foreach (var propInfo in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic |
+                                                        BindingFlags.Static | BindingFlags.Instance))
+                {
+                    if (typeof(InputAction).IsAssignableFrom(propInfo.PropertyType))
+                    {
+                        InputAction action = (InputAction)propInfo.GetValue(c);
+                        if (action != null)
+                        {
+                            AnalyzeInputAction(action, propInfo);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Generates an RGGameAction for the given InputAction.
+        /// If this was an embedded action (directly defined in a component) rather than
+        /// from an InputActionAsset, then the embeddedMember parameter is the
+        /// member to access in order to obtain the InputAction at run time.
+        /// </summary>
+        private void AnalyzeInputAction(InputAction action, MemberInfo embeddedMember = null)
+        {
+            InputActionAction result;
+            if (embeddedMember != null)
+            {
+                string[] path = new[] { embeddedMember.DeclaringType.FullName, embeddedMember.Name };
+                var actionFunc = RGActionParamFunc<InputAction>.MemberAccesses(new[] { embeddedMember });
+                result = new InputActionAction(path, embeddedMember.DeclaringType, actionFunc, action);
+            }
+            else
+            {
+                string[] path = new[] { action.actionMap.asset.name, action.actionMap.name, action.name };
+                result = new InputActionAction(path, action);
+            }
+            if (result.ParameterRange == null)
+            {
+                AddAnalysisWarning($"Unable to resolve parameter range for input action {string.Join("/", result.Paths[0])}");
+                return;
+            }
+            AddAction(result, null);
         }
         
         private void RunResourceAnalysis()
@@ -1095,28 +1218,36 @@ namespace RegressionGames.ActionManager
                 _buttonClickListeners = new HashSet<string>();
                 string[] sceneGuids = AssetDatabase.FindAssets("t:Scene");
                 string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
+                string[] inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
                 int analyzedResourceCount = 0;
-                int totalResourceCount = sceneGuids.Length + prefabGuids.Length;
+                int totalResourceCount = sceneGuids.Length + prefabGuids.Length + inputActionAssetGuids.Length;
                 
                 // Examine the game objects in all scenes in the project
                 foreach (string sceneGuid in sceneGuids)
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
                         analyzedResourceCount / (float)totalResourceCount);
-                    string scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
-                    if (scenePath.StartsWith("Packages/"))
+                    try
                     {
-                        continue;
-                    }
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
-                    UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
-                    for (int i = 0, n = SceneManager.sceneCount; i < n; ++i)
-                    {
-                        var scene = SceneManager.GetSceneAt(i);
-                        foreach (GameObject gameObject in IterateGameObjects(scene))
+                        string scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
+                        if (scenePath.StartsWith("Packages/"))
                         {
-                            AnalyzeGameObject(gameObject);
+                            continue;
                         }
+                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
+                        UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath);
+                        for (int i = 0, n = SceneManager.sceneCount; i < n; ++i)
+                        {
+                            var scene = SceneManager.GetSceneAt(i);
+                            foreach (GameObject gameObject in IterateGameObjects(scene))
+                            {
+                                AnalyzeGameObject(gameObject);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        RGDebug.LogWarning("Exception when opening scene: " + e.Message + "\n" + e.StackTrace);
                     }
                     ++analyzedResourceCount;
                 }
@@ -1126,18 +1257,55 @@ namespace RegressionGames.ActionManager
                 {
                     float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
                         analyzedResourceCount / (float)totalResourceCount);
-                    string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
-                    if (prefabPath.StartsWith("Packages/"))
+                    try
                     {
-                        continue;
+                        string prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+                        if (prefabPath.StartsWith("Packages/"))
+                        {
+                            continue;
+                        }
+                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
+                        GameObject prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+                        foreach (GameObject gameObject in IterateGameObjects(prefabContents))
+                        {
+                            AnalyzeGameObject(gameObject);
+                        }
+                        EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                     }
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
-                    GameObject prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
-                    foreach (GameObject gameObject in IterateGameObjects(prefabContents))
+                    catch (Exception e)
                     {
-                        AnalyzeGameObject(gameObject);
+                        RGDebug.LogWarning("Exception when opening prefab: " + e.Message + "\n" + e.StackTrace);
                     }
-                    EditorSceneManager.ClosePreviewScene(prefabContents.scene);
+                    ++analyzedResourceCount;
+                }
+
+                // Examine all the InputActionAssets in the project
+                foreach (string inputAssetGuid in inputActionAssetGuids)
+                {
+                    try
+                    {
+                        float progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                            analyzedResourceCount / (float)totalResourceCount);
+                        string inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
+                        if (inputAssetPath.StartsWith("Packages/"))
+                        {
+                            continue;
+                        }
+
+                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
+                        var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
+                        foreach (var actionMap in inputAsset.actionMaps)
+                        {
+                            foreach (var act in actionMap.actions)
+                            {
+                                AnalyzeInputAction(act, null);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        RGDebug.LogWarning("Exception when opening input asset: " + e.Message + "\n" + e.StackTrace);
+                    }
                     ++analyzedResourceCount;
                 }
                 
@@ -1168,9 +1336,19 @@ namespace RegressionGames.ActionManager
             {
                 _rawActions = new Dictionary<string, RGGameAction>();
                 _rawActionsByNode = new Dictionary<SyntaxNode, List<RGGameAction>>();
+                _unboundActions = new Dictionary<string, Dictionary<string, RGGameAction>>();
                 Warnings = new List<RGActionAnalysisWarning>();
-            
-                RunCodeAnalysis();
+
+                {
+                    int passNum = 1;
+                    do
+                    {
+                        _changed = false;
+                        RunCodeAnalysis(passNum);
+                        ++passNum;
+                    } while (_changed);
+                }
+
                 RunResourceAnalysis();
             
                 NotifyProgress("Saving analysis results", 0.9f);

@@ -10,6 +10,7 @@ namespace ActionManagerTests
         
         void Update()
         {
+            #if ENABLE_LEGACY_INPUT_MANAGER
             if (Input.GetMouseButton(0))
             {
                 Debug.Log("Input.GetMouseButton(0)");
@@ -25,6 +26,7 @@ namespace ActionManagerTests
             {
                 Debug.Log("Input.GetMouseButtonUp(btn)");
             }
+            #endif
 
             if (Mouse.current.forwardButton.isPressed)
             {

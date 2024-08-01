@@ -17,7 +17,7 @@ namespace RegressionGames.ActionManager
         public static readonly string ANALYSIS_RESULT_NAME = "RGActionAnalysisResult";
         public static readonly string ANALYSIS_RESULT_PATH = $"{ANALYSIS_RESULT_DIRECTORY}/{ANALYSIS_RESULT_NAME}.txt";
         
-        public static readonly JsonConverter[] JSON_CONVERTERS = { new RGGameActionJsonConverter() };
+        public static readonly JsonConverter[] JSON_CONVERTERS = { new RGGameActionJsonConverter(), new RGValueRangeJsonConverter() };
 
         /// <summary>
         /// Provides the static set of all action types identified in the game.
