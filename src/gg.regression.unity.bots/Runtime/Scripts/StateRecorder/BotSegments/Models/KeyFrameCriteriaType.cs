@@ -8,10 +8,10 @@
         NormalizedPath,
         PartialNormalizedPath,
         CVText,
+        BehaviourComplete
 
         //FUTURE
         //Path,
-        //XPath,
-        //BehaviourComplete
+        //XPath
     }
 }

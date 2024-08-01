@@ -5,13 +5,14 @@ namespace RegressionGames.StateRecorder.BotSegments
 {
     public static class OrKeyFrameCriteriaEvaluator
     {
-        public static bool Matched(bool firstSegment, int segmentNumber, KeyFrameCriteria criteria)
+        public static bool Matched(bool firstSegment, BotSegment botSegment, KeyFrameCriteria criteria)
         {
+            var segmentNumber = botSegment.Replay_SegmentNumber;
             if (criteria.data is OrKeyFrameCriteriaData { criteriaList: not null } orCriteria)
             {
                 try
                 {
-                    return KeyFrameEvaluator.Evaluator.MatchedHelper(firstSegment, segmentNumber, BooleanCriteria.Or, orCriteria.criteriaList);
+                    return KeyFrameEvaluator.Evaluator.MatchedHelper(firstSegment, botSegment, BooleanCriteria.Or, orCriteria.criteriaList);
                 }
                 catch (Exception)
                 {
