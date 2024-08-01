@@ -150,7 +150,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                                 if (matched)
                                 {
-                                    if (!criteriaData.withinRect.HasValue)
+                                    if (criteriaData.withinRect == null)
                                     {
                                         textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
                                         break;
@@ -158,16 +158,16 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     else
                                     {
                                         // ensure result rect is inside
-                                        var withinRect = criteriaData.withinRect.Value;
+                                        var withinRect = criteriaData.withinRect;
 
-                                        var relativeScaling = new Vector2(criteriaData.resolution.x / (float)cvTextResult.resolution.x, criteriaData.resolution.y / (float)cvTextResult.resolution.y);
+                                        var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvTextResult.resolution.x, withinRect.screenSize.y / (float)cvTextResult.resolution.y);
 
                                         // check the bottom left and top right to see if it intersects our rect
                                         var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvTextResult.rect.x * relativeScaling.x), Mathf.CeilToInt(cvTextResult.rect.y * relativeScaling.y));
                                         var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvTextResult.rect.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(cvTextResult.rect.height * relativeScaling.y));
 
                                         // we currently test overlap, should we test fully inside instead ??
-                                        if (withinRect.Contains(bottomLeft) || withinRect.Contains(topRight))
+                                        if (withinRect.rect.Contains(bottomLeft) || withinRect.rect.Contains(topRight))
                                         {
                                             textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
                                             break;
