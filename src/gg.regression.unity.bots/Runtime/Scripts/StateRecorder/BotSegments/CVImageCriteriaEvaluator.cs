@@ -11,8 +11,8 @@ namespace RegressionGames.StateRecorder.BotSegments
 {
 
     /**
-     * <summary>Evaluates CV Text criteria using CVServiceManager to send/receive HTTP requests to a python server for doing the actual CV evaluations.
-     * Python 'detects' text in a provided image and then this class evaluates those results against the specified bot segment criteria.</summary>
+     * <summary>Evaluates CV Image criteria using CVServiceManager to send/receive HTTP requests to a python server for doing the actual CV evaluations.
+     * Python 'detects' a source image template in a provided screenshot and then this class evaluates those results against the specified bot segment criteria.</summary>
      */
     public static class CVImageCriteriaEvaluator
     {
