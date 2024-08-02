@@ -11,8 +11,11 @@ namespace RegressionGames.ActionManager.Actions
 {
     /// <summary>
     /// Action to press down on a Unity UI slider or scrollbar.
-    /// This action is only for pressing down. To fully set the slider value,
-    /// the UISliderReleaseAction needs to also be performed with the desired value.
+    /// This action is only for pressing down on the slider, and can be
+    /// followed by a UISliderReleaseAction on the next frame to release the slider.
+    ///
+    /// The position of the mouse over the slider is defined by the float parameter
+    /// to the action ranging from 0 to 1.
     /// </summary>
     public class UISliderPressAction : RGGameAction
     {
