@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text;
 using System.Threading;
+using JetBrains.Annotations;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments.Models;
 using UnityEngine;
@@ -18,6 +20,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public string imageData;
 
+        [CanBeNull]
         public CVWithinRect withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
@@ -27,7 +30,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append(",\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"withinRect\":");
-            withinRect.WriteToStringBuilder(stringBuilder);
+            CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append("}");
         }
 

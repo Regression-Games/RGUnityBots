@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
@@ -89,15 +88,15 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\"worldPosition\":");
             VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, worldPosition);
             stringBuilder.Append(",\"leftButton\":");
-            stringBuilder.Append(leftButton ? "true" : "false");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
             stringBuilder.Append(",\"middleButton\":");
-            stringBuilder.Append(middleButton ? "true" : "false");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,middleButton);
             stringBuilder.Append(",\"rightButton\":");
-            stringBuilder.Append(rightButton ? "true" : "false");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,rightButton);
             stringBuilder.Append(",\"forwardButton\":");
-            stringBuilder.Append(forwardButton ? "true" : "false");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,forwardButton);
             stringBuilder.Append(",\"backButton\":");
-            stringBuilder.Append(backButton ? "true" : "false");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
             stringBuilder.Append(",\"scroll\":");
             VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
             stringBuilder.Append(",\"clickedObjectNormalizedPaths\":[");
