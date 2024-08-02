@@ -12,8 +12,9 @@
         public const int VERSION_7 = 7; // added partial normalized path matching
         public const int VERSION_8 = 8; // add cv text key frame criteria matching
         public const int VERSION_9 = 9; // add cv image key frame criteria matching
+        public const int VERSION_10 = 10; // add cv image mouse actions
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_9;
+        public const int CURRENT_VERSION = VERSION_10;
     }
 }

@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
+using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments.Models;
 using UnityEngine;
 
@@ -29,6 +32,22 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             }
 
             return null;
+        }
+
+        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, [CanBeNull] CVWithinRect rect)
+        {
+            if (rect == null)
+            {
+                stringBuilder.Append("null");
+            }
+            else
+            {
+                stringBuilder.Append("{\"screenSize\":");
+                VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, rect.screenSize);
+                stringBuilder.Append(",\"rect\":");
+                RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, rect.rect);
+                stringBuilder.Append("}");
+            }
         }
 
         public override bool CanWrite => false;

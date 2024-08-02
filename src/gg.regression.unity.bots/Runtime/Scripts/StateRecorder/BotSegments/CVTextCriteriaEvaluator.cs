@@ -295,7 +295,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                                         }
                                     });
                                 RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - SENT");
-                                requestInProgress = true;
                             }
                             else
                             {

@@ -8,8 +8,10 @@
         RandomMouse_ClickObject,
         Behaviour,
         MonkeyBot,
+        Mouse_CVImage,
+        Mouse_CVText,
 
-        //FUTURE
+        //POSSIBLE_FUTURE_ACTIONS
         //Timer,
         //FrameCount,
         //AgentBuilder,
