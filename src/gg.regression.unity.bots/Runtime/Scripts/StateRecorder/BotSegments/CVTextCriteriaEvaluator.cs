@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
+using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments

@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
+namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 {
     [JsonConverter(typeof(CVImageBinaryDataJsonConverter))]
     public class CVImageBinaryData
