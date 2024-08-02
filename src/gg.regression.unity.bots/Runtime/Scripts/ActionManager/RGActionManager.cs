@@ -88,7 +88,7 @@ namespace RegressionGames.ActionManager
             {
                 result = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
             }
-            
+
             if (result == null || !result.IsValid())
             {
                 result = new RGActionManagerSettings();
@@ -156,7 +156,7 @@ namespace RegressionGames.ActionManager
                 RGUtils.SetupEventSystem();
                 RGUtils.ConfigureInputSettings();
             }
-            
+
             InitInputState();
         }
 
@@ -177,7 +177,7 @@ namespace RegressionGames.ActionManager
                 }
                 _sessionActions = null;
                 _context = null;
-                _settings = LoadSettings(); // restore settings back to the saved configuration 
+                _settings = LoadSettings(); // restore settings back to the saved configuration
             }
         }
 
@@ -203,20 +203,20 @@ namespace RegressionGames.ActionManager
         {
             var tof = UnityEngine.Object.FindObjectOfType<TransformObjectFinder>();
             CurrentTransforms = tof.GetObjectStatusForCurrentFrame().Item2;
-            
+
             var eventSystems = UnityEngine.Object.FindObjectsOfType<EventSystem>();
             CurrentEventSystems.Clear();
             CurrentEventSystems.AddRange(eventSystems);
-            
+
             RGUtils.ForceApplicationFocus();
-            
+
             foreach (RGGameAction action in _sessionActions)
             {
                 Debug.Assert(action.ParameterRange != null);
-                
+
                 // Fetch all objects of the target object type (use Resources API to support ANY type of loaded object)
                 UnityEngine.Object[] objects = Resources.FindObjectsOfTypeAll(action.ObjectType);
-                
+
                 foreach (var obj in objects)
                 {
                     if (obj is Component c && !c.gameObject.activeInHierarchy)
@@ -269,11 +269,8 @@ namespace RegressionGames.ActionManager
         private static void InitInputState()
         {
             // move mouse off screen
-            var mousePos = new Vector2(Screen.width + 20, -20);
-            MouseEventSender.SendRawPositionMouseEvent(-1, mousePos);
+            _mousePosition = MouseEventSender.MoveMouseOffScreen();
 
-            _mousePosition = mousePos;
-            
             #if ENABLE_LEGACY_INPUT_MANAGER
             _mouseScroll = RGLegacyInputWrapper.mouseScrollDelta;
             _leftMouseButton = RGLegacyInputWrapper.GetKey(KeyCode.Mouse0);
@@ -289,7 +286,7 @@ namespace RegressionGames.ActionManager
             _forwardMouseButton = Mouse.current.forwardButton.isPressed;
             _backMouseButton = Mouse.current.backButton.isPressed;
             #endif
-            
+
             CurrentEventSystems = new List<EventSystem>();
         }
 
