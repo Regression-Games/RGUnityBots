@@ -25,11 +25,12 @@ namespace RegressionGames.ActionManager
         /// UnityEngine.Object.FindObjectsOfType(ObjectType).
         public Type ObjectType { get; set; }
         
-         /// The range of parameter values accepted by this action's
-         /// Perform() method.
+        /// The range of parameter values accepted by this action's
+        /// Perform() method.
+        [RGActionProperty("Parameter Range", true)]
         public IRGValueRange ParameterRange { get; set; }
 
-         /// The name of this action as it should be displayed when presented to the user.
+        /// The name of this action as it should be displayed when presented to the user.
         public abstract string DisplayName { get; }
 
         public RGGameAction(string[] path, Type objectType, IRGValueRange paramRange)
@@ -115,27 +116,12 @@ namespace RegressionGames.ActionManager
         /// </summary>
         protected abstract void WriteParametersToStringBuilder(StringBuilder stringBuilder);
 
-        /// <summary>
-        /// Returns a set of (attribute name, attribute value) pairs to be displayed to the user
-        /// in the action manager user interface.
-        /// </summary>
-        public virtual IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            yield return ("Paths", (Paths.Count > 1 
-                ? "\n" + string.Join("\n", Paths.Select((path, idx) => (idx + 1) + ". " + string.Join("/", path))) 
-                : string.Join("/", Paths[0])));
-
-            yield return ("Target Object Type", ObjectType.FullName);
-
-            yield return ("Parameter Range", ParameterRange.ToString());
-        }
-
         public object Clone()
         {
             // Clone via serialization/deserialization
             StringBuilder stringBuilder = new StringBuilder();
             WriteToStringBuilder(stringBuilder);
-            return JsonConvert.DeserializeObject<RGGameAction>(stringBuilder.ToString(), new RGGameActionJsonConverter());
+            return JsonConvert.DeserializeObject<RGGameAction>(stringBuilder.ToString(), RGActionProvider.JSON_CONVERTERS);
         }
     }
 

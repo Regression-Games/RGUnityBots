@@ -16,8 +16,10 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyAxisAction : RGGameAction
     {
+        [RGActionProperty("Axis Name", true)]
         public RGActionParamFunc<string> AxisNameFunc { get; }
 
+        [RGActionProperty("Mouse Movement Magnitude", true)]
         public float MouseMovementMagnitude = 10.0f; // for axes that read mouse delta, the amount to move/scroll the mouse
 
         public LegacyAxisAction(string[] path, Type objectType, RGActionParamFunc<string> axisNameFunc) : 
@@ -58,14 +60,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"axisNameFunc\":");
             AxisNameFunc.WriteToStringBuilder(stringBuilder);
-        }
-
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Axis Name", AxisNameFunc.ToString());
         }
     }
 

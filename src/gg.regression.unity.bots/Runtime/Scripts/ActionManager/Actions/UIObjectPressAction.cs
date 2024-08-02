@@ -21,6 +21,7 @@ namespace RegressionGames.ActionManager.Actions
         /// The normalized game object name is the name of the game object without a "(N)" suffix.
         /// This action will target UI objects that have the given name.
         /// </summary>
+        [RGActionProperty("Target Game Object", false)]
         public string NormalizedGameObjectName { get; }
 
         public UIObjectPressAction(string[] path, Type objectType, string normalizedGameObjectName) : 
@@ -88,14 +89,6 @@ namespace RegressionGames.ActionManager.Actions
             }
             gameObjectName = gameObjectName.Trim();
             return gameObjectName;
-        }
-
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Target Game Object", NormalizedGameObjectName);
         }
     }
 

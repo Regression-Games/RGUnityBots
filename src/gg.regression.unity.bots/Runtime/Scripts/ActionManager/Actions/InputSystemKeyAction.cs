@@ -12,6 +12,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class InputSystemKeyAction : RGGameAction
     {
+        [RGActionProperty("Key", true)]
         public RGActionParamFunc<Key> KeyFunc { get; }
         
         public InputSystemKeyAction(string[] path, Type objectType, RGActionParamFunc<Key> keyFunc) : 
@@ -54,14 +55,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"keyFunc\":");
             KeyFunc.WriteToStringBuilder(stringBuilder);
-        }
-
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Key", KeyFunc.ToString());
         }
     }
 

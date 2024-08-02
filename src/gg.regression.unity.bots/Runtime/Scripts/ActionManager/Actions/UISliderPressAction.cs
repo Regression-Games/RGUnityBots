@@ -16,6 +16,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class UISliderPressAction : RGGameAction
     {
+        [RGActionProperty("Target Game Object", false)]
         public string NormalizedGameObjectName;
         
         public UISliderPressAction(string[] path, Type objectType, string normalizedGameObjectName) : 
@@ -95,14 +96,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"normalizedGameObjectName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, NormalizedGameObjectName);
-        }
-        
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Target Game Object", NormalizedGameObjectName);
         }
     }
 

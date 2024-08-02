@@ -12,6 +12,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseButtonAction : RGGameAction
     {
+        [RGActionProperty("Mouse Button", true)]
         public RGActionParamFunc<int> MouseButtonFunc { get; }
         
         public MouseButtonAction(string[] path, Type objectType, RGActionParamFunc<int> mouseButtonFunc) 
@@ -54,14 +55,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"mouseButtonFunc\":");
             MouseButtonFunc.WriteToStringBuilder(stringBuilder);
-        }
-        
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Mouse Button", MouseButtonFunc.ToString());
         }
     }
 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RegressionGames.StateRecorder.Models;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -248,6 +249,21 @@ namespace RegressionGames.ActionManager
             actionName.style.unityFontStyleAndWeight = FontStyle.Bold;
             _detailsPane.Add(actionName);
 
+            Label actionPaths = new Label();
+            actionPaths.text = "Paths: " + (action.Paths.Count > 1
+                ? "\n" + string.Join("\n", action.Paths.Select((path, idx) => (idx + 1) + ". " + string.Join("/", path)))
+                : string.Join("/", action.Paths[0]));
+            _detailsPane.Add(actionPaths);
+
+            Label actionTargetObject = new Label();
+            actionTargetObject.text = "Target Object Type: " + action.ObjectType.FullName;
+            _detailsPane.Add(actionTargetObject);
+
+            foreach (var prop in RGActionProperty.GetProperties(action))
+            {
+                
+            }
+            
             foreach ((string attrName, string attrValue) in action.GetDisplayActionAttributes())
             {
                 Label attrLabel = new Label();
