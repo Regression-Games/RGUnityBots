@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if ENABLE_LEGACY_INPUT_MANAGER
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -123,3 +124,4 @@ namespace RegressionGames.RGLegacyInputUtility
         }
     }
 }
+#endif

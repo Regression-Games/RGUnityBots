@@ -15,7 +15,8 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePressObjectAction : RGGameAction
     {
-        public MousePressObjectAction(string[] path, Type objectType) : base(path, objectType)
+        public MousePressObjectAction(string[] path, Type objectType) : 
+            base(path, objectType, new RGBoolRange())
         {
         }
 
@@ -23,8 +24,6 @@ namespace RegressionGames.ActionManager.Actions
             base(serializedAction)
         {
         }
-
-        public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
 
         public override string DisplayName => $"Mouse Press On {ObjectType.Name}";
 

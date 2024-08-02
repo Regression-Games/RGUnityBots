@@ -17,7 +17,7 @@ namespace RegressionGames.ActionManager.Actions
         public RGActionParamFunc<string> ButtonNameFunc { get; }
 
         public LegacyButtonAction(string[] path, Type objectType, RGActionParamFunc<string> buttonNameFunc) : 
-            base(path, objectType)
+            base(path, objectType, new RGBoolRange())
         {
             ButtonNameFunc = buttonNameFunc;
         }
@@ -28,8 +28,6 @@ namespace RegressionGames.ActionManager.Actions
             ButtonNameFunc = RGActionParamFunc<string>.Deserialize(serializedAction["buttonNameFunc"]);
         }
 
-        public override IRGValueRange ParameterRange { get; } = new RGBoolRange();
-        
         public override string DisplayName => $"Button {ButtonNameFunc}";
 
         public override bool IsValidForObject(Object obj)

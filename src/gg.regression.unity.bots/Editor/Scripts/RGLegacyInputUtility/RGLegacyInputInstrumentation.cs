@@ -1,4 +1,5 @@
-﻿#if UNITY_EDITOR
+﻿#if ENABLE_LEGACY_INPUT_MANAGER
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -237,25 +238,11 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             }
         }
         
-        public static Assembly FindRGAssembly()
-        {
-            var rgAsmName = Path.GetFileName(typeof(RGLegacyInputWrapper).Assembly.Location);
-            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
-            foreach (Assembly assembly in assemblies)
-            {
-                if (Path.GetFileName(assembly.outputPath) == rgAsmName)
-                {
-                    return assembly;
-                }
-            }
-            return null;
-        }
-
         private static void OnAssemblyCompiled(string assemblyAssetPath, CompilerMessage[] messages)
         {
             try
             {
-                Assembly rgAssembly = FindRGAssembly();
+                Assembly rgAssembly = RGEditorUtils.FindRGAssembly();
                 InstrumentAssemblyIfNeeded(assemblyAssetPath, rgAssembly);
             }
             catch (Exception e)
@@ -308,7 +295,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
             try
             {
                 Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
-                Assembly rgAssembly = FindRGAssembly();
+                Assembly rgAssembly = RGEditorUtils.FindRGAssembly();
                 foreach (Assembly assembly in assemblies)
                 {
                     InstrumentAssemblyIfNeeded(assembly.outputPath, rgAssembly);
@@ -331,4 +318,5 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
         }
     }
 }
+#endif
 #endif

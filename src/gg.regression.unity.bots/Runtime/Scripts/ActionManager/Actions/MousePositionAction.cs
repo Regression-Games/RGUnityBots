@@ -29,14 +29,14 @@ namespace RegressionGames.ActionManager.Actions
         public List<RGActionParamFunc<int>> LayerMasks { get; }
         
         public MousePositionAction(string[] path, Type objectType) : 
-            base(path, objectType)
+            base(path, objectType, new RGVector2Range(Vector2.zero, Vector2.one))
         {
             PositionType = MousePositionType.NON_UI;
             LayerMasks = null;
         }
         
         public MousePositionAction(string[] path, MousePositionType positionType, List<RGActionParamFunc<int>> layerMasks, Type objectType) : 
-            base(path, objectType)
+            base(path, objectType, new RGVector2Range(Vector2.zero, Vector2.one))
         {
             PositionType = positionType;
             LayerMasks = layerMasks;
@@ -67,8 +67,6 @@ namespace RegressionGames.ActionManager.Actions
                 LayerMasks = null;
             }
         }
-
-        public override IRGValueRange ParameterRange { get; } = new RGVector2Range(Vector2.zero, Vector2.one);
 
         public override string DisplayName
         {
