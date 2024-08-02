@@ -58,10 +58,6 @@ namespace RegressionGames.StateRecorder
         {
             using var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Read);
 
-            // if the zip contains only one entry that is a directory, dig into that before iterating files (helps handle OS zipped directory formats)
-
-
-
             // sort by numeric value of entries (not string comparison of filenames)
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
