@@ -3,7 +3,7 @@ using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
+namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 {
     public class CVImageCriteriaRequest
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
+using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using UnityEngine.Networking;
 
 namespace RegressionGames

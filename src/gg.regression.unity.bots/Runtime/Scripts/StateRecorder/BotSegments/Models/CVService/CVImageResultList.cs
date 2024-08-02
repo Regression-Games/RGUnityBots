@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
+namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 {
     public class CVImageResultList
     {
