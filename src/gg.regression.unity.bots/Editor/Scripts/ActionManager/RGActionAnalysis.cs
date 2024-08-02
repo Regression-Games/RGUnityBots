@@ -67,8 +67,8 @@ namespace RegressionGames.ActionManager
     public class RGActionAnalysis : CSharpSyntaxWalker
     {
         // actions that were identified in a method outside of a MonoBehaviour (mapping from method name -> action path -> action)
-        private Dictionary<string, Dictionary<string, RGGameAction>> _unboundActions;  
-        
+        private Dictionary<string, Dictionary<string, RGGameAction>> _unboundActions;
+
         // Mapping from action path to action. Populated as the analysis proceeds.
         // This is considered a "raw" set of actions, in that it is possible that redundant/equivalent
         // actions are generated. The final output of the analysis combines any equivalent actions.
@@ -93,7 +93,7 @@ namespace RegressionGames.ActionManager
         {
             _displayProgressBar = displayProgressBar;
         }
-        
+
         /// <summary>
         /// Returns the set of assembly names that should be ignored by the analysis
         /// </summary>
@@ -378,10 +378,10 @@ namespace RegressionGames.ActionManager
             members.Reverse();
 
             // if the first field is not static, then its declaring type should match the class declaration
-            if (members[0] is FieldInfo firstField && !firstField.IsStatic)
+            if (members[0] is FieldInfo { IsStatic: false } firstField)
             {
                 var containingClass = memberAccessExpr.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                if (containingClass == null || members[0].DeclaringType.Name != containingClass.Identifier.Text)
+                if (containingClass == null || firstField.DeclaringType?.Name != containingClass.Identifier.Text)
                 {
                     memberAccessFunc = null;
                     return false;
@@ -689,7 +689,7 @@ namespace RegressionGames.ActionManager
                         }
                     }
                     #endif
-                } 
+                }
                 else if (containingType == typeof(Physics) || containingType == typeof(Physics2D))
                 {
                     MousePositionType posType = containingType == typeof(Physics)
@@ -950,7 +950,7 @@ namespace RegressionGames.ActionManager
         {
             Warnings.Add(new RGActionAnalysisWarning(message, node));
         }
-        
+
         private string[] GetActionPathFromSyntaxNode(SyntaxNode node, string[] pathSuffix = null)
         {
             string typeName;
@@ -964,7 +964,7 @@ namespace RegressionGames.ActionManager
             {
                 typeName = "<global>";
             }
-            
+
             var filePath = _currentTree.FilePath;
             var lineSpan = _currentTree.GetLineSpan(node.Span);
             int startLine = lineSpan.StartLinePosition.Line;
@@ -993,7 +993,7 @@ namespace RegressionGames.ActionManager
 
             return path;
         }
-        
+
         /// <summary>
         /// Adds the specified action associated with the given syntax node (optional).
         /// If the ObjectType is not specified on the action (null), then it is automatically inferred from
@@ -1055,7 +1055,7 @@ namespace RegressionGames.ActionManager
                 }
             }
         }
-        
+
         private static IEnumerable<GameObject> IterateGameObjects(GameObject gameObject)
         {
             yield return gameObject;
@@ -1092,8 +1092,9 @@ namespace RegressionGames.ActionManager
             }
             return false;
         }
-        
+
         private void RunCodeAnalysis(int passNum)
+
         {
             const float codeAnalysisStartProgress = 0.0f;
             const float codeAnalysisEndProgress = 0.6f;
@@ -1192,7 +1193,7 @@ namespace RegressionGames.ActionManager
             InputActionAction result;
             if (embeddedMember != null)
             {
-                string[] path = new[] { embeddedMember.DeclaringType.FullName, embeddedMember.Name };
+                string[] path = new[] { embeddedMember.DeclaringType?.FullName, embeddedMember.Name };
                 var actionFunc = RGActionParamFunc<InputAction>.MemberAccesses(new[] { embeddedMember });
                 result = new InputActionAction(path, embeddedMember.DeclaringType, actionFunc, action);
             }
@@ -1223,7 +1224,7 @@ namespace RegressionGames.ActionManager
                 string[] inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
                 int analyzedResourceCount = 0;
                 int totalResourceCount = sceneGuids.Length + prefabGuids.Length + inputActionAssetGuids.Length;
-                
+
                 // Examine the game objects in all scenes in the project
                 foreach (string sceneGuid in sceneGuids)
                 {
