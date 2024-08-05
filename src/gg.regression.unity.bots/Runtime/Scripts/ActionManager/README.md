@@ -55,13 +55,10 @@ public class RandomBot : MonoBehaviour, IRGBot
         // Start an action manager session (must be called before using any of the action manager API)
         RGActionManager.StartSession(this);
         
-        // Iterate over all the actions identified by the static analysis
+        // Iterate over all the actions
         foreach (RGGameAction action in RGActionManager.Actions)
         {
-            if (RGActionManager.IsActionEnabled(action))
-            {
-                Debug.Log("Action: " + action.DisplayName);
-            }
+            Debug.Log("Action: " + action.DisplayName);
         }
         
         DontDestroyOnLoad(this);
