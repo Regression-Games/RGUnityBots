@@ -1,12 +1,14 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder.Models;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder
 {
@@ -66,6 +68,15 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        /// <summary>
+        /// Returns whether the key is already pressed or has a pending state change to be pressed
+        /// </summary>
+        private static bool IsKeyPressedOrPending(Key key)
+        {
+            return Keyboard.current[key].isPressed
+                   || (_keyStates.TryGetValue(key, out KeyState state) && state == KeyState.Down);
+        }
+
         private static void QueueTextEvent(int replaySegment, Key key)
         {
             // send a text event so that 'onChange' text events fire
@@ -82,6 +93,34 @@ namespace RegressionGames.StateRecorder
                 var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, InputState.currentTime);
                 RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
                 InputSystem.QueueEvent(ref inputEvent);
+            }
+            
+            // If there are active UI input fields, simulate a KeyDown UI event for newly pressed keys
+            // This simulation is done directly on the components, because there is no way to directly queue the event to Unity's event manager
+            var inputFields = UnityEngine.Object.FindObjectsOfType<InputField>();
+            var tmpInputFields = UnityEngine.Object.FindObjectsOfType<TMP_InputField>();
+            if (inputFields.Length > 0 || tmpInputFields.Length > 0)
+            {
+                var keyCode = RGLegacyInputUtils.InputSystemKeyToKeyCode(key);
+                Event evt = CreateUIKeyboardEvent(keyCode, 
+                    isShiftDown: _isShiftDown,
+                    isCommandDown: IsKeyPressedOrPending(Key.LeftCommand) || IsKeyPressedOrPending(Key.RightCommand),
+                    isAltDown: IsKeyPressedOrPending(Key.LeftAlt) || IsKeyPressedOrPending(Key.RightAlt),
+                    isControlDown: IsKeyPressedOrPending(Key.LeftCtrl) || IsKeyPressedOrPending(Key.RightCtrl));
+                foreach (var inputField in inputFields)
+                {
+                    if (inputField.isFocused)
+                    {
+                        SendKeyEventToInputField(evt, inputField);
+                    }
+                }
+                foreach (var tmpInputField in tmpInputFields)
+                {
+                    if (tmpInputField.isFocused)
+                    {
+                        SendKeyEventToInputField(evt, tmpInputField);
+                    }
+                }
             }
         }
 
@@ -190,5 +229,100 @@ namespace RegressionGames.StateRecorder
             }
         }
 #endif
+        
+        /// <summary>
+        /// Creates a UnityGUI keyboard event for simulating input events to UI components.
+        /// </summary>
+        private static Event CreateUIKeyboardEvent(KeyCode keyCode, bool isShiftDown, bool isCommandDown, bool isAltDown, bool isControlDown)
+        {
+            Event evt = new Event(0) { type = EventType.KeyDown };
+            if (isShiftDown)
+            {
+                evt.modifiers |= EventModifiers.Shift;
+            }
+            if (isCommandDown)
+            {
+                evt.modifiers |= EventModifiers.Command;
+            }
+            if (isAltDown)
+            {
+                evt.modifiers |= EventModifiers.Alt;
+            }
+            if (isControlDown)
+            {
+                evt.modifiers |= EventModifiers.Control;
+            }
+            evt.keyCode = keyCode;
+
+            var key = RGLegacyInputUtils.KeyCodeToInputSystemKey(keyCode);
+            if (key != Key.None)
+            {
+                if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(key, out var keyVal))
+                {
+                    if ((evt.modifiers & EventModifiers.Shift) != 0)
+                    {
+                        evt.character = keyVal.Item2;
+                    }
+                    else
+                    {
+                        evt.character = keyVal.Item1;
+                    }
+                }
+            }
+
+            return evt;
+        }
+
+        private static MethodInfo _inputFieldKeyPressedMethod;
+        private static MethodInfo _tmpInputFieldKeyPressedMethod;
+
+        /// <summary>
+        /// Send the event to the given input field (either TMP_InputField or InputField)
+        /// Note that this method should be used instead of the ProcessEvent() method that is already available,
+        /// because ProcessEvent() does not correctly update the label or handle text submission
+        /// </summary>
+        private static void SendKeyEventToInputField(Event evt, InputField inputField)
+        {
+            if (_inputFieldKeyPressedMethod == null)
+            {
+                _inputFieldKeyPressedMethod =
+                    typeof(InputField).GetMethod("KeyPressed", BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            var editState = _inputFieldKeyPressedMethod.Invoke(inputField, new object[] { evt });
+            if (editState.ToString() == "Finish")
+            {
+                if (!inputField.wasCanceled)
+                {
+                    if (inputField.onSubmit != null)
+                        inputField.onSubmit.Invoke(inputField.text);
+                }
+                inputField.DeactivateInputField();
+            }
+            inputField.ForceLabelUpdate();
+        }
+
+        /// <summary>
+        /// Sends key event to TextMeshPro input field (behaves the same as the one that targets the
+        /// legacy InputField, just targets TextMeshPro instead)
+        /// </summary>
+        private static void SendKeyEventToInputField(Event evt, TMP_InputField inputField)
+        {
+            if (_tmpInputFieldKeyPressedMethod == null)
+            {
+                _tmpInputFieldKeyPressedMethod =
+                    typeof(TMP_InputField).GetMethod("KeyPressed", BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            var editState = _tmpInputFieldKeyPressedMethod.Invoke(inputField, new object[] { evt });
+            if (editState.ToString() == "Finish")
+            {
+                if (!inputField.wasCanceled)
+                {
+                    if (inputField.onSubmit != null)
+                        inputField.onSubmit.Invoke(inputField.text);
+                }
+                inputField.DeactivateInputField();
+            }
+            inputField.ForceLabelUpdate();
+        }
     }
 }

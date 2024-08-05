@@ -325,7 +325,6 @@ namespace RegressionGames.RGLegacyInputUtility
                     _lastHitObject2D = hitObject2D;
                 }
 
-                // Wait one frame
                 yield return null;
                 
                 // Clear all "new" flags and deltas
