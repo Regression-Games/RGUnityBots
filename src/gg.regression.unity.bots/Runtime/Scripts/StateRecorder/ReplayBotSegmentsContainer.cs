@@ -94,7 +94,7 @@ namespace RegressionGames.StateRecorder
             catch (Exception e)
             {
                 // Failed to parse the json.  End user doesn't really need this message, this is for developers at RG creating new bot segment types.. we give them a for real exception below
-                RGDebug.LogWarning("Exception while parsing bot_segments.zip - " + e);
+                throw new Exception($"Exception while parsing bot segments zip: {zipFilePath}", e);
             }
 
             if (versionMismatch > 0)

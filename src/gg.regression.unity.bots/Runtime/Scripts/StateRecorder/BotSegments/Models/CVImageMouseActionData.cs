@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
@@ -53,13 +54,22 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, duration);
             stringBuilder.Append("}");
         }
+
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1000));
+
+        public override string ToString()
+        {
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
+        }
     }
 
     /**
      * <summary>Data for clicking on or moving the mouse to a CV Image location in the scene</summary>
      */
     [Serializable]
-    [JsonConverter(typeof(RandomMousePixelActionDataJsonConverter))]
+    [JsonConverter(typeof(CVImageMouseActionDataJsonConverter))]
     public class CVImageMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes
@@ -279,6 +289,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     var rect = _cvResultsBoundsRect.Value;
 
                                     var position = new Vector2Int((int)rect.center.x, (int)rect.center.y);
+                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction}");
                                     MouseEventSender.SendRawPositionMouseEvent(
                                         replaySegment: segmentNumber,
                                         normalizedPosition: position,
@@ -306,14 +317,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             {
                                 _lastError = "CVImageMouseActionData - waiting for CV Image evaluation results ...";
                                 error = _lastError;
+                                // make sure we have a request in progress (this call checks internally to make sure one isn't already in progress)
+                                RequestCVImageEvaluation(segmentNumber);
                                 return false;
                             }
                         }
                     }
-                }
-                else
-                {
-                    _isStopped = true;
+                    else
+                    {
+                        _isStopped = true;
+                    }
                 }
             }
 

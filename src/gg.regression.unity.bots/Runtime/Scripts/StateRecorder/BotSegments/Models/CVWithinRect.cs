@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
@@ -10,6 +11,7 @@ namespace StateRecorder.BotSegments.Models
     [JsonConverter(typeof(CVWithinRectJsonConverter))]
     public class CVWithinRect
     {
+        public int apiVersion = SdkApiVersion.VERSION_9;
         public Vector2Int screenSize;
         public RectInt rect;
 
@@ -19,6 +21,8 @@ namespace StateRecorder.BotSegments.Models
             VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\"rect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, rect);
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilderNullable(stringBuilder, apiVersion);
             stringBuilder.Append("}");
         }
 
