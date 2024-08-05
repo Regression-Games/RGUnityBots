@@ -360,8 +360,14 @@ namespace RegressionGames.StateRecorder
             {
                 var nextBotSegment = _nextBotSegments[i];
 
-                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched( i ==0, nextBotSegment);
-
+                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched( 
+                    i ==0, 
+                    nextBotSegment.Replay_SegmentNumber, 
+                    nextBotSegment.botAction.type,
+                    nextBotSegment.Replay_ActionCompleted,
+                    nextBotSegment.keyFrameCriteria
+                );
+                
                 if (matched)
                 {
                     if (!nextBotSegment.Replay_Matched)

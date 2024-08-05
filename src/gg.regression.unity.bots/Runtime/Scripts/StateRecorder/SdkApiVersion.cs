@@ -11,8 +11,9 @@
         public const int VERSION_6 = 6; // add support for monkey bot
         public const int VERSION_7 = 7; // added partial normalized path matching
         public const int VERSION_8 = 8; // add cv text key frame criteria matching
+        public const int VERSION_9 = 9; // add criteria for completion of monobehaviour bot actions
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_8;
+        public const int CURRENT_VERSION = VERSION_9;
     }
 }
