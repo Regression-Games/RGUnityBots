@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
+using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments
@@ -150,7 +150,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                                 if (matched)
                                 {
-                                    if (!criteriaData.withinRect.HasValue)
+                                    if (criteriaData.withinRect == null)
                                     {
                                         textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
                                         break;
@@ -158,16 +158,16 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     else
                                     {
                                         // ensure result rect is inside
-                                        var withinRect = criteriaData.withinRect.Value;
+                                        var withinRect = criteriaData.withinRect;
 
-                                        var relativeScaling = new Vector2(criteriaData.resolution.x / (float)cvTextResult.resolution.x, criteriaData.resolution.y / (float)cvTextResult.resolution.y);
+                                        var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvTextResult.resolution.x, withinRect.screenSize.y / (float)cvTextResult.resolution.y);
 
                                         // check the bottom left and top right to see if it intersects our rect
                                         var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvTextResult.rect.x * relativeScaling.x), Mathf.CeilToInt(cvTextResult.rect.y * relativeScaling.y));
                                         var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvTextResult.rect.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(cvTextResult.rect.height * relativeScaling.y));
 
                                         // we currently test overlap, should we test fully inside instead ??
-                                        if (withinRect.Contains(bottomLeft) || withinRect.Contains(topRight))
+                                        if (withinRect.rect.Contains(bottomLeft) || withinRect.rect.Contains(topRight))
                                         {
                                             textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
                                             break;
@@ -200,7 +200,18 @@ namespace RegressionGames.StateRecorder.BotSegments
                         _priorResultsTracker[segmentNumber] = resultList;
                     }
                 }
+
+                // clear out the result as we've evaluated it as failed and need to get a new result
+                if (resultList.Count > 0)
+                {
+                    lock (_requestTracker)
+                    {
+                        _resultTracker.Remove(segmentNumber, out _);
+                    }
+                }
             }
+
+            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - resultList: {resultList.Count} - END");
 
             if (priorResults is not { Count: 0 } || cvTextResults == null)
             {
@@ -218,7 +229,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                             if (imageData != null)
                             {
                                 // mark a request in progress inside the lock to avoid race conditions.. must be done before starting async process
-                                // mark that we are in progress by putting entries in the dictionary
+                                // mark that we are in progress by putting entries in the dictionary of null until we replace with the real data
+                                // thus contains key returns true
                                 _requestTracker[segmentNumber] = null;
                                 _resultTracker[segmentNumber] = null;
 
@@ -226,7 +238,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 _ = CVServiceManager.GetInstance().PostCriteriaTextDiscover(
                                     new CVTextCriteriaRequest()
                                     {
-                                        screenshot = new CVImageRequestData()
+                                        screenshot = new CVImageBinaryData()
                                         {
                                             width = width,
                                             height = height,
@@ -264,7 +276,24 @@ namespace RegressionGames.StateRecorder.BotSegments
                                             }
                                         }
                                     },
-                                    onFailure: () => { RGDebug.LogWarning("CVTextCriteriaEvaluator - failure invoking CVService text criteria evaluation"); });
+                                    onFailure: () =>
+                                    {
+                                        RGDebug.LogWarning($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService text criteria evaluation");
+                                        lock (_requestTracker)
+                                        {
+                                            RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
+                                            // make sure we haven't already cleaned this up
+                                            if (_resultTracker.ContainsKey(segmentNumber))
+                                            {
+                                                RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
+                                                // store the result as empty so we know we finished, but won't pass
+                                                _resultTracker[segmentNumber] = new();
+                                                // cleanup the request tracker
+                                                _requestTracker.Remove(segmentNumber);
+                                                _priorResultsTracker.Remove(segmentNumber);
+                                            }
+                                        }
+                                    });
                                 RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - SENT");
                                 requestInProgress = true;
                             }

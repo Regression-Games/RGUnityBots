@@ -8,27 +8,24 @@ using UnityEngine;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class CVTextKeyFrameCriteriaData : IKeyFrameCriteriaData
+    public class CVImageKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
         public int apiVersion = SdkApiVersion.VERSION_9;
 
-        public string text;
-        public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
-        public TextCaseRule textCaseRule = TextCaseRule.Matches;
+        /**
+         * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
+         */
+        public string imageData;
 
         public CVWithinRect withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"text\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, text);
+            stringBuilder.Append("{\"imageData\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, imageData);
             stringBuilder.Append(",\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"textMatchingRule\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, textMatchingRule.ToString());
-            stringBuilder.Append(",\"textCaseRule\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
             stringBuilder.Append(",\"withinRect\":");
             withinRect.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
