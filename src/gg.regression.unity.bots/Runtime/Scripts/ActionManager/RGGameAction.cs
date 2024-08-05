@@ -33,6 +33,13 @@ namespace RegressionGames.ActionManager
         /// The name of this action as it should be displayed when presented to the user.
         public abstract string DisplayName { get; }
 
+         /// <summary>
+         /// Constructor for RGGameAction.
+         /// Typically, this is invoked from RGActionAnalysis when identifying actions from the static analysis.
+         /// </summary>
+         /// <param name="path"></param>
+         /// <param name="objectType"></param>
+         /// <param name="paramRange"></param>
         public RGGameAction(string[] path, Type objectType, IRGValueRange paramRange)
         {
             Paths = new List<string[]> { path };
@@ -40,6 +47,9 @@ namespace RegressionGames.ActionManager
             ParameterRange = paramRange;
         }
 
+         /// <summary>
+         /// Deserialization constructor
+         /// </summary>
         public RGGameAction(JObject serializedAction)
         {
             JArray paths = (JArray)serializedAction["paths"];
@@ -128,7 +138,7 @@ namespace RegressionGames.ActionManager
     public interface IRGGameActionInstance
     {
         /// <summary>
-        /// Get the action associated with this instance.
+        /// Get the RGGameAction associated with this instance.
         /// </summary>
         public RGGameAction BaseAction { get; }
 
@@ -138,7 +148,15 @@ namespace RegressionGames.ActionManager
         public UnityEngine.Object TargetObject { get; }
 
         /// <summary>
-        /// Determines whether the given parameter is valid for this action in the current state
+        /// Determines whether the given parameter is valid for this action in the current state.
+        /// Example usage to determine whether a randomly sampled parameter is valid and then obtain action inputs:
+        /// <code>
+        /// var actionParam = actionInstance.BaseAction.ParameterRange.RandomSample();
+        /// if (actionInstance.IsValidParameter(actionParam)) {
+        ///     foreach (var input in actionInstance.GetInputs(actionParam))
+        ///         input.Perform();
+        /// }
+        /// </code>
         /// </summary>
         /// <param name="param">The parameter to check, which should be from the action's ParameterRange.</param>
         /// <returns>Whether the parameter is valid for this action in the current state</returns>
@@ -146,10 +164,16 @@ namespace RegressionGames.ActionManager
 
         /// <summary>
         /// Get the device inputs needed to perform this action instance.
+        /// This is a coroutine that returns all the inputs needed to perform the action on the current game frame.
+        /// Example usage:
+        /// <code>
+        /// foreach (RGActionInput input in actionInstance.GetInputs(actionParam))
+        ///     input.Perform();
+        /// </code>
         /// </summary>
         /// <param name="param">
         /// The action parameter, which should be from the action's ParameterRange.
-        /// The caller should first check that the parameter is valid via IsValidParameter.
+        /// The caller should first check that the parameter is valid via IsValidParameter().
         /// </param>
         /// <returns>The set of inputs needed to perform the action in the current state.</returns>
         public IEnumerable<RGActionInput> GetInputs(object param);
@@ -163,8 +187,10 @@ namespace RegressionGames.ActionManager
         /// </summary>
         public TAction Action { get; private set; }
 
+        /// <inheritdoc cref="IRGGameActionInstance.BaseAction"/>
         public RGGameAction BaseAction => Action;
         
+        /// <inheritdoc cref="IRGGameActionInstance.TargetObject"/>
         public UnityEngine.Object TargetObject { get; private set; }
 
         public RGGameActionInstance(TAction action, UnityEngine.Object targetObject)
@@ -173,18 +199,28 @@ namespace RegressionGames.ActionManager
             TargetObject = targetObject;
         }
 
+        /// <inheritdoc cref="IRGGameActionInstance.IsValidParameter"/>
         public bool IsValidParameter(object param)
         {
             return IsValidActionParameter((TParam)param);
         }
 
+        /// <inheritdoc cref="IRGGameActionInstance.GetInputs"/>
         public IEnumerable<RGActionInput> GetInputs(object param)
         {
             return GetActionInputs((TParam)param);
         }
 
+        /// <summary>
+        /// Derived classes implement this method to implement IsValidParameter().
+        /// This already has the parameter casted to the appropriate type.
+        /// </summary>
         protected abstract bool IsValidActionParameter(TParam param);
         
+        /// <summary>
+        /// Derived classes implement this method to implement GetInputs().
+        /// This already has the parameter casted to the appropriate type.
+        /// </summary>
         protected abstract IEnumerable<RGActionInput> GetActionInputs(TParam param);
     }
 }

@@ -13,6 +13,9 @@ namespace RegressionGames.ActionManager.Actions
     /// <summary>
     /// Action to release a Unity UI slider or scrollbar in the desired position,
     /// given that it is held on the current frame.
+    /// 
+    /// The position of the mouse over the slider is defined by the float parameter
+    /// to the action ranging from 0 to 1.
     /// </summary>
     public class UISliderReleaseAction : RGGameAction
     {

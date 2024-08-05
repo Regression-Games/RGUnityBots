@@ -90,6 +90,13 @@ namespace RegressionGames.StateRecorder
             return mouse;
         }
 
+        public static Vector2 MoveMouseOffScreen(int replaySegment = 0)
+        {
+            var mousePosition = new Vector2(Screen.width + 20, -20);
+            MouseEventSender.SendRawPositionMouseEvent(replaySegment, mousePosition);
+            return mousePosition;
+        }
+
         public static void SendRawPositionMouseEvent(int replaySegment, Vector2 normalizedPosition, bool leftButton = false, bool middleButton = false, bool rightButton = false, bool forwardButton = false, bool backButton = false)
         {
             SendRawPositionMouseEvent(replaySegment, normalizedPosition, leftButton, middleButton, rightButton, forwardButton, backButton, Vector2.zero);
