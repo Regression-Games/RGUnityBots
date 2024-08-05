@@ -2,8 +2,8 @@
 
 namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 {
-    public class CVTextResultList
+    public class CVImageResultList
     {
-        public List<CVTextResult> results;
+        public List<CVImageResult> results;
     }
 }
