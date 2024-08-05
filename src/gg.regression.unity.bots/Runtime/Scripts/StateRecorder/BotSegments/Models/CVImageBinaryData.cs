@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Text;
+using Newtonsoft.Json;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
+namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 {
-    public class CVImageRequestData
+    [JsonConverter(typeof(CVImageBinaryDataJsonConverter))]
+    public class CVImageBinaryData
     {
         /**
-         * <summary>This must be the image data as a PNG/JPG/etc encoded as that is what python is expecting.  NOT just the data bytes</summary>
+         * <summary>This must be the image data as a JPG encoded as that is what python is expecting.  NOT just the data bytes</summary>
          */
         public byte[] data;
         public int width;

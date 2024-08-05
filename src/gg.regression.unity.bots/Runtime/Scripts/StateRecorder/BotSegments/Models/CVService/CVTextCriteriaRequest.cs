@@ -1,13 +1,13 @@
 ﻿using System.Text;
 using System.Threading;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVSerice
+namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 {
     public class CVTextCriteriaRequest
     {
-        public CVImageRequestData screenshot;
+        public CVImageBinaryData screenshot;
 
-        private static ThreadLocal<StringBuilder> _stringBuilder = new (() => new(1000));
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (() => new(1000));
         public string ToJsonString()
         {
             _stringBuilder.Value.Clear();
