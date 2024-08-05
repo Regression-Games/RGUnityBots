@@ -216,7 +216,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                                         // pick a random rect from the results, if they didn't want this random, they should have specified within rect
 
-                                        if (list.Count > 0)
+                                        if (list.Count > 1)
                                         {
                                             RGDebug.LogInfo($"({segmentNumber}) CVImageMouseActionData - Multiple results were returned for CV Image evaluation.  A random one of these will be saved as the result.  Consider specifying a precise `withinRect` in your action definition to get a singular result.");
                                         }
