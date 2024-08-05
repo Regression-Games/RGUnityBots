@@ -5,6 +5,7 @@
     ],
     "references": [
         "RegressionGames",
+        "RegressionGames.TestFramework",
         "Unity.InputSystem",
         "Unity.InputSystem.TestFramework"
     ],
