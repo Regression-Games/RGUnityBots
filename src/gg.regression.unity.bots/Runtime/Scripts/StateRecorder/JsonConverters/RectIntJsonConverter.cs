@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
@@ -11,7 +12,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
     {
 
         // re-usable and large enough to fit all sizes
-        private static readonly StringBuilder _stringBuilder = new StringBuilder(1000);
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (() => new(1000));
 
         public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, RectInt? f)
         {
@@ -36,11 +37,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append("}");
         }
 
-        private static string ToJsonString(RectInt val)
+        public static string ToJsonString(RectInt val)
         {
-            _stringBuilder.Clear();
-            WriteToStringBuilder(_stringBuilder, val);
-            return _stringBuilder.ToString();
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
