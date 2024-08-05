@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
+using Newtonsoft.Json;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.Models;
@@ -30,12 +30,12 @@ namespace RegressionGames.ActionManager
         private static List<RGGameAction> _actions; // the set of actions after applying the user settings from RGActionManagerSettings
 
         /// <summary>
-        /// The set of actions after applying the settings 
+        /// The set of actions after applying the user settings in RGActionManagerSettings.
         /// </summary>
         public static IEnumerable<RGGameAction> Actions => _actions;
         
         /// <summary>
-        /// Provides access to the original set of actions identified via the static analysis,
+        /// Provides access to the original set of actions identified from the static analysis,
         /// prior to the user settings being applied from RGActionManagerSettings.
         /// </summary>
         public static IEnumerable<RGGameAction> OriginalActions => _actionProvider.Actions;
@@ -65,8 +65,8 @@ namespace RegressionGames.ActionManager
         [InitializeOnLoadMethod]
         public static void InitializeInEditor()
         {
-            ReloadActions();
             _settings = LoadSettings();
+            ReloadActions();
         }
         #endif
 
@@ -91,7 +91,8 @@ namespace RegressionGames.ActionManager
             RGActionManagerSettings result = null;
             if (jsonText != null)
             {
-                result = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
+                result = JsonConvert.DeserializeObject<RGActionManagerSettings>(jsonText,
+                    RGActionProvider.JSON_CONVERTERS);
             }
             
             if (result == null || !result.IsValid())
@@ -141,7 +142,6 @@ namespace RegressionGames.ActionManager
             {
                 throw new Exception($"Session is already active with context {_context}");
             }
-            ReloadActions();
             if (actionSettings != null)
             {
                 _settings = actionSettings;
@@ -151,8 +151,9 @@ namespace RegressionGames.ActionManager
                 _settings = LoadSettings();
             }
             _context = context;
-            _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
-
+            
+            ReloadActions();
+            
             if (DoesContextNeedSetUp())
             {
                 #if ENABLE_LEGACY_INPUT_MANAGER
@@ -182,7 +183,6 @@ namespace RegressionGames.ActionManager
                     #endif
                     RGUtils.RestoreInputSettings();
                 }
-                _sessionActions = null;
                 _context = null;
                 _settings = LoadSettings(); // restore settings back to the saved configuration 
             }
@@ -207,7 +207,7 @@ namespace RegressionGames.ActionManager
             
             RGUtils.ForceApplicationFocus();
             
-            foreach (RGGameAction action in _sessionActions)
+            foreach (RGGameAction action in Actions)
             {
                 Debug.Assert(action.ParameterRange != null);
                 
@@ -238,6 +238,14 @@ namespace RegressionGames.ActionManager
         {
             var prevActionProvider = _actionProvider;
             _actionProvider = new RGActionProvider();
+            if (_actionProvider.IsAvailable)
+            {
+                _actions = _settings.ApplySettings(_actionProvider.Actions);
+            }
+            else
+            {
+                _actions = null;
+            }
             if (prevActionProvider != null)
             {
                 ActionsChanged?.Invoke();

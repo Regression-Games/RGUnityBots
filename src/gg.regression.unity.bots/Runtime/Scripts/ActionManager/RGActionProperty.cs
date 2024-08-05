@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters;
 using System.Text;
 using Newtonsoft.Json.Linq;
-using Unity.Plastic.Newtonsoft.Json;
 using JsonConvert = Newtonsoft.Json.JsonConvert;
 
 namespace RegressionGames.ActionManager
@@ -38,6 +36,31 @@ namespace RegressionGames.ActionManager
             UserConfigurable = userConfigurable;
         }
 
+        public static RGActionPropertyInstance FindProperty(RGGameAction action, string name)
+        {
+            var field = action.GetType().GetField(name, BindingFlags.Public | BindingFlags.Instance);
+            if (field != null)
+            {
+                RGActionProperty prop = (RGActionProperty)GetCustomAttribute(field, typeof(RGActionProperty));
+                if (prop != null)
+                {
+                    return new RGActionPropertyInstance(action, field, prop);
+                }
+            }
+
+            var property = action.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
+            if (property != null)
+            {
+                RGActionProperty prop = (RGActionProperty)GetCustomAttribute(property, typeof(RGActionProperty));
+                if (prop != null)
+                {
+                    return new RGActionPropertyInstance(action, property, prop);
+                }
+            }
+            
+            return null;
+        }
+        
         public static IEnumerable<RGActionPropertyInstance> GetProperties(RGGameAction action)
         {
             foreach (var field in action.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
@@ -131,9 +154,9 @@ namespace RegressionGames.ActionManager
             stringBuilder.Append(jsonSerialized);
         }
 
-        public object Deserialize(JObject serializedValue)
+        public object DeserializeValue(string serializedValue)
         {
-            return serializedValue.ToObject(ValueType);
+            return JsonConvert.DeserializeObject(serializedValue, ValueType, RGActionProvider.JSON_CONVERTERS);
         }
     }
 }

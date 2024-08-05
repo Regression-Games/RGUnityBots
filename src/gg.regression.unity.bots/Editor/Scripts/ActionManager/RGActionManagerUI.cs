@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames.StateRecorder.Models;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -41,7 +40,7 @@ namespace RegressionGames.ActionManager
         private IEnumerable<RGGameAction> EnumerateActions()
         {
             string searchQuery = _searchField.value.Trim().ToLower();
-            foreach (RGGameAction action in RGActionManager.Actions)
+            foreach (RGGameAction action in RGActionManager.OriginalActions)
             {
                 bool shouldInclude = true;
 
@@ -164,7 +163,6 @@ namespace RegressionGames.ActionManager
                                 }
                             }
                         }
-                        RGActionManager.Settings.MarkDirty();
                         RGActionManager.SaveSettings(RGActionManager.Settings);
                     });
 
@@ -242,7 +240,7 @@ namespace RegressionGames.ActionManager
         {
             Debug.Assert(leafNode.IsLeaf);
             _detailsPane.Clear();
-            RGGameAction action = leafNode.action;
+            RGGameAction action = RGActionManager.Settings.ApplySettings(leafNode.action);
 
             Label actionName = new Label();
             actionName.text = "Action: " + leafNode.path.Last();
