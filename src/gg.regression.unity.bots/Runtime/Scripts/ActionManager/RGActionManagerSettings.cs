@@ -21,6 +21,15 @@ namespace RegressionGames.ActionManager
             this.propertyName = propertyName;
             this.propertyValue = propertyValue;
         }
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"propertyName\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, propertyName);
+            stringBuilder.Append(",\"propertyValue\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, propertyValue);
+            stringBuilder.Append("}");
+        }
     }
     
     /// <summary>
@@ -166,8 +175,32 @@ namespace RegressionGames.ActionManager
                 }
                 ++disabledActionPathIndex;
             }
-            stringBuilder.Append("\n]");
-            stringBuilder.Append("\n}");
+            stringBuilder.Append("\n],\n");
+            stringBuilder.Append("\"ActionProperties\":{\n");
+            int actionPropCount = ActionProperties.Count;
+            int actionPropIndex = 0;
+            foreach (var actionPropEntry in ActionProperties)
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, actionPropEntry.Key);
+                stringBuilder.Append(":[");
+                int propSettingsCount = actionPropEntry.Value.Count;
+                for (int propSettingsIndex = 0; propSettingsIndex < propSettingsCount; ++propSettingsIndex)
+                {
+                    var propSetting = actionPropEntry.Value[propSettingsIndex];
+                    propSetting.WriteToStringBuilder(stringBuilder);
+                    if (propSettingsIndex + 1 < propSettingsCount)
+                    {
+                        stringBuilder.Append(",");
+                    }
+                }
+                stringBuilder.Append("]");
+                if (actionPropIndex + 1 < actionPropCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+                ++actionPropIndex;
+            }
+            stringBuilder.Append("\n}\n}");
         }
     }
 }
