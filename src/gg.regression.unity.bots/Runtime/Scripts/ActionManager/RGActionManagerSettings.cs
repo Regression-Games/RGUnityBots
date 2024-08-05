@@ -20,6 +20,11 @@ namespace RegressionGames.ActionManager
         [NonSerialized]
         private ISet<string> _disabledActionPathSet;
 
+        public List<RGGameAction> ApplySettings(IEnumerable<RGGameAction> originalActions)
+        {
+            
+        }
+
         public bool IsActionEnabled(string[] actionPath)
         {
             if (_disabledActionPathSet == null)

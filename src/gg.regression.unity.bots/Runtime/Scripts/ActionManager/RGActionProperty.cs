@@ -4,9 +4,21 @@ using System.Reflection;
 using System.Runtime.Serialization.Formatters;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using Unity.Plastic.Newtonsoft.Json;
+using JsonConvert = Newtonsoft.Json.JsonConvert;
 
 namespace RegressionGames.ActionManager
 {
+    /// <summary>
+    /// Represents a property of an RGGameAction.
+    /// The primary purpose of this class is to facilitate the display and modification of
+    /// individual action properties in the action manager user interface.
+    /// 
+    /// If the user desires to make a change to the property, this API can be used to
+    /// serialize and deserialize individual property changes without the need to store the entire action.
+    ///
+    /// Note that this class can refer to either a C# field or property on a class derived from RGGameAction.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class RGActionProperty : Attribute
     {
@@ -51,10 +63,29 @@ namespace RegressionGames.ActionManager
     public class RGActionPropertyInstance
     {
         public RGGameAction Action { get; }
-        
+
         public MemberInfo MemberInfo { get; }
-        
+
         public RGActionProperty Attribute { get; }
+
+        public Type ValueType
+        {
+            get
+            {
+                if (MemberInfo is FieldInfo field)
+                {
+                    return field.FieldType;
+                } 
+                else if (MemberInfo is PropertyInfo prop)
+                {
+                    return prop.PropertyType;
+                }
+                else
+                {
+                    throw new Exception("Unsupported member type " + MemberInfo);
+                }
+            }
+        }
 
         public RGActionPropertyInstance(RGGameAction action, MemberInfo memberInfo, RGActionProperty attr)
         {
@@ -96,15 +127,13 @@ namespace RegressionGames.ActionManager
         public void WriteValueToStringBuilder(StringBuilder stringBuilder)
         {
             object value = GetValue();
-            if (value is IRGValueRange valueRange)
-            {
-
-            } 
+            string jsonSerialized = JsonConvert.SerializeObject(value, RGActionProvider.JSON_CONVERTERS);
+            stringBuilder.Append(jsonSerialized);
         }
 
         public object Deserialize(JObject serializedValue)
         {
-            
+            return serializedValue.ToObject(ValueType);
         }
     }
 }

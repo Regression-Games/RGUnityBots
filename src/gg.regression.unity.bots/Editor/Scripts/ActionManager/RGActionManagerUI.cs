@@ -65,9 +65,9 @@ namespace RegressionGames.ActionManager
                         shouldInclude = true;
                     }
 
-                    foreach (var (_, attrValue) in action.GetDisplayActionAttributes())
+                    foreach (var prop in RGActionProperty.GetProperties(action))
                     {
-                        if (attrValue.ToLower().Contains(searchQuery))
+                        if (prop.GetValue().ToString().Contains(searchQuery))
                         {
                             shouldInclude = true;
                             break;
@@ -261,13 +261,8 @@ namespace RegressionGames.ActionManager
 
             foreach (var prop in RGActionProperty.GetProperties(action))
             {
-                
-            }
-            
-            foreach ((string attrName, string attrValue) in action.GetDisplayActionAttributes())
-            {
                 Label attrLabel = new Label();
-                attrLabel.text = attrName + ": " + attrValue;
+                attrLabel.text = prop.Attribute.DisplayName + ": " + prop.GetValue();
                 _detailsPane.Add(attrLabel);
             }
         }

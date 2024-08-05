@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.Models;
@@ -26,14 +27,18 @@ namespace RegressionGames.ActionManager
         private static MonoBehaviour _context;
         private static RGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
-        private static IList<RGGameAction> _sessionActions;
+        private static List<RGGameAction> _actions; // the set of actions after applying the user settings from RGActionManagerSettings
 
         /// <summary>
-        /// Provides access to the actions obtained from the action provider.
-        /// This property does not consider whether actions are disabled in the settings:
-        /// the IsActionEnabled method can be used to determine this.
+        /// The set of actions after applying the settings 
         /// </summary>
-        public static IEnumerable<RGGameAction> Actions => _actionProvider.Actions;
+        public static IEnumerable<RGGameAction> Actions => _actions;
+        
+        /// <summary>
+        /// Provides access to the original set of actions identified via the static analysis,
+        /// prior to the user settings being applied from RGActionManagerSettings.
+        /// </summary>
+        public static IEnumerable<RGGameAction> OriginalActions => _actionProvider.Actions;
 
         public delegate void ActionsChangedHandler();
         public static event ActionsChangedHandler ActionsChanged;
@@ -109,7 +114,9 @@ namespace RegressionGames.ActionManager
             }
             using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
             {
-                sw.Write(JsonUtility.ToJson(settings, true));
+                StringBuilder stringBuilder = new StringBuilder();
+                settings.WriteToStringBuilder(stringBuilder);
+                sw.Write(stringBuilder.ToString());
             }
         }
         #endif
@@ -179,16 +186,6 @@ namespace RegressionGames.ActionManager
                 _context = null;
                 _settings = LoadSettings(); // restore settings back to the saved configuration 
             }
-        }
-
-        public static bool IsActionEnabled(RGGameAction action)
-        {
-            if (action.Paths.All(path => !_settings.IsActionEnabled(path)))
-            {
-                // action is disabled in settings
-                return false;
-            }
-            return true;
         }
 
         /// <summary>
