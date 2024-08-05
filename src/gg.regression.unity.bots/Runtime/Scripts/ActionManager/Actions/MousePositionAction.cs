@@ -177,7 +177,7 @@ namespace RegressionGames.ActionManager.Actions
         protected override bool IsValidActionParameter(Vector2 param)
         {
             Vector2 mousePos = new Vector2(Screen.width * param.x, Screen.height * param.y);
-            if (RGActionManagerUtils.IsMouseOverUI(mousePos))
+            if (RGActionManagerUtils.IsMouseOverUI(mousePos, out _))
             {
                 return false;
             }

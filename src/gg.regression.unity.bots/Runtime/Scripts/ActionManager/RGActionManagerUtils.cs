@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
-using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager
@@ -18,6 +17,7 @@ namespace RegressionGames.ActionManager
         private static FieldInfo _targetField;
         private static FieldInfo _targetAssemblyTypeNameField;
         private static FieldInfo _methodNameField;
+        private static PropertyInfo _currentSelectionStateProperty;
         
         private static List<RaycastResult> _raycastResultCache = new List<RaycastResult>();
         private static Camera[] _camerasBuf;
@@ -73,6 +73,22 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        private static string GetUIObjectSelectionState(Selectable uiComponent)
+        {
+            if (_currentSelectionStateProperty == null)
+            {
+                _currentSelectionStateProperty = typeof(Selectable).GetProperty("currentSelectionState", 
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+
+            return _currentSelectionStateProperty.GetValue(uiComponent).ToString();
+        }
+
+        public static bool IsUIObjectPressed(Selectable uiComponent)
+        {
+            return GetUIObjectSelectionState(uiComponent) == "Pressed";
+        }
+        
         // Mapping from keyboard property (Keyboard.current.<property>) to the associated key code
         private static readonly Dictionary<string, Key> KeyboardPropNameToKeyCode = new Dictionary<string, Key>()
         {
@@ -330,7 +346,7 @@ namespace RegressionGames.ActionManager
         /// <summary>
         /// Returns whether the given mouse position is hovering over any UI element on the screen.
         /// </summary>
-        public static bool IsMouseOverUI(Vector2 mousePos)
+        public static bool IsMouseOverUI(Vector2 mousePos, out CanvasRenderer uiComponent)
         {
             foreach (var eventSys in RGActionManager.CurrentEventSystems)
             {
@@ -342,12 +358,13 @@ namespace RegressionGames.ActionManager
                 eventSys.RaycastAll(data, _raycastResultCache);
                 foreach (var raycastRes in _raycastResultCache)
                 {
-                    if (raycastRes.gameObject != null && raycastRes.gameObject.TryGetComponent<CanvasRenderer>(out _))
+                    if (raycastRes.gameObject != null && raycastRes.gameObject.TryGetComponent(out uiComponent))
                     {
                         return true;
                     }
                 }
             }
+            uiComponent = null;
             return false;
         }
 
@@ -410,7 +427,34 @@ namespace RegressionGames.ActionManager
 
             return false;
         }
-        
+
+        /// <summary>
+        /// Determines whether the given UI component is interactable based on the
+        /// object's and its ancestors' properties.
+        /// </summary>
+        public static bool IsUIObjectInteractable(Selectable uiComponent)
+        {
+            // If the object itself is not interactable, return false
+            if (!uiComponent.IsInteractable())
+            {
+                return false;
+            }
+            
+            // If the containing canvas group of the UI object is not interactable, return false
+            Transform t = uiComponent.transform.parent;
+            while (t != null)
+            {
+                CanvasGroup canvasGroup = t.gameObject.GetComponent<CanvasGroup>();
+                if (canvasGroup != null && (!canvasGroup.interactable || !canvasGroup.blocksRaycasts))
+                {
+                    return false;
+                }
+                t = t.parent;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// This returns the mouse position on the screen needed in order to interact with the
         /// specified UI element. If it is impossible to hit the UI element (e.g.
@@ -449,7 +493,7 @@ namespace RegressionGames.ActionManager
                     {
                         if (raycastRes.gameObject != null)
                         {
-                            // If the raycast hit either the object or one of its ancestors, then the given 
+                            // If the raycast hit either the object or one of its children, then the given 
                             // mouse position can be used to interact with the object.
                             if (IsAncestorOrEqualTo(uiObject, raycastRes.gameObject))
                             {

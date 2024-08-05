@@ -41,7 +41,21 @@ namespace RegressionGames
             yield return null;
             Assert.IsTrue(loaded, $"Scene {sceneName} failed to load within {timeout} seconds");
         }
-
+        
+        /// <summary>
+        /// Wait for the specified condition to become true with a timeout.
+        /// This is similar to WaitUntil(), but also includes a failing assertion if the timeout expires.
+        /// </summary>
+        /// <param name="condition">The condition that should become true</param>
+        /// <param name="timeout">Maximum time to wait for the condition to become true (in seconds)</param>
+        public static IEnumerator WaitUntil(Func<bool> condition, int timeout = 5)
+        {
+            var startTime = Time.unscaledTime;
+            bool result;
+            while (!(result = condition()) && Time.unscaledTime - startTime < timeout)
+                yield return null;
+            Assert.IsTrue(result, $"Condition did not become true within {timeout} seconds");
+        }
 
         /// <summary>
         /// Plays back an existing recording, and then returns the save location of the recording.
