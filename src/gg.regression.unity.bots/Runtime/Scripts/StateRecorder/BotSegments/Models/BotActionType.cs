@@ -9,7 +9,6 @@
         Behaviour,
         MonkeyBot,
         Mouse_CVImage,
-        Mouse_CVText,
 
         //POSSIBLE_FUTURE_ACTIONS
         //Timer,
@@ -19,6 +18,7 @@
         //RandomKeyboard_Key,
         //RandomKeyboard_ActionableKey,
         //RandomJoystick_Axis1|Axis2|Axis3,Key
+        //Mouse_CVText,
 
     }
 }
