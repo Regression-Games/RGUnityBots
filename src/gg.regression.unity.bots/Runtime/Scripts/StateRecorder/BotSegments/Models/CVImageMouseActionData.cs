@@ -155,6 +155,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     var screenshot = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
                     if (screenshot != null)
                     {
+                        _requestInProgress = true;
                         RectInt? queryWithinRect = null;
                         if (withinRect != null)
                         {
@@ -168,8 +169,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 Mathf.FloorToInt(yScale * withinRect.rect.height)
                             );
                         }
-
-                        _requestInProgress = true;
 
                         _resultReceived = false;
                         _cvResultsBoundsRect = null;
@@ -194,12 +193,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 lock (_syncLock)
                                 {
                                     RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - abortHook registration callback - insideLock");
-                                    // make sure we haven't already cleaned this up
-                                    if (_requestInProgress)
-                                    {
-                                        _requestAbortAction = action;
-                                        _requestInProgress = false;
-                                    }
+                                    _requestAbortAction = action;
                                 }
                             },
                             onSuccess:
@@ -253,7 +247,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 }
 
                             });
-                        RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - SENT");
+                        RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - SENT");
                     }
                 }
             }
@@ -339,6 +333,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
+            lock (_syncLock)
+            {
+                if (_requestAbortAction != null)
+                {
+                    _requestAbortAction.Invoke();
+                    _requestAbortAction = null;
+                }
+
+                _requestInProgress = false;
+            }
+
             _isStopped = true;
         }
 

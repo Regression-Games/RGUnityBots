@@ -17,17 +17,18 @@ namespace RegressionGames.StateRecorder
         // we use a lock on this object to control thread safety of updates and data reads for the lastN frames and completion actions
         private static readonly object SyncLock = new();
 
-        // if the current frame request is within this many frames of the most recent image, just use that image
-        private const int MaxCurrentScreenshotAge = 10;
+        // if the current frame request is within this many frames of the most recent image, just use that image, so we don't request a new screenshot from the gpu more often than this many frames
+        private const int MaxCurrentScreenshotAge = 5;
 
-        // track the last N frames captured
-        private const int MaxTrackedFrames = 5;
-        // if a request comes in that is OLDER than one of those last MaxTrackedFrames.. give them the latest one captured, else wait for that next frame
-        // tracks the data as jpg encoded bytes as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
+        // track the last N frames captured, this is just big enough so that if 2 different tasks (Screen recording, CV analysis, etc) request the data, we will still have it bufferred
+        private const int MaxTrackedFrames = 10;
+        // if a request comes in that is OLDER than one of those last MaxTrackedFrames.. give them the oldest one we still have captured, else wait for that next frame
+        // tracks the data as jpg encoded byte[] as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
         private static readonly List<(int, (byte[], int, int)?)> LastNFrames = new(MaxTrackedFrames);
 
         // if completion actions are requested for a given frame number.. complete them as soon as their frame number finishes, or complete immediately if a later frame has already finished
-        // tracks the data as jpg encoded bytes as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
+        // tracks the data as jpg encoded byte[] as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
+        // (frameIndex, byte[] = jpg bytes, int width, int height)
         private static readonly Dictionary<int, List<Action<(byte[], int, int)?>>> CompletionActions = new();
 
         private static (byte[], int, int)? GetDataForFrame(int frame)
@@ -228,10 +229,13 @@ namespace RegressionGames.StateRecorder
         public static void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
         {
             var frame = UnityEngine.Time.frameCount;
-            var frameData = GetDataForFrame(frame);
-            if (frameData == null)
+            lock (SyncLock)
             {
-                UpdateGPUData(frame, onCompletion);
+                var frameData = GetDataForFrame(frame);
+                if (frameData == null)
+                {
+                    UpdateGPUData(frame, onCompletion);
+                }
             }
         }
 
@@ -329,7 +333,7 @@ namespace RegressionGames.StateRecorder
 
 
         /**
-         * <summary>Returns Color32[] array of the pixels IF there is a valid screenshot buffered for a frame within MaxCurrentScreenshotAge of this frame.
+         * <summary>Returns byte[] array of the pixels IF there is a valid screenshot buffered for a frame within MaxCurrentScreenshotAge of this frame.
          * If not buffered, starts a new readback request</summary>
          */
         public static byte[] GetCurrentScreenshot(long segmentNumber, out int width, out int height)
@@ -338,21 +342,24 @@ namespace RegressionGames.StateRecorder
 
             HandleCompletedActionCallbacks();
 
-            (int, (byte[], int,int)?)? mostRecentFrameData = LastNFrames.Count > 0 ? LastNFrames[^1] : null;
-            var frameData = mostRecentFrameData?.Item2;
-
-            if (!frameData.HasValue || frame - mostRecentFrameData.Value.Item1 > MaxCurrentScreenshotAge)
+            lock (SyncLock)
             {
-                // frame is non-existent or too old
-                UpdateGPUData(frame, null);
-                frameData = null;
-            }
+                (int, (byte[], int, int)?)? mostRecentFrameData = LastNFrames.Count > 0 ? LastNFrames[^1] : null;
+                var frameData = mostRecentFrameData?.Item2;
 
-            if (frameData.HasValue)
-            {
-                width = frameData.Value.Item2;
-                height = frameData.Value.Item3;
-                return frameData.Value.Item1;
+                if (!frameData.HasValue || frame - mostRecentFrameData.Value.Item1 > MaxCurrentScreenshotAge)
+                {
+                    // frame is non-existent or too old
+                    UpdateGPUData(frame, null);
+                    frameData = null;
+                }
+
+                if (frameData.HasValue)
+                {
+                    width = frameData.Value.Item2;
+                    height = frameData.Value.Item3;
+                    return frameData.Value.Item1;
+                }
             }
 
             width = -1;
