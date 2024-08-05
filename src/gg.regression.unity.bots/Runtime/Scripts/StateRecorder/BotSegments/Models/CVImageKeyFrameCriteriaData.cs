@@ -5,7 +5,6 @@ using JetBrains.Annotations;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments.Models;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {

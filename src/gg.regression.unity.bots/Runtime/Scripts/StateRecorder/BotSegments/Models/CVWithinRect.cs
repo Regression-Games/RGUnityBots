@@ -11,7 +11,9 @@ namespace StateRecorder.BotSegments.Models
     [JsonConverter(typeof(CVWithinRectJsonConverter))]
     public class CVWithinRect
     {
+
         public int apiVersion = SdkApiVersion.VERSION_9;
+
         public Vector2Int screenSize;
         public RectInt rect;
 

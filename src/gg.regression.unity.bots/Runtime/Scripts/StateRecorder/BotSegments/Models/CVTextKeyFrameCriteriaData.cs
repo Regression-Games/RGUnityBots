@@ -33,6 +33,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
             stringBuilder.Append(",\"withinRect\":");
             CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
+            withinRect.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
         }
 
