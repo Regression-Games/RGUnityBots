@@ -58,10 +58,6 @@ namespace RegressionGames.StateRecorder
         {
             using var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Read);
 
-            // if the zip contains only one entry that is a directory, dig into that before iterating files (helps handle OS zipped directory formats)
-
-
-
             // sort by numeric value of entries (not string comparison of filenames)
             var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
 
@@ -98,7 +94,7 @@ namespace RegressionGames.StateRecorder
             catch (Exception e)
             {
                 // Failed to parse the json.  End user doesn't really need this message, this is for developers at RG creating new bot segment types.. we give them a for real exception below
-                RGDebug.LogWarning("Exception while parsing bot_segments.zip - " + e);
+                throw new Exception($"Exception while parsing bot segments zip: {zipFilePath}", e);
             }
 
             if (versionMismatch > 0)

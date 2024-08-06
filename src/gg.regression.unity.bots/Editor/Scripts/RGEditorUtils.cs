@@ -1,9 +1,10 @@
 using System;
 using System.IO;
 using RegressionGames.StateRecorder;
-using UnityEditor.Compilation;
+
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.Compilation;
 #endif
 
 namespace RegressionGames.Editor
