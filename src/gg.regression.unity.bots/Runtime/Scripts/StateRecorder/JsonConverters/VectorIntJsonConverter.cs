@@ -51,14 +51,14 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append("}");
         }
 
-        private static string ToJsonString(Vector2Int val)
+        public static string ToJsonString(Vector2Int val)
         {
             _stringBuilder.Value.Clear();
             WriteToStringBuilder(_stringBuilder.Value, val);
             return _stringBuilder.Value.ToString();
         }
 
-        private static string ToJsonString(Vector3Int val)
+        public static string ToJsonString(Vector3Int val)
         {
             _stringBuilder.Value.Clear();
             WriteToStringBuilder(_stringBuilder.Value, val);

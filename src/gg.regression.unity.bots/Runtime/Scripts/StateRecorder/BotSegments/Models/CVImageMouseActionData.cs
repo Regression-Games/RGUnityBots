@@ -199,7 +199,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             onSuccess:
                             list =>
                             {
-                                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
+                                RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
                                 lock (_syncLock)
                                 {
                                     RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
@@ -215,9 +215,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                             RGDebug.LogInfo($"({segmentNumber}) CVImageMouseActionData - Multiple results were returned for CV Image evaluation.  A random one of these will be saved as the result.  Consider specifying a precise `withinRect` in your action definition to get a singular result.");
                                         }
 
-                                        var index = Random.Range(0, list.Count);
 
-                                        _cvResultsBoundsRect = list[index].rect;
+                                        if (list.Count > 0)
+                                        {
+                                            var index = Random.Range(0, list.Count);
+
+                                            _cvResultsBoundsRect = list[index].rect;
+                                        }
+                                        else
+                                        {
+                                            _cvResultsBoundsRect = null;
+                                        }
+
                                         _resultReceived = true;
 
                                         // cleanup the request tracker
@@ -243,6 +252,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                         // cleanup the request tracker
                                         _requestAbortAction = null;
                                         _requestInProgress = false;
+                                        _nextActionIndex = 0;
                                     }
                                 }
 
@@ -283,7 +293,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     var rect = _cvResultsBoundsRect.Value;
 
                                     var position = new Vector2Int((int)rect.center.x, (int)rect.center.y);
-                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction}");
+                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction} at position: {VectorIntJsonConverter.ToJsonString(position)}");
                                     MouseEventSender.SendRawPositionMouseEvent(
                                         replaySegment: segmentNumber,
                                         normalizedPosition: position,
@@ -300,7 +310,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 }
                                 else
                                 {
-                                    _lastError = "CVImageMouseActionData - imageData not found ...";
+                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - imageData not found in current screen ...");
+                                    _lastError = "CVImageMouseActionData - imageData not found in current screen ...";
                                     error = _lastError;
                                     // start a new request
                                     RequestCVImageEvaluation(segmentNumber);
@@ -309,6 +320,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             }
                             else
                             {
+                                RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - waiting for CV Image evaluation results ...");
                                 _lastError = "CVImageMouseActionData - waiting for CV Image evaluation results ...";
                                 error = _lastError;
                                 // make sure we have a request in progress (this call checks internally to make sure one isn't already in progress)
@@ -333,18 +345,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            lock (_syncLock)
-            {
-                if (_requestAbortAction != null)
-                {
-                    _requestAbortAction.Invoke();
-                    _requestAbortAction = null;
-                }
-
-                _requestInProgress = false;
-            }
-
-            _isStopped = true;
+            // for cv image analysis, we finish the action queue even if criteria match before hand (no-op)
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
