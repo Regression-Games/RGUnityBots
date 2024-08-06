@@ -12,7 +12,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class InputSystemKeyAction : RGGameAction
     {
-        [RGActionProperty("Key", true)]
+        [RGActionProperty("Key", false)]
         public RGActionParamFunc<Key> KeyFunc { get; }
         
         public InputSystemKeyAction(string[] path, Type objectType, RGActionParamFunc<Key> keyFunc) : 

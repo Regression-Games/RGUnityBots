@@ -14,7 +14,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyButtonAction : RGGameAction
     {
-        [RGActionProperty("Button Name", true)]
+        [RGActionProperty("Button Name", false)]
         public RGActionParamFunc<string> ButtonNameFunc { get; }
 
         public LegacyButtonAction(string[] path, Type objectType, RGActionParamFunc<string> buttonNameFunc) : 

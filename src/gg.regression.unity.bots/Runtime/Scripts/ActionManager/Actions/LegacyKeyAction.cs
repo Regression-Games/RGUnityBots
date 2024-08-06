@@ -14,7 +14,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyKeyAction : RGGameAction
     {
-        [RGActionProperty("Key Code", true)]
+        [RGActionProperty("Key Code", false)]
         public RGActionParamFunc<object> KeyCodeFunc { get; }
         
         public LegacyKeyAction(string[] path, Type objectType, RGActionParamFunc<object> keyCodeFunc) : 

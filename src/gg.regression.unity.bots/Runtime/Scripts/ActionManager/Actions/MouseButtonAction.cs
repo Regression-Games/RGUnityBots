@@ -12,7 +12,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MouseButtonAction : RGGameAction
     {
-        [RGActionProperty("Mouse Button", true)]
+        [RGActionProperty("Mouse Button", false)]
         public RGActionParamFunc<int> MouseButtonFunc { get; }
         
         public MouseButtonAction(string[] path, Type objectType, RGActionParamFunc<int> mouseButtonFunc) 

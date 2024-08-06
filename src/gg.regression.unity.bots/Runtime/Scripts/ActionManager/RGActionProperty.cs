@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
@@ -35,6 +36,9 @@ namespace RegressionGames.ActionManager
             UserConfigurable = userConfigurable;
         }
 
+        /// <summary>
+        /// Finds a property by name for the given action.
+        /// </summary>
         public static RGActionPropertyInstance FindProperty(RGGameAction action, string name)
         {
             var field = action.GetType().GetField(name, BindingFlags.Public | BindingFlags.Instance);
@@ -60,6 +64,9 @@ namespace RegressionGames.ActionManager
             return null;
         }
         
+        /// <summary>
+        /// Enumerates all properties of the given action
+        /// </summary>
         public static IEnumerable<RGActionPropertyInstance> GetProperties(RGGameAction action)
         {
             foreach (var field in action.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
@@ -84,13 +91,27 @@ namespace RegressionGames.ActionManager
 
     public class RGActionPropertyInstance
     {
+        /// <summary>
+        /// The action this property instance is bound to
+        /// </summary>
         public RGGameAction Action { get; }
 
+        /// <summary>
+        /// The raw field/property information for the action property
+        /// </summary>
         public MemberInfo MemberInfo { get; }
 
+        /// <summary>
+        /// The attribute defining this property
+        /// </summary>
         public RGActionProperty Attribute { get; }
 
-        public Type ValueType
+        /// <summary>
+        /// Get the name of this property (equivalent to the member's name)
+        /// </summary>
+        public string Name => MemberInfo.Name;
+
+        public Type MemberType
         {
             get
             {
@@ -116,6 +137,9 @@ namespace RegressionGames.ActionManager
             Attribute = attr;
         }
 
+        /// <summary>
+        /// Get the current value of the property
+        /// </summary>
         public object GetValue()
         {
             if (MemberInfo is FieldInfo field)
@@ -131,6 +155,9 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        /// <summary>
+        /// Set the value of the property
+        /// </summary>
         public void SetValue(object value)
         {
             if (MemberInfo is FieldInfo field)
@@ -146,6 +173,48 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        private string GetDisplayValue(object value)
+        {
+            if (value == null)
+            {
+                return "null";
+            } else if (value is string str)
+            {
+                return str;
+            } else if (value is ICollection collection)
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("{");
+                bool isFirst = true;
+                foreach (object elem in collection)
+                {
+                    if (!isFirst)
+                        sb.Append(", ");
+                    else
+                        isFirst = false;
+                    sb.Append(GetDisplayValue(elem));
+                }
+                sb.Append("}");
+                return sb.ToString();
+            }
+            else
+            {
+                return value.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Get a representation of the property value suitable for display
+        /// in a user interface
+        /// </summary>
+        public string GetDisplayValue()
+        {
+            return GetDisplayValue(GetValue());
+        }
+
+        /// <summary>
+        /// Serialize the current value of this property to the given StringBuilder as JSON
+        /// </summary>
         public void WriteValueToStringBuilder(StringBuilder stringBuilder)
         {
             object value = GetValue();
@@ -153,9 +222,19 @@ namespace RegressionGames.ActionManager
             stringBuilder.Append(jsonSerialized);
         }
 
+        /// <summary>
+        /// Deserialize the property value.
+        /// Note this does not yet store the value to this property. Call the SetValue() method to
+        /// set the value.
+        /// </summary>
         public object DeserializeValue(string serializedValue)
         {
-            return JsonConvert.DeserializeObject(serializedValue, ValueType, RGActionProvider.JSON_CONVERTERS);
+            return JsonConvert.DeserializeObject(serializedValue, MemberType, RGActionProvider.JSON_CONVERTERS);
+        }
+
+        public override string ToString()
+        {
+            return Action.DisplayName + " " + Attribute.DisplayName;
         }
     }
 }

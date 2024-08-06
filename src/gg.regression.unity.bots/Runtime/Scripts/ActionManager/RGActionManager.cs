@@ -72,6 +72,7 @@ namespace RegressionGames.ActionManager
 
         private static RGActionManagerSettings LoadSettings()
         {
+            
             string jsonText = null;
             #if UNITY_EDITOR
             if (File.Exists(SETTINGS_PATH))
@@ -91,8 +92,15 @@ namespace RegressionGames.ActionManager
             RGActionManagerSettings result = null;
             if (jsonText != null)
             {
-                result = JsonConvert.DeserializeObject<RGActionManagerSettings>(jsonText,
-                    RGActionProvider.JSON_CONVERTERS);
+                try
+                {
+                    result = JsonConvert.DeserializeObject<RGActionManagerSettings>(jsonText,
+                        RGActionProvider.JSON_CONVERTERS);
+                }
+                catch (Exception e)
+                {
+                    RGDebug.LogWarning("Error reading action manager settings, reverting to defaults\n" + e.Message + "\n" + e.StackTrace);
+                }
             }
 
             if (result == null || !result.IsValid())

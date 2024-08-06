@@ -16,7 +16,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyAxisAction : RGGameAction
     {
-        [RGActionProperty("Axis Name", true)]
+        [RGActionProperty("Axis Name", false)]
         public RGActionParamFunc<string> AxisNameFunc { get; }
 
         [RGActionProperty("Mouse Movement Magnitude", true)]

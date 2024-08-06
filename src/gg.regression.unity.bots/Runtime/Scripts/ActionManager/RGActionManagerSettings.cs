@@ -43,7 +43,7 @@ namespace RegressionGames.ActionManager
         public const int SETTINGS_API_VERSION = 1; // Increment whenever breaking changes are made to the settings format
 
         // API version of the settings file
-        public int apiVersion = SETTINGS_API_VERSION;
+        public int ApiVersion = SETTINGS_API_VERSION;
         
         // Set of actions that were disabled by the user
         public ISet<string> DisabledActionPaths = new HashSet<string>();
@@ -150,6 +150,27 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        /// <summary>
+        /// Returns whether there is a value override setting for the given property
+        /// </summary>
+        public bool HavePropertySetting(RGActionPropertyInstance prop)
+        {
+            string propertyName = prop.Name;
+            foreach (string[] path in prop.Action.Paths)
+            {
+                string pathStr = string.Join("/", path);
+                if (ActionProperties.TryGetValue(pathStr, out var propSettings))
+                {
+                    var propSetting = propSettings.FirstOrDefault(pc => pc.propertyName == propertyName);
+                    if (propSetting != null)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public bool IsActionEnabled(string[] actionPath)
         {
             return !DisabledActionPaths.Contains(string.Join("/", actionPath));
@@ -157,13 +178,15 @@ namespace RegressionGames.ActionManager
 
         public bool IsValid()
         {
-            return apiVersion == SETTINGS_API_VERSION && DisabledActionPaths != null && ActionProperties != null;
+            return ApiVersion == SETTINGS_API_VERSION && DisabledActionPaths != null && ActionProperties != null;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\n");
-            stringBuilder.Append("\"DisabledActionPaths\":[\n");
+            stringBuilder.Append("\"ApiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, SETTINGS_API_VERSION);
+            stringBuilder.Append(",\n\"DisabledActionPaths\":[\n");
             int disabledActionPathCount = DisabledActionPaths.Count;
             int disabledActionPathIndex = 0;
             foreach (string disabledActionPath in DisabledActionPaths)
@@ -175,8 +198,7 @@ namespace RegressionGames.ActionManager
                 }
                 ++disabledActionPathIndex;
             }
-            stringBuilder.Append("\n],\n");
-            stringBuilder.Append("\"ActionProperties\":{\n");
+            stringBuilder.Append("\n],\n\"ActionProperties\":{\n");
             int actionPropCount = ActionProperties.Count;
             int actionPropIndex = 0;
             foreach (var actionPropEntry in ActionProperties)
