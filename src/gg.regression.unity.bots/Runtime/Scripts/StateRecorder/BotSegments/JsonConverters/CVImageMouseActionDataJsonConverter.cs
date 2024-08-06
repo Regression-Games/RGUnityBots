@@ -1,19 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments.Models;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {
-    public sealed class CVWithinRectJsonConverter : JsonConverter
+    public sealed class CVImageMouseActionDataJsonConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
-            return typeof(CVWithinRect).IsAssignableFrom(objectType);
+            return typeof(CVImageMouseActionData).IsAssignableFrom(objectType);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -22,29 +24,15 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             {
                 JObject jObject = JObject.Load(reader);
                 // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
-                CVWithinRect actionModel = new();
-                actionModel.screenSize = jObject.GetValue("screenSize").ToObject<Vector2Int>(serializer);
-                actionModel.rect = jObject.GetValue("rect").ToObject<RectInt>(serializer);
+                CVImageMouseActionData actionModel = new();
+                actionModel.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
+                actionModel.imageData = jObject.GetValue("imageData").ToObject<string>(serializer);
+                actionModel.withinRect = jObject.GetValue("withinRect")?.ToObject<CVWithinRect>(serializer);
+                actionModel.actions = jObject.GetValue("actions").ToObject<List<CVMouseActionDetails>>(serializer);
                 return actionModel;
             }
 
             return null;
-        }
-
-        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, [CanBeNull] CVWithinRect rect)
-        {
-            if (rect == null)
-            {
-                stringBuilder.Append("null");
-            }
-            else
-            {
-                stringBuilder.Append("{\"screenSize\":");
-                VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, rect.screenSize);
-                stringBuilder.Append(",\"rect\":");
-                RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, rect.rect);
-                stringBuilder.Append("}");
-            }
         }
 
         public override bool CanWrite => false;
