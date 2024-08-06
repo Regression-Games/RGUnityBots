@@ -81,6 +81,10 @@ namespace RegressionGames.ActionManager
         public override int NumValues => 1;
         public override object this[int index] => null;
 
+        public RGVoidRange()
+        {
+        }
+
         public RGVoidRange(JObject serializedRange)
         {
         }

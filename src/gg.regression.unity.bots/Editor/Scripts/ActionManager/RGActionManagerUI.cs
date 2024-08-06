@@ -63,6 +63,15 @@ namespace RegressionGames.ActionManager
                     {
                         shouldInclude = true;
                     }
+
+                    foreach (var (_, attrValue) in action.GetDisplayActionAttributes())
+                    {
+                        if (attrValue.ToLower().Contains(searchQuery))
+                        {
+                            shouldInclude = true;
+                            break;
+                        }
+                    }
                 }
                 if (shouldInclude)
                 {
