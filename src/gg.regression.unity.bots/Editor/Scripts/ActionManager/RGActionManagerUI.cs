@@ -814,7 +814,6 @@ namespace RegressionGames.ActionManager
                     
                     var control = CreateControlForProperty(prop, origValue, updateOverriddenState, 
                         out var onPropChange);
-                    control.style.width = StyleKeyword.Auto;
                     if (control != null)
                     {
                         resetBtn.clicked += () =>
