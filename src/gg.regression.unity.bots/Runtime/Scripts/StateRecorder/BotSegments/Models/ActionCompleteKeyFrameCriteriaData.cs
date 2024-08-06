@@ -8,7 +8,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class ActionCompleteKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_10;
+        public int apiVersion = SdkApiVersion.VERSION_11;
         
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {

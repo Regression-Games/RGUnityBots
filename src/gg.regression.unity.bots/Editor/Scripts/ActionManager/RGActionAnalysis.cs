@@ -18,8 +18,10 @@ using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
 using RegressionGames.Editor;
+using TMPro;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 #if ENABLE_LEGACY_INPUT_MANAGER
 using RegressionGames.Editor.RGLegacyInputUtility;
@@ -376,10 +378,10 @@ namespace RegressionGames.ActionManager
             members.Reverse();
 
             // if the first field is not static, then its declaring type should match the class declaration
-            if (members[0] is FieldInfo { IsStatic: false } firstField)
+            if (members[0] is FieldInfo firstField && !firstField.IsStatic)
             {
                 var containingClass = memberAccessExpr.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
-                if (containingClass == null || firstField.DeclaringType?.Name != containingClass.Identifier.Text)
+                if (containingClass == null || members[0].DeclaringType.Name != containingClass.Identifier.Text)
                 {
                     memberAccessFunc = null;
                     return false;
@@ -1092,7 +1094,6 @@ namespace RegressionGames.ActionManager
         }
 
         private void RunCodeAnalysis(int passNum)
-
         {
             const float codeAnalysisStartProgress = 0.0f;
             const float codeAnalysisEndProgress = 0.6f;
@@ -1125,8 +1126,6 @@ namespace RegressionGames.ActionManager
             }
         }
 
-        private ISet<string> _buttonClickListeners;
-
         /// <summary>
         /// Identify any actions that may be defined by the game object.
         /// </summary>
@@ -1138,8 +1137,79 @@ namespace RegressionGames.ActionManager
             {
                 foreach (string listener in RGActionManagerUtils.GetEventListenerMethodNames(btn.onClick))
                 {
-                    _buttonClickListeners.Add(listener);
+                    string[] path = {"Unity UI", "Button", listener};
+                    AddAction(new UIButtonPressAction(path, typeof(Button), listener), null);
                 }
+            }
+            if (gameObject.TryGetComponent(out Toggle _) && !IsRGOverlayObject(gameObject))
+            {
+                string[] path = { "Unity UI", "Toggle", null };
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string dropdownName = null;
+
+                // if this toggle is the child of a dropdown, inherit part of the identifier from the dropdown
+                Selectable dropdownParent = gameObject.transform.GetComponentInParent<Dropdown>(true);
+                if (dropdownParent == null)
+                    dropdownParent = gameObject.transform.GetComponentInParent<TMP_Dropdown>(true);
+                if (dropdownParent != null)
+                {
+                    dropdownName = UIObjectPressAction.GetNormalizedGameObjectName(dropdownParent.gameObject.name);
+                    path[2] = dropdownName + " " + normName;
+                }
+                else
+                {
+                    path[2] = normName;
+                }
+
+                AddAction(new UITogglePressAction(path, typeof(Toggle), normName, dropdownName), null);
+            }
+            if (gameObject.TryGetComponent(out Dropdown _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] path = { "Unity UI", "Dropdown", normName };
+                AddAction(new UIObjectPressAction(path, typeof(Dropdown), normName), null);
+            }
+            if (gameObject.TryGetComponent(out TMP_Dropdown _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] path = { "Unity UI", "TMP_Dropdown", normName };
+                AddAction(new UIObjectPressAction(path, typeof(TMP_Dropdown), normName), null);
+            }
+            if (gameObject.TryGetComponent(out InputField _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] pathPress = { "Unity UI", "Input Field", "Press", normName };
+                string[] pathTextEntry = { "Unity UI", "Input Field", "Text Entry", normName };
+                string[] pathTextSubmit = { "Unity UI", "Input Field", "Text Submit", normName };
+                AddAction(new UIObjectPressAction(pathPress, typeof(InputField), normName), null);
+                AddAction(new UIInputFieldTextEntryAction(pathTextEntry, typeof(InputField), normName), null);
+                AddAction(new UIInputFieldSubmitAction(pathTextSubmit, typeof(InputField), normName), null);
+            }
+            if (gameObject.TryGetComponent(out TMP_InputField _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] pathPress = { "Unity UI", "Input Field (TMP)", "Press", normName };
+                string[] pathTextEntry = { "Unity UI", "Input Field (TMP)", "Text Entry", normName };
+                string[] pathTextSubmit = { "Unity UI", "Input Field (TMP)", "Text Submit", normName };
+                AddAction(new UIObjectPressAction(pathPress, typeof(TMP_InputField), normName), null);
+                AddAction(new UIInputFieldTextEntryAction(pathTextEntry, typeof(TMP_InputField), normName), null);
+                AddAction(new UIInputFieldSubmitAction(pathTextSubmit, typeof(TMP_InputField), normName), null);
+            }
+            if (gameObject.TryGetComponent(out Slider _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] pathPress = { "Unity UI", "Slider", "Press", normName };
+                string[] pathRelease = { "Unity UI", "Slider", "Release", normName };
+                AddAction(new UISliderPressAction(pathPress, typeof(Slider), normName), null);
+                AddAction(new UISliderReleaseAction(pathRelease, typeof(Slider), normName), null);
+            }
+            if (gameObject.TryGetComponent(out Scrollbar _) && !IsRGOverlayObject(gameObject))
+            {
+                string normName = UIObjectPressAction.GetNormalizedGameObjectName(gameObject.name);
+                string[] pathPress = { "Unity UI", "Scrollbar", "Press", normName };
+                string[] pathRelease = { "Unity UI", "Scrollbar", "Release", normName };
+                AddAction(new UISliderPressAction(pathPress, typeof(Scrollbar), normName), null);
+                AddAction(new UISliderReleaseAction(pathRelease, typeof(Scrollbar), normName), null);
             }
 
             // search for embedded InputActions
@@ -1191,7 +1261,7 @@ namespace RegressionGames.ActionManager
             InputActionAction result;
             if (embeddedMember != null)
             {
-                string[] path = new[] { embeddedMember.DeclaringType?.FullName, embeddedMember.Name };
+                string[] path = new[] { embeddedMember.DeclaringType.FullName, embeddedMember.Name };
                 var actionFunc = RGActionParamFunc<InputAction>.MemberAccesses(new[] { embeddedMember });
                 result = new InputActionAction(path, embeddedMember.DeclaringType, actionFunc, action);
             }
@@ -1216,7 +1286,6 @@ namespace RegressionGames.ActionManager
             NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
             try
             {
-                _buttonClickListeners = new HashSet<string>();
                 string[] sceneGuids = AssetDatabase.FindAssets("t:Scene");
                 string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
                 string[] inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
@@ -1308,13 +1377,6 @@ namespace RegressionGames.ActionManager
                         RGDebug.LogWarning("Exception when opening input asset: " + e.Message + "\n" + e.StackTrace);
                     }
                     ++analyzedResourceCount;
-                }
-
-                // Generate actions for the identified button click events
-                foreach (string btnClickListener in _buttonClickListeners)
-                {
-                    string[] path = {"Unity UI", "Button Click", btnClickListener};
-                    AddAction(new UIButtonPressAction(path, typeof(Button), btnClickListener), null);
                 }
             }
             finally
