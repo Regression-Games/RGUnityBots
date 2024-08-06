@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Text;
 using System.Threading;
+using JetBrains.Annotations;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments.Models;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -17,6 +18,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
         public TextCaseRule textCaseRule = TextCaseRule.Matches;
 
+        [CanBeNull]
         public CVWithinRect withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
@@ -30,7 +32,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append(",\"textCaseRule\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
             stringBuilder.Append(",\"withinRect\":");
-            withinRect.WriteToStringBuilder(stringBuilder);
+            CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append("}");
         }
 
