@@ -80,10 +80,10 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
          */
-        public bool Matched(bool firstSegment, int segmentNumber, BotActionType botActionType, bool botActionCompleted, List<KeyFrameCriteria> criteriaList)
+        public bool Matched(bool firstSegment, int segmentNumber, bool botActionCompleted, List<KeyFrameCriteria> criteriaList)
         {
             _newUnmatchedCriteria.Clear();
-            bool matched = MatchedHelper(firstSegment, segmentNumber, botActionType, botActionCompleted, BooleanCriteria.And, criteriaList);
+            bool matched = MatchedHelper(firstSegment, segmentNumber, botActionCompleted, BooleanCriteria.And, criteriaList);
             if (matched)
             {
                 CVTextCriteriaEvaluator.Cleanup(segmentNumber);
@@ -105,7 +105,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator. firstSegment represents if this is the first segment in the current pass's list of segments to evaluate</summary>
          */
-        internal bool MatchedHelper(bool firstSegment, int segmentNumber, BotActionType botActionType, bool botActionCompleted, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
+        internal bool MatchedHelper(bool firstSegment, int segmentNumber, bool botActionCompleted, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
         {
             var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
             var currentFrameCount = Time.frameCount;
@@ -183,9 +183,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                         cvImagesToMatch.Add(entry);
                         break;
                     case KeyFrameCriteriaType.ActionComplete:
-                        if (botActionType == BotActionType.Behaviour && !botActionCompleted)
+                        if (!botActionCompleted)
                         {
-                            _newUnmatchedCriteria.Add("Waiting for behaviour to complete...");
+                            _newUnmatchedCriteria.Add("Waiting for action to complete...");
                             return false;
                         }
                         break;
@@ -327,7 +327,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < orCount; j++)
                 {
                     var orEntry = orsToMatch[j];
-                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionType, botActionCompleted, orEntry);
+                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionCompleted, orEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
@@ -353,7 +353,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < andCount; j++)
                 {
                     var andEntry = andsToMatch[j];
-                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionType, botActionCompleted, andEntry);
+                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionCompleted, andEntry);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)

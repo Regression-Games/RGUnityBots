@@ -363,7 +363,6 @@ namespace RegressionGames.StateRecorder
                 var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched( 
                     i ==0, 
                     nextBotSegment.Replay_SegmentNumber, 
-                    nextBotSegment.botAction.type,
                     nextBotSegment.Replay_ActionCompleted,
                     nextBotSegment.keyFrameCriteria
                 );
