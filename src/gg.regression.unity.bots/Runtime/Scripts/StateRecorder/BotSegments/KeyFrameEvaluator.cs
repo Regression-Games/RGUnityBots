@@ -21,6 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             _priorKeyFrameTransformStatus.Clear();
             _priorKeyFrameEntityStatus.Clear();
             CVTextCriteriaEvaluator.Reset();
+            CVImageCriteriaEvaluator.Reset();
         }
 
         public string GetUnmatchedCriteria()
@@ -136,6 +137,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             var orsToMatch = new List<KeyFrameCriteria>();
             var andsToMatch = new List<KeyFrameCriteria>();
             var cvTextsToMatch = new List<KeyFrameCriteria>();
+            var cvImagesToMatch = new List<KeyFrameCriteria>();
 
             var length = criteriaList.Count;
             for (var i = 0; i < length; i++)
@@ -179,6 +181,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                     case KeyFrameCriteriaType.CVText:
                         cvTextsToMatch.Add(entry);
                         break;
+                     case KeyFrameCriteriaType.CVImage:
+                        cvImagesToMatch.Add(entry);
+                        break;
                 }
             }
 
@@ -203,6 +208,43 @@ namespace RegressionGames.StateRecorder.BotSegments
                     for (var i = 0; i < cvTextResultsCount; i++)
                     {
                         var resultEntry = cvTextResults[i];
+                        if (resultEntry == null)
+                        {
+                            if (andOr == BooleanCriteria.Or)
+                            {
+                                return true;
+                            }
+                        }
+                        else
+                        {
+                            if (andOr == BooleanCriteria.And)
+                            {
+                                _newUnmatchedCriteria.Add(resultEntry);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (cvImagesToMatch.Count > 0)
+            {
+                var cvImageResults = CVImageCriteriaEvaluator.Matched(segmentNumber, cvImagesToMatch);
+                if (cvImageResults == null)
+                {
+                    // cvText results will be null until we get the async response back
+                    if (andOr == BooleanCriteria.And)
+                    {
+                        _newUnmatchedCriteria.Add("Waiting for CVImage evaluation results ...");
+                        return false;
+                    }
+                }
+                else
+                {
+                    var cvImageResultsCount = cvImageResults.Count;
+                    for (var i = 0; i < cvImageResultsCount; i++)
+                    {
+                        var resultEntry = cvImageResults[i];
                         if (resultEntry == null)
                         {
                             if (andOr == BooleanCriteria.Or)

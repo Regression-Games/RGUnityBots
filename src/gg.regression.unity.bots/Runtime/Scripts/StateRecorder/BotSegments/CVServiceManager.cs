@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.Models.CVSerice;
+using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using UnityEngine.Networking;
 
 namespace RegressionGames
@@ -48,8 +48,28 @@ namespace RegressionGames
             }
             else
             {
-                return $"{host}/rgservice";
+                return $"{host}/rgcvservice";
             }
+        }
+
+        public async Task PostCriteriaImageMatch(CVImageCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVImageResult>> onSuccess, Action onFailure)
+        {
+            await SendWebRequest(
+                uri: $"{GetCvServiceBaseUri()}/criteria-image-match",
+                method: "POST",
+                payload: request.ToJsonString(),
+                abortRegistrationHook: abortRegistrationHook.Invoke,
+                onSuccess: (s) =>
+                {
+                    var response = JsonConvert.DeserializeObject<CVImageResultList>(s);
+                    onSuccess.Invoke(response.results);
+                },
+                onFailure: (f) =>
+                {
+                    RGDebug.LogWarning($"Failed to evaluate CV Image criteria: {f}");
+                    onFailure.Invoke();
+                }
+            );
         }
 
         public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)
@@ -131,9 +151,16 @@ namespace RegressionGames
                 // pass them back a hook to abort this request
                 await abortRegistrationHook.Invoke(() =>
                 {
-                    if (!task.webRequest.isDone)
+                    try
                     {
-                        task.webRequest.Abort();
+                        if (!task.webRequest.isDone)
+                        {
+                            task.webRequest.Abort();
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // we tried to help
                     }
                 });
                 RGDebug.LogVerbose($"<{messageId}> API request sent ...");

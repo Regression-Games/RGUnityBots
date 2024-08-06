@@ -8,8 +8,9 @@
         RandomMouse_ClickObject,
         Behaviour,
         MonkeyBot,
+        Mouse_CVImage,
 
-        //FUTURE
+        //POSSIBLE_FUTURE_ACTIONS
         //Timer,
         //FrameCount,
         //AgentBuilder,
@@ -17,6 +18,7 @@
         //RandomKeyboard_Key,
         //RandomKeyboard_ActionableKey,
         //RandomJoystick_Axis1|Axis2|Axis3,Key
+        //Mouse_CVText,
 
     }
 }

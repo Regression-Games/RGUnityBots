@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json.Linq;
@@ -12,6 +12,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace Tests.Runtime
 {
@@ -158,6 +159,13 @@ namespace Tests.Runtime
             return null;
         }
 
+        private static bool IsValidAction(string name)
+        {
+            var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
+                actionInst.BaseAction.DisplayName == name);
+            return actionInst != null;
+        }
+
         private void FindAndPerformAction(string name, object param)
         {
             var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
@@ -182,7 +190,6 @@ namespace Tests.Runtime
             {
                 InputSystem.AddDevice<Keyboard>();
             }
-            
             SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
             
@@ -544,26 +551,205 @@ namespace Tests.Runtime
                 RGActionManager.StopSession();
             }
             
-            // Test UI button press
+            // Test Unity UI interaction
+            string[] uiObjects =
+            {
+                "The_Button", "The_Toggle", 
+                "Slider_Horizontal", "Slider_Vertical", 
+                "Scrollbar_Horizontal", "Scrollbar_Vertical",
+                "Dropdown", "TMP_Dropdown", "InputField", "TMP_InputField"
+            };
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
-            GameObject theButton = FindGameObject("The_Button");
-            theButton.SetActive(true);
+            foreach (var uiObjectName in uiObjects)
+            {
+                GameObject uiObject = FindGameObject(uiObjectName);
+                uiObject.SetActive(true);
+            }
             try
             {
+                // UI Button Click
                 yield return null;
                 yield return null;
-                FindAndPerformAction("ActionManagerTests.ButtonHandler.OnBtnClick", true);
+                FindAndPerformAction("ActionManagerTests.UIHandler.OnBtnClick", true);
                 yield return null;
                 yield return null;
-                FindAndPerformAction("ActionManagerTests.ButtonHandler.OnBtnClick", false);
+                FindAndPerformAction("ActionManagerTests.UIHandler.OnBtnClick", false);
                 yield return null;
                 yield return null;
                 LogAssert.Expect(LogType.Log, "Clicked button The_Button");
+                
+                // Toggle Click
+                FindAndPerformAction("Press The_Toggle", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press The_Toggle", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "The_Toggle changed to True");
+                FindAndPerformAction("Press The_Toggle", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press The_Toggle", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "The_Toggle changed to False");
+                
+                // Dropdown Press
+                FindAndPerformAction("Press Dropdown", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press Dropdown", false);
+                yield return RGTestUtils.WaitUntil(() => IsValidAction("Press Item (Dropdown Dropdown)"));
+                FindAndPerformAction("Press Item (Dropdown Dropdown)", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press Item (Dropdown Dropdown)", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Dropdown value changed");
+                yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null);
+                
+                // TextMeshPro Dropdown Press
+                FindAndPerformAction("Press TMP_Dropdown", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press TMP_Dropdown", false);
+                yield return RGTestUtils.WaitUntil(() => IsValidAction("Press Item (Dropdown TMP_Dropdown)"));
+                FindAndPerformAction("Press Item (Dropdown TMP_Dropdown)", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press Item (Dropdown TMP_Dropdown)", false);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "TMP_Dropdown value changed");
+                yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null);
+                
+                // InputField text entry
+                FindAndPerformAction("Press InputField", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press InputField", false);
+                yield return null;
+                yield return null;
+                (Key, bool)[] keyEntryTest = { (Key.H, true), (Key.E, false), (Key.L, false), (Key.L, false), (Key.O, false) };
+                foreach (var (key, shiftPressed) in keyEntryTest)
+                {
+                    int keyIndex = (key - UIInputFieldTextEntryAction.MinKey) * 2;
+                    if (shiftPressed)
+                        keyIndex += 1;
+                    FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_FIRST_KEY + keyIndex);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_NULL);
+                    yield return null;
+                    yield return null;
+                }
+                FindAndPerformAction("Text Submit InputField", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "InputField submitted with text Hello");
+                
+                // TextMeshPro InputField text entry
+                FindAndPerformAction("Press TMP_InputField", true);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Press TMP_InputField", false);
+                yield return null;
+                yield return null;
+                (Key, bool)[] keyEntryTest2 = { (Key.W, true), (Key.O, false), (Key.R, false), (Key.L, false), (Key.D, false) };
+                foreach (var (key, shiftPressed) in keyEntryTest2)
+                {
+                    int keyIndex = (key - UIInputFieldTextEntryAction.MinKey) * 2;
+                    if (shiftPressed)
+                        keyIndex += 1;
+                    FindAndPerformAction("Text Entry TMP_InputField", UIInputFieldTextEntryAction.PARAM_FIRST_KEY + keyIndex);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Text Entry TMP_InputField", UIInputFieldTextEntryAction.PARAM_NULL);
+                    yield return null;
+                    yield return null;
+                }
+                FindAndPerformAction("Text Submit TMP_InputField", true);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "TMP_InputField submitted with text World");
+                
+                // Horizontal Slider Movement
+                FindAndPerformAction("Press Slider_Horizontal", 0.25f);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Slider_Horizontal", 0.25f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Slider_Horizontal changed to first half");
+                FindAndPerformAction("Press Slider_Horizontal", 0.75f);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Slider_Horizontal", 0.75f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Slider_Horizontal changed to second half");
+                
+                // Vertical Slider Movement
+                FindAndPerformAction("Press Slider_Vertical", 0.25f);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Slider_Vertical", 0.25f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Slider_Vertical changed to first half");
+                FindAndPerformAction("Press Slider_Vertical", 0.75f);
+                yield return null;
+                yield return null;
+                FindAndPerformAction("Release Slider_Vertical", 0.75f);
+                yield return null;
+                yield return null;
+                LogAssert.Expect(LogType.Log, "Slider_Vertical changed to second half");
+
+                // Scrollbar tests do not work when running in the CI pipeline, only run these locally
+                if (!Application.isBatchMode)
+                {
+                    // Horizontal Scrollbar Movement
+                    FindAndPerformAction("Press Scrollbar_Horizontal", 0.25f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Horizontal", 0.25f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to first half");
+                    FindAndPerformAction("Press Scrollbar_Horizontal", 0.75f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Horizontal", 0.75f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to second half");
+                
+                    // Vertical Scrollbar Movement
+                    FindAndPerformAction("Press Scrollbar_Vertical", 0.25f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Vertical", 0.25f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to first half");
+                    FindAndPerformAction("Press Scrollbar_Vertical", 0.75f);
+                    yield return null;
+                    yield return null;
+                    FindAndPerformAction("Release Scrollbar_Vertical", 0.75f);
+                    yield return null;
+                    yield return null;
+                    LogAssert.Expect(LogType.Log, "Scrollbar_Vertical changed to second half");
+                }
             }
             finally
             {
-                theButton.SetActive(false);
+                foreach (var uiObjectName in uiObjects)
+                {
+                    GameObject uiObject = FindGameObject(uiObjectName);
+                    uiObject.SetActive(false);
+                }
                 RGActionManager.StopSession();
             }
             
@@ -619,6 +805,7 @@ namespace Tests.Runtime
             }
             finally
             {
+                RGActionManager.StopSession();
                 inputActionListener.SetActive(false);
                 RGActionManager.StopSession();
             }

@@ -109,8 +109,7 @@ namespace RegressionGames.StateRecorder
             Stop();
             _replaySuccessful = null;
 
-            // get the mouse off the screen, when replay fails, we leave the virtual mouse cursor alone so they can see its location at time of failure, but on new file, we want this gone
-            MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
+            MouseEventSender.MoveMouseOffScreen();
 
             _dataContainer = dataContainer;
         }
@@ -187,6 +186,7 @@ namespace RegressionGames.StateRecorder
             _dataContainer = null;
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
+            MouseEventSender.MoveMouseOffScreen();
 
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
@@ -216,6 +216,7 @@ namespace RegressionGames.StateRecorder
             _dataContainer?.Reset();
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
+            MouseEventSender.MoveMouseOffScreen();
 
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
@@ -244,6 +245,7 @@ namespace RegressionGames.StateRecorder
             _dataContainer?.Reset();
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
+            MouseEventSender.MoveMouseOffScreen();
 
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
@@ -267,7 +269,7 @@ namespace RegressionGames.StateRecorder
                 if (_startPlaying)
                 {
                     // start the mouse off the screen.. this avoids CV or other things failing because the virtual mouse is in the way at the start
-                    MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
+                    MouseEventSender.MoveMouseOffScreen();
 
                     #if ENABLE_LEGACY_INPUT_MANAGER
                     RGLegacyInputWrapper.StartSimulation(this);
@@ -484,7 +486,7 @@ namespace RegressionGames.StateRecorder
 
                 if (_nextBotSegments.Count == 0)
                 {
-                    MouseEventSender.SendRawPositionMouseEvent(-1, new Vector2(Screen.width+20, -20));
+                    MouseEventSender.MoveMouseOffScreen();
 
                     // we hit the end of the replay
                     if (_loopCount > -1)

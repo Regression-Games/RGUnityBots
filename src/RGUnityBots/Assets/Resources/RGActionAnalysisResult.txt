@@ -328,6 +328,170 @@
 "actionGuid":"00000000-0000-0000-0000-000000000000"
 },
     {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Button/ActionManagerTests.UIHandler.OnBtnClick"],
+"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"eventListenerName":"ActionManagerTests.UIHandler.OnBtnClick"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UITogglePressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Toggle/The_Toggle"],
+"objectTypeName":"UnityEngine.UI.Toggle, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"The_Toggle",
+"normalizedDropdownName":null
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Slider/Press/Slider_Horizontal"],
+"objectTypeName":"UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Slider_Horizontal"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Slider/Release/Slider_Horizontal"],
+"objectTypeName":"UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Slider_Horizontal"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Slider/Press/Slider_Vertical"],
+"objectTypeName":"UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Slider_Vertical"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Slider/Release/Slider_Vertical"],
+"objectTypeName":"UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Slider_Vertical"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Press/Scrollbar_Horizontal"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar_Horizontal"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Release/Scrollbar_Horizontal"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar_Horizontal"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Press/Scrollbar_Vertical"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar_Vertical"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Release/Scrollbar_Vertical"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar_Vertical"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIObjectPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Dropdown/Dropdown"],
+"objectTypeName":"UnityEngine.UI.Dropdown, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Dropdown"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UITogglePressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Toggle/Dropdown Item"],
+"objectTypeName":"UnityEngine.UI.Toggle, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Item",
+"normalizedDropdownName":"Dropdown"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Press/Scrollbar"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UISliderReleaseAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Scrollbar/Release/Scrollbar"],
+"objectTypeName":"UnityEngine.UI.Scrollbar, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_FLOAT","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Scrollbar"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIObjectPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/TMP_Dropdown/TMP_Dropdown"],
+"objectTypeName":"TMPro.TMP_Dropdown, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"TMP_Dropdown"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UITogglePressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Toggle/TMP_Dropdown Item"],
+"objectTypeName":"UnityEngine.UI.Toggle, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"Item",
+"normalizedDropdownName":"TMP_Dropdown"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIObjectPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field/Press/InputField"],
+"objectTypeName":"UnityEngine.UI.InputField, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIInputFieldTextEntryAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field/Text Entry/InputField"],
+"objectTypeName":"UnityEngine.UI.InputField, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":0,"maxValue":102},
+"normalizedGameObjectName":"InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIInputFieldSubmitAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field/Text Submit/InputField"],
+"objectTypeName":"UnityEngine.UI.InputField, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIObjectPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field (TMP)/Press/TMP_InputField"],
+"objectTypeName":"TMPro.TMP_InputField, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"TMP_InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIInputFieldTextEntryAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field (TMP)/Text Entry/TMP_InputField"],
+"objectTypeName":"TMPro.TMP_InputField, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_INT","minValue":0,"maxValue":102},
+"normalizedGameObjectName":"TMP_InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIInputFieldSubmitAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Input Field (TMP)/Text Submit/TMP_InputField"],
+"objectTypeName":"TMPro.TMP_InputField, Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"normalizedGameObjectName":"TMP_InputField"
+},
+    {
+"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+"paths":["Unity UI/Button/LegacyButton.ClickedHandler"],
+"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
+"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
+"eventListenerName":"LegacyButton.ClickedHandler"
+},
+    {
 "actionTypeName":"RegressionGames.ActionManager.Actions.InputActionAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
 "paths":["MyInputs/ActionMap1/Move"],
 "objectTypeName":"UnityEngine.InputSystem.InputActionAsset, Unity.InputSystem, Version=1.5.1.0, Culture=neutral, PublicKeyToken=null",
@@ -376,20 +540,6 @@
 "embeddedActionFunc":null,
 "actionName":"Crouch",
 "actionGuid":"1ab6d824-7e5d-486a-a7c8-e973ab78e892"
-},
-    {
-"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["Unity UI/Button Click/ActionManagerTests.ButtonHandler.OnBtnClick"],
-"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
-"eventListenerName":"ActionManagerTests.ButtonHandler.OnBtnClick"
-},
-    {
-"actionTypeName":"RegressionGames.ActionManager.Actions.UIButtonPressAction, RegressionGames, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
-"paths":["Unity UI/Button Click/LegacyButton.ClickedHandler"],
-"objectTypeName":"UnityEngine.UI.Button, UnityEngine.UI, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null",
-"parameterRange":{"type":"RANGE_BOOL","minValue":0,"maxValue":1},
-"eventListenerName":"LegacyButton.ClickedHandler"
 }
   ]
 }

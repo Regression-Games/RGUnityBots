@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Text;
+using System.Threading;
+using JetBrains.Annotations;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
-using UnityEngine;
+using StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -9,13 +12,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVTextKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_8;
+        public int apiVersion = SdkApiVersion.VERSION_9;
 
-        public Vector2Int resolution;
         public string text;
         public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
         public TextCaseRule textCaseRule = TextCaseRule.Matches;
-        public RectInt? withinRect;
+
+        [CanBeNull]
+        public CVWithinRect withinRect;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -27,18 +31,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textMatchingRule.ToString());
             stringBuilder.Append(",\"textCaseRule\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
-            stringBuilder.Append(",\"resolution\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, resolution);
             stringBuilder.Append(",\"withinRect\":");
-            RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
+            CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append("}");
         }
 
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1000));
+
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder(1000);
-            WriteToStringBuilder(sb);
-            return sb.ToString();
+            WriteToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
         }
 
         public int EffectiveApiVersion()
