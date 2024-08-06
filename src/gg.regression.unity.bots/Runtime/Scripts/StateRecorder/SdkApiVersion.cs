@@ -12,7 +12,7 @@
         public const int VERSION_7 = 7; // added partial normalized path matching
         public const int VERSION_8 = 8; // add cv text key frame criteria matching
         public const int VERSION_9 = 9; // add cv image key frame criteria matching
-        public const int VERSION_10 = 10; // add criteria for completion of monobehaviour bot actions
+        public const int VERSION_10 = 10; // add criteria for completion of bot actions
 
         // Update this when new features are used in the SDK
         public const int CURRENT_VERSION = VERSION_10;

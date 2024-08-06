@@ -182,7 +182,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                      case KeyFrameCriteriaType.CVImage:
                         cvImagesToMatch.Add(entry);
                         break;
-                    case KeyFrameCriteriaType.BehaviourComplete:
+                    case KeyFrameCriteriaType.ActionComplete:
                         if (botActionType == BotActionType.Behaviour && !botActionCompleted)
                         {
                             _newUnmatchedCriteria.Add("Waiting for behaviour to complete...");

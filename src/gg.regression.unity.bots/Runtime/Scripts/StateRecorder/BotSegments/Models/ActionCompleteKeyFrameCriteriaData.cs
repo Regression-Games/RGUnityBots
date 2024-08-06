@@ -5,7 +5,7 @@ using RegressionGames.StateRecorder.JsonConverters;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class BehaviourCompleteKeyFrameCriteriaData : IKeyFrameCriteriaData
+    public class ActionCompleteKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
         public int apiVersion = SdkApiVersion.VERSION_10;
