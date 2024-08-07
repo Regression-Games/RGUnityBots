@@ -99,7 +99,7 @@ namespace RegressionGames.GenericBots.Experimental
     ///
     /// When the bot is first started, it records the initial scene it was started in. The bot runs an episode for a
     /// fixed amount of time defined by EpisodeDuration, then restarts the game by invoking SceneManager.LoadScene
-    /// on the initial scene it was loaded with.
+    /// on the initial scene it was loaded with. The logic for restarting the game can be modified by overriding the RestartGame() method.
     ///
     /// At the end of each episode, the model (Q-table) is saved to ModelFilePath,
     /// as well as the training state (epsilon value). Therandom action selection rate (epsilon)
@@ -117,14 +117,14 @@ namespace RegressionGames.GenericBots.Experimental
     public class QLearningBot : MonoBehaviour
     {
         public bool Training = true; // if disabled, the Q-table is frozen and the game runs at normal speed
-        public float ActionInterval = 0.05f;
-        public float EpisodeDuration = 30.0f;
-        public float EpsilonDecayPerEpisode = 0.9f;
-        public float MinEpsilon = 0.1f;
-        public float Alpha = 0.001f;
-        public float Gamma = 0.6f;
-        public int ExperienceBufferSize = 64;
-        public string ModelFilePath = "qbot_model.json";
+        public float ActionInterval = 0.05f; // Interval on which to take actions, expressed in scaled time (seconds). If zero, actions taken every frame.
+        public float EpisodeDuration = 30.0f; // Duration of the episode, in scaled time (seconds)
+        public float EpsilonDecayPerEpisode = 0.95f; // Exponential decay factor of epsilon during training after each episode
+        public float MinEpsilon = 0.05f; // The lowest epsilon value possible
+        public float Alpha = 0.001f; // Learning rate
+        public float Gamma = 0.6f; // Discount factor
+        public int ExperienceBufferSize = 64; // Size of the experience buffer (size of fixed-length queue of the last N experiences)
+        public string ModelFilePath = "qbot_model.json"; // Path where to save the trained model (Q-table)
         public float TrainingTimeScale = 20.0f; // the Time.timeScale value to use while training 
             
         private List<QAction> _actionSpace;
@@ -191,6 +191,15 @@ namespace RegressionGames.GenericBots.Experimental
         protected virtual IRewardModule CreateRewardModule()
         {
             return new ExplorationRewardModule();
+        }
+
+        /// <summary>
+        /// Logic for restarting the game. This defaults to loading the initial scene
+        /// that the bot was started with via SceneManager.LoadScene().
+        /// </summary>
+        protected virtual void RestartGame()
+        {
+            SceneManager.LoadScene(_initialSceneName);
         }
         
         /// <summary>
@@ -492,7 +501,7 @@ namespace RegressionGames.GenericBots.Experimental
             if (now - _epStartTime >= EpisodeDuration || IsEpisodeFinished())
             {
                 OnEpisodeEnd();
-                SceneManager.LoadScene(_initialSceneName);
+                RestartGame();
                 OnEpisodeStart();
             }
     

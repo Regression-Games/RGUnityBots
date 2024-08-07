@@ -22,7 +22,7 @@ namespace RegressionGames.GenericBots.Experimental.Rewards
         }
         
         // Reward the agent for the novelty of the camera position
-        // This is 1/sqrt(N), where N is the number of times the current (discretized) camera position has been seen previously
+        // This is 1/N, where N is the number of times the current (discretized) camera position has been seen previously
         // This reward has a range of 0 to 1.
         private float GetCameraPositionReward()
         {
@@ -38,7 +38,7 @@ namespace RegressionGames.GenericBots.Experimental.Rewards
             }
             numVisits += 1;
             _cameraPositionVisits[pos] = numVisits;
-            return 1.0f / Mathf.Sqrt(numVisits);
+            return 1.0f / numVisits;
         }
         
         public float GetRewardForLastAction()
