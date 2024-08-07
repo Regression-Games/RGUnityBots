@@ -235,11 +235,6 @@ namespace RegressionGames.GenericBots.Experimental
             var actionSpace = new List<QAction>();
             foreach (var act in RGActionManager.Actions)
             {
-                if (!RGActionManager.IsActionEnabled(act))
-                {
-                    continue;
-                }
-    
                 foreach (var param in GetDiscreteParamValues(act))
                 {
                     actionSpace.Add(new QAction(act, param));
