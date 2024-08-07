@@ -14,6 +14,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class UIButtonPressAction : RGGameAction
     {
+        [RGActionProperty("Target Event Listener", false)]
         public string EventListenerName { get; }
 
         
@@ -80,14 +81,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"eventListenerName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, EventListenerName);
-        }
-        
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Target Event Listener", EventListenerName);
         }
     }
 

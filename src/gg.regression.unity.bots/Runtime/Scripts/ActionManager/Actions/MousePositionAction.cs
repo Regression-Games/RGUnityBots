@@ -23,9 +23,11 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class MousePositionAction : RGGameAction
     {
+        [RGActionProperty("Position Type", false)]
         public MousePositionType PositionType { get; }
         
         // Layer masks to use if position type is either COLLIDER_2D or COLLIDER_3D (Note: ContactFilter not supported currently)
+        [RGActionProperty("Layer Masks", false)]
         public List<RGActionParamFunc<int>> LayerMasks { get; }
         
         public MousePositionAction(string[] path, Type objectType) : 
@@ -139,19 +141,6 @@ namespace RegressionGames.ActionManager.Actions
                     }
                 }
                 stringBuilder.Append("\n]");
-            }
-        }
-        
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Position Type", PositionType.ToString());
-
-            if (LayerMasks != null)
-            {
-                yield return ("Layer Mask", string.Join(" | ", LayerMasks));
             }
         }
     }

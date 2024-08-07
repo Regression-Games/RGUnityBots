@@ -242,6 +242,6 @@ namespace RegressionGames.RGLegacyInputUtility
                     return Key.None;
             }
         }
-
+        
     }
 }

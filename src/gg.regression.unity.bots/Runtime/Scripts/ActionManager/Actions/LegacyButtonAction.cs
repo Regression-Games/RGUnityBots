@@ -14,6 +14,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyButtonAction : RGGameAction
     {
+        [RGActionProperty("Button Name", false)]
         public RGActionParamFunc<string> ButtonNameFunc { get; }
 
         public LegacyButtonAction(string[] path, Type objectType, RGActionParamFunc<string> buttonNameFunc) : 
@@ -53,14 +54,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"buttonNameFunc\":");
             ButtonNameFunc.WriteToStringBuilder(stringBuilder);
-        }
-        
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Button Name", ButtonNameFunc.ToString());
         }
     }
 

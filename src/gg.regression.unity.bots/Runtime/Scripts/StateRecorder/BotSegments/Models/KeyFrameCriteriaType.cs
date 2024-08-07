@@ -9,10 +9,10 @@
         PartialNormalizedPath,
         CVText,
         CVImage,
+        ActionComplete
 
         //FUTURE
         //Path,
-        //XPath,
-        //BehaviourComplete
+        //XPath
     }
 }

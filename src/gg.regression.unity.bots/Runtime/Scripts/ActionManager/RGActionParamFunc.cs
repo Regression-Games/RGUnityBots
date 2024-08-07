@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RegressionGames.ActionManager.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 using Object = System.Object;
@@ -29,12 +31,18 @@ namespace RegressionGames.ActionManager
         public string DeclaringType;
         public string MemberName;
     }
+
+    public interface IRGActionParamFunc
+    {
+        public void WriteToStringBuilder(StringBuilder stringBuilder);
+    }
     
     /// <summary>
     /// This represents a function of an object that returns a parameter needed for an action,
     /// such as the key code, button name, axis name, etc. It is designed to be serializable.
     /// </summary>
-    public class RGActionParamFunc<T> : IEquatable<RGActionParamFunc<T>>
+    [JsonConverter(typeof(RGActionParamFuncJsonConverter))]
+    public class RGActionParamFunc<T> : IRGActionParamFunc, IEquatable<RGActionParamFunc<T>>
     {
         private readonly ActionParamFuncType _funcType;
         private readonly string _data;
