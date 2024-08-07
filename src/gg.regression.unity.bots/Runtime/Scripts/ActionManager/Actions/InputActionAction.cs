@@ -17,11 +17,19 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class InputActionAction : RGGameAction
     {
+        [RGActionProperty("Action Asset Name", false)]
         public string ActionAssetName { get; }
+        
+        [RGActionProperty("Embedded Action Source", false)]
         public RGActionParamFunc<InputAction> EmbeddedActionFunc { get; }
+        
+        [RGActionProperty("Action Name", false)]
         public string ActionName { get; }
+        
+        [RGActionProperty("Action GUID", false)]
         public Guid ActionGuid { get; }
         
+        [RGActionProperty("Mouse Movement Magnitude", true)]
         public float MouseMovementMagnitude = 10.0f; // for axes that read mouse delta, the amount to move/scroll the mouse
 
         /// <summary>
@@ -291,28 +299,6 @@ namespace RegressionGames.ActionManager.Actions
             StringJsonConverter.WriteToStringBuilder(stringBuilder, ActionName);
             stringBuilder.Append(",\n\"actionGuid\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, ActionGuid.ToString());
-        }
-
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            if (ActionAssetName != null)
-            {
-                yield return ("Action Asset Name", ActionAssetName);
-            }
-
-            yield return ("Action Name", ActionName);
-            
-            if (EmbeddedActionFunc != null)
-            {
-                yield return ("Embedded Action Source", EmbeddedActionFunc.ToString());
-            }
-            else
-            {
-                yield return ("Action GUID", ActionGuid.ToString());
-            }
         }
     }
 

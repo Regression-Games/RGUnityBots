@@ -966,11 +966,6 @@ namespace RegressionGames.ActionManager
             }
 
             var filePath = _currentTree.FilePath;
-            var lineSpan = _currentTree.GetLineSpan(node.Span);
-            int startLine = lineSpan.StartLinePosition.Line;
-            int startChar = lineSpan.StartLinePosition.Character;
-            int endLine = lineSpan.EndLinePosition.Line;
-            int endChar = lineSpan.EndLinePosition.Character;
 
             int pathLen = 3;
             if (pathSuffix != null)
@@ -980,8 +975,7 @@ namespace RegressionGames.ActionManager
             string[] path = new string[pathLen];
 
             path[0] = typeName;
-            path[1] = Path.GetFileName(filePath) + ":" + startLine + ":" + startChar +
-                      ":" + endLine + ":" + endChar;
+            path[1] = Path.GetFileName(filePath);
             path[2] = node.ToString();
             if (pathSuffix != null)
             {

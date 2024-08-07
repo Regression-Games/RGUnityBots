@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -6,6 +8,16 @@ namespace RegressionGames.ActionManager.JsonConverters
 {
     public class RGValueRangeJsonConverter : JsonConverter
     {
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1_000));
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            IRGValueRange valueRange = (IRGValueRange)value;
+            _stringBuilder.Value.Clear();
+            valueRange.WriteToStringBuilder(_stringBuilder.Value);
+            writer.WriteRawValue(_stringBuilder.Value.ToString());
+        }
+        
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             JObject obj = JObject.Load(reader);
@@ -34,13 +46,6 @@ namespace RegressionGames.ActionManager.JsonConverters
         public override bool CanConvert(Type objectType)
         {
             return typeof(IRGValueRange).IsAssignableFrom(objectType);
-        }
-
-        public override bool CanWrite => false;
-        
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
         }
     }
 }
