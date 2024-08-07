@@ -24,7 +24,7 @@
          */
         public const int VERSION_5 = 5;
         /**
-         * <summary>add support for monkey bot</summary>
+         * <summary>added support for monkey bot</summary>
          */
         public const int VERSION_6 = 6;
         /**
@@ -32,19 +32,24 @@
          */
         public const int VERSION_7 = 7;
         /**
-         * <summary>add cv text key frame criteria matching</summary>
+         * <summary>added cv text key frame criteria matching</summary>
          */
         public const int VERSION_8 = 8;
         /**
-         * <summary>add cv image key frame criteria matching, redefine withinRect data format</summary>
+         * <summary>added cv image key frame criteria matching, redefine withinRect data format</summary>
          */
         public const int VERSION_9 = 9;
         /**
-         * <summary>add cv image mouse actions</summary>
+         * <summary>added cv image mouse actions</summary>
          */
         public const int VERSION_10 = 10;
+        /**
+         * <summary>added criteria to wait for completion of bot actions</summary>
+         */
+        public const int VERSION_11 = 11;
+        
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_10;
+        public const int CURRENT_VERSION = VERSION_11;
     }
 }
