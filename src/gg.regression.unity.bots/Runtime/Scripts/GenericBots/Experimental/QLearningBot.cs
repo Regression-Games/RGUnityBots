@@ -205,7 +205,7 @@ namespace RegressionGames.GenericBots.Experimental
         /// <summary>
         /// Obtains a set of discrete parameter values for the given action.
         /// If the action is already discrete, returns each parameter value.
-        /// If the action 
+        /// If the action is continuous, a fixed number of discrete values are generated for it.
         /// </summary>
         protected virtual IEnumerable<object> GetDiscreteParamValues(RGGameAction act)
         {
