@@ -116,7 +116,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 if (_myGameObject != null)
                 {
-                    if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
+                    if (!_myGameObject.GetComponent(_typeToCreate))
+                    {
+                        // behaviour was destroyed, stop
+                        StopAction(segmentNumber, currentTransforms, currentEntities);
+                        // will return false
+
+                    }
+                    else if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
                     {
                         StopAction(segmentNumber, currentTransforms, currentEntities);
                         // will return false
@@ -132,7 +139,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     // and/or
                     // UnityEngine.Object.FindObjectOfType<EntityObjectFinder>().GetObjectStatusForCurrentFrame(); - for runtimes with ECS support
                 }
-            }
+            } 
 
             error = null;
             return false;
