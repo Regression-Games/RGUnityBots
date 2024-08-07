@@ -102,7 +102,7 @@ namespace RegressionGames.GenericBots.Experimental
     /// on the initial scene it was loaded with. The logic for restarting the game can be modified by overriding the RestartGame() method.
     ///
     /// At the end of each episode, the model (Q-table) is saved to ModelFilePath,
-    /// as well as the training state (epsilon value). Therandom action selection rate (epsilon)
+    /// as well as the training state (epsilon value). The random action selection rate (epsilon)
     /// decays after each episode by the amount specified in EpsilonDecayPerEpisode.
     ///
     /// To use this bot, create a MonoBehaviour in your project that inherits from this bot.
