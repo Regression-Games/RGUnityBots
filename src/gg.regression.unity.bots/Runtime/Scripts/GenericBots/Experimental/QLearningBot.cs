@@ -301,7 +301,7 @@ namespace RegressionGames.GenericBots.Experimental
         {
             if (!RGActionManager.IsAvailable)
             {
-                RGDebug.LogError("Action manager is currently unavailable");
+                RGDebug.LogError("Action manager is currently unavailable. Have you run Regression Games > Configure Bot Actions > Analyze Actions on your project?");
                 Destroy(this);
                 return;
             }
