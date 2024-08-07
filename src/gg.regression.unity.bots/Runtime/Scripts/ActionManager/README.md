@@ -109,3 +109,4 @@ To introduce support for a new action type in the action manager:
 ## Example Bots
 
 [RGMonkeyBot](../GenericBots/RGMonkeyBot.cs) - Random testing bot that performs actions from the action manager and also includes some heuristics to prioritize some common sequences of actions (such as pressing down and releasing a mouse button over the same coordinate over the course of two frames)
+[QLearningBot](../GenericBots/Experimental/QLearningBot.cs) - Exploratory bot based on Q learning that generates a discrete action space for the game using the action manager, and by default uses a reward function that tries to maximize the number of camera positions visited
