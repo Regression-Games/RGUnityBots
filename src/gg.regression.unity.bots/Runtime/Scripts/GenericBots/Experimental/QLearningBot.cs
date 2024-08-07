@@ -337,6 +337,10 @@ namespace RegressionGames.GenericBots.Experimental
             OnEpisodeStart();
         }
     
+        /// <summary>
+        /// Calls RGActionManager.GetValidActions() to get the set of valid actions, then transforms
+        /// this result into the discrete action space representation used by the Q learning bot.
+        /// </summary>
         private void ComputeValidActions()
         {
             var validActions = new Dictionary<RGGameAction, List<IRGGameActionInstance>>();
