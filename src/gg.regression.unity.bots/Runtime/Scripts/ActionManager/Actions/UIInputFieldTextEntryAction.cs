@@ -29,6 +29,7 @@ namespace RegressionGames.ActionManager.Actions
         public const Key MinKey = Key.Space;
         public const Key MaxKey = Key.Digit0;
 
+        [RGActionProperty("Target Game Object", false)]
         public string NormalizedGameObjectName { get; set; }
 
         public UIInputFieldTextEntryAction(string[] path, Type objectType, string normalizedGameObjectName) : 
@@ -107,14 +108,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"normalizedGameObjectName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, NormalizedGameObjectName);
-        }
-
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Target Game Object", NormalizedGameObjectName);
         }
     }
 

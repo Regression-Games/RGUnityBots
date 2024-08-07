@@ -14,6 +14,7 @@ namespace RegressionGames.ActionManager.Actions
     /// </summary>
     public class LegacyKeyAction : RGGameAction
     {
+        [RGActionProperty("Key Code", false)]
         public RGActionParamFunc<object> KeyCodeFunc { get; }
         
         public LegacyKeyAction(string[] path, Type objectType, RGActionParamFunc<object> keyCodeFunc) : 
@@ -53,14 +54,6 @@ namespace RegressionGames.ActionManager.Actions
         {
             stringBuilder.Append(",\n\"keyCodeFunc\":");
             KeyCodeFunc.WriteToStringBuilder(stringBuilder);
-        }
-        
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Key Code", KeyCodeFunc.ToString());
         }
     }
 

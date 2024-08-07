@@ -23,11 +23,13 @@ namespace RegressionGames.ActionManager.Actions
         /// The normalized game object name is the name of the game object without a "(N)" suffix.
         /// This action will target UI toggles that have the given name.
         /// </summary>
+        [RGActionProperty("Target Game Object", false)]
         public string NormalizedGameObjectName { get; }
 
         /// <summary>
         /// If this toggle is part of a dropdown, then this is the name of the dropdown.
         /// </summary>
+        [RGActionProperty("Parent Dropdown", false)]
         public string NormalizedDropdownName { get; }
 
         public UITogglePressAction(string[] path, Type objectType, string normalizedGameObjectName, string normalizedDropdownName = null) : 
@@ -127,14 +129,6 @@ namespace RegressionGames.ActionManager.Actions
             StringJsonConverter.WriteToStringBuilder(stringBuilder, NormalizedGameObjectName);
             stringBuilder.Append(",\n\"normalizedDropdownName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, NormalizedDropdownName);
-        }
-        
-        public override IEnumerable<(string, string)> GetDisplayActionAttributes()
-        {
-            foreach (var attr in base.GetDisplayActionAttributes())
-                yield return attr;
-
-            yield return ("Target Game Object", NormalizedGameObjectName);
         }
     }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Text;
+using Newtonsoft.Json;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.Models;
@@ -26,14 +27,18 @@ namespace RegressionGames.ActionManager
         private static MonoBehaviour _context;
         private static RGActionProvider _actionProvider;
         private static RGActionManagerSettings _settings;
-        private static IList<RGGameAction> _sessionActions;
+        private static List<RGGameAction> _actions; // the set of actions after applying the user settings from RGActionManagerSettings
 
         /// <summary>
-        /// Provides access to the actions obtained from the action provider.
-        /// This property does not consider whether actions are disabled in the settings:
-        /// the IsActionEnabled method can be used to determine this.
+        /// The set of actions after applying the user settings in RGActionManagerSettings.
         /// </summary>
-        public static IEnumerable<RGGameAction> Actions => _actionProvider.Actions;
+        public static IEnumerable<RGGameAction> Actions => _actions;
+        
+        /// <summary>
+        /// Provides access to the original set of actions identified from the static analysis,
+        /// prior to the user settings being applied from RGActionManagerSettings.
+        /// </summary>
+        public static IEnumerable<RGGameAction> OriginalActions => _actionProvider.Actions;
 
         public delegate void ActionsChangedHandler();
         public static event ActionsChangedHandler ActionsChanged;
@@ -60,13 +65,14 @@ namespace RegressionGames.ActionManager
         [InitializeOnLoadMethod]
         public static void InitializeInEditor()
         {
-            ReloadActions();
             _settings = LoadSettings();
+            ReloadActions();
         }
         #endif
 
         private static RGActionManagerSettings LoadSettings()
         {
+            
             string jsonText = null;
             #if UNITY_EDITOR
             if (File.Exists(SETTINGS_PATH))
@@ -86,7 +92,15 @@ namespace RegressionGames.ActionManager
             RGActionManagerSettings result = null;
             if (jsonText != null)
             {
-                result = JsonUtility.FromJson<RGActionManagerSettings>(jsonText);
+                try
+                {
+                    result = JsonConvert.DeserializeObject<RGActionManagerSettings>(jsonText,
+                        RGActionProvider.JSON_CONVERTERS);
+                }
+                catch (Exception e)
+                {
+                    RGDebug.LogWarning("Error reading action manager settings, reverting to defaults\n" + e.Message + "\n" + e.StackTrace);
+                }
             }
 
             if (result == null || !result.IsValid())
@@ -109,7 +123,9 @@ namespace RegressionGames.ActionManager
             }
             using (StreamWriter sw = new StreamWriter(SETTINGS_PATH))
             {
-                sw.Write(JsonUtility.ToJson(settings, true));
+                StringBuilder stringBuilder = new StringBuilder();
+                settings.WriteToStringBuilder(stringBuilder);
+                sw.Write(stringBuilder.ToString());
             }
         }
         #endif
@@ -134,7 +150,6 @@ namespace RegressionGames.ActionManager
             {
                 throw new Exception($"Session is already active with context {_context}");
             }
-            ReloadActions();
             if (actionSettings != null)
             {
                 _settings = actionSettings;
@@ -144,8 +159,9 @@ namespace RegressionGames.ActionManager
                 _settings = LoadSettings();
             }
             _context = context;
-            _sessionActions = new List<RGGameAction>(_actionProvider.Actions.Where(IsActionEnabled));
-
+            
+            ReloadActions();
+            
             if (DoesContextNeedSetUp())
             {
                 #if ENABLE_LEGACY_INPUT_MANAGER
@@ -175,20 +191,9 @@ namespace RegressionGames.ActionManager
                     #endif
                     RGUtils.RestoreInputSettings();
                 }
-                _sessionActions = null;
                 _context = null;
                 _settings = LoadSettings(); // restore settings back to the saved configuration
             }
-        }
-
-        public static bool IsActionEnabled(RGGameAction action)
-        {
-            if (action.Paths.All(path => !_settings.IsActionEnabled(path)))
-            {
-                // action is disabled in settings
-                return false;
-            }
-            return true;
         }
 
         /// <summary>
@@ -209,8 +214,8 @@ namespace RegressionGames.ActionManager
             CurrentEventSystems.AddRange(eventSystems);
 
             RGUtils.ForceApplicationFocus();
-
-            foreach (RGGameAction action in _sessionActions)
+            
+            foreach (RGGameAction action in Actions)
             {
                 Debug.Assert(action.ParameterRange != null);
 
@@ -241,6 +246,14 @@ namespace RegressionGames.ActionManager
         {
             var prevActionProvider = _actionProvider;
             _actionProvider = new RGActionProvider();
+            if (_actionProvider.IsAvailable)
+            {
+                _actions = _settings.ApplySettings(_actionProvider.Actions);
+            }
+            else
+            {
+                _actions = null;
+            }
             if (prevActionProvider != null)
             {
                 ActionsChanged?.Invoke();
