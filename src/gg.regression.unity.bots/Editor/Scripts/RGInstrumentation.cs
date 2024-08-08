@@ -13,7 +13,7 @@ using UnityEditor.Compilation;
 using UnityEngine;
 using Assembly = UnityEditor.Compilation.Assembly;
 
-namespace RegressionGames.Editor.RGLegacyInputUtility
+namespace RegressionGames.Editor
 {
     /*
      * This class is responsible for hooking into the Unity build process and
