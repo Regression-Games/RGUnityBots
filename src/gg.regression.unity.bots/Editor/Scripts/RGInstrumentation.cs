@@ -10,7 +10,6 @@ using Mono.Cecil.Rocks;
 using RegressionGames.CodeCoverage;
 using UnityEditor;
 using UnityEditor.Compilation;
-using UnityEngine;
 using Assembly = UnityEditor.Compilation.Assembly;
 
 #if ENABLE_LEGACY_INPUT_MANAGER
