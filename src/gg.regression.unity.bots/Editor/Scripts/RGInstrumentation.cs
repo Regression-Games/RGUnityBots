@@ -19,7 +19,7 @@ namespace RegressionGames.Editor.RGLegacyInputUtility
      * This class is responsible for hooking into the Unity build process and
      * applying the wrapper input API instrumentation for the legacy input manager.
      */
-    public class RGLegacyInputInstrumentation
+    public class RGInstrumentation
     {
         private const int MaxAttempts = 4;
         
