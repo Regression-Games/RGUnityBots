@@ -13,12 +13,6 @@ using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
 
 // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
 // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators

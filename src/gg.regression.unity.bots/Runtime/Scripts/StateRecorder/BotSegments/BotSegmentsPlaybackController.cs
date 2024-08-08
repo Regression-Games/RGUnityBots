@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 #if UNITY_EDITOR
@@ -15,13 +14,13 @@ using Object = UnityEngine.Object;
 
 // ReSharper disable MergeIntoPattern
 
-namespace RegressionGames.StateRecorder
+namespace RegressionGames.StateRecorder.BotSegments
 {
-    public class ReplayDataPlaybackController : MonoBehaviour
+    public class BotSegmentsPlaybackController : MonoBehaviour
     {
         public bool pauseEditorOnPlaybackWarning = false;
 
-        private ReplayBotSegmentsContainer _dataContainer;
+        private BotSegmentsPlaybackContainer _dataPlaybackContainer;
 
         // flag to indicate the next update loop should start playing
         private bool _startPlaying;
@@ -104,14 +103,14 @@ namespace RegressionGames.StateRecorder
             MouseEventSender.Reset();
         }
 
-        public void SetDataContainer(ReplayBotSegmentsContainer dataContainer)
+        public void SetDataContainer(BotSegmentsPlaybackContainer dataPlaybackContainer)
         {
             Stop();
             _replaySuccessful = null;
 
             MouseEventSender.MoveMouseOffScreen();
 
-            _dataContainer = dataContainer;
+            _dataPlaybackContainer = dataPlaybackContainer;
         }
 
         /**
@@ -132,7 +131,7 @@ namespace RegressionGames.StateRecorder
 
         public void Play()
         {
-            if (_dataContainer != null)
+            if (_dataPlaybackContainer != null)
             {
                 if (!_startPlaying && !_isPlaying)
                 {
@@ -146,7 +145,7 @@ namespace RegressionGames.StateRecorder
 
         public void Loop(Action<int> loopCountCallback)
         {
-            if (_dataContainer != null)
+            if (_dataPlaybackContainer != null)
             {
                 if (!_startPlaying && !_isPlaying)
                 {
@@ -183,7 +182,7 @@ namespace RegressionGames.StateRecorder
             #endif
             RGUtils.RestoreInputSettings();
 
-            _dataContainer = null;
+            _dataPlaybackContainer = null;
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
             MouseEventSender.MoveMouseOffScreen();
@@ -213,7 +212,7 @@ namespace RegressionGames.StateRecorder
             #endif
 
             // similar to Stop, but assumes will play again
-            _dataContainer?.Reset();
+            _dataPlaybackContainer?.Reset();
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
             MouseEventSender.MoveMouseOffScreen();
@@ -242,7 +241,7 @@ namespace RegressionGames.StateRecorder
             #endif
 
             // similar to Stop, but assumes continued looping .. doesn't stop recording
-            _dataContainer?.Reset();
+            _dataPlaybackContainer?.Reset();
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
             MouseEventSender.MoveMouseOffScreen();
@@ -264,7 +263,7 @@ namespace RegressionGames.StateRecorder
 
         public void Update()
         {
-            if (_dataContainer != null)
+            if (_dataPlaybackContainer != null)
             {
                 if (_startPlaying)
                 {
@@ -277,11 +276,11 @@ namespace RegressionGames.StateRecorder
                     RGUtils.ConfigureInputSettings();
                     _startPlaying = false;
                     _isPlaying = true;
-                    _nextBotSegments.Add(_dataContainer.DequeueBotSegment());
+                    _nextBotSegments.Add(_dataPlaybackContainer.DequeueBotSegment());
                     // if starting to play, or on loop 1.. start recording
                     if (_loopCount < 2)
                     {
-                        _screenRecorder.StartRecording(_dataContainer.SessionId);
+                        _screenRecorder.StartRecording(_dataPlaybackContainer.SessionId);
                     }
                 }
                 if (_isPlaying)
@@ -360,13 +359,13 @@ namespace RegressionGames.StateRecorder
             {
                 var nextBotSegment = _nextBotSegments[i];
 
-                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched( 
-                    i ==0, 
-                    nextBotSegment.Replay_SegmentNumber, 
+                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched(
+                    i ==0,
+                    nextBotSegment.Replay_SegmentNumber,
                     nextBotSegment.Replay_ActionCompleted,
                     nextBotSegment.keyFrameCriteria
                 );
-                
+
                 if (matched)
                 {
                     if (!nextBotSegment.Replay_Matched)
@@ -433,7 +432,7 @@ namespace RegressionGames.StateRecorder
                 var lastSegment = _nextBotSegments[^1];
                 if (lastSegment.Replay_TransientMatched)
                 {
-                    var next = _dataContainer.DequeueBotSegment();
+                    var next = _dataPlaybackContainer.DequeueBotSegment();
                     if (next != null)
                     {
                         _lastTimeLoggedKeyFrameConditions = now;
@@ -446,7 +445,7 @@ namespace RegressionGames.StateRecorder
             else
             {
                 // segment list empty.. dequeue another
-                var next = _dataContainer.DequeueBotSegment();
+                var next = _dataPlaybackContainer.DequeueBotSegment();
                 if (next != null)
                 {
                     _lastTimeLoggedKeyFrameConditions = now;
@@ -484,7 +483,7 @@ namespace RegressionGames.StateRecorder
         {
             if (_isPlaying)
             {
-                if (_dataContainer != null)
+                if (_dataPlaybackContainer != null)
                 {
                     EvaluateBotSegments();
                 }
