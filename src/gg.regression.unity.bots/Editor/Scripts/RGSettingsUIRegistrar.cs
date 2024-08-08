@@ -71,7 +71,7 @@ namespace RegressionGames.Editor
                     {
                         // if the code coverage option is changed, request a script re-compilation since this affects the assemblies
                         featureCodeCoverage.boolValue = featCodeCoverage;
-                        CompilationPipeline.RequestScriptCompilation(); 
+                        CompilationPipeline.RequestScriptCompilation(RequestScriptCompilationOptions.CleanBuildCache);
                     }
 
                     settings.ApplyModifiedProperties();

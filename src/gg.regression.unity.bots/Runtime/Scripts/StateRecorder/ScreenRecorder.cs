@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -308,6 +309,13 @@ namespace RegressionGames.StateRecorder
             {
                 gameFacePixelHashObserver.SetActive(true);
             }
+            
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            if (rgSettings.GetFeatureCodeCoverage())
+            {
+                RGCodeCoverage.StartRecording();
+            }
+            
             StartCoroutine(StartRecordingCoroutine(referenceSessionId));
 
         }
@@ -380,6 +388,12 @@ namespace RegressionGames.StateRecorder
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
             _tokenSource = null;
+            
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            if (rgSettings.GetFeatureCodeCoverage())
+            {
+                RGCodeCoverage.StopRecording();
+            }
         }
 
         private IEnumerator RecordFrame()
@@ -543,6 +557,23 @@ namespace RegressionGames.StateRecorder
 
                         _lastCvFrameTime = now;
                         _frameCountSinceLastTick = 0;
+                        
+                        RecordingCodeCoverageState codeCoverageState = null;
+                        
+                        RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+                        bool codeCovEnabled = rgSettings.GetFeatureCodeCoverage();
+                        if (codeCovEnabled)
+                        {
+                            var codeCovMetadata = RGCodeCoverage.GetMetadata();
+                            if (codeCovMetadata != null)
+                            {
+                                codeCoverageState = new RecordingCodeCoverageState()
+                                {
+                                    coverageSinceLastTick = RGCodeCoverage.CopyCodeCoverageState(),
+                                    codePointCounts = codeCovMetadata.GetCodePointCountsAsDictionary()
+                                };
+                            }
+                        }
 
                         var frameState = new RecordingFrameStateData()
                         {
@@ -556,8 +587,14 @@ namespace RegressionGames.StateRecorder
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
                             state = currentStates.Values,
+                            codeCoverage = codeCoverageState, 
                             inputs = inputData
                         };
+
+                        if (codeCovEnabled)
+                        {
+                            RGCodeCoverage.Clear();
+                        }
 
                         if (frameState.keyFrame != null)
                         {
