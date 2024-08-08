@@ -1,6 +1,6 @@
 {
   "name": "gg.regression.unity.bots.ecs",
-  "version": "0.0.22",
+  "version": "0.0.25-rc1",
   "description": "An extension package for Regression Games Unity Bots that supports Unity ECS.  To use this package, please also add the `gg.regression.unity.bots` package from URL `https://github.com/Regression-Games/RGUnityBots.git?path=src/gg.regression.unity.bots#v0.0.22`.",
   "displayName": "Regression Games Unity Bots - ECS Extension",
   "unity": "2021.3",
