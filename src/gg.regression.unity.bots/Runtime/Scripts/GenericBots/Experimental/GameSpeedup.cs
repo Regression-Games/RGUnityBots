@@ -17,7 +17,7 @@ namespace RegressionGames.GenericBots.Experimental
         private float _savedTimeScale;
         private float _targetTimeScale;
 
-        public GameSpeedup(float targetTimeScale = 20.0f)
+        public GameSpeedup(float targetTimeScale = 3.0f)
         {
             _targetTimeScale = targetTimeScale;
             

@@ -125,7 +125,7 @@ namespace RegressionGames.GenericBots.Experimental
         public float Gamma = 0.6f; // Discount factor
         public int ExperienceBufferSize = 64; // Size of the experience buffer (size of fixed-length queue of the last N experiences)
         public string ModelFilePath = "qbot_model.json"; // Path where to save the trained model (Q-table)
-        public float TrainingTimeScale = 20.0f; // the Time.timeScale value to use while training 
+        public float TrainingTimeScale = 3.0f; // the Time.timeScale value to use while training 
             
         private List<QAction> _actionSpace;
         private Dictionary<string, Dictionary<string, float>> _qTable;
