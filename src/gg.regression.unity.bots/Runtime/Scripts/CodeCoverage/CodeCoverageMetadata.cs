@@ -3,26 +3,37 @@ using System.Collections.Generic;
 
 namespace RegressionGames.CodeCoverage
 {
+    /// <summary>
+    /// Metadata about a single code point
+    /// </summary>
+    [Serializable]
+    public class CodePointMetadata
+    {
+        public string sourceFilePath;
+        public int startLine;
+        public int startCol;
+        public int endLine;
+        public int endCol;
+        public string typeName;
+        public string methodSig;
+    }
+    
     [Serializable]
     public class CodeCoverageMetadata
     {
-        public List<string> assemblyNames = new List<string>();
+        // Increment this whenever breaking changes are made to the metadata format
+        public const int CURRENT_API_VERSION = 1;
 
-        public List<int> codePointCounts = new List<int>(); // same order as assemblyNames
-
-        public Dictionary<string, int> GetCodePointCountsAsDictionary()
-        {
-            var result = new Dictionary<string, int>();
-            for (int i = 0; i < assemblyNames.Count; ++i)
-            {
-                result.Add(assemblyNames[i], codePointCounts[i]);
-            }
-            return result;
-        }
+        public int apiVersion = CURRENT_API_VERSION;
+        
+        /// <summary>
+        /// Mapping from assembly name -> list of metadata for each code point
+        /// </summary>
+        public Dictionary<string, List<CodePointMetadata>> codePointMetadata = new();
 
         public bool IsValid()
         {
-            return assemblyNames != null && codePointCounts != null;
+            return apiVersion == CURRENT_API_VERSION && codePointMetadata != null;
         }
     }
 }

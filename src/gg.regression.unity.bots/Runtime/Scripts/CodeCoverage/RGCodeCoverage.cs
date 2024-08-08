@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace RegressionGames.CodeCoverage
@@ -43,7 +44,7 @@ namespace RegressionGames.CodeCoverage
             #endif
             if (json != null)
             {
-                _metadata = JsonUtility.FromJson<CodeCoverageMetadata>(json);
+                _metadata = JsonConvert.DeserializeObject<CodeCoverageMetadata>(json);
             }
             if (_metadata != null && !_metadata.IsValid())
             {
@@ -60,7 +61,7 @@ namespace RegressionGames.CodeCoverage
             {
                 Directory.CreateDirectory(targetDir);
             }
-            File.WriteAllText(CodeCovMetadataJsonPath, JsonUtility.ToJson(metadata, true));
+            File.WriteAllText(CodeCovMetadataJsonPath, JsonConvert.SerializeObject(metadata, Formatting.Indented));
         }
         #endif
         

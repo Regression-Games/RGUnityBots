@@ -569,8 +569,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 codeCoverageState = new RecordingCodeCoverageState()
                                 {
-                                    coverageSinceLastTick = RGCodeCoverage.CopyCodeCoverageState(),
-                                    codePointCounts = codeCovMetadata.GetCodePointCountsAsDictionary()
+                                    coverageSinceLastTick = RGCodeCoverage.CopyCodeCoverageState()
                                 };
                             }
                         }

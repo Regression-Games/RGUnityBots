@@ -10,7 +10,6 @@ namespace RegressionGames.StateRecorder.Models
         public int apiVersion = SdkApiVersion.VERSION_12;
         
         public Dictionary<string, ISet<int>> coverageSinceLastTick;
-        public Dictionary<string, int> codePointCounts;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -36,20 +35,6 @@ namespace RegressionGames.StateRecorder.Models
                 }
                 stringBuilder.Append("]");
                 if (entryIdx + 1 < codeCovEntryCount)
-                {
-                    stringBuilder.Append(",\n");
-                }
-                ++entryIdx;
-            }
-            stringBuilder.Append("\n},\n\"codePointCounts\":{\n");
-            int numCounts = codePointCounts.Count;
-            entryIdx = 0;
-            foreach (var entry in codePointCounts)
-            {
-                StringJsonConverter.WriteToStringBuilder(stringBuilder, entry.Key);
-                stringBuilder.Append(":");
-                IntJsonConverter.WriteToStringBuilder(stringBuilder, entry.Value);
-                if (entryIdx + 1 < numCounts)
                 {
                     stringBuilder.Append(",\n");
                 }

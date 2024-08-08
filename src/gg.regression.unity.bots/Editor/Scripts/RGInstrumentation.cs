@@ -216,30 +216,14 @@ namespace RegressionGames.Editor
             return null;
         }
         
-        private static void SaveCodePointCount(string assemblyName, int codePointCount)
+        private static void SaveCodePointMetadata(string assemblyName, List<CodePointMetadata> codePointMetadata)
         {
             var metadata = RGCodeCoverage.GetMetadata();
             if (metadata == null)
             {
                 metadata = new CodeCoverageMetadata();
             }
-            int? assemblyIndex = null;
-            for (int i = 0; i < metadata.assemblyNames.Count; ++i)
-            {
-                if (metadata.assemblyNames[i] == assemblyName)
-                {
-                    assemblyIndex = i;
-                    break;
-                }
-            }
-            if (!assemblyIndex.HasValue)
-            {
-                metadata.assemblyNames.Add(assemblyName);
-                metadata.codePointCounts.Add(codePointCount);
-            } else
-            {
-                metadata.codePointCounts[assemblyIndex.Value] = codePointCount;
-            }
+            metadata.codePointMetadata[assemblyName] = codePointMetadata;
             RGCodeCoverage.SaveMetadata(metadata);
         }
     
@@ -270,6 +254,7 @@ namespace RegressionGames.Editor
             }
     
             int codePointCounter = 0;
+            List<CodePointMetadata> codePointMetadata = new List<CodePointMetadata>();
             string assemblyName = module.Assembly.Name.Name;
             bool anyChanges = false;
     
@@ -282,6 +267,7 @@ namespace RegressionGames.Editor
                 {
                     if (method.Body == null)
                         continue;
+                    string subsig = GetSubsignature(method);
                     var processor = method.Body.GetILProcessor();
                     var debugInfo = method.DebugInformation;
                     if (debugInfo != null)
@@ -298,6 +284,18 @@ namespace RegressionGames.Editor
                                 processor.InsertBefore(inst, processor.Create(OpCodes.Ldc_I4, codePointCounter));
                                 processor.InsertBefore(inst,
                                     processor.Create(OpCodes.Call, module.ImportReference(visitMethod)));
+
+                                var seqPt = entry.Value;
+                                codePointMetadata.Add(new CodePointMetadata()
+                                {
+                                    sourceFilePath = seqPt.Document?.Url ?? "",
+                                    startLine = seqPt.StartLine == 0xfeefee ? -1 : seqPt.StartLine, // 0xfeefee is a magic number indicating unknown
+                                    startCol = seqPt.StartColumn,
+                                    endLine = seqPt.EndLine == 0xfeefee ? -1 : seqPt.EndLine,
+                                    endCol = seqPt.EndColumn,
+                                    typeName = type.FullName,
+                                    methodSig = subsig
+                                });
                                 ++codePointCounter;
                             }
                             method.Body.OptimizeMacros(); // Put back short-form branches where possible again
@@ -307,7 +305,7 @@ namespace RegressionGames.Editor
                 }
             }
     
-            SaveCodePointCount(assemblyName, codePointCounter);
+            SaveCodePointMetadata(assemblyName, codePointMetadata);
     
             return anyChanges;
         }
