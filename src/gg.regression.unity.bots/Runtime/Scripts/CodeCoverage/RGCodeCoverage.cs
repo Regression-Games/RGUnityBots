@@ -9,7 +9,7 @@ namespace RegressionGames.CodeCoverage
     /// </summary>
     public static class RGCodeCoverage
     {
-        private static readonly string _codeCovMetadataJsonPath = "Assets/Resources/RGCodeCoverageMetadata.txt";
+        public static readonly string CodeCovMetadataJsonPath = "Assets/Resources/RGCodeCoverageMetadata.txt";
         
         /// <summary>
         /// Dictionary tracking code coverage in the assemblies.
@@ -29,9 +29,9 @@ namespace RegressionGames.CodeCoverage
             }
             string json;
             #if UNITY_EDITOR
-            if (File.Exists(_codeCovMetadataJsonPath))
+            if (File.Exists(CodeCovMetadataJsonPath))
             {
-                json = File.ReadAllText(_codeCovMetadataJsonPath);
+                json = File.ReadAllText(CodeCovMetadataJsonPath);
             }
             else
             {
@@ -55,12 +55,12 @@ namespace RegressionGames.CodeCoverage
         #if UNITY_EDITOR
         public static void SaveMetadata(CodeCoverageMetadata metadata)
         {
-            string targetDir = Path.GetDirectoryName(_codeCovMetadataJsonPath);
+            string targetDir = Path.GetDirectoryName(CodeCovMetadataJsonPath);
             if (!Directory.Exists(targetDir))
             {
                 Directory.CreateDirectory(targetDir);
             }
-            File.WriteAllText(_codeCovMetadataJsonPath, JsonUtility.ToJson(metadata, true));
+            File.WriteAllText(CodeCovMetadataJsonPath, JsonUtility.ToJson(metadata, true));
         }
         #endif
         
