@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.Compilation;
 #endif
 
 namespace RegressionGames.Editor
@@ -63,6 +64,15 @@ namespace RegressionGames.Editor
                     SerializedProperty featureStateRecordingAndReplay = settings.FindProperty("feature_StateRecordingAndReplay");
                     featureStateRecordingAndReplay.boolValue =
                         EditorGUILayout.Toggle("State Recording & Replay", featureStateRecordingAndReplay.boolValue);
+
+                    SerializedProperty featureCodeCoverage = settings.FindProperty("feature_CodeCoverage");
+                    bool featCodeCoverage = EditorGUILayout.Toggle("Code Coverage Recording", featureCodeCoverage.boolValue);
+                    if (featCodeCoverage != featureCodeCoverage.boolValue)
+                    {
+                        // if the code coverage option is changed, request a script re-compilation since this affects the assemblies
+                        featureCodeCoverage.boolValue = featCodeCoverage;
+                        CompilationPipeline.RequestScriptCompilation(); 
+                    }
 
                     settings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
