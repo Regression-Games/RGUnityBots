@@ -65,12 +65,18 @@ namespace RegressionGames.CodeCoverage
         }
         #endif
         
+        /// <summary>
+        /// Begin recording code coverage
+        /// </summary>
         public static void StartRecording()
         {
             Clear();
             _isRecording = true;
         }
 
+        /// <summary>
+        /// Stop recording code coverage
+        /// </summary>
         public static void StopRecording()
         {
             _isRecording = false;
@@ -98,6 +104,10 @@ namespace RegressionGames.CodeCoverage
             }
         }
 
+        /// <summary>
+        /// Copies the current set of covered code points as a mapping
+        /// from assembly names to code point IDs
+        /// </summary>
         public static Dictionary<string, ISet<int>> CopyCodeCoverageState()
         {
             var result = new Dictionary<string, ISet<int>>();
@@ -111,6 +121,9 @@ namespace RegressionGames.CodeCoverage
             return result;
         }
         
+        /// <summary>
+        /// Clear any recorded code coverage data up to now
+        /// </summary>
         public static void Clear()
         {
             lock (_codeCoverage)
