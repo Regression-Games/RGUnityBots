@@ -12,7 +12,7 @@ namespace RegressionGames.GenericBots
         {
             if (!RGActionManager.IsAvailable)
             {
-                RGDebug.LogError("Monkey bot is currently unavailable");
+                RGDebug.LogError("Monkey bot is currently unavailable. Have you run Regression Games > Configure Bot Actions > Analyze Actions on your project?");
                 Destroy(this);
                 return;
             }
