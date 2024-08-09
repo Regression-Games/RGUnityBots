@@ -7,7 +7,6 @@ using RegressionGames.GenericBots;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -15,9 +14,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [JsonConverter(typeof(MonkeyBotActionDataJsonConverter))]
     public class MonkeyBotActionData : IBotActionData
     {
-        [NonSerialized] 
+        [NonSerialized]
         public static readonly BotActionType Type = BotActionType.MonkeyBot;
-        
+
         public int apiVersion = SdkApiVersion.VERSION_6;
         public float actionInterval = 0.05f;
         public RGActionManagerSettings actionSettings;
@@ -25,12 +24,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         [NonSerialized]
         private bool isStopped;
 
-        [NonSerialized] 
+        [NonSerialized]
         private RGMonkeyBotLogic monkey;
-        
+
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            var controller = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
+            var controller = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
             RGActionManager.StartSession(controller, actionSettings);
             monkey = new RGMonkeyBotLogic();
             monkey.ActionInterval = actionInterval;

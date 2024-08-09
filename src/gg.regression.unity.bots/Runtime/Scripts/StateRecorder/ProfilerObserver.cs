@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using RegressionGames.StateRecorder.Models;
 using Unity.Profiling;
 using UnityEngine;

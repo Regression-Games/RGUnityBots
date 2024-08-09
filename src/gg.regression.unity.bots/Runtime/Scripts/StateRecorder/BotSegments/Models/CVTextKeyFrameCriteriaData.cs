@@ -4,7 +4,6 @@ using System.Threading;
 using JetBrains.Annotations;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
-using StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {

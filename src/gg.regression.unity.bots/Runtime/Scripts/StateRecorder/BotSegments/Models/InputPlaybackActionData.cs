@@ -77,7 +77,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
                 {
-
                     // send event
                     result = true;
                     MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, null, null, currentTransforms, currentEntities);

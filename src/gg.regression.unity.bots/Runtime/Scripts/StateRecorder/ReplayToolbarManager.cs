@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Threading.Tasks;
+using RegressionGames.StateRecorder.BotSegments;
 using SimpleFileBrowser;
 using TMPro;
 using UnityEngine;
@@ -27,7 +28,7 @@ namespace RegressionGames.StateRecorder
         public RGTextPulse uploadingIndicator;
         public RGTextPulse fileOpenIndicator;
 
-        public ReplayDataPlaybackController replayDataController;
+        public BotSegmentsPlaybackController replayDataController;
 
         private bool _recording;
 
@@ -105,8 +106,8 @@ namespace RegressionGames.StateRecorder
             try
             {
                 // do this on background thread
-                var dataContainer = new ReplayBotSegmentsContainer(filePath);
-                _replayLoadedNextUpdate = dataContainer;
+                var dataContainer = new BotSegmentsPlaybackContainer(BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(filePath, out var sessionId), sessionId);
+                _loadedNextUpdate = dataContainer;
             }
             catch (Exception e)
             {
@@ -120,18 +121,18 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private volatile ReplayBotSegmentsContainer _replayLoadedNextUpdate;
+        private volatile BotSegmentsPlaybackContainer _loadedNextUpdate;
 
         private void Update()
         {
             if (_justLoaded)
             {
                 _justLoaded = false;
-                if (_replayLoadedNextUpdate != null)
+                if (_loadedNextUpdate != null)
                 {
                     // setup the new replay data
-                    replayDataController.SetDataContainer(_replayLoadedNextUpdate);
-                    _replayLoadedNextUpdate = null;
+                    replayDataController.SetDataContainer(_loadedNextUpdate);
+                    _loadedNextUpdate = null;
                     SetDefaultButtonStates();
                     // set button states
                     chooseReplayButton.SetActive(false);

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using JetBrains.Annotations;
@@ -9,7 +8,6 @@ using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using StateRecorder.BotSegments.Models;
 using UnityEngine;
 using Random = UnityEngine.Random;
 

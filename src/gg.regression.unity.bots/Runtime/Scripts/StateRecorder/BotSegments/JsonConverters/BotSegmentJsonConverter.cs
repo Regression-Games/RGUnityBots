@@ -15,15 +15,19 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-
             JObject jObject = JObject.Load(reader);
             // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
-            BotSegment actionModel = new();
-            actionModel.sessionId = jObject.GetValue("sessionId").ToObject<string>(serializer);
-            actionModel.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
-            actionModel.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
-            actionModel.keyFrameCriteria = new List<KeyFrameCriteria>(jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer));
-            return actionModel;
+            BotSegment botSegment = new();
+            // allow name to be null/undefined in the file for backward compatibility (added in SdkApiVersion.VERSION_12)
+            botSegment.name = jObject.GetValue("name")?.ToObject<string>(serializer) ?? "";
+            // allow description to be null/undefined in the file for backward compatibility (added in SdkApiVersion.VERSION_11)
+            botSegment.description = jObject.GetValue("description")?.ToObject<string>(serializer) ?? "";
+            // allow sessionId to be null/undefined in the file... so manually created segments don't have to generate one
+            botSegment.sessionId = jObject.GetValue("sessionId")?.ToObject<string>(serializer) ?? Guid.NewGuid().ToString("n");
+            botSegment.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
+            botSegment.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
+            botSegment.keyFrameCriteria = new List<KeyFrameCriteria>(jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer));
+            return botSegment;
         }
 
         public override bool CanWrite => false;

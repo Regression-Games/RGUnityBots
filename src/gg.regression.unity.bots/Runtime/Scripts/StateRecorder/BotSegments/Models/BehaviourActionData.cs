@@ -92,7 +92,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     if (_typeToCreate != null)
                     {
                         // load behaviour and set as a child of the playback controller
-                        var pbController = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
+                        var pbController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
                         _myGameObject = new GameObject($"BehaviourAction_{behaviourFullName}")
                         {
                             transform =

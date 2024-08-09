@@ -107,7 +107,7 @@ namespace RegressionGames.StateRecorder
 
              var mouse = GetMouse();
 
-             using (DeltaStateEvent.From(mouse, out var eventPtr))
+             using (StateEvent.From(mouse, out var eventPtr))
              {
                  eventPtr.time = InputState.currentTime;
 

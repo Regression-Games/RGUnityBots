@@ -3,6 +3,7 @@ using System.IO;
 using RegressionGames.StateRecorder;
 
 #if UNITY_EDITOR
+using RegressionGames.StateRecorder.BotSegments;
 using UnityEditor;
 using UnityEditor.Compilation;
 #endif
@@ -66,15 +67,15 @@ namespace RegressionGames.Editor
             }
 #endif
         }
-        
-        
+
+
         #if UNITY_EDITOR
         /// <summary>
         /// Finds the Runtime assembly for the Regression Games SDK.
         /// </summary>
         public static Assembly FindRGAssembly()
         {
-            var rgAsmName = Path.GetFileName(typeof(ReplayDataPlaybackController).Assembly.Location);
+            var rgAsmName = Path.GetFileName(typeof(BotSegmentsPlaybackController).Assembly.Location);
             Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
             foreach (Assembly assembly in assemblies)
             {
