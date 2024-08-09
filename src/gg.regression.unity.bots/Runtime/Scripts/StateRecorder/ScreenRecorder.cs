@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
@@ -44,6 +45,7 @@ namespace RegressionGames.StateRecorder
         private string _currentGameplaySessionScreenshotsDirectoryPrefix;
         private string _currentGameplaySessionBotSegmentsDirectoryPrefix;
         private string _currentGameplaySessionDataDirectoryPrefix;
+        private string _currentGameplaySessionCodeCoverageMetadataPath;
         private string _currentGameplaySessionThumbnailPath;
 
         private CancellationTokenSource _tokenSource;
@@ -116,7 +118,7 @@ namespace RegressionGames.StateRecorder
             RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
-        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, bool onDestroy = false)
+        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string codeCovMetadataPath, string thumbnailPath, bool onDestroy = false)
         {
             if (!onDestroy)
             {
@@ -146,6 +148,22 @@ namespace RegressionGames.StateRecorder
                 ZipFile.CreateFromDirectory(botSegmentsDirectoryPrefix, botSegmentsDirectoryPrefix + ".zip");
                 RGDebug.LogInfo($"Finished zipping replay to file: {botSegmentsDirectoryPrefix}.zip");
             });
+
+            // Save code coverage metadata if code coverage is enabled
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            if (rgSettings.GetFeatureCodeCoverage())
+            {
+                var metadata = RGCodeCoverage.GetMetadata();
+                if (metadata != null)
+                {
+                    RGDebug.LogInfo($"Saving code coverage metadata to file: {codeCovMetadataPath}");
+                    using (StreamWriter sw = new StreamWriter(codeCovMetadataPath))
+                    {
+                        string metadataJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
+                        sw.Write(metadataJson);
+                    }
+                }
+            }
 
             // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
             var screenshotFiles = Directory.GetFiles(screenshotsDirectoryPrefix);
@@ -291,6 +309,7 @@ namespace RegressionGames.StateRecorder
                 _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";
                 _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
                 _currentGameplaySessionBotSegmentsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/bot_segments";
+                _currentGameplaySessionCodeCoverageMetadataPath = _currentGameplaySessionDirectoryPrefix + "/code_coverage_metadata.json";
                 _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
                 Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionBotSegmentsDirectoryPrefix);
@@ -382,7 +401,7 @@ namespace RegressionGames.StateRecorder
 
             if (wasRecording)
             {
-                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionBotSegmentsDirectoryPrefix,  _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionThumbnailPath, true);
+                _ = HandleEndRecording(_tickNumber, _startTime, DateTime.Now, _currentGameplaySessionDataDirectoryPrefix, _currentGameplaySessionBotSegmentsDirectoryPrefix,  _currentGameplaySessionScreenshotsDirectoryPrefix, _currentGameplaySessionCodeCoverageMetadataPath, _currentGameplaySessionThumbnailPath, true);
             }
 
             _tokenSource?.Cancel();
