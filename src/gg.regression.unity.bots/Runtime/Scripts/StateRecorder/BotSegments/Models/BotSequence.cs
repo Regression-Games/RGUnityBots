@@ -7,7 +7,6 @@ using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -323,14 +322,26 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * <summary>
          * Adds the specified segment list to this sequence. This assumes that the path is a Unity Resource path to a bot segment list json file.
          * </summary>
+         * <returns>true if segment list added, false if path doesn't exist or parsing error occurs</returns>
          */
-        public void AddBotSegmentListPath(string path)
+        public bool AddBotSegmentListPath(string path)
         {
+            try
+            {
+                ParseBotSegmentPath(path);
+            }
+            catch (Exception e)
+            {
+                RGDebug.LogWarning($"Exception parsing bot segment list at path: {path} - {e}");
+                return false;
+            }
+
             segments.Add( new BotSequenceEntry()
             {
                 type = BotSequenceEntryType.SegmentList,
                 path = path
             });
+            return true;
         }
 
         /**
@@ -390,14 +401,26 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * Adds the specified segment to this sequence.  This assumes that the path is a Unity Resource path to a bot segment json file.
          * NOTE: This segment will be placed in its own BotSegmentList using the description from the BotSegment.
          * </summary>
+         * <returns>true if segment added, false if path doesn't exist or parsing error occurs</returns>
          */
-        public void AddBotSegmentPath(string path)
+        public bool AddBotSegmentPath(string path)
         {
+            try
+            {
+                ParseBotSegmentPath(path);
+            }
+            catch (Exception e)
+            {
+                RGDebug.LogWarning($"Exception parsing bot segment at path: {path} - {e}");
+                return false;
+            }
+
             segments.Add( new BotSequenceEntry()
             {
                 type = BotSequenceEntryType.Segment,
                 path = path
             });
+            return true;
         }
 
         /**
@@ -514,6 +537,5 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             return result;
         }
-
     }
 }
