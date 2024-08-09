@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using RegressionGames.StateRecorder.BotSegments;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.Types;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -70,6 +71,35 @@ namespace RegressionGames
             var replayData = new BotSegmentsPlaybackContainer(botSegments, sessionId);
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
+            yield return null; // Allow the recording to start playing
+            while (playbackController.IsPlaying())
+            {
+                yield return null;
+            }
+            yield return null;
+            RGDebug.LogInfo("Playback complete!");
+            var result = new PlaybackResult
+            {
+                saveLocation = playbackController.SaveLocation() + ".zip"
+            };
+            setPlaybackResult(result);
+        }
+
+        /// <summary>
+        /// Plays back a bot sequence, and then returns the save location of the recording.
+        /// </summary>
+        /// <param name="sequencePath">The relative path to the bot sequence</param>
+        /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
+        public static IEnumerator StartBotSequence(string sequencePath, Action<PlaybackResult> setPlaybackResult)
+        {
+            RGDebug.LogInfo("Loading and starting bot sequence from " + sequencePath);
+
+            var botSequence = BotSequence.LoadSequenceJsonFromPath(sequencePath);
+
+            botSequence.Play();
+
+            var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+
             yield return null; // Allow the recording to start playing
             while (playbackController.IsPlaying())
             {

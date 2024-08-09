@@ -8,9 +8,6 @@ using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -39,10 +36,22 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public string description;
 
         /**
-         * <summary>Loads a Json sequence file from a json path.  This API expects a Unity resource path</summary>
+         * <summary>Loads a Json sequence file from a json path.  This API expects a relative path</summary>
          */
         public static BotSequence LoadSequenceJsonFromPath(string path)
         {
+            if (path.StartsWith('/') || path.StartsWith('\\'))
+            {
+                throw new Exception("Invalid path.  Path must be relative, not absolute in order to support editor vs production runtimes interchangeably.");
+            }
+
+            path = path.Replace('\\', '/');
+            // trims off Assets if they include it on the path
+            if (path.StartsWith("Assets/"))
+            {
+                path = path.Substring(path.IndexOf('/'));
+            }
+
             var sequenceJson = LoadJsonResource(path);
             return JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
         }
@@ -81,29 +90,23 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             try
             {
+                string directoryPath = null;
 #if UNITY_EDITOR
-                Directory.CreateDirectory("Assets/RegressionGames/Resources/BotSequences");
-                var filepath = "Assets/RegressionGames/Resources/BotSequences/" + name + ".json";
+                directoryPath = "Assets/RegressionGames/Resources/BotSequences";
+#else
+                directoryPath = Application.persistentDataPath + "/BotSequences";
+#endif
+                Directory.CreateDirectory(directoryPath);
+                var filepath = directoryPath + "/" + name + ".json";
                 foreach (var c in Path.GetInvalidFileNameChars())
                 {
                     filepath = filepath.Replace(c, '-');
                 }
 
-                AssetDatabase.CreateAsset(new TextAsset(this.ToJsonString()), filepath);
-                AssetDatabase.SaveAssets();
-#else
-                Directory.CreateDirectory(Application.persistentDataPath + "/BotSequences");
-                var filename = Application.persistentDataPath + "/BotSequences/" + name + ".json";
-                foreach (var c in Path.GetInvalidFileNameChars())
-                {
-                    filename = filename.Replace(c, '-');
-                }
-
-                File.Delete(filename);
-                using var sw = File.CreateText(filename);
+                File.Delete(filepath);
+                using var sw = File.CreateText(filepath);
                 sw.Write(this.ToJsonString());
                 sw.Close();
-#endif
             }
             catch (Exception e)
             {
@@ -125,36 +128,24 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             // document ..
 #if UNITY_EDITOR
-            // #if editor .. load and save files using asset manager to the Resources folder
-            var assetGuids = AssetDatabase.FindAssets($"json t:{typeof(TextAsset).FullName}", new string[] { "Assets" });
-
-            var assetPaths = new List<string>();
-            foreach (var assetGuid in assetGuids)
-            {
-                var assetPath = AssetDatabase.GUIDToAssetPath(assetGuid);
-                if (assetPath.Contains(path))
-                {
-                    assetPaths.Add(assetPath);
-                }
-            }
-
-            if (assetPaths.Count > 0)
-            {
-                // order lexicographically to start so that files from same path directories are lumped together
-                // choose the first match as that would be the most precise match to our path if we have multiple
-                // if the want one at a deeper directory , they should have specified a more specific path
-                var assetPath = assetPaths.OrderBy(e => e).First();
-                var json = AssetDatabase.LoadAssetAtPath<TextAsset>(assetPath).text;
-                result = (assetPath, json);
-            }
+            // #if editor .. load and save files directly from the resources folder
+            using var sr = new StreamReader(File.OpenRead(path));
+            result = (path,sr.ReadToEnd());
 #else
             // #if runtime .. load files from either resources, OR .. persistentDataPath.. preferring persistentDataPath as an 'override' to resources
+            var runtimePath = path;
+            // get only the part AFTER Resources in the path
+            if (runtimePath.Contains("Resources/"))
+            {
+                runtimePath = runtimePath.Substring(runtimePath.LastIndexOf("Resources/") + "Resources/".Length);
+            }
+
             try
             {
-                if (File.Exists(Application.persistentDataPath + "/" + path))
+                if (File.Exists(Application.persistentDataPath + "/" + runtimePath))
                 {
-                    using var fr = new StreamReader(File.OpenRead(Application.persistentDataPath + "/" + path));
-                    result = (path, fr.ReadToEnd());
+                    using var fr = new StreamReader(File.OpenRead(Application.persistentDataPath + "/" + runtimePath));
+                    result = (runtimePath, fr.ReadToEnd());
                 }
             }
             catch (Exception e)
@@ -167,13 +158,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (!result.HasValue)
                 {
                     // load from resources asset in the build
-                    var json = Resources.Load<TextAsset>(path);
-                    result = (path, json.text);
+                    var json = Resources.Load<TextAsset>(runtimePath);
+                    result = (runtimePath, json.text);
                 }
             }
             catch (Exception e)
             {
-                throw new Exception($"Exception reading json files from resource path: {path}", e);
+                throw new Exception($"Exception reading json files from resource path: {runtimePath}", e);
             }
 #endif
 
@@ -193,61 +184,40 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             List<(string, string)> results = new();
             // document ..
 #if UNITY_EDITOR
-            // #if editor .. load and save files using asset manager to the Resources folder
-            // search for all json files in the Assets, then filter down to those that match our path
-            var assetGuids = AssetDatabase.FindAssets($"json t:{typeof(TextAsset).FullName}", new string[] { "Assets" });
+            // #if editor .. load and save files directly from the resources folder
+            var filesInDirectory = Directory.GetFiles(path, "*.json", SearchOption.TopDirectoryOnly);
 
-            var assetPaths = new List<string>();
-            foreach (var assetGuid in assetGuids)
-            {
-                var assetPath = AssetDatabase.GUIDToAssetPath(assetGuid);
-                if (assetPath.Contains(path))
-                {
-                    assetPaths.Add(assetPath);
-                }
-            }
-
-            // order lexicographically to start so that files from same path directories are lumped together
-            IOrderedEnumerable<string> entries = assetPaths.OrderBy(e => e);
-
-            // sort by numeric value of entries (not string comparison of filenames), if possible
+            // sort by numeric value of entries (not string comparison of filenames)
+            IOrderedEnumerable<string> entries;
             try
             {
-                // try to order the files as numbered file names
-                entries = entries.OrderBy(e =>
-                {
-                    var li = e.LastIndexOf('/');
-                    if (li > -1)
-                    {
-                        e = e.Substring(li);
-                    }
-                    return int.Parse(e.Substring(0, e.IndexOf('.')));
-                });
+                // try to order the files as numbered file names (this is how our bot segment replays are written)
+                entries = filesInDirectory.OrderBy(e => int.Parse(e.Substring(0, e.IndexOf('.'))));
             }
             catch (Exception)
             {
                 // if filenames aren't all numbers, order lexicographically
-                entries = entries.OrderBy(e =>
-                {
-                    var li = e.LastIndexOf('/');
-                    if (li > -1)
-                    {
-                        e = e.Substring(li);
-                    }
-                    return e.Substring(0, e.IndexOf('.'));
-                });
+                entries = filesInDirectory.OrderBy(e => e.Substring(0, e.IndexOf('.')));
             }
 
-            foreach (var assetPath in entries)
+            foreach (var entry in entries)
             {
-                var json = AssetDatabase.LoadAssetAtPath<TextAsset>(assetPath).text;
-                results.Add((assetPath,json));
+                using var sr = new StreamReader(File.OpenRead(entry));
+                results.Add((entry,sr.ReadToEnd()));
             }
 #else
             // #if runtime .. load files from either resources, OR .. persistentDataPath.. preferring persistentDataPath as an 'override' to resources
+
+            var runtimePath = path;
+            // get only the part AFTER Resources in the path
+            if (runtimePath.Contains("Resources/"))
+            {
+                runtimePath = runtimePath.Substring(runtimePath.LastIndexOf("Resources/") + "Resources/".Length);
+            }
+
             try
             {
-                var filesInDirectory = Directory.GetFiles(Application.persistentDataPath + "/" + path, "*.json", SearchOption.TopDirectoryOnly);
+                var filesInDirectory = Directory.GetFiles(Application.persistentDataPath + "/" + runtimePath, "*.json", SearchOption.TopDirectoryOnly);
 
                 // sort by numeric value of entries (not string comparison of filenames)
                 IOrderedEnumerable<string> entries;
@@ -270,7 +240,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             catch (Exception e)
             {
-                throw new Exception($"Exception reading json files from directory: {Application.persistentDataPath + "/" + path}", e);
+                throw new Exception($"Exception reading json files from directory: {Application.persistentDataPath + "/" + runtimePath}", e);
             }
 
             try
@@ -278,8 +248,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (results.Count == 0)
                 {
                     // load from resources asset in the build
-                    //TODO: Find a way to sort these based on their path name
-                    var jsons = Resources.LoadAll(path, typeof(TextAsset));
+                    //TODO: Find a way to sort these based on their path name; thanks a lot Unity
+                    var jsons = Resources.LoadAll(runtimePath, typeof(TextAsset));
                     foreach (var jsonObject in jsons)
                     {
                         var json = (jsonObject as TextAsset).text;
@@ -289,7 +259,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             catch (Exception e)
             {
-                throw new Exception($"Exception reading json files from resource path: {path}", e);
+                throw new Exception($"Exception reading json files from resource path: {runtimePath}", e);
             }
 #endif
 
