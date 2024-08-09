@@ -3,7 +3,7 @@ using System.Reflection;
 using Mono.Cecil;
 using UnityEngine;
 
-namespace RegressionGames.RGLegacyInputUtility
+namespace RegressionGames.Editor
 {
     public class RGAssemblyResolver : DefaultAssemblyResolver
     {
