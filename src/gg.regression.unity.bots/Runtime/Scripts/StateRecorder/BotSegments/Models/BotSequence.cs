@@ -21,9 +21,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
 
-        private readonly List<BotSegmentList> _segmentsToProcess;
+        private readonly List<BotSegmentList> _segmentsToProcess = new();
 
-        public List<BotSequenceEntry> segments;
+        public List<BotSequenceEntry> segments = new();
 
         /**
          * <summary>Define the name of this sequence that will be seen in user interfaces and runtime summaries.  This SHOULD NOT be null.</summary>
@@ -46,13 +46,23 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             path = path.Replace('\\', '/');
-            // trims off Assets if they include it on the path
-            if (path.StartsWith("Assets/"))
+
+            (string,string) sequenceJson;
+            try
             {
-                path = path.Substring(path.IndexOf('/'));
+                sequenceJson = LoadJsonResource(path);
+            }
+            catch (Exception)
+            {
+                if (path.StartsWith("Assets/"))
+                {
+                    // they were already explicit and it wasn't found
+                    throw;
+                }
+                // try again in our resources folder
+                sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            var sequenceJson = LoadJsonResource(path);
             return JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
         }
 
@@ -331,9 +341,31 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         private BotSegmentList ParseBotSegmentListPath(string path)
         {
+            if (path.StartsWith('/') || path.StartsWith('\\'))
+            {
+                throw new Exception("Invalid path.  Path must be relative, not absolute, in order to support editor vs production runtimes interchangeably.");
+            }
+
+            path = path.Replace('\\', '/');
+
             try
             {
-                var jsonFile = LoadJsonResource(path);
+                (string,string) jsonFile;
+                try
+                {
+                    jsonFile = LoadJsonResource(path);
+                }
+                catch (Exception)
+                {
+                    if (path.StartsWith("Assets/"))
+                    {
+                        // they were already explicit and it wasn't found
+                        throw;
+                    }
+                    // try again in our resources folder
+                    jsonFile = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
+                }
+
                 var segment = JsonConvert.DeserializeObject<BotSegmentList>(jsonFile.Item2);
                 if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
@@ -377,10 +409,33 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         private BotSegmentList ParseBotSegmentPath(string path)
         {
+            if (path.StartsWith('/') || path.StartsWith('\\'))
+            {
+                throw new Exception("Invalid path.  Path must be relative, not absolute, in order to support editor vs production runtimes interchangeably.");
+            }
+
+            path = path.Replace('\\', '/');
+
             try
             {
-                var jsonFile = Resources.Load<TextAsset>(path);
-                var segment = JsonConvert.DeserializeObject<BotSegment>(jsonFile.text);
+
+                (string,string) jsonFile;
+                try
+                {
+                    jsonFile = LoadJsonResource(path);
+                }
+                catch (Exception)
+                {
+                    if (path.StartsWith("Assets/"))
+                    {
+                        // they were already explicit and it wasn't found
+                        throw;
+                    }
+                    // try again in our resources folder
+                    jsonFile = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
+                }
+
+                var segment = JsonConvert.DeserializeObject<BotSegment>(jsonFile.Item2);
                 if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
                     throw new Exception($"Bot segment file requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
