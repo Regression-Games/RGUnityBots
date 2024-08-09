@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using RegressionGames.StateRecorder;
 
 namespace RegressionGames.CodeCoverage
 {
@@ -22,7 +23,7 @@ namespace RegressionGames.CodeCoverage
     public class CodeCoverageMetadata
     {
         // Increment this whenever breaking changes are made to the metadata format
-        public const int CURRENT_API_VERSION = 1;
+        public const int CURRENT_API_VERSION = SdkApiVersion.VERSION_12;
 
         public int apiVersion = CURRENT_API_VERSION;
         
