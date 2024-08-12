@@ -227,10 +227,14 @@ namespace RegressionGames.Editor
             RGCodeCoverage.SaveMetadata(metadata);
         }
     
-        // Returns whether any changes were made
+        /// <summary>
+        /// Inserts code coverage instrumentation into the game assemblies.
+        /// Returns true whether any changes were made
+        /// </summary>
         private static bool ApplyCodeCovInstrumentation(ModuleDefinition module, MethodReference visitMethod)
         {
-            // first check whether the instrumentation is already present
+            // Check whether any code coverage instrumentation is already present
+            // If so, then no changes are needed
             foreach (TypeDefinition type in module.Types)
             {
                 if (IsNamespaceIgnored(type.Namespace))
@@ -258,7 +262,9 @@ namespace RegressionGames.Editor
             string assemblyName = module.Assembly.Name.Name;
             bool anyChanges = false;
     
-            // do the instrumentation
+            // Go through every method in the game assembly and insert code coverage instrumentation
+            // This inserts a call to RGCodeCoverage.Visit() after every program statement that has debug information
+            // available for it in the assembly.
             foreach (TypeDefinition type in module.Types)
             {
                 if (IsNamespaceIgnored(type.Namespace))
@@ -267,8 +273,11 @@ namespace RegressionGames.Editor
                 {
                     if (method.Body == null)
                         continue;
+                    
                     string subsig = GetSubsignature(method);
                     var processor = method.Body.GetILProcessor();
+                    
+                    // Insert calls to RGCodeCoverage.Visit() at every sequence point available in the debug information
                     var debugInfo = method.DebugInformation;
                     if (debugInfo != null)
                     {
@@ -285,6 +294,7 @@ namespace RegressionGames.Editor
                                 processor.InsertBefore(inst,
                                     processor.Create(OpCodes.Call, module.ImportReference(visitMethod)));
 
+                                // Record metadata about the code point to be stored later
                                 var seqPt = entry.Value;
                                 codePointMetadata.Add(new CodePointMetadata()
                                 {
