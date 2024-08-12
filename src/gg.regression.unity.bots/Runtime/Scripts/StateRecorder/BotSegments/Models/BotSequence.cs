@@ -7,6 +7,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder.BotSegments;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -193,21 +194,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             List<(string, string)> results = new();
             // document ..
 #if UNITY_EDITOR
+
             // #if editor .. load and save files directly from the resources folder
             var filesInDirectory = Directory.GetFiles(path, "*.json", SearchOption.TopDirectoryOnly);
 
-            // sort by numeric value of entries (not string comparison of filenames)
-            IOrderedEnumerable<string> entries;
-            try
-            {
-                // try to order the files as numbered file names (this is how our bot segment replays are written)
-                entries = filesInDirectory.OrderBy(e => int.Parse(e.Substring(0, e.IndexOf('.'))));
-            }
-            catch (Exception)
-            {
-                // if filenames aren't all numbers, order lexicographically
-                entries = filesInDirectory.OrderBy(e => e.Substring(0, e.IndexOf('.')));
-            }
+            IOrderedEnumerable<string> entries = BotSegmentDirectoryParser.OrderJsonFiles(filesInDirectory);
 
             foreach (var entry in entries)
             {
@@ -228,18 +219,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 var filesInDirectory = Directory.GetFiles(Application.persistentDataPath + "/" + runtimePath, "*.json", SearchOption.TopDirectoryOnly);
 
-                // sort by numeric value of entries (not string comparison of filenames)
-                IOrderedEnumerable<string> entries;
-                try
-                {
-                    // try to order the files as numbered file names (this is how our bot segment replays are written)
-                    entries = filesInDirectory.OrderBy(e => int.Parse(e.Substring(0, e.IndexOf('.'))));
-                }
-                catch (Exception)
-                {
-                    // if filenames aren't all numbers, order lexicographically
-                    entries = filesInDirectory.OrderBy(e => e.Substring(0, e.IndexOf('.')));
-                }
+                IOrderedEnumerable<string> entries = BotSegmentDirectoryParser.OrderJsonFiles(filesInDirectory);
 
                 foreach (var entry in entries)
                 {
@@ -257,7 +237,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (results.Count == 0)
                 {
                     // load from resources asset in the build
-                    //TODO: Find a way to sort these based on their path name; thanks a lot Unity
+                    //TODO: Find a way to sort these based on their path name; thanks a lot Unity for not easily exposing this
                     var jsons = Resources.LoadAll(runtimePath, typeof(TextAsset));
                     foreach (var jsonObject in jsons)
                     {

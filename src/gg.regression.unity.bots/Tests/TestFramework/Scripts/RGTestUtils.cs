@@ -3,6 +3,7 @@ using System.Collections;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.Types;
+using StateRecorder.BotSegments;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
@@ -68,6 +69,33 @@ namespace RegressionGames
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
             var botSegments = BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(recordingPath, out var sessionId);
+            var replayData = new BotSegmentsPlaybackContainer(botSegments, sessionId);
+            playbackController.SetDataContainer(replayData);
+            playbackController.Play();
+            yield return null; // Allow the recording to start playing
+            while (playbackController.IsPlaying())
+            {
+                yield return null;
+            }
+            yield return null;
+            RGDebug.LogInfo("Playback complete!");
+            var result = new PlaybackResult
+            {
+                saveLocation = playbackController.SaveLocation() + ".zip"
+            };
+            setPlaybackResult(result);
+        }
+
+        /// <summary>
+        /// Plays back an existing recording, and then returns the save location of the recording.
+        /// </summary>
+        /// <param name="recordingPath">The path to the recording to play back.  Directory of numeric json files.</param>
+        /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
+        public static IEnumerator StartPlaybackFromDirectory(string recordingPath, Action<PlaybackResult> setPlaybackResult)
+        {
+            RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
+            var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+            var botSegments = BotSegmentDirectoryParser.ParseBotSegmentSystemDirectory(recordingPath, out var sessionId);
             var replayData = new BotSegmentsPlaybackContainer(botSegments, sessionId);
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
