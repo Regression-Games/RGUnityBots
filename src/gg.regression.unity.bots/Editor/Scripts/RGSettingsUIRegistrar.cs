@@ -64,6 +64,10 @@ namespace RegressionGames.Editor
                     SerializedProperty featureStateRecordingAndReplay = settings.FindProperty("feature_StateRecordingAndReplay");
                     featureStateRecordingAndReplay.boolValue =
                         EditorGUILayout.Toggle("State Recording & Replay", featureStateRecordingAndReplay.boolValue);
+                    
+                    EditorGUILayout.HelpBox("The Code Coverage feature instruments the game build to enable recording covered code.\n" +
+                                                    "This may impact the performance of the game when using the state recording feature.", 
+                        MessageType.Info);
 
                     SerializedProperty featureCodeCoverage = settings.FindProperty("feature_CodeCoverage");
                     bool featCodeCoverage = EditorGUILayout.Toggle("Code Coverage Recording", featureCodeCoverage.boolValue);
@@ -73,6 +77,7 @@ namespace RegressionGames.Editor
                         featureCodeCoverage.boolValue = featCodeCoverage;
                         CompilationPipeline.RequestScriptCompilation(RequestScriptCompilationOptions.CleanBuildCache);
                     }
+                    
 
                     settings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
