@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 #if UNITY_EDITOR
+using RegressionGames.CodeCoverage;
 using UnityEditor;
 using UnityEditor.Compilation;
 #endif
@@ -75,6 +76,7 @@ namespace RegressionGames.Editor
                     {
                         // if the code coverage option is changed, request a script re-compilation since this affects the assemblies
                         featureCodeCoverage.boolValue = featCodeCoverage;
+                        RGCodeCoverage.ClearMetadata();
                         CompilationPipeline.RequestScriptCompilation(RequestScriptCompilationOptions.CleanBuildCache);
                     }
                     

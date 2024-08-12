@@ -9,6 +9,8 @@ using Mono.Cecil.Pdb;
 using Mono.Cecil.Rocks;
 using RegressionGames.CodeCoverage;
 using UnityEditor;
+using UnityEditor.Build;
+using UnityEditor.Build.Reporting;
 using UnityEditor.Compilation;
 using Assembly = UnityEditor.Compilation.Assembly;
 
@@ -329,6 +331,11 @@ namespace RegressionGames.Editor
 
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             bool codeCovEnabled = rgSettings.GetFeatureCodeCoverage();
+            if (BuildPipeline.isBuildingPlayer && !EditorUserBuildSettings.development)
+            {
+                // disable code coverage instrumentation for production builds
+                codeCovEnabled = false;
+            }
 
             bool anyChanges = false;
             string tmpOutputPath = assemblyPath + ".tmp.dll";
@@ -471,6 +478,23 @@ namespace RegressionGames.Editor
                 }
                 return false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Processor for Player build events.
+    ///
+    /// Currently this is just used to clear the existing standalone code coverage metadata
+    /// when a new player build is started.
+    /// </summary>
+    public class RGInstrumentationBuildProcessor : IPreprocessBuildWithReport
+    {
+        public int callbackOrder => 0;
+        
+        public void OnPreprocessBuild(BuildReport report)
+        {
+            // clear existing code coverage metadata before starting a Player build
+            RGCodeCoverage.ClearMetadata();
         }
     }
 }

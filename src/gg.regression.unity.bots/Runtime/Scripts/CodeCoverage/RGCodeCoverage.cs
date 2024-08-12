@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using UnityEditor;
 using UnityEngine;
 
 namespace RegressionGames.CodeCoverage
@@ -10,7 +11,23 @@ namespace RegressionGames.CodeCoverage
     /// </summary>
     public static class RGCodeCoverage
     {
-        public static readonly string CodeCovMetadataJsonPath = "Assets/Resources/RGCodeCoverageMetadata.txt";
+        // Indicates whether to use the standalone metadata or the editor build metadata
+        private static bool IsStandalone
+        {
+            get
+            {
+        		bool isStandalone = false;
+        		#if UNITY_EDITOR
+        		isStandalone = UnityEditor.BuildPipeline.isBuildingPlayer;
+        		#else
+        		isStandalone = true;
+        		#endif
+                return isStandalone;
+            }
+        }
+        
+        public static string CodeCovMetadataJsonName => IsStandalone ? "RGCodeCoverageStandaloneMetadata" : "RGCodeCoverageMetadata";
+        public static string CodeCovMetadataJsonPath => $"Assets/Resources/{CodeCovMetadataJsonName}.txt";
         
         /// <summary>
         /// Dictionary tracking code coverage in the assemblies.
@@ -20,13 +37,27 @@ namespace RegressionGames.CodeCoverage
         private static Dictionary<string, ISet<int>> _codeCoverage { get; set; } = new Dictionary<string, ISet<int>>();
         
         private static bool _isRecording = false;
-        private static CodeCoverageMetadata _metadata = null;
+
+        private static CodeCoverageMetadata _metadataEditorCache;
+        private static CodeCoverageMetadata _metadataStandaloneCache;
+
+        private static CodeCoverageMetadata MetadataCached
+        {
+            get => IsStandalone ? _metadataStandaloneCache : _metadataEditorCache;
+            set
+            {
+                if (IsStandalone)
+                    _metadataStandaloneCache = value;
+                else
+                    _metadataEditorCache = value;
+            }
+        }
 
         public static CodeCoverageMetadata GetMetadata(bool forceReload = false)
         {
-            if (_metadata != null && !forceReload)
+            if (MetadataCached != null && !forceReload)
             {
-                return _metadata;
+                return MetadataCached;
             }
             string json;
             #if UNITY_EDITOR
@@ -39,21 +70,37 @@ namespace RegressionGames.CodeCoverage
                 json = null;
             }
             #else
-            TextAsset jsonFile = Resources.Load<TextAsset>("RGCodeCoverageMetadata");
+            TextAsset jsonFile = Resources.Load<TextAsset>(CodeCovMetadataJsonName);
             json = jsonFile?.text;
             #endif
             if (json != null)
             {
-                _metadata = JsonConvert.DeserializeObject<CodeCoverageMetadata>(json);
+                MetadataCached = JsonConvert.DeserializeObject<CodeCoverageMetadata>(json);
             }
-            if (_metadata != null && !_metadata.IsValid())
+            if (MetadataCached != null && !MetadataCached.IsValid())
             {
-                _metadata = null;
+                MetadataCached = null;
             }
-            return _metadata;
+            return MetadataCached;
         }
 
         #if UNITY_EDITOR
+        public static void ClearMetadata()
+        {
+            if (File.Exists(CodeCovMetadataJsonPath))
+            {
+                File.Delete(CodeCovMetadataJsonPath);
+            }
+
+            string metaFilePath = CodeCovMetadataJsonPath + ".meta";
+            if (File.Exists(metaFilePath))
+            {
+                File.Delete(metaFilePath);
+            }
+            
+            MetadataCached = null;
+        }
+        
         public static void SaveMetadata(CodeCoverageMetadata metadata)
         {
             string targetDir = Path.GetDirectoryName(CodeCovMetadataJsonPath);
@@ -62,6 +109,7 @@ namespace RegressionGames.CodeCoverage
                 Directory.CreateDirectory(targetDir);
             }
             File.WriteAllText(CodeCovMetadataJsonPath, JsonConvert.SerializeObject(metadata, Formatting.Indented));
+            MetadataCached = metadata;
         }
         #endif
         
