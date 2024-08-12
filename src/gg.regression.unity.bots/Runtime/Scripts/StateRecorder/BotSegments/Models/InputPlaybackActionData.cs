@@ -21,6 +21,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public double startTime;
         public InputData inputData;
 
+        private bool _isStopped;
+
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - Processing InputPlaybackActionData");
@@ -41,52 +43,61 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
+
             var result = false;
-            var currentTime = Time.unscaledTime;
-            foreach (var replayKeyboardInputEntry in inputData.keyboard)
+            if (!_isStopped)
             {
-                // if we don't have one of the times, mark that event send as already 'done' so we don't send it
-                if (!replayKeyboardInputEntry.Replay_StartTime.HasValue)
+                var currentTime = Time.unscaledTime;
+                foreach (var replayKeyboardInputEntry in inputData.keyboard)
                 {
-                    replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
+                    // if we don't have one of the times, mark that event send as already 'done' so we don't send it
+                    if (!replayKeyboardInputEntry.Replay_StartTime.HasValue)
+                    {
+                        replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
+                    }
+
+                    if (!replayKeyboardInputEntry.Replay_EndTime.HasValue)
+                    {
+                        replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
+                    }
+
+                    if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
+                    {
+                        // send start event
+                        result = true;
+                        KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Down);
+                        replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
+                    }
+
+                    if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
+                    {
+                        // send end event
+                        result = true;
+                        KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Up);
+                        replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
+                    }
                 }
 
-                if (!replayKeyboardInputEntry.Replay_EndTime.HasValue)
+                foreach (var replayMouseInputEntry in inputData.mouse)
                 {
-                    replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
-                }
+                    if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
+                    {
 
-                if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
-                {
-                    // send start event
-                    result = true;
-                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Down);
-                    replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
-                }
-
-                if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
-                {
-                    // send end event
-                    result = true;
-                    KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Up);
-                    replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
-                }
-            }
-
-            foreach (var replayMouseInputEntry in inputData.mouse)
-            {
-                if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
-                {
-
-                    // send event
-                    result = true;
-                    MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, null, null, currentTransforms, currentEntities);
-                    replayMouseInputEntry.Replay_IsDone = true;
+                        // send event
+                        result = true;
+                        MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, null, null, currentTransforms, currentEntities);
+                        replayMouseInputEntry.Replay_IsDone = true;
+                    }
                 }
             }
 
             error = null;
             return result;
+        }
+
+        public void AbortAction(int segmentNumber)
+        {
+            _isStopped = true;
         }
 
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
@@ -96,26 +107,31 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public bool IsCompleted()
         {
-            foreach (var keyboardInputActionData in inputData.keyboard)
+            if (!_isStopped)
             {
-                if (!keyboardInputActionData.Replay_IsDone)
+                foreach (var keyboardInputActionData in inputData.keyboard)
                 {
-                    return false;
+                    if (!keyboardInputActionData.Replay_IsDone)
+                    {
+                        return false;
+                    }
+                }
+
+                foreach (var mouseInputActionData in inputData.mouse)
+                {
+                    if (!mouseInputActionData.Replay_IsDone)
+                    {
+                        return false;
+                    }
                 }
             }
 
-            foreach (var mouseInputActionData in inputData.mouse)
-            {
-                if (!mouseInputActionData.Replay_IsDone)
-                {
-                    return false;
-                }
-            }
             return true;
         }
 
         public void ReplayReset()
         {
+            _isStopped = false;
             inputData.ReplayReset();
         }
 

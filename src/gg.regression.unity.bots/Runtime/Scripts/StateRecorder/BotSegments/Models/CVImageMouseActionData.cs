@@ -343,9 +343,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
+        public void AbortAction(int segmentNumber)
+        {
+            // hard stop NOW
+            _isStopped = true;
+        }
+
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            // for cv image analysis, we finish the action queue even if criteria match before hand (no-op)
+            // for cv image analysis, we finish the action queue even if criteria match before hand... don't set _isStopped;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

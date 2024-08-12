@@ -15,32 +15,32 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [JsonConverter(typeof(MonkeyBotActionDataJsonConverter))]
     public class MonkeyBotActionData : IBotActionData
     {
-        [NonSerialized] 
+        [NonSerialized]
         public static readonly BotActionType Type = BotActionType.MonkeyBot;
-        
+
         public int apiVersion = SdkApiVersion.VERSION_6;
         public float actionInterval = 0.05f;
         public RGActionManagerSettings actionSettings;
 
         [NonSerialized]
-        private bool isStopped;
+        private bool _isStopped;
 
-        [NonSerialized] 
-        private RGMonkeyBotLogic monkey;
-        
+        [NonSerialized]
+        private RGMonkeyBotLogic _monkey;
+
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             var controller = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
             RGActionManager.StartSession(controller, actionSettings);
-            monkey = new RGMonkeyBotLogic();
-            monkey.ActionInterval = actionInterval;
+            _monkey = new RGMonkeyBotLogic();
+            _monkey.ActionInterval = actionInterval;
         }
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            if (!isStopped)
+            if (!_isStopped)
             {
-                bool didAnyAction = monkey.Update();
+                bool didAnyAction = _monkey.Update();
                 error = null;
                 return didAnyAction;
             }
@@ -49,10 +49,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
-        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
+        public void AbortAction(int segmentNumber)
         {
             RGActionManager.StopSession();
-            isStopped = true;
+            _isStopped = true;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
@@ -68,13 +68,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void ReplayReset()
         {
-            isStopped = false;
-            monkey = null;
+            _isStopped = false;
+            _monkey = null;
         }
 
         public bool IsCompleted()
         {
-            return isStopped;
+            return _isStopped;
         }
 
         public int EffectiveApiVersion()
