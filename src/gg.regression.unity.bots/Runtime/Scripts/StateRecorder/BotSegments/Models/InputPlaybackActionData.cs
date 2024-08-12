@@ -43,12 +43,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-
             var result = false;
 
             if (!_isStopped)
             {
-
                 var currentTime = Time.unscaledTime;
 
                 var allInputs = inputData.AllInputsSortedByTime();
@@ -56,7 +54,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 foreach (object input in allInputs)
                 {
                     if (input is KeyboardInputActionData replayKeyboardInputEntry)
-
                     {
                         // if we don't have one of the times, mark that event send as already 'done' so we don't send it
                         if (!replayKeyboardInputEntry.Replay_StartTime.HasValue)
@@ -69,7 +66,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                         }
 
-
                         // cannot send start and end on same input update for the same key.. that is why these are reversed
                         if (replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && !replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
                         {
@@ -78,7 +74,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Up);
                             replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                         }
-
 
                         if (!replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && currentTime >= replayKeyboardInputEntry.Replay_StartTime)
                         {
@@ -90,7 +85,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     }
                     else if (input is MouseInputActionData replayMouseInputEntry)
                     {
-
                         if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
                         {
                             // send event
