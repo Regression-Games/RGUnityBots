@@ -28,11 +28,14 @@ namespace RegressionGames.StateRecorder.Models
             if (allInputsSorted == null)
             {
                 allInputsSorted = new();
+
+                // add all the keyboard data, and then we will interleave the mouse data into it
                 allInputsSorted.AddRange(keyboard);
 
                 foreach (var mouseInputActionData in mouse)
                 {
                     var allInputsSortedCount = allInputsSorted.Count;
+                    var didAdd = false;
                     for (var i = 0; i < allInputsSortedCount; i++)
                     {
                         var input = allInputsSorted[i];
@@ -43,6 +46,7 @@ namespace RegressionGames.StateRecorder.Models
                                 (keyboardData.endTime.HasValue && keyboardData.endTime.Value > mouseInputActionData.startTime))
                             {
                                 allInputsSorted.Insert(i, mouseInputActionData);
+                                didAdd = true;
                                 break;
                             }
                         }
@@ -52,12 +56,17 @@ namespace RegressionGames.StateRecorder.Models
                             if (mouseData.startTime > mouseInputActionData.startTime)
                             {
                                 allInputsSorted.Insert(i, mouseInputActionData);
+                                didAdd = true;
                                 break;
                             }
                         }
                     }
-                    // didn't find something to put it before, stick it on the end
-                    allInputsSorted.Add(mouseInputActionData);
+
+                    if (!didAdd)
+                    {
+                        // didn't find something to put it before, stick it on the end
+                        allInputsSorted.Add(mouseInputActionData);
+                    }
                 }
             }
             return allInputsSorted;
