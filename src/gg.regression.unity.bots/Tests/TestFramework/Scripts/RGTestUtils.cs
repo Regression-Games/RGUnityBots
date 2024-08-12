@@ -63,7 +63,7 @@ namespace RegressionGames
         /// </summary>
         /// <param name="recordingPath">The path to the recording to play back (the full data.zip file path)</param>
         /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
-        public static IEnumerator StartPlaybackFromFile(string recordingPath, Action<PlaybackResult> setPlaybackResult)
+        public static IEnumerator StartPlaybackFromZipFile(string recordingPath, Action<PlaybackResult> setPlaybackResult)
         {
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
