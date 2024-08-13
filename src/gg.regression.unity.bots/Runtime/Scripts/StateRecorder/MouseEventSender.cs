@@ -223,7 +223,7 @@ namespace RegressionGames.StateRecorder
 
                  if (RGDebug.IsDebugEnabled)
                  {
-                     RGDebug.LogDebug($"({replaySegment}) Sending Mouse Event - {mouseEventString}");
+                     RGDebug.LogDebug($"({replaySegment}) [frame: {Time.frameCount}] - Sending Mouse Event - {mouseEventString}");
                  }
 
                  InputSystem.QueueEvent(eventPtr);

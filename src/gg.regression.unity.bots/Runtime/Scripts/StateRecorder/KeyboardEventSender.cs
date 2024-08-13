@@ -15,7 +15,7 @@ namespace RegressionGames.StateRecorder
     public static class KeyboardEventSender
     {
         private static bool _isShiftDown;
-        
+
         // Stores the changed state of keys. When the Input System completes an update, this is cleared.
         // If multiple key state changes occur within the same frame, all of these are added to the keyboard event that is sent to the Input System.
         private static Dictionary<Key, KeyState> _keyStates = new Dictionary<Key, KeyState>();
@@ -63,7 +63,7 @@ namespace RegressionGames.StateRecorder
                         inputControl.WriteValueIntoEvent(entry.Value == KeyState.Down ? 1f : 0f, eventPtr);
                     }
                 }
-                
+
                 InputSystem.QueueEvent(eventPtr);
             }
         }
@@ -94,7 +94,7 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
                 InputSystem.QueueEvent(ref inputEvent);
             }
-            
+
             // If there are active UI input fields, simulate a KeyDown UI event for newly pressed keys
             // This simulation is done directly on the components, because there is no way to directly queue the event to Unity's event manager
             var inputFields = UnityEngine.Object.FindObjectsOfType<InputField>();
@@ -102,7 +102,7 @@ namespace RegressionGames.StateRecorder
             if (inputFields.Length > 0 || tmpInputFields.Length > 0)
             {
                 var keyCode = RGLegacyInputUtils.InputSystemKeyToKeyCode(key);
-                Event evt = CreateUIKeyboardEvent(keyCode, 
+                Event evt = CreateUIKeyboardEvent(keyCode,
                     isShiftDown: _isShiftDown,
                     isCommandDown: IsKeyPressedOrPending(Key.LeftCommand) || IsKeyPressedOrPending(Key.RightCommand),
                     isAltDown: IsKeyPressedOrPending(Key.LeftAlt) || IsKeyPressedOrPending(Key.RightAlt),
@@ -125,32 +125,32 @@ namespace RegressionGames.StateRecorder
         }
 
         /**
-         * Allows updating multiple keys in the same event. 
+         * Allows updating multiple keys in the same event.
          */
         public static void SendKeysInOneEvent(int replaySegment, IDictionary<Key, KeyState> keyStates)
         {
             #if ENABLE_LEGACY_INPUT_MANAGER
             SendKeysInOneEventLegacy(keyStates);
             #endif
-            
-            RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" + 
+
+            RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" +
                             string.Join(", ", keyStates.Select(a => a.Key + ":" + a.Value).ToArray()) + "]");
-            
+
             foreach (var (key, upOrDown) in keyStates)
             {
                 if (_keyStates.ContainsKey(key))
                 {
                     RGDebug.LogWarning($"KeyboardEventSender - Multiple key events have been sent within one frame for {key}. Only the last state ({upOrDown}) will be kept.");
                 }
-            
+
                 _keyStates[key] = upOrDown;
-                
+
                 if (key == Key.LeftShift || key == Key.RightShift)
                 {
                     _isShiftDown = upOrDown == KeyState.Down;
                 }
             }
-            
+
             QueueKeyboardUpdateEvent();
 
             foreach (var entry in keyStates)
@@ -163,7 +163,7 @@ namespace RegressionGames.StateRecorder
                 }
             }
         }
-        
+
         public static void SendKeyEvent(int replaySegment, Key key, KeyState upOrDown)
         {
             #if ENABLE_LEGACY_INPUT_MANAGER
@@ -179,11 +179,11 @@ namespace RegressionGames.StateRecorder
             {
                 RGDebug.LogWarning($"KeyboardEventSender - Multiple key events have been sent within one frame for {key}. Only the last state ({upOrDown}) will be kept.");
             }
-            
-            RGDebug.LogInfo($"({replaySegment}) Sending Key Event: {key} - {upOrDown}");
-            
+
+            RGDebug.LogInfo($"({replaySegment}) [frame: {Time.frameCount}] - Sending Key Event: {key} - {upOrDown}");
+
             _keyStates[key] = upOrDown;
-            
+
             QueueKeyboardUpdateEvent();
 
             if (upOrDown == KeyState.Down)
@@ -206,7 +206,7 @@ namespace RegressionGames.StateRecorder
                 SendKeyEventLegacy(entry.Key, entry.Value);
             }
         }
-        
+
         private static void SendKeyEventLegacy(Key key, KeyState upOrDown)
         {
             if (RGLegacyInputWrapper.IsPassthrough)
@@ -229,7 +229,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 #endif
-        
+
         /// <summary>
         /// Creates a UnityGUI keyboard event for simulating input events to UI components.
         /// </summary>
