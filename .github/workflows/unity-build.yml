@@ -9,6 +9,10 @@ on:
   # Build every PR
   pull_request:
 
+concurrency:
+  group: unity_build
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Unity Tests

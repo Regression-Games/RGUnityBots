@@ -4,6 +4,7 @@ using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -51,10 +52,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 var allInputs = inputData.AllInputsSortedByTime();
 
+                HashSet<Key> keysSeenThisUpdate = new();
+                bool stopKeyboard = false;
+
                 foreach (object input in allInputs)
                 {
-                    if (input is KeyboardInputActionData replayKeyboardInputEntry)
+                    if (!stopKeyboard && input is KeyboardInputActionData replayKeyboardInputEntry)
                     {
+                        // make sure not to send 2 events for the same key in the same frame Update
+                        if (keysSeenThisUpdate.Contains(replayKeyboardInputEntry.Key))
+                        {
+                            stopKeyboard = true;
+                            continue;
+                        }
                         // if we don't have one of the times, mark that event send as already 'done' so we don't send it
                         if (!replayKeyboardInputEntry.Replay_StartTime.HasValue)
                         {
@@ -66,12 +76,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                         }
 
-                        // cannot send start and end on same input update for the same key.. that is why these are reversed
+                        // cannot send start and end on same input update for the same key.. that is why these are reversed for safety
                         if (replayKeyboardInputEntry.Replay_StartEndSentFlags[0] && !replayKeyboardInputEntry.Replay_StartEndSentFlags[1] && currentTime >= replayKeyboardInputEntry.Replay_EndTime)
                         {
                             // send end event
                             result = true;
                             KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Up);
+                            keysSeenThisUpdate.Add(replayKeyboardInputEntry.Key);
                             replayKeyboardInputEntry.Replay_StartEndSentFlags[1] = true;
                         }
 
@@ -80,17 +91,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             // send start event
                             result = true;
                             KeyboardEventSender.SendKeyEvent(segmentNumber, replayKeyboardInputEntry.Key, KeyState.Down);
+                            keysSeenThisUpdate.Add(replayKeyboardInputEntry.Key);
                             replayKeyboardInputEntry.Replay_StartEndSentFlags[0] = true;
                         }
                     }
-                    else if (input is MouseInputActionData replayMouseInputEntry)
+
+                    if (input is MouseInputActionData replayMouseInputEntry)
                     {
-                        if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
                         {
-                            // send event
-                            result = true;
-                            MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, null, null, currentTransforms, currentEntities);
-                            replayMouseInputEntry.Replay_IsDone = true;
+                            if (!replayMouseInputEntry.Replay_IsDone && currentTime >= replayMouseInputEntry.Replay_StartTime)
+                            {
+                                // send event
+                                result = true;
+                                MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, null, null, currentTransforms, currentEntities);
+                                replayMouseInputEntry.Replay_IsDone = true;
+                            }
                         }
                     }
 

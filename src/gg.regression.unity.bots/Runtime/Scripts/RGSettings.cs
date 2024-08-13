@@ -29,6 +29,7 @@ namespace RegressionGames
         [SerializeField] private DebugLogLevel logLevel;
         // ReSharper disable once InconsistentNaming
         [SerializeField] private bool feature_StateRecordingAndReplay;
+        [SerializeField] private bool feature_CodeCoverage;
 
         // Authentication settings
         [SerializeField] private string rgHostAddress;
@@ -69,6 +70,7 @@ namespace RegressionGames
                 _settings.logLevel = DebugLogLevel.Info;
 
                 _settings.feature_StateRecordingAndReplay = true;
+                _settings.feature_CodeCoverage = false;
 #if UNITY_EDITOR
                 Directory.CreateDirectory(SETTINGS_DIRECTORY);
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
@@ -151,6 +153,11 @@ namespace RegressionGames
         public bool GetFeatureStateRecordingAndReplay()
         {
             return feature_StateRecordingAndReplay;
+        }
+
+        public bool GetFeatureCodeCoverage()
+        {
+            return feature_CodeCoverage;
         }
     }
 }

@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.Models
     public class RecordingFrameStateData
     {
         //Update me if fields/types change
-        public int apiVersion = SdkApiVersion.VERSION_4;
+        public int apiVersion = SdkApiVersion.VERSION_13;
 
         /// <summary>
         /// Effective API version for this state recording considering all sub elements
@@ -36,6 +36,7 @@ namespace RegressionGames.StateRecorder.Models
         public Vector2Int screenSize;
         public string pixelHash;
         public IEnumerable<RecordedGameObjectState> state;
+        public RecordingCodeCoverageState codeCoverage;
         public InputData inputs;
 
         public PerformanceMetricData performance;
@@ -84,7 +85,16 @@ namespace RegressionGames.StateRecorder.Models
                     stringBuilder.Append(",\n");
                 }
             }
-            stringBuilder.Append("\n],\n\"inputs\":");
+            stringBuilder.Append("\n],\n\"codeCoverage\":");
+            if (codeCoverage != null)
+            {
+                codeCoverage.WriteToStringBuilder(stringBuilder);
+            }
+            else
+            {
+                stringBuilder.Append("null");
+            }
+            stringBuilder.Append(",\n\"inputs\":");
             inputs.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("\n}");
         }
