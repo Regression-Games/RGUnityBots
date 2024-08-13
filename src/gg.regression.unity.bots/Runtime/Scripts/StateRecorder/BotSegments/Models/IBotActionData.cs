@@ -20,10 +20,20 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error);
 
         /**
+         * Called when a user or ui stops a playback.
+         * Even for segments with action sequences, they should stop as soon as possible.
+         */
+        public void AbortAction(int segmentNumber);
+
+        /**
          * Called when a segment completes to stop any outstanding actions or mark the action as should stop.
          * For segments with action sequences, they should still finish processing all their actions before stopping.
+         * By default this calls AbortAction(segmentNumber)
          */
-        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities);
+        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
+        {
+            AbortAction(segmentNumber);
+        }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder);
 

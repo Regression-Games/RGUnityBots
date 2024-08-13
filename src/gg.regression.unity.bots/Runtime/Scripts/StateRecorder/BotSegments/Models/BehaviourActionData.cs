@@ -92,7 +92,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     if (_typeToCreate != null)
                     {
                         // load behaviour and set as a child of the playback controller
-                        var pbController = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
+                        var pbController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
                         _myGameObject = new GameObject($"BehaviourAction_{behaviourFullName}")
                         {
                             transform =
@@ -118,14 +118,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 {
                     if (!_myGameObject.GetComponent(_typeToCreate))
                     {
-                        // behaviour was destroyed, stop
-                        StopAction(segmentNumber, currentTransforms, currentEntities);
+                        // behaviour was destroyed, stop .. really this is an abort, but this is sample for how to call stop
+                        ((IBotActionData)this).StopAction(segmentNumber, currentTransforms, currentEntities);
                         // will return false
 
                     }
                     else if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
                     {
-                        StopAction(segmentNumber, currentTransforms, currentEntities);
+                        // really this is an abort, but this is sample for how to call stop
+                        ((IBotActionData)this).StopAction(segmentNumber, currentTransforms, currentEntities);
                         // will return false
                     }
                     else
@@ -139,13 +140,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     // and/or
                     // UnityEngine.Object.FindObjectOfType<EntityObjectFinder>().GetObjectStatusForCurrentFrame(); - for runtimes with ECS support
                 }
-            } 
+            }
 
             error = null;
             return false;
         }
 
-        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
+        public void AbortAction(int segmentNumber)
         {
             _isStopped = true;
             if (_myGameObject != null)

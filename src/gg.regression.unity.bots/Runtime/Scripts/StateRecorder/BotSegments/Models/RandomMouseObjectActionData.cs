@@ -57,16 +57,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public List<string> preconditionNormalizedPaths = new();
 
-        private bool IsStopped;
+        private bool _isStopped;
 
         public bool IsCompleted()
         {
-            return IsStopped;
+            return _isStopped;
         }
 
         public void ReplayReset()
         {
-            IsStopped = false;
+            _isStopped = false;
         }
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
@@ -76,7 +76,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            if (!IsStopped)
+            if (!_isStopped)
             {
                 var now = Time.unscaledTime;
                 if (now - timeBetweenClicks > Replay_LastClickTime)
@@ -297,9 +297,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
-        public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
+        public void AbortAction(int segmentNumber)
         {
-            IsStopped = true;
+            _isStopped = true;
         }
 
         private GUIStyle _guiStyle = null;

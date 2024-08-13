@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using JetBrains.Annotations;
@@ -9,7 +8,6 @@ using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using StateRecorder.BotSegments.Models;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -343,9 +341,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
+        public void AbortAction(int segmentNumber)
+        {
+            // hard stop NOW
+            _isStopped = true;
+        }
+
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            // for cv image analysis, we finish the action queue even if criteria match before hand (no-op)
+            // for cv image analysis, we finish the action queue even if criteria match before hand... don't set _isStopped;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

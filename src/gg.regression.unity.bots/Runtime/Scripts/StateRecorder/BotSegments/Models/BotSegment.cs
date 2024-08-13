@@ -20,10 +20,20 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
-        public int apiVersion = SdkApiVersion.VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_12;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), keyFrameCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
+
+        /**
+         * <summary>Title for this bot segment. Used for naming on the UI.</summary>
+         */
+        public string name;
+
+        /**
+         * <summary>Description for this bot segment. Used for naming on the UI.</summary>
+         */
+        public string description;
 
         public string sessionId;
         public List<KeyFrameCriteria> keyFrameCriteria = new();
@@ -74,6 +84,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
+        /**
+         * <summary>A HARD stop that doesn't wait for the action to finish.  Useful for stopping segments from the UI controls/etc.</summary>
+         */
+        public void AbortAction()
+        {
+            if (botAction != null)
+            {
+                botAction.AbortAction(Replay_SegmentNumber);
+            }
+        }
+
+        /**
+         * <summary>A SOFT stop that signals the action to stop as soon as possible. Most actions will stop nearly immediately, but input replay actions will finish their list first.
+         * This is called once a segment's criteria have been matched and it is up to each action impl to decide how to implement this as some actions may need to finish a set of inputs before stopping.</summary>
+         */
         public void StopAction(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             if (botAction != null)
@@ -184,7 +209,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"sessionId\":");
+            stringBuilder.Append("{\n\"name\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, name );
+            stringBuilder.Append(",\n\"description\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, description );
+            stringBuilder.Append(",\n\"sessionId\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
             stringBuilder.Append(",\n\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);

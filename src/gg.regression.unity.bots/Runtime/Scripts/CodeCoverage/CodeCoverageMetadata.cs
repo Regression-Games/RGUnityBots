@@ -23,7 +23,7 @@ namespace RegressionGames.CodeCoverage
     public class CodeCoverageMetadata
     {
         // Increment this whenever breaking changes are made to the metadata format
-        public const int CURRENT_API_VERSION = SdkApiVersion.VERSION_12;
+        public const int CURRENT_API_VERSION = SdkApiVersion.VERSION_13;
 
         public int apiVersion = CURRENT_API_VERSION;
         

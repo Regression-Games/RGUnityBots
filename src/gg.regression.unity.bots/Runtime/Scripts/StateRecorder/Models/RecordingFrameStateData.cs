@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.Models
     public class RecordingFrameStateData
     {
         //Update me if fields/types change
-        public int apiVersion = SdkApiVersion.VERSION_12;
+        public int apiVersion = SdkApiVersion.VERSION_13;
 
         /// <summary>
         /// Effective API version for this state recording considering all sub elements

@@ -7,7 +7,7 @@ namespace RegressionGames.StateRecorder.Models
 {
     public class RecordingCodeCoverageState
     {
-        public int apiVersion = SdkApiVersion.VERSION_12;
+        public int apiVersion = SdkApiVersion.VERSION_13;
         
         public Dictionary<string, ISet<int>> coverageSinceLastTick;
 

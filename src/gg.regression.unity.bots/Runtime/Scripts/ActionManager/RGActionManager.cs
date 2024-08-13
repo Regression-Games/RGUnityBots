@@ -4,6 +4,7 @@ using System.Text;
 using Newtonsoft.Json;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -33,7 +34,7 @@ namespace RegressionGames.ActionManager
         /// The set of actions after applying the user settings in RGActionManagerSettings.
         /// </summary>
         public static IEnumerable<RGGameAction> Actions => _actions;
-        
+
         /// <summary>
         /// Provides access to the original set of actions identified from the static analysis,
         /// prior to the user settings being applied from RGActionManagerSettings.
@@ -72,7 +73,7 @@ namespace RegressionGames.ActionManager
 
         private static RGActionManagerSettings LoadSettings()
         {
-            
+
             string jsonText = null;
             #if UNITY_EDITOR
             if (File.Exists(SETTINGS_PATH))
@@ -136,7 +137,7 @@ namespace RegressionGames.ActionManager
         /// </summary>
         private static bool DoesContextNeedSetUp()
         {
-            return _context is not ReplayDataPlaybackController;
+            return _context is not BotSegmentsPlaybackController ;
         }
 
         /// <summary>
@@ -159,9 +160,9 @@ namespace RegressionGames.ActionManager
                 _settings = LoadSettings();
             }
             _context = context;
-            
+
             ReloadActions();
-            
+
             if (DoesContextNeedSetUp())
             {
                 #if ENABLE_LEGACY_INPUT_MANAGER
@@ -214,7 +215,7 @@ namespace RegressionGames.ActionManager
             CurrentEventSystems.AddRange(eventSystems);
 
             RGUtils.ForceApplicationFocus();
-            
+
             foreach (RGGameAction action in Actions)
             {
                 Debug.Assert(action.ParameterRange != null);
