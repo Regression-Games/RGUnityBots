@@ -7,7 +7,6 @@ using RegressionGames.GenericBots;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -30,7 +29,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            var controller = UnityEngine.Object.FindObjectOfType<ReplayDataPlaybackController>();
+            var controller = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
             RGActionManager.StartSession(controller, actionSettings);
             _monkey = new RGMonkeyBotLogic();
             _monkey.ActionInterval = actionInterval;

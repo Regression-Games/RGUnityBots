@@ -371,7 +371,6 @@ namespace RegressionGames.StateRecorder
                     RGDebug.LogVerbose("ActionPerformed - new action - " + action.name);
                     activeAction = new KeyboardInputActionData
                     {
-                        action = action.name,
                         binding = action.bindings[0].path,
                         startTime = context.startTime,
                         lastUpdateTime = context.time,
@@ -400,7 +399,6 @@ namespace RegressionGames.StateRecorder
                             // add new one
                             activeAction = new KeyboardInputActionData
                             {
-                                action = action.name,
                                 binding = action.bindings[0].path,
                                 startTime = context.startTime,
                                 lastUpdateTime = context.time,
@@ -410,7 +408,7 @@ namespace RegressionGames.StateRecorder
                         }
                         else
                         {
-                            RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.action);
+                            RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.binding);
                             // still pushed.. update end time
                             activeAction.lastUpdateTime = context.time;
                             activeAction.duration = context.time - activeAction.startTime.Value;
@@ -419,7 +417,7 @@ namespace RegressionGames.StateRecorder
                     else
                     {
                         // NOT a Mac.. works correctly (ie: Windows 11, haven't tested Linux)
-                        RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.action);
+                        RGDebug.LogVerbose("ActionPerformed - still pushed - " + activeAction.binding);
                         // still pushed.. update end time
                         activeAction.lastUpdateTime = context.time;
                         activeAction.duration = context.time - activeAction.startTime.Value;
@@ -445,7 +443,7 @@ namespace RegressionGames.StateRecorder
                 if (completedAction.startTime < upToTime)
                 {
                     _completedInputActions.TryDequeue(out _);
-                    RGDebug.LogVerbose("Flush - adding completed - " + completedAction.action);
+                    RGDebug.LogVerbose("Flush - adding completed - " + completedAction.binding);
                     AddToResultList(result, completedAction, currentTime);
                 }
             }
@@ -469,7 +467,7 @@ namespace RegressionGames.StateRecorder
                             // not pushed for the threshold.. write it out, but also clean it up
                             else if (_activeInputActions.TryRemove(activeAction.Key, out var oldAction))
                             {
-                                RGDebug.LogVerbose("Flush - remove old - " + oldAction.action);
+                                RGDebug.LogVerbose("Flush - remove old - " + oldAction.binding);
                                 oldAction.endTime = oldAction.lastUpdateTime;
                                 AddToResultList(result, oldAction, currentTime);
                             }
