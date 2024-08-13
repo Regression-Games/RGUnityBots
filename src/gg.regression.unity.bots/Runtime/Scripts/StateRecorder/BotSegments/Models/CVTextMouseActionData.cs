@@ -12,7 +12,8 @@ using UnityEngine;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     /**
-     * <summary>Data for clicking on or moving the mouse to a CV Text location in the scene</summary>
+     * <summary>Data for clicking on or moving the mouse to a CV Text location in the scene.
+     * This processes the results by finding the smallest bounding rect of the matching texts possible withinRect if specified and clicking on the center of that rect.</summary>
      */
     [Serializable]
     public class CVTextMouseActionData : IBotActionData
@@ -89,6 +90,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             RequestCVTextEvaluation(segmentNumber);
         }
 
+        [Serializable]
+        private struct ResultTreeNode
+        {
+            public List<ResultTreeNode> children;
+
+            public List<int> indexGraph;
+
+            public RectInt? boundsRect;
+        }
+
         private void RequestCVTextEvaluation(int segmentNumber)
         {
             lock (_syncLock)
@@ -139,14 +150,23 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                         // pick a random rect from the results, if they didn't want this random, they should have specified within rect
                                         if (cvTextResults.Count > 0)
                                         {
-                                            var textParts = text.Trim().Split(' ').Select(a => a.Trim()).Where(a => a.Length > 0).ToList();
+                                            var missingWords = new List<string>();
+                                            var textParts = text.Trim().Split(' ').Select(a => a.Trim()).Where(a => a.Length > 0).Select(a => textCaseRule == TextCaseRule.Ignore ? a.ToLower() : a).ToList();
+
+                                            var partIndexes = new Dictionary<string, List<int>>();
 
                                             //  TODO: Find the possible bounding boxes that contain all the words... pick the smallest , or the one that is 'within rect'
+                                            // if many matches of the same word then this set gets fairly large, but such is life
 
-
+                                            // We take a multi pass approach here to make this more understandable for future developers reading it.  originally this was a one pass approach but it was too complex/obscure to be serviceable
+                                            // pass1 - get the indexes of each of our textPart words ( remember we may have the same word twice so we'll need to consider that)
+                                            // pass2 - using those index buckets, build out matching sets that include all text parts
 
                                             var cvTextResultsCount = cvTextResults.Count;
-                                            for (var k = 0; k < cvTextResultsCount && textParts.Count > 0; k++)
+                                            var textPartsCount = textParts.Count;
+
+                                            // n^2 looping - but we cover the probably large results list 1 time, and the hopefully short lookup text N times
+                                            for (var k = 0; k < cvTextResultsCount; k++)
                                             {
                                                 var cvTextResult = cvTextResults[k];
                                                 var cvText = cvTextResult.text.Trim();
@@ -156,71 +176,193 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                                     cvText = cvText.ToLower();
                                                 }
 
-                                                for (var j = textParts.Count - 1; j >= 0; j--)
+                                                // see if we can find a matching textPart for this result.. if so.. add this index to that text part tracker
+                                                var matched = false;
+                                                for (var i = 0; !matched && i <textPartsCount; i++)
                                                 {
-                                                    var matched = false;
-                                                    var textToMatch = textParts[j];
-
-                                                    if (textCaseRule == TextCaseRule.Ignore)
-                                                    {
-                                                        textToMatch = textToMatch.ToLower();
-                                                    }
-
+                                                    var textToMatch = textParts[i];
                                                     switch (textMatchingRule)
                                                     {
                                                         case TextMatchingRule.Matches:
                                                             if (textToMatch.Equals(cvText))
                                                             {
+                                                                if (!partIndexes.TryGetValue(textToMatch, out var list))
+                                                                {
+                                                                    list = new List<int>();
+                                                                    partIndexes[textToMatch] = list;
+                                                                }
+                                                                list.Add(k);
                                                                 matched = true;
                                                             }
-
                                                             break;
                                                         case TextMatchingRule.Contains:
                                                             if (cvText.Contains(textToMatch))
                                                             {
+                                                                if (!partIndexes.TryGetValue(textToMatch, out var list))
+                                                                {
+                                                                    list = new List<int>();
+                                                                    partIndexes[textToMatch] = list;
+                                                                }
+                                                                list.Add(k);
                                                                 matched = true;
                                                             }
-
                                                             break;
-                                                    }
-
-                                                    if (matched)
-                                                    {
-                                                        if (withinRect == null)
-                                                        {
-                                                            textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
-                                                            break;
-                                                        }
-                                                        else
-                                                        {
-                                                            // ensure result rect is inside
-                                                            var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvTextResult.resolution.x, withinRect.screenSize.y / (float)cvTextResult.resolution.y);
-
-                                                            // check the bottom left and top right to see if it intersects our rect
-                                                            var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvTextResult.rect.x * relativeScaling.x), Mathf.CeilToInt(cvTextResult.rect.y * relativeScaling.y));
-                                                            var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvTextResult.rect.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(cvTextResult.rect.height * relativeScaling.y));
-
-                                                            // we currently test overlap, should we test fully inside instead ??
-                                                            if (withinRect.rect.Contains(bottomLeft) || withinRect.rect.Contains(topRight))
-                                                            {
-                                                                textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
-                                                                break;
-                                                            }
-                                                        }
                                                     }
                                                 }
                                             }
 
-                                            if (textParts.Count != 0)
+                                            var indexTreeRoot = new ResultTreeNode
                                             {
-                                                _lastError = $"Missing CVText - text: {text.Trim()}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: [{string.Join(',',textParts)}]";
+                                                indexGraph = new(),
+                                                children = new(),
+                                                boundsRect = null
+                                            };
+
+                                            var currentNodes = new List<ResultTreeNode> ();
+
+                                            var nextNodes = new List<ResultTreeNode> ();
+                                            nextNodes.Add(indexTreeRoot);
+
+                                            var maxDepth = 0;
+
+                                            // build out the tree of indexes and bounding boxes
+                                            for (var i = 0; i < textPartsCount; i++)
+                                            {
+                                                currentNodes = nextNodes;
+                                                nextNodes = new();
+                                                var textToMatch = textParts[i];
+                                                if (!partIndexes.TryGetValue(textToMatch, out var list))
+                                                {
+                                                    missingWords.Add(textToMatch);
+                                                    break;
+                                                }
+
+                                                // process this tree layer computing bounds and tree depth
+                                                foreach (var node in currentNodes)
+                                                {
+                                                    var nodeBounds = node.boundsRect;
+                                                    var success = false;
+
+                                                    foreach (var a in list)
+                                                    {
+                                                        // can't re-use the same index for multiple matches of a word in a tree branch
+                                                        if (!node.indexGraph.Contains(a))
+                                                        {
+                                                            // make sure we had enough of this word
+                                                            success = true;
+
+                                                            var boundsRectForThisEntry = cvTextResults[a].rect;
+                                                            maxDepth = i + 1;
+
+                                                            // if the tree layer above us had bounds, then find the new bounds rect that encompasses that + our new layer
+                                                            RectInt newBoundsRect;
+                                                            if (nodeBounds.HasValue)
+                                                            {
+                                                                var xMin = Math.Min(nodeBounds.Value.xMin, boundsRectForThisEntry.xMin);
+                                                                var yMin = Math.Min(nodeBounds.Value.yMin, boundsRectForThisEntry.yMin);
+                                                                var xMax = Math.Max(nodeBounds.Value.xMax, boundsRectForThisEntry.xMax);
+                                                                var yMax = Math.Max(nodeBounds.Value.yMax, boundsRectForThisEntry.yMax);
+                                                                newBoundsRect = new(xMin, yMin, (xMax - xMin), (yMax - yMin));
+                                                            }
+                                                            else
+                                                            {
+                                                                newBoundsRect = boundsRectForThisEntry;
+                                                            }
+
+                                                            var indexGraph = new List<int>();
+                                                            indexGraph.AddRange(node.indexGraph);
+                                                            indexGraph.Add(a);
+                                                            var newChild = new ResultTreeNode()
+                                                            {
+                                                                indexGraph = indexGraph,
+                                                                children = new(),
+                                                                boundsRect = newBoundsRect
+                                                            };
+                                                            node.children.Add(newChild);
+
+                                                            // add to the tree layer tracker for the next pass
+                                                            nextNodes.Add(newChild);
+                                                        }
+                                                    }
+
+                                                    if (!success)
+                                                    {
+                                                        missingWords.Add(textToMatch);
+                                                    }
+                                                }
+                                            }
+
+                                            if (maxDepth < textPartsCount)
+                                            {
+                                                _lastError = $"Missing CVText - text: {text.Trim()}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: Tree Depth Too Shallow.. This Shouldn't Happen";
+                                            }
+
+                                            if (missingWords.Count != 0)
+                                            {
+                                                _lastError = $"Missing CVText - text: {text.Trim()}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: [{string.Join(',',missingWords)}]";
+                                                _cvResultsBoundsRect = null;
                                             }
                                             else
                                             {
                                                 _lastError = null;
-                                            }
+                                                // find the smallest rect that works
+                                                if (withinRect == null)
+                                                {
+                                                    // just take the smallest rect
+                                                    RectInt? smallestRect = null;
+                                                    var nextNodesCount = nextNodes.Count;
+                                                    for (var i = 0; i < nextNodesCount; i++)
+                                                    {
+                                                        var nextNode = nextNodes[i];
+                                                        if (!smallestRect.HasValue)
+                                                        {
+                                                            smallestRect = nextNode.boundsRect;
+                                                        }
+                                                        else
+                                                        {
+                                                            var br = nextNode.boundsRect.Value;
+                                                            if (br.width * br.height < smallestRect.Value.width * smallestRect.Value.height)
+                                                            {
+                                                                smallestRect = br;
+                                                            }
+                                                        }
+                                                    }
+                                                    _cvResultsBoundsRect = smallestRect;
+                                                }
+                                                else
+                                                {
+                                                    // find the smallest that intersects our withinRect
+                                                    RectInt? smallestRect = null;
+                                                    var nextNodesCount = nextNodes.Count;
+                                                    for (var i = 0; i < nextNodesCount; i++)
+                                                    {
+                                                        var nextNode = nextNodes[i];
+                                                        if (!smallestRect.HasValue)
+                                                        {
+                                                            smallestRect = nextNode.boundsRect;
+                                                        }
+                                                        else
+                                                        {
+                                                            var br = nextNode.boundsRect.Value;
+                                                            if (br.width * br.height < smallestRect.Value.width * smallestRect.Value.height)
+                                                            {
+                                                                var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvTextResults[0].resolution.x, withinRect.screenSize.y / (float)cvTextResults[0].resolution.y);
 
-                                            _cvResultsBoundsRect = TODO;
+                                                                // check the bottom left and top right to see if it intersects our rect
+                                                                var bottomLeft = new Vector2Int(Mathf.CeilToInt(br.xMin * relativeScaling.x), Mathf.CeilToInt(br.yMin * relativeScaling.y));
+                                                                var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(br.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(br.height * relativeScaling.y));
+
+                                                                // we currently test overlap, should we test fully inside instead ??
+                                                                if (withinRect.rect.Contains(bottomLeft) || withinRect.rect.Contains(topRight))
+                                                                {
+                                                                    smallestRect = br;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    _cvResultsBoundsRect = smallestRect;
+                                                }
+                                            }
                                         }
                                         else
                                         {
