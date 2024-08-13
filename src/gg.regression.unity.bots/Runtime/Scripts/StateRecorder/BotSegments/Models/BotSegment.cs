@@ -84,6 +84,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
+        /**
+         * <summary>A HARD stop that doesn't wait for the action to finish.  Useful for stopping segments from the UI controls/etc.</summary>
+         */
+        public void AbortAction()
+        {
+            if (botAction != null)
+            {
+                botAction.AbortAction(Replay_SegmentNumber);
+            }
+        }
+
+        /**
+         * <summary>A SOFT stop that signals the action to stop as soon as possible. Most actions will stop nearly immediately, but input replay actions will finish their list first.
+         * This is called once a segment's criteria have been matched and it is up to each action impl to decide how to implement this as some actions may need to finish a set of inputs before stopping.</summary>
+         */
         public void StopAction(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             if (botAction != null)
