@@ -54,10 +54,13 @@
          * </summary>
          */
         public const int VERSION_12 = 12;
-
+        /**
+         * <summary>add code coverage recording support</summary>
+         */
+        public const int VERSION_13 = 13;
+        
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_12;
-
+        public const int CURRENT_VERSION = VERSION_13;
     }
 }

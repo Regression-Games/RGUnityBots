@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 #if UNITY_EDITOR
+using RegressionGames.CodeCoverage;
 using UnityEditor;
+using UnityEditor.Compilation;
 #endif
 
 namespace RegressionGames.Editor
@@ -63,6 +65,21 @@ namespace RegressionGames.Editor
                     SerializedProperty featureStateRecordingAndReplay = settings.FindProperty("feature_StateRecordingAndReplay");
                     featureStateRecordingAndReplay.boolValue =
                         EditorGUILayout.Toggle("State Recording & Replay", featureStateRecordingAndReplay.boolValue);
+                    
+                    EditorGUILayout.HelpBox("The Code Coverage feature instruments the game build to enable recording covered code.\n" +
+                                                    "This may impact the performance of the game when using the state recording feature.", 
+                        MessageType.Info);
+
+                    SerializedProperty featureCodeCoverage = settings.FindProperty("feature_CodeCoverage");
+                    bool featCodeCoverage = EditorGUILayout.Toggle("Code Coverage Recording", featureCodeCoverage.boolValue);
+                    if (featCodeCoverage != featureCodeCoverage.boolValue)
+                    {
+                        // if the code coverage option is changed, request a script re-compilation since this affects the assemblies
+                        featureCodeCoverage.boolValue = featCodeCoverage;
+                        RGCodeCoverage.ClearMetadata();
+                        CompilationPipeline.RequestScriptCompilation(RequestScriptCompilationOptions.CleanBuildCache);
+                    }
+                    
 
                     settings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())
