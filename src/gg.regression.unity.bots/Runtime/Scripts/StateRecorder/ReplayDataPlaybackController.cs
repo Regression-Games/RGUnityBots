@@ -166,7 +166,7 @@ namespace RegressionGames.StateRecorder
                 foreach (var nextBotSegment in _nextBotSegments)
                 {
                     // stop any action
-                    nextBotSegment.StopAction(new(), new());
+                    nextBotSegment.AbortAction();
                 }
             }
 
@@ -360,13 +360,13 @@ namespace RegressionGames.StateRecorder
             {
                 var nextBotSegment = _nextBotSegments[i];
 
-                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched( 
-                    i ==0, 
-                    nextBotSegment.Replay_SegmentNumber, 
+                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched(
+                    i ==0,
+                    nextBotSegment.Replay_SegmentNumber,
                     nextBotSegment.Replay_ActionCompleted,
                     nextBotSegment.keyFrameCriteria
                 );
-                
+
                 if (matched)
                 {
                     if (!nextBotSegment.Replay_Matched)
@@ -374,7 +374,7 @@ namespace RegressionGames.StateRecorder
                         nextBotSegment.Replay_Matched = true;
                         // log this the first time
                         RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched");
-                        // tell the action that our segment completed
+                        // tell the action that our segment completed and it should stop when it finishes its current actions
                         nextBotSegment.StopAction(transformStatuses, entityStatuses);
                         if (i == 0)
                         {

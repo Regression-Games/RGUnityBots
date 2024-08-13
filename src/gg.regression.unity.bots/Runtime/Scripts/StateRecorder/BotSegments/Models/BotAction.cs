@@ -35,6 +35,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return data.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
         }
 
+        // called when a user asks for the replay playback of a bot sequence / segments to stop
+        // This should stop the action immediately, even for input playback or other actions with a list of tasks.
+        public void AbortAction(int segmentNumber)
+        {
+            data.AbortAction(segmentNumber);
+        }
+
         // called when a segment ends to stop any action processing
         // For segments with action sequences, they should still finish processing all their actions before stopping.
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
