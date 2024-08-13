@@ -6,7 +6,7 @@ using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
-namespace StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [JsonConverter(typeof(CVWithinRectJsonConverter))]
     public class CVWithinRect

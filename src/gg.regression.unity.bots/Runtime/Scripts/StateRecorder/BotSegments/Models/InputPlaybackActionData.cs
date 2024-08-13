@@ -93,6 +93,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             replayMouseInputEntry.Replay_IsDone = true;
                         }
                     }
+
                 }
             }
 
