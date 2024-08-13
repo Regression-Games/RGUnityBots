@@ -7,9 +7,7 @@ using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using StateRecorder.BotSegments.Models;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -20,7 +18,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVTextMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = SdkApiVersion.VERSION_12;
+        public int apiVersion = SdkApiVersion.VERSION_13;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.Mouse_CVText;
