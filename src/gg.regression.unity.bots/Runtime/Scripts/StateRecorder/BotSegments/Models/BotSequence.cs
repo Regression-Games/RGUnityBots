@@ -15,6 +15,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     /**
      * <summary>Used to define a sequence of BotSegment/BotSegmentList as a single bot.  This is used to load bot sequences from json or to build a new sequence using the UI</summary>
      */
+    [Serializable]
     [JsonConverter(typeof(BotSequenceJsonConverter))]
     public class BotSequence
     {

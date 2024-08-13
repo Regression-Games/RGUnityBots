@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
@@ -12,9 +13,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         SegmentList
     }
 
+    [Serializable]
     [JsonConverter(typeof(BotSequenceEntryJsonConverter))]
     public class BotSequenceEntry
     {
+        public int apiVersion = SdkApiVersion.VERSION_12;
         public BotSequenceEntryType type;
         public string path;
 
@@ -24,6 +27,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             stringBuilder.Append("{\"type\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, type.ToString());
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"path\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
             stringBuilder.Append("}");
