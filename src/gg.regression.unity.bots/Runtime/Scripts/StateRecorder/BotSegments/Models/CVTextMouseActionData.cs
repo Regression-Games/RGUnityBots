@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using JetBrains.Annotations;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models.CVService;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -16,33 +14,31 @@ using Random = UnityEngine.Random;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     /**
-     * <summary>Data for clicking on or moving the mouse to a CV Image location in the scene</summary>
+     * <summary>Data for clicking on or moving the mouse to a CV Text location in the scene</summary>
      */
     [Serializable]
-    [JsonConverter(typeof(CVImageMouseActionDataJsonConverter))]
-    public class CVImageMouseActionData : IBotActionData
+    public class CVTextMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = SdkApiVersion.VERSION_10;
+        public int apiVersion = SdkApiVersion.VERSION_12;
 
         [NonSerialized]
-        public static readonly BotActionType Type = BotActionType.Mouse_CVImage;
+        public static readonly BotActionType Type = BotActionType.Mouse_CVText;
+
+        public string text;
+        public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
+        public TextCaseRule textCaseRule = TextCaseRule.Matches;
 
         /**
-         * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
-         */
-        public string imageData;
-
-        /**
-         * optionally limit the rect area where the imageData can be detected
+         * optionally limit the rect area where the TextData can be detected
          */
         [CanBeNull]
         public CVWithinRect withinRect;
 
         /**
          * the list of actions to perform at this location
-         * Note: This does NOT re-evaluate the position of the CVImage on each action.
-         * This is modeled as a list to allow you to click and/or un-click buttons on this image location without re-evaluating the CV image match in between if you don't want to.
+         * Note: This does NOT re-evaluate the position of the CVText on each action.
+         * This is modeled as a list to allow you to click and/or un-click buttons on this Text location without re-evaluating the CV text match in between if you don't want to.
          * If you want to validate a mouse visual effect in your criteria, and then mouse up in the next bot segment; that is also a normal way to use this system with just 1 list action per segment.
          *
          * If you want to perform click and drag mouse movements, you cannot and should not try to do that with this list.  You need to create 2 separate bot segments.
@@ -92,85 +88,141 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             // get the CV evaluate started...
-            RequestCVImageEvaluation(segmentNumber);
+            RequestCVTextEvaluation(segmentNumber);
         }
 
-        private void RequestCVImageEvaluation(int segmentNumber)
+        private void RequestCVTextEvaluation(int segmentNumber)
         {
             lock (_syncLock)
             {
                 if (!_requestInProgress)
                 {
-                    // Request the CV Image data
+                    // Request the CV Text data
                     var screenshot = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
                     if (screenshot != null)
                     {
                         _requestInProgress = true;
-                        RectInt? queryWithinRect = null;
-                        if (withinRect != null)
-                        {
-                            // compute the relative withinRect for the request
-                            var xScale = width / withinRect.screenSize.x;
-                            var yScale = height / withinRect.screenSize.y;
-                            queryWithinRect = new RectInt(
-                                Mathf.FloorToInt(xScale * withinRect.rect.x),
-                                Mathf.FloorToInt(yScale * withinRect.rect.y),
-                                Mathf.FloorToInt(xScale * withinRect.rect.width),
-                                Mathf.FloorToInt(yScale * withinRect.rect.height)
-                            );
-                        }
-
                         _resultReceived = false;
                         _cvResultsBoundsRect = null;
 
                         // do NOT await this, let it run async
-                        _ = CVServiceManager.GetInstance().PostCriteriaImageMatch(
-                            request: new CVImageCriteriaRequest()
+                        _ = CVServiceManager.GetInstance().PostCriteriaTextDiscover(
+                            request: new CVTextCriteriaRequest()
                             {
                                 screenshot = new CVImageBinaryData()
                                 {
                                     width = width,
                                     height = height,
                                     data = screenshot
-                                },
-                                imageToMatch = imageData,
-                                withinRect = queryWithinRect
+                                }
                             },
                             abortRegistrationHook:
                             action =>
                             {
-                                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - abortHook registration callback");
+                                RGDebug.LogVerbose($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - abortHook registration callback");
                                 lock (_syncLock)
                                 {
-                                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - abortHook registration callback - insideLock");
+                                    RGDebug.LogVerbose($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - abortHook registration callback - insideLock");
                                     _requestAbortAction = action;
                                 }
                             },
                             onSuccess:
-                            list =>
+                            cvTextResults =>
                             {
-                                RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
+                                RGDebug.LogDebug($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
                                 lock (_syncLock)
                                 {
-                                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
+                                    RGDebug.LogVerbose($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
                                     // make sure we haven't already cleaned this up
                                     if (_requestAbortAction != null)
                                     {
-                                        RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
+                                        RGDebug.LogVerbose($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
 
                                         // pick a random rect from the results, if they didn't want this random, they should have specified within rect
-
-                                        if (list.Count > 1)
+                                        if (cvTextResults.Count > 0)
                                         {
-                                            RGDebug.LogInfo($"({segmentNumber}) CVImageMouseActionData - Multiple results were returned for CV Image evaluation.  A random one of these will be saved as the result.  Consider specifying a precise `withinRect` in your action definition to get a singular result.");
-                                        }
+                                            var textParts = text.Trim().Split(' ').Select(a => a.Trim()).Where(a => a.Length > 0).ToList();
+
+                                            //  TODO: Find the possible bounding boxes that contain all the words... pick the smallest , or the one that is 'within rect'
 
 
-                                        if (list.Count > 0)
-                                        {
-                                            var index = Random.Range(0, list.Count);
 
-                                            _cvResultsBoundsRect = list[index].rect;
+                                            var cvTextResultsCount = cvTextResults.Count;
+                                            for (var k = 0; k < cvTextResultsCount && textParts.Count > 0; k++)
+                                            {
+                                                var cvTextResult = cvTextResults[k];
+                                                var cvText = cvTextResult.text.Trim();
+
+                                                if (textCaseRule == TextCaseRule.Ignore)
+                                                {
+                                                    cvText = cvText.ToLower();
+                                                }
+
+                                                for (var j = textParts.Count - 1; j >= 0; j--)
+                                                {
+                                                    var matched = false;
+                                                    var textToMatch = textParts[j];
+
+                                                    if (textCaseRule == TextCaseRule.Ignore)
+                                                    {
+                                                        textToMatch = textToMatch.ToLower();
+                                                    }
+
+                                                    switch (textMatchingRule)
+                                                    {
+                                                        case TextMatchingRule.Matches:
+                                                            if (textToMatch.Equals(cvText))
+                                                            {
+                                                                matched = true;
+                                                            }
+
+                                                            break;
+                                                        case TextMatchingRule.Contains:
+                                                            if (cvText.Contains(textToMatch))
+                                                            {
+                                                                matched = true;
+                                                            }
+
+                                                            break;
+                                                    }
+
+                                                    if (matched)
+                                                    {
+                                                        if (withinRect == null)
+                                                        {
+                                                            textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
+                                                            break;
+                                                        }
+                                                        else
+                                                        {
+                                                            // ensure result rect is inside
+                                                            var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvTextResult.resolution.x, withinRect.screenSize.y / (float)cvTextResult.resolution.y);
+
+                                                            // check the bottom left and top right to see if it intersects our rect
+                                                            var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvTextResult.rect.x * relativeScaling.x), Mathf.CeilToInt(cvTextResult.rect.y * relativeScaling.y));
+                                                            var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvTextResult.rect.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(cvTextResult.rect.height * relativeScaling.y));
+
+                                                            // we currently test overlap, should we test fully inside instead ??
+                                                            if (withinRect.rect.Contains(bottomLeft) || withinRect.rect.Contains(topRight))
+                                                            {
+                                                                textParts.RemoveAt(j); // remove the one we matched so we don't have to check it again
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            if (textParts.Count != 0)
+                                            {
+                                                _lastError = $"Missing CVText - text: {text.Trim()}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: [{string.Join(',',textParts)}]";
+                                            }
+                                            else
+                                            {
+                                                _lastError = null;
+                                            }
+
+                                            _cvResultsBoundsRect = TODO;
                                         }
                                         else
                                         {
@@ -188,14 +240,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             onFailure:
                             () =>
                             {
-                                RGDebug.LogWarning($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService image criteria evaluation");
+                                RGDebug.LogWarning($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService Text criteria evaluation");
                                 lock (_syncLock)
                                 {
-                                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
+                                    RGDebug.LogVerbose($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
                                     // make sure we haven't already cleaned this up
                                     if (_requestAbortAction != null)
                                     {
-                                        RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
+                                        RGDebug.LogVerbose($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
                                         _resultReceived = true;
                                         _cvResultsBoundsRect = null;
 
@@ -207,7 +259,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 }
 
                             });
-                        RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - SENT");
+                        RGDebug.LogDebug($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - SENT");
                     }
                 }
             }
@@ -243,7 +295,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     var rect = _cvResultsBoundsRect.Value;
 
                                     var position = new Vector2Int((int)rect.center.x, (int)rect.center.y);
-                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction} at position: {VectorIntJsonConverter.ToJsonString(position)}");
+                                    RGDebug.LogDebug($"CVTextMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction} at position: {VectorIntJsonConverter.ToJsonString(position)}");
                                     MouseEventSender.SendRawPositionMouseEvent(
                                         replaySegment: segmentNumber,
                                         normalizedPosition: position,
@@ -260,21 +312,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 }
                                 else
                                 {
-                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - imageData not found in current screen ...");
-                                    _lastError = "CVImageMouseActionData - imageData not found in current screen ...";
+                                    RGDebug.LogDebug($"CVTextMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - TextData not found in current screen ...");
+                                    _lastError = "CVTextMouseActionData - TextData not found in current screen ...";
                                     error = _lastError;
                                     // start a new request
-                                    RequestCVImageEvaluation(segmentNumber);
+                                    RequestCVTextEvaluation(segmentNumber);
                                     return false;
                                 }
                             }
                             else
                             {
-                                RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - waiting for CV Image evaluation results ...");
-                                _lastError = "CVImageMouseActionData - waiting for CV Image evaluation results ...";
+                                RGDebug.LogDebug($"CVTextMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - waiting for CV Text evaluation results ...");
+                                _lastError = "CVTextMouseActionData - waiting for CV Text evaluation results ...";
                                 error = _lastError;
                                 // make sure we have a request in progress (this call checks internally to make sure one isn't already in progress)
-                                RequestCVImageEvaluation(segmentNumber);
+                                RequestCVTextEvaluation(segmentNumber);
                                 return false;
                             }
                         }
@@ -301,15 +353,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StopAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            // for cv image analysis, we finish the action queue even if criteria match before hand... don't set _isStopped;
+            // for cv Text analysis, we finish the action queue even if criteria match before hand... don't set _isStopped;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"imageData\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, imageData);
+            stringBuilder.Append(",\"text\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, text);
+            stringBuilder.Append(",\"textCaseRule\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
+            stringBuilder.Append(",\"textMatchingRule\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, textMatchingRule.ToString());
             stringBuilder.Append(",\"withinRect\":");
             CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append(",\"actions\":[");
