@@ -47,15 +47,20 @@
          * <summary>added criteria to wait for completion of bot actions</summary>
          */
         public const int VERSION_11 = 11;
-
-
+        /**
+         * <summary>
+         * introduce ability to configure bot segments into sequences
+         * remove 'action' from keyboardInputActionData (just use binding)
+         * </summary>
+         */
+        public const int VERSION_12 = 12;
         /**
          * <summary>added cvtext mouse click actions</summary>
          */
-        public const int VERSION_12 = 12;
-
+        public const int VERSION_13 = 13;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_12;
+        public const int CURRENT_VERSION = VERSION_13;
+
     }
 }

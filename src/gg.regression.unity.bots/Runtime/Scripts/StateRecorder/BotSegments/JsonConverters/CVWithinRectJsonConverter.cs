@@ -3,8 +3,8 @@ using System.Text;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
-using StateRecorder.BotSegments.Models;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
