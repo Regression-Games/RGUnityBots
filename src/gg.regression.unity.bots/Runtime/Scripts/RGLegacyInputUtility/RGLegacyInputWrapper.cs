@@ -8,7 +8,8 @@ using UnityEngine;
 namespace RegressionGames.RGLegacyInputUtility
 {
     /// <summary>
-    /// Update mode used as parameter to StartSimulation()
+    /// Update mode of RGLegacyInputWrapper.
+    /// Default is AUTOMATIC.
     /// </summary>
     public enum RGLegacyInputUpdateMode
     {
