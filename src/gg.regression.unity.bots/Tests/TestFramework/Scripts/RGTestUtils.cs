@@ -50,13 +50,14 @@ namespace RegressionGames
         /// </summary>
         /// <param name="condition">The condition that should become true</param>
         /// <param name="timeout">Maximum time to wait for the condition to become true (in seconds)</param>
-        public static IEnumerator WaitUntil(Func<bool> condition, int timeout = 5)
+        /// <param name="message">Message to display upon failure (optional)</param>
+        public static IEnumerator WaitUntil(Func<bool> condition, int timeout = 5, string message = null)
         {
             var startTime = Time.unscaledTime;
             bool result;
             while (!(result = condition()) && Time.unscaledTime - startTime < timeout)
                 yield return null;
-            Assert.IsTrue(result, $"Condition did not become true within {timeout} seconds");
+            Assert.IsTrue(result, message ?? $"Condition did not become true within {timeout} seconds");
         }
 
         /// <summary>
