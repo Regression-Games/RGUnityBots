@@ -7,6 +7,15 @@ using UnityEngine;
 
 namespace RegressionGames.RGLegacyInputUtility
 {
+    /// <summary>
+    /// Update mode used as parameter to StartSimulation()
+    /// </summary>
+    public enum RGLegacyInputUpdateMode
+    {
+        AUTOMATIC,
+        MANUAL
+    }
+    
     class RGLegacyAxisInputState
     {
         public float rawValue;
@@ -67,13 +76,42 @@ namespace RegressionGames.RGLegacyInputUtility
         private static (GameObject, Camera)? _lastHitObject2D;
         private static (GameObject, Camera)? _mouseDownObject2D;
         private static RGLegacyInputManagerSettings _inputManagerSettings;
-        private static Coroutine _inputSimLoopCoro;
+        private static Coroutine _autoUpdateLoopCoro;
         private static Queue<RGLegacySimulatedInputEvent> _inputSimEventQueue;
-        
+
+        private static RGLegacyInputUpdateMode _updateMode = RGLegacyInputUpdateMode.AUTOMATIC;
+
+        /// <summary>
+        /// If updateMode is AUTOMATIC (the default), then the event processing is automatically scheduled every frame.
+        /// Otherwise, if updateMode is MANUAL, then the application must call RGLegacyInputWrapper.Update() manually on a regular interval.
+        /// </summary>
+        public static RGLegacyInputUpdateMode UpdateMode
+        {
+            get => _updateMode;
+            set
+            {
+                _updateMode = value;
+                if (_updateMode == RGLegacyInputUpdateMode.AUTOMATIC)
+                {
+                    if (_simulationContext != null && _autoUpdateLoopCoro == null)
+                    {
+                        _autoUpdateLoopCoro = _simulationContext.StartCoroutine(AutoUpdateLoop());
+                    }
+                } else if (_updateMode == RGLegacyInputUpdateMode.MANUAL)
+                {
+                    if (_simulationContext != null && _autoUpdateLoopCoro != null)
+                    {
+                        _simulationContext.StopCoroutine(_autoUpdateLoopCoro);
+                        _autoUpdateLoopCoro = null;
+                    }
+                }
+            }
+        }
+
         /**
          * If this flag is true (this is the initial state), then all inputs are
          * forwarded to the regular UnityEngine.Input APIs.
-         * 
+         *
          * If this flag is false (after calling StartSimulation), then the test driver
          * has control of the inputs via the Simulate... methods and the game will
          * no longer read inputs from the user's device.
@@ -89,10 +127,10 @@ namespace RegressionGames.RGLegacyInputUtility
          */
         public static RGLegacyInputManagerSettings InputManagerSettings => _inputManagerSettings;
 
-        /**
-         * Called by the test driver to take control of the user input.
-         * Context parameter is the driving MonoBehaviour to use as context.
-         */
+        /// <summary>
+        /// Called by the test driver to take control of the user input.
+        /// Context parameter is the driving MonoBehaviour to use as context.
+        /// </summary>
         public static void StartSimulation(MonoBehaviour context)
         {
             if (_simulationContext != null)
@@ -121,9 +159,12 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 _axisStates[entry] = new RGLegacyAxisInputState();
             }
-            
-            // start event processing loop
-            _inputSimLoopCoro = _simulationContext.StartCoroutine(InputSimLoop());
+
+            if (UpdateMode == RGLegacyInputUpdateMode.AUTOMATIC)
+            {
+                // start event processing loop
+                _autoUpdateLoopCoro = _simulationContext.StartCoroutine(AutoUpdateLoop());
+            }
         }
         
         /**
@@ -133,8 +174,11 @@ namespace RegressionGames.RGLegacyInputUtility
         {
             if (_simulationContext != null)
             {
-                _simulationContext.StopCoroutine(_inputSimLoopCoro);
-                _inputSimLoopCoro = null;
+                if (_autoUpdateLoopCoro != null)
+                {
+                    _simulationContext.StopCoroutine(_autoUpdateLoopCoro);
+                    _autoUpdateLoopCoro = null;
+                }
                 _inputSimEventQueue = null;
                 _inputManagerSettings = null;
                 _newKeysDown = null;
@@ -149,190 +193,203 @@ namespace RegressionGames.RGLegacyInputUtility
             }
         }
 
-        private static IEnumerator InputSimLoop()
+        /// <summary>
+        /// Perform an update step of input event processing.
+        /// This should only be called by the application if UpdateMode is MANUAL.
+        /// </summary>
+        public static void Update()
         {
-            for (;;)
-            {
-                // Process simulated input event queue
-                while (_inputSimEventQueue.TryDequeue(out RGLegacySimulatedInputEvent evt))
-                {
-                    switch (evt.eventType)
-                    {
-                        case RGLegacySimulatedInputEventType.KEY_EVENT:
-                        {
-                            KeyCode keyCode = evt.keyCode;
-                            bool isPressed = evt.isKeyPressed;
-                            bool wasHeld = _keysHeld.Contains(keyCode);
-                            if (isPressed)
-                            {
-                                bool anyHeld = _keysHeld.Count > 0;
-                                _keysHeld.Add(keyCode);
-                                if (!wasHeld)
-                                {
-                                    _newKeysDown.Add(keyCode);
-                                }
-                                if (!anyHeld)
-                                {
-                                    _anyKeyDown = true;
-                                }
-                            }
-                            else
-                            {
-                                _keysHeld.Remove(keyCode);
-                                if (wasHeld)
-                                {
-                                    _newKeysUp.Add(keyCode);
-                                }
-                            }
-                            break;
-                        }
-                        case RGLegacySimulatedInputEventType.MOUSE_MOVEMENT_EVENT:
-                        {
-                            Vector3 newMousePosition = evt.newMousePosition;
-                            if (evt.newMouseDelta.HasValue)
-                            {
-                                _mousePosDelta = evt.newMouseDelta.Value;
-                            }
-                            else
-                            {
-                                _mousePosDelta = newMousePosition - _mousePosition;
-                            }
-                            _mousePosition = newMousePosition;
-                            break;
-                        }
-                        case RGLegacySimulatedInputEventType.MOUSE_SCROLL_EVENT:
-                        {
-                            Vector2 newMouseScrollDelta = evt.newMouseScrollDelta;
-                            _mouseScrollDelta = newMouseScrollDelta;
-                            break;
-                        }
-                    }
-                }
+            // Clear all "new" flags and deltas
+            _newKeysDown.Clear();
+            _newKeysUp.Clear();
+            _anyKeyDown = false;
+            _mousePosDelta = Vector3.zero;
+            _mouseScrollDelta = Vector2.zero;
                 
-                // Update axis states based on input
-                foreach (var p in _axisStates)
+            // Process simulated input event queue
+            while (_inputSimEventQueue.TryDequeue(out RGLegacySimulatedInputEvent evt))
+            {
+                switch (evt.eventType)
                 {
-                    InputManagerEntry entry = p.Key;
-                    RGLegacyAxisInputState state = p.Value;
-                    state.rawValue = 0.0f;
-                    if (entry.type == InputManagerEntryType.KEY_OR_MOUSE_BUTTON)
+                    case RGLegacySimulatedInputEventType.KEY_EVENT:
                     {
-                        bool anyHeld = false;
-                        if ((entry.negativeButtonKeyCode.HasValue && _keysHeld.Contains(entry.negativeButtonKeyCode.Value))
-                            || (entry.altNegativeButtonKeyCode.HasValue && _keysHeld.Contains(entry.altNegativeButtonKeyCode.Value)))
+                        KeyCode keyCode = evt.keyCode;
+                        bool isPressed = evt.isKeyPressed;
+                        bool wasHeld = _keysHeld.Contains(keyCode);
+                        if (isPressed)
                         {
-                            state.rawValue += -1.0f;
-                            anyHeld = true;
-                        }
-                        if ((entry.positiveButtonKeyCode.HasValue && _keysHeld.Contains(entry.positiveButtonKeyCode.Value))
-                            || (entry.altPositiveButtonKeyCode.HasValue && _keysHeld.Contains(entry.altPositiveButtonKeyCode.Value)))
-                        {
-                            state.rawValue += 1.0f;
-                            anyHeld = true;
-                        }
-                        if (entry.invert)
-                        {
-                            state.rawValue *= -1.0f;
-                        }
-                        float startVal;
-                        if (state.smoothedValue >= 0.0f)
-                        {
-                            // if snap is enabled, the starting value should be 0 if raw value goes in different direction
-                            startVal = entry.snap ? (state.rawValue < 0.0f ? 0.0f : state.smoothedValue) : state.smoothedValue;
+                            bool anyHeld = _keysHeld.Count > 0;
+                            _keysHeld.Add(keyCode);
+                            if (!wasHeld)
+                            {
+                                _newKeysDown.Add(keyCode);
+                            }
+                            if (!anyHeld)
+                            {
+                                _anyKeyDown = true;
+                            }
                         }
                         else
                         {
-                            startVal = entry.snap ? (state.rawValue > 0.0f ? 0.0f : state.smoothedValue) : state.smoothedValue;
+                            _keysHeld.Remove(keyCode);
+                            if (wasHeld)
+                            {
+                                _newKeysUp.Add(keyCode);
+                            }
                         }
-                        float rate = (anyHeld ? entry.sensitivity : entry.gravity) * Time.deltaTime;
-                        state.smoothedValue = Mathf.MoveTowards(startVal, state.rawValue, rate);
-                    } 
-                    else if (entry.type == InputManagerEntryType.MOUSE_MOVEMENT)
+                        break;
+                    }
+                    case RGLegacySimulatedInputEventType.MOUSE_MOVEMENT_EVENT:
                     {
-                        if (entry.axis == 0) // X Axis
+                        Vector3 newMousePosition = evt.newMousePosition;
+                        if (evt.newMouseDelta.HasValue)
                         {
-                            state.rawValue = _mousePosDelta.x * entry.sensitivity;
-                        } 
-                        else if (entry.axis == 1) // Y Axis
-                        {
-                            state.rawValue = _mousePosDelta.y * entry.sensitivity;
+                            _mousePosDelta = evt.newMouseDelta.Value;
                         }
-                        else if (entry.axis == 2) // Scroll Wheel
+                        else
                         {
-                            state.rawValue = _mouseScrollDelta.y * entry.sensitivity;
+                            _mousePosDelta = newMousePosition - _mousePosition;
                         }
-                        if (entry.invert)
-                        {
-                            state.rawValue *= -1.0f;
-                        }
-                        state.smoothedValue = state.rawValue; // smoothing is not applied on mouse movement
-                    } 
-                    else if (entry.type == InputManagerEntryType.JOYSTICK_AXIS)
+                        _mousePosition = newMousePosition;
+                        break;
+                    }
+                    case RGLegacySimulatedInputEventType.MOUSE_SCROLL_EVENT:
                     {
-                        // joysticks unsupported currently
-                        // eventually this will read the joystick value, incorporating entry.dead for dead zone
-                    } 
+                        Vector2 newMouseScrollDelta = evt.newMouseScrollDelta;
+                        _mouseScrollDelta = newMouseScrollDelta;
+                        break;
+                    }
+                }
+            }
+                
+            // Update axis states based on input
+            foreach (var p in _axisStates)
+            {
+                InputManagerEntry entry = p.Key;
+                RGLegacyAxisInputState state = p.Value;
+                state.rawValue = 0.0f;
+                if (entry.type == InputManagerEntryType.KEY_OR_MOUSE_BUTTON)
+                {
+                    bool anyHeld = false;
+                    if ((entry.negativeButtonKeyCode.HasValue && _keysHeld.Contains(entry.negativeButtonKeyCode.Value))
+                        || (entry.altNegativeButtonKeyCode.HasValue && _keysHeld.Contains(entry.altNegativeButtonKeyCode.Value)))
+                    {
+                        state.rawValue += -1.0f;
+                        anyHeld = true;
+                    }
+                    if ((entry.positiveButtonKeyCode.HasValue && _keysHeld.Contains(entry.positiveButtonKeyCode.Value))
+                        || (entry.altPositiveButtonKeyCode.HasValue && _keysHeld.Contains(entry.altPositiveButtonKeyCode.Value)))
+                    {
+                        state.rawValue += 1.0f;
+                        anyHeld = true;
+                    }
+                    if (entry.invert)
+                    {
+                        state.rawValue *= -1.0f;
+                    }
+                    float startVal;
+                    if (state.smoothedValue >= 0.0f)
+                    {
+                        // if snap is enabled, the starting value should be 0 if raw value goes in different direction
+                        startVal = entry.snap ? (state.rawValue < 0.0f ? 0.0f : state.smoothedValue) : state.smoothedValue;
+                    }
                     else
                     {
-                        RGDebug.LogWarning($"Unexpected input manager entry type: {entry.type}");
+                        startVal = entry.snap ? (state.rawValue > 0.0f ? 0.0f : state.smoothedValue) : state.smoothedValue;
                     }
-                }
-                
-                // Invoke the appropriate mouse event handlers on MonoBehaviours
+                    float rate = (anyHeld ? entry.sensitivity : entry.gravity) * Time.deltaTime;
+                    state.smoothedValue = Mathf.MoveTowards(startVal, state.rawValue, rate);
+                } 
+                else if (entry.type == InputManagerEntryType.MOUSE_MOVEMENT)
                 {
-                    (GameObject, Camera)? hitObject = null;
-                    (GameObject, Camera)? hitObject2D = null;
-                    int numCameras = Camera.allCamerasCount;
-                    if (_camerasBuf == null || _camerasBuf.Length != numCameras)
+                    if (entry.axis == 0) // X Axis
                     {
-                        _camerasBuf = new Camera[numCameras];
-                    }
-                    Camera.GetAllCameras(_camerasBuf);
-                    foreach (Camera camera in _camerasBuf)
+                        state.rawValue = _mousePosDelta.x * entry.sensitivity;
+                    } 
+                    else if (entry.axis == 1) // Y Axis
                     {
-                        if (camera == null || camera.eventMask == 0 || camera.targetTexture != null)
-                        {
-                            continue;
-                        }
-                        
-                        int cameraRaycastMask = camera.cullingMask & camera.eventMask;
-                        
-                        // 3D raycast
-                        {
-                            Ray mouseRay = camera.ScreenPointToRay(_mousePosition);
-                            if (Physics.Raycast(mouseRay, out RaycastHit hit, maxDistance: Mathf.Infinity,
-                                    layerMask: cameraRaycastMask))
-                            {
-                                hitObject = (hit.collider.gameObject, camera);
-                            }
-                        }
-                        
-                        // 2D raycast
-                        {
-                            Vector3 mouseWorldPt = camera.ScreenToWorldPoint(new Vector3(_mousePosition.x, _mousePosition.y, camera.nearClipPlane));
-                            RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
-                                layerMask: cameraRaycastMask);
-                            if (hit2D.collider != null)
-                            {
-                                hitObject2D = (hit2D.collider.gameObject, camera);
-                            }
-                        }
+                        state.rawValue = _mousePosDelta.y * entry.sensitivity;
                     }
-                    // 3D collider mouse events are always handled before 2D collider mouse events
-                    InvokeMouseEventHandlers(hitObject, _lastHitObject, ref _mouseDownObject);
-                    InvokeMouseEventHandlers(hitObject2D, _lastHitObject2D, ref _mouseDownObject2D);
-                    _lastHitObject = hitObject;
-                    _lastHitObject2D = hitObject2D;
+                    else if (entry.axis == 2) // Scroll Wheel
+                    {
+                        state.rawValue = _mouseScrollDelta.y * entry.sensitivity;
+                    }
+                    if (entry.invert)
+                    {
+                        state.rawValue *= -1.0f;
+                    }
+                    state.smoothedValue = state.rawValue; // smoothing is not applied on mouse movement
+                } 
+                else if (entry.type == InputManagerEntryType.JOYSTICK_AXIS)
+                {
+                    // joysticks unsupported currently
+                    // eventually this will read the joystick value, incorporating entry.dead for dead zone
+                } 
+                else
+                {
+                    RGDebug.LogWarning($"Unexpected input manager entry type: {entry.type}");
                 }
-
-                yield return null;
+            }
                 
-                // Clear all "new" flags and deltas
-                _newKeysDown.Clear();
-                _newKeysUp.Clear();
-                _anyKeyDown = false;
-                _mousePosDelta = Vector3.zero;
-                _mouseScrollDelta = Vector2.zero;
+            // Invoke the appropriate mouse event handlers on MonoBehaviours
+            {
+                (GameObject, Camera)? hitObject = null;
+                (GameObject, Camera)? hitObject2D = null;
+                int numCameras = Camera.allCamerasCount;
+                if (_camerasBuf == null || _camerasBuf.Length != numCameras)
+                {
+                    _camerasBuf = new Camera[numCameras];
+                }
+                Camera.GetAllCameras(_camerasBuf);
+                foreach (Camera camera in _camerasBuf)
+                {
+                    if (camera == null || camera.eventMask == 0 || camera.targetTexture != null)
+                    {
+                        continue;
+                    }
+                        
+                    int cameraRaycastMask = camera.cullingMask & camera.eventMask;
+                        
+                    // 3D raycast
+                    {
+                        Ray mouseRay = camera.ScreenPointToRay(_mousePosition);
+                        if (Physics.Raycast(mouseRay, out RaycastHit hit, maxDistance: Mathf.Infinity,
+                                layerMask: cameraRaycastMask))
+                        {
+                            hitObject = (hit.collider.gameObject, camera);
+                        }
+                    }
+                        
+                    // 2D raycast
+                    {
+                        Vector3 mouseWorldPt = camera.ScreenToWorldPoint(new Vector3(_mousePosition.x, _mousePosition.y, camera.nearClipPlane));
+                        RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
+                            layerMask: cameraRaycastMask);
+                        if (hit2D.collider != null)
+                        {
+                            hitObject2D = (hit2D.collider.gameObject, camera);
+                        }
+                    }
+                }
+                // 3D collider mouse events are always handled before 2D collider mouse events
+                InvokeMouseEventHandlers(hitObject, _lastHitObject, ref _mouseDownObject);
+                InvokeMouseEventHandlers(hitObject2D, _lastHitObject2D, ref _mouseDownObject2D);
+                _lastHitObject = hitObject;
+                _lastHitObject2D = hitObject2D;
+            }
+        }
+
+        /// <summary>
+        /// Coroutine that automatically performs an update every frame.
+        /// This coroutine is run on the object that is given as the context parameter to StartSimulation().
+        /// This is only used if the update mode given was AUTOMATIC.
+        /// </summary>
+        private static IEnumerator AutoUpdateLoop()
+        {
+            for (;;)
+            {
+                Update();
+                yield return null;
             }
         }
 
