@@ -310,172 +310,209 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             var now = Time.unscaledTime;
 
-            if (unpaused)
+            try
             {
-                _lastTimeLoggedKeyFrameConditions = now;
-                unpaused = false;
-            }
-
-            var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
-
-            var transformStatuses = new Dictionary<long, ObjectStatus>();
-            var entityStatuses = new Dictionary<long, ObjectStatus>();
-
-            foreach (var objectFinder in objectFinders)
-            {
-                if (objectFinder is TransformObjectFinder)
+                if (unpaused)
                 {
-                    transformStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
-                }
-                else
-                {
-                    entityStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
-                }
-            }
-
-            // ProcessAction will occur up to 2 times in this method
-            // once after checking if new inputs need to be processed, and one last time after checking if we need to get the next bot segment
-            // the goal being to always play the inputs as quickly as possible
-            BotSegment firstActionSegment = null;
-            if (_nextBotSegments.Count > 0)
-            {
-                firstActionSegment = _nextBotSegments[0];
-                var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-                // only log this if we're really stuck on it
-                if (error == null && didAction)
-                {
-                    // for every non error action, reset the timer
                     _lastTimeLoggedKeyFrameConditions = now;
+                    unpaused = false;
                 }
-                if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+
+                var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+
+                var transformStatuses = new Dictionary<long, ObjectStatus>();
+                var entityStatuses = new Dictionary<long, ObjectStatus>();
+
+                foreach (var objectFinder in objectFinders)
                 {
-                    var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
-                    LogPlaybackWarning(loggedMessage);
-                }
-            }
-
-            // check count each loop because we remove from it during the loop
-            for (var i = 0; i < _nextBotSegments.Count; /* do not increment here*/)
-            {
-                var nextBotSegment = _nextBotSegments[i];
-
-                var matched = nextBotSegment.Replay_Matched || nextBotSegment.endCriteria == null || nextBotSegment.endCriteria.Count == 0 || KeyFrameEvaluator.Evaluator.Matched(
-                    i ==0,
-                    nextBotSegment.Replay_SegmentNumber,
-                    nextBotSegment.Replay_ActionCompleted,
-                    nextBotSegment.endCriteria
-                );
-
-                if (matched)
-                {
-                    if (!nextBotSegment.Replay_Matched)
+                    if (objectFinder is TransformObjectFinder)
                     {
-                        nextBotSegment.Replay_Matched = true;
-                        // log this the first time
-                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched");
-                        // tell the action that our segment completed and it should stop when it finishes its current actions
-                        nextBotSegment.StopAction(transformStatuses, entityStatuses);
-                        if (i == 0)
-                        {
-                            _lastTimeLoggedKeyFrameConditions = now;
-                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                            // only do this when it is the zero index segment that passes
-                            KeyFrameEvaluator.Evaluator.PersistPriorFrameStatus();
-                        }
-                    }
-
-                    // only update the time when the first index matches, but keeps us from logging this while waiting for actions to complete
-                    if (i == 0)
-                    {
-                        // wait 10 seconds between logging this as some actions take quite a while
-                        if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
-                        {
-                            _lastTimeLoggedKeyFrameConditions = now;
-                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Waiting for actions to complete";
-                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
-                            RGDebug.LogInfo(loggedMessage);
-                        }
-                    }
-
-                    if (nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
-                    {
-                        _lastTimeLoggedKeyFrameConditions = now;
-                        RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Completed");
-                        //Process the inputs from that bot segment if necessary
-                        _nextBotSegments.RemoveAt(i);
+                        transformStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
                     }
                     else
                     {
+                        entityStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
+                    }
+                }
+
+                // ProcessAction will occur up to 2 times in this method
+                // once after checking if new inputs need to be processed, and one last time after checking if we need to get the next bot segment
+                // the goal being to always play the inputs as quickly as possible
+                BotSegment firstActionSegment = null;
+                if (_nextBotSegments.Count > 0)
+                {
+                    firstActionSegment = _nextBotSegments[0];
+                    try
+                    {
+                        var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
+                        // only log this if we're really stuck on it
+                        if (error == null && didAction)
+                        {
+                            // for every non error action, reset the timer
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                        }
+
+                        if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                        {
+                            var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
+                            LogPlaybackWarning(loggedMessage);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
+                        LogPlaybackWarning(loggedMessage);
+                        // uncaught exception... stop the segment
+                        Stop();
+                        throw;
+                    }
+                }
+
+                // check count each loop because we remove from it during the loop
+                for (var i = 0; i < _nextBotSegments.Count; /* do not increment here*/)
+                {
+                    var nextBotSegment = _nextBotSegments[i];
+
+                    var matched = nextBotSegment.Replay_Matched || nextBotSegment.endCriteria == null || nextBotSegment.endCriteria.Count == 0 || KeyFrameEvaluator.Evaluator.Matched(
+                        i == 0,
+                        nextBotSegment.Replay_SegmentNumber,
+                        nextBotSegment.Replay_ActionCompleted,
+                        nextBotSegment.endCriteria
+                    );
+
+                    if (matched)
+                    {
+                        if (!nextBotSegment.Replay_Matched)
+                        {
+                            nextBotSegment.Replay_Matched = true;
+                            // log this the first time
+                            RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched");
+                            // tell the action that our segment completed and it should stop when it finishes its current actions
+                            nextBotSegment.StopAction(transformStatuses, entityStatuses);
+                            if (i == 0)
+                            {
+                                _lastTimeLoggedKeyFrameConditions = now;
+                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                                // only do this when it is the zero index segment that passes
+                                KeyFrameEvaluator.Evaluator.PersistPriorFrameStatus();
+                            }
+                        }
+
+                        // only update the time when the first index matches, but keeps us from logging this while waiting for actions to complete
+                        if (i == 0)
+                        {
+                            // wait 10 seconds between logging this as some actions take quite a while
+                            if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                            {
+                                _lastTimeLoggedKeyFrameConditions = now;
+                                var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Waiting for actions to complete";
+                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
+                                RGDebug.LogInfo(loggedMessage);
+                            }
+                        }
+
+                        if (nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
+                        {
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Completed");
+                            //Process the inputs from that bot segment if necessary
+                            _nextBotSegments.RemoveAt(i);
+                        }
+                        else
+                        {
+                            ++i;
+                        }
+                    }
+                    else
+                    {
+                        // only log this every 10 seconds for the first key frame being evaluated after its actions complete
+                        if (i == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                        {
+                            var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
+                            if (warningText != null)
+                            {
+                                var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Unmatched Criteria for \r\n" + warningText;
+                                LogPlaybackWarning(loggedMessage);
+                            }
+                        }
+
                         ++i;
+                    }
+                }
+
+                if (_nextBotSegments.Count > 0)
+                {
+                    // see if the last entry has transient matches.. if so.. dequeue another
+                    var lastSegment = _nextBotSegments[^1];
+                    if (lastSegment.Replay_TransientMatched)
+                    {
+                        var next = _dataPlaybackContainer.DequeueBotSegment();
+                        if (next != null)
+                        {
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                            RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment");
+                            _nextBotSegments.Add(next);
+                        }
                     }
                 }
                 else
                 {
-                    // only log this every 10 seconds for the first key frame being evaluated after its actions complete
-                    if (i == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
-                    {
-                        var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
-                        if (warningText != null)
-                        {
-                            var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Unmatched Criteria for \r\n" + warningText;
-                            LogPlaybackWarning(loggedMessage);
-                        }
-                    }
-
-                    ++i;
-                }
-            }
-
-            if (_nextBotSegments.Count > 0)
-            {
-                // see if the last entry has transient matches.. if so.. dequeue another
-                var lastSegment = _nextBotSegments[^1];
-                if (lastSegment.Replay_TransientMatched)
-                {
+                    // segment list empty.. dequeue another
                     var next = _dataPlaybackContainer.DequeueBotSegment();
                     if (next != null)
                     {
                         _lastTimeLoggedKeyFrameConditions = now;
                         FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria?"":"Non-")}Transient BotSegment for Evaluation after Transient BotSegment");
+                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation");
                         _nextBotSegments.Add(next);
                     }
                 }
-            }
-            else
-            {
-                // segment list empty.. dequeue another
-                var next = _dataPlaybackContainer.DequeueBotSegment();
-                if (next != null)
-                {
-                    _lastTimeLoggedKeyFrameConditions = now;
-                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                    RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria?"":"Non-")}Transient BotSegment for Evaluation");
-                    _nextBotSegments.Add(next);
-                }
-            }
 
-            // if we moved to a new first segment in this frame, process its actions
-            // if we didnt' move to a new frame, then the time hasn't changed within the same frame so no need to call this again
-            if (_nextBotSegments.Count > 0)
-            {
-                var nextSegment = _nextBotSegments[0];
-                if (nextSegment != firstActionSegment)
+                // if we moved to a new first segment in this frame, process its actions
+                // if we didnt' move to a new frame, then the time hasn't changed within the same frame so no need to call this again
+                if (_nextBotSegments.Count > 0)
                 {
-                    var didAction = nextSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-                    // only log this if we're really stuck on it
-                    if (error == null && didAction)
+                    var nextSegment = _nextBotSegments[0];
+                    if (nextSegment != firstActionSegment)
                     {
-                        // for every non error action, reset the timer
-                        _lastTimeLoggedKeyFrameConditions = now;
-                    }
-                    // only log this if we're really stuck on it for a while
-                    if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
-                    {
-                        var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
-                        LogPlaybackWarning(loggedMessage);
+                        try
+                        {
+                            var didAction = nextSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
+                            // only log this if we're really stuck on it
+                            if (error == null && didAction)
+                            {
+                                // for every non error action, reset the timer
+                                _lastTimeLoggedKeyFrameConditions = now;
+                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                            }
+
+                            // only log this if we're really stuck on it for a while
+                            if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                            {
+                                var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
+                                LogPlaybackWarning(loggedMessage);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
+                            LogPlaybackWarning(loggedMessage);
+                            // uncaught exception... stop the segment
+                            Stop();
+                            throw;
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                var loggedMessage = $"(?) - Bot Segment - Exception processing BotSegments\r\n" + ex.Message;
+                LogPlaybackWarning(loggedMessage);
+                // uncaught exception... stop the segment
+                Stop();
+                throw;
             }
         }
 
