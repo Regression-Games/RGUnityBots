@@ -359,11 +359,11 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 var nextBotSegment = _nextBotSegments[i];
 
-                var matched = nextBotSegment.Replay_Matched || KeyFrameEvaluator.Evaluator.Matched(
+                var matched = nextBotSegment.Replay_Matched || nextBotSegment.endCriteria == null || nextBotSegment.endCriteria.Count == 0 || KeyFrameEvaluator.Evaluator.Matched(
                     i ==0,
                     nextBotSegment.Replay_SegmentNumber,
                     nextBotSegment.Replay_ActionCompleted,
-                    nextBotSegment.keyFrameCriteria
+                    nextBotSegment.endCriteria
                 );
 
                 if (matched)

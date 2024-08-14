@@ -58,9 +58,17 @@
          * <summary>add code coverage recording support</summary>
          */
         public const int VERSION_13 = 13;
-        
+
+        /**
+         * <summary>
+         * rename 'keyFrameCriteria' to 'endCriteria' in json and allow empty/null criteria for segments
+         * remove 'isPressed' from keyboardInputActionData
+         * </summary>
+         */
+        public const int VERSION_15 = 15;
+
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_13;
+        public const int CURRENT_VERSION = VERSION_15;
     }
 }
