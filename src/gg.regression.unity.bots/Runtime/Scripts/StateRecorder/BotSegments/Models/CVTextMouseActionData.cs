@@ -294,12 +294,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                                             if (maxDepth < textPartsCount)
                                             {
-                                                _lastError = $"Missing CVText - text: {text.Trim()}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: Tree Depth Too Shallow.. This Shouldn't Happen";
+                                                _lastError = $"Missing CVText - text: {WordsToStars(textParts)}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: Tree Depth Too Shallow.. This Shouldn't Happen";
                                             }
 
                                             if (missingWords.Count != 0)
                                             {
-                                                _lastError = $"Missing CVText - text: {text.Trim()}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: [{string.Join(',',missingWords)}]";
+                                                _lastError = $"Missing CVText - text: {WordsToStars(textParts)}, caseRule: {textCaseRule}, matchRule: {textMatchingRule}, missingWords: [{missingWords.Count}] {WordsToStars(missingWords)}";
                                                 _cvResultsBoundsRect = null;
                                             }
                                             else
@@ -403,6 +403,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     }
                 }
             }
+        }
+
+        public static string WordsToStars(IEnumerable<string> words)
+        {
+            StringBuilder output = new StringBuilder(100);
+            foreach (string word in words)
+            {
+                foreach (char c in word)
+                {
+                    output.Append("*");
+                }
+                output.Append(" ");
+            }
+            // remove trailing ' '
+            return output.ToString().Trim();
         }
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)

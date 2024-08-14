@@ -179,7 +179,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                         if (textParts.Count != 0)
                         {
-                            resultList.Add($"Missing CVText - text: {criteriaData.text.Trim()}, caseRule: {criteriaData.textCaseRule}, matchRule: {criteriaData.textMatchingRule}, missingWords: [{string.Join(',',textParts)}]");
+                            resultList.Add($"Missing CVText - text: {CVTextMouseActionData.WordsToStars(criteriaData.text.Trim().Split(' ').Select(a => a.Trim()).Where(a => a.Length > 0))}, caseRule: {criteriaData.textCaseRule}, matchRule: {criteriaData.textMatchingRule}, missingWords: [{textParts.Count}] {CVTextMouseActionData.WordsToStars(textParts)}\"");
                         }
                         else
                         {
