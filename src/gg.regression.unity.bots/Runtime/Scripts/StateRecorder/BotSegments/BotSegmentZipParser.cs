@@ -87,6 +87,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     using var sr = new StreamReader(entry.Open());
 
                     var fileText = sr.ReadToEnd();
+                    badSegmentName = entry.FullName;
 
                     try
                     {
@@ -135,28 +136,25 @@ namespace RegressionGames.StateRecorder.BotSegments
                         }
                         catch (Exception ex)
                         {
-                            throw new Exception($"Invalid/missing file data while parsing BotSegment or BotSegmentList from zip file path: {zipFilePath} at entry: {entry.Name}", ex);
+                            throw new Exception($"Invalid/missing file data in BotSegment or BotSegmentList", ex);
                         }
                     }
-
-                    badSegmentName = entry.FullName;
                 }
             }
             catch (Exception e)
             {
-                // Failed to parse the json.  End user doesn't really need this message, this is for developers at RG creating new bot segment types.. we give them a for real exception below
-                throw new Exception($"Exception while parsing bot segments zip: {zipFilePath}", e);
+                throw new Exception($"Exception parsing bot segments zip: {zipFilePath} at segment: {badSegmentName}", e);
             }
 
             if (versionMismatch > 0)
             {
-                throw new Exception($"Error parsing bot segments .zip at segment: {badSegmentName}.  File contains segments which require SDK version {versionMismatch}, but currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
+                throw new Exception($"Error parsing bot segments zip: {zipFilePath} at segment: {badSegmentName}.  File contains segments which require SDK version {versionMismatch}, but currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
             }
 
             if (results.Count == 0)
             {
                 // entries was empty
-                throw new Exception($"Error parsing bot segments .zip at segment: {badSegmentName}.  Must include at least 1 bot segment json.  Ensure you are loading a valid 'bot_segments.zip' file.");
+                throw new Exception($"Error parsing bot segments zip: {zipFilePath} at segment: {badSegmentName}.  Must include at least 1 bot segment json.  Ensure you are loading a valid 'bot_segments.zip' file.");
             }
 
             return results;
