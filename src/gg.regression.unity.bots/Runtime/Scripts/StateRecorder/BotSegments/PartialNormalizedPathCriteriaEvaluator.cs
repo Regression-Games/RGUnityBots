@@ -79,8 +79,11 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                     else
                     {
-                        // else - criteria not met - false
-                        matched = $"PartialNormalizedPath (WorldSpace) - {partialNormalizedPath} - missing object";
+                        // unless this was supposed to be zero or less than zero ... criteria not met
+                        if (! (criteriaPathData.countRule == CountRule.Zero || (criteriaPathData.countRule == CountRule.LessThanEqual && criteriaPathData.count <= 0)))
+                        {
+                            matched = $"PartialNormalizedPath (WorldSpace) - {partialNormalizedPath} - missing object";
+                        }
                     }
 
                 }

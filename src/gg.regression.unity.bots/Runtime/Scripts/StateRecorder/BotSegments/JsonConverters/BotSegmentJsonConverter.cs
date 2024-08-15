@@ -26,7 +26,21 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             botSegment.sessionId = jObject.GetValue("sessionId")?.ToObject<string>(serializer) ?? Guid.NewGuid().ToString("n");
             botSegment.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             botSegment.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
-            botSegment.keyFrameCriteria = new List<KeyFrameCriteria>(jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer));
+            if (jObject.ContainsKey("keyFrameCriteria"))
+            {
+                // backwards compatibility before we renamed keyFrameCriteria to endCriteria
+                botSegment.endCriteria = new List<KeyFrameCriteria>(jObject.GetValue("keyFrameCriteria").ToObject<KeyFrameCriteria[]>(serializer));
+            }
+            else if (jObject.ContainsKey("endCriteria"))
+            {
+                botSegment.endCriteria = new List<KeyFrameCriteria>(jObject.GetValue("endCriteria").ToObject<KeyFrameCriteria[]>(serializer));
+            }
+            else
+            {
+                // default value of endCriteria to empty list if not present
+                botSegment.endCriteria = new List<KeyFrameCriteria>();
+            }
+
             return botSegment;
         }
 

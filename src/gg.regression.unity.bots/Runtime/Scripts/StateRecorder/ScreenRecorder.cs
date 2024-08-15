@@ -322,13 +322,13 @@ namespace RegressionGames.StateRecorder
             {
                 gameFacePixelHashObserver.SetActive(true);
             }
-            
+
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetFeatureCodeCoverage())
             {
                 RGCodeCoverage.StartRecording();
             }
-            
+
             StartCoroutine(StartRecordingCoroutine(referenceSessionId));
 
         }
@@ -401,7 +401,7 @@ namespace RegressionGames.StateRecorder
             _tokenSource?.Cancel();
             _tokenSource?.Dispose();
             _tokenSource = null;
-            
+
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetFeatureCodeCoverage())
             {
@@ -548,7 +548,7 @@ namespace RegressionGames.StateRecorder
                         var botSegment = new BotSegment()
                         {
                             sessionId = _currentSessionId,
-                            keyFrameCriteria = keyFrameCriteria,
+                            endCriteria = keyFrameCriteria,
                             botAction = new BotAction()
                             {
                                 type = BotActionType.InputPlayback,
@@ -570,9 +570,9 @@ namespace RegressionGames.StateRecorder
 
                         _lastCvFrameTime = now;
                         _frameCountSinceLastTick = 0;
-                        
+
                         RecordingCodeCoverageState codeCoverageState = null;
-                        
+
                         RGSettings rgSettings = RGSettings.GetOrCreateSettings();
                         bool codeCovEnabled = rgSettings.GetFeatureCodeCoverage();
                         if (codeCovEnabled)
@@ -599,7 +599,7 @@ namespace RegressionGames.StateRecorder
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
                             state = currentStates.Values,
-                            codeCoverage = codeCoverageState, 
+                            codeCoverage = codeCoverageState,
                             inputs = inputData
                         };
 
