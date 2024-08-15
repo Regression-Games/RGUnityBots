@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using UnityEngine.Serialization;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -20,10 +21,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
-        public int apiVersion = SdkApiVersion.VERSION_12;
+        public int apiVersion = SdkApiVersion.VERSION_15;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
-        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), keyFrameCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
+        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), endCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
 
         /**
          * <summary>Title for this bot segment. Used for naming on the UI.</summary>
@@ -36,7 +37,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public string description;
 
         public string sessionId;
-        public List<KeyFrameCriteria> keyFrameCriteria = new();
+
+        [FormerlySerializedAs("keyFrameCriteria")]
+        public List<KeyFrameCriteria> endCriteria = new();
+
         public BotAction botAction;
 
         // Replay only - if this was fully matched (still not done until actions also completed)
@@ -110,13 +114,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // Replay only
         public void ReplayReset()
         {
-            if (keyFrameCriteria != null)
+            var endCriteriaLength = endCriteria.Count;
+            for (var i = 0; i < endCriteriaLength; i++)
             {
-                var keyFrameCriteriaLength = keyFrameCriteria.Count;
-                for (var i = 0; i < keyFrameCriteriaLength; i++)
-                {
-                    keyFrameCriteria[i].ReplayReset();
-                }
+                endCriteria[i].ReplayReset();
             }
 
             if (botAction != null)
@@ -129,34 +130,36 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         }
 
         // Replay only - true if any of this frame's transient criteria have matched
-        public bool Replay_TransientMatched => TransientMatchedHelper(keyFrameCriteria);
+        public bool Replay_TransientMatched => TransientMatchedHelper(endCriteria);
 
         private bool TransientMatchedHelper(List<KeyFrameCriteria> criteriaList)
         {
-            if (criteriaList != null)
+            if (criteriaList.Count == 0)
             {
-                foreach (var criteria in criteriaList)
+                return true;
+            }
+
+            foreach (var criteria in criteriaList)
+            {
+                if (criteria.transient && criteria.Replay_TransientMatched)
                 {
-                    if (criteria.transient && criteria.Replay_TransientMatched)
+                    return true;
+                }
+
+                if (criteria.data is OrKeyFrameCriteriaData okc)
+                {
+                    var has = TransientMatchedHelper(okc.criteriaList);
+                    if (has)
                     {
                         return true;
                     }
-
-                    if (criteria.data is OrKeyFrameCriteriaData okc)
+                }
+                else if (criteria.data is AndKeyFrameCriteriaData akc)
+                {
+                    var has = TransientMatchedHelper(akc.criteriaList);
+                    if (has)
                     {
-                        var has = TransientMatchedHelper(okc.criteriaList);
-                        if (has)
-                        {
-                            return true;
-                        }
-                    }
-                    else if (criteria.data is AndKeyFrameCriteriaData akc)
-                    {
-                        var has = TransientMatchedHelper(akc.criteriaList);
-                        if (has)
-                        {
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
@@ -166,34 +169,31 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // used to allow transient key frame data to be somewhat evaluated in parallel / a few segments ahead
         // a segment without transient criteria will of course hold up future segments from being evaluated (even if transient)
         // current and next segment must be transient for this to really change behaviour
-        public bool HasTransientCriteria => HasTransientCriteriaHelper(keyFrameCriteria);
+        public bool HasTransientCriteria => HasTransientCriteriaHelper(endCriteria);
 
         private bool HasTransientCriteriaHelper(List<KeyFrameCriteria> criteriaList)
         {
-            if (criteriaList != null)
+            foreach (var criteria in criteriaList)
             {
-                foreach (var criteria in criteriaList)
+                if (criteria.transient)
                 {
-                    if (criteria.transient)
+                    return true;
+                }
+
+                if (criteria.data is OrKeyFrameCriteriaData okc)
+                {
+                    var has = HasTransientCriteriaHelper(okc.criteriaList);
+                    if (has)
                     {
                         return true;
                     }
-
-                    if (criteria.data is OrKeyFrameCriteriaData okc)
+                }
+                else if (criteria.data is AndKeyFrameCriteriaData akc)
+                {
+                    var has = HasTransientCriteriaHelper(akc.criteriaList);
+                    if (has)
                     {
-                        var has = HasTransientCriteriaHelper(okc.criteriaList);
-                        if (has)
-                        {
-                            return true;
-                        }
-                    }
-                    else if (criteria.data is AndKeyFrameCriteriaData akc)
-                    {
-                        var has = HasTransientCriteriaHelper(akc.criteriaList);
-                        if (has)
-                        {
-                            return true;
-                        }
+                        return true;
                     }
                 }
             }
@@ -217,13 +217,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
             stringBuilder.Append(",\n\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\n\"keyFrameCriteria\":[\n");
-            var keyFrameCriteriaLength = keyFrameCriteria.Count;
-            for (var i = 0; i < keyFrameCriteriaLength; i++)
+            stringBuilder.Append(",\n\"endCriteria\":[\n");
+            var endCriteriaLength = endCriteria.Count;
+            for (var i = 0; i < endCriteriaLength; i++)
             {
-                var criteria = keyFrameCriteria[i];
+                var criteria = endCriteria[i];
                 criteria.WriteToStringBuilder(stringBuilder);
-                if (i + 1 < keyFrameCriteriaLength)
+                if (i + 1 < endCriteriaLength)
                 {
                     stringBuilder.Append(",\n");
                 }
