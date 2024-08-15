@@ -4,12 +4,67 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using StateRecorder.BotSegments;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
     public static class BotSegmentZipParser
     {
+
+        public static IOrderedEnumerable<ZipArchiveEntry> OrderZipJsonEntries(IEnumerable<ZipArchiveEntry> jsonFiles)
+        {
+            RGDebug.LogInfo($"OrderJsonFiles - Input File List - {string.Join("\n", jsonFiles.Select(a=>a.Name))}");
+            Exception lambdaException = null;
+            // sort by numeric value of entries (not string comparison of filenames) .. normalize to front slashes
+            jsonFiles = jsonFiles.Where(e=>e.Name.EndsWith(".json"));
+            IOrderedEnumerable<ZipArchiveEntry> entries;
+            try
+            {
+                // try to order the files as numbered file names
+                entries = jsonFiles.OrderBy(e =>
+                {
+                    var eName = e.Name.Replace('\\', '/');
+                    if (lambdaException != null)
+                    {
+                        // avoid parsing the rest...
+                        return 0;
+                    }
+                    try
+                    {
+                        // trim off the path for numeric sorting evaluation
+                        var i = eName.LastIndexOf('/');
+                        var subE = eName;
+                        if (i >= 0)
+                        {
+                            subE = subE.Substring(i+1);
+
+                        }
+                        subE = subE.Substring(0, subE.IndexOf('.'));
+                        return int.Parse(subE);
+                    }
+                    catch (Exception le)
+                    {
+                        lambdaException = le;
+                    }
+                    return 0;
+                });
+
+                if (lambdaException != null)
+                {
+                    throw lambdaException;
+                }
+            }
+            catch (Exception)
+            {
+                // if filenames aren't all numbers, order lexicographically
+                entries = jsonFiles.OrderBy(e => e.Name.Substring(0, e.Name.IndexOf('.')));
+            }
+
+            RGDebug.LogInfo($"OrderJsonFiles - Output File List - {string.Join("\n", entries.Select(a=>a.Name))}");
+            return entries;
+        }
 
         public static List<BotSegment> ParseBotSegmentZipFromSystemPath(string zipFilePath, out string sessionId)
         {
@@ -20,7 +75,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             using var zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Read);
 
             // sort by numeric value of entries (not string comparison of filenames)
-            var entries = zipArchive.Entries.Where(e => e.Name.EndsWith(".json")).OrderBy(e => int.Parse(e.Name.Substring(0, e.Name.IndexOf('.'))));
+            var entries = OrderZipJsonEntries(zipArchive.Entries);
 
             var versionMismatch = -1;
             string badSegmentName = null;
@@ -30,24 +85,61 @@ namespace RegressionGames.StateRecorder.BotSegments
                 foreach (var entry in entries)
                 {
                     using var sr = new StreamReader(entry.Open());
-                    var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
 
-                    if (frameData.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
+                    var fileText = sr.ReadToEnd();
+
+                    try
                     {
-                        versionMismatch = frameData.EffectiveApiVersion;
-                        break;
+                        // see if this is a bot segment list file
+                        var botSegmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileText);
+
+                        if (botSegmentList.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
+                        {
+                            versionMismatch = botSegmentList.EffectiveApiVersion;
+                            break;
+                        }
+
+                        foreach (var botSegment in botSegmentList.segments)
+                        {
+                            botSegment.Replay_SegmentNumber = replayNumber++;
+
+                            if (sessionId == null)
+                            {
+                                sessionId = botSegment.sessionId;
+                            }
+
+                            results.Add(botSegment);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        try
+                        {
+                            // not a bot segment list, must be a regular segment
+                            var frameData = JsonConvert.DeserializeObject<BotSegment>(fileText);
+
+                            if (frameData.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
+                            {
+                                versionMismatch = frameData.EffectiveApiVersion;
+                                break;
+                            }
+
+                            frameData.Replay_SegmentNumber = replayNumber++;
+
+                            if (sessionId == null)
+                            {
+                                sessionId = frameData.sessionId;
+                            }
+
+                            results.Add(frameData);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new Exception($"Invalid/missing file data while parsing BotSegment or BotSegmentList from zip file path: {zipFilePath} at entry: {entry.Name}", ex);
+                        }
                     }
 
                     badSegmentName = entry.FullName;
-
-                    frameData.Replay_SegmentNumber = replayNumber++;
-
-                    if (sessionId == null)
-                    {
-                        sessionId = frameData.sessionId;
-                    }
-
-                    results.Add(frameData);
                 }
             }
             catch (Exception e)

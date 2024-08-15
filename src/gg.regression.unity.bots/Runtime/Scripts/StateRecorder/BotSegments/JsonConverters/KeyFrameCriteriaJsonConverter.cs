@@ -17,7 +17,11 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             JObject jObject = JObject.Load(reader);
             KeyFrameCriteria criteria = new();
             criteria.transient = jObject["transient"].ToObject<bool>();
-            criteria.apiVersion = jObject["apiVersion"].ToObject<int>();
+            if (jObject.ContainsKey("apiVersion"))
+            {
+                criteria.apiVersion = jObject["apiVersion"].ToObject<int>();
+            }
+
             criteria.type = jObject["type"].ToObject<KeyFrameCriteriaType>();
             IKeyFrameCriteriaData data = null;
             switch (criteria.type)
