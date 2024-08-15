@@ -41,6 +41,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                     case BotActionType.Mouse_CVImage:
                         data = jObject["data"].ToObject<CVImageMouseActionData>(serializer);
                         break;
+                    case BotActionType.Mouse_CVText:
+                        data = jObject["data"].ToObject<CVTextMouseActionData>(serializer);
+                        break;
                     default:
                         throw new JsonSerializationException($"Unsupported BotAction type: '{action.type}'");
                 }
