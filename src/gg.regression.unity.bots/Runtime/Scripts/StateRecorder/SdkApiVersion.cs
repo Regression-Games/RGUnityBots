@@ -58,9 +58,12 @@
          * <summary>add code coverage recording support</summary>
          */
         public const int VERSION_13 = 13;
-        
+        /*
+         * * <summary>added cvtext mouse click actions</summary>
+         */
+        public const int VERSION_14 = 14;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_13;
+        public const int CURRENT_VERSION = VERSION_14;
     }
 }

@@ -105,7 +105,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         var criteriaData = criteria.data as CVTextKeyFrameCriteriaData;
 
                         // setup a tracker of each text part and whether it is found.. remove from this as we match to improve performance and as a way of marking what was found
-                        // We treat a criteria multi word phrase as separate words that must ALL exist within the defined rect
+                        // We treat a criteria multi word phrase as separate words that must ALL exist within the defined rect..
                         // If no rect is defined, all the words must simply exist on the screen, but their relative positions are then not considered
                         var textParts = criteriaData.text.Trim().Split(' ').Select(a => a.Trim()).Where(a => a.Length > 0).ToList();
 
@@ -179,7 +179,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                         if (textParts.Count != 0)
                         {
-                            resultList.Add($"Missing CVText - text: {criteriaData.text.Trim()}, caseRule: {criteriaData.textCaseRule}, matchRule: {criteriaData.textMatchingRule}, missingWords: [{string.Join(',',textParts)}]");
+                            resultList.Add($"Missing CVText - text: {CVTextMouseActionData.WordsToStars(criteriaData.text.Trim().Split(' ').Select(a => a.Trim()).Where(a => a.Length > 0))}, caseRule: {criteriaData.textCaseRule}, matchRule: {criteriaData.textMatchingRule}, missingWords: [{textParts.Count}] {CVTextMouseActionData.WordsToStars(textParts)}\"");
                         }
                         else
                         {
