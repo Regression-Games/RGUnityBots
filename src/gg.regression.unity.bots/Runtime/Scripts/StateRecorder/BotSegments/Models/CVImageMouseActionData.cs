@@ -13,56 +13,6 @@ using Random = UnityEngine.Random;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
-    public class CVMouseActionDetails
-    {
-        public static readonly int apiVersion = SdkApiVersion.VERSION_10;
-
-        //main 5 buttons
-        public bool leftButton;
-        public bool middleButton;
-        public bool rightButton;
-        public bool forwardButton;
-        public bool backButton;
-
-        // scroll wheel
-        public Vector2 scroll;
-
-        /**
-         * Minimum duration for this action before moving to the next action.  This can be utilized to ensure that a button is held for a minimum amount of time before moving to the next action.  If <= 0, then the action is instant (1 frame).
-         */
-        public float duration = 0f;
-
-        public void WriteToStringBuilder(StringBuilder stringBuilder)
-        {
-            stringBuilder.Append("{\"apiVersion\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"leftButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
-            stringBuilder.Append(",\"middleButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,middleButton);
-            stringBuilder.Append(",\"rightButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,rightButton);
-            stringBuilder.Append(",\"forwardButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,forwardButton);
-            stringBuilder.Append(",\"backButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
-            stringBuilder.Append(",\"scroll\":");
-            VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
-            stringBuilder.Append(",\"duration\":");
-            FloatJsonConverter.WriteToStringBuilder(stringBuilder, duration);
-            stringBuilder.Append("}");
-        }
-
-        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1000));
-
-        public override string ToString()
-        {
-            _stringBuilder.Value.Clear();
-            WriteToStringBuilder(_stringBuilder.Value);
-            return _stringBuilder.Value.ToString();
-        }
-    }
-
     /**
      * <summary>Data for clicking on or moving the mouse to a CV Image location in the scene</summary>
      */
@@ -91,7 +41,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * the list of actions to perform at this location
          * Note: This does NOT re-evaluate the position of the CVImage on each action.
          * This is modeled as a list to allow you to click and/or un-click buttons on this image location without re-evaluating the CV image match in between if you don't want to.
-         * If you want to validate a mouse visual effect in your criteria, and then mouse up in the next bot segment that is also a normal way to use this system with just 1 list action per segment.
+         * If you want to validate a mouse visual effect in your criteria, and then mouse up in the next bot segment; that is also a normal way to use this system with just 1 list action per segment.
          *
          * If you want to perform click and drag mouse movements, you cannot and should not try to do that with this list.  You need to create 2 separate bot segments.
          * Mouse down in one bot segment, then mouse up as a separate bot segment.
