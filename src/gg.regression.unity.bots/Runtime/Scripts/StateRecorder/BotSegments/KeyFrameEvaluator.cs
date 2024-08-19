@@ -136,6 +136,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             var andsToMatch = new List<KeyFrameCriteria>();
             var cvTextsToMatch = new List<KeyFrameCriteria>();
             var cvImagesToMatch = new List<KeyFrameCriteria>();
+            var cvObjectsToMatch = new List<KeyFrameCriteria>();
 
             var length = criteriaList.Count;
             for (var i = 0; i < length; i++)
@@ -182,6 +183,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                      case KeyFrameCriteriaType.CVImage:
                         cvImagesToMatch.Add(entry);
                         break;
+                    case KeyFrameCriteriaType.CVObjectDetection:
+                        cvObjectsToMatch.Add(entry);
+                        break;
                     case KeyFrameCriteriaType.ActionComplete:
                         if (!botActionCompleted)
                         {
@@ -193,8 +197,44 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
 
             // process each list.. start with the ones for this tier
-
             // start cv stuff first.. it runs async anyway, but the sooner we can start it the better
+            if (cvObjectsToMatch.Count > 0)
+            {
+                var cvObjectDetectionResults = CVObjectDetectionEvaluator.Matched(segmentNumber, cvObjectsToMatch);
+                if (cvObjectDetectionResults == null)
+                {
+                    // cvText results will be null until we get the async response back
+                    if (andOr == BooleanCriteria.And)
+                    {
+                        _newUnmatchedCriteria.Add("Waiting for CV Object detection evaluation results ...");
+                        return false;
+                    }
+                }
+                else
+                {
+                    var cvTextResultsCount = cvObjectDetectionResults.Count;
+                    for (var i = 0; i < cvTextResultsCount; i++)
+                    {
+                        var resultEntry = cvObjectDetectionResults[i];
+                        if (resultEntry == null)
+                        {
+                            if (andOr == BooleanCriteria.Or)
+                            {
+                                return true;
+                            }
+                        }
+                        else
+                        {
+                            if (andOr == BooleanCriteria.And)
+                            {
+                                _newUnmatchedCriteria.Add(resultEntry);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
             if (cvTextsToMatch.Count > 0)
             {
                 var cvTextResults = CVTextCriteriaEvaluator.Matched(segmentNumber, cvTextsToMatch);
