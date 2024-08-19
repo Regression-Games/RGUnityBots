@@ -10,7 +10,7 @@
         CVText,
         CVImage,
         ActionComplete,
-        CVObjectDetectionQuery,
+        CVObjectDetection,
 
         //FUTURE
         //Path,
