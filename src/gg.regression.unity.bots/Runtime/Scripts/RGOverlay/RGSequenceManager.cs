@@ -9,6 +9,9 @@ using TMPro;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
+/**
+ * <summary>UI for managing operations performed on the user's set of Bot Sequences</summary>
+ */
 public class RGSequenceManager : MonoBehaviour
 {
     public GameObject sequencesPanel;
