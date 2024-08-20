@@ -206,14 +206,14 @@ namespace RegressionGames.StateRecorder.BotSegments
                     // cvText results will be null until we get the async response back
                     if (andOr == BooleanCriteria.And)
                     {
-                        _newUnmatchedCriteria.Add("Waiting for CV Object detection evaluation results ...");
+                        _newUnmatchedCriteria.Add("Waiting for CV Object Detection evaluation results ...");
                         return false;
                     }
                 }
                 else
                 {
-                    var cvTextResultsCount = cvObjectDetectionResults.Count;
-                    for (var i = 0; i < cvTextResultsCount; i++)
+                    var cvObjectDetectionResultsCoount = cvObjectDetectionResults.Count;
+                    for (var i = 0; i < cvObjectDetectionResultsCoount; i++)
                     {
                         var resultEntry = cvObjectDetectionResults[i];
                         if (resultEntry == null)
