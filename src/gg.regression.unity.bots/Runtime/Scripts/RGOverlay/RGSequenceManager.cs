@@ -50,30 +50,38 @@ public class RGSequenceManager : MonoBehaviour
             ClearExistingSequences();
 
             IEnumerable<string> sequenceFiles = Directory.EnumerateFiles(SEQUENCES_PATH, "*.json");
-            foreach (string fileName in sequenceFiles)
-            {
-                try 
-                {
-                    BotSequence sequence = BotSequence.LoadSequenceJsonFromPath(fileName);
-                    var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
-                    
-                    // instantiate UI component and set Sequence fields
-                    instance.transform.SetParent(sequencesPanel.transform, false);
-                    var prefabComponent = instance.GetComponent<RGSequenceEntry>();
-                    if (prefabComponent != null)
+            IList<BotSequence> sequences = sequenceFiles
+                .Select(fileName => {
+                    try 
                     {
-                        prefabComponent.name = sequence.name;
-                        prefabComponent.description = sequence.description;
-                        prefabComponent.lastModified = sequence.lastModified;
+                        return BotSequence.LoadSequenceJsonFromPath(fileName);
                     }
+                    catch (Exception exception)
+                    {
+                        Debug.Log($"Error reading Bot Sequences from {fileName}: {exception}");
+                        return null;
+                    }
+                })
+                .Where(s => s != null)
+                .OrderByDescending(seq => seq.lastModified)
+                .ToList();
 
-                    _sequences.Add(sequence);
-                }
-                catch (Exception exception)
+            // instantiate a prefab for each sequence file that has been loaded
+            foreach (BotSequence sequence in sequences)
+            {
+                var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
+                
+                // map sequence data fields to new prefab
+                instance.transform.SetParent(sequencesPanel.transform, false);
+                var prefabComponent = instance.GetComponent<RGSequenceEntry>();
+                if (prefabComponent != null)
                 {
-                    Debug.Log($"Error reading Bot Sequences from {fileName}: {exception}");
-                    continue;
+                    prefabComponent.name = sequence.name;
+                    prefabComponent.description = sequence.description;
+                    prefabComponent.lastModified = sequence.lastModified;
                 }
+
+                _sequences.Add(sequence);
             }
         }
     }
