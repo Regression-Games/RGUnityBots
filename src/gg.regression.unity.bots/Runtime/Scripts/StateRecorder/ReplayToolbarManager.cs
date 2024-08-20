@@ -52,6 +52,16 @@ namespace RegressionGames.StateRecorder
             loopCount.gameObject.SetActive(false);
         }
 
+        public void SetInUseButtonStates()
+        {
+            chooseReplayButton.SetActive(false);
+            successIcon.SetActive(false);
+            playButton.SetActive(false);
+            loopButton.SetActive(false);
+            stopButton.SetActive(true);
+            recordButton.SetActive(false);
+        }
+
         public void ChooseReplay()
         {
             if (!_parsingZipFile)
@@ -152,24 +162,14 @@ namespace RegressionGames.StateRecorder
 
         public void PlayReplay()
         {
-            chooseReplayButton.SetActive(false);
-            successIcon.SetActive(false);
-            playButton.SetActive(false);
-            loopButton.SetActive(false);
-            stopButton.SetActive(true);
-            recordButton.SetActive(false);
+            SetInUseButtonStates();
 
             replayDataController.Play();
         }
 
         public void LoopReplay()
         {
-            chooseReplayButton.SetActive(false);
-            successIcon.SetActive(false);
-            playButton.SetActive(false);
-            loopButton.SetActive(false);
-            stopButton.SetActive(true);
-            recordButton.SetActive(false);
+            SetInUseButtonStates();
 
             loopCount.text = "0";
             loopCount.gameObject.SetActive(true);
