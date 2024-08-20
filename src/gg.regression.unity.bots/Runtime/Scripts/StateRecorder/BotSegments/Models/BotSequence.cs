@@ -37,6 +37,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public string description;
 
         /**
+         * <summary>LastModified is the date that the sequence file was last altered</summary>
+         */
+        public DateTime lastModified;
+
+        /**
          * <summary>Loads a Json sequence file from a json path.  This API expects a relative path</summary>
          */
         public static BotSequence LoadSequenceJsonFromPath(string path)
@@ -64,7 +69,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            return JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
+            BotSequence sequence = JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
+            sequence.lastModified = Directory.GetLastWriteTime(path);
+            return sequence;
         }
 
         public string ToJsonString()
