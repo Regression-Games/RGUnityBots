@@ -79,6 +79,7 @@ public class RGSequenceManager : MonoBehaviour
                     prefabComponent.name = sequence.name;
                     prefabComponent.description = sequence.description;
                     prefabComponent.lastModified = sequence.lastModified;
+                    prefabComponent.playAction = sequence.Play;
                 }
 
                 _sequences.Add(sequence);
