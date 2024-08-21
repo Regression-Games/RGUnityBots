@@ -575,6 +575,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   name: 
   description: 
+  playButton: {fileID: 2445726624697383442}
   nameComponent: {fileID: 714608286913792316}
   descriptionComponent: {fileID: 0}
   lastModifiedComponent: {fileID: 2750996074632129499}
@@ -728,7 +729,7 @@ GameObject:
   - component: {fileID: 7482742350129006049}
   - component: {fileID: 2445726624697383442}
   m_Layer: 5
-  m_Name: StartButton
+  m_Name: PlayButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
