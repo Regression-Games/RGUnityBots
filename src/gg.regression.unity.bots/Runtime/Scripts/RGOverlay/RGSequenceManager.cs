@@ -18,6 +18,8 @@ public class RGSequenceManager : MonoBehaviour
 
     public GameObject sequenceCardPrefab;
 
+    public GameObject sequenceEditor;
+
     private IList<BotSequence> _sequences;
 
     private static RGSequenceManager _this;
@@ -37,6 +39,22 @@ public class RGSequenceManager : MonoBehaviour
 
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
+    }
+
+    public void ShowEditSequenceDialog()
+    {
+        if (sequenceEditor != null)
+        {
+            sequenceEditor.SetActive(true);
+        }
+    }
+
+    public void HideEditSequenceDialog()
+    {
+        if (sequenceEditor != null)
+        {
+            sequenceEditor.SetActive(false);
+        }
     }
 
     /**
