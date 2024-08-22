@@ -316,7 +316,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         );
                     }
 
-                    var queryText = criteriaData.text;
+                    var textQuery = criteriaData.textQuery;
                     // do NOT await this, let it run async
                     _ = CVServiceManager.GetInstance().PostCriteriaObjectTextQuery(
                         new CVObjectDetectionRequest(
@@ -326,7 +326,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 height = height,
                                 data = imageData
                             },
-                            queryText: queryText,
+                            textQuery: textQuery,
                             queryImage: null,
                             withinRect: null,
                             index: 1

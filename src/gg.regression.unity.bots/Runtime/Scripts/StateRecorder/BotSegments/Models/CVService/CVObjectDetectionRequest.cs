@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         /// <summary>
         /// Optional text query for object detection.
         /// </summary>
-        [CanBeNull] public string queryText;
+        [CanBeNull] public string textQuery;
 
         /// <summary>
         /// Optional rectangle defining a region of interest within the screenshot.
@@ -35,26 +35,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public int index;
 
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
-                                        string? queryText,
+                                        string? textQuery,
                                         CVImageBinaryData? queryImage,
                                         RectInt? withinRect,
                                         int index)
         {
             this.screenshot = screenshot;
-            this.queryText = queryText;
+            this.textQuery = textQuery;
             this.queryImage = queryImage;
             this.withinRect = withinRect;
             this.index = index;
 
-            // !!! TODO(REG-1915) Move this check to where the json is parsed.
-            if (queryText != null && queryImage != null)
+            if (textQuery != null && queryImage != null)
             {
-                RGDebug.LogError("Both queryText and queryImage are provided. Only one should be used.");
+                RGDebug.LogError("Both textQuery and queryImage are provided. Only one should be used.");
                 return;
             }
-            else if (queryText == null && queryImage == null)
+            else if (textQuery == null && queryImage == null)
             {
-                RGDebug.LogError("Neither queryText nor queryImage is provided. One should be specified.");
+                RGDebug.LogError("Neither textQuery nor queryImage is provided. One should be specified.");
                 return;
             }
         }
@@ -73,10 +72,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
             stringBuilder.Append("{\"screenshot\":");
             screenshot.WriteToStringBuilder(stringBuilder);
             
-            if (queryText != null)
+            if (textQuery != null)
             {
-                stringBuilder.Append(",\"queryText\":");
-                StringJsonConverter.WriteToStringBuilder(stringBuilder, queryText);
+                stringBuilder.Append(",\"textQuery\":");
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
             }
 
             if (queryImage != null)

@@ -13,28 +13,54 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // update this if this schema changes
         public int apiVersion = SdkApiVersion.VERSION_15;
 
-        public string text;
-        /**
-       * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
-       */
-        // TODO(REG-1915) Add supporting image queries.
-        // public string imageData; 
-        public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
-        public TextCaseRule textCaseRule = TextCaseRule.Matches;
+        /// <summary>
+        /// The text query used for object detection.
+        /// This string is used to describe or identify the object to be detected in the image.
+        /// </summary>
+        [CanBeNull]
+        public string textQuery;
 
+        /// <summary>
+        /// The image query used for object detection.
+        /// This string represents a base64-encoded image to be used as a reference for object detection.
+        /// </summary>
+        [CanBeNull]
+        public string imageQuery;
+   
         [CanBeNull]
         public CVWithinRect withinRect;
 
+        /// <summary>
+        /// Constructor for CVObjectDetectionKeyFrameCriteriaData.
+        /// </summary>
+        /// <param name="textQuery">The text query used for object detection.</param>
+        /// <param name="imageQuery">Currently not supported. The image query used for object detection.</param>
+        /// <param name="withinRect">Optional rectangle defining the region of interest within the image.</param>
+        public CVObjectDetectionKeyFrameCriteriaData(string textQuery = null, string imageQuery = null, CVWithinRect withinRect = null)
+        {
+            
+            if (textQuery != null && imageQuery != null)
+            {
+                RGDebug.LogError("Both textQuery and imageQuery cannot be provided simultaneously. Use only one.");
+                throw new ArgumentException("Both textQuery and imageQuery cannot be provided simultaneously. Use only one.");
+            }
+            else if (textQuery == null && imageQuery == null)
+            {
+                RGDebug.LogError("Neither textQuery nor queryImage is provided. One should be specified.");
+                throw new ArgumentException("Neither textQuery nor queryImage is provided. One should be specified.");
+            }
+
+            this.textQuery = textQuery;
+            this.imageQuery = imageQuery;
+            this.withinRect = withinRect;
+        }
+
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"text\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, text);
+            stringBuilder.Append("{\"textQuery\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
             stringBuilder.Append(",\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"textMatchingRule\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, textMatchingRule.ToString());
-            stringBuilder.Append(",\"textCaseRule\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, textCaseRule.ToString());
             stringBuilder.Append(",\"withinRect\":");
             CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append("}");
