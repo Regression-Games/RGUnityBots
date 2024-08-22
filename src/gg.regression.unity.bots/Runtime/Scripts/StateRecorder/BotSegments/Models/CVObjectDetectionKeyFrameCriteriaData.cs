@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVObjectDetectionKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_9;
+        public int apiVersion = SdkApiVersion.VERSION_15;
 
         public string text;
         /**
