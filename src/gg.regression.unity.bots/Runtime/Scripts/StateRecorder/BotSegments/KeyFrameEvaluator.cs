@@ -212,8 +212,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                 }
                 else
                 {
-                    var cvObjectDetectionResultsCoount = cvObjectDetectionResults.Count;
-                    for (var i = 0; i < cvObjectDetectionResultsCoount; i++)
+                    var cvObjectDetectionResultsCount = cvObjectDetectionResults.Count;
+                    for (var i = 0; i < cvObjectDetectionResultsCount; i++)
                     {
                         var resultEntry = cvObjectDetectionResults[i];
                         if (resultEntry == null)
