@@ -21,18 +21,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVObjectDetectionMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = SdkApiVersion.VERSION_10;
+        public int apiVersion = SdkApiVersion.VERSION_15;
 
         [NonSerialized]
-        public static readonly BotActionType Type = BotActionType.Mouse_CVImage;
+        public static readonly BotActionType Type = BotActionType.Mouse_ObjectDetectionText;
 
         /**
          * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
          */
-        public string imageData;
+        [CanBeNull]
+        public string imageQuery;
 
         /**
-         * optionally limit the rect area where the imageData can be detected
+         * The text query to be used for object detection
+         */
+        [CanBeNull]
+        public string textQuery;
+
+        /**
+         * optionally limit the rect area where the imageQuery or textQuery can be detected
          */
         [CanBeNull]
         public CVWithinRect withinRect;
@@ -90,10 +97,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             // get the CV evaluate started...
-            RequestCVImageEvaluation(segmentNumber);
+            RequestCVObjectDetectionTextEvaluation(segmentNumber);
         }
 
-        private void RequestCVImageEvaluation(int segmentNumber)
+        private void RequestCVObjectDetectionTextEvaluation(int segmentNumber)
         {
             lock (_syncLock)
             {
@@ -122,91 +129,116 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         _cvResultsBoundsRect = null;
 
                         // do NOT await this, let it run async
-                        _ = CVServiceManager.GetInstance().PostCriteriaImageMatch(
-                            request: new CVImageCriteriaRequest()
-                            {
-                                screenshot = new CVImageBinaryData()
+                        _ = CVServiceManager.GetInstance().PostCriteriaObjectTextQuery(
+                            new CVObjectDetectionRequest(
+                                screenshot: new CVImageBinaryData()
                                 {
                                     width = width,
                                     height = height,
                                     data = screenshot
                                 },
-                                imageToMatch = imageData,
-                                withinRect = queryWithinRect
-                            },
-                            abortRegistrationHook:
-                            action =>
-                            {
-                                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - abortHook registration callback");
-                                lock (_syncLock)
-                                {
-                                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - abortHook registration callback - insideLock");
-                                    _requestAbortAction = action;
-                                }
-                            },
-                            onSuccess:
-                            list =>
-                            {
-                                RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
-                                lock (_syncLock)
-                                {
-                                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
-                                    // make sure we haven't already cleaned this up
-                                    if (_requestAbortAction != null)
-                                    {
-                                        RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
+                                textQuery: textQuery,
+                                queryImage: null,
+                                withinRect: queryWithinRect,
+                                index: 1
+                            ),
+                            // Register the abort action.
+                            abortRegistrationHook: action => OnAbort(segmentNumber, action),
 
-                                        // pick a random rect from the results, if they didn't want this random, they should have specified within rect
-
-                                        if (list.Count > 1)
-                                        {
-                                            RGDebug.LogInfo($"({segmentNumber}) CVImageMouseActionData - Multiple results were returned for CV Image evaluation.  A random one of these will be saved as the result.  Consider specifying a precise `withinRect` in your action definition to get a singular result.");
-                                        }
-
-
-                                        if (list.Count > 0)
-                                        {
-                                            var index = Random.Range(0, list.Count);
-
-                                            _cvResultsBoundsRect = list[index].rect;
-                                        }
-                                        else
-                                        {
-                                            _cvResultsBoundsRect = null;
-                                        }
-
-                                        _resultReceived = true;
-
-                                        // cleanup the request tracker
-                                        _requestAbortAction = null;
-                                        _requestInProgress = false;
-                                    }
-                                }
-                            },
-                            onFailure:
-                            () =>
-                            {
-                                RGDebug.LogWarning($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService image criteria evaluation");
-                                lock (_syncLock)
-                                {
-                                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
-                                    // make sure we haven't already cleaned this up
-                                    if (_requestAbortAction != null)
-                                    {
-                                        RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
-                                        _resultReceived = true;
-                                        _cvResultsBoundsRect = null;
-
-                                        // cleanup the request tracker
-                                        _requestAbortAction = null;
-                                        _requestInProgress = false;
-                                        _nextActionIndex = 0;
-                                    }
-                                }
-
-                            });
+                            // Extracts the results, select a random result if multiple are returned, and clean up request tracker.
+                            onSuccess: list => OnSuccess(segmentNumber, list),
+                            
+                            // Log the failure, reset relevant state variables, and clean up resources.
+                            onFailure: () => OnFailure(segmentNumber)
+                        );
                         RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - SENT");
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Registers an abort action for the CV image evaluation request.
+        /// </summary>
+        /// <param name="segmentNumber">The segment number of the bot action.</param>
+        /// <param name="action">The abort action to be registered.</param>
+        private void OnAbort(int segmentNumber, Action action)
+        {
+            RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - abortHook registration callback");
+            lock (_syncLock)
+            {
+                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - abortHook registration callback - insideLock");
+                _requestAbortAction = action;
+            }
+        }
+
+        /// <summary>
+        /// Handles the failure of a CV image evaluation request.
+        /// This method logs the failure, resets relevant state variables, and cleans up resources.
+        /// It ensures that the system is ready for potential retry attempts or further actions.
+        /// </summary>
+        /// <param name="segmentNumber">The segment number of the bot action, used for logging and debugging purposes.</param>
+        private void OnFailure(int segmentNumber)
+        {
+            RGDebug.LogWarning($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService image criteria evaluation");
+            lock (_syncLock)
+            {
+                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
+                // make sure we haven't already cleaned this up
+                if (_requestAbortAction != null)
+                {
+                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
+                    _resultReceived = true;
+                    _cvResultsBoundsRect = null;
+
+                    // cleanup the request tracker
+                    _requestAbortAction = null;
+                    _requestInProgress = false;
+                    _nextActionIndex = 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handles the successful completion of a CV image evaluation request.
+        /// This method extracts the results, selects a random result if multiple are returned,
+        /// and cleans up request tracker.
+        /// </summary>
+        /// <param name="segmentNumber">The segment number of the bot action, used for logging and debugging purposes.</param>
+        /// <param name="list">A list of CVObjectDetectionResult objects returned from the CV evaluation.</param>
+        private void OnSuccess(int segmentNumber, List<CVObjectDetectionResult> list)
+        {
+            RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
+            lock (_syncLock)
+            {
+                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
+                // make sure we haven't already cleaned this up
+                if (_requestAbortAction != null)
+                {
+                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
+
+                    // pick a random rect from the results, if they didn't want this random, they should have specified within rect
+                    if (list.Count > 1)
+                    {
+                        RGDebug.LogInfo($"({segmentNumber}) CVImageMouseActionData - Multiple results were returned for CV Image evaluation.  A random one of these will be saved as the result.  Consider specifying a precise `withinRect` in your action definition to get a singular result.");
+                    }
+
+                    if (list.Count > 0)
+                    {
+                        var index = Random.Range(0, list.Count);
+
+                        _cvResultsBoundsRect = list[index].rect;
+                    }
+                    else
+                    {
+                        _cvResultsBoundsRect = null;
+                    }
+
+                    _resultReceived = true;
+
+                    // cleanup the request tracker
+                    _requestAbortAction = null;
+                    _requestInProgress = false;
                 }
             }
         }
@@ -221,7 +253,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             if (!_isStopped)
             {
                 var now = Time.unscaledTime;
-                // see if we're ready to evaluate the next action; this is done BEFORE the count check so the last element in the action list still enforces its runtime
+                // See if we're ready to evaluate the next action; this is done BEFORE the count check so the last element in the action list still enforces its runtime
                 if (now - _nextActionTime > 0)
                 {
                     if (_nextActionIndex < actions.Count)
@@ -262,7 +294,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     _lastError = "CVImageMouseActionData - imageData not found in current screen ...";
                                     error = _lastError;
                                     // start a new request
-                                    RequestCVImageEvaluation(segmentNumber);
+                                    RequestCVObjectDetectionTextEvaluation(segmentNumber);
                                     return false;
                                 }
                             }
@@ -272,7 +304,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 _lastError = "CVImageMouseActionData - waiting for CV Image evaluation results ...";
                                 error = _lastError;
                                 // make sure we have a request in progress (this call checks internally to make sure one isn't already in progress)
-                                RequestCVImageEvaluation(segmentNumber);
+                                RequestCVObjectDetectionTextEvaluation(segmentNumber);
                                 return false;
                             }
                         }
@@ -307,7 +339,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"imageData\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, imageData);
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, imageQuery);
+            stringBuilder.Append(",\"textQuery\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
             stringBuilder.Append(",\"withinRect\":");
             CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append(",\"actions\":[");
