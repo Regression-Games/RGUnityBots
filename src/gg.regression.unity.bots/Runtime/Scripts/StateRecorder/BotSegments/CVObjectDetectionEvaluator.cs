@@ -328,7 +328,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             },
                             textQuery: textQuery,
                             queryImage: null,
-                            withinRect: null,
+                            withinRect: withinRect,
                             index: 1
                         ),
                         // Cancel ongoing request in a thread safe manner.
