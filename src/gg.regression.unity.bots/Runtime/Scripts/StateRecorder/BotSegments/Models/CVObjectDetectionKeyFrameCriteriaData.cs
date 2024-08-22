@@ -17,8 +17,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /**
        * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
        */
-        // public string imageData; This will be added in the next PR.
-        
+        // TODO(REG-1915) Add supporting image queries.
+        // public string imageData; 
         public TextMatchingRule textMatchingRule = TextMatchingRule.Matches;
         public TextCaseRule textCaseRule = TextCaseRule.Matches;
 
