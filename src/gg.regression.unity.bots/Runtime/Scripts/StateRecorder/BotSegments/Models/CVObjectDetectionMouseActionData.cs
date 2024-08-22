@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVObjectDetectionMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = SdkApiVersion.VERSION_15;
+        public int apiVersion = SdkApiVersion.VERSION_17;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.Mouse_ObjectDetectionText;
@@ -151,7 +151,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             // Log the failure, reset relevant state variables, and clean up resources.
                             onFailure: () => OnFailure(segmentNumber)
                         );
-                        RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - SENT");
+                        RGDebug.LogDebug($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - SENT");
                     }
                 }
             }
@@ -164,10 +164,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /// <param name="action">The abort action to be registered.</param>
         private void OnAbort(int segmentNumber, Action action)
         {
-            RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - abortHook registration callback");
+            RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - abortHook registration callback");
             lock (_syncLock)
             {
-                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - abortHook registration callback - insideLock");
+                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - abortHook registration callback - insideLock");
                 _requestAbortAction = action;
             }
         }
@@ -180,14 +180,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /// <param name="segmentNumber">The segment number of the bot action, used for logging and debugging purposes.</param>
         private void OnFailure(int segmentNumber)
         {
-            RGDebug.LogWarning($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService image criteria evaluation");
+            RGDebug.LogWarning($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService criteria-object-text-query evaluation");
             lock (_syncLock)
             {
-                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
+                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
                 // make sure we haven't already cleaned this up
                 if (_requestAbortAction != null)
                 {
-                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
+                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - storingResult");
                     _resultReceived = true;
                     _cvResultsBoundsRect = null;
 
@@ -208,14 +208,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /// <param name="list">A list of CVObjectDetectionResult objects returned from the CV evaluation.</param>
         private void OnSuccess(int segmentNumber, List<CVObjectDetectionResult> list)
         {
-            RGDebug.LogDebug($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
+            RGDebug.LogDebug($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
             lock (_syncLock)
             {
-                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
+                RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - insideLock");
                 // make sure we haven't already cleaned this up
                 if (_requestAbortAction != null)
                 {
-                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVImageEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
+                    RGDebug.LogVerbose($"CVImageMouseActionData - RequestCVObjectDetectionTextEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback - storingResult");
 
                     // pick a random rect from the results, if they didn't want this random, they should have specified within rect
                     if (list.Count > 1)
@@ -300,8 +300,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             }
                             else
                             {
-                                RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - waiting for CV Image evaluation results ...");
-                                _lastError = "CVImageMouseActionData - waiting for CV Image evaluation results ...";
+                                RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - waiting for CV Object Detection results ...");
+                                _lastError = "CVImageMouseActionData - waiting for CV Object Detection results ...";
                                 error = _lastError;
                                 // make sure we have a request in progress (this call checks internally to make sure one isn't already in progress)
                                 RequestCVObjectDetectionTextEvaluation(segmentNumber);
