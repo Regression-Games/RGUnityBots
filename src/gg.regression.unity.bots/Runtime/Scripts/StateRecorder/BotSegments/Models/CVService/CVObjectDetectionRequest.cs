@@ -19,6 +19,30 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         // track the index in this bot segment for correlation of the responses
         public int index;
 
+        public CVObjectDetectionRequest(CVImageBinaryData screenshot,
+                                        string? queryText,
+                                        CVImageBinaryData? queryImage,
+                                        RectInt? withinRect,
+                                        int index)
+        {
+            this.screenshot = screenshot;
+            this.queryText = queryText;
+            this.queryImage = queryImage;
+            this.withinRect = withinRect;
+            this.index = index;
+
+            // !!! TODO(REG-1915) Move this check to where the json is parsed.
+            if (queryText != null && queryImage != null)
+            {
+                RGDebug.LogError("Both queryText and queryImage are provided. Only one should be used.");
+                return;
+            }
+            else if (queryText == null && queryImage == null)
+            {
+                RGDebug.LogError("Neither queryText nor queryImage is provided. One should be specified.");
+                return;
+            }
+        }
         
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (() => new(1000));
         public string ToJsonString()
@@ -31,29 +55,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
 
-            bool textQuery = queryText != null;
-            bool imageQuery = queryImage != null;
-
-            if (textQuery && imageQuery)
-            {
-                RGDebug.LogError("You need to use either textQuery or imageQuery. You can not have both.");
-            }
-            
-            if (!textQuery && !imageQuery)
-            {
-                RGDebug.LogError("You need to use either textQuery or imageQuery. You need to have at least one.");
-            }
-            
             stringBuilder.Append("{\"screenshot\":");
             screenshot.WriteToStringBuilder(stringBuilder);
             
-            if (textQuery)
+            if (queryText != null)
             {
                 stringBuilder.Append(",\"queryText\":");
                 StringJsonConverter.WriteToStringBuilder(stringBuilder, queryText);
             }
 
-            if (imageQuery)
+            if (queryImage != null)
             {
                 stringBuilder.Append(",\"imageToMatch\":");
                 queryImage.WriteToStringBuilder(stringBuilder);

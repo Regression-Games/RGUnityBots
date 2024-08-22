@@ -317,18 +317,18 @@ namespace RegressionGames.StateRecorder.BotSegments
                     var queryText = criteriaData.text;
                     // do NOT await this, let it run async
                     _ = CVServiceManager.GetInstance().PostCriteriaObjectTextQuery(
-                        new CVObjectDetectionRequest()
-                        {
-                            screenshot = new CVImageBinaryData()
+                        new CVObjectDetectionRequest(
+                            screenshot: new CVImageBinaryData()
                             {
                                 width = width,
                                 height = height,
                                 data = imageData
                             },
-                            index = 1,
-                            queryImage = null,
-                            queryText = queryText
-                        },
+                            queryText: queryText,
+                            queryImage: null,
+                            withinRect: null,
+                            index: 1
+                        ),
                         abortRegistrationHook: action => AbortRegistrationHook(segmentNumber, index, action),
                         onSuccess: list => OnSuccess(segmentNumber, index, list),
                         onFailure: () => OnFailure(segmentNumber, index)
