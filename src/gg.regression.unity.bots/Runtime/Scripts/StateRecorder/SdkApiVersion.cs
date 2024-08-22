@@ -75,7 +75,12 @@
          */
         public const int VERSION_16 = 16;
 
+        /*
+         * <summary> Added CV Object Detection text mouse action. </summary>
+         */
+        public const int VERSION_17 = 17;
+
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_16;
+        public const int CURRENT_VERSION = VERSION_17;
     }
 }
