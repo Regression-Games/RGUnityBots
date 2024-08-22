@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVObjectDetectionKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_15;
+        public int apiVersion = SdkApiVersion.VERSION_16;
 
         /// <summary>
         /// The text query used for object detection.
