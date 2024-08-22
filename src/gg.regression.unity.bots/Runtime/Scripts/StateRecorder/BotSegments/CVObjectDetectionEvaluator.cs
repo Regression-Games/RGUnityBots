@@ -94,7 +94,9 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 // Check if we have results or a request in progress.
                 requestInProgress = _requestTracker.ContainsKey(segmentNumber);
-
+                
+                // TODO(REG-1928): Think more about hardening this data reading.
+                
                 // Get the results for the segment.
                 _queryResultTracker.TryGetValue(segmentNumber, out objectDetectionResults);
                 // Get the prior results for the segment.

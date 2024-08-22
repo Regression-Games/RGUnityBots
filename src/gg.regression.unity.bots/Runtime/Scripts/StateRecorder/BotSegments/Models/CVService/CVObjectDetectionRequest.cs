@@ -8,15 +8,30 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 {
     public class CVObjectDetectionRequest
     {
+        /// <summary>
+        /// The screenshot image data to be analyzed.
+        /// </summary>
         public CVImageBinaryData screenshot;
+
+        /// <summary>
+        /// Optional image data to be used as a query for object detection.
+        /// </summary>
         [CanBeNull] public CVImageBinaryData queryImage;
+
+        /// <summary>
+        /// Optional text query for object detection.
+        /// </summary>
         [CanBeNull] public string queryText;
-        /*
-         * <summary>Rect relative to the screenshot resolution</summary>
-        */
+
+        /// <summary>
+        /// Optional rectangle defining a region of interest within the screenshot.
+        /// The coordinates are relative to the screenshot.
+        /// </summary>
         public RectInt? withinRect;
 
-        // track the index in this bot segment for correlation of the responses
+        /// <summary>
+        /// Index to track requests and results for each criteria within a segment.
+        /// </summary>
         public int index;
 
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
