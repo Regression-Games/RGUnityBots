@@ -14,9 +14,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public CVImageBinaryData screenshot;
 
         /// <summary>
-        /// Optional image data to be used as a query for object detection.
+        /// Optional image data to be used as a query for object detection in base64 encoded string format.
         /// </summary>
-        [CanBeNull] public CVImageBinaryData queryImage;
+        [CanBeNull] public string imageQuery;
 
         /// <summary>
         /// Optional text query for object detection.
@@ -36,22 +36,22 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
                                         string? textQuery,
-                                        CVImageBinaryData? queryImage,
+                                        string? imageQuery,
                                         RectInt? withinRect,
                                         int index)
         {
             this.screenshot = screenshot;
             this.textQuery = textQuery;
-            this.queryImage = queryImage;
+            this.imageQuery = imageQuery;
             this.withinRect = withinRect;
             this.index = index;
 
-            if (textQuery != null && queryImage != null)
+            if (textQuery != null && imageQuery != null)
             {
                 RGDebug.LogError("Both textQuery and queryImage are provided. Only one should be used.");
                 return;
             }
-            else if (textQuery == null && queryImage == null)
+            else if (textQuery == null && imageQuery == null)
             {
                 RGDebug.LogError("Neither textQuery nor queryImage is provided. One should be specified.");
                 return;
@@ -78,10 +78,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
                 StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
             }
 
-            if (queryImage != null)
+            if (imageQuery != null)
             {
                 stringBuilder.Append(",\"imageToMatch\":");
-                queryImage.WriteToStringBuilder(stringBuilder);
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, imageQuery);
             }
             stringBuilder.Append(",\"withinRect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);

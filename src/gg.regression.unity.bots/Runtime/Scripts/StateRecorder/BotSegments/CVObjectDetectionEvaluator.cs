@@ -317,8 +317,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
 
                     var textQuery = criteriaData.textQuery;
+                    var imageQuery = criteriaData.imageQuery;
                     // do NOT await this, let it run async
-                    _ = CVServiceManager.GetInstance().PostCriteriaObjectTextQuery(
+                    _ = CVServiceManager.GetInstance().PostCriteriaObjectDetection(
                         new CVObjectDetectionRequest(
                             screenshot: new CVImageBinaryData()
                             {
@@ -327,9 +328,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 data = imageData
                             },
                             textQuery: textQuery,
-                            queryImage: null,
+                            imageQuery: imageQuery,
                             withinRect: withinRect,
-                            index: 1
+                            index: index
                         ),
                         // Cancel ongoing request in a thread safe manner.
                         abortRegistrationHook: action => AbortRegistrationHook(segmentNumber, index, action),
