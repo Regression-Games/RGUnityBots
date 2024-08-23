@@ -38,6 +38,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                 case KeyFrameCriteriaType.ActionComplete:
                     data = jObject["data"].ToObject<ActionCompleteKeyFrameCriteriaData>(serializer);
                     break;
+                case KeyFrameCriteriaType.CVObjectDetection:
+                    data = jObject["data"].ToObject<CVObjectDetectionKeyFrameCriteriaData>(serializer);
+                    break;
                 default:
                     throw new JsonSerializationException($"Unsupported KeyFrameCriteria type: '{criteria.type}'");
             }

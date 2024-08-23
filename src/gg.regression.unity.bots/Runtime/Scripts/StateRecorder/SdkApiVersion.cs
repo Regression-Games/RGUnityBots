@@ -70,7 +70,12 @@
          */
         public const int VERSION_15 = 15;
 
+        /*
+         * <summary> Added CV Object Detection Key Frame Criteria. </summary>
+         */
+        public const int VERSION_16 = 16;
+
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_15;
+        public const int CURRENT_VERSION = VERSION_16;
     }
 }
