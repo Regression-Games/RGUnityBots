@@ -35,8 +35,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public int index;
 
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
-                                        string? textQuery,
-                                        CVImageBinaryData? queryImage,
+                                        [CanBeNull] string textQuery,
+                                        [CanBeNull] CVImageBinaryData queryImage,
                                         RectInt? withinRect,
                                         int index)
         {
