@@ -12,7 +12,11 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
         {
             JObject jObject = JObject.Load(reader);
             MonkeyBotActionData data = new MonkeyBotActionData();
-            data.apiVersion = jObject["apiVersion"].ToObject<int>();
+            if (jObject.ContainsKey("apiVersion"))
+            {
+                data.apiVersion = jObject["apiVersion"].ToObject<int>();
+            }
+
             data.actionInterval = jObject["actionInterval"].ToObject<float>();
             data.actionSettings = jObject["actionSettings"].ToObject<RGActionManagerSettings>();
             return data;
@@ -22,9 +26,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
         {
             return typeof(MonkeyBotActionData).IsAssignableFrom(objectType);
         }
-        
+
         public override bool CanWrite => false;
-        
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             throw new NotImplementedException();
