@@ -9,7 +9,8 @@
         PartialNormalizedPath,
         CVText,
         CVImage,
-        ActionComplete
+        ActionComplete,
+        CVObjectDetection,
 
         //FUTURE
         //Path,

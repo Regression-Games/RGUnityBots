@@ -72,6 +72,29 @@ namespace RegressionGames
             );
         }
 
+        public async Task PostCriteriaObjectTextQuery(CVObjectDetectionRequest request, 
+                                                      Action<Action> abortRegistrationHook,
+                                                      Action<List<CVObjectDetectionResult>> onSuccess,
+                                                      Action onFailure)
+        {
+            await SendWebRequest(
+                uri: $"{GetCvServiceBaseUri()}/criteria-object-text-query",
+                method: "POST",
+                payload: request.ToJsonString(),
+                abortRegistrationHook: abortRegistrationHook.Invoke,
+                onSuccess: (s) =>
+                {
+                    var response = JsonConvert.DeserializeObject<CVObjectDetectionResultList>(s);
+                    onSuccess.Invoke(response.results);
+                },
+                onFailure: (f) =>
+                {
+                    RGDebug.LogWarning($"Failed to evaluate CV Object Detection via Text Query criteria: {f}");
+                    onFailure.Invoke();
+                }
+            );
+        }
+        
         public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)
         {
             await SendWebRequest(
