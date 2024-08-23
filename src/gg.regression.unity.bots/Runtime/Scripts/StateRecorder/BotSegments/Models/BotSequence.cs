@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments;
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
