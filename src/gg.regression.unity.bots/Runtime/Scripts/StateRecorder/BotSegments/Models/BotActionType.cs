@@ -10,7 +10,7 @@
         MonkeyBot,
         Mouse_CVImage,
         Mouse_CVText,
-        Mouse_ObjectDetectionText,
+        Mouse_ObjectDetection,
 
         //POSSIBLE_FUTURE_ACTIONS
         //Timer,
