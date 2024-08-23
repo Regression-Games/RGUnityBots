@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames;
+using RegressionGames.StateRecorder;
 using TMPro;
 using UnityEngine;
 
@@ -123,6 +124,23 @@ public class RGBotManager : MonoBehaviour
 
     public void OnOverlayClosed()
     {
+        selectionPanel.SetActive(false);
+    }
+
+    /**
+     * <summary>
+     *  When Sequence or Segment is started ensure that the recording toolbar is in a 'in use' state,
+     *  and close the RGOverlay
+     * </summary>
+     */
+    public void OnBeginPlaying()
+    {
+        var toolbarManager = recordingToolbar.GetComponent<ReplayToolbarManager>();
+        if (toolbarManager != null)
+        {
+            toolbarManager.SetInUseButtonStates();
+        }
+
         selectionPanel.SetActive(false);
     }
 

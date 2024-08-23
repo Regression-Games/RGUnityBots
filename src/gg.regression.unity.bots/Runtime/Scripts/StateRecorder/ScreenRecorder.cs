@@ -46,7 +46,7 @@ namespace RegressionGames.StateRecorder
 
         private static ScreenRecorder _this;
 
-        private bool _isRecording;
+        public bool IsRecording { get; private set; }
 
         private bool _usingIOSMetalGraphics = false;
 
@@ -246,7 +246,7 @@ namespace RegressionGames.StateRecorder
                 Destroy(tex);
             }
 
-            if (_isRecording)
+            if (IsRecording)
             {
                 StartCoroutine(RecordFrame());
             }
@@ -262,7 +262,7 @@ namespace RegressionGames.StateRecorder
         {
             // Do this 1 frame after the request so that the click action of starting the recording itself isn't captured
             yield return null;
-            if (!_isRecording)
+            if (!IsRecording)
             {
                 _lastCvFrameTime = -1;
                 KeyboardInputActionObserver.GetInstance()?.StartRecording();
@@ -273,7 +273,7 @@ namespace RegressionGames.StateRecorder
                 {
                     objectFinder.Cleanup();
                 }
-                _isRecording = true;
+                IsRecording = true;
                 _tickNumber = 0;
                 _currentSessionId = Guid.NewGuid().ToString("n");
                 _referenceSessionId = referenceSessionId;
@@ -358,8 +358,8 @@ namespace RegressionGames.StateRecorder
 
         public void StopRecording()
         {
-            var wasRecording = _isRecording;
-            _isRecording = false;
+            var wasRecording = IsRecording;
+            IsRecording = false;
             if (wasRecording)
             {
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();

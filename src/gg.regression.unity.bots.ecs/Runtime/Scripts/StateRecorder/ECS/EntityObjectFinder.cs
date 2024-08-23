@@ -337,33 +337,43 @@ namespace RegressionGames.StateRecorder.ECS
                     {
                         //todo (reg-1832): implement getting the bounds for entities using the ecs hybrid renderer
                     }
-                    // get component data
-                    var cTypes = entityManager.GetComponentTypes(entity);
-                    MethodInfo methodInfo = typeof(EntityManager).GetMethod("GetComponentData", new [] {typeof(Entity)});
-                    using (cTypes)
+
+                    // only take the overhead to capture this if we are recording
+                    if (ScreenRecorder.GetInstance()?.IsRecording == true)
                     {
-                        var components = new List<IComponentData>();
-                        foreach (var componentType in cTypes)
+                        // get component data
+                        var cTypes = entityManager.GetComponentTypes(entity);
+                        using (cTypes)
                         {
-                            if (!componentType.IsZeroSized)
+                            var components = new List<IComponentData>();
+                            foreach (var componentType in cTypes)
                             {
-                                Type t = componentType.GetManagedType();
-                                try
+                                if (!componentType.IsZeroSized)
                                 {
-                                    //FIX ME Someday: This call is throwing ArgumentException: Invalid generic arguments when the type is nested like Unity.CharacterController.CharacterInterpolationRememberTransformSystem+Singleton
-                                    MethodInfo genericMethodInfo = methodInfo.MakeGenericMethod(t);
-                                    var parameters = new object[] { entity };
-                                    var componentData = (IComponentData)genericMethodInfo.Invoke(entityManager, parameters);
-                                    components.Add(componentData);
-                                }
-                                catch (ArgumentException)
-                                {
-                                    //FIX ME Someday: This next call is throwing ArgumentException: Invalid generic arguments when the type is nested like Unity.CharacterController.CharacterInterpolationRememberTransformSystem+Singleton
+                                    try
+                                    {
+                                        //FIX ME Someday: This call is throwing ArgumentException: Invalid generic arguments when the type is nested like Unity.CharacterController.CharacterInterpolationRememberTransformSystem+Singleton
+                                        if (!_typeToMethodInfoCache.TryGetValue(componentType, out var genericMethodInfo))
+                                        {
+                                            Type t = componentType.GetManagedType();
+                                            genericMethodInfo = _getComponentDataMethodInfo.MakeGenericMethod(t);
+                                            _typeToMethodInfoCache[t] = genericMethodInfo;
+                                        }
+
+                                        var parameters = new object[] { entity };
+                                        //TODO: This is SUPER EXPENSIVE to call.. and not excessively from the reflection.. EntityManager.GetComponentData is just fundamentally expensive !
+                                        var componentData = (IComponentData)genericMethodInfo.Invoke(entityManager, parameters);
+                                        components.Add(componentData);
+                                    }
+                                    catch (ArgumentException)
+                                    {
+                                        //FIX ME Someday: This next call is throwing ArgumentException: Invalid generic arguments when the type is nested like Unity.CharacterController.CharacterInterpolationRememberTransformSystem+Singleton
+                                    }
                                 }
                             }
-                        }
 
-                        eStatus.ComponentData = components;
+                            eStatus.ComponentData = components;
+                        }
                     }
                 }
 
@@ -371,6 +381,10 @@ namespace RegressionGames.StateRecorder.ECS
 
             return (_priorObjects, _newObjects);
         }
+
+        private readonly MethodInfo _getComponentDataMethodInfo = typeof(EntityManager).GetMethod("GetComponentData", new [] {typeof(Entity)});
+
+        private readonly Dictionary<ComponentType, MethodInfo> _typeToMethodInfoCache = new();
 
         public override void Cleanup()
         {
