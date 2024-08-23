@@ -129,7 +129,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         _cvResultsBoundsRect = null;
 
                         // do NOT await this, let it run async
-                        _ = CVServiceManager.GetInstance().PostCriteriaObjectTextQuery(
+                        _ = CVServiceManager.GetInstance().PostCriteriaObjectDetection(
                             new CVObjectDetectionRequest(
                                 screenshot: new CVImageBinaryData()
                                 {
@@ -138,7 +138,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     data = screenshot
                                 },
                                 textQuery: textQuery,
-                                queryImage: null,
+                                imageQuery: null,
                                 withinRect: queryWithinRect,
                                 index: 1
                             ),
