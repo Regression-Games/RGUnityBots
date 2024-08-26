@@ -18,11 +18,11 @@ public class RGSequenceManager : MonoBehaviour
 
     public GameObject sequenceCardPrefab;
 
-    private IList<BotSequence> _sequences;
-
     private static RGSequenceManager _this;
 
-    private const string SEQUENCES_PATH = "Assets/RegressionGames/Resources/BotSequences";
+    private IList<BotSequence> _sequences;
+
+    private string _sequencePath;
 
     public static RGSequenceManager GetInstance()
     {
@@ -32,6 +32,14 @@ public class RGSequenceManager : MonoBehaviour
     private void Awake()
     {
         _sequences = new List<BotSequence>();
+
+        // the path to sequences varies depending on if the overaly is used within the Unity editor
+        // or within an actual build of the game
+#if UNITY_EDITOR
+        _sequencePath = "Assets/RegressionGames/Resources/BotSequences";
+#else
+        _sequencePath = Application.persistentDataPath + "/BotSequences";
+#endif
 
         LoadSequences();
 
@@ -44,12 +52,12 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void LoadSequences()
     {
-        if (Directory.Exists(SEQUENCES_PATH))
+        if (Directory.Exists(_sequencePath))
         {
             // ensure we arent' appending new sequences on to the previous ones
             ClearExistingSequences();
 
-            IEnumerable<string> sequenceFiles = Directory.EnumerateFiles(SEQUENCES_PATH, "*.json");
+            IEnumerable<string> sequenceFiles = Directory.EnumerateFiles(_sequencePath, "*.json");
             IList<BotSequence> sequences = sequenceFiles
                 .Select(fileName => {
                     try 
