@@ -140,7 +140,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 textQuery: textQuery,
                                 imageQuery: null,
                                 withinRect: queryWithinRect,
-                                index: 1
+                                index: 0
                             ),
                             // Register the abort action.
                             abortRegistrationHook: action => OnAbort(segmentNumber, action),
