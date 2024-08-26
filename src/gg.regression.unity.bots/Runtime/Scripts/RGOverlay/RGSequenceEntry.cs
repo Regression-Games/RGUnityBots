@@ -10,7 +10,7 @@ using RegressionGames.StateRecorder;
  */
 public class RGSequenceEntry : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    public string name;
+    public string sequenceName;
 
     public string description;
 
@@ -48,7 +48,7 @@ public class RGSequenceEntry : MonoBehaviour, IPointerEnterHandler, IPointerExit
     {
         if (nameComponent != null)
         {
-            nameComponent.text = name;
+            nameComponent.text = sequenceName;
         }
 
         if (descriptionComponent != null)

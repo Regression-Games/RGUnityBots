@@ -76,7 +76,7 @@ public class RGSequenceManager : MonoBehaviour
                 var prefabComponent = instance.GetComponent<RGSequenceEntry>();
                 if (prefabComponent != null)
                 {
-                    prefabComponent.name = sequence.name;
+                    prefabComponent.sequenceName = sequence.name;
                     prefabComponent.description = sequence.description;
                     prefabComponent.lastModified = sequence.lastModified;
                     prefabComponent.playAction = sequence.Play;
