@@ -4,6 +4,8 @@ using UnityEngine.EventSystems;
 
 public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public GameObject restingStatePrefab;
+
     public GameObject draggingStatePrefab;
 
     private GameObject draggingStateInstance;
@@ -41,14 +43,16 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     {
         if (draggingStateInstance != null)
         {
-            var dragZoneScript = dropTarget?.GetComponent<RGDragZone>();
-            if (dragZoneScript != null)
-            {
-                var newCard = Instantiate(draggingStatePrefab, new Vector3(), Quaternion.identity);
-                dragZoneScript.AddChild(newCard);
-            }
-
             Destroy(draggingStateInstance);
+        }
+
+        dropTarget = eventData.pointerEnter;
+
+        var dropZoneScript = dropTarget?.GetComponent<RGDropZone>();
+        if (dropZoneScript != null)
+        {
+            var newCard = Instantiate(restingStatePrefab, new Vector3(), Quaternion.identity);
+            dropZoneScript.AddChild(newCard);
         }
     }
 }
