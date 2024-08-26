@@ -285,7 +285,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         {
                             gameFacePixelHashObserver.SetActive(true);
                         }
-                        _screenRecorder.StartRecording(_dataPlaybackContainer.SessionId);
+                        //_screenRecorder.StartRecording(_dataPlaybackContainer.SessionId);
                     }
                 }
                 if (_isPlaying)
