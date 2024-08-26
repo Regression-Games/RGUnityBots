@@ -115,7 +115,8 @@ public class RGSequenceManager : MonoBehaviour
         return "Assets/RegressionGames/Resources/BotSequences";
 #else
         // check the persistentDataPath for sequences
-        var shouldUsePersistentDataPath = Directory.Exists(Application.persistentDataPath + "/BotSequences");
+        var persistentDataPath = Application.persistentDataPath + "/BotSequences";
+        var shouldUsePersistentDataPath = Directory.Exists(persistentDataPath);
         if (shouldUsePersistentDataPath)
         {
             return persistentDataPath;
