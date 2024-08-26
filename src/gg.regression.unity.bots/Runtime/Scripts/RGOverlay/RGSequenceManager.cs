@@ -106,25 +106,22 @@ public class RGSequenceManager : MonoBehaviour
     }
 
     /**
-     * <summary>Figure out where Bot Sequences are stored in the project, in both the Unity editor and builds </summary>
+     * <summary>Figure out where Bot Sequences are stored in the project, in both the Unity editor and packaged builds</summary>
      * <returns>Path to the directory containing Bot Sequence files</returns>
      */
     private string ResolveSequencesDirectory()
     {
-        var editorPath = "Assets/RegressionGames/Resources/BotSequences";
 #if UNITY_EDITOR
-        return editorPath;
+        return "Assets/RegressionGames/Resources/BotSequences";
 #else
         // check the persistentDataPath for sequences
-        var persistentDataPath = Application.persistentDataPath + "/BotSequences"
-        var shouldUsePersistentDataPath = Directory.Exists(persistentDataPath);
+        var shouldUsePersistentDataPath = Directory.Exists(Application.persistentDataPath + "/BotSequences");
         if (shouldUsePersistentDataPath)
         {
             return persistentDataPath;
         }
 
-        // default to editor path
-        return editorPath;
+        return "BotSequences";
 #endif
     }
 }
