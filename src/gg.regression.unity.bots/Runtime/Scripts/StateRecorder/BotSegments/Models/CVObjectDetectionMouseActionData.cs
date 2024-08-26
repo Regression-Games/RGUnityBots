@@ -138,7 +138,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     data = screenshot
                                 },
                                 textQuery: textQuery,
-                                queryImage: null,
+                                imageQuery: null,
                                 withinRect: queryWithinRect,
                                 index: 1
                             ),
