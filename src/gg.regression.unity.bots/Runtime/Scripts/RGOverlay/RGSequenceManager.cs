@@ -32,14 +32,7 @@ public class RGSequenceManager : MonoBehaviour
     private void Awake()
     {
         _sequences = new List<BotSequence>();
-
-        // the path to sequences varies depending on if the overaly is used within the Unity editor
-        // or within an actual build of the game
-#if UNITY_EDITOR
-        _sequencePath = "Assets/RegressionGames/Resources/BotSequences";
-#else
-        _sequencePath = Application.persistentDataPath + "/BotSequences";
-#endif
+        _sequencePath = ResolveSequencesDirectory();
 
         LoadSequences();
 
@@ -110,5 +103,29 @@ public class RGSequenceManager : MonoBehaviour
 
             Destroy(sequencesPanel.transform.GetChild(i).gameObject);
         }
+    }
+
+    /**
+     * <summary>Figure out where BotSequences are stored in the project, in both the Unity editor and builds </summary>
+     * <returns>Path to the directory containing Bot Sequence files</returns>
+     */
+    private string ResolveSequencesDirectory()
+    {
+#if UNITY_EDITOR
+        return "Assets/RegressionGames/Resources/BotSequences"; 
+#else
+        var runtimePath = "BotSequences";
+
+        // check the persistentDataPath first
+        var persistentDataPath = Application.persistentDataPath + "/" + runtimePath;
+        var shouldUsePersistentDataPath = Directory.Exists(persistentDataPath);
+        if (shouldUsePersistentDataPath)
+        {
+            return persistentDataPath;
+        }
+
+        // use default path
+        return runtimePath;
+#endif
     }
 }
