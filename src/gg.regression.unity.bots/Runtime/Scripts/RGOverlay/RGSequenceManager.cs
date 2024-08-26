@@ -63,7 +63,6 @@ public class RGSequenceManager : MonoBehaviour
                     }
                 })
                 .Where(s => s != null)
-                .OrderByDescending(seq => seq.lastModified)
                 .ToList();
 
             // instantiate a prefab for each sequence file that has been loaded
@@ -78,7 +77,6 @@ public class RGSequenceManager : MonoBehaviour
                 {
                     prefabComponent.sequenceName = sequence.name;
                     prefabComponent.description = sequence.description;
-                    prefabComponent.lastModified = sequence.lastModified;
                     prefabComponent.playAction = sequence.Play;
                 }
 
