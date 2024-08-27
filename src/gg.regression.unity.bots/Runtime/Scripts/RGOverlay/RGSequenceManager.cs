@@ -22,8 +22,6 @@ public class RGSequenceManager : MonoBehaviour
 
     private IList<BotSequence> _sequences;
 
-    private string _sequencePath;
-
     public static RGSequenceManager GetInstance()
     {
         return _this;
@@ -32,7 +30,6 @@ public class RGSequenceManager : MonoBehaviour
     private void Awake()
     {
         _sequences = new List<BotSequence>();
-        _sequencePath = ResolveSequencesDirectory();
 
         LoadSequences();
 
@@ -45,44 +42,27 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void LoadSequences()
     {
-        if (Directory.Exists(_sequencePath))
+        // ensure we aren't appending new sequences on to the previous ones
+        ClearExistingSequences();
+
+        var sequences = ResolveSequenceFiles();
+        
+        // instantiate a prefab for each sequence file that has been loaded
+        foreach (var sequence in sequences)
         {
-            // ensure we arent' appending new sequences on to the previous ones
-            ClearExistingSequences();
-
-            IEnumerable<string> sequenceFiles = Directory.EnumerateFiles(_sequencePath, "*.json");
-            IList<BotSequence> sequences = sequenceFiles
-                .Select(fileName => {
-                    try 
-                    {
-                        return BotSequence.LoadSequenceJsonFromPath(fileName);
-                    }
-                    catch (Exception exception)
-                    {
-                        Debug.Log($"Error reading Bot Sequences from {fileName}: {exception}");
-                        return null;
-                    }
-                })
-                .Where(s => s != null)
-                .ToList();
-
-            // instantiate a prefab for each sequence file that has been loaded
-            foreach (BotSequence sequence in sequences)
+            var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
+            
+            // map sequence data fields to new prefab
+            instance.transform.SetParent(sequencesPanel.transform, false);
+            var prefabComponent = instance.GetComponent<RGSequenceEntry>();
+            if (prefabComponent != null)
             {
-                var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
-                
-                // map sequence data fields to new prefab
-                instance.transform.SetParent(sequencesPanel.transform, false);
-                var prefabComponent = instance.GetComponent<RGSequenceEntry>();
-                if (prefabComponent != null)
-                {
-                    prefabComponent.sequenceName = sequence.name;
-                    prefabComponent.description = sequence.description;
-                    prefabComponent.playAction = sequence.Play;
-                }
-
-                _sequences.Add(sequence);
+                prefabComponent.sequenceName = sequence.name;
+                prefabComponent.description = sequence.description;
+                prefabComponent.playAction = sequence.Play;
             }
+
+            _sequences.Add(sequence);
         }
     }
 
@@ -105,24 +85,74 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    private IList<BotSequence> EnumerateSequencesInDirectory(string path)
+    {
+        var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
+        return sequenceFiles
+            .Select(fileName =>
+            {
+                try
+                {
+                    return BotSequence.LoadSequenceJsonFromPath(fileName);
+                }
+                catch (Exception exception)
+                {
+                    Debug.Log($"Error reading Bot Sequences from {fileName}: {exception}");
+                    return null;
+                }
+            })
+            .Where(s => s != null)
+            .ToList();
+    }
+    
     /**
      * <summary>Figure out where Bot Sequences are stored in the project, in both the Unity editor and packaged builds</summary>
      * <returns>Path to the directory containing Bot Sequence files</returns>
      */
-    private string ResolveSequencesDirectory()
+    private IList<BotSequence> ResolveSequenceFiles()
     {
 #if UNITY_EDITOR
-        return "Assets/RegressionGames/Resources/BotSequences";
-#else
-        // check the persistentDataPath for sequences
-        var persistentDataPath = Application.persistentDataPath + "/BotSequences";
-        var shouldUsePersistentDataPath = Directory.Exists(persistentDataPath);
-        if (shouldUsePersistentDataPath)
+        const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
+        if (!Directory.Exists(sequencePath))
         {
-            return persistentDataPath;
+            return new List<BotSequence>();
         }
 
-        return "BotSequences";
+        return EnumerateSequencesInDirectory(sequencePath);
+#else
+        IList<BotSequence> sequences = null;
+
+        // 1. check the persistentDataPath for sequences
+        var persistentDataPath = Application.persistentDataPath + "/BotSequences";
+        if (Directory.Exists(persistentDataPath))
+        {
+            sequences = EnumerateSequencesInDirectory(persistentDataPath);
+        }
+    
+        // 2. load Sequences from Resources, while skipping any that have already
+        //    been fetched from the persistentDataPath
+        const string runtimePath = "BotSequences";
+        var jsons = Resources.LoadAll(runtimePath, typeof(TextAsset));
+        foreach (var jsonObject in jsons)
+        {
+            try
+            {
+                var json = (jsonObject as TextAsset)?.text;
+                var sequence = JsonConvert.DeserializeObject<BotSequence>(json);
+            
+                // add the new sequence if it doesn't already exist
+                if (sequences != null && sequences.All(s => s.name != sequence.name))
+                {
+                    sequences.Add(sequence);
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Exception reading Sequence json file from resource path: {runtimePath}", e);
+            }
+        }
+
+        return sequences;
 #endif
     }
 }
