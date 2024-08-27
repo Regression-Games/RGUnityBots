@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
@@ -92,7 +93,7 @@ public class RGSequenceManager : MonoBehaviour
      * <param name="path">The directory to look for Bot Sequences json files</param>
      * <returns>List of Bot Sequences</returns>
      */
-    private IList<BotSequence> EnumerateSequencesInDirectory(string path)
+    private IList<(string, BotSequence)> EnumerateSequencesInDirectory(string path)
     {
         var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
         return sequenceFiles
@@ -100,15 +101,15 @@ public class RGSequenceManager : MonoBehaviour
             {
                 try
                 {
-                    return BotSequence.LoadSequenceJsonFromPath(fileName);
+                    return (Path.GetFileNameWithoutExtension(fileName), BotSequence.LoadSequenceJsonFromPath(fileName));
                 }
                 catch (Exception exception)
                 {
                     Debug.Log($"Error reading Bot Sequences from {fileName}: {exception}");
-                    return null;
+                    return (null, null);
                 }
             })
-            .Where(s => s != null)
+            .Where(s => s.Item2 != null)
             .ToList();
     }
     
@@ -130,9 +131,11 @@ public class RGSequenceManager : MonoBehaviour
             return new List<BotSequence>();
         }
 
-        return EnumerateSequencesInDirectory(sequencePath);
+        return EnumerateSequencesInDirectory(sequencePath)
+            .Select(s => s.Item2)
+            .ToList();
 #else
-        IList<BotSequence> sequences = new List<BotSequence>();
+        IList<(string, BotSequence)> sequences = new List<(string, BotSequence)>();
 
         // 1. check the persistentDataPath for sequences
         var persistentDataPath = Application.persistentDataPath + "/BotSequences";
@@ -141,21 +144,26 @@ public class RGSequenceManager : MonoBehaviour
             sequences = EnumerateSequencesInDirectory(persistentDataPath);
         }
     
-        // 2. load Sequences from Resources, while skipping any that have already
-        //    been fetched from the persistentDataPath
+        // 2. load Sequences from Resources, while skipping any that have already been fetched from the
+        //    persistentDataPath. We will compare Sequences by their filename (without extension), and by the actual
+        //    Sequence name
         const string runtimePath = "BotSequences";
         var jsons = Resources.LoadAll(runtimePath, typeof(TextAsset));
         foreach (var jsonObject in jsons)
         {
             try
             {
-                var json = (jsonObject as TextAsset)?.text;
+                var resourceFilename = jsonObject.name;
+                var json = (jsonObject as TextAsset)?.text ?? "";
                 var sequence = JsonConvert.DeserializeObject<BotSequence>(json);
             
                 // add the new sequence if it doesn't already exist
-                if (sequences.All(s => s.name != sequence.name))
+                if (sequences.All(s => 
+                        s.Item2.name != sequence.name && 
+                        s.Item1 != resourceFilename)
+                )
                 {
-                    sequences.Add(sequence);
+                    sequences.Add((resourceFilename, sequence));
                 }
             }
             catch (Exception e)
@@ -164,7 +172,9 @@ public class RGSequenceManager : MonoBehaviour
             }
         }
 
-        return sequences;
+        return sequences
+            .Select(s => s.Item2)
+            .ToList();
 #endif
     }
 }
