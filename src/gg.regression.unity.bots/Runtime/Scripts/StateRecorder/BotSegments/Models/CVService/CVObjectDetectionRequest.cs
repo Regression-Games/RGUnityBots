@@ -30,15 +30,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public RectInt? withinRect;
 
         /// <summary>
-        /// Index to track requests and results for each criteria within a segment.
+        /// Index to track requests and results for each criteria within an image query segment.
         /// </summary>
         public int index;
 
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
-                                        string? textQuery,
-                                        string? imageQuery,
-                                        RectInt? withinRect,
-                                        int index)
+                                        [CanBeNull] string textQuery,
+                                        [CanBeNull] string imageQuery,
+                                        [CanBeNull] RectInt? withinRect,
+                                        int index = 0)
         {
             this.screenshot = screenshot;
             this.textQuery = textQuery;
@@ -48,12 +48,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 
             if (textQuery != null && imageQuery != null)
             {
-                RGDebug.LogError("Both textQuery and queryImage are provided. Only one should be used.");
+                RGDebug.LogError("Both textQuery and imageQuery are provided. Only one should be used.");
                 return;
             }
             else if (textQuery == null && imageQuery == null)
             {
-                RGDebug.LogError("Neither textQuery nor queryImage is provided. One should be specified.");
+                RGDebug.LogError("Neither textQuery nor imageQuery is provided. One should be specified.");
                 return;
             }
         }

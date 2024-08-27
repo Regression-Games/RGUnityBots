@@ -46,8 +46,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             else if (textQuery == null && imageQuery == null)
             {
-                RGDebug.LogError("Neither textQuery nor queryImage is provided. One should be specified.");
-                throw new ArgumentException("Neither textQuery nor queryImage is provided. One should be specified.");
+                RGDebug.LogError("Neither textQuery nor imageQuery is provided. One should be specified.");
+                throw new ArgumentException("Neither textQuery nor imageQuery is provided. One should be specified.");
             }
 
             this.textQuery = textQuery;

@@ -24,8 +24,11 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             botSegment.description = jObject.GetValue("description")?.ToObject<string>(serializer) ?? "";
             // allow sessionId to be null/undefined in the file... so manually created segments don't have to generate one
             botSegment.sessionId = jObject.GetValue("sessionId")?.ToObject<string>(serializer) ?? Guid.NewGuid().ToString("n");
-            botSegment.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
-            botSegment.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
+            if (jObject.ContainsKey("apiVersion"))
+            {
+                botSegment.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
+            }
+            botSegment.botAction = jObject.GetValue("botAction")?.ToObject<BotAction>(serializer);
             if (jObject.ContainsKey("keyFrameCriteria"))
             {
                 // backwards compatibility before we renamed keyFrameCriteria to endCriteria
