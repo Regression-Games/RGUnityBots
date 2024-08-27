@@ -81,18 +81,24 @@ namespace RegressionGames
             string endpoint;
             if (!string.IsNullOrEmpty(request.textQuery))
             {
-                endpoint = "/criteria-object-text-query";
+                endpoint = "criteria-object-text-query";
             }
             else if (request.imageQuery != null)
             {
-                endpoint = "/criteria-object-image-query";
+                endpoint = "criteria-object-image-query";
             }
-            else
-            {
-                RGDebug.LogError("Invalid CVObjectDetectionRequest: Both textQuery and queryImage are null or empty.");
+            else if (request.imageQuery != null && request.textQuery != null){
+                RGDebug.LogError("Invalid CVObjectDetectionRequest: Both textQuery and queryImage are both set. Please set one or the other.");
                 onFailure.Invoke();
                 return;
             }
+            else
+            {
+                RGDebug.LogError("Invalid CVObjectDetectionRequest: Both textQuery and queryImage are null or empty. Please set at least one of them.");
+                onFailure.Invoke();
+                return;
+            }
+            
             await SendWebRequest(
                 uri: $"{GetCvServiceBaseUri()}/{endpoint}",
                 method: "POST",
