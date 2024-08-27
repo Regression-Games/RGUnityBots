@@ -1,16 +1,14 @@
 using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using RegressionGames;
-using TMPro;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
 /**
- * <summary>UI for managing operations performed on the user's set of Bot Sequences</summary>
+ * <summary>
+ * UI for managing operations performed on the user's set of Bot Sequences
+ * </summary>
  */
 public class RGSequenceManager : MonoBehaviour
 {
@@ -38,7 +36,9 @@ public class RGSequenceManager : MonoBehaviour
     }
 
     /**
-     * <summary>Loads all Sequence json files within the Unity project</summary>
+     * <summary>
+     * Loads all Sequence json files within the Unity project, and creates their relevant UI components
+     * </summary>
      */
     public void LoadSequences()
     {
@@ -85,6 +85,13 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    /**
+     * <summary>
+     * Search a directory for any *.json files, then attempt to read them as Bot Sequences
+     * </summary>
+     * <param name="path">The directory to look for Bot Sequences json files</param>
+     * <returns>List of Bot Sequences</returns>
+     */
     private IList<BotSequence> EnumerateSequencesInDirectory(string path)
     {
         var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
@@ -106,8 +113,13 @@ public class RGSequenceManager : MonoBehaviour
     }
     
     /**
-     * <summary>Figure out where Bot Sequences are stored in the project, in both the Unity editor and packaged builds</summary>
-     * <returns>Path to the directory containing Bot Sequence files</returns>
+     * <summary>
+     * Load Bot Sequences relative to if we're running in the Unity editor, or in a packaged build. For the packaged
+     * build we will first check the persistent data path for any Sequence files, and then check Resources for any. We
+     * will use the persistent data path as an override, so any Sequences that are found in Resources will only be kept
+     * if they are not also within the persistent data path
+     * </summary>
+     * <returns>List of Bot Sequences</returns>
      */
     private IList<BotSequence> ResolveSequenceFiles()
     {
@@ -120,7 +132,7 @@ public class RGSequenceManager : MonoBehaviour
 
         return EnumerateSequencesInDirectory(sequencePath);
 #else
-        IList<BotSequence> sequences = null;
+        IList<BotSequence> sequences = new List<BotSequence>();
 
         // 1. check the persistentDataPath for sequences
         var persistentDataPath = Application.persistentDataPath + "/BotSequences";
@@ -141,7 +153,7 @@ public class RGSequenceManager : MonoBehaviour
                 var sequence = JsonConvert.DeserializeObject<BotSequence>(json);
             
                 // add the new sequence if it doesn't already exist
-                if (sequences != null && sequences.All(s => s.name != sequence.name))
+                if (sequences.All(s => s.name != sequence.name))
                 {
                     sequences.Add(sequence);
                 }
