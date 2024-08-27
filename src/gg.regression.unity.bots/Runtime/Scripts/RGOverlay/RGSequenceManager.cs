@@ -91,7 +91,7 @@ public class RGSequenceManager : MonoBehaviour
      * Search a directory for any *.json files, then attempt to read them as Bot Sequences
      * </summary>
      * <param name="path">The directory to look for Bot Sequences json files</param>
-     * <returns>List of Bot Sequences</returns>
+     * <returns>List of tuples containing (file name, Bot Sequence) entires</returns>
      */
     private IList<(string, BotSequence)> EnumerateSequencesInDirectory(string path)
     {
