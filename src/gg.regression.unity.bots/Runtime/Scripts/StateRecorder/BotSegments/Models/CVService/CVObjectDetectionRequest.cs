@@ -37,7 +37,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
                                         [CanBeNull] string textQuery,
                                         [CanBeNull] string imageQuery,
-                                        [CanBeNull] RectInt? withinRect,
+                                        RectInt? withinRect,
                                         int index = 0)
         {
             this.screenshot = screenshot;
@@ -71,18 +71,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 
             stringBuilder.Append("{\"screenshot\":");
             screenshot.WriteToStringBuilder(stringBuilder);
-            
-            if (textQuery != null)
-            {
-                stringBuilder.Append(",\"textQuery\":");
-                StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
-            }
-
-            if (imageQuery != null)
-            {
-                stringBuilder.Append(",\"imageToMatch\":");
-                StringJsonConverter.WriteToStringBuilder(stringBuilder, imageQuery);
-            }
+            stringBuilder.Append(",\"textQuery\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
+            stringBuilder.Append(",\"imageToMatch\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, imageQuery);
             stringBuilder.Append(",\"withinRect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append(",\"index\":");
