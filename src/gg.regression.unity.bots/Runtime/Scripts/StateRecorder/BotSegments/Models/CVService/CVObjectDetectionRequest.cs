@@ -30,7 +30,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public RectInt? withinRect;
 
         /// <summary>
-        /// Index to track requests and results for each criteria within a segment.
+        /// Index to track requests and results for each criteria within an image query segment.
         /// </summary>
         public int index;
 
@@ -38,7 +38,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
                                         [CanBeNull] string textQuery,
                                         [CanBeNull] string imageQuery,
                                         [CanBeNull] RectInt? withinRect,
-                                        int index)
+                                        int index = 0)
         {
             this.screenshot = screenshot;
             this.textQuery = textQuery;
