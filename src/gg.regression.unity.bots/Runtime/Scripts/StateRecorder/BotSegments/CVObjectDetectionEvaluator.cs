@@ -327,9 +327,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 data = imageData
                             },
                             textQuery: textQuery,
-                            queryImage: null,
+                            imageQuery: null,
                             withinRect: withinRect,
-                            index: 1
+                            index: index
                         ),
                         // Cancel ongoing request in a thread safe manner.
                         abortRegistrationHook: action => AbortRegistrationHook(segmentNumber, index, action),
