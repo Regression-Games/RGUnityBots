@@ -1,9 +1,14 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public string draggableCardName;
+    
+    public TMP_Text namePrefab;
+    
     public GameObject restingStatePrefab;
 
     public GameObject draggingStatePrefab;
@@ -12,6 +17,14 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private RGDropZone _dropZone;
 
+    public void Start()
+    {
+        if (namePrefab != null)
+        {
+            namePrefab.text = draggableCardName;
+        }
+    }
+    
     public void OnBeginDrag(PointerEventData eventData)
     {
         Vector3 position = new Vector3
@@ -24,6 +37,13 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         var instance = Instantiate(draggingStatePrefab, position, draggingStatePrefab.transform.rotation);
         if (instance != null)
         {
+            var dragged = instance.GetComponent<RGDraggedCard>();
+            if (dragged != null)
+            {
+                dragged.draggedCardName = draggableCardName;
+                Debug.Log("DRAGGED CARD NAME SET");
+            }
+            
             instance.transform.SetParent(transform.root, false);
             draggingStateInstance = instance;
         }
