@@ -14,9 +14,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public CVImageBinaryData screenshot;
 
         /// <summary>
-        /// Optional image data to be used as a query for object detection.
+        /// Optional image data to be used as a query for object detection in base64 encoded string format.
         /// </summary>
-        [CanBeNull] public CVImageBinaryData imageQuery;
+        [CanBeNull] public string imageQuery;
 
         /// <summary>
         /// Optional text query for object detection.
@@ -36,8 +36,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
                                         [CanBeNull] string textQuery,
-                                        [CanBeNull] CVImageBinaryData imageQuery,
-                                        RectInt? withinRect,
+                                        [CanBeNull] string imageQuery,
+                                        [CanBeNull] RectInt? withinRect,
                                         int index = 0)
         {
             this.screenshot = screenshot;
@@ -81,7 +81,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
             if (imageQuery != null)
             {
                 stringBuilder.Append(",\"imageToMatch\":");
-                imageQuery.WriteToStringBuilder(stringBuilder);
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, imageQuery);
             }
             stringBuilder.Append(",\"withinRect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);

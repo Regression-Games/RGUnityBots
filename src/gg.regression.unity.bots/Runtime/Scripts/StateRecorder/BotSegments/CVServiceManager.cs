@@ -72,13 +72,29 @@ namespace RegressionGames
             );
         }
 
-        public async Task PostCriteriaObjectTextQuery(CVObjectDetectionRequest request, 
+        public async Task PostCriteriaObjectDetection(CVObjectDetectionRequest request, 
                                                       Action<Action> abortRegistrationHook,
                                                       Action<List<CVObjectDetectionResult>> onSuccess,
                                                       Action onFailure)
         {
+            
+            string endpoint;
+            if (!string.IsNullOrEmpty(request.textQuery))
+            {
+                endpoint = "/criteria-object-text-query";
+            }
+            else if (request.imageQuery != null)
+            {
+                endpoint = "/criteria-object-image-query";
+            }
+            else
+            {
+                RGDebug.LogError("Invalid CVObjectDetectionRequest: Both textQuery and queryImage are null or empty.");
+                onFailure.Invoke();
+                return;
+            }
             await SendWebRequest(
-                uri: $"{GetCvServiceBaseUri()}/criteria-object-text-query",
+                uri: $"{GetCvServiceBaseUri()}/{endpoint}",
                 method: "POST",
                 payload: request.ToJsonString(),
                 abortRegistrationHook: abortRegistrationHook.Invoke,
@@ -94,6 +110,7 @@ namespace RegressionGames
                 }
             );
         }
+
         
         public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)
         {
