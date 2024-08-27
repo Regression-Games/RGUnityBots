@@ -16,20 +16,24 @@ public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
 
     public GameObject emptyStatePrefab;
 
-    private GameObject currentDroppable;
+    private GameObject potentialDropSpotInstance;
 
-    private GameObject potentialDropSpot;
+    private GameObject _currentDroppable;
 
-    private IList<GameObject> children;
+    private int _currentDropIndex;
+
+    private const int DEFAULT_CHILD_HEIGHT = 30;
+
+    private const int DEFAULT_CHILD_SPACING = 8;
 
     public void Start()
     {
-        children = new List<GameObject>();
+        _currentDropIndex = -1;
     }
 
     public void Update()
     {
-        if (currentDroppable != null)
+        if (_currentDroppable != null)
         {
             Vector2 mouseScreenSpacePosition = Input.mousePosition;
             var rectTransform = this.GetComponent<RectTransform>();
@@ -49,38 +53,37 @@ public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
                 -localPoint.y + rectTransform.rect.size.y * rectTransform.pivot.y
             );
 
+            // update the position of the potential drop spot when the drop index changes
             var dropIndex = ComputeDropIndex(resultPosition);
-            if (dropIndex >= 0)
+            if (dropIndex >= 0 && dropIndex != _currentDropIndex)
             {
-                Debug.Log($"Drop index: {dropIndex}");
-                if (potentialDropSpot != null)
-                {
-                    Destroy(potentialDropSpot);
-                }
+                _currentDropIndex = dropIndex;
 
                 if (potentialDropSpotPrefab != null)
                 {
-                    var dropSpot = Instantiate(potentialDropSpotPrefab);
-
-                    var dropSpotTransform = dropSpot.transform;
-                    dropSpot.transform.SetParent(this.transform, false);
-
-                    // Adjust sibling indices to insert the new child at the specified index
-                    Transform[] childs = new Transform[children.Count];
-                    for (int i = 0; i < children.Count; i++)
+                    // create the drop spot indicator if it does not exist, and shift all of the
+                    // existing children down to make room
+                    if (potentialDropSpotInstance == null)
                     {
-                        childs[i] = this.transform.GetChild(i);
+                        var dropSpot = Instantiate(potentialDropSpotPrefab);
+                        dropSpot.transform.SetParent(this.transform, false);
+                        potentialDropSpotInstance = dropSpot;
+
+                        // Adjust sibling indices to insert the new child at the specified index
+                        Transform[] childTransforms = new Transform[this.transform.childCount];
+                        for (int i = 0; i < this.transform.childCount; i++)
+                        {
+                            childTransforms[i] = this.transform.GetChild(i);
+                        }
+
+                        // Shift existing children down
+                        for (int i = this.transform.childCount - 1; i > _currentDropIndex; i--)
+                        {
+                            childTransforms[i].SetSiblingIndex(i + 1);
+                        }
                     }
 
-                    // Shift existing children to the right
-                    for (int i = children.Count - 1; i >= dropIndex; i--)
-                    {
-                        childs[i].SetSiblingIndex(i + 1);
-                    }
-
-                    dropSpot.transform.SetSiblingIndex(dropIndex);
-
-                    potentialDropSpot = dropSpot;
+                    potentialDropSpotInstance.transform.SetSiblingIndex(_currentDropIndex);
                 }
             }
         }
@@ -93,23 +96,23 @@ public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
             Destroy(emptyStatePrefab);
         }
 
-        if (potentialDropSpot != null)
+        var dropIndex = 0;
+        if (potentialDropSpotInstance != null)
         {
-            Destroy(potentialDropSpot);
+            dropIndex = potentialDropSpotInstance.transform.GetSiblingIndex();
+            Destroy(potentialDropSpotInstance);
         }
-
-        children.Add(newChild);
+        
         newChild.transform.SetParent(this.transform, false);
-
-        currentDroppable = null;
+        newChild.transform.SetSiblingIndex(dropIndex);
+        _currentDroppable = null;
     }
 
     public void RemoveChild(GameObject childToRemove)
     {
         Destroy(childToRemove);
-        children.Remove(childToRemove);
-
-        if (children.Count == 0)
+        
+        if (this.transform.childCount == 0)
         {
             var emptyState = Instantiate(emptyStatePrefab, new Vector3(), Quaternion.identity);
             emptyState.transform.SetParent(this.transform, false);
@@ -121,13 +124,12 @@ public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         var target = eventData.pointerDrag;
         if (target != null)
         {
-            // Debug.Log("Has a target");
             foreach (GameObject droppable in droppables)
             {
                 if (target.GetType() == droppable.GetType())
                 {
-                    // Debug.Log($"A valid droppable has arrived: {target.name}");
-                    currentDroppable = target;
+                    _currentDroppable = target;
+                    Debug.Log($"{target.name} has entered the drop zone");
                     return;
                 }
             }
@@ -136,61 +138,42 @@ public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        var target = eventData.pointerDrag;
-        if (target != null)
+        _currentDroppable = null;
+        _currentDropIndex = -1;
+    
+        if (potentialDropSpotInstance != null)
         {
-            foreach (GameObject droppable in droppables)
-            {
-                if (target.GetType() == droppable.GetType())
-                {
-                    // Debug.Log($"A valid droppable has exited: {target.name}");
-                    currentDroppable = null;
-                    return;
-                }
-            }
-
-            currentDroppable = null;
+            Destroy(potentialDropSpotInstance);
         }
     }
 
     private int ComputeDropIndex(Vector2 location)
     {
-        if (currentDroppable == null)
+        if (_currentDroppable == null)
         {
             // somehow we lack something to drop
             return -1;
         }
         
-        if (children.Count == 0)
+        if (this.transform.childCount == 0)
         {
-            // Debug.Log("No kids");
             return 0;
         }
 
-        var childHeight = currentDroppable.GetComponent<RectTransform>().rect.height;
-        var childSpacing = this.GetComponent<VerticalLayoutGroup>().spacing;
-        var totalHeight = (childHeight + childSpacing) * children.Count;
+        // get the height of the currently held droppable
+        var childHeight = _currentDroppable.GetComponent<RectTransform>()?.rect.height ?? DEFAULT_CHILD_HEIGHT;
+        
+        // get the child spacing within this Drop Zone instance
+        var childSpacing = this.GetComponent<VerticalLayoutGroup>()?.spacing ?? DEFAULT_CHILD_SPACING;
 
-        // at bottom of list
+        var totalHeight = (childHeight + childSpacing) * this.transform.childCount;
+
+        // mouse is beyond the bottom of list
         if (location.y >= totalHeight)
         {
-            // Debug.Log("At bottom of list");
-            return children.Count + 1;
+            return this.transform.childCount + 1;
         }
 
-        for (var i = children.Count; i > 0; --i)
-        {
-            var height = (childHeight * i) + (childSpacing * i);
-            if (location.y >= height)
-            {
-                // Debug.Log($"At the index: {i}");
-                return i;
-            }
-        }
-
-        return 0;
-
-        // Debug.Log("No case found");
-        // return -1;
+        return (int)Math.Round(location.y / (childHeight + childSpacing));
     }
 }

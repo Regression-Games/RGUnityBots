@@ -41,7 +41,6 @@ RectTransform:
   - {fileID: 1195640158924844955}
   - {fileID: 5453892941525940634}
   - {fileID: 4000998100661657982}
-  - {fileID: 7308241680158347934}
   m_Father: {fileID: 3687363723740831427}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2418,6 +2417,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #1
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard
@@ -2520,6 +2523,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #2
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (1)
@@ -2622,6 +2629,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #10
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (9)
@@ -2724,6 +2735,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #3
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (2)
@@ -2826,6 +2841,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #8
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (7)
@@ -2928,6 +2947,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #6
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (5)
@@ -3030,6 +3053,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #5
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (4)
@@ -3132,6 +3159,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #7
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (6)
@@ -3227,108 +3258,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
   m_PrefabInstance: {fileID: 6068360305154288277}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &6467093117178667422
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 5166697826147890227}
-    m_Modifications:
-    - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_Name
-      value: SegmentCard (10)
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_Pivot.x
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_Pivot.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_RootOrder
-      value: 11
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_AnchorMin.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_AnchorMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_SizeDelta.x
-      value: 250
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_SizeDelta.y
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
---- !u!224 &7308241680158347934 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 4383038157323776768, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
-  m_PrefabInstance: {fileID: 6467093117178667422}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6921412489101592793
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3336,6 +3265,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #4
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (3)
@@ -3552,6 +3485,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5166697826147890227}
     m_Modifications:
+    - target: {fileID: 714608286913792316, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
+      propertyPath: m_text
+      value: Draggable segment card #9
+      objectReference: {fileID: 0}
     - target: {fileID: 4199513441948227604, guid: d28b603b68fde454c8886f1dd720fdaf, type: 3}
       propertyPath: m_Name
       value: SegmentCard (8)

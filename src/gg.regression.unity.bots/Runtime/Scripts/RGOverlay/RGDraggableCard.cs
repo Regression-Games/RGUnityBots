@@ -10,7 +10,7 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private GameObject draggingStateInstance;
 
-    private GameObject dropTarget;
+    private RGDropZone _dropZone;
 
     public void OnBeginDrag(PointerEventData eventData)
     {
@@ -27,16 +27,43 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             instance.transform.SetParent(transform.root, false);
             draggingStateInstance = instance;
         }
+
+        Vector2 mouseScreenSpacePosition = Input.mousePosition;
+
+        var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
+        foreach (RGDropZone dz in potentialDropZones)
+        {
+            var dropZoneRectTransform = dz.GetComponent<RectTransform>();
+
+            // get screenspace location of the mouse cursor, within the bounds of this drop zone
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                dropZoneRectTransform,
+                mouseScreenSpacePosition,
+                null, 
+                out localPoint
+            ); 
+
+            if (localPoint.x >= 0 &&
+                localPoint.x <= dropZoneRectTransform.rect.width &&
+                localPoint.y >= 0 &&
+                localPoint.y <= dropZoneRectTransform.rect.height)
+            {
+                var ev = new PointerEventData(EventSystem.current);
+                ev.pointerDrag = this.gameObject;
+                dz.OnPointerEnter(ev);
+            }
+        }
     }
 
     public void OnDrag(PointerEventData eventData)
     {
         if (draggingStateInstance != null)
         {
-            draggingStateInstance.transform.position = eventData.position;
+            draggingStateInstance.transform.position = eventData.position;        
         }
 
-        dropTarget = eventData.pointerEnter;
+        _dropZone = eventData.pointerEnter?.GetComponent<RGDropZone>();
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -46,13 +73,13 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             Destroy(draggingStateInstance);
         }
 
-        dropTarget = eventData.pointerEnter;
-
-        var dropZoneScript = dropTarget?.GetComponent<RGDropZone>();
-        if (dropZoneScript != null)
+        if (_dropZone == null)
         {
-            var newCard = Instantiate(restingStatePrefab, new Vector3(), Quaternion.identity);
-            dropZoneScript.AddChild(newCard);
+            return;
         }
+
+        var newCard = Instantiate(restingStatePrefab, new Vector3(), Quaternion.identity);
+        _dropZone.AddChild(newCard);
+        _dropZone = null;
     }
 }
