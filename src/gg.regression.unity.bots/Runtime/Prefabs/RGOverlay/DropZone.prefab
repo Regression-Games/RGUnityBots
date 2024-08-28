@@ -35,8 +35,8 @@ RectTransform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 250, y: 420}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -118,7 +118,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   droppables:
   - {fileID: 5443515706651796386, guid: a4a3e76dff5a04b31948a43874f94e1c, type: 3}
-  childHeight: 0
-  childSpacing: 0
   potentialDropSpotPrefab: {fileID: 1016618572727220561, guid: 9b361052fd5004471b0d8d9d9d01cef8, type: 3}
   emptyStatePrefab: {fileID: 5443515706651796386, guid: d3e40eab3248645a296397c9b8e8f8f7, type: 3}
