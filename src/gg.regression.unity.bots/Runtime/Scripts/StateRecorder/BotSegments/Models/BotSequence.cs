@@ -70,9 +70,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            BotSequence sequence = JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
-            sequence.lastModified = Directory.GetLastWriteTime(path);
-            return sequence;
+            return JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
         }
 
         public string ToJsonString()
