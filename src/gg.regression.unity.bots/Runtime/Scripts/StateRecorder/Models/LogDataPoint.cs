@@ -10,7 +10,10 @@ namespace RegressionGames.StateRecorder.Models
     {
         public DateTimeOffset timestamp { get; }
         
-        // used to correlate logs to recorded tick data
+        // this timestamp uses the same measurement as the tick timestamp in the recording.
+        // this is used to correlate logs to specific ticks when displaying recorded data to the user.
+        // at time of writing, this measurement is Time.unscaledTimeAsDouble
+        // but to be certain, check the tick "time" field.
         public double frameTimestamp { get; }
 
         [JsonConverter(typeof(StringEnumConverter))]

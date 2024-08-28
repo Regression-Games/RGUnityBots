@@ -22,7 +22,7 @@ using UnityEngine.Rendering;
 namespace RegressionGames.StateRecorder
 {
     
-    class TickDataToWriteToDisk
+    struct TickDataToWriteToDisk
     {
         public string directoryPrefix { get; }
         public long tickNumber { get; }
@@ -809,10 +809,12 @@ namespace RegressionGames.StateRecorder
 
         private void ProcessTick(TickDataToWriteToDisk tickData)
         {
-            RecordBotSegment(tickData.directoryPrefix, tickData.tickNumber, tickData.botSegmentJson);
-            RecordJson(tickData.directoryPrefix, tickData.tickNumber, tickData.jsonData);
-            RecordJPG(tickData.directoryPrefix, tickData.tickNumber, tickData.screenshotWidth, tickData.screenshotHeight, tickData.screenshotData);
-            RecordLogs(tickData.directoryPrefix, tickData.tickNumber, tickData.logs);
+            var directoryPrefix = tickData.directoryPrefix;
+            var tickNumber = tickData.tickNumber;
+            RecordBotSegment(directoryPrefix, tickNumber, tickData.botSegmentJson);
+            RecordJson(directoryPrefix, tickNumber, tickData.jsonData);
+            RecordJPG(directoryPrefix, tickNumber, tickData.screenshotWidth, tickData.screenshotHeight, tickData.screenshotData);
+            RecordLogs(directoryPrefix, tickNumber, tickData.logs);
         }
 
         private void RecordJPG(string directoryPath, long tickNumber, int tickScreenshotWidth, int tickScreenshotHeight, byte[] tickScreenshotData)
