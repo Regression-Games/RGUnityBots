@@ -65,7 +65,7 @@ namespace RegressionGames
                 _settings = CreateInstance<RGSettings>();
                 _settings.useSystemSettings = true;
                 _settings.enableOverlay = true;
-                _settings.rgHostAddress = "http://localhost:8080";
+                _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.cvHostAddress = "http://127.0.0.1:18888";
                 _settings.logLevel = DebugLogLevel.Info;
 
