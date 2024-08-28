@@ -91,9 +91,9 @@ public class RGSequenceManager : MonoBehaviour
      * Search a directory for any *.json files, then attempt to read them as Bot Sequences
      * </summary>
      * <param name="path">The directory to look for Bot Sequences json files</param>
-     * <returns>List of tuples containing (file name, Bot Sequence) entires</returns>
+     * <returns>Dictionary containing (file name, Bot Sequence) entires</returns>
      */
-    private IList<(string, BotSequence)> EnumerateSequencesInDirectory(string path)
+    private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
     {
         var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
         return sequenceFiles
@@ -105,12 +105,12 @@ public class RGSequenceManager : MonoBehaviour
                 }
                 catch (Exception exception)
                 {
-                    Debug.Log($"Error reading Bot Sequences from {fileName}: {exception}");
+                    Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
                     return (null, null);
                 }
             })
             .Where(s => s.Item2 != null)
-            .ToList();
+            .ToDictionary(s => s.Item1, s => s.Item2);
     }
     
     /**
@@ -131,11 +131,9 @@ public class RGSequenceManager : MonoBehaviour
             return new List<BotSequence>();
         }
 
-        return EnumerateSequencesInDirectory(sequencePath)
-            .Select(s => s.Item2)
-            .ToList();
+        return EnumerateSequencesInDirectory(sequencePath).Values.ToList();
 #else
-        IList<(string, BotSequence)> sequences = new List<(string, BotSequence)>();
+        var sequences = new Dictionary<string, BotSequence>();
 
         // 1. check the persistentDataPath for sequences
         var persistentDataPath = Application.persistentDataPath + "/BotSequences";
@@ -155,15 +153,19 @@ public class RGSequenceManager : MonoBehaviour
             {
                 var resourceFilename = jsonObject.name;
                 var json = (jsonObject as TextAsset)?.text ?? "";
+                
                 var sequence = JsonConvert.DeserializeObject<BotSequence>(json);
-            
-                // add the new sequence if it doesn't already exist
-                if (sequences.All(s => 
-                        s.Item2.name != sequence.name && 
-                        s.Item1 != resourceFilename)
-                )
+
+                // don't add sequences with duplicate names
+                if (sequences.Values.Any(s => s.name == sequence.name))
                 {
-                    sequences.Add((resourceFilename, sequence));
+                    continue;
+                }
+                
+                // add the new sequence if its filename doesn't already exist
+                if (!sequences.ContainsKey(resourceFilename))
+                {
+                    sequences.Add(resourceFilename, sequence);
                 }
             }
             catch (Exception e)
@@ -172,9 +174,7 @@ public class RGSequenceManager : MonoBehaviour
             }
         }
 
-        return sequences
-            .Select(s => s.Item2)
-            .ToList();
+        return sequences.Values.ToList();
 #endif
     }
 }
