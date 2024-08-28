@@ -14,9 +14,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
         public CVImageBinaryData screenshot;
 
         /// <summary>
-        /// Optional image data to be used as a query for object detection.
+        /// Optional image data to be used as a query for object detection in base64 encoded string format.
         /// </summary>
-        [CanBeNull] public CVImageBinaryData imageQuery;
+        [CanBeNull] public string imageQuery;
 
         /// <summary>
         /// Optional text query for object detection.
@@ -36,7 +36,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
                                         [CanBeNull] string textQuery,
-                                        [CanBeNull] CVImageBinaryData imageQuery,
+                                        [CanBeNull] string imageQuery,
                                         RectInt? withinRect,
                                         int index = 0)
         {
@@ -71,18 +71,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
 
             stringBuilder.Append("{\"screenshot\":");
             screenshot.WriteToStringBuilder(stringBuilder);
-            
-            if (textQuery != null)
-            {
-                stringBuilder.Append(",\"textQuery\":");
-                StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
-            }
-
-            if (imageQuery != null)
-            {
-                stringBuilder.Append(",\"imageToMatch\":");
-                imageQuery.WriteToStringBuilder(stringBuilder);
-            }
+            stringBuilder.Append(",\"textQuery\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
+            stringBuilder.Append(",\"imageToMatch\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, imageQuery);
             stringBuilder.Append(",\"withinRect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
             stringBuilder.Append(",\"index\":");

@@ -72,13 +72,35 @@ namespace RegressionGames
             );
         }
 
-        public async Task PostCriteriaObjectTextQuery(CVObjectDetectionRequest request, 
+        public async Task PostCriteriaObjectDetection(CVObjectDetectionRequest request, 
                                                       Action<Action> abortRegistrationHook,
                                                       Action<List<CVObjectDetectionResult>> onSuccess,
                                                       Action onFailure)
         {
+            
+            string endpoint;
+            if (!string.IsNullOrEmpty(request.textQuery))
+            {
+                endpoint = "criteria-object-text-query";
+            }
+            else if (request.imageQuery != null)
+            {
+                endpoint = "criteria-object-image-query";
+            }
+            else if (request.imageQuery != null && request.textQuery != null){
+                RGDebug.LogError("Invalid CVObjectDetectionRequest: Both textQuery and queryImage are both set. Please set one or the other.");
+                onFailure.Invoke();
+                return;
+            }
+            else
+            {
+                RGDebug.LogError("Invalid CVObjectDetectionRequest: Both textQuery and queryImage are null or empty. Please set at least one of them.");
+                onFailure.Invoke();
+                return;
+            }
+            
             await SendWebRequest(
-                uri: $"{GetCvServiceBaseUri()}/criteria-object-text-query",
+                uri: $"{GetCvServiceBaseUri()}/{endpoint}",
                 method: "POST",
                 payload: request.ToJsonString(),
                 abortRegistrationHook: abortRegistrationHook.Invoke,
@@ -94,6 +116,7 @@ namespace RegressionGames
                 }
             );
         }
+
         
         public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)
         {
