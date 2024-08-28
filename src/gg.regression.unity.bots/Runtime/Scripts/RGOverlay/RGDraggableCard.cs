@@ -31,7 +31,7 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     
     public void OnBeginDrag(PointerEventData eventData)
     {
-        Vector3 position = new Vector3
+        var position = new Vector3
         {
             x = eventData.position.x, 
             y = eventData.position.y,
@@ -54,15 +54,17 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         Vector2 mouseScreenSpacePosition = Input.mousePosition;
 
         var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
-        foreach (RGDropZone dz in potentialDropZones)
+        foreach (var dz in potentialDropZones)
         {
             var dropZoneRectTransform = dz.GetComponent<RectTransform>();
             var localMousePos = dropZoneRectTransform.InverseTransformPoint(mouseScreenSpacePosition);
             
             if (dropZoneRectTransform.rect.Contains(localMousePos))
             {
-                var ev = new PointerEventData(EventSystem.current);
-                ev.pointerDrag = this.gameObject;
+                var ev = new PointerEventData(EventSystem.current)
+                {
+                    pointerDrag = this.gameObject
+                };
                 dz.OnPointerEnter(ev);
                 IsReordering = true;
                 _dropZone = dz;
@@ -86,21 +88,31 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (draggingStateInstance != null)
+        Destroy(draggingStateInstance);
+
+        if (_dropZone == null && IsReordering)
         {
-            Destroy(draggingStateInstance);
+            var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
+            foreach (var dz in potentialDropZones)
+            {
+                if (dz.Contains(this.gameObject))
+                {
+                    dz.RemoveChild(this.gameObject);
+                    break;
+                }
+            }
+            return;
         }
 
         if (_dropZone == null)
         {
-            Debug.Log("NO DROP SONWE");
             return;
         }
 
         if (IsReordering)
         {
             IsReordering = false;
-            _dropZone.FinishReordering();
+            _dropZone.CompleteReordering();
             _dropZone = null;
             return;
         }
@@ -112,11 +124,6 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnExitDropZone()
     {
-        // if (draggingStateInstance != null)
-        // {
-        //     Destroy(draggingStateInstance);
-        // }
-        
         _dropZone = null;
     }
 }
