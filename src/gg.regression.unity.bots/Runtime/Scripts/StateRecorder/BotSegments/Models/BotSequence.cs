@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments;
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -69,9 +70,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            BotSequence sequence = JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
-            sequence.lastModified = Directory.GetLastWriteTime(path);
-            return sequence;
+            return JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
         }
 
         public string ToJsonString()

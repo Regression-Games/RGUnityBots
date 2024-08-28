@@ -6,11 +6,11 @@ using RegressionGames.StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {
-    public sealed class CVImageMouseActionDataJsonConverter : JsonConverter
+    public sealed class CVObjectDetectionMouseActionDataJsonConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
-            return typeof(CVImageMouseActionData).IsAssignableFrom(objectType);
+            return typeof(CVObjectDetectionMouseActionData).IsAssignableFrom(objectType);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -19,12 +19,10 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             {
                 JObject jObject = JObject.Load(reader);
                 // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
-                CVImageMouseActionData actionModel = new();
-                if (jObject.ContainsKey("apiVersion"))
-                {
-                    actionModel.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
-                }
-                actionModel.imageData = jObject.GetValue("imageData").ToObject<string>(serializer);
+                CVObjectDetectionMouseActionData actionModel = new();
+                actionModel.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
+                actionModel.imageQuery = jObject.GetValue("imageData")?.ToObject<string>(serializer);
+                actionModel.textQuery = jObject.GetValue("textQuery")?.ToObject<string>(serializer);
                 actionModel.withinRect = jObject.GetValue("withinRect")?.ToObject<CVWithinRect>(serializer);
                 actionModel.actions = jObject.GetValue("actions").ToObject<List<CVMouseActionDetails>>(serializer);
                 return actionModel;
