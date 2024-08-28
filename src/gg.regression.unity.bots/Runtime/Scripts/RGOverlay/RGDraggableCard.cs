@@ -4,6 +4,11 @@ using UnityEngine.EventSystems;
 
 namespace RegressionGames
 {
+    /**
+     * <summary>
+     * A component that can be dragged and dropped, and also reordered, within an RGDropZone instance
+     * </summary>
+     */
     public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         public bool IsReordering;
@@ -30,6 +35,12 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * When starting to drag this card, create the prefab that represents this card in motion
+         * </summary>
+         * <param name="eventData">Cursor event data</param>
+         */
         public void OnBeginDrag(PointerEventData eventData)
         {
             var position = new Vector3
@@ -39,6 +50,7 @@ namespace RegressionGames
                 z = 0
             };
 
+            // create the in-motion state of this card and set its details
             var instance = Instantiate(draggingStatePrefab, position, draggingStatePrefab.transform.rotation);
             if (instance != null)
             {
@@ -52,16 +64,19 @@ namespace RegressionGames
                 _draggingStateInstance = instance;
             }
 
+            // check if this card is within a drop zone the moment it begins dragging. If so, this card is being
+            // reordered or deleted, not added as a new child
             Vector2 mouseScreenSpacePosition = Input.mousePosition;
-
             var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
             foreach (var dz in potentialDropZones)
             {
+                // get the potential cursor position within this drop zone 
                 var dropZoneRectTransform = dz.GetComponent<RectTransform>();
                 var localMousePos = dropZoneRectTransform.InverseTransformPoint(mouseScreenSpacePosition);
 
                 if (dropZoneRectTransform.rect.Contains(localMousePos))
                 {
+                    // this card has begun dragging within a drop zone. It is being reordered (or deleted) 
                     var ev = new PointerEventData(EventSystem.current)
                     {
                         pointerDrag = this.gameObject
@@ -74,6 +89,12 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * When this card begins dragging, update the dragging state's position and set the current drop zone
+         * </summary>
+         * <param name="eventData">Cursor event data</param>
+         */
         public void OnDrag(PointerEventData eventData)
         {
             if (_draggingStateInstance != null)
@@ -87,6 +108,13 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * When this card ends dragging destroy the dragging state instance, and resolve if this card should be added,
+         * reorderd, or destroyed
+         * </summary>
+         * <param name="eventData">Cursor event data</param>
+         */
         public void OnEndDrag(PointerEventData eventData)
         {
             if (_draggingStateInstance != null)
@@ -94,6 +122,7 @@ namespace RegressionGames
                 Destroy(_draggingStateInstance);
             }
 
+            // this card is not in a drop zone, and is being reordered, this card is being deleted from its drop zone 
             if (_dropZone == null && IsReordering)
             {
                 var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
@@ -109,24 +138,32 @@ namespace RegressionGames
                 return;
             }
 
+            // this card is not in a drop zone. Ignore
             if (_dropZone == null)
             {
                 return;
             }
 
+            // this card is being reordered. Reset its drop zone's state
             if (IsReordering)
             {
                 IsReordering = false;
-                _dropZone.CompleteReordering();
+                _dropZone.ResetState();
                 _dropZone = null;
                 return;
             }
 
+            // this card is being added to its drop zone
             var newCard = Instantiate(restingStatePrefab);
             _dropZone.AddChild(newCard);
             _dropZone = null;
         }
 
+        /**
+         * <summary>
+         * Unset this card's drop zone if dragged outside of it
+         * </summary>
+         */
         public void OnExitDropZone()
         {
             _dropZone = null;

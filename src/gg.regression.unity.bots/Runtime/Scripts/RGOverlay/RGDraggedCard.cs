@@ -3,6 +3,11 @@ using UnityEngine;
 
 namespace RegressionGames
 {
+    /**
+     * <summary>
+     * The in-motion state of a RGDraggableCard
+     * </summary>
+     */
     public class RGDraggedCard : MonoBehaviour
     {
         public string draggedCardName;

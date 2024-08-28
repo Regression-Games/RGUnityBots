@@ -2,6 +2,11 @@ using UnityEngine;
 
 namespace RegressionGames
 {
+    /**
+     * <summary>
+     * When clicked, open the Sequence Editor
+     * </summary>
+     */
     public class RGCreateNewSequenceButton : MonoBehaviour
     {
         public GameObject overlayContainer;
