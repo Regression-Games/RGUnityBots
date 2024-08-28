@@ -4,207 +4,220 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+namespace RegressionGames
 {
-    public List<GameObject> droppables; 
-
-    public int childHeight;
-
-    public int childSpacing;
-
-    public GameObject potentialDropSpotPrefab;
-
-    public GameObject emptyStatePrefab;
-
-    private GameObject potentialDropSpotInstance;
-
-    private GameObject _currentDroppable;
-
-    private int _currentDropIndex;
-
-    private const int DEFAULT_CHILD_HEIGHT = 30;
-
-    private const int DEFAULT_CHILD_SPACING = 8;
-
-    public void Start()
+    public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        _currentDropIndex = -1;
-    }
+        public List<GameObject> droppables;
 
-    public void Update()
-    {
-        if (_currentDroppable == null)
+        public GameObject potentialDropSpotPrefab;
+
+        public GameObject emptyStatePrefab;
+
+        private GameObject _emptyStatePrefabInstance;
+
+        private GameObject _potentialDropSpotInstance;
+
+        private GameObject _currentDroppable;
+
+        private int _currentDropIndex;
+
+        private const int DEFAULT_CHILD_HEIGHT = 30;
+
+        private const int DEFAULT_CHILD_SPACING = 8;
+
+        public void Start()
         {
-            return;
-        }
-        
-        // get screenspace location of the mouse cursor, within the bounds of this drop zone
-        Vector2 mouseScreenSpacePosition = Input.mousePosition;
-        var rectTransform = this.GetComponent<RectTransform>();
-        Vector2 localPoint = rectTransform.InverseTransformPoint(mouseScreenSpacePosition);
+            _currentDropIndex = -1;
 
-        // adjust the local point to have the origin in the top-left corner
-        var resultPosition = new Vector2(
-            localPoint.x + rectTransform.rect.size.x * rectTransform.pivot.x, 
-            -localPoint.y + rectTransform.rect.size.y * rectTransform.pivot.y
-        );
-
-        // update the position of the potential drop spot when the drop index changes
-        var dropIndex = ComputeDropIndex(resultPosition);
-        if (dropIndex >= 0 && dropIndex != _currentDropIndex)
-        {
-            _currentDropIndex = dropIndex;
-
-            // create the drop spot indicator if it does not exist, and shift existing children down to make room
-            var draggable = _currentDroppable.GetComponent<RGDraggableCard>();
-            if (draggable != null && draggable.IsReordering)
+            if (emptyStatePrefab != null)
             {
-                if (_currentDropIndex != _currentDroppable.transform.GetSiblingIndex())
+                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, this.transform, false);
+            }
+        }
+
+        public void Update()
+        {
+            if (_currentDroppable == null)
+            {
+                return;
+            }
+
+            // get screenspace location of the mouse cursor, within the bounds of this drop zone
+            Vector2 mouseScreenSpacePosition = Input.mousePosition;
+            var rectTransform = this.GetComponent<RectTransform>();
+            Vector2 localPoint = rectTransform.InverseTransformPoint(mouseScreenSpacePosition);
+
+            // adjust the local point to have the origin in the top-left corner
+            var resultPosition = new Vector2(
+                localPoint.x + rectTransform.rect.size.x * rectTransform.pivot.x,
+                -localPoint.y + rectTransform.rect.size.y * rectTransform.pivot.y
+            );
+
+            // update the position of the potential drop spot when the drop index changes
+            var dropIndex = ComputeDropIndex(resultPosition);
+            if (dropIndex >= 0 && dropIndex != _currentDropIndex)
+            {
+                _currentDropIndex = dropIndex;
+
+                // create the drop spot indicator if it does not exist, and shift existing children down to make room
+                var draggable = _currentDroppable.GetComponent<RGDraggableCard>();
+                if (draggable == null)
                 {
-                    _currentDroppable.transform.SetSiblingIndex(_currentDropIndex);
+                    return;
+                }
+
+                if (draggable.IsReordering)
+                {
+                    if (_currentDropIndex != _currentDroppable.transform.GetSiblingIndex())
+                    {
+                        _currentDroppable.transform.SetSiblingIndex(_currentDropIndex);
+                        ShiftChildrenForCurrentDrop();
+                    }
+                }
+                else
+                {
+                    if (_potentialDropSpotInstance == null)
+                    {
+                        _potentialDropSpotInstance = Instantiate(
+                            potentialDropSpotPrefab,
+                            transform,
+                            false);
+                    }
+
+                    _potentialDropSpotInstance.transform.SetSiblingIndex(_currentDropIndex);
+
                     ShiftChildrenForCurrentDrop();
+
                 }
             }
-            else
+        }
+
+        public void AddChild(GameObject newChild)
+        {
+            if (_emptyStatePrefabInstance != null)
             {
-                if (potentialDropSpotInstance == null)
-                {
-                    potentialDropSpotInstance = Instantiate(
-                        potentialDropSpotPrefab,
-                        transform,
-                        false);
-                }
-
-                potentialDropSpotInstance.transform.SetSiblingIndex(_currentDropIndex);
-                
-                if (_currentDropIndex > transform.childCount - 1)
-                {
-                    return;
-                }
-                
-                ShiftChildrenForCurrentDrop();
-                
+                Destroy(_emptyStatePrefabInstance);
             }
-        }
-    }
 
-    public void CompleteReordering()
-    {
-        _currentDroppable = null;
-        _currentDropIndex = -1;
-    }
-
-    public void AddChild(GameObject newChild)
-    {
-        Destroy(emptyStatePrefab);
-
-        var dropIndex = 0;
-        if (potentialDropSpotInstance != null)
-        {
-            dropIndex = potentialDropSpotInstance.transform.GetSiblingIndex();
-            Destroy(potentialDropSpotInstance);
-        }
-        
-        newChild.transform.SetParent(transform, false);
-        newChild.transform.SetSiblingIndex(dropIndex);
-        
-        _currentDroppable = null;
-        _currentDropIndex = -1;
-    }
-
-    public void RemoveChild(GameObject childToRemove)
-    {
-        Destroy(childToRemove);
-        
-        if (transform.childCount == 0)
-        {
-            var emptyState = Instantiate(emptyStatePrefab, new Vector3(), Quaternion.identity);
-            emptyState.transform.SetParent(transform, false);
-        }
-    }
-
-    public bool Contains(GameObject possibleChild)
-    {
-        var childIDs = new List<int>(this.transform.childCount);
-        for (int i = 0; i < this.transform.childCount; ++i)
-        {
-            childIDs.Add(this.transform.GetChild(i).GetInstanceID());
-        }
-
-        return childIDs.Contains(possibleChild.transform.GetInstanceID());
-    }
-
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        var target = eventData.pointerDrag;
-        if (target != null)
-        {
-            foreach (GameObject droppable in droppables)
+            var dropIndex = 0;
+            if (_potentialDropSpotInstance != null)
             {
-                if (target.GetType() == droppable.GetType())
+                dropIndex = _potentialDropSpotInstance.transform.GetSiblingIndex();
+                Destroy(_potentialDropSpotInstance);
+            }
+
+            newChild.transform.SetParent(transform, false);
+            newChild.transform.SetSiblingIndex(dropIndex);
+
+            _currentDroppable = null;
+            _currentDropIndex = -1;
+        }
+
+        public void RemoveChild(GameObject childToRemove)
+        {
+            if (this.transform.childCount - 1 == 0)
+            {
+                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, this.transform, false);
+            }
+
+            Destroy(childToRemove);
+        }
+
+        public bool Contains(GameObject possibleChild)
+        {
+            var childIDs = new List<int>(this.transform.childCount);
+            for (int i = 0; i < this.transform.childCount; ++i)
+            {
+                childIDs.Add(this.transform.GetChild(i).GetInstanceID());
+            }
+
+            return childIDs.Contains(possibleChild.transform.GetInstanceID());
+        }
+
+        public void CompleteReordering()
+        {
+            _currentDroppable = null;
+            _currentDropIndex = -1;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            var target = eventData.pointerDrag;
+            if (target != null)
+            {
+                foreach (GameObject droppable in droppables)
                 {
-                    _currentDroppable = target;
-                    return;
+                    if (target.GetType() == droppable.GetType())
+                    {
+                        _currentDroppable = target;
+                        return;
+                    }
                 }
             }
         }
-    }
 
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        Destroy(potentialDropSpotInstance);
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            Destroy(_potentialDropSpotInstance);
 
-        var draggableCard = _currentDroppable?.GetComponent<RGDraggableCard>();
-        if (draggableCard != null)
-        {
-            draggableCard.OnExitDropZone();
-        }
-        
-        _currentDroppable = null;
-        _currentDropIndex = -1;
-    }
+            var draggableCard = _currentDroppable?.GetComponent<RGDraggableCard>();
+            if (draggableCard != null)
+            {
+                draggableCard.OnExitDropZone();
+            }
 
-    private int ComputeDropIndex(Vector2 location)
-    {
-        if (_currentDroppable == null)
-        {
-            // we lack something to drop
-            return -1;
-        }
-        
-        if (transform.childCount == 0)
-        {
-            return 0;
+            _currentDroppable = null;
+            _currentDropIndex = -1;
         }
 
-        // get the height of the currently held droppable
-        var childHeight = _currentDroppable.GetComponent<RectTransform>()?.rect.height ?? DEFAULT_CHILD_HEIGHT;
-        
-        // get the child spacing within this Drop Zone instance
-        var childSpacing = GetComponent<VerticalLayoutGroup>()?.spacing ?? DEFAULT_CHILD_SPACING;
-
-        var totalHeight = (childHeight + childSpacing) * transform.childCount;
-
-        // mouse location is at the bottom of list
-        if (location.y >= totalHeight)
+        private int ComputeDropIndex(Vector2 location)
         {
-            return transform.childCount + 1;
+            if (_currentDroppable == null)
+            {
+                // we lack something to drop
+                return -1;
+            }
+
+            if (this.transform.childCount == 0)
+            {
+                return 0;
+            }
+
+            // get the height of the currently held droppable
+            var childHeight = _currentDroppable.GetComponent<RectTransform>()?.rect.height ?? DEFAULT_CHILD_HEIGHT;
+
+            // get the child spacing within this Drop Zone instance
+            var childSpacing = this.GetComponent<VerticalLayoutGroup>()?.spacing ?? DEFAULT_CHILD_SPACING;
+
+            var totalHeight = (childHeight + childSpacing) * this.transform.childCount;
+
+            // mouse location is at the bottom of list
+            if (location.y >= totalHeight)
+            {
+                return this.transform.childCount + 1;
+            }
+
+            return (int)Math.Round(location.y / (childHeight + childSpacing));
         }
 
-        return (int)Math.Round(location.y / (childHeight + childSpacing));
-    }
-    
-    private void ShiftChildrenForCurrentDrop()
-    {
-        var childTransforms = new Transform[transform.childCount];
-        for (var i = 0; i < transform.childCount; i++)
+        private void ShiftChildrenForCurrentDrop()
         {
-            childTransforms[i] = transform.GetChild(i);
-        }
-     
-        for (var i = _currentDropIndex; i > transform.childCount - 1; i++)
-        {
-            childTransforms[i].SetSiblingIndex(i + 1);
+            if (_currentDropIndex > this.transform.childCount - 1)
+            {
+                return;
+            }
+
+            var childTransforms = new Transform[this.transform.childCount];
+            for (var i = 0; i < this.transform.childCount; i++)
+            {
+                childTransforms[i] = this.transform.GetChild(i);
+            }
+
+            for (var i = _currentDropIndex; i > this.transform.childCount - 1; i++)
+            {
+                childTransforms[i].SetSiblingIndex(i + 1);
+            }
         }
     }
 }

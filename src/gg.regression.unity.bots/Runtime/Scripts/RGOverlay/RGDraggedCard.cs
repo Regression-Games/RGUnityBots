@@ -1,18 +1,20 @@
 using TMPro;
 using UnityEngine;
 
-public class RGDraggedCard : MonoBehaviour
+namespace RegressionGames
 {
-    public string draggedCardName;
-    
-    [SerializeField]
-    public TMP_Text namePrefab;
-
-    public void Start()
+    public class RGDraggedCard : MonoBehaviour
     {
-        if (namePrefab != null)
+        public string draggedCardName;
+
+        [SerializeField] public TMP_Text namePrefab;
+
+        public void Start()
         {
-            namePrefab.text = draggedCardName;
+            if (namePrefab != null)
+            {
+                namePrefab.text = draggedCardName;
+            }
         }
     }
 }

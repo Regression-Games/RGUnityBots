@@ -1,26 +1,17 @@
-using System;
-using System.IO;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using Newtonsoft.Json;
-using RegressionGames;
-using TMPro;
 using UnityEngine;
-using RegressionGames.StateRecorder.BotSegments.Models;
 
-/**
- * <summary>UI for managing operations performed on the user's set of Bot Sequences</summary>
- */
-public class RGCreateNewSequenceButton : MonoBehaviour
+namespace RegressionGames
 {
-    public GameObject overlayContainer;
-
-    public void OnClick()
+    public class RGCreateNewSequenceButton : MonoBehaviour
     {
-        if (overlayContainer != null)
+        public GameObject overlayContainer;
+
+        public void OnClick()
         {
-            overlayContainer.GetComponent<RGSequenceManager>().ShowEditSequenceDialog();
+            if (overlayContainer != null)
+            {
+                overlayContainer.GetComponent<RGSequenceManager>().ShowEditSequenceDialog();
+            }
         }
     }
 }

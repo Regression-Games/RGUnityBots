@@ -1,129 +1,135 @@
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+namespace RegressionGames
 {
-    public bool IsReordering;
-    
-    public string draggableCardName;
-    
-    public TMP_Text namePrefab;
-    
-    public GameObject restingStatePrefab;
-
-    public GameObject draggingStatePrefab;
-
-    private GameObject draggingStateInstance;
-
-    private RGDropZone _dropZone;
-
-    public void Start()
+    public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
-        IsReordering = false;
-        
-        if (namePrefab != null)
-        {
-            namePrefab.text = draggableCardName;
-        }
-    }
-    
-    public void OnBeginDrag(PointerEventData eventData)
-    {
-        var position = new Vector3
-        {
-            x = eventData.position.x, 
-            y = eventData.position.y,
-            z = 0
-        };
+        public bool IsReordering;
 
-        var instance = Instantiate(draggingStatePrefab, position, draggingStatePrefab.transform.rotation);
-        if (instance != null)
+        public string draggableCardName;
+
+        public TMP_Text namePrefab;
+
+        public GameObject restingStatePrefab;
+
+        public GameObject draggingStatePrefab;
+
+        private GameObject _draggingStateInstance;
+
+        private RGDropZone _dropZone;
+
+        public void Start()
         {
-            var dragged = instance.GetComponent<RGDraggedCard>();
-            if (dragged != null)
+            IsReordering = false;
+
+            if (namePrefab != null)
             {
-                dragged.draggedCardName = draggableCardName;
+                namePrefab.text = draggableCardName;
             }
-            
-            instance.transform.SetParent(transform.root, false);
-            draggingStateInstance = instance;
         }
 
-        Vector2 mouseScreenSpacePosition = Input.mousePosition;
-
-        var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
-        foreach (var dz in potentialDropZones)
+        public void OnBeginDrag(PointerEventData eventData)
         {
-            var dropZoneRectTransform = dz.GetComponent<RectTransform>();
-            var localMousePos = dropZoneRectTransform.InverseTransformPoint(mouseScreenSpacePosition);
-            
-            if (dropZoneRectTransform.rect.Contains(localMousePos))
+            var position = new Vector3
             {
-                var ev = new PointerEventData(EventSystem.current)
+                x = eventData.position.x,
+                y = eventData.position.y,
+                z = 0
+            };
+
+            var instance = Instantiate(draggingStatePrefab, position, draggingStatePrefab.transform.rotation);
+            if (instance != null)
+            {
+                var dragged = instance.GetComponent<RGDraggedCard>();
+                if (dragged != null)
                 {
-                    pointerDrag = this.gameObject
-                };
-                dz.OnPointerEnter(ev);
-                IsReordering = true;
-                _dropZone = dz;
-                break;
+                    dragged.draggedCardName = draggableCardName;
+                }
+
+                instance.transform.SetParent(transform.root, false);
+                _draggingStateInstance = instance;
             }
-        }
-    }
 
-    public void OnDrag(PointerEventData eventData)
-    {
-        if (draggingStateInstance != null)
-        {
-            draggingStateInstance.transform.position = eventData.position;        
-        }
+            Vector2 mouseScreenSpacePosition = Input.mousePosition;
 
-        if (_dropZone == null)
-        {
-            _dropZone = eventData.pointerEnter?.GetComponent<RGDropZone>();
-        }
-    }
-
-    public void OnEndDrag(PointerEventData eventData)
-    {
-        Destroy(draggingStateInstance);
-
-        if (_dropZone == null && IsReordering)
-        {
             var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
             foreach (var dz in potentialDropZones)
             {
-                if (dz.Contains(this.gameObject))
+                var dropZoneRectTransform = dz.GetComponent<RectTransform>();
+                var localMousePos = dropZoneRectTransform.InverseTransformPoint(mouseScreenSpacePosition);
+
+                if (dropZoneRectTransform.rect.Contains(localMousePos))
                 {
-                    dz.RemoveChild(this.gameObject);
+                    var ev = new PointerEventData(EventSystem.current)
+                    {
+                        pointerDrag = this.gameObject
+                    };
+                    dz.OnPointerEnter(ev);
+                    IsReordering = true;
+                    _dropZone = dz;
                     break;
                 }
             }
-            return;
         }
 
-        if (_dropZone == null)
+        public void OnDrag(PointerEventData eventData)
         {
-            return;
+            if (_draggingStateInstance != null)
+            {
+                _draggingStateInstance.transform.position = eventData.position;
+            }
+
+            if (_dropZone == null)
+            {
+                _dropZone = eventData.pointerEnter?.GetComponent<RGDropZone>();
+            }
         }
 
-        if (IsReordering)
+        public void OnEndDrag(PointerEventData eventData)
         {
-            IsReordering = false;
-            _dropZone.CompleteReordering();
+            if (_draggingStateInstance != null)
+            {
+                Destroy(_draggingStateInstance);
+            }
+
+            if (_dropZone == null && IsReordering)
+            {
+                var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
+                foreach (var dz in potentialDropZones)
+                {
+                    if (dz.Contains(this.gameObject))
+                    {
+                        dz.RemoveChild(this.gameObject);
+                        break;
+                    }
+                }
+
+                return;
+            }
+
+            if (_dropZone == null)
+            {
+                return;
+            }
+
+            if (IsReordering)
+            {
+                IsReordering = false;
+                _dropZone.CompleteReordering();
+                _dropZone = null;
+                return;
+            }
+
+            var newCard = Instantiate(restingStatePrefab);
+            _dropZone.AddChild(newCard);
             _dropZone = null;
-            return;
         }
-        
-        var newCard = Instantiate(restingStatePrefab);
-        _dropZone.AddChild(newCard);
-        _dropZone = null;
-    }
 
-    public void OnExitDropZone()
-    {
-        _dropZone = null;
+        public void OnExitDropZone()
+        {
+            _dropZone = null;
+        }
     }
 }
