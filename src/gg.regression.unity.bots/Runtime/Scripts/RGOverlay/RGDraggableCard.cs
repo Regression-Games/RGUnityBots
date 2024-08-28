@@ -5,6 +5,8 @@ using UnityEngine.EventSystems;
 
 public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    public bool IsReordering;
+    
     public string draggableCardName;
     
     public TMP_Text namePrefab;
@@ -19,6 +21,8 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void Start()
     {
+        IsReordering = false;
+        
         if (namePrefab != null)
         {
             namePrefab.text = draggableCardName;
@@ -41,7 +45,6 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             if (dragged != null)
             {
                 dragged.draggedCardName = draggableCardName;
-                Debug.Log("DRAGGED CARD NAME SET");
             }
             
             instance.transform.SetParent(transform.root, false);
@@ -54,24 +57,16 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         foreach (RGDropZone dz in potentialDropZones)
         {
             var dropZoneRectTransform = dz.GetComponent<RectTransform>();
-
-            // get screenspace location of the mouse cursor, within the bounds of this drop zone
-            Vector2 localPoint;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                dropZoneRectTransform,
-                mouseScreenSpacePosition,
-                null, 
-                out localPoint
-            ); 
-
-            if (localPoint.x >= 0 &&
-                localPoint.x <= dropZoneRectTransform.rect.width &&
-                localPoint.y >= 0 &&
-                localPoint.y <= dropZoneRectTransform.rect.height)
+            var localMousePos = dropZoneRectTransform.InverseTransformPoint(mouseScreenSpacePosition);
+            
+            if (dropZoneRectTransform.rect.Contains(localMousePos))
             {
                 var ev = new PointerEventData(EventSystem.current);
                 ev.pointerDrag = this.gameObject;
                 dz.OnPointerEnter(ev);
+                IsReordering = true;
+                _dropZone = dz;
+                break;
             }
         }
     }
@@ -83,7 +78,10 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
             draggingStateInstance.transform.position = eventData.position;        
         }
 
-        _dropZone = eventData.pointerEnter?.GetComponent<RGDropZone>();
+        if (_dropZone == null)
+        {
+            _dropZone = eventData.pointerEnter?.GetComponent<RGDropZone>();
+        }
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -95,11 +93,30 @@ public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         if (_dropZone == null)
         {
+            Debug.Log("NO DROP SONWE");
             return;
         }
 
-        var newCard = Instantiate(restingStatePrefab, new Vector3(), Quaternion.identity);
+        if (IsReordering)
+        {
+            IsReordering = false;
+            _dropZone.FinishReordering();
+            _dropZone = null;
+            return;
+        }
+        
+        var newCard = Instantiate(restingStatePrefab);
         _dropZone.AddChild(newCard);
+        _dropZone = null;
+    }
+
+    public void OnExitDropZone()
+    {
+        // if (draggingStateInstance != null)
+        // {
+        //     Destroy(draggingStateInstance);
+        // }
+        
         _dropZone = null;
     }
 }
