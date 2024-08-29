@@ -363,6 +363,7 @@ namespace RegressionGames.StateRecorder
                 Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionBotSegmentsDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
+                Directory.CreateDirectory(_currentGameplaySessionLogsDirectoryPrefix);
 
                 // run the tick processor in the background
                 Task.Run(ProcessTicks, _tokenSource.Token);
@@ -903,20 +904,14 @@ namespace RegressionGames.StateRecorder
         {
             try
             {
-                if (logs.Length == 0)
-                {
-                    return;
-                }
-
                 // append logs to jsonl file
                 var path = $"{directoryPath}/logs/{tickNumber}".PadLeft(9, '0') + ".jsonl";
-                var fileWriteTask = File.AppendAllTextAsync(path, logs, _tokenSource.Token);
+                var fileWriteTask = File.WriteAllTextAsync(path, logs, _tokenSource.Token);
                 fileWriteTask.ContinueWith((nextTask) =>
                 {
                     if (nextTask.Exception != null)
                     {
-                        RGDebug.LogException(nextTask.Exception,
-                            $"ERROR: Unable to record logs for tick # {tickNumber}");
+                        RGDebug.LogException(nextTask.Exception,$"ERROR: Unable to record logs for tick # {tickNumber}");
                     }
                 });
                 _fileWriteTasks.Add((path, fileWriteTask));

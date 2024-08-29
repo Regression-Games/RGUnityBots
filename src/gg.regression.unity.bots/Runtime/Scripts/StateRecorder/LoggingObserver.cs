@@ -35,7 +35,8 @@ namespace RegressionGames.StateRecorder
             if (type == LogType.Warning)
             {
                 LoggedWarnings++;
-            } else if (type == LogType.Error || type == LogType.Exception)
+            } 
+            else if (type == LogType.Error || type == LogType.Exception)
             {
                 LoggedErrors++;
             }
@@ -45,7 +46,6 @@ namespace RegressionGames.StateRecorder
             // it is clearly marked as a UTC time (with the `Z` suffix)
             var dataPoint = new LogDataPoint(
                 timestamp: DateTimeOffset.UtcNow,
-                frameTimestamp: Time.unscaledTimeAsDouble,
                 level: type, 
                 message: message, 
                 stackTrace: stacktrace
