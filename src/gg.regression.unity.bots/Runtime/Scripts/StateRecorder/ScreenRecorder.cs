@@ -68,7 +68,7 @@ namespace RegressionGames.StateRecorder
         private string _currentGameplaySessionDataDirectoryPrefix;
         private string _currentGameplaySessionCodeCoverageMetadataPath;
         private string _currentGameplaySessionThumbnailPath;
-        private string _currentGameplaySessionLogsPathPrefix;
+        private string _currentGameplaySessionLogsDirectoryPrefix;
 
         private CancellationTokenSource _tokenSource;
 
@@ -143,7 +143,7 @@ namespace RegressionGames.StateRecorder
             RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
-        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, long loggedWarnings, long loggedErrors, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string codeCovMetadataPath, string thumbnailPath, string logsPathPrefix, bool onDestroy = false)
+        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, long loggedWarnings, long loggedErrors, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string codeCovMetadataPath, string thumbnailPath, string logsDirectoryPrefix, bool onDestroy = false)
         {
             if (!onDestroy)
             {
@@ -177,12 +177,9 @@ namespace RegressionGames.StateRecorder
             var zipTask4 = Task.Run(() =>
             {
                 // Then save the logs separately
-                RGDebug.LogInfo($"Zipping logs recording replay to file: {logsPathPrefix}.zip");
-                using (ZipArchive zip = ZipFile.Open(logsPathPrefix + ".zip", ZipArchiveMode.Create))
-                {
-                    zip.CreateEntryFromFile(logsPathPrefix + ".jsonl", "logs.jsonl");
-                }
-                RGDebug.LogInfo($"Finished zipping replay to file: {logsPathPrefix}.zip");
+                RGDebug.LogInfo($"Zipping logs recording replay to file: {logsDirectoryPrefix}.zip");
+                ZipFile.CreateFromDirectory(logsDirectoryPrefix, logsDirectoryPrefix + ".zip");
+                RGDebug.LogInfo($"Finished zipping replay to file: {logsDirectoryPrefix}.zip");
             });
 
             // Save code coverage metadata if code coverage is enabled
@@ -212,7 +209,7 @@ namespace RegressionGames.StateRecorder
             Directory.Delete(dataDirectoryPrefix, true);
             Directory.Delete(botSegmentsDirectoryPrefix, true);
             Directory.Delete(screenshotsDirectoryPrefix, true);
-            File.Delete(logsPathPrefix + ".jsonl");
+            Directory.Delete(logsDirectoryPrefix, true);
 
             await CreateAndUploadGameplaySession(
                 tickCount, 
@@ -224,7 +221,7 @@ namespace RegressionGames.StateRecorder
                 botSegmentsDirectoryPrefix,
                 screenshotsDirectoryPrefix, 
                 thumbnailPath, 
-                logsPathPrefix, 
+                logsDirectoryPrefix, 
                 onDestroy
             );
         }
@@ -362,7 +359,7 @@ namespace RegressionGames.StateRecorder
                 _currentGameplaySessionBotSegmentsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/bot_segments";
                 _currentGameplaySessionCodeCoverageMetadataPath = _currentGameplaySessionDirectoryPrefix + "/code_coverage_metadata.json";
                 _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
-                _currentGameplaySessionLogsPathPrefix = _currentGameplaySessionDirectoryPrefix + "/logs";
+                _currentGameplaySessionLogsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/logs";
                 Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionBotSegmentsDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
@@ -468,7 +465,7 @@ namespace RegressionGames.StateRecorder
                     _currentGameplaySessionScreenshotsDirectoryPrefix,
                     _currentGameplaySessionCodeCoverageMetadataPath,
                     _currentGameplaySessionThumbnailPath, 
-                    _currentGameplaySessionLogsPathPrefix,
+                    _currentGameplaySessionLogsDirectoryPrefix,
                     true);
             }
 
@@ -699,6 +696,8 @@ namespace RegressionGames.StateRecorder
                         botSegmentJson = Encoding.UTF8.GetBytes(
                             botSegment.ToJsonString()
                         );
+
+                        logs = _loggingObserver.DequeueLogs();
                         
                         inputData.MarkSent();
                     }
@@ -779,7 +778,6 @@ namespace RegressionGames.StateRecorder
                         );
                     }
                 }
-                _loggingObserver.FlushLogs($"{_currentGameplaySessionDirectoryPrefix}/logs.jsonl", _tokenSource.Token);
             }
         }
 
@@ -813,6 +811,7 @@ namespace RegressionGames.StateRecorder
             RecordBotSegment(directoryPrefix, tickNumber, tickData.botSegmentJson);
             RecordJson(directoryPrefix, tickNumber, tickData.jsonData);
             RecordJPG(directoryPrefix, tickNumber, tickData.screenshotWidth, tickData.screenshotHeight, tickData.screenshotData);
+            RecordLogs(directoryPrefix, tickNumber, tickData.logs);
         }
 
         private void RecordJPG(string directoryPath, long tickNumber, int tickScreenshotWidth, int tickScreenshotHeight, byte[] tickScreenshotData)
@@ -897,6 +896,34 @@ namespace RegressionGames.StateRecorder
             catch (Exception e)
             {
                 RGDebug.LogException(e, $"ERROR: Unable to record JSON bot_segment for tick # {tickNumber}");
+            }
+        }
+
+        private void RecordLogs(string directoryPath, long tickNumber, string logs)
+        {
+            try
+            {
+                if (logs.Length == 0)
+                {
+                    return;
+                }
+
+                // append logs to jsonl file
+                var path = $"{directoryPath}/logs/{tickNumber}".PadLeft(9, '0') + ".jsonl";
+                var fileWriteTask = File.AppendAllTextAsync(path, logs, _tokenSource.Token);
+                fileWriteTask.ContinueWith((nextTask) =>
+                {
+                    if (nextTask.Exception != null)
+                    {
+                        RGDebug.LogException(nextTask.Exception,
+                            $"ERROR: Unable to record logs for tick # {tickNumber}");
+                    }
+                });
+                _fileWriteTasks.Add((path, fileWriteTask));
+            }
+            catch (Exception e)
+            {
+                RGDebug.LogException(e, $"ERROR: Unable to record logs for tick # {tickNumber}");
             }
         }
     }
