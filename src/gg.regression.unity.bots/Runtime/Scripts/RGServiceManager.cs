@@ -614,8 +614,7 @@ namespace RegressionGames
                     contentType: "application/zip",
                     onSuccess: (s) =>
                     {
-                        RGDebug.LogDebug(
-                            $"RGService GameplaySessionLogs response received");
+                        RGDebug.LogDebug($"RGService GameplaySessionLogs response received");
                         onSuccess.Invoke();
                     },
                     onFailure: (f) =>
