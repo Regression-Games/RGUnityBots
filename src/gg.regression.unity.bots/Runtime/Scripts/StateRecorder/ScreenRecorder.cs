@@ -700,8 +700,6 @@ namespace RegressionGames.StateRecorder
                             botSegment.ToJsonString()
                         );
                         
-                        logs = _loggingObserver.FlushLogs();
-
                         inputData.MarkSent();
                     }
                     catch (Exception e)
@@ -781,6 +779,7 @@ namespace RegressionGames.StateRecorder
                         );
                     }
                 }
+                _loggingObserver.FlushLogs($"{_currentGameplaySessionDirectoryPrefix}/logs.jsonl", _tokenSource.Token);
             }
         }
 
@@ -814,7 +813,6 @@ namespace RegressionGames.StateRecorder
             RecordBotSegment(directoryPrefix, tickNumber, tickData.botSegmentJson);
             RecordJson(directoryPrefix, tickNumber, tickData.jsonData);
             RecordJPG(directoryPrefix, tickNumber, tickData.screenshotWidth, tickData.screenshotHeight, tickData.screenshotData);
-            RecordLogs(directoryPrefix, tickNumber, tickData.logs);
         }
 
         private void RecordJPG(string directoryPath, long tickNumber, int tickScreenshotWidth, int tickScreenshotHeight, byte[] tickScreenshotData)
@@ -899,34 +897,6 @@ namespace RegressionGames.StateRecorder
             catch (Exception e)
             {
                 RGDebug.LogException(e, $"ERROR: Unable to record JSON bot_segment for tick # {tickNumber}");
-            }
-        }
-
-        private void RecordLogs(string directoryPath, long tickNumber, string logs)
-        {
-            try
-            {
-                if (logs.Length == 0)
-                {
-                    return;
-                }
-                
-                // append logs to jsonl file
-                var path = $"{directoryPath}/logs.jsonl";
-                var fileWriteTask = File.AppendAllTextAsync(path, logs, _tokenSource.Token);
-                fileWriteTask.ContinueWith((nextTask) =>
-                {
-                    if (nextTask.Exception != null)
-                    {
-                        RGDebug.LogException(nextTask.Exception, $"ERROR: Unable to record logs for tick # {tickNumber}");
-                    }
-
-                });
-                _fileWriteTasks.Add((path,fileWriteTask));
-            }
-            catch (Exception e)
-            {
-                RGDebug.LogException(e, $"ERROR: Unable to record logs for tick # {tickNumber}");
             }
         }
     }
