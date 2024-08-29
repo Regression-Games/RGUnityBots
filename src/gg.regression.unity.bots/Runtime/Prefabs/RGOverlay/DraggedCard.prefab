@@ -147,6 +147,8 @@ GameObject:
   - component: {fileID: 1609899089925627103}
   - component: {fileID: 2601624920373251028}
   - component: {fileID: 4887653292590274915}
+  - component: {fileID: 3635310732519825840}
+  - component: {fileID: 6669123547198852927}
   m_Layer: 0
   m_Name: DraggedCard
   m_TagString: Untagged
@@ -228,6 +230,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   draggedCardName: Placeholder dragged card name
   namePrefab: {fileID: 7153013761642342452}
+--- !u!114 &3635310732519825840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5443515706651796386}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b652809ce7044eda8bd0f712ba02550, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fadeDuration: 0.1
+--- !u!225 &6669123547198852927
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5443515706651796386}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &9081759233827119378
 GameObject:
   m_ObjectHideFlags: 0

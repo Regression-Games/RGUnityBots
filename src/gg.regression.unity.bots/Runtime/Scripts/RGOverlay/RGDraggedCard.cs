@@ -21,5 +21,10 @@ namespace RegressionGames
                 namePrefab.text = draggedCardName;
             }
         }
+
+        public void FadeOutAndDestroy()
+        {
+            GetComponent<RGFadeOutAnimation>()?.StartFadeOut(this.gameObject);
+        }
     }
 }

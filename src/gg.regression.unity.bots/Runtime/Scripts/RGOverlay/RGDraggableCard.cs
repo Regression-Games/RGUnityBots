@@ -111,18 +111,18 @@ namespace RegressionGames
         /**
          * <summary>
          * When this card ends dragging destroy the dragging state instance, and resolve if this card should be added,
-         * reorderd, or destroyed
+         * reordered, or destroyed
          * </summary>
          * <param name="eventData">Cursor event data</param>
          */
         public void OnEndDrag(PointerEventData eventData)
         {
-            if (_draggingStateInstance != null)
+            if (_draggingStateInstance == null)
             {
-                Destroy(_draggingStateInstance);
+                return;
             }
-
-            // this card is not in a drop zone, and is being reordered, this card is being deleted from its drop zone 
+            
+            // this card is not in a drop zone, and is being reordered, this card is being deleted from its drop zone
             if (_dropZone == null && IsReordering)
             {
                 var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
@@ -134,13 +134,17 @@ namespace RegressionGames
                         break;
                     }
                 }
-
+                
+                // destroy the dragging state after a fade out animation 
+                _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
 
-            // this card is not in a drop zone. Ignore
+            // this card is not in a drop zone. Ignore it
             if (_dropZone == null)
             {
+                // destroy the dragging state after a fade out animation 
+                _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
 
@@ -150,6 +154,7 @@ namespace RegressionGames
                 IsReordering = false;
                 _dropZone.ResetState();
                 _dropZone = null;
+                Destroy(_draggingStateInstance);
                 return;
             }
 
@@ -157,6 +162,7 @@ namespace RegressionGames
             var newCard = Instantiate(restingStatePrefab);
             _dropZone.AddChild(newCard);
             _dropZone = null;
+            Destroy(_draggingStateInstance);
         }
 
         /**
