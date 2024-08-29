@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                 // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
                 CVObjectDetectionMouseActionData actionModel = new();
                 actionModel.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
-                actionModel.imageQuery = jObject.GetValue("imageData")?.ToObject<string>(serializer);
+                actionModel.imageQuery = jObject.GetValue("imageQuery")?.ToObject<string>(serializer);
                 actionModel.textQuery = jObject.GetValue("textQuery")?.ToObject<string>(serializer);
                 actionModel.withinRect = jObject.GetValue("withinRect")?.ToObject<CVWithinRect>(serializer);
                 actionModel.actions = jObject.GetValue("actions").ToObject<List<CVMouseActionDetails>>(serializer);
