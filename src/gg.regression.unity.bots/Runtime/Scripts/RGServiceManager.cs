@@ -463,42 +463,11 @@ namespace RegressionGames
             }
         }
 
-        /**
-         * Uploads all log messages for the bot instance to Regression Games in JSONL format
-         */
-        public async Task UploadLogs(long botInstanceId, string filePath, Action onSuccess, Action onFailure)
+        public async Task CreateGameplaySession(DateTime startTime, DateTime endTime, long numTicks, long loggedWarnings, long loggedErrors, Action<RGGameplaySession> onSuccess, Action onFailure)
         {
             if (LoadAuth())
             {
-                await SendWebFileUploadRequest(
-                    uri: $"{GetRgServiceBaseUri()}/bot-instance-history/{botInstanceId}/logs",
-                    method: "POST",
-                    filePath: filePath,
-                    contentType: "application/jsonl",
-                    onSuccess: (s) =>
-                    {
-                        RGDebug.LogDebug(
-                            $"RGService UploadLogs response received");
-                        onSuccess.Invoke();
-                    },
-                    onFailure: (f) =>
-                    {
-                        RGDebug.LogWarning($"Failed to upload logs for bot instance {botInstanceId}: {f}");
-                        onFailure.Invoke();
-                    }
-                );
-            }
-            else
-            {
-                onFailure.Invoke();
-            }
-        }
-
-        public async Task CreateGameplaySession(DateTime startTime, DateTime endTime, long numTicks, Action<RGGameplaySession> onSuccess, Action onFailure)
-        {
-            if (LoadAuth())
-            {
-                RGGameplaySessionCreateRequest request = new RGGameplaySessionCreateRequest(startTime, endTime, numTicks);
+                RGGameplaySessionCreateRequest request = new RGGameplaySessionCreateRequest(startTime, endTime, numTicks, loggedWarnings, loggedErrors);
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/gameplay-session",
                     method: "POST",
@@ -624,6 +593,33 @@ namespace RegressionGames
                     onFailure: (f) =>
                     {
                         RGDebug.LogWarning($"Failed to upload thumbnail for gameplay session {gameplaySessionId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure.Invoke();
+            }
+        }
+        
+        public async Task UploadGameplaySessionLogs(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
+        {
+            if (LoadAuth())
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/gameplay-session/{gameplaySessionId}/logs",
+                    method: "POST",
+                    filePath: zipPath,
+                    contentType: "application/zip",
+                    onSuccess: (s) =>
+                    {
+                        RGDebug.LogDebug($"RGService GameplaySessionLogs response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload logs for gameplay session {gameplaySessionId}: {f}");
                         onFailure.Invoke();
                     }
                 );
