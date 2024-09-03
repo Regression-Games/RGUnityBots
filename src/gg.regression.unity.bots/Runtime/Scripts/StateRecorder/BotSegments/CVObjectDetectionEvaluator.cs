@@ -94,9 +94,9 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 // Check if we have results or a request in progress.
                 requestInProgress = _requestTracker.ContainsKey(segmentNumber);
-                
+
                 // TODO(REG-1928): Think more about hardening this data reading.
-                
+
                 // Get the results for the segment.
                 _queryResultTracker.TryGetValue(segmentNumber, out objectDetectionResults);
                 // Get the prior results for the segment.
@@ -269,7 +269,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         private static List<string> TryPostRequest(int segmentNumber, List<KeyFrameCriteria> criteriaList, List<string> resultList)
         {
             int criteriaListCount = criteriaList.Count;
-            var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
+            var imageData = ScreenshotCapture.GetInstance().GetCurrentScreenshot(segmentNumber, out var width, out var height);
             if (imageData != null)
             {
                 // mark a request in progress inside the lock to avoid race conditions.. must be done before starting async process
@@ -334,7 +334,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         ),
                         // Cancel ongoing request in a thread safe manner.
                         abortRegistrationHook: action => AbortRegistrationHook(segmentNumber, index, action),
-                        
+
                         // Stores the results, clean up the request tracker, and remove completed requests.
                         onSuccess: list => OnSuccess(segmentNumber, index, list),
 

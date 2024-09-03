@@ -2897,6 +2897,7 @@ GameObject:
   - component: {fileID: 6730627180652117754}
   - component: {fileID: 2691063060475736242}
   - component: {fileID: 2237490060797875882}
+  - component: {fileID: 8695714631924223571}
   m_Layer: 5
   m_Name: RGOverlayCanvas
   m_TagString: Untagged
@@ -3128,6 +3129,18 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7029756735420670719}
   m_CullTransparentMesh: 1
+--- !u!114 &8695714631924223571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7029756735420670719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 686ca1d3e71249b18c62c52d27937490, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7034141691038978701
 GameObject:
   m_ObjectHideFlags: 0
@@ -4148,19 +4161,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 4042465043493813398, guid: 04ac259d13a0945ac87ddc5cac56785e, type: 3}
   m_PrefabInstance: {fileID: 2346971118752932893}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2421515195543004253
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1768688999565580427}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 88a63bb06d732417694dc4e72c418370, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  overlayContainer: {fileID: 7029756735420670719}
 --- !u!224 &1824198797412453037 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4162107705649557168, guid: 04ac259d13a0945ac87ddc5cac56785e, type: 3}
