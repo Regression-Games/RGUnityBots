@@ -372,7 +372,7 @@ namespace RegressionGames.StateRecorder
                 _profilerObserver.StopProfiling();
             }
 
-            ScreenshotCapture.WaitForCompletion();
+            ScreenshotCapture.GetInstance().WaitForCompletion();
 
             _tickQueue?.CompleteAdding();
 
@@ -644,7 +644,7 @@ namespace RegressionGames.StateRecorder
                             RGDebug.LogDebug($"Capturing screenshot for tick # {currentTickNumber}");
                         }
 
-                        ScreenshotCapture.GetCurrentScreenshotWithCallback(
+                        ScreenshotCapture.GetInstance().GetCurrentScreenshotWithCallback(
                             currentTickNumber,
                             (result) =>
                             {

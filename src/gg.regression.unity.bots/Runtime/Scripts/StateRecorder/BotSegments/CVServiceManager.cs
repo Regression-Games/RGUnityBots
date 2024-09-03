@@ -42,14 +42,11 @@ namespace RegressionGames
             }
 
             Uri hostUri = new(host);
-            if (hostUri.IsLoopback)
+            if (!hostUri.IsLoopback)
             {
-                return $"{host}";
+                //return $"{host}/rgcvservice";
             }
-            else
-            {
-                return $"{host}/rgcvservice";
-            }
+            return $"{host}";
         }
 
         public async Task PostCriteriaImageMatch(CVImageCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVImageResult>> onSuccess, Action onFailure)
@@ -72,12 +69,12 @@ namespace RegressionGames
             );
         }
 
-        public async Task PostCriteriaObjectDetection(CVObjectDetectionRequest request, 
+        public async Task PostCriteriaObjectDetection(CVObjectDetectionRequest request,
                                                       Action<Action> abortRegistrationHook,
                                                       Action<List<CVObjectDetectionResult>> onSuccess,
                                                       Action onFailure)
         {
-            
+
             string endpoint;
             if (!string.IsNullOrEmpty(request.textQuery))
             {
@@ -98,7 +95,7 @@ namespace RegressionGames
                 onFailure.Invoke();
                 return;
             }
-            
+
             await SendWebRequest(
                 uri: $"{GetCvServiceBaseUri()}/{endpoint}",
                 method: "POST",
@@ -117,7 +114,6 @@ namespace RegressionGames
             );
         }
 
-        
         public async Task PostCriteriaTextDiscover(CVTextCriteriaRequest request, Action<Action> abortRegistrationHook, Action<List<CVTextResult>> onSuccess, Action onFailure)
         {
             await SendWebRequest(

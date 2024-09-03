@@ -225,7 +225,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         requestInProgress = _requestTracker.TryGetValue(segmentNumber, out _);
                         if (!requestInProgress)
                         {
-                            var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
+                            var imageData = ScreenshotCapture.GetInstance().GetCurrentScreenshot(segmentNumber, out var width, out var height);
                             if (imageData != null)
                             {
                                 // mark a request in progress inside the lock to avoid race conditions.. must be done before starting async process
