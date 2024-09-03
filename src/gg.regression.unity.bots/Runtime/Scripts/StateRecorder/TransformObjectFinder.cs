@@ -36,6 +36,7 @@ namespace RegressionGames.StateRecorder
             Debug.Log(theString);
 
             // Is there a better place to do this, maybe.. but for now, this gets the ECS subsystem loaded on the same object as this behaviour
+            // uses reflection as the ECS package is an add-on that may no exist in the runtime
             Type t = Type.GetType("RegressionGames.StateRecorder.ECS.EntityObjectFinder, RegressionGames_ECS, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", false);
             if (t == null)
             {
@@ -43,7 +44,7 @@ namespace RegressionGames.StateRecorder
             }
             else
             {
-                var entityFinder = this.gameObject.GetComponent(t);
+                var entityFinder = GetComponent(t);
                 if (entityFinder == null)
                 {
                     this.gameObject.AddComponent(t);
@@ -185,6 +186,7 @@ namespace RegressionGames.StateRecorder
 
         // allocate these rather large things 1 time to save allocations on each tick object
         private static readonly List<RectTransform> RectTransformsList = new(100);
+        private static readonly List<CanvasGroup> CanvasGroupsList = new(100);
         private readonly HashSet<Transform> _transformsForThisFrame = new (1000);
 
         private static readonly Vector3[] WorldSpaceCorners = new Vector3[4];
@@ -236,14 +238,9 @@ namespace RegressionGames.StateRecorder
         }
 
         // ReSharper disable once MemberCanBePrivate.Global - Keep this method public, while not called from this package module, it is called from some of our extension packages
-        public static (Bounds?, float, Bounds?) SelectBoundsForTransform(Transform theTransform)
+        public static (Bounds?, float, Bounds?) SelectBoundsForTransform(Camera mainCamera, int screenWidth, int screenHeight, Transform theTransform)
         {
-            var screenWidth = Screen.width;
-            var screenHeight = Screen.height;
-            var mainCamera = Camera.main;
-
-            var canvasRenderer = theTransform.GetComponent<CanvasRenderer>();
-            if (canvasRenderer != null)
+            if (theTransform.TryGetComponent(out CanvasRenderer _))
             {
                 // UI component object
                 var canvas = theTransform.GetComponentInParent<Canvas>();
@@ -256,19 +253,22 @@ namespace RegressionGames.StateRecorder
                 if (canvas != null && canvas.enabled)
                 {
                     // screen space
-                    var canvasGroup = theTransform.GetComponentInParent<CanvasGroup>();
+                    CanvasGroupsList.Clear();
+                    // this API already handles reversing the list so that the deepest tree element is first so we can walk up the tree as desired
+                    theTransform.GetComponentsInParent(false,CanvasGroupsList);
                     var cgEnabled = true;
-                    while (cgEnabled && canvasGroup != null)
+                    foreach (var canvasGroup in CanvasGroupsList)
                     {
+                        if (!cgEnabled)
+                        {
+                            break;
+                        }
+
                         cgEnabled &= canvasGroup.enabled && (canvasGroup.blocksRaycasts || canvasGroup.interactable) && (canvasGroup.alpha > 0.01f); // 0ish float comparisons ... lovely but necessary
                         if (canvasGroup.ignoreParentGroups)
                         {
                             break;
                         }
-
-                        // see if there are any more above this in the parent
-                        var parent = canvasGroup.transform.parent;
-                        canvasGroup = parent == null ? null : parent.GetComponentInParent<CanvasGroup>();
                     }
 
                     if (cgEnabled)
@@ -281,51 +281,33 @@ namespace RegressionGames.StateRecorder
 
                         if (rectTransformsListLength > 0)
                         {
-                            Vector2 min, max;
-                            var worldMin = Vector3.zero;
-                            var worldMax = Vector3.zero;
+                            var minWorldX = float.MaxValue;
+                            var maxWorldX = float.MinValue;
+
+                            var minWorldY = float.MaxValue;
+                            var maxWorldY = float.MinValue;
+
+                            var minWorldZ = float.MaxValue;
+                            var maxWorldZ = float.MinValue;
+
                             RectTransformsList[0].GetWorldCorners(WorldSpaceCorners);
+                            var min = WorldSpaceCorners[0];
+                            var max = WorldSpaceCorners[2];
                             if (isWorldSpace)
                             {
-                                min = mainCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
-                                max = mainCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
-                                worldMin = WorldSpaceCorners[0];
-                                worldMax = WorldSpaceCorners[2];
-                            }
-                            else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
-                            {
-                                min = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
-                                max = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
-                            }
-                            else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
-                            {
-                                min = WorldSpaceCorners[0];
-                                max = WorldSpaceCorners[2];
+                                minWorldX = WorldSpaceCorners[0].x;
+                                minWorldY = WorldSpaceCorners[0].y;
+                                minWorldZ = WorldSpaceCorners[0].z;
+                                maxWorldX = WorldSpaceCorners[2].x;
+                                maxWorldY = WorldSpaceCorners[2].y;
+                                maxWorldZ = WorldSpaceCorners[2].z;
                             }
 
                             for (var i = 1; i < rectTransformsListLength; ++i)
                             {
-                                Vector2 nextMin, nextMax;
-                                var nextWorldMin = Vector3.zero;
-                                var nextWorldMax = Vector3.zero;
                                 RectTransformsList[i].GetWorldCorners(WorldSpaceCorners);
-                                if (isWorldSpace)
-                                {
-                                    nextMin = mainCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
-                                    nextMax = mainCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
-                                    nextWorldMin = WorldSpaceCorners[0];
-                                    nextWorldMax = WorldSpaceCorners[2];
-                                }
-                                else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
-                                {
-                                    nextMin = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[0]);
-                                    nextMax = canvasCamera.WorldToScreenPoint(WorldSpaceCorners[2]);
-                                }
-                                else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
-                                {
-                                    nextMin = WorldSpaceCorners[0];
-                                    nextMax = WorldSpaceCorners[2];
-                                }
+                                var nextMin = WorldSpaceCorners[0];
+                                var nextMax = WorldSpaceCorners[2];
 
                                 // Vector3.min and Vector3.max re-allocate new vectors on each call, avoid using them
                                 min.x = Mathf.Min(min.x, nextMin.x);
@@ -336,13 +318,28 @@ namespace RegressionGames.StateRecorder
 
                                 if (isWorldSpace)
                                 {
-                                    worldMin.x = Mathf.Min(worldMin.x, nextWorldMin.x);
-                                    worldMin.y = Mathf.Min(worldMin.y, nextWorldMin.y);
-                                    worldMin.z = Mathf.Min(worldMin.z, nextWorldMin.z);
-                                    worldMax.x = Mathf.Max(worldMax.x, nextWorldMax.x);
-                                    worldMax.y = Mathf.Max(worldMax.y, nextWorldMax.y);
-                                    worldMax.z = Mathf.Max(worldMax.z, nextWorldMax.z);
+                                    minWorldX = Mathf.Min(minWorldX, nextMin.x);
+                                    minWorldY = Mathf.Min(minWorldY, nextMin.y);
+                                    minWorldZ = Mathf.Min(minWorldZ, nextMin.z);
+                                    maxWorldX = Mathf.Max(maxWorldX, nextMax.x);
+                                    maxWorldY = Mathf.Max(maxWorldY, nextMax.y);
+                                    maxWorldZ = Mathf.Max(maxWorldZ, nextMax.z);
                                 }
+                            }
+
+                            if (isWorldSpace)
+                            {
+                                min = mainCamera.WorldToScreenPoint(min);
+                                max = mainCamera.WorldToScreenPoint(max);
+                            }
+                            else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
+                            {
+                                min = mainCamera.WorldToScreenPoint(min);
+                                max = mainCamera.WorldToScreenPoint(max);
+                            }
+                            else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                            {
+                                // already set.. use world space corners
                             }
 
                             var onCamera = true;
@@ -365,18 +362,18 @@ namespace RegressionGames.StateRecorder
                                 var size = new Vector3((max.x - min.x), (max.y - min.y), 0.05f);
                                 var center = new Vector3(min.x + size.x / 2, min.y + size.y / 2, 0f);
 
+                                var ssBounds = new Bounds(center, size);
+
                                 if (isWorldSpace)
                                 {
-                                    var worldSize = new Vector3((worldMax.x - worldMin.x), (worldMax.y - worldMin.y), (worldMax.z - worldMin.z));
-                                    var worldCenter = new Vector3(worldMin.x + worldSize.x, worldMin.y + worldSize.y / 2, worldMin.z + worldSize.z / 2);
+                                    var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
+                                    var worldCenter = new Vector3(minWorldX + worldSize.x, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
 
                                     // get the screen point values for the world max / min and find the screen space z offset closest the camera
-                                    var minSp = mainCamera.WorldToScreenPoint(worldMin);
-                                    var maxSp = mainCamera.WorldToScreenPoint(worldMax);
-                                    return (new Bounds(center, size), Math.Min(minSp.z, maxSp.z), new Bounds(worldCenter, worldSize));
+                                    return (ssBounds, Math.Min(min.z, max.z), new Bounds(worldCenter, worldSize));
                                 }
 
-                                return (new Bounds(center, size), 0f, null);
+                                return (ssBounds, 0f, null);
                             }
                         }
                     }
@@ -388,10 +385,10 @@ namespace RegressionGames.StateRecorder
                 // non ui object
                 // All of this code is verbose in order to optimize performance by avoiding using the Bounds APIs
                 // find the full bounds of the statefulGameObject
-                var statefulGameObject = theTransform.gameObject;
+                var statefulGameObjectTransform = theTransform.transform;
 
                 RendererQueryList.Clear();
-                statefulGameObject.GetComponentsInChildren(RendererQueryList);
+                statefulGameObjectTransform.GetComponentsInChildren(RendererQueryList);
 
                 var minWorldX = float.MaxValue;
                 var maxWorldX = float.MinValue;
@@ -406,40 +403,49 @@ namespace RegressionGames.StateRecorder
                 for (var i = 0; i < rendererListLength; i++)
                 {
                     var nextRenderer = RendererQueryList[i];
-                    if (nextRenderer.gameObject.GetComponentInParent<RGExcludeFromState>() == null)
+                    if (nextRenderer.transform.GetComponentInParent<RGExcludeFromState>() == null)
                     {
                         var theBounds = nextRenderer.bounds;
-                        var theMin = theBounds.min;
-                        var theMax = theBounds.max;
 
-                        if (theMin.x < minWorldX)
+                        // faster to do this ourself vs using the built in bounds min/max methods
+                        // also avoids vector math and allocation
+                        var center = theBounds.center;
+                        var extents = theBounds.extents;
+
+                        var minX = center.x - extents.x;
+                        if (minX < minWorldX)
                         {
-                            minWorldX = theMin.x;
+                            minWorldX = minX;
                         }
 
-                        if (theMax.x > maxWorldX)
+                        var maxX = center.x + extents.x;
+                        if (maxX > maxWorldX)
                         {
-                            maxWorldX = theMax.x;
+                            maxWorldX = maxX;
                         }
 
-                        if (theMin.y < minWorldY)
+                        var minY = center.y - extents.y;
+                        if (minY < minWorldY)
                         {
-                            minWorldY = theMin.y;
+                            minWorldY = minY;
                         }
 
-                        if (theMax.y > maxWorldY)
+                        var maxY = center.y + extents.y;
+                        if (maxY > maxWorldY)
                         {
-                            maxWorldY = theMax.y;
+                            maxWorldY = maxY;
                         }
 
-                        if (theMin.z < minWorldZ)
+                        var minZ = center.z - extents.z;
+                        if (minZ < minWorldZ)
                         {
-                            minWorldZ = theMin.z;
+                            minWorldZ = minZ;
                         }
 
-                        if (theMax.z > maxWorldZ)
+                        var maxZ = center.z + extents.z;
+                        if (maxZ > maxWorldZ)
                         {
-                            maxWorldZ = theMax.z;
+                            maxWorldZ = maxZ;
                         }
                     }
                 }
@@ -558,6 +564,9 @@ namespace RegressionGames.StateRecorder
 
         private void PopulateUITransformsForCurrentFrame()
         {
+            var screenHeight = Screen.height;
+            var screenWidth = Screen.width;
+            var mainCamera = Camera.main;
             var canvasRenderers = FindObjectsByType(typeof(CanvasRenderer), FindObjectsSortMode.None);
 
             // we re-use this over and over instead of allocating multiple times
@@ -565,12 +574,12 @@ namespace RegressionGames.StateRecorder
             for (var j = 0; j < canvasRenderersLength; j++)
             {
                 var canvasRenderer = canvasRenderers[j];
-                var statefulUIObject = ((CanvasRenderer)canvasRenderer).gameObject;
-                if (statefulUIObject != null && statefulUIObject.GetComponentInParent<RGExcludeFromState>() == null)
+                var statefulUiObjectTransform = ((CanvasRenderer)canvasRenderer).transform;
+                if (statefulUiObjectTransform != null && statefulUiObjectTransform.GetComponentInParent<RGExcludeFromState>() == null)
                 {
-                    var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulUIObject.transform);
+                    var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulUiObjectTransform);
 
-                    var bounds = SelectBoundsForTransform(statefulUIObject.transform);
+                    var bounds = SelectBoundsForTransform(mainCamera, screenWidth, screenHeight, statefulUiObjectTransform);
                     tStatus.screenSpaceBounds = bounds.Item1;
                     tStatus.screenSpaceZOffset = bounds.Item2;
                     tStatus.worldSpaceBounds = bounds.Item3;
@@ -589,6 +598,9 @@ namespace RegressionGames.StateRecorder
          */
         private void PopulateGameObjectTransformsForCurrentFrame()
         {
+            var screenHeight = Screen.height;
+            var screenWidth = Screen.width;
+            var mainCamera = Camera.main;
             // find everything with a renderer.. then select the last parent walking up the tree that has
             // one of the key types.. in most cases that should be the correct 'parent' game object
             // ignore UI items we already added above (these might have particle effect or other renderers on them, but does not necessarily make them world space)
@@ -616,7 +628,7 @@ namespace RegressionGames.StateRecorder
             {
                 var tStatus = TransformStatus.GetOrCreateTransformStatus(theTransform);
 
-                var bounds = SelectBoundsForTransform(theTransform);
+                var bounds = SelectBoundsForTransform(mainCamera, screenWidth, screenHeight, theTransform);
                 tStatus.screenSpaceBounds = bounds.Item1;
                 tStatus.screenSpaceZOffset = bounds.Item2;
                 tStatus.worldSpaceBounds = bounds.Item3;
