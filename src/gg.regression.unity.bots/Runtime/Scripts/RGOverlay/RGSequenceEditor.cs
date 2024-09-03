@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using UnityEngine;
@@ -45,10 +46,7 @@ namespace RegressionGames
             
             CurrentSequence = new BotSequence();
             
-            for (var i = 0; i < AvailableSegmentsList.transform.childCount; ++i)
-            {
-                Destroy(AvailableSegmentsList.transform.GetChild(i));
-            }
+            ClearSegments();
             
             _segmentEntries = LoadAllSegments();
             
@@ -61,6 +59,15 @@ namespace RegressionGames
                     segmentCard.draggableCardName = segment.displayPath;
                     segmentCard.icon = segment.type == BotSequenceEntryType.Segment ? SegmentIcon : SegmentListIcon;
                 }
+            }
+        }
+
+        private void ClearSegments()
+        {
+            var childCount = AvailableSegmentsList.transform.childCount - 1;
+            for (var i = childCount; i >= 0; i--)
+            {
+                Destroy(AvailableSegmentsList.transform.GetChild(i).gameObject);
             }
         }
         
@@ -116,6 +123,72 @@ namespace RegressionGames
             return results;
         }
 
+        private BotSequenceEntry ParseSegment(string path, string fileName)
+        {
+            try
+            {
+                using var sr = new StreamReader(File.OpenRead(fileName));
+                var result = (fileName, sr.ReadToEnd());
+                        
+                var entry = new BotSequenceEntry
+                {
+                    path = path + "/" + fileName,
+                };
+
+                try
+                {
+                    var segment = JsonConvert.DeserializeObject<BotSegmentList>(result.Item2);
+                    entry.displayPath = segment.name;
+                    entry.type = BotSequenceEntryType.SegmentList;
+                }
+                catch
+                {
+                    try
+                    {
+                        var segmentList = JsonConvert.DeserializeObject<BotSegment>(result.Item2);
+                        entry.displayPath = segmentList.name;
+                        entry.type = BotSequenceEntryType.Segment;
+                    }
+                    catch
+                    {
+                        Debug.LogError($"RGSequenceEditor Could not parse Bot Segment file: {fileName}");
+                    }
+                }
+
+                return entry;
+            }
+            catch (Exception exception)
+            {
+                Debug.Log($"Error reading Bot Sequence Entry {fileName}: {exception}");
+            }
+
+            return null;
+        }
+
+        private IList<BotSequenceEntry> LoadSegmentsInDirectory(string path)
+        {
+            var results = new List<BotSequenceEntry>();
+            var directories = Directory.EnumerateDirectories(path);
+            foreach (var directory in directories)
+            {
+                var files = Directory.GetFiles(directory, "*.json");
+                foreach (var fileName in files)
+                {
+                    var segment = ParseSegment(path, fileName);
+                    if (segment != null)
+                    {
+                        results.Add(segment);
+                    }   
+                }
+
+                results = results.Concat(
+                    LoadSegmentsInDirectory(directory)
+                ).ToList();
+            }
+
+            return results;
+        }
+
         private IList<BotSequenceEntry> LoadAllSegments()
         {
             const string sequencePath = "Assets/RegressionGames/Resources/BotSegments";
@@ -124,12 +197,7 @@ namespace RegressionGames
                 return new List<BotSequenceEntry>();
             }
 
-            return EnumerateSegmentsInDirectory(sequencePath);
-        }
-        
-        private void LoadSegmentsForSequence(IList<BotSequenceEntry> segmentEntries)
-        {
-            // TODO
+            return LoadSegmentsInDirectory(sequencePath);
         }
     }
 }
