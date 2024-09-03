@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,14 +9,14 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.StateRecorder
 {
-    public static class ScreenshotCapture
+    public class ScreenshotCapture : MonoBehaviour
     {
-        private static RenderTexture _screenShotTexture;
+        private RenderTexture _screenShotTexture;
 
-        private static readonly ConcurrentDictionary<int, AsyncGPUReadbackRequest?> GPUReadbackRequests = new();
+        private readonly ConcurrentDictionary<int, AsyncGPUReadbackRequest?> GPUReadbackRequests = new();
 
         // we use a lock on this object to control thread safety of updates and data reads for the lastN frames and completion actions
-        private static readonly object SyncLock = new();
+        private readonly object SyncLock = new();
 
         // if the current frame request is within this many frames of the most recent image, just use that image, so we don't request a new screenshot from the gpu more often than this many frames
         private const int MaxCurrentScreenshotAge = 5;
@@ -24,14 +25,26 @@ namespace RegressionGames.StateRecorder
         private const int MaxTrackedFrames = 10;
         // if a request comes in that is OLDER than one of those last MaxTrackedFrames.. give them the oldest one we still have captured, else wait for that next frame
         // tracks the data as jpg encoded byte[] as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
-        private static readonly List<(int, (byte[], int, int)?)> LastNFrames = new(MaxTrackedFrames);
+        private readonly List<(int, (byte[], int, int)?)> LastNFrames = new(MaxTrackedFrames);
 
         // if completion actions are requested for a given frame number.. complete them as soon as their frame number finishes, or complete immediately if a later frame has already finished
         // tracks the data as jpg encoded byte[] as that is our data format used by all consumers and avoids encoding the color32[] multiple times per frame
         // (frameIndex, byte[] = jpg bytes, int width, int height)
-        private static readonly Dictionary<int, List<Action<(byte[], int, int)?>>> CompletionActions = new();
+        private readonly Dictionary<int, List<Action<(byte[], int, int)?>>> CompletionActions = new();
 
-        private static (byte[], int, int)? GetDataForFrame(int frame)
+        private static ScreenshotCapture _instance;
+
+        public static ScreenshotCapture GetInstance()
+        {
+            if (_instance == null)
+            {
+                _instance = FindObjectOfType<ScreenshotCapture>();
+            }
+
+            return _instance;
+        }
+
+        private (byte[], int, int)? GetDataForFrame(int frame)
         {
             lock (SyncLock)
             {
@@ -54,7 +67,7 @@ namespace RegressionGames.StateRecorder
             return null;
         }
 
-        private static void AddFrame(int frame, (byte[], int, int)? data)
+        private void AddFrame(int frame, (byte[], int, int)? data)
         {
             lock (SyncLock)
             {
@@ -90,7 +103,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private static void HandleCompletedActionCallbacks()
+        private void HandleCompletedActionCallbacks()
         {
             var gpuRemoveList = new List<int>();
             // wait for all the GPU data to come back
@@ -161,7 +174,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public static void WaitForCompletion()
+        public void WaitForCompletion()
         {
             if (GPUReadbackRequests.Count > 0)
             {
@@ -226,7 +239,7 @@ namespace RegressionGames.StateRecorder
         /**
          * <summary>Calls the onSuccess callback when the readback request finishes or if data is already available</summary>
          */
-        public static void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
+        public void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
         {
             var frame = UnityEngine.Time.frameCount;
             lock (SyncLock)
@@ -234,12 +247,12 @@ namespace RegressionGames.StateRecorder
                 var frameData = GetDataForFrame(frame);
                 if (frameData == null)
                 {
-                    UpdateGPUData(frame, onCompletion);
+                    StartCoroutine(UpdateGPUData(frame, onCompletion));
                 }
             }
         }
 
-        private static void UpdateGPUData(int frame, Action<(byte[], int, int)?> onCompletion)
+        private IEnumerator UpdateGPUData(int frame, Action<(byte[], int, int)?> onCompletion)
         {
             lock (SyncLock)
             {
@@ -256,6 +269,9 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
+
+            // wait for end of frame or graphics data will be incorrect
+            yield return new WaitForEndOfFrame();
 
             // get this in there so we don't get duplicate requests out for the same frame
             if (GPUReadbackRequests.TryAdd(frame, null))
@@ -336,7 +352,7 @@ namespace RegressionGames.StateRecorder
          * <summary>Returns byte[] array of the pixels IF there is a valid screenshot buffered for a frame within MaxCurrentScreenshotAge of this frame.
          * If not buffered, starts a new readback request</summary>
          */
-        public static byte[] GetCurrentScreenshot(long segmentNumber, out int width, out int height)
+        public byte[] GetCurrentScreenshot(long segmentNumber, out int width, out int height)
         {
             var frame = UnityEngine.Time.frameCount;
 
@@ -350,7 +366,7 @@ namespace RegressionGames.StateRecorder
                 if (!frameData.HasValue || frame - mostRecentFrameData.Value.Item1 > MaxCurrentScreenshotAge)
                 {
                     // frame is non-existent or too old
-                    UpdateGPUData(frame, null);
+                    StartCoroutine(UpdateGPUData(frame, null));
                     frameData = null;
                 }
 

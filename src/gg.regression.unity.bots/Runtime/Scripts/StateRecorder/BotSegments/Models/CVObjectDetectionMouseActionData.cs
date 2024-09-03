@@ -107,7 +107,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (!_requestInProgress)
                 {
                     // Request the CV Image data
-                    var screenshot = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
+                    var screenshot = ScreenshotCapture.GetInstance().GetCurrentScreenshot(segmentNumber, out var width, out var height);
                     if (screenshot != null)
                     {
                         _requestInProgress = true;
@@ -146,7 +146,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                             // Extracts the results, select a random result if multiple are returned, and clean up request tracker.
                             onSuccess: list => OnSuccess(segmentNumber, list),
-                            
+
                             // Log the failure, reset relevant state variables, and clean up resources.
                             onFailure: () => OnFailure(segmentNumber)
                         );
