@@ -185,7 +185,7 @@ GameObject:
   - component: {fileID: 4578583821349465717}
   - component: {fileID: 6288432062312324673}
   m_Layer: 0
-  m_Name: Drag
+  m_Name: CardIcon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -343,6 +343,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   IsReordering: 0
   draggableCardName: Placeholder draggable segment name
+  icon: {fileID: 21300000, guid: ac32a463b941b41fab54ea9dd8a1745f, type: 3}
+  iconPrefab: {fileID: 2566918779166699024}
   namePrefab: {fileID: 714608286913792316}
   restingStatePrefab: {fileID: 4199513441948227604}
   draggingStatePrefab: {fileID: 5443515706651796386, guid: a4a3e76dff5a04b31948a43874f94e1c, type: 3}

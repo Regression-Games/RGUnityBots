@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -14,6 +15,10 @@ namespace RegressionGames
         public bool IsReordering;
 
         public string draggableCardName;
+
+        public Sprite icon;
+        
+        public GameObject iconPrefab;
 
         public TMP_Text namePrefab;
 
@@ -32,6 +37,11 @@ namespace RegressionGames
             if (namePrefab != null)
             {
                 namePrefab.text = draggableCardName;
+            }
+
+            if (iconPrefab != null)
+            {
+                iconPrefab.GetComponent<Image>().overrideSprite = icon;
             }
         }
 
@@ -58,6 +68,7 @@ namespace RegressionGames
                 if (dragged != null)
                 {
                     dragged.draggedCardName = draggableCardName;
+                    dragged.iconPrefab.GetComponent<Image>().overrideSprite = icon;
                 }
 
                 instance.transform.SetParent(transform.root, false);

@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using RegressionGames;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
@@ -44,6 +45,12 @@ public class RGSequenceManager : MonoBehaviour
         if (sequenceEditor != null)
         {
             sequenceEditor.SetActive(true);
+            
+            var script = sequenceEditor.GetComponent<RGSequenceEditor>();
+            if (script != null)
+            {
+                script.Initialize();
+            }
         }
     }
 

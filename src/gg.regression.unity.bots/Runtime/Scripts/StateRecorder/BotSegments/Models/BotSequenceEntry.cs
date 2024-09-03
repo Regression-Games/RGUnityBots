@@ -4,6 +4,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -20,6 +21,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int apiVersion = SdkApiVersion.VERSION_12;
         public BotSequenceEntryType type;
         public string path;
+        public string displayPath;
+        public Image icon;
 
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (()=>new(100));
 

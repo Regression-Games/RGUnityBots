@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace RegressionGames
 {
@@ -11,6 +12,8 @@ namespace RegressionGames
     public class RGDraggedCard : MonoBehaviour
     {
         public string draggedCardName;
+        
+        public GameObject iconPrefab;
 
         [SerializeField] public TMP_Text namePrefab;
 
