@@ -17,9 +17,9 @@ namespace RegressionGames
         
         public string draggableCardName;
 
-        public Sprite icon;
-
         public Dictionary<string, string> payload;
+        
+        public Sprite icon;
         
         public GameObject iconPrefab;
 
@@ -77,6 +77,8 @@ namespace RegressionGames
 
                 instance.transform.SetParent(transform.root, false);
                 _draggingStateInstance = instance;
+                
+                DarkenSiblings();
             }
 
             // check if this card is within a drop zone the moment it begins dragging. If so, this card is being
@@ -132,6 +134,8 @@ namespace RegressionGames
          */
         public void OnEndDrag(PointerEventData eventData)
         {
+            ResetSiblings();
+
             if (_draggingStateInstance == null)
             {
                 return;
@@ -189,6 +193,33 @@ namespace RegressionGames
         public void OnExitDropZone()
         {
             _dropZone = null;
+        }
+
+        private void DarkenSiblings()
+        {
+            var selfIndex = transform.GetSiblingIndex();
+            for (var i = 0; i < transform.parent.transform.childCount; ++i)
+            {
+                var child = transform.parent.transform.GetChild(i).GetComponent<RGDraggableCard>();
+                if (child != null && i != selfIndex)
+                {
+                    child.namePrefab.alpha = 0.2f;
+                    child.iconPrefab.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, 0.2f);
+                }
+            }
+        }
+        
+        private void ResetSiblings()
+        {
+            for (var i = 0; i < transform.parent.transform.childCount; ++i)
+            {
+                var child = transform.parent.transform.GetChild(i).GetComponent<RGDraggableCard>();
+                if (child != null)
+                {
+                    child.namePrefab.alpha = 1.0f;
+                    child.iconPrefab.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+                }
+            }
         }
     }
 }

@@ -342,7 +342,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   IsReordering: 0
-  payload: {fileID: 0}
   draggableCardName: Placeholder draggable segment name
   icon: {fileID: 21300000, guid: ac32a463b941b41fab54ea9dd8a1745f, type: 3}
   iconPrefab: {fileID: 2566918779166699024}

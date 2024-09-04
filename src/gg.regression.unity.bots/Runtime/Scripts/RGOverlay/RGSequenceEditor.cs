@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Codice.CM.ConfigureHelper;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using TMPro;
