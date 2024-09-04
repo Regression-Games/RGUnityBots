@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class DoubleJsonConverter: JsonConverter
+    public class DoubleJsonConverter: JsonConverter, ITypedStringBuilderWriteable<double>
     {
         // re-usable and large enough to fit objects of all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(40));
@@ -24,6 +24,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 return;
             }
             WriteToStringBuilder(stringBuilder, f.Value);
+        }
+
+        void ITypedStringBuilderWriteable<double>.WriteToStringBuilder(StringBuilder stringBuilder, double val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<double>.ToJsonString(double val)
+        {
+            return ToJsonString(val);
         }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, double f)

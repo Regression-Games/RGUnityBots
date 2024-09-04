@@ -6,11 +6,21 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class RigidbodyJsonConverter : Newtonsoft.Json.JsonConverter
+    public class RigidbodyJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Rigidbody>
     {
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(4_000));
+
+        void ITypedStringBuilderWriteable<Rigidbody>.WriteToStringBuilder(StringBuilder stringBuilder, Rigidbody val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<Rigidbody>.ToJsonString(Rigidbody val)
+        {
+            return ToJsonString(val);
+        }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Rigidbody val)
         {
@@ -21,11 +31,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
 
             stringBuilder.Append("{\"position\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.position);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, val.position);
             stringBuilder.Append(",\"rotation\":");
             QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, val.rotation);
             stringBuilder.Append(",\"velocity\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.velocity);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, val.velocity);
             stringBuilder.Append(",\"mass\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.mass);
             stringBuilder.Append(",\"drag\":");

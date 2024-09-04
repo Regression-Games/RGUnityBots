@@ -40,7 +40,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             else
             {
                 stringBuilder.Append("{\"screenSize\":");
-                VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, rect.screenSize);
+                Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, rect.screenSize);
                 stringBuilder.Append(",\"rect\":");
                 RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, rect.rect);
                 stringBuilder.Append("}");

@@ -146,7 +146,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                             // Extracts the results, select a random result if multiple are returned, and clean up request tracker.
                             onSuccess: list => OnSuccess(segmentNumber, list),
-                            
+
                             // Log the failure, reset relevant state variables, and clean up resources.
                             onFailure: () => OnFailure(segmentNumber)
                         );
@@ -272,7 +272,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     var rect = _cvResultsBoundsRect.Value;
 
                                     var position = new Vector2Int((int)rect.center.x, (int)rect.center.y);
-                                    RGDebug.LogDebug($"CVObjectDetectionMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction} at position: {VectorIntJsonConverter.ToJsonString(position)}");
+                                    RGDebug.LogDebug($"CVObjectDetectionMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction} at position: {Vector2IntJsonConverter.ToJsonString(position)}");
                                     MouseEventSender.SendRawPositionMouseEvent(
                                         replaySegment: segmentNumber,
                                         normalizedPosition: position,

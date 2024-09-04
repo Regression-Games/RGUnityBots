@@ -241,7 +241,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     var rect = _cvResultsBoundsRect.Value;
 
                                     var position = new Vector2Int((int)rect.center.x, (int)rect.center.y);
-                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction} at position: {VectorIntJsonConverter.ToJsonString(position)}");
+                                    RGDebug.LogDebug($"CVImageMouseActionData - ProcessAction - botSegment: {segmentNumber} - frame: {Time.frameCount} - Sending Raw Position Mouse Event: {currentAction} at position: {Vector2IntJsonConverter.ToJsonString(position)}");
                                     MouseEventSender.SendRawPositionMouseEvent(
                                         replaySegment: segmentNumber,
                                         normalizedPosition: position,

@@ -73,7 +73,7 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\n\"worldSpaceBounds\":");
             BoundsJsonConverter.WriteToStringBuilderNullable(stringBuilder, worldSpaceBounds);
             stringBuilder.Append(",\n\"position\":");
-            VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, position);
+            Vector3JsonConverter.WriteToStringBuilderNullable(stringBuilder, position);
             stringBuilder.Append(",\n\"rotation\":");
             QuaternionJsonConverter.WriteToStringBuilderNullable(stringBuilder, rotation);
             // TODO: Someday remove these no longer used fields

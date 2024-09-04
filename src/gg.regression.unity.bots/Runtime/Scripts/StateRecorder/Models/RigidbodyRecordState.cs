@@ -30,11 +30,11 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"position\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.position);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.position);
             stringBuilder.Append(",\"rotation\":");
             QuaternionJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.rotation);
             stringBuilder.Append(",\"velocity\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, rigidbody.velocity);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.velocity);
             stringBuilder.Append(",\"mass\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, rigidbody.mass);
             stringBuilder.Append(",\"drag\":");

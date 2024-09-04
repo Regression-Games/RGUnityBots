@@ -69,7 +69,7 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\n\"timeScale\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, timeScale);
             stringBuilder.Append(",\n\"screenSize\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\n\"performance\":");
             performance.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append(",\n\"pixelHash\":\"");

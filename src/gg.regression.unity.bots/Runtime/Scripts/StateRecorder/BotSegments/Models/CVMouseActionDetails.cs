@@ -39,7 +39,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append(",\"backButton\":");
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
             stringBuilder.Append(",\"scroll\":");
-            VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
+            Vector2JsonConverter.WriteToStringBuilder(stringBuilder, scroll);
             stringBuilder.Append(",\"duration\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, duration);
             stringBuilder.Append("}");

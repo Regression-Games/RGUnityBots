@@ -6,10 +6,20 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class Rigidbody2DJsonConverter : Newtonsoft.Json.JsonConverter
+    public class Rigidbody2DJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Rigidbody2D>
     {
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(4_000));
+
+        void ITypedStringBuilderWriteable<Rigidbody2D>.WriteToStringBuilder(StringBuilder stringBuilder, Rigidbody2D val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<Rigidbody2D>.ToJsonString(Rigidbody2D val)
+        {
+            return ToJsonString(val);
+        }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Rigidbody2D val)
         {
@@ -20,11 +30,11 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
 
             stringBuilder.Append("{\"position\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.position);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, val.position);
             stringBuilder.Append(",\"rotation\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.rotation);
             stringBuilder.Append(",\"velocity\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.velocity);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, val.velocity);
             stringBuilder.Append(",\"mass\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.mass);
             stringBuilder.Append(",\"drag\":");
@@ -38,7 +48,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             stringBuilder.Append("}");
         }
 
-        private static string ToJsonString(Rigidbody2D val)
+        public static string ToJsonString(Rigidbody2D val)
         {
             _stringBuilder.Value.Clear();
             WriteToStringBuilder(_stringBuilder.Value, val);

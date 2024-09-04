@@ -72,8 +72,8 @@ namespace RegressionGames
             var hash = md5.ComputeHash(stream);
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
-        
-        
+
+
         /// <summary>
         /// Configures a scene's EventSystems to support replay and other functionality requiring simulated inputs
         /// </summary>
@@ -89,7 +89,7 @@ namespace RegressionGames
                     #else
                     .FirstOrDefault();
                     #endif
-                
+
                 // If there is no module, add the appropriate input module so that the replay can simulate UI inputs.
                 // If both the new and old input systems are active, prefer the new input system's UI module.
                 if (inputModule == null)
@@ -108,7 +108,7 @@ namespace RegressionGames
                     // Override and disable the existing module's input
                     inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
                     inputModule.enabled = false;
-                    
+
                     var rgModule = eventSystem.gameObject.GetComponent<RGStandaloneInputModule>();
                     if (rgModule == null)
                     {
@@ -126,17 +126,17 @@ namespace RegressionGames
         /// </summary>
         public static void ForceApplicationFocus()
         {
-            bool anyNotFocused = UnityEngine.Object.FindObjectsOfType<EventSystem>().Any(eventSys => !eventSys.isFocused);
+            bool anyNotFocused = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Any(eventSys => !eventSys.isFocused);
             if (anyNotFocused)
             {
-                foreach (var behaviour in UnityEngine.Object.FindObjectsOfType<Behaviour>())
+                foreach (var behaviour in UnityEngine.Object.FindObjectsByType<Behaviour>(FindObjectsSortMode.None))
                 {
                     behaviour.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
                 }
             }
         }
-        
-        
+
+
         #if UNITY_EDITOR
         private static InputSettings.EditorInputBehaviorInPlayMode? _origEditorInputBehaviorInPlayMode;
         #endif

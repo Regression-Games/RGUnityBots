@@ -335,7 +335,7 @@ namespace RegressionGames.StateRecorder.ECS
                     }
                     else
                     {
-                        //todo (reg-1832): implement getting the bounds for entities using the ecs hybrid renderer
+                        //todo (reg-1832): implement getting the bounds for entities using the ecs hybrid renderer when it is in use
                     }
 
                     // only take the overhead to capture this if we are recording
@@ -353,17 +353,21 @@ namespace RegressionGames.StateRecorder.ECS
                                     try
                                     {
                                         //FIX ME Someday: This call is throwing ArgumentException: Invalid generic arguments when the type is nested like Unity.CharacterController.CharacterInterpolationRememberTransformSystem+Singleton
-                                        if (!_typeToMethodInfoCache.TryGetValue(componentType, out var genericMethodInfo))
+                                        if (!_typeToMethodInfoCache.TryGetValue(componentType, out var getComponentData))
                                         {
+                                            // Use a delegate to avoid reflection cost
+                                            // https://codeblog.jonskeet.uk/2008/08/09/making-reflection-fly-and-exploring-delegates/comment-page-1/
+
                                             Type t = componentType.GetManagedType();
-                                            genericMethodInfo = _getComponentDataMethodInfo.MakeGenericMethod(t);
-                                            _typeToMethodInfoCache[t] = genericMethodInfo;
+                                            var genericMethodInfo = _getComponentDataMethodInfo.MakeGenericMethod(t);
+
+                                            getComponentData = MagicMethod(entityManager, genericMethodInfo);
+                                            _typeToMethodInfoCache[t] = getComponentData;
                                         }
 
-                                        var parameters = new object[] { entity };
-                                        //TODO: This is SUPER EXPENSIVE to call.. and not excessively from the reflection.. EntityManager.GetComponentData is just fundamentally expensive !
-                                        var componentData = (IComponentData)genericMethodInfo.Invoke(entityManager, parameters);
-                                        components.Add(componentData);
+                                        //NOTE: This is SUPER EXPENSIVE to call.. EntityManager.GetComponentData is fundamentally expensive as it waits for running jobs to finish and has other gate locks and checks!
+                                        var componentData = getComponentData(entity);
+                                        components.Add((IComponentData) componentData);
                                     }
                                     catch (ArgumentException)
                                     {
@@ -382,9 +386,40 @@ namespace RegressionGames.StateRecorder.ECS
             return (_priorObjects, _newObjects);
         }
 
+        // parlor tricks to make the generic method callable with a delegate to avoid reflection overhead
+        // ty https://codeblog.jonskeet.uk/2008/08/09/making-reflection-fly-and-exploring-delegates/comment-page-1/
+        static Func<Entity, object> MagicMethod(EntityManager entityManager, MethodInfo method)
+        {
+            // First fetch the generic form
+            MethodInfo genericHelper = typeof(EntityObjectFinder).GetMethod("MagicMethodHelper",
+                BindingFlags.Static | BindingFlags.NonPublic);
+
+            // Now supply the type arguments
+            MethodInfo constructedHelper = genericHelper.MakeGenericMethod(method.ReturnType);
+
+            // Now call it. The null argument is because it's a static method.
+            object ret = constructedHelper.Invoke(null, new object[] {entityManager, method});
+
+            // Cast the result to the right kind of delegate and return it
+            return (Func<Entity, object>) ret;
+        }
+
+        static Func<Entity, object> MagicMethodHelper<TReturn>(EntityManager entityManager, MethodInfo method)
+        {
+            // Convert the slow MethodInfo into a fast, strongly typed, open delegate
+            Func<Entity, TReturn> func = (Func<Entity, TReturn>)Delegate.CreateDelegate
+                (typeof(Func<Entity, TReturn>), entityManager, method);
+
+            // Now create a more weakly typed delegate which will call the strongly typed one
+            // ReSharper disable once ConvertToLocalFunction
+            Func<Entity, object> ret = (Entity param) => func(param);
+            return ret;
+        }
+
+
         private readonly MethodInfo _getComponentDataMethodInfo = typeof(EntityManager).GetMethod("GetComponentData", new [] {typeof(Entity)});
 
-        private readonly Dictionary<ComponentType, MethodInfo> _typeToMethodInfoCache = new();
+        private readonly Dictionary<ComponentType, Func<Entity, object>> _typeToMethodInfoCache = new();
 
         public override void Cleanup()
         {
