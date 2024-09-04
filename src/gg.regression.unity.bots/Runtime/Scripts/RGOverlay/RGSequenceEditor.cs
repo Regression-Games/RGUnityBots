@@ -95,6 +95,7 @@ namespace RegressionGames
                         { "type", segment.type.ToString() }
                     };
                     segmentCard.draggableCardName = segment.entryName;
+                    segmentCard.draggableCardDescription = segment.description;
                     segmentCard.icon = segment.type == BotSequenceEntryType.Segment ? SegmentIcon : SegmentListIcon;
                 }
             }
@@ -152,6 +153,7 @@ namespace RegressionGames
                 try
                 {
                     var segment = JsonConvert.DeserializeObject<BotSegmentList>(result.Item2);
+                    entry.description = segment.description;
                     entry.entryName = segment.name;
                     entry.type = BotSequenceEntryType.SegmentList;
                 }
@@ -160,6 +162,7 @@ namespace RegressionGames
                     try
                     {
                         var segmentList = JsonConvert.DeserializeObject<BotSegment>(result.Item2);
+                        entry.description = segmentList.description;
                         entry.entryName = segmentList.name;
                         entry.type = BotSequenceEntryType.Segment;
                     }

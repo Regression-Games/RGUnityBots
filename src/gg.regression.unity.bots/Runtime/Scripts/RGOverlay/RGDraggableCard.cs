@@ -13,11 +13,13 @@ namespace RegressionGames
      */
     public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
+        public Dictionary<string, string> payload;
+        
         public bool IsReordering;
         
         public string draggableCardName;
 
-        public Dictionary<string, string> payload;
+        public string draggableCardDescription;
         
         public Sprite icon;
         
@@ -25,6 +27,8 @@ namespace RegressionGames
 
         public TMP_Text namePrefab;
 
+        public TMP_Text descriptionPrefab;
+        
         public GameObject restingStatePrefab;
 
         public GameObject draggingStatePrefab;
@@ -33,13 +37,28 @@ namespace RegressionGames
 
         private RGDropZone _dropZone;
 
+        private bool _isHighlighted;
+
+        private const float HIGHLIGHTED_ALPHA = 1.0f;
+        private const float MUTED_ALPHA = 0.2f;
+
+        private const int EXPANDED_HEIGHT = 80;
+        private const int SHRUNKEN_HEIGHT = 30;
+
         public void Start()
         {
             IsReordering = false;
 
+            _isHighlighted = false;
+
             if (namePrefab != null)
             {
                 namePrefab.text = draggableCardName;
+            }
+
+            if (descriptionPrefab != null)
+            {
+                descriptionPrefab.text = draggableCardDescription;
             }
 
             if (iconPrefab != null)
@@ -78,7 +97,8 @@ namespace RegressionGames
                 instance.transform.SetParent(transform.root, false);
                 _draggingStateInstance = instance;
                 
-                DarkenSiblings();
+                ToggleHighlight();
+                ToggleExpand(true);
             }
 
             // check if this card is within a drop zone the moment it begins dragging. If so, this card is being
@@ -134,7 +154,7 @@ namespace RegressionGames
          */
         public void OnEndDrag(PointerEventData eventData)
         {
-            ResetSiblings();
+            ToggleHighlight();
 
             if (_draggingStateInstance == null)
             {
@@ -195,31 +215,46 @@ namespace RegressionGames
             _dropZone = null;
         }
 
-        private void DarkenSiblings()
+        public void OnClick()
         {
-            var selfIndex = transform.GetSiblingIndex();
+            ToggleExpand();
+        }
+
+        private void ToggleExpand(bool forceShrink = false)
+        {
+            if (string.IsNullOrEmpty(descriptionPrefab.text))
+            {
+                return;
+            }
+
+            var isActive = descriptionPrefab.gameObject.activeSelf || forceShrink;
+            var newHeight = isActive ? SHRUNKEN_HEIGHT : EXPANDED_HEIGHT;
+            
+            descriptionPrefab.gameObject.SetActive(!isActive);
+            
+            var rect = GetComponent<RectTransform>(); 
+            var size = rect.sizeDelta;
+            size.y = newHeight;
+            rect.sizeDelta = size;
+        }
+
+        private void ToggleHighlight()
+        {
+            var newAlpha = _isHighlighted ? HIGHLIGHTED_ALPHA : MUTED_ALPHA;
+            var selfIndex = _isHighlighted ?  -1 : transform.GetSiblingIndex();
+            
             for (var i = 0; i < transform.parent.transform.childCount; ++i)
             {
                 var child = transform.parent.transform.GetChild(i).GetComponent<RGDraggableCard>();
                 if (child != null && i != selfIndex)
                 {
-                    child.namePrefab.alpha = 0.2f;
-                    child.iconPrefab.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, 0.2f);
+                    child.namePrefab.CrossFadeAlpha(newAlpha, 0.1f, false);
+                    child.descriptionPrefab.CrossFadeAlpha(newAlpha, 0.1f, false);
+                    child.iconPrefab.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, newAlpha);
                 }
             }
-        }
-        
-        private void ResetSiblings()
-        {
-            for (var i = 0; i < transform.parent.transform.childCount; ++i)
-            {
-                var child = transform.parent.transform.GetChild(i).GetComponent<RGDraggableCard>();
-                if (child != null)
-                {
-                    child.namePrefab.alpha = 1.0f;
-                    child.iconPrefab.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
-                }
-            }
+
+            _isHighlighted = !_isHighlighted;
         }
     }
 }

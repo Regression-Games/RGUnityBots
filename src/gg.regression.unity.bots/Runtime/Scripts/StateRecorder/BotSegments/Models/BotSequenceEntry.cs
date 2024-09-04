@@ -22,6 +22,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public BotSequenceEntryType type;
         public string path;
         public string entryName;
+        public string description;
         public Image icon;
 
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (()=>new(100));
