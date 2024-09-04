@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -13,10 +14,12 @@ namespace RegressionGames
     public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         public bool IsReordering;
-
+        
         public string draggableCardName;
 
         public Sprite icon;
+
+        public Dictionary<string, string> payload;
         
         public GameObject iconPrefab;
 
@@ -67,6 +70,7 @@ namespace RegressionGames
                 var dragged = instance.GetComponent<RGDraggedCard>();
                 if (dragged != null)
                 {
+                    dragged.payload = payload;
                     dragged.draggedCardName = draggableCardName;
                     dragged.iconPrefab.GetComponent<Image>().overrideSprite = icon;
                 }
@@ -171,6 +175,7 @@ namespace RegressionGames
 
             // this card is being added to its drop zone
             var newCard = Instantiate(restingStatePrefab);
+            newCard.GetComponent<RGDraggableCard>().payload = payload;
             _dropZone.AddChild(newCard);
             _dropZone = null;
             Destroy(_draggingStateInstance);

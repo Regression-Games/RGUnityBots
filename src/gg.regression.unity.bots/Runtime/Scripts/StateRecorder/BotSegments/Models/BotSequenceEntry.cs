@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int apiVersion = SdkApiVersion.VERSION_12;
         public BotSequenceEntryType type;
         public string path;
-        public string displayPath;
+        public string entryName;
         public Image icon;
 
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (()=>new(100));

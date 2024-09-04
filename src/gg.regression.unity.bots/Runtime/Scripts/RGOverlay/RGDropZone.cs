@@ -176,6 +176,21 @@ namespace RegressionGames
             return childIDs.Contains(possibleChild.transform.GetInstanceID());
         }
 
+        public List<RGDraggableCard> GetChildren()
+        {
+            var children = new List<RGDraggableCard>();
+            for (var i = 0; i < transform.childCount; i++)
+            {
+                var asDraggableCard = transform.GetChild(i).GetComponent<RGDraggableCard>();
+                if (asDraggableCard != null)
+                {
+                    children.Add(asDraggableCard);
+                }
+            }
+
+            return children;
+        }
+
         /**
          * <summary>
          * When the cursor enters the drop zone, check if it is of a type that is allowed to be dropped in the drop zone

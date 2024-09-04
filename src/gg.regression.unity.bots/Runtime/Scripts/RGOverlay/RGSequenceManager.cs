@@ -40,6 +40,21 @@ public class RGSequenceManager : MonoBehaviour
         DontDestroyOnLoad(_this.gameObject);
     }
 
+    public void SaveSequenceLoadedInEditor()
+    {
+        if (sequenceEditor != null)
+        {
+            
+            var script = sequenceEditor.GetComponent<RGSequenceEditor>();
+            if (script != null)
+            {
+                script.SaveSequence();
+            }
+            
+            sequenceEditor.SetActive(false);
+        }
+    }
+
     public void ShowEditSequenceDialog()
     {
         if (sequenceEditor != null)
