@@ -194,13 +194,10 @@ namespace RegressionGames
             }
         }
 
-        private BotSequenceEntry ParseSegment(string path, string fileName)
+        private BotSequenceEntry ParseSegment(string json, string fileName)
         {
             try
             {
-                using var sr = new StreamReader(File.OpenRead(fileName));
-                var result = (fileName, sr.ReadToEnd());
-                        
                 var entry = new BotSequenceEntry
                 {
                     path = fileName,
@@ -208,7 +205,7 @@ namespace RegressionGames
 
                 try
                 {
-                    var segment = JsonConvert.DeserializeObject<BotSegmentList>(result.Item2);
+                    var segment = JsonConvert.DeserializeObject<BotSegmentList>(json);
                     entry.description = segment.description;
                     entry.entryName = segment.name;
                     entry.type = BotSequenceEntryType.SegmentList;
@@ -217,7 +214,7 @@ namespace RegressionGames
                 {
                     try
                     {
-                        var segmentList = JsonConvert.DeserializeObject<BotSegment>(result.Item2);
+                        var segmentList = JsonConvert.DeserializeObject<BotSegment>(json);
                         entry.description = segmentList.description;
                         entry.entryName = segmentList.name;
                         entry.type = BotSequenceEntryType.Segment;
@@ -233,13 +230,13 @@ namespace RegressionGames
             }
             catch (Exception exception)
             {
-                Debug.Log($"Error reading Bot Sequence Entry: {exception}");
+                Debug.Log($"RGSequenceEditor could not open Bot Sequence Entry: {exception}");
             }
 
             return null;
         }
 
-        private IList<BotSequenceEntry> LoadSegmentsInDirectory(string path)
+        private List<BotSequenceEntry> LoadSegmentsInDirectory(string path)
         {
             var results = new List<BotSequenceEntry>();
             var directories = Directory.EnumerateDirectories(path);
@@ -248,7 +245,9 @@ namespace RegressionGames
                 var files = Directory.GetFiles(directory, "*.json");
                 foreach (var fileName in files)
                 {
-                    var segment = ParseSegment(path, fileName);
+                    using var sr = new StreamReader(File.OpenRead(fileName));
+                    var result = (fileName, sr.ReadToEnd());
+                    var segment = ParseSegment(result.Item2, fileName);
                     if (segment != null)
                     {
                         results.Add(segment);
@@ -263,15 +262,68 @@ namespace RegressionGames
             return results;
         }
 
-        private IList<BotSequenceEntry> LoadAllSegments()
+        private List<BotSequenceEntry> LoadSegmentsInDirectoryForRuntime(string path)
         {
+            var results = new List<BotSequenceEntry>();
+            var directories = Directory.EnumerateDirectories(path);
+            foreach (var directory in directories)
+            {
+                var jsons = Resources.LoadAll(directory, typeof(TextAsset));
+                foreach (var jsonObject in jsons)
+                {
+                    try
+                    {
+                        var json = (jsonObject as TextAsset)?.text ?? "";
+                        var segment = ParseSegment(json, jsonObject.name);
+
+                        // don't add segments with duplicate names
+                        if (results.Any(s => s.entryName == segment.entryName))
+                        {
+                            continue;
+                        }
+                        
+                        results.Add(segment);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new Exception($"Exception reading a Segment json file from resource path: {directory}", e);
+                    }
+                }
+
+                results = results.Concat(
+                    LoadSegmentsInDirectoryForRuntime(directory)
+                ).ToList();
+            }
+
+            return results;
+        }
+
+        private List<BotSequenceEntry> LoadAllSegments()
+        {
+            var segments = new List<BotSequenceEntry>();
+            
+#if UNITY_EDITOR
             const string sequencePath = "Assets/RegressionGames/Resources/BotSegments";
             if (!Directory.Exists(sequencePath))
             {
                 return new List<BotSequenceEntry>();
             }
 
-            return LoadSegmentsInDirectory(sequencePath);
+            segments = LoadSegmentsInDirectory(sequencePath);
+#else
+            // 1. check the persistentDataPath for segments
+            var persistentDataPath = Application.persistentDataPath + "/BotSegments";
+            if (Directory.Exists(persistentDataPath))
+            {
+                segments = LoadSegmentsInDirectoryForRuntime(persistentDataPath);
+            }
+        
+            // 2. load Segments from Resources, and ensure that no Segments have duplicate names
+            const string runtimePath = "BotSegments";
+            segments = segments.Concat(LoadSegmentsInDirectoryForRuntime(runtimePath)).ToList();
+#endif
+
+            return segments;
         }
     }
 }
