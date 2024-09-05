@@ -18,6 +18,8 @@ namespace RegressionGames
 
         public TMP_InputField DescriptionInput;
         
+        public TMP_InputField SearchInput;
+        
         public GameObject AvailableSegmentsList;
 
         public GameObject DropZonePrefab;
@@ -32,8 +34,15 @@ namespace RegressionGames
         
         private IList<BotSequenceEntry> _segmentEntries;
 
+        private IList<BotSequenceEntry> _filteredSegmentEntries;
+
         public void Initialize()
         {
+            if (SearchInput != null)
+            {
+                SearchInput.onValueChanged.AddListener(OnSearchInputChange);
+            }
+            
             if (NameInput == null)
             {
                 Debug.LogError("RGSequenceEditor is missing its NameInput");
@@ -82,8 +91,14 @@ namespace RegressionGames
             ResetEditor();
             
             _segmentEntries = LoadAllSegments();
+            CreateAvailableSegments(_segmentEntries);
+        }
+
+        public void CreateAvailableSegments(IList<BotSequenceEntry> segments)
+        {
+            ClearAvailableSegments();
             
-            foreach (var segment in _segmentEntries)
+            foreach (var segment in segments)
             {
                 var prefab = Instantiate(SegmentCardPrefab, AvailableSegmentsList.transform, false);
                 var segmentCard = prefab.GetComponent<RGDraggableCard>();
@@ -98,6 +113,15 @@ namespace RegressionGames
                     segmentCard.draggableCardDescription = segment.description;
                     segmentCard.icon = segment.type == BotSequenceEntryType.Segment ? SegmentIcon : SegmentListIcon;
                 }
+            }
+        }
+
+        public void ClearAvailableSegments()
+        {
+            var childCount = AvailableSegmentsList.transform.childCount - 1;
+            for (var i = childCount; i >= 0; i--)
+            {
+                Destroy(AvailableSegmentsList.transform.GetChild(i).gameObject);
             }
         }
 
@@ -141,13 +165,22 @@ namespace RegressionGames
                 DescriptionInput.text = string.Empty;
             }
             
-            var childCount = AvailableSegmentsList.transform.childCount - 1;
-            for (var i = childCount; i >= 0; i--)
-            {
-                Destroy(AvailableSegmentsList.transform.GetChild(i).gameObject);
-            }
+            ClearAvailableSegments();
             
             _dropZone.ClearChildren();
+        }
+
+        public void OnSearchInputChange(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                CreateAvailableSegments(_segmentEntries);
+            }
+            else
+            {
+                _filteredSegmentEntries = _segmentEntries.Where(s => s.entryName.Contains(text.Trim())).ToList();
+                CreateAvailableSegments(_filteredSegmentEntries);
+            }
         }
 
         private BotSequenceEntry ParseSegment(string path, string fileName)
