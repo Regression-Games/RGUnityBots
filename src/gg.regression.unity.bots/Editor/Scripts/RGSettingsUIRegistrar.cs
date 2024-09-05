@@ -54,20 +54,12 @@ namespace RegressionGames.Editor
                     SerializedProperty logLevel = settings.FindProperty("logLevel");
                     logLevel.enumValueIndex = (int)(DebugLogLevel)EditorGUILayout.EnumPopup("Log Level", (DebugLogLevel)logLevel.enumValueIndex);
 
-                    SerializedProperty enableOverlay = settings.FindProperty("enableOverlay");
-                    enableOverlay.boolValue =
-                        EditorGUILayout.Toggle("Enable Screen Overlay ?", enableOverlay.boolValue);
-
                     // ----------
                     DrawUILine((Color.gray + Color.black) / 2);
                     EditorGUILayout.LabelField("Experimental Features");
 
-                    SerializedProperty featureStateRecordingAndReplay = settings.FindProperty("feature_StateRecordingAndReplay");
-                    featureStateRecordingAndReplay.boolValue =
-                        EditorGUILayout.Toggle("State Recording & Replay", featureStateRecordingAndReplay.boolValue);
-                    
                     EditorGUILayout.HelpBox("The Code Coverage feature instruments the game build to enable recording covered code.\n" +
-                                                    "This may impact the performance of the game when using the state recording feature.", 
+                                                    "This may impact the performance of the game when using the state recording and replay features.",
                         MessageType.Info);
 
                     SerializedProperty featureCodeCoverage = settings.FindProperty("feature_CodeCoverage");
@@ -79,7 +71,25 @@ namespace RegressionGames.Editor
                         RGCodeCoverage.ClearMetadata();
                         CompilationPipeline.RequestScriptCompilation(RequestScriptCompilationOptions.CleanBuildCache);
                     }
-                    
+
+                    EditorGUILayout.HelpBox("REQUIRES: gg.regression.unity.bots.ecs package to be included in this project", MessageType.Info);
+
+                    SerializedProperty featureCaptureEntityState = settings.FindProperty("feature_CaptureEntityState");
+                    featureCaptureEntityState.boolValue =
+                        EditorGUILayout.Toggle("Capture Entity States", featureCaptureEntityState.boolValue);
+
+                    EditorGUILayout.HelpBox("Capturing component data values from ECS Entities may impact the performance \n" +
+                                            "of the game when using the state recording and replay features.\n" +
+                                            "REQUIRES: Capture Entity States - ENABLED\n" +
+                                            "REQUIRES: gg.regression.unity.bots.ecs package to be included in this project",
+                        MessageType.Info);
+
+                    SerializedProperty featureCaptureEntityComponentData = settings.FindProperty("feature_CaptureEntityComponentData");
+                    var priorLabelWidth = EditorGUIUtility.labelWidth;
+                    EditorGUIUtility.labelWidth = 230;
+                    featureCaptureEntityComponentData.boolValue =
+                        EditorGUILayout.Toggle("Capture Entity Component Data States", featureCaptureEntityState.boolValue && featureCaptureEntityComponentData.boolValue);
+                    EditorGUIUtility.labelWidth = priorLabelWidth;
 
                     settings.ApplyModifiedProperties();
                     if (EditorGUI.EndChangeCheck())

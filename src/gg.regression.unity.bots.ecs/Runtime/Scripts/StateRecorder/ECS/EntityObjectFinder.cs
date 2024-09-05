@@ -171,10 +171,12 @@ namespace RegressionGames.StateRecorder.ECS
 
         public override (Dictionary<long, RecordedGameObjectState>, Dictionary<long, RecordedGameObjectState>) GetStateForCurrentFrame()
         {
+            var rgSettings = RGSettings.GetOrCreateSettings();
             var frameCount = Time.frameCount;
-            if (frameCount == _stateFrameNumber)
+            if (!rgSettings.GetFeatureCaptureEntityState() || frameCount == _stateFrameNumber)
             {
                 // we already processed this frame (happens when recording during replay and they both call this)
+                // or we are NOT recording entity states
                 return (_priorStates, _newStates);
             }
 
@@ -318,7 +320,6 @@ namespace RegressionGames.StateRecorder.ECS
                 foreach (var entity in entities)
                 {
                     var eStatus = EntityStatus.GetOrCreateEntityStatus(entity, entityManager);
-                    _newObjects[eStatus.Id] = eStatus;
                     // update all the bounds stuff here on the status
                     if (_entitySelectors.Count > 0)
                     {
@@ -338,8 +339,16 @@ namespace RegressionGames.StateRecorder.ECS
                         //todo (reg-1832): implement getting the bounds for entities using the ecs hybrid renderer when it is in use
                     }
 
+                    // only include visible UI elements
+                    if (eStatus.screenSpaceBounds != null)
+                    {
+                        _newObjects[eStatus.Id] = eStatus;
+                    }
+
+                    var rgSettings = RGSettings.GetOrCreateSettings();
+
                     // only take the overhead to capture this if we are recording
-                    if (ScreenRecorder.GetInstance()?.IsRecording == true)
+                    if (ScreenRecorder.GetInstance()?.IsRecording == true && rgSettings.GetFeatureCaptureEntityState() && rgSettings.GetFeatureCaptureEntityComponentData())
                     {
                         // get component data
                         var cTypes = entityManager.GetComponentTypes(entity);
@@ -404,7 +413,8 @@ namespace RegressionGames.StateRecorder.ECS
             return (Func<Entity, object>) ret;
         }
 
-        static Func<Entity, object> MagicMethodHelper<TReturn>(EntityManager entityManager, MethodInfo method)
+        // ReSharper disable once UnusedMember.Local - called via delegate
+        private static Func<Entity, object> MagicMethodHelper<TReturn>(EntityManager entityManager, MethodInfo method)
         {
             // Convert the slow MethodInfo into a fast, strongly typed, open delegate
             Func<Entity, TReturn> func = (Func<Entity, TReturn>)Delegate.CreateDelegate
