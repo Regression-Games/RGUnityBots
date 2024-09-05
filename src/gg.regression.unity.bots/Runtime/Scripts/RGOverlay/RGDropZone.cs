@@ -25,21 +25,11 @@ namespace RegressionGames
 
         private GameObject _currentDraggable;
 
-        private int _currentDropIndex;
+        private int _currentDropIndex = -1;
 
         private const int DEFAULT_CHILD_HEIGHT = 30;
 
         private const int DEFAULT_CHILD_SPACING = 8;
-
-        public void Start()
-        {
-            _currentDropIndex = -1;
-
-            if (emptyStatePrefab != null)
-            {
-                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, this.transform, false);
-            }
-        }
 
         /**
          * <summary>
@@ -109,7 +99,7 @@ namespace RegressionGames
          * Reset the state used to track the current draggable
          * </summary>
          */
-        public void ResetState()
+        public void ResetDraggableTracking()
         {
             _currentDraggable = null;
             _currentDropIndex = -1;
@@ -123,10 +113,7 @@ namespace RegressionGames
          */
         public void AddChild(GameObject newChild)
         {
-            if (_emptyStatePrefabInstance != null)
-            {
-                Destroy(_emptyStatePrefabInstance);
-            }
+            Destroy(_emptyStatePrefabInstance);
 
             // place the new child in the drop index that the potential drop spot is occupying
             var dropIndex = 0;
@@ -139,7 +126,7 @@ namespace RegressionGames
             newChild.transform.SetParent(transform, false);
             newChild.transform.SetSiblingIndex(dropIndex);
 
-            ResetState();
+            ResetDraggableTracking();
         }
 
         /**
@@ -190,6 +177,20 @@ namespace RegressionGames
 
             return children;
         }
+        
+        public void ClearChildren()
+        {
+            var childCount = transform.childCount - 1;
+            for (var i = childCount; i >= 0; i--)
+            {
+                Destroy(transform.GetChild(i).gameObject);
+            }
+            
+            if (_emptyStatePrefabInstance == null)
+            {
+                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, transform, false);
+            }
+        }
 
         /**
          * <summary>
@@ -233,7 +234,7 @@ namespace RegressionGames
                 draggableCard.OnExitDropZone();
             }
 
-            ResetState();
+            ResetDraggableTracking();
         }
 
         /**

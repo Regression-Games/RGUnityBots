@@ -191,7 +191,7 @@ namespace RegressionGames
             if (IsReordering)
             {
                 IsReordering = false;
-                _dropZone.ResetState();
+                _dropZone.ResetDraggableTracking();
                 _dropZone = null;
                 Destroy(_draggingStateInstance);
                 return;

@@ -79,7 +79,7 @@ namespace RegressionGames
             
             CurrentSequence = new BotSequence();
             
-            ClearSegments();
+            ResetEditor();
             
             _segmentEntries = LoadAllSegments();
             
@@ -129,13 +129,25 @@ namespace RegressionGames
             CurrentSequence.SaveSequenceAsJson();
         }
 
-        private void ClearSegments()
+        public void ResetEditor()
         {
+            if (NameInput != null)
+            {
+                NameInput.text = string.Empty;
+            }
+
+            if (DescriptionInput != null)
+            {
+                DescriptionInput.text = string.Empty;
+            }
+            
             var childCount = AvailableSegmentsList.transform.childCount - 1;
             for (var i = childCount; i >= 0; i--)
             {
                 Destroy(AvailableSegmentsList.transform.GetChild(i).gameObject);
             }
+            
+            _dropZone.ClearChildren();
         }
 
         private BotSequenceEntry ParseSegment(string path, string fileName)
