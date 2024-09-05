@@ -107,7 +107,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (!_requestInProgress)
                 {
                     // Request the CV Text data
-                    var screenshot = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
+                    var screenshot = ScreenshotCapture.GetInstance().GetCurrentScreenshot(segmentNumber, out var width, out var height);
                     if (screenshot != null)
                     {
                         _requestInProgress = true;

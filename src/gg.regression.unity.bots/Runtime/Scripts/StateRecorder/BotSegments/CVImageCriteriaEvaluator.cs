@@ -105,7 +105,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             // only query when no request in progress and when we have cleared out the prior results
             if (!requestInProgress && cvImageResults == null)
             {
-                var imageData = ScreenshotCapture.GetCurrentScreenshot(segmentNumber, out var width, out var height);
+                var imageData = ScreenshotCapture.GetInstance().GetCurrentScreenshot(segmentNumber, out var width, out var height);
                 if (imageData != null)
                 {
                     // mark a request in progress inside the lock to avoid race conditions.. must be done before starting async process
