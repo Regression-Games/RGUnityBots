@@ -38,7 +38,11 @@ namespace RegressionGames
 
         public void Initialize()
         {
-            if (SearchInput != null)
+            if (SearchInput == null)
+            {
+                Debug.LogError("RGSequenceEditor is missing its SearchInput");
+            }
+            else
             {
                 SearchInput.onValueChanged.AddListener(OnSearchInputChange);
             }
@@ -168,6 +172,13 @@ namespace RegressionGames
             ClearAvailableSegments();
             
             _dropZone.ClearChildren();
+        }
+
+        public void ReloadAvailableSegments()
+        {
+            SearchInput.text = string.Empty;
+            _segmentEntries = LoadAllSegments();
+            CreateAvailableSegments(_segmentEntries);
         }
 
         public void OnSearchInputChange(string text)

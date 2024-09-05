@@ -19,8 +19,7 @@ public class RGSequenceManager : MonoBehaviour
     public GameObject sequenceCardPrefab;
 
     public GameObject sequenceEditor;
-
-
+    
     private static RGSequenceManager _this;
 
     private IList<BotSequence> _sequences;
