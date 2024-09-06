@@ -41,8 +41,8 @@ namespace RegressionGames
         [SerializeField] private string rgHostAddress;
         [SerializeField] private string apiKey;
 
-        // CV Settings
-        [SerializeField] private string cvHostAddress;
+        // AI Service Settings
+        [SerializeField] private string aiServiceHostAddress;
 
         /*
          * This is setup to be safely callable on the non-main thread.
@@ -71,7 +71,8 @@ namespace RegressionGames
                 _settings = CreateInstance<RGSettings>();
                 _settings.useSystemSettings = true;
                 _settings.rgHostAddress = "https://play.regression.gg";
-                _settings.cvHostAddress = "http://127.0.0.1:18888";
+                /* Use "http://127.0.0.1:18888/" for local aiservice dev testing */
+                _settings.aiServiceHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
 
                 _settings.feature_StateRecordingAndReplay = true;
@@ -89,9 +90,9 @@ namespace RegressionGames
             }
 
             // handle settings saved without a cv host address
-            if (_settings.cvHostAddress == null)
+            if (_settings.aiServiceHostAddress == null)
             {
-                _settings.cvHostAddress = "http://127.0.0.1:18888";
+                _settings.aiServiceHostAddress = "https://play.regression.gg";
             }
 
             return _settings;
@@ -147,9 +148,9 @@ namespace RegressionGames
             return rgHostAddress;
         }
 
-        public string GetCvHostAddress()
+        public string GetAIServiceHostAddress()
         {
-            return cvHostAddress;
+            return aiServiceHostAddress;
         }
 
         public bool GetFeatureStateRecordingAndReplay()
