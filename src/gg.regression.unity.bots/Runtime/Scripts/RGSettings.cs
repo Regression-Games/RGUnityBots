@@ -41,7 +41,8 @@ namespace RegressionGames
         [SerializeField] private string rgHostAddress;
         [SerializeField] private string apiKey;
 
-        // AI Service Settings
+        // AI Service Settings - Use "http://127.0.0.1:18888/" for local aiservice dev testing
+        // NOTE: By default this is left as NULL and tracks rgHostAddress value unless overridden
         [SerializeField] private string aiServiceHostAddress;
 
         /*
@@ -71,8 +72,6 @@ namespace RegressionGames
                 _settings = CreateInstance<RGSettings>();
                 _settings.useSystemSettings = true;
                 _settings.rgHostAddress = "https://play.regression.gg";
-                /* Use "http://127.0.0.1:18888/" for local aiservice dev testing */
-                _settings.aiServiceHostAddress = "https://play.regression.gg";
                 _settings.logLevel = DebugLogLevel.Info;
 
                 _settings.feature_StateRecordingAndReplay = true;
@@ -87,12 +86,6 @@ namespace RegressionGames
 #if !UNITY_EDITOR
                 Debug.LogWarning("RG settings could not be loaded. Make sure to log into Regression Games within the Unity Editor before building your project. For now, an empty user settings object will be used.");
 #endif
-            }
-
-            // handle settings saved without a cv host address
-            if (_settings.aiServiceHostAddress == null)
-            {
-                _settings.aiServiceHostAddress = "https://play.regression.gg";
             }
 
             return _settings;
@@ -150,6 +143,11 @@ namespace RegressionGames
 
         public string GetAIServiceHostAddress()
         {
+            // Tracks 'rgHostAddress' unless explicitly overridden
+            if (string.IsNullOrEmpty(aiServiceHostAddress))
+            {
+                return rgHostAddress;
+            }
             return aiServiceHostAddress;
         }
 
