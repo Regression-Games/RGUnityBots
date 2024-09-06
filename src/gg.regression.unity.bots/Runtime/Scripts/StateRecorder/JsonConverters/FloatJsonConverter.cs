@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Globalization;
-using System.IO;
 using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class FloatJsonConverter: JsonConverter
+    public class FloatJsonConverter: JsonConverter, ITypedStringBuilderWriteable<float>
     {
         // re-usable and large enough to fit objects of all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(20));
@@ -28,10 +27,28 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
+        void ITypedStringBuilderWriteable<float>.WriteToStringBuilder(StringBuilder stringBuilder, float val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<float>.ToJsonString(float val)
+        {
+            return ToJsonString(val);
+        }
+
         public static void WriteToStringBuilder(StringBuilder stringBuilder, float f)
         {
-            var val = (int)f;
-            var remainder = (int)((f % 1) * 10_000_000);
+            var val = (long)f;
+            int remainder;
+            if (val == long.MinValue)
+            {
+                remainder = 0;
+            }
+            else
+            {
+                remainder = (int)((f % 1) * 10_000_000);
+            }
             // write to fixed precision of up to 7 decimal places
             // optimized to minimize toString and concat calls for all cases
             if (val == 0)

@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Globalization;
-using System.IO;
 using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class ShortJsonConverter: JsonConverter
+    public class ShortJsonConverter: JsonConverter, ITypedStringBuilderWriteable<short>
     {
         // re-usable and large enough to fit objects of all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(20));
@@ -25,6 +24,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 return;
             }
             WriteToStringBuilder(stringBuilder, f.Value);
+        }
+
+        void ITypedStringBuilderWriteable<short>.WriteToStringBuilder(StringBuilder stringBuilder, short val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<short>.ToJsonString(short val)
+        {
+            return ToJsonString(val);
         }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, short val)

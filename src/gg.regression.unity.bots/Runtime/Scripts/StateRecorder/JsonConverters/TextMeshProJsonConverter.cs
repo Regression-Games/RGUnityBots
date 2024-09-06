@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class TextMeshProJsonConverter : Newtonsoft.Json.JsonConverter
+    public class TextMeshProJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<TextMeshPro>
     {
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
@@ -15,6 +15,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
         {
             WriteToStringBuilder(stringBuilder, (TextMeshPro)behaviour);
+        }
+
+        void ITypedStringBuilderWriteable<TextMeshPro>.WriteToStringBuilder(StringBuilder stringBuilder, TextMeshPro val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<TextMeshPro>.ToJsonString(TextMeshPro val)
+        {
+            return ToJsonString(val);
         }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, TextMeshPro val)

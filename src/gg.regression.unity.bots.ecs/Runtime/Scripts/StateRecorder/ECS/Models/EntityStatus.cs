@@ -17,7 +17,7 @@ namespace RegressionGames.StateRecorder.ECS.Models
 
         public EntityManager EntityManager;
 
-        public List<IComponentData> ComponentData;
+        public List<IComponentData> ComponentData = new();
 
         private EntityStatus()
         {

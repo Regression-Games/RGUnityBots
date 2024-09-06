@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -17,7 +18,8 @@ namespace RegressionGames.StateRecorder.ECS
             return apiVersion;
         }
 
-        private static readonly Dictionary<Type, FieldInfo[]> FieldInfoCache = new();
+        // cache a mapping from the type to an array of (fieldName, refGetter) tuples
+        private static readonly Dictionary<Type, (string, Type, FieldInfo)[]> FieldInfoCache = new();
 
         private readonly IComponentData _componentData;
 
@@ -31,7 +33,7 @@ namespace RegressionGames.StateRecorder.ECS
             Type structType = _componentData.GetType();
             if (!FieldInfoCache.TryGetValue(structType, out var fieldInfos))
             {
-                fieldInfos = structType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+                fieldInfos = structType.GetFields(BindingFlags.Public | BindingFlags.Instance).Select(fi => (fi.Name, fi.FieldType, fi)).ToArray();
                 FieldInfoCache[structType] = fieldInfos;
             }
 
@@ -45,9 +47,10 @@ namespace RegressionGames.StateRecorder.ECS
             for (var i = 0; i < fieldInfosLength; i++)
             {
                 var fieldInfo = fieldInfos[i];
-                StringJsonConverter.WriteToStringBuilder(stringBuilder, fieldInfo.Name);
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, fieldInfo.Item1);
                 stringBuilder.Append(":");
-                JsonUtils.WriteObjectStateToStringBuilder(stringBuilder, fieldInfo.GetValue(_componentData));
+                var objectValue = fieldInfo.Item3.GetValue(_componentData);
+                JsonUtils.WriteObjectStateToStringBuilder(stringBuilder, objectValue, fieldInfo.Item2);
                 if (i + 1 < fieldInfosLength)
                 {
                     stringBuilder.Append(",");

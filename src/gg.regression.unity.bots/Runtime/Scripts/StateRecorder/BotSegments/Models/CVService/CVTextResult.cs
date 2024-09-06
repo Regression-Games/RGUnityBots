@@ -16,7 +16,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
             sb.Append("{\"text\":");
             StringJsonConverter.WriteToStringBuilder(sb, text);
             sb.Append(",\"resolution\":");
-            VectorIntJsonConverter.WriteToStringBuilder(sb, resolution);
+            Vector2IntJsonConverter.WriteToStringBuilder(sb, resolution);
             sb.Append(",\"rect\":");
             RectIntJsonConverter.WriteToStringBuilder(sb, rect);
             sb.Append("}");
