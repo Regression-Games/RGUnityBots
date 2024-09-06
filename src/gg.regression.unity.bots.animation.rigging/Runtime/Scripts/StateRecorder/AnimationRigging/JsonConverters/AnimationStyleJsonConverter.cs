@@ -17,9 +17,9 @@ namespace RegressionGames.StateRecorder.AnimationRigging.JsonConverters
             stringBuilder.Append("{\"color\":");
             ColorJsonConverter.WriteToStringBuilder(stringBuilder, val.color);
             stringBuilder.Append(",\"position\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.position);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, val.position);
             stringBuilder.Append(",\"rotation\":");
-            VectorJsonConverter.WriteToStringBuilderVector3(stringBuilder, val.rotation);
+            Vector3JsonConverter.WriteToStringBuilder(stringBuilder, val.rotation);
             stringBuilder.Append(",\"size\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, val.size);
             stringBuilder.Append(",\"shape\":");

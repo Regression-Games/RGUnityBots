@@ -7,7 +7,7 @@ using UnityEngine.AI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class NavMeshAgentJsonConverter : Newtonsoft.Json.JsonConverter, IBehaviourStringBuilderWritable
+    public class NavMeshAgentJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<NavMeshAgent>, IBehaviourStringBuilderWritable
     {
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(500));
@@ -15,6 +15,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
         public void WriteBehaviourToStringBuilder(StringBuilder stringBuilder, Behaviour behaviour)
         {
             WriteToStringBuilder(stringBuilder, (NavMeshAgent)behaviour);
+        }
+
+        void ITypedStringBuilderWriteable<NavMeshAgent>.WriteToStringBuilder(StringBuilder stringBuilder, NavMeshAgent val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<NavMeshAgent>.ToJsonString(NavMeshAgent val)
+        {
+            return ToJsonString(val);
         }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, NavMeshAgent val)

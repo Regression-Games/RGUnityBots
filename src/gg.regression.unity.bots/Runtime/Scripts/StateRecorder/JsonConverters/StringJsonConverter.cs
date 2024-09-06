@@ -8,7 +8,7 @@ using Object = System.Object;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class StringJsonConverter : Newtonsoft.Json.JsonConverter
+    public class StringJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<String>
     {
 
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(5_000));
@@ -30,6 +30,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         // supports up to 1m char length escaped strings
         private static readonly ThreadLocal<char[]> _bufferArray = new (() => new char[1_000_000]);
+
+        void ITypedStringBuilderWriteable<string>.WriteToStringBuilder(StringBuilder stringBuilder, string val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<string>.ToJsonString(string val)
+        {
+            return ToJsonString(val);
+        }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, string input)
         {
@@ -74,6 +84,15 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 }
             }
 
+            if (startIndex == 0)
+            {
+                // didn't need to escape anything.. bail out early and avoid the extra buffer string copies
+                stringBuilder.Append("\"").Append(input).Append("\"");
+                return; // we're done
+            }
+
+            // There MIGHT be room for some further optimization here.. CopyTo and Append both do a memcopy of the string... right now we do the partial
+            // with copyTo and then copy the full string with Append.. if we could find a way to do this with a single memcopy somehow that would be faster
             if (startIndex != endIndex)
             {
                 // got to the end

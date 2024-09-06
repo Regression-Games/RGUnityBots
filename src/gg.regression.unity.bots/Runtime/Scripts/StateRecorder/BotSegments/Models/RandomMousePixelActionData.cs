@@ -201,7 +201,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"screenSize\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\"timeBetweenClicks\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, timeBetweenClicks);
             stringBuilder.Append(",\"excludedAreas\":[");

@@ -82,11 +82,11 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\"startTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
             stringBuilder.Append(",\"screenSize\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\"position\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, position);
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, position);
             stringBuilder.Append(",\"worldPosition\":");
-            VectorJsonConverter.WriteToStringBuilderVector3Nullable(stringBuilder, worldPosition);
+            Vector3JsonConverter.WriteToStringBuilderNullable(stringBuilder, worldPosition);
             stringBuilder.Append(",\"leftButton\":");
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
             stringBuilder.Append(",\"middleButton\":");
@@ -98,7 +98,7 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append(",\"backButton\":");
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
             stringBuilder.Append(",\"scroll\":");
-            VectorJsonConverter.WriteToStringBuilderVector2(stringBuilder, scroll);
+            Vector2JsonConverter.WriteToStringBuilder(stringBuilder, scroll);
             stringBuilder.Append(",\"clickedObjectNormalizedPaths\":[");
             var clickedObjectPathsLength = clickedObjectNormalizedPaths.Length;
             for (var i = 0; i < clickedObjectPathsLength; i++)

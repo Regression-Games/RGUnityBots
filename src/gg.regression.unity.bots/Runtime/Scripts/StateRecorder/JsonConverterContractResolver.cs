@@ -30,11 +30,11 @@ namespace RegressionGames.StateRecorder
             { typeof(bool), new BooleanJsonConverter()},
 
             { typeof(Bounds), new BoundsJsonConverter() },
-            { typeof(Vector2Int), new VectorIntJsonConverter() },
-            { typeof(Vector3Int), new VectorIntJsonConverter() },
-            { typeof(Vector2), new VectorJsonConverter() },
-            { typeof(Vector3), new VectorJsonConverter() },
-            { typeof(Vector4), new VectorJsonConverter() },
+            { typeof(Vector2Int), new Vector2IntJsonConverter() },
+            { typeof(Vector3Int), new Vector3IntJsonConverter() },
+            { typeof(Vector2), new Vector2JsonConverter() },
+            { typeof(Vector3), new Vector3JsonConverter() },
+            { typeof(Vector4), new Vector4JsonConverter() },
             { typeof(Quaternion), new QuaternionJsonConverter() },
             { typeof(Rect), new RectJsonConverter() },
             { typeof(RectInt), new RectIntJsonConverter() },
@@ -69,18 +69,22 @@ namespace RegressionGames.StateRecorder
         [CanBeNull]
         public JsonConverter GetConverterForType(Type objectType)
         {
-            if (_customConverters.TryGetValue(objectType, out var converter))
+            JsonConverter converter = null;
+            if (objectType != null)
             {
-                // found our converter
-            }
-            else if (NetworkVariableJsonConverter.Convertable(objectType))
-            {
-                // only support when netcode is in the project
-                converter = new NetworkVariableJsonConverter();
-            }
-            else if (UnityObjectFallbackJsonConverter.Convertable(objectType))
-            {
-                converter = new UnityObjectFallbackJsonConverter();
+                if (_customConverters.TryGetValue(objectType, out converter))
+                {
+                    // found our converter
+                }
+                else if (NetworkVariableJsonConverter.Convertable(objectType))
+                {
+                    // only support when netcode is in the project
+                    converter = new NetworkVariableJsonConverter();
+                }
+                else if (UnityObjectFallbackJsonConverter.Convertable(objectType))
+                {
+                    converter = new UnityObjectFallbackJsonConverter();
+                }
             }
 
             return converter;

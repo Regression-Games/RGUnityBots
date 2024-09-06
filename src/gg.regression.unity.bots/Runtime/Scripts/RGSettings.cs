@@ -25,11 +25,17 @@ namespace RegressionGames
 
         // General settings about how the SDK should operate
         [SerializeField] private bool useSystemSettings;
-        [SerializeField] private bool enableOverlay;
         [SerializeField] private DebugLogLevel logLevel;
         // ReSharper disable once InconsistentNaming
         [SerializeField] private bool feature_StateRecordingAndReplay;
+        // ReSharper disable once InconsistentNaming
         [SerializeField] private bool feature_CodeCoverage;
+
+        // default these to FALSE to avoid ECS performance overhead out of the box
+        // ReSharper disable once InconsistentNaming
+        [SerializeField] private bool feature_CaptureEntityState;
+        // ReSharper disable once InconsistentNaming
+        [SerializeField] private bool feature_CaptureEntityComponentData;
 
         // Authentication settings
         [SerializeField] private string rgHostAddress;
@@ -64,13 +70,14 @@ namespace RegressionGames
             {
                 _settings = CreateInstance<RGSettings>();
                 _settings.useSystemSettings = true;
-                _settings.enableOverlay = true;
                 _settings.rgHostAddress = "https://play.regression.gg";
                 _settings.cvHostAddress = "http://127.0.0.1:18888";
                 _settings.logLevel = DebugLogLevel.Info;
 
                 _settings.feature_StateRecordingAndReplay = true;
                 _settings.feature_CodeCoverage = false;
+                _settings.feature_CaptureEntityState = true;
+                _settings.feature_CaptureEntityComponentData = false;
 #if UNITY_EDITOR
                 Directory.CreateDirectory(SETTINGS_DIRECTORY);
                 AssetDatabase.CreateAsset(_settings, SETTINGS_PATH);
@@ -125,11 +132,6 @@ namespace RegressionGames
             return useSystemSettings;
         }
 
-        public bool GetEnableOverlay()
-        {
-            return enableOverlay;
-        }
-
         public DebugLogLevel GetLogLevel()
         {
             return logLevel;
@@ -158,6 +160,16 @@ namespace RegressionGames
         public bool GetFeatureCodeCoverage()
         {
             return feature_CodeCoverage;
+        }
+
+        public bool GetFeatureCaptureEntityState()
+        {
+            return feature_CaptureEntityState;
+        }
+
+        public bool GetFeatureCaptureEntityComponentData()
+        {
+            return feature_CaptureEntityComponentData;
         }
     }
 }

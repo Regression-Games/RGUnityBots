@@ -7,7 +7,7 @@ using UnityEngine;
 namespace RegressionGames.StateRecorder.JsonConverters
 {
     // NOTE: This class exists as a performance optimization as JsonConverters list model for JsonSerializerSettings scales very very poorly
-    public class ColorJsonConverter : Newtonsoft.Json.JsonConverter
+    public class ColorJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Color>
     {
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(200));
@@ -20,6 +20,16 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 return;
             }
             WriteToStringBuilder(stringBuilder, f.Value);
+        }
+
+        void ITypedStringBuilderWriteable<Color>.WriteToStringBuilder(StringBuilder stringBuilder, Color val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<Color>.ToJsonString(Color val)
+        {
+            return ToJsonString(val);
         }
 
         public static void WriteToStringBuilder(StringBuilder stringBuilder, Color value)

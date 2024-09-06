@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class DecimalJsonConverter: JsonConverter
+    public class DecimalJsonConverter: JsonConverter, ITypedStringBuilderWriteable<decimal>
     {
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(80));
 
@@ -25,10 +25,28 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
+        void ITypedStringBuilderWriteable<decimal>.WriteToStringBuilder(StringBuilder stringBuilder, decimal val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<decimal>.ToJsonString(decimal val)
+        {
+            return ToJsonString(val);
+        }
+
         public static void WriteToStringBuilder(StringBuilder stringBuilder, decimal f)
         {
-            var val = (int)f;
-            var remainder = (int)((f % 1) * 10_000_000);
+            var val = (long)f;
+            int remainder;
+            if (val == long.MinValue)
+            {
+                remainder = 0;
+            }
+            else
+            {
+                remainder = (int)((f % 1) * 10_000_000);
+            }
             // write to fixed precision of up to 7 decimal places
             // optimized to minimize toString and concat calls for all cases
             if (val == 0)

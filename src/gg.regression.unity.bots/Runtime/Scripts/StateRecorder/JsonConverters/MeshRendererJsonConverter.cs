@@ -1,11 +1,56 @@
 using System;
+using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class MeshRendererJsonConverter : Newtonsoft.Json.JsonConverter
+    public class MeshRendererJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<MeshRenderer>
     {
+
+        // re-usable and large enough to fit all sizes
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(500));
+
+        void ITypedStringBuilderWriteable<MeshRenderer>.WriteToStringBuilder(StringBuilder stringBuilder, MeshRenderer val)
+        {
+            WriteToStringBuilder(stringBuilder, val);
+        }
+
+        string ITypedStringBuilderWriteable<MeshRenderer>.ToJsonString(MeshRenderer val)
+        {
+            return ToJsonString(val);
+        }
+
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, MeshRenderer val)
+        {
+            //TODO: Implement more support for meshes
+            stringBuilder.Append("{\"materials\":[");
+            bool first = true;
+            foreach (var valMaterial in val.materials)
+            {
+                if (!first)
+                {
+                    stringBuilder.Append(",");
+                }
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, valMaterial.name);
+                first = false;
+            }
+
+            stringBuilder.Append("],\"dynamicOcclusion\":");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder, val.allowOcclusionWhenDynamic);
+            stringBuilder.Append(",\"renderingLayerMask\":\"");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, val.renderingLayerMask + ": " + LayerMask.LayerToName((int)val.renderingLayerMask));
+            stringBuilder.Append("}");
+        }
+
+        private static string ToJsonString(MeshRenderer value)
+        {
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, value);
+            return _stringBuilder.Value.ToString();
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             if (value == null)
@@ -14,26 +59,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                // TODO: Include Lighting/Lightmapping/Probes
-                var val = (MeshRenderer)value;
-                var strValue = "{\"materials\":[";
-
-                bool first = true;
-                foreach (var valMaterial in val.materials)
-                {
-                    if (!first)
-                    {
-                        strValue += ",";
-                    }
-
-                    strValue += "\"" + valMaterial.name + "\"";
-                    first = false;
-                }
-
-                strValue += "],\"dynamicOcclusion\":" + (val.allowOcclusionWhenDynamic ? "true" : "false")
-                                                      + ",\"renderingLayerMask\":\"" + val.renderingLayerMask + ": " + LayerMask.LayerToName((int)val.renderingLayerMask)
-                                                      + "\"}";
-                writer.WriteRawValue(strValue);
+                // raw is way faster than using the libraries
+                writer.WriteRawValue(ToJsonString((MeshRenderer)value));
             }
         }
 

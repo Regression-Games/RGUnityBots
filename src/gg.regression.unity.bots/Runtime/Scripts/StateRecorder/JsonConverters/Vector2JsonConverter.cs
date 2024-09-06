@@ -6,13 +6,12 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class RectJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Rect>
+    public class Vector2JsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Vector2>
     {
+        // re-usable and large enough to fit vectors of all sizes
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(200));
 
-        // re-usable and large enough to fit all sizes
-        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(500));
-
-        public static void WriteToStringBuilderNullable(StringBuilder stringBuilder, Rect? f)
+        public static void WriteToStringBuilderVector2Nullable(StringBuilder stringBuilder, Vector2? f)
         {
             if (!f.HasValue)
             {
@@ -22,35 +21,33 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
-        void ITypedStringBuilderWriteable<Rect>.WriteToStringBuilder(StringBuilder stringBuilder, Rect val)
+        void ITypedStringBuilderWriteable<Vector2>.WriteToStringBuilder(StringBuilder stringBuilder, Vector2 val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<Rect>.ToJsonString(Rect val)
+        string ITypedStringBuilderWriteable<Vector2>.ToJsonString(Vector2 val)
         {
             return ToJsonString(val);
         }
 
-        public static void WriteToStringBuilder(StringBuilder stringBuilder, Rect value)
+        public static void WriteToStringBuilder(StringBuilder stringBuilder, Vector2 value)
         {
+
             stringBuilder.Append("{\"x\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.x);
             stringBuilder.Append(",\"y\":");
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.y);
-            stringBuilder.Append(",\"width\":");
-            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.width);
-            stringBuilder.Append(",\"height\":");
-            FloatJsonConverter.WriteToStringBuilder(stringBuilder, value.height);
             stringBuilder.Append("}");
         }
 
-        private static string ToJsonString(Rect val)
+        private static string ToJsonString(Vector2 val)
         {
             _stringBuilder.Value.Clear();
             WriteToStringBuilder(_stringBuilder.Value, val);
             return _stringBuilder.Value.ToString();
         }
+
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
@@ -60,8 +57,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                // raw is way faster than using the libraries
-                writer.WriteRawValue(ToJsonString((Rect)value));
+                writer.WriteRawValue(ToJsonString((Vector2)value));
             }
         }
 
@@ -74,7 +70,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(Rect) || objectType == typeof(Rect?);
+            return objectType == typeof(Vector2) || objectType == typeof(Vector2?);
         }
     }
 }

@@ -1,13 +1,35 @@
 using System;
+using System.Text;
+using System.Threading;
 using Newtonsoft.Json;
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class NetworkVariableJsonConverter : Newtonsoft.Json.JsonConverter
+    public class NetworkVariableJsonConverter : Newtonsoft.Json.JsonConverter, IStringBuilderWriteable
     {
+
+        // re-usable and large enough to fit all sizes
+        private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(500));
+
+
         // only works if they include this type in their runtime
         public static readonly Type NetworkVariableType = Type.GetType("Unity.Netcode.NetworkVariable`1, Unity.Netcode.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", throwOnError: false);
         // network behaviours already expose the networkobject data.. exposing it again is duplication in the json
         //public static readonly Type NetworkObjectType = Type.GetType("Unity.Netcode.NetworkObject, Unity.Netcode.Runtime, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null", throwOnError: false);
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder, object value)
+        {
+            var fieldValue = value.GetType().GetProperty("Value")?.GetValue(value);
+            stringBuilder.Append("{\"Value\":");
+            JsonUtils.WriteObjectStateToStringBuilder(stringBuilder, fieldValue);
+            stringBuilder.Append("}");
+        }
+
+        public string ToJsonString(object val)
+        {
+            _stringBuilder.Value.Clear();
+            WriteToStringBuilder(_stringBuilder.Value, val);
+            return _stringBuilder.Value.ToString();
+        }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
@@ -17,8 +39,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
             }
             else
             {
-                var fieldValue = value.GetType().GetProperty("Value")?.GetValue(value);
-                writer.WriteRawValue("{\"Value\":" + JsonConvert.ToString(fieldValue) + "}");
+                writer.WriteRawValue(ToJsonString(value));
             }
         }
 
@@ -55,5 +76,7 @@ namespace RegressionGames.StateRecorder.JsonConverters
         {
             return Convertable(objectType);
         }
+
+
     }
 }

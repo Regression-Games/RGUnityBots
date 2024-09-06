@@ -27,16 +27,16 @@ namespace RegressionGames.Editor
     public class RGInstrumentation
     {
         private const int MaxAttempts = 4;
-        
+
         private static double _scheduledInstrumentationTime;
         private static int _numInstrumentationAttempts;
-        
+
         [InitializeOnLoadMethod]
         static void OnStartup()
         {
             CompilationPipeline.compilationStarted += ResetAssemblyResolver;
             CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
-            
+
             _numInstrumentationAttempts = 0;
             _scheduledInstrumentationTime = EditorApplication.timeSinceStartup;
             EditorApplication.update += ScheduledInstrumentationLoop;
@@ -83,7 +83,7 @@ namespace RegressionGames.Editor
 
             return false;
         }
-        
+
         private static bool IsNamespaceIgnored(string ns)
         {
             return ns.Contains("RegressionGames");
@@ -138,12 +138,12 @@ namespace RegressionGames.Editor
                 SymbolReaderProvider = new PdbReaderProvider()
             });
         }
-        
+
         private static string GetSubsignature(MethodReference method)
         {
             return method.Name + "(" + string.Join(",", method.Parameters.Select(param => param.ParameterType.FullName)) + ")";
         }
-        
+
         private static ModuleDefinition ReadRGRuntimeAssembly()
         {
             string assemblyPath = Path.GetFullPath(typeof(RGCodeCoverage).Assembly.Location);
@@ -170,7 +170,7 @@ namespace RegressionGames.Editor
             }
             return result;
         }
-        
+
         // Returns whether any changes were made
         private static bool ApplyLegacyInputInstrumentation(ModuleDefinition module, Dictionary<string, MethodReference> wrapperMethods)
         {
@@ -183,12 +183,12 @@ namespace RegressionGames.Editor
             {
                 if (IsNamespaceIgnored(type.Namespace))
                     continue;
-        
+
                 foreach (MethodDefinition method in type.Methods)
                 {
                     if (method.Body == null)
                         continue;
-        
+
                     foreach (Instruction inst in method.Body.Instructions)
                     {
                         if (inst.OpCode == OpCodes.Call && inst.Operand is MethodReference methodRef
@@ -217,7 +217,7 @@ namespace RegressionGames.Editor
             }
             return null;
         }
-        
+
         private static void SaveCodePointMetadata(string assemblyName, List<CodePointMetadata> codePointMetadata)
         {
             var metadata = RGCodeCoverage.GetMetadata();
@@ -228,7 +228,7 @@ namespace RegressionGames.Editor
             metadata.codePointMetadata[assemblyName] = codePointMetadata;
             RGCodeCoverage.SaveMetadata(metadata);
         }
-    
+
         /// <summary>
         /// Inserts code coverage instrumentation into the game assemblies.
         /// Returns true whether any changes were made
@@ -258,12 +258,12 @@ namespace RegressionGames.Editor
                     }
                 }
             }
-    
+
             int codePointCounter = 0;
             List<CodePointMetadata> codePointMetadata = new List<CodePointMetadata>();
             string assemblyName = module.Assembly.Name.Name;
             bool anyChanges = false;
-    
+
             // Go through every method in the game assembly and insert code coverage instrumentation
             // This inserts a call to RGCodeCoverage.Visit() after every program statement that has debug information
             // available for it in the assembly.
@@ -275,10 +275,10 @@ namespace RegressionGames.Editor
                 {
                     if (method.Body == null)
                         continue;
-                    
+
                     string subsig = GetSubsignature(method);
                     var processor = method.Body.GetILProcessor();
-                    
+
                     // Insert calls to RGCodeCoverage.Visit() at every sequence point available in the debug information
                     var debugInfo = method.DebugInformation;
                     if (debugInfo != null)
@@ -287,7 +287,7 @@ namespace RegressionGames.Editor
                         if (seqPts.Count > 0)
                         {
                             anyChanges = true;
-                            method.Body.SimplifyMacros(); // Call this before injecting new opcodes to avoid overflow with short-form branches 
+                            method.Body.SimplifyMacros(); // Call this before injecting new opcodes to avoid overflow with short-form branches
                             foreach (var entry in seqPts)
                             {
                                 var inst = entry.Key;
@@ -312,16 +312,16 @@ namespace RegressionGames.Editor
                             }
                             method.Body.OptimizeMacros(); // Put back short-form branches where possible again
                         }
-    
+
                     }
                 }
             }
-    
+
             SaveCodePointMetadata(assemblyName, codePointMetadata);
-    
+
             return anyChanges;
         }
-        
+
         private static void InstrumentAssemblyIfNeeded(string assemblyPath)
         {
             if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assemblyPath))
@@ -374,7 +374,7 @@ namespace RegressionGames.Editor
                         RGDebug.LogError($"Failed to find RGCodeCoverage.Visit method, code coverage instrumentation not applied");
                     }
                 }
-                
+
                 if (anyChanges)
                 {
                     module.Write(tmpOutputPath, new WriterParameters()
@@ -402,7 +402,7 @@ namespace RegressionGames.Editor
                 }
             }
         }
-        
+
         private static void OnAssemblyCompiled(string assemblyAssetPath, CompilerMessage[] messages)
         {
             try
@@ -419,7 +419,7 @@ namespace RegressionGames.Editor
         static void ScheduledInstrumentationLoop()
         {
             bool editorIsBusy = EditorApplication.isCompiling || EditorApplication.isUpdating;
-            
+
             bool done;
             if (!editorIsBusy && EditorApplication.timeSinceStartup >= _scheduledInstrumentationTime)
             {
@@ -453,7 +453,7 @@ namespace RegressionGames.Editor
                 EditorApplication.update -= ScheduledInstrumentationLoop;
             }
         }
-        
+
         private static bool InstrumentExistingAssemblies()
         {
             try
@@ -490,7 +490,7 @@ namespace RegressionGames.Editor
     public class RGInstrumentationBuildProcessor : IPreprocessBuildWithReport
     {
         public int callbackOrder => 0;
-        
+
         public void OnPreprocessBuild(BuildReport report)
         {
             // clear existing code coverage metadata before starting a Player build

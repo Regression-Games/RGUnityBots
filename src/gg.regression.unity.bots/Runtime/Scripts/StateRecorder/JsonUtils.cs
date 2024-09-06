@@ -15,41 +15,81 @@ namespace RegressionGames.StateRecorder
 
         private static JsonSerializer _jsonSerializer = null;
 
-        public static void WriteObjectStateToStringBuilder(StringBuilder stringBuilder, object theObject)
+        private static bool IsNullableType(this Type type)
         {
-            var stateType = theObject.GetType();
-            var converter = JsonConverterContractResolver.Instance.GetConverterForType(stateType);
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof (Nullable<>);
+        }
+
+        public static void WriteObjectStateToStringBuilder(StringBuilder stringBuilder, object theObject, Type stateType = null)
+        {
+            if (theObject == null)
+            {
+                stringBuilder.Append("null");
+                return;
+            }
+
+            JsonConverter converter = null;
+
+
+            try
+            {
+                stateType ??= theObject.GetType();
+                converter = JsonConverterContractResolver.Instance.GetConverterForType(stateType);
+            }
+            catch (Exception)
+            {
+                //TODO: A customer's project has Addressable ECS types that cause a null pointer trying .GetType() on the object
+            }
 
             if (converter != null)
             {
-                // use the generic and expensive serializer only if we know we have a registered converter.. else write out a blank object
-                var sbLength = stringBuilder.Length;
-                try
+                if (converter is IStringBuilderWriteable writeable)
                 {
-                    // do this ourselves to bypass all the serializer creation junk for every object :/
-                    if (_jsonSerializer == null)
+                    // we had one of our fancy converters .. use it to speed this way way up
+                    if (IsNullableType(stateType))
                     {
-                        _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
-                        _jsonSerializer.Formatting = Formatting.None;
+                        writeable.WriteToStringBuilderNullable(stringBuilder, theObject);
                     }
-
-                    var sw = new StringWriter(stringBuilder, CultureInfo.InvariantCulture);
-                    using (var jsonWriter = new JsonTextWriter(sw))
+                    else
                     {
-                        jsonWriter.Formatting = _jsonSerializer.Formatting;
-                        _jsonSerializer.Serialize(jsonWriter, theObject, theObject.GetType());
-                    }
-
-                    if (sbLength == stringBuilder.Length)
-                    {
-                        // nothing written ... shouldn't happen... but keeps us running if it does
-                        stringBuilder.Append("{\"EXCEPTION\":\"Could not convert object to JSON\"}");
+                        writeable.WriteToStringBuilder(stringBuilder, theObject);
                     }
                 }
-                catch (Exception ex)
+                else if (converter is UnityObjectFallbackJsonConverter fallbackJsonConverter)
                 {
-                    RGDebug.LogException(ex, "Error converting object to JSON");
                     stringBuilder.Append("{}");
+                }
+                else
+                {
+                    // use the generic and expensive serializer only if we know we have a registered converter.. else write out a blank object
+                    var sbLength = stringBuilder.Length;
+                    try
+                    {
+                        // do this ourselves to bypass all the serializer creation junk for every object :/
+                        if (_jsonSerializer == null)
+                        {
+                            _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
+                            _jsonSerializer.Formatting = Formatting.None;
+                        }
+
+                        var sw = new StringWriter(stringBuilder, CultureInfo.InvariantCulture);
+                        using (var jsonWriter = new JsonTextWriter(sw))
+                        {
+                            jsonWriter.Formatting = _jsonSerializer.Formatting;
+                            _jsonSerializer.Serialize(jsonWriter, theObject, stateType);
+                        }
+
+                        if (sbLength == stringBuilder.Length)
+                        {
+                            // nothing written ... shouldn't happen... but keeps us running if it does
+                            stringBuilder.Append("{\"EXCEPTION\":\"Could not convert object to JSON\"}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        RGDebug.LogException(ex, "Error converting object to JSON");
+                        stringBuilder.Append("{}");
+                    }
                 }
             }
             else

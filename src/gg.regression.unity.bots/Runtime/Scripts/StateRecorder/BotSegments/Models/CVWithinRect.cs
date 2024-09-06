@@ -20,7 +20,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
             stringBuilder.Append("{\"screenSize\":");
-            VectorIntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\"rect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, rect);
             stringBuilder.Append(",\"apiVersion\":");
