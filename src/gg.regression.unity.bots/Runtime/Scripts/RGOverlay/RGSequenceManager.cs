@@ -39,6 +39,12 @@ public class RGSequenceManager : MonoBehaviour
         DontDestroyOnLoad(_this.gameObject);
     }
 
+    /**
+     * <summary>
+     * Saves the Sequence currently loaded in the Sequence Editor, hides the Sequence Editor, and reloads the list
+     * of Sequences
+     * </summary>
+     */
     public void SaveSequenceLoadedInEditor()
     {
         if (sequenceEditor != null)
@@ -55,6 +61,11 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    /**
+     * <summary>
+     * Show the Sequence Editor, and initialize its fields
+     * </summary>
+     */
     public void ShowEditSequenceDialog()
     {
         if (sequenceEditor != null)
@@ -69,6 +80,11 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    /**
+     * <summary>
+     * Hide the Sequence Editor
+     * </summary>
+     */
     public void HideEditSequenceDialog()
     {
         if (sequenceEditor != null)

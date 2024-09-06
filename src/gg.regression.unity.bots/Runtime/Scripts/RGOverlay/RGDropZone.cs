@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Codice.Client.BaseCommands.Update.Fast.Transformers;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -78,7 +77,7 @@ namespace RegressionGames
 
             // get screenspace location of the mouse cursor, within the bounds of this drop zone
             Vector2 mouseScreenSpacePosition = Input.mousePosition;
-            var rectTransform = this.GetComponent<RectTransform>();
+            var rectTransform = GetComponent<RectTransform>();
             Vector2 localPoint = rectTransform.InverseTransformPoint(mouseScreenSpacePosition);
 
             // adjust the local point to have the origin in the top-left corner (Y-axis facing down)
@@ -198,11 +197,21 @@ namespace RegressionGames
             return childIDs.Contains(possibleChild.transform.GetInstanceID());
         }
 
+        /**
+         * <summary>
+         * If the empty state prefab is showing, we can assume that this drop zone is empty
+         * </summary>
+         */
         public bool IsEmpty()
         {
             return _emptyStatePrefabInstance != null;
         }
 
+        /**
+         * <summary>
+         * Gets all dropzone children that are draggable cards (ie: not the empty state)
+         * </summary>
+         */
         public List<RGDraggableCard> GetChildren()
         {
             var children = new List<RGDraggableCard>();
@@ -218,6 +227,11 @@ namespace RegressionGames
             return children;
         }
         
+        /**
+         * <summary>
+         * Destroy all the children added to this drop zone, then show the empty state prefab
+         * </summary>
+         */
         public void ClearChildren()
         {
             var childCount = transform.childCount - 1;

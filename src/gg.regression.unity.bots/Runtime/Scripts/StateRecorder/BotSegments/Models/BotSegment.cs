@@ -235,6 +235,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append("}");
         }
         
+        /**
+         * <summary>
+         * Loads all the Segments that exist in this project (for use in the Editor or in a build)
+         * </summary>
+         */
         public static List<BotSequenceEntry> LoadAllSegments()
         {
             var segments = new List<BotSequenceEntry>();
@@ -263,6 +268,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return segments;
         }
         
+        /**
+         * <summary>
+         * Recursively look through directories for Segement files, and load them
+         * </summary>
+         * <param name="path">
+         * Directory to search for Segments
+         * </param>
+         */
         private static List<BotSequenceEntry> LoadSegmentsInDirectory(string path)
         {
             var results = new List<BotSequenceEntry>();
@@ -281,6 +294,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     }   
                 }
 
+                // recurse into the next level of directories
                 results = results.Concat(
                     LoadSegmentsInDirectory(directory)
                 ).ToList();
@@ -289,6 +303,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return results;
         }
         
+        /**
+         * <summary>
+         * Recursively look through directories for Segement files, and load them (in a build of the game)
+         * </summary>
+         * <param name="path">
+         * Directory to search for Segments
+         * </param>
+         */
         private static List<BotSequenceEntry> LoadSegmentsInDirectoryForRuntime(string path)
         {
             var results = new List<BotSequenceEntry>();
@@ -325,6 +347,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return results;
         }
         
+        /**
+         * <summary>
+         * Parses a json string as either a Segment or SegmentList
+         * </summary>
+         * <param name="json">
+         * JSON string to parse
+         * </param>
+         * <param name="fileName">
+         * File the Segment or SegmentList is derived from
+         * </param>
+         */
         private static BotSequenceEntry ParseSegment(string json, string fileName)
         {
             try

@@ -4,7 +4,7 @@ namespace RegressionGames
 {
     /**
      * <summary>
-     * When clicked, create or update the Sequence loaded in the SequenceEditor
+     * When clicked, save the Sequence currently loaded in the SequenceEditor
      * </summary>
      */
     public class RGSaveSequenceButton : MonoBehaviour

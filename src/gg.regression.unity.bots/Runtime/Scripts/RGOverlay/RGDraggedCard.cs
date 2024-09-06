@@ -6,7 +6,8 @@ namespace RegressionGames
 {
     /**
      * <summary>
-     * The in-motion state of a RGDraggableCard
+     * The in-motion state of a RGDraggableCard. The `payload` field is used to transfer data from this dragging state,
+     * to the resting state of a card.
      * </summary>
      */
     public class RGDraggedCard : MonoBehaviour

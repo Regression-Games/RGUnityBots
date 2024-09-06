@@ -8,7 +8,8 @@ namespace RegressionGames
 {
     /**
      * <summary>
-     * A component that can be dragged and dropped, and also reordered, within an RGDropZone instance
+     * A component that can be dragged and dropped, and also reordered, within an RGDropZone instance. A draggable card's
+     * `payload` field is used to transfer information from its dragging state to its resting state.
      * </summary>
      */
     public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
@@ -97,6 +98,7 @@ namespace RegressionGames
                 instance.transform.SetParent(transform.root, false);
                 _draggingStateInstance = instance;
                 
+                // darken the cards not being dragged
                 ToggleHighlight();
                 ToggleExpand(true);
             }
@@ -215,15 +217,27 @@ namespace RegressionGames
             _dropZone = null;
         }
 
+        /**
+         * <summary>
+         * Expand this card when clicked on. This will show the card's description
+         * </summary>
+         */
         public void OnClick()
         {
             ToggleExpand();
         }
 
+        /**
+         * <summary>
+         * Expand the card to show its description, or shrink the card if already expanded
+         * </summary>
+         * <param name="forceShrink">Should this card shrink, despite if it is expanded or not</param>
+         */
         private void ToggleExpand(bool forceShrink = false)
         {
             if (string.IsNullOrEmpty(descriptionPrefab.text))
             {
+                // don't expand cards without a description
                 return;
             }
 
@@ -238,9 +252,16 @@ namespace RegressionGames
             rect.sizeDelta = size;
         }
 
+        /**
+         * <summary>
+         * Toggle the darkening state of any sibling cards when the current card is in use
+         * </summary>
+         */
         private void ToggleHighlight()
         {
             var newAlpha = _isHighlighted ? HIGHLIGHTED_ALPHA : MUTED_ALPHA;
+            
+            // if the selfIndex is -1, we can know that all cards are being returned to their regular alpha value
             var selfIndex = _isHighlighted ?  -1 : transform.GetSiblingIndex();
             
             for (var i = 0; i < transform.parent.transform.childCount; ++i)
