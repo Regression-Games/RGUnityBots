@@ -51,6 +51,7 @@ public class RGSequenceManager : MonoBehaviour
             }
             
             sequenceEditor.SetActive(false);
+            LoadSequences();
         }
     }
 

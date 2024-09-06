@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
@@ -22,6 +20,8 @@ namespace RegressionGames
         
         public GameObject AvailableSegmentsList;
 
+        public GameObject CreateSequenceButton;
+        
         public GameObject DropZonePrefab;
 
         public GameObject SegmentCardPrefab;
@@ -50,6 +50,10 @@ namespace RegressionGames
             if (NameInput == null)
             {
                 Debug.LogError("RGSequenceEditor is missing its NameInput");
+            }
+            else
+            {
+                NameInput.onValueChanged.AddListener(OnNameInputChange);
             }
 
             if (DescriptionInput == null)
@@ -94,7 +98,7 @@ namespace RegressionGames
             
             ResetEditor();
             
-            _segmentEntries = LoadAllSegments();
+            _segmentEntries = BotSegment.LoadAllSegments();
             CreateAvailableSegments(_segmentEntries);
         }
 
@@ -172,12 +176,14 @@ namespace RegressionGames
             ClearAvailableSegments();
             
             _dropZone.ClearChildren();
+
+            SetCreateSequenceButtonEnabled(false);
         }
 
         public void ReloadAvailableSegments()
         {
             SearchInput.text = string.Empty;
-            _segmentEntries = LoadAllSegments();
+            _segmentEntries = BotSegment.LoadAllSegments();
             CreateAvailableSegments(_segmentEntries);
         }
 
@@ -194,136 +200,45 @@ namespace RegressionGames
             }
         }
 
-        private BotSequenceEntry ParseSegment(string json, string fileName)
+        public void OnNameInputChange(string text)
         {
-            try
-            {
-                var entry = new BotSequenceEntry
-                {
-                    path = fileName,
-                };
-
-                try
-                {
-                    var segment = JsonConvert.DeserializeObject<BotSegmentList>(json);
-                    entry.description = segment.description;
-                    entry.entryName = segment.name;
-                    entry.type = BotSequenceEntryType.SegmentList;
-                }
-                catch
-                {
-                    try
-                    {
-                        var segmentList = JsonConvert.DeserializeObject<BotSegment>(json);
-                        entry.description = segmentList.description;
-                        entry.entryName = segmentList.name;
-                        entry.type = BotSequenceEntryType.Segment;
-                    }
-                    catch
-                    {
-                        Debug.LogError($"RGSequenceEditor Could not parse Bot Segment file: {fileName}");
-                        throw;
-                    }
-                }
-
-                return entry;
-            }
-            catch (Exception exception)
-            {
-                Debug.Log($"RGSequenceEditor could not open Bot Sequence Entry: {exception}");
-            }
-
-            return null;
+            NameInput.text = text;
+            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && text.Length > 0);
         }
 
-        private List<BotSequenceEntry> LoadSegmentsInDirectory(string path)
+        public void SetCreateSequenceButtonEnabled(bool isEnabled)
         {
-            var results = new List<BotSequenceEntry>();
-            var directories = Directory.EnumerateDirectories(path);
-            foreach (var directory in directories)
+            if (CreateSequenceButton != null)
             {
-                var files = Directory.GetFiles(directory, "*.json");
-                foreach (var fileName in files)
+                var alpha = isEnabled ? 1.0f : 0.1f;
+                var button = CreateSequenceButton.GetComponent<Button>();
+                if (button != null)
                 {
-                    using var sr = new StreamReader(File.OpenRead(fileName));
-                    var result = (fileName, sr.ReadToEnd());
-                    var segment = ParseSegment(result.Item2, fileName);
-                    if (segment != null)
+                    if (button.interactable && isEnabled || !button.interactable && !isEnabled)
                     {
-                        results.Add(segment);
-                    }   
+                        // don't adjust anything, the requested change is redundant
+                        return;
+                    }
+                    
+                    button.interactable = isEnabled;
                 }
-
-                results = results.Concat(
-                    LoadSegmentsInDirectory(directory)
-                ).ToList();
-            }
-
-            return results;
-        }
-
-        private List<BotSequenceEntry> LoadSegmentsInDirectoryForRuntime(string path)
-        {
-            var results = new List<BotSequenceEntry>();
-            var directories = Directory.EnumerateDirectories(path);
-            foreach (var directory in directories)
-            {
-                var jsons = Resources.LoadAll(directory, typeof(TextAsset));
-                foreach (var jsonObject in jsons)
+                
+                var imageChildren = CreateSequenceButton.GetComponentsInChildren<Image>();
+                foreach (var child in imageChildren)
                 {
-                    try
-                    {
-                        var json = (jsonObject as TextAsset)?.text ?? "";
-                        var segment = ParseSegment(json, jsonObject.name);
-
-                        // don't add segments with duplicate names
-                        if (results.Any(s => s.entryName == segment.entryName))
-                        {
-                            continue;
-                        }
-                        
-                        results.Add(segment);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new Exception($"Exception reading a Segment json file from resource path: {directory}", e);
-                    }
+                    var color = child.color;
+                    color.a = alpha;
+                    child.color = color;
                 }
-
-                results = results.Concat(
-                    LoadSegmentsInDirectoryForRuntime(directory)
-                ).ToList();
+                
+                var textChildren = CreateSequenceButton.GetComponentsInChildren<TMP_Text>();
+                foreach (var child in textChildren)
+                {
+                    var color = child.color;
+                    color.a = alpha;
+                    child.color = color;
+                }
             }
-
-            return results;
-        }
-
-        private List<BotSequenceEntry> LoadAllSegments()
-        {
-            var segments = new List<BotSequenceEntry>();
-            
-#if UNITY_EDITOR
-            const string sequencePath = "Assets/RegressionGames/Resources/BotSegments";
-            if (!Directory.Exists(sequencePath))
-            {
-                return new List<BotSequenceEntry>();
-            }
-
-            segments = LoadSegmentsInDirectory(sequencePath);
-#else
-            // 1. check the persistentDataPath for segments
-            var persistentDataPath = Application.persistentDataPath + "/BotSegments";
-            if (Directory.Exists(persistentDataPath))
-            {
-                segments = LoadSegmentsInDirectoryForRuntime(persistentDataPath);
-            }
-        
-            // 2. load Segments from Resources, and ensure that no Segments have duplicate names
-            const string runtimePath = "BotSegments";
-            segments = segments.Concat(LoadSegmentsInDirectoryForRuntime(runtimePath)).ToList();
-#endif
-
-            return segments;
         }
     }
 }
