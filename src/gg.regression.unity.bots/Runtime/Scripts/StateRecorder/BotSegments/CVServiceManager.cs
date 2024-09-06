@@ -27,7 +27,7 @@ namespace RegressionGames
         private String GetCvServiceBaseUri()
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            string host = rgSettings.GetCvHostAddress();
+            string host = rgSettings.GetAIServiceHostAddress();
 
             // If env var is set, use that instead
             string hostOverride = RGEnvConfigs.ReadCvHost();
@@ -44,7 +44,7 @@ namespace RegressionGames
             Uri hostUri = new(host);
             if (!hostUri.IsLoopback)
             {
-                //return $"{host}/rgcvservice";
+                return $"{host}/aiservice";
             }
             return $"{host}";
         }
