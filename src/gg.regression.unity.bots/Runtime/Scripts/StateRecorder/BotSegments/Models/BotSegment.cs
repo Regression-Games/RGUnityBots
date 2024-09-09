@@ -361,7 +361,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 try
                 {
                     var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(json);
-                    if (segmentList.EffectiveApiVersion >= currentVersion)
+                    if (segmentList.EffectiveApiVersion > currentVersion)
                     {
                         Debug.LogError(
                             $"SegmentList ({segmentList.name}) contains a Segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {currentVersion}"
@@ -378,7 +378,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     try
                     {
                         var segment = JsonConvert.DeserializeObject<BotSegment>(json);
-                        if (segment.EffectiveApiVersion >= currentVersion)
+                        if (segment.EffectiveApiVersion > currentVersion)
                         {
                             Debug.LogError(
                                 $"Segment ({segment.name}) requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {currentVersion}"
