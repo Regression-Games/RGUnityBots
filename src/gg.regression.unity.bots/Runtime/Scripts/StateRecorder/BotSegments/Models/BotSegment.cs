@@ -270,11 +270,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         
         /**
          * <summary>
-         * Recursively look through directories for Segement files, and load them
+         * Recursively look through directories for Segment files, and load them
          * </summary>
-         * <param name="path">
-         * Directory to search for Segments
-         * </param>
+         * <param name="path">Directory to search for Segments</param>
          */
         private static List<BotSequenceEntry> LoadSegmentsInDirectory(string path)
         {
@@ -305,43 +303,33 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         
         /**
          * <summary>
-         * Recursively look through directories for Segement files, and load them (in a build of the game)
+         * Search for Segment files and load them (in a build of the game)
          * </summary>
-         * <param name="path">
-         * Directory to search for Segments
-         * </param>
+         * <param name="path">Directory to search for Segments</param>
          */
         private static List<BotSequenceEntry> LoadSegmentsInDirectoryForRuntime(string path)
         {
             var results = new List<BotSequenceEntry>();
-            var directories = Directory.EnumerateDirectories(path);
-            foreach (var directory in directories)
+            var jsons = Resources.LoadAll(path, typeof(TextAsset));
+            foreach (var jsonObject in jsons)
             {
-                var jsons = Resources.LoadAll(directory, typeof(TextAsset));
-                foreach (var jsonObject in jsons)
+                try
                 {
-                    try
-                    {
-                        var json = (jsonObject as TextAsset)?.text ?? "";
-                        var segment = ParseSegment(json, jsonObject.name);
+                    var json = (jsonObject as TextAsset)?.text ?? "";
+                    var segment = ParseSegment(json, jsonObject.name);
 
-                        // don't add segments with duplicate names
-                        if (results.Any(s => s.entryName == segment.entryName))
-                        {
-                            continue;
-                        }
-                        
-                        results.Add(segment);
-                    }
-                    catch (Exception e)
+                    // don't add segments with duplicate names
+                    if (results.Any(s => s.entryName == segment.entryName))
                     {
-                        throw new Exception($"Exception reading a Segment json file from resource path: {directory}", e);
+                        continue;
                     }
+                    
+                    results.Add(segment);
                 }
-
-                results = results.Concat(
-                    LoadSegmentsInDirectoryForRuntime(directory)
-                ).ToList();
+                catch (Exception e)
+                {
+                    throw new Exception($"Exception reading a Segment json file from resource path: {path}", e);
+                }
             }
 
             return results;
@@ -351,12 +339,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * <summary>
          * Parses a json string as either a Segment or SegmentList
          * </summary>
-         * <param name="json">
-         * JSON string to parse
-         * </param>
-         * <param name="fileName">
-         * File the Segment or SegmentList is derived from
-         * </param>
+         * <param name="json">JSON string to parse</param>
+         * <param name="fileName">File the Segment or SegmentList is derived from</param>
          */
         private static BotSequenceEntry ParseSegment(string json, string fileName)
         {
