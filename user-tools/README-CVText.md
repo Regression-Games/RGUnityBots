@@ -111,4 +111,4 @@ The `CVText` type is still in an experimental phase and may provide inconsistent
 - `textCaseRule` must always be set to `Ignore`.  The AIService does not currently consider capitalization in its results.
 - Text with low contrast relative to its background may not be detected or may detect incorrect characters
 - Very small or very large text may not be detected or may detect incorrect characters
-- Some less traditional fonts may not be detected or may detect incorrect characters
+- Less common fonts may not be detected or may detect incorrect characters
