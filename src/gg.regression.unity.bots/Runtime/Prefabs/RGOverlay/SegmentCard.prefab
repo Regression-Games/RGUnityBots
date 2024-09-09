@@ -67,9 +67,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: Description for this segment card. It can add more context to the usage
-    of this card. It will be visible up to 4 lines of text. After that we will use
-    the ellipsis function to hide any secrets, like this amazing one I just learned
-    about
+    of this card. It will be visible up to 3 lines of text. After that we will use
+    an ellipsis
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
   m_sharedMaterial: {fileID: 8592267718606122159, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
@@ -132,7 +131,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 3.1219711, y: 0, z: -4.682953, w: 3.9023438}
+  m_margin: {x: 0.3931656, y: 10.89, z: -3.9032898, w: 4.288208}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -514,6 +513,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   IsReordering: 0
   draggableCardName: Placeholder draggable segment name
+  draggableCardDescription: 
   icon: {fileID: 21300000, guid: ac32a463b941b41fab54ea9dd8a1745f, type: 3}
   iconPrefab: {fileID: 2566918779166699024}
   namePrefab: {fileID: 714608286913792316}
@@ -691,7 +691,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Draggable segment card name
+  m_text: Draggable segment card name possibly truncated
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
   m_sharedMaterial: {fileID: 8592267718606122159, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
@@ -726,7 +726,7 @@ MonoBehaviour:
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 1
-  m_VerticalAlignment: 512
+  m_VerticalAlignment: 8192
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0

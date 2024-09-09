@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -229,20 +230,24 @@ namespace RegressionGames
 
         /**
          * <summary>
-         * Expand the card to show its description, or shrink the card if already expanded
+         * Expand the card to show its description and full name, or shrink the card if already expanded
          * </summary>
          * <param name="forceShrink">Should this card shrink, despite if it is expanded or not</param>
          */
         private void ToggleExpand(bool forceShrink = false)
         {
-            if (string.IsNullOrEmpty(descriptionPrefab.text))
+            if (string.IsNullOrEmpty(descriptionPrefab.text) && !namePrefab.isTextOverflowing)
             {
-                // don't expand cards without a description
+                // don't expand cards without a description or overtly long name
                 return;
             }
 
             var isActive = descriptionPrefab.gameObject.activeSelf || forceShrink;
             var newHeight = isActive ? SHRUNKEN_HEIGHT : EXPANDED_HEIGHT;
+            
+            // show full card name when expanded
+            var newOverflow = isActive ? TextOverflowModes.Ellipsis : TextOverflowModes.Overflow;
+            namePrefab.overflowMode = newOverflow;
             
             descriptionPrefab.gameObject.SetActive(!isActive);
             
