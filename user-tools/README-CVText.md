@@ -103,8 +103,8 @@ Disclaimer: The `CVText` type is still in an experimental phase and may provide 
 
 ## Demos
 **TODO:** Link to a public git repo files that are using this feature. **Feel free to skip this as I might be making a lot of these myself.**
-- `endCriteria` - (Non-Public) https://github.com/Regression-Games/RGBossRoom/tree/main/Assets/RegressionGames/Resources/BotSegments/computer_vision/image_match_criteria_menu_changeprofilebutton
-- `botAction` - (Non-Public) https://github.com/Regression-Games/RGBossRoom/tree/main/Assets/RegressionGames/Resources/BotSegments/computer_vision/image_match_action_changeprofilebutton
+- `endCriteria` - (Non-Public) https://github.com/Regression-Games/RGBossRoom/tree/main/Assets/RegressionGames/Resources/BotSegments/computer_vision/text_discover_criteria_menu_changeprofilebutton
+- `botAction` - (Non-Public) https://github.com/Regression-Games/RGBossRoom/tree/main/Assets/RegressionGames/Resources/BotSegments/computer_vision/text_discover_action_menu_changeprofilebutton
 
 ## Limitations and Notes
 The `CVText` type is still in an experimental phase and may provide inconsistent or unexpected results in some situations.
