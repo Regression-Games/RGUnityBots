@@ -249,7 +249,10 @@ namespace RegressionGames
             }
             else
             {
-                _filteredSegmentEntries = _segmentEntries.Where(s => s.entryName.Contains(text.Trim())).ToList();
+                var comparisonText = text.Trim().ToLower();
+                _filteredSegmentEntries = _segmentEntries.Where(s =>
+                    s.entryName.ToLower().Contains(comparisonText)
+                ).ToList();
                 CreateAvailableSegments(_filteredSegmentEntries);
             }
         }
