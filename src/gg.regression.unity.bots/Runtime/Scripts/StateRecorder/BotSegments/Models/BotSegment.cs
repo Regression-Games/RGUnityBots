@@ -317,6 +317,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 {
                     var json = (jsonObject as TextAsset)?.text ?? "";
                     var segment = ParseSegment(json, jsonObject.name);
+                    if (segment == null)
+                    {
+                        continue;
+                    }
 
                     // don't add segments with duplicate names
                     if (results.Any(s => s.entryName == segment.entryName))
@@ -346,25 +350,44 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             try
             {
+                var currentVersion = SdkApiVersion.CURRENT_VERSION;
                 var entry = new BotSequenceEntry
                 {
                     path = fileName,
                 };
 
+                // First we will try to parse the file as a SegmentList, if that fails we will try to parse
+                // the file as a standard Segment
                 try
                 {
-                    var segment = JsonConvert.DeserializeObject<BotSegmentList>(json);
-                    entry.description = segment.description;
-                    entry.entryName = segment.name;
+                    var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(json);
+                    if (segmentList.EffectiveApiVersion >= currentVersion)
+                    {
+                        Debug.LogError(
+                            $"SegmentList ({segmentList.name}) contains a Segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {currentVersion}"
+                        );
+                        return null;
+                    }
+                    
+                    entry.description = segmentList.description;
+                    entry.entryName = segmentList.name;
                     entry.type = BotSequenceEntryType.SegmentList;
                 }
                 catch
                 {
                     try
                     {
-                        var segmentList = JsonConvert.DeserializeObject<BotSegment>(json);
-                        entry.description = segmentList.description;
-                        entry.entryName = segmentList.name;
+                        var segment = JsonConvert.DeserializeObject<BotSegment>(json);
+                        if (segment.EffectiveApiVersion >= currentVersion)
+                        {
+                            Debug.LogError(
+                                $"Segment ({segment.name}) requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {currentVersion}"
+                            );
+                            return null;
+                        }
+                        
+                        entry.description = segment.description;
+                        entry.entryName = segment.name;
                         entry.type = BotSequenceEntryType.Segment;
                     }
                     catch
