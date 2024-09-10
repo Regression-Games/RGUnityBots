@@ -156,6 +156,7 @@ namespace RegressionGames
                 _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, this.transform, false);
             }
 
+            childToRemove.transform.parent = null;
             Destroy(childToRemove);
         }
 
