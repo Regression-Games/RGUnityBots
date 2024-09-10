@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using RegressionGames;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
@@ -18,8 +19,7 @@ public class RGSequenceManager : MonoBehaviour
     public GameObject sequenceCardPrefab;
 
     public GameObject sequenceEditor;
-
-
+    
     private static RGSequenceManager _this;
 
     private IList<BotSequence> _sequences;
@@ -39,14 +39,52 @@ public class RGSequenceManager : MonoBehaviour
         DontDestroyOnLoad(_this.gameObject);
     }
 
+    /**
+     * <summary>
+     * Saves the Sequence currently loaded in the Sequence Editor, hides the Sequence Editor, and reloads the list
+     * of Sequences
+     * </summary>
+     */
+    public void SaveSequenceLoadedInEditor()
+    {
+        if (sequenceEditor != null)
+        {
+            
+            var script = sequenceEditor.GetComponent<RGSequenceEditor>();
+            if (script != null)
+            {
+                script.SaveSequence();
+            }
+            
+            sequenceEditor.SetActive(false);
+            LoadSequences();
+        }
+    }
+
+    /**
+     * <summary>
+     * Show the Sequence Editor, and initialize its fields
+     * </summary>
+     */
     public void ShowEditSequenceDialog()
     {
         if (sequenceEditor != null)
         {
             sequenceEditor.SetActive(true);
+            
+            var script = sequenceEditor.GetComponent<RGSequenceEditor>();
+            if (script != null)
+            {
+                script.Initialize();
+            }
         }
     }
 
+    /**
+     * <summary>
+     * Hide the Sequence Editor
+     * </summary>
+     */
     public void HideEditSequenceDialog()
     {
         if (sequenceEditor != null)

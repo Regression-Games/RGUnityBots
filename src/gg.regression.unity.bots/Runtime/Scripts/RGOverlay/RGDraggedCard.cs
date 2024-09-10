@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -5,12 +6,19 @@ namespace RegressionGames
 {
     /**
      * <summary>
-     * The in-motion state of a RGDraggableCard
+     * The in-motion state of a RGDraggableCard. The `payload` field is used to transfer data from this dragging state,
+     * to the resting state of a card.
      * </summary>
      */
     public class RGDraggedCard : MonoBehaviour
     {
         public string draggedCardName;
+
+        public string draggedCardDescription;
+        
+        public Dictionary<string, string> payload;
+        
+        public GameObject iconPrefab;
 
         [SerializeField] public TMP_Text namePrefab;
 
