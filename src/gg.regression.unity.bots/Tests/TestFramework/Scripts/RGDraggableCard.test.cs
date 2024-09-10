@@ -1,39 +1,53 @@
-using System;
-using System.Transactions;
+using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 [TestFixture]
 public class RGDraggableCardTests
 {
     private GameObject _uat;
-    
+
     private RGDraggableCard card;
-    
-    private PointerEventData genericDragEvent = new(EventSystem.current);
+
+    private readonly PointerEventData genericDragEvent = new(EventSystem.current);
 
     [SetUp]
     public void SetUp()
     {
         _uat = new GameObject();
         card = _uat.AddComponent<RGDraggableCard>();
+        card.transform.SetParent(_uat.transform, false);
+
+        card.payload = new Dictionary<string, string>();
         card.draggableCardName = "Card Name";
+        card.draggableCardDescription = "Card Description";
+        card.icon = Sprite.Create(
+            new Texture2D(10, 10),
+            new Rect(0, 0, 10, 10),
+            new Vector2(0.5f, 0.5f),
+            100
+        );
+        card.iconPrefab = new GameObject();
+        card.iconPrefab.AddComponent<Image>();
+
         var textObject = new GameObject();
-        card.namePrefab = textObject.AddComponent<TextMeshProUGUI>();
+        var text = textObject.AddComponent<TextPlaceholder>();
+        card.namePrefab = text;
+        card.descriptionPrefab = text;
+
         card.restingStatePrefab = new GameObject();
+        card.restingStatePrefab.AddComponent<RGDraggableCard>();
         card.draggingStatePrefab = new GameObject();
     }
 
     [TearDown]
     public void TearDown()
     {
-        Object.Destroy(card.namePrefab);
-        Object.Destroy(card.restingStatePrefab);
-        Object.Destroy(card.draggingStatePrefab);
         Object.Destroy(card);
         Object.Destroy(_uat);
     }
@@ -47,65 +61,88 @@ public class RGDraggableCardTests
         var draggedCard = Object.FindObjectOfType<RGDraggableCard>();
         Assert.NotNull(draggedCard);
     }
-    
+
     [Test]
     public void OnEndDrag_AddCardToDropZone()
     {
+        var dropZone = CreateNewDropZone();
+        var dropZoneScript = dropZone.GetComponent<RGDropZone>();
+        
         card.OnBeginDrag(genericDragEvent);
 
-        var dropZone = new GameObject();
-        dropZone.AddComponent<RGDropZone>();
-        dropZone.AddComponent<RectTransform>();
-        
-        var onDragEvent = new PointerEventData(EventSystem.current) { pointerEnter = dropZone };
+        var onDragEvent = new PointerEventData(EventSystem.current)
+        {
+            pointerEnter = dropZone
+        };
         card.OnDrag(onDragEvent);
 
         card.OnEndDrag(genericDragEvent);
-        
-        Assert.AreEqual(dropZone.transform.childCount, 1);
+
+        Assert.IsNotEmpty(dropZoneScript.GetChildren());
     }
-    
+
     [Test]
     public void OnEndDrag_ReorderCard()
     {
-        card.IsReordering = true;
+        var dropZone = CreateNewDropZone();
         
+        card.IsReordering = true;
+
         card.OnBeginDrag(genericDragEvent);
 
-        var dropZone = new GameObject();
-        dropZone.AddComponent<RGDropZone>();
-        dropZone.AddComponent<RectTransform>();
-        
-        var onDragEvent = new PointerEventData(EventSystem.current) { pointerEnter = dropZone };
+        var onDragEvent = new PointerEventData(EventSystem.current) { pointerEnter = dropZone.gameObject };
         card.OnDrag(onDragEvent);
 
         card.OnEndDrag(genericDragEvent);
-        
+
         Assert.IsFalse(card.IsReordering);
     }
-    
+
     [Test]
     public void OnEndDrag_DestroyAddedCard()
     {
-        
-        var dropZone = new GameObject();
-        dropZone.AddComponent<RGDropZone>();
-        dropZone.AddComponent<RectTransform>();
+        var dropZone = CreateNewDropZone();
         var dropZoneScript = dropZone.GetComponent<RGDropZone>();
-        
+
         card.IsReordering = true;
         card.transform.SetParent(dropZone.transform, false);
-        
+
         Assert.IsTrue(dropZoneScript.Contains(card.gameObject));
-        
+
         card.OnBeginDrag(genericDragEvent);
 
         var onDragEvent = new PointerEventData(EventSystem.current) { pointerEnter = null };
         card.OnDrag(onDragEvent);
 
         card.OnEndDrag(genericDragEvent);
+
+        Assert.IsEmpty(dropZoneScript.GetChildren());
+    }
+
+    private GameObject CreateNewDropZone()
+    {
+        var sequenceEditor = new GameObject();
+        var sequenceEditorScript = sequenceEditor.AddComponent<RGSequenceEditor>();
+        var dzTextObject = new GameObject();
+        var dzText = dzTextObject.AddComponent<TMP_InputField>();
+        sequenceEditorScript.NameInput = dzText;
         
-        var isCardContained = dropZoneScript.Contains(card.gameObject);
-        Assert.IsFalse(dropZoneScript.Contains(card.gameObject));
+        var dropZone = new GameObject();
+        dropZone.gameObject.AddComponent<RectTransform>();
+        var dzScript = dropZone.AddComponent<RGDropZone>();
+        dzScript.potentialDropSpotPrefab = new GameObject();
+        dzScript.emptyStatePrefab = new GameObject();
+        dzScript.SequenceEditor = sequenceEditor;
+        dzScript.droppables = new List<GameObject>() { card.gameObject };
+        dzScript.Start();
+        return dropZone;
+    }
+
+    private class TextPlaceholder : TMP_Text
+    {
+        protected override void OnPopulateMesh(VertexHelper toFill)
+        {
+            toFill.Clear();
+        }
     }
 }

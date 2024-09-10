@@ -158,7 +158,7 @@ namespace RegressionGames
         public void OnEndDrag(PointerEventData eventData)
         {
             ToggleHighlight();
-
+            
             if (_draggingStateInstance == null)
             {
                 return;
@@ -181,7 +181,7 @@ namespace RegressionGames
                 _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
-
+            
             // this card is not in a drop zone. Ignore it
             if (_dropZone == null)
             {
@@ -189,7 +189,7 @@ namespace RegressionGames
                 _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
-
+            
             // this card is being reordered. Reset its drop zone's state
             if (IsReordering)
             {
@@ -264,11 +264,17 @@ namespace RegressionGames
          */
         private void ToggleHighlight()
         {
+            if (transform.parent == null)
+            {
+                // this card will have no siblings to toggle the highlight state for
+                return;
+            }
+            
             var newAlpha = _isHighlighted ? HIGHLIGHTED_ALPHA : MUTED_ALPHA;
             
             // if the selfIndex is -1, we can know that all cards are being returned to their regular alpha value
             var selfIndex = _isHighlighted ?  -1 : transform.GetSiblingIndex();
-            
+
             for (var i = 0; i < transform.parent.transform.childCount; ++i)
             {
                 var child = transform.parent.transform.GetChild(i).GetComponent<RGDraggableCard>();
