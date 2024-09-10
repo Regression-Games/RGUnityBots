@@ -22,6 +22,7 @@ public class RGDraggableCardTests
         _uat = new GameObject();
         card = _uat.AddComponent<RGDraggableCard>();
         card.transform.SetParent(_uat.transform, false);
+        card.gameObject.AddComponent<RectTransform>();
 
         card.payload = new Dictionary<string, string>();
         card.draggableCardName = "Card Name";
@@ -43,6 +44,7 @@ public class RGDraggableCardTests
         card.restingStatePrefab = new GameObject();
         card.restingStatePrefab.AddComponent<RGDraggableCard>();
         card.draggingStatePrefab = new GameObject();
+        card.Start();
     }
 
     [TearDown]
