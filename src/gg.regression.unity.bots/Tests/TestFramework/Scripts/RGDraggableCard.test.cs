@@ -27,17 +27,11 @@ public class RGDraggableCardTests
         card.payload = new Dictionary<string, string>();
         card.draggableCardName = "Card Name";
         card.draggableCardDescription = "Card Description";
-        card.icon = Sprite.Create(
-            new Texture2D(10, 10),
-            new Rect(0, 0, 10, 10),
-            new Vector2(0.5f, 0.5f),
-            100
-        );
+        card.icon = RGTestUtils.CreateSpritePlaceholder();
         card.iconPrefab = new GameObject();
         card.iconPrefab.AddComponent<Image>();
 
-        var textObject = new GameObject();
-        var text = textObject.AddComponent<TextPlaceholder>();
+        var text = RGTestUtils.CreateTMProPlaceholder();
         card.namePrefab = text;
         card.descriptionPrefab = text;
 
@@ -138,13 +132,5 @@ public class RGDraggableCardTests
         dzScript.droppables = new List<GameObject>() { card.gameObject };
         dzScript.Start();
         return dropZone;
-    }
-
-    private class TextPlaceholder : TMP_Text
-    {
-        protected override void OnPopulateMesh(VertexHelper toFill)
-        {
-            toFill.Clear();
-        }
     }
 }

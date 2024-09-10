@@ -23,9 +23,7 @@ public class RGDraggedCardTests
         card.draggedCardDescription = "Dragged Description";
         card.payload = new Dictionary<string, string>();
         card.iconPrefab = new GameObject();
-        var textObject = new GameObject();
-        var text = textObject.AddComponent<TextPlaceholder>();
-        card.namePrefab = text;
+        card.namePrefab = RGTestUtils.CreateTMProPlaceholder();
         card.Start();
     }
 
@@ -40,13 +38,5 @@ public class RGDraggedCardTests
     public void Initialize()
     {
         Assert.AreEqual(card.namePrefab.text, card.draggedCardName);
-    }
-    
-    private class TextPlaceholder : TMP_Text
-    {
-        protected override void OnPopulateMesh(VertexHelper toFill)
-        {
-            toFill.Clear();
-        }
     }
 }
