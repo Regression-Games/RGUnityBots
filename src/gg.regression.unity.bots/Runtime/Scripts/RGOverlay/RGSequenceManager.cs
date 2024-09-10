@@ -19,21 +19,17 @@ public class RGSequenceManager : MonoBehaviour
 
     public GameObject sequenceEditor;
 
-
     private static RGSequenceManager _this;
-
-    private IList<BotSequence> _sequences;
 
     public static RGSequenceManager GetInstance()
     {
         return _this;
     }
 
-    private void Awake()
+    public void Start()
     {
-        _sequences = new List<BotSequence>();
-
-        LoadSequences();
+        var sequences = ResolveSequenceFiles();
+        InstantiateSequences(sequences);
 
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
@@ -57,15 +53,14 @@ public class RGSequenceManager : MonoBehaviour
 
     /**
      * <summary>
-     * Loads all Sequence json files within the Unity project, and creates their relevant UI components
+     * Instantiates Sequence prefabs and adds them to the list of available Sequences
      * </summary>
+     * <param name="sequences">List of Bot Sequence data we want to instantiate as prefabs</param>
      */
-    public void LoadSequences()
+    public void InstantiateSequences(IList<BotSequence> sequences)
     {
         // ensure we aren't appending new sequences on to the previous ones
         ClearExistingSequences();
-
-        var sequences = ResolveSequenceFiles();
         
         // instantiate a prefab for each sequence file that has been loaded
         foreach (var sequence in sequences)
@@ -81,8 +76,6 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.description = sequence.description;
                 prefabComponent.playAction = sequence.Play;
             }
-
-            _sequences.Add(sequence);
         }
     }
 
@@ -91,8 +84,6 @@ public class RGSequenceManager : MonoBehaviour
      */
     private void ClearExistingSequences()
     {
-        _sequences.Clear();
-
         for(int i = 0; i < sequencesPanel.transform.childCount; i++)
         {
             if (i == 0)
@@ -103,33 +94,6 @@ public class RGSequenceManager : MonoBehaviour
 
             Destroy(sequencesPanel.transform.GetChild(i).gameObject);
         }
-    }
-
-    /**
-     * <summary>
-     * Search a directory for any *.json files, then attempt to read them as Bot Sequences
-     * </summary>
-     * <param name="path">The directory to look for Bot Sequences json files</param>
-     * <returns>Dictionary containing (file name, Bot Sequence) entires</returns>
-     */
-    private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
-    {
-        var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
-        return sequenceFiles
-            .Select(fileName =>
-            {
-                try
-                {
-                    return (Path.GetFileNameWithoutExtension(fileName), BotSequence.LoadSequenceJsonFromPath(fileName));
-                }
-                catch (Exception exception)
-                {
-                    Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
-                    return (null, null);
-                }
-            })
-            .Where(s => s.Item2 != null)
-            .ToDictionary(s => s.Item1, s => s.Item2);
     }
     
     /**
@@ -195,5 +159,32 @@ public class RGSequenceManager : MonoBehaviour
 
         return sequences.Values.ToList();
 #endif
+    }
+    
+    /**
+     * <summary>
+     * Search a directory for any *.json files, then attempt to read them as Bot Sequences
+     * </summary>
+     * <param name="path">The directory to look for Bot Sequences json files</param>
+     * <returns>Dictionary containing (file name, Bot Sequence) entires</returns>
+     */
+    private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
+    {
+        var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
+        return sequenceFiles
+            .Select(fileName =>
+            {
+                try
+                {
+                    return (Path.GetFileNameWithoutExtension(fileName), BotSequence.LoadSequenceJsonFromPath(fileName));
+                }
+                catch (Exception exception)
+                {
+                    Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
+                    return (null, null);
+                }
+            })
+            .Where(s => s.Item2 != null)
+            .ToDictionary(s => s.Item1, s => s.Item2);
     }
 }
