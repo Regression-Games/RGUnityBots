@@ -96,7 +96,7 @@ MonoBehaviour:
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 1
-  m_Spacing: 8
+  m_Spacing: 4
   m_ChildForceExpandWidth: 0
   m_ChildForceExpandHeight: 1
   m_ChildControlWidth: 0
@@ -118,5 +118,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   droppables:
   - {fileID: 5443515706651796386, guid: a4a3e76dff5a04b31948a43874f94e1c, type: 3}
+  SequenceEditor: {fileID: 4042465043493813398, guid: 04ac259d13a0945ac87ddc5cac56785e, type: 3}
   potentialDropSpotPrefab: {fileID: 1016618572727220561, guid: 9b361052fd5004471b0d8d9d9d01cef8, type: 3}
   emptyStatePrefab: {fileID: 5443515706651796386, guid: d3e40eab3248645a296397c9b8e8f8f7, type: 3}

@@ -229,6 +229,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   draggedCardName: Placeholder dragged card name
+  icon: {fileID: 21300000, guid: ac32a463b941b41fab54ea9dd8a1745f, type: 3}
+  iconPrefab: {fileID: 9081759233827119378}
   namePrefab: {fileID: 7153013761642342452}
 --- !u!114 &3635310732519825840
 MonoBehaviour:
@@ -267,7 +269,7 @@ GameObject:
   - component: {fileID: 1581957145374094649}
   - component: {fileID: 5740927472978542612}
   m_Layer: 0
-  m_Name: Drag
+  m_Name: CardIcon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

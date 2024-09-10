@@ -84,7 +84,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             stringBuilder.Append("{\n\"name\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, name );
-            stringBuilder.Append("{\n\"description\":");
+            stringBuilder.Append(",\n\"description\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, description );
             stringBuilder.Append(",\n\"segments\":[\n");
             var segmentsCount = segments.Count;
@@ -114,8 +114,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 directoryPath = Application.persistentDataPath + "/BotSequences";
 #endif
                 Directory.CreateDirectory(directoryPath);
-                var filepath = directoryPath + "/" + name + ".json";
-                foreach (var c in Path.GetInvalidFileNameChars())
+                var filename = string.Join("-", name.Split(" "));
+                var filepath = directoryPath + "/" + filename + ".json";
+                foreach (var c in Path.GetInvalidPathChars())
                 {
                     filepath = filepath.Replace(c, '-');
                 }
