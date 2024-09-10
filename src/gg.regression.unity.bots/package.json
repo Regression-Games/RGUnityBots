@@ -1,6 +1,6 @@
 {
   "name": "gg.regression.unity.bots",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "Regression Games Unity package for adding bots to your game",
   "displayName": "Regression Games Unity Bots",
   "unity": "2021.3",
