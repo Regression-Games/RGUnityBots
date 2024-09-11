@@ -22,6 +22,7 @@ public class RGCreateNewSequenceButtonTests
         var overlay = new GameObject();
         var sequenceManager = overlay.gameObject.AddComponent<RGSequenceManager>();
         sequenceManager.sequenceEditor = new GameObject();
+        sequenceManager.sequencesPanel = new GameObject();
 
         button.overlayContainer = overlay;
     }

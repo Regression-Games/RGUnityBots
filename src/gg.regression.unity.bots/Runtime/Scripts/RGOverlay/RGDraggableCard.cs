@@ -171,6 +171,7 @@ namespace RegressionGames
 
             if (_draggingStateInstance == null)
             {
+                // this card is not dragging currently
                 return;
             }
             

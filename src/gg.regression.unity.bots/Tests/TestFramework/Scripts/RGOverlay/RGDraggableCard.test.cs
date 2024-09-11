@@ -37,6 +37,10 @@ public class RGDraggableCardTests
         card.restingStatePrefab = new GameObject();
         card.restingStatePrefab.AddComponent<RGDraggableCard>();
         card.draggingStatePrefab = new GameObject();
+        var draggedCard = card.draggingStatePrefab.AddComponent<RGDraggedCard>();
+        draggedCard.iconPrefab = new GameObject();
+        draggedCard.iconPrefab.AddComponent<Image>();
+        draggedCard.namePrefab = RGTestUtils.CreateTMProPlaceholder();
         card.icon = RGTestUtils.CreateSpritePlaceholder();
         card.iconPrefab = new GameObject();
         card.iconPrefab.AddComponent<Image>();
@@ -65,27 +69,29 @@ public class RGDraggableCardTests
     {
         var dropZone = CreateNewDropZone();
         var dropZoneScript = dropZone.GetComponent<RGDropZone>();
+
+        // assume the card begins outside the drop zone
+        card.IsReordering = false;
         
         card.OnBeginDrag(genericDragEvent);
 
         // place the card over the potential drop zone
         var onDragEvent = new PointerEventData(EventSystem.current)
         {
-            pointerEnter = dropZone
+            pointerEnter = dropZone.gameObject
         };
         card.OnDrag(onDragEvent);
 
-        // drop the card into the drop zone. It should be added as a new child
+        // drop the card into the drop zone. The drop zone should no longer be empty
         card.OnEndDrag(genericDragEvent);
         
-        Assert.IsNotEmpty(dropZoneScript.GetChildren());
+        Assert.IsFalse(dropZoneScript.IsEmpty());
     }
 
     [Test]
     public void OnEndDrag_ReorderCard()
     {
         var dropZone = CreateNewDropZone();
-        var dropZoneScript = dropZone.GetComponent<RGDropZone>();
         
         // assume the card begins already inside the drop zone
         card.IsReordering = true;
@@ -93,7 +99,10 @@ public class RGDraggableCardTests
         card.OnBeginDrag(genericDragEvent);
 
         // drag and drop the card at another location within the drop zone
-        var onDragEvent = new PointerEventData(EventSystem.current) { pointerEnter = dropZone.gameObject };
+        var onDragEvent = new PointerEventData(EventSystem.current)
+        {
+            pointerEnter = dropZone.gameObject
+        };
         card.OnDrag(onDragEvent);
 
         card.OnEndDrag(genericDragEvent);
@@ -109,17 +118,21 @@ public class RGDraggableCardTests
         var dropZoneScript = dropZone.GetComponent<RGDropZone>();
 
         // assume the card begins already inside the drop zone
+        dropZoneScript.AddChild(card.gameObject);
         card.IsReordering = true;
 
         card.OnBeginDrag(genericDragEvent);
 
         // drag and drop the card outside the drop zone
-        var onDragEvent = new PointerEventData(EventSystem.current) { pointerEnter = null };
+        var onDragEvent = new PointerEventData(EventSystem.current)
+        {
+            pointerEnter = null
+        };
         card.OnDrag(onDragEvent);
 
         card.OnEndDrag(genericDragEvent);
 
-        // the drop zone should have no children. Its only one was removed
+        // the drop zone should have no children. The only one was removed
         Assert.IsEmpty(dropZoneScript.GetChildren());
     }
 
@@ -137,12 +150,13 @@ public class RGDraggableCardTests
         sequenceEditorScript.NameInput = dzText;
         
         var dropZone = new GameObject();
+        dropZone.transform.SetParent(_uat.transform, false);
         dropZone.gameObject.AddComponent<RectTransform>();
         var dzScript = dropZone.AddComponent<RGDropZone>();
         dzScript.potentialDropSpotPrefab = new GameObject();
         dzScript.emptyStatePrefab = new GameObject();
         dzScript.SequenceEditor = sequenceEditor;
-        dzScript.droppables = new List<GameObject>() { card.gameObject };
+        dzScript.droppables = new List<GameObject>() { new() };
         dzScript.Start();
         return dropZone;
     }
