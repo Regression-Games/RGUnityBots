@@ -3,36 +3,36 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.Models.CVService;
+using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using UnityEngine.Networking;
 
 namespace RegressionGames
 {
-    public class CVServiceManager
+    public class AIServiceManager
     {
 
         private static readonly int WEB_REQUEST_TIMEOUT_SECONDS = 60;
 
-        private static readonly CVServiceManager _this = new ();
+        private static readonly AIServiceManager _this = new ();
 
         private long _correlationId = 0L;
 
-        private CVServiceManager()
+        private AIServiceManager()
         {
         }
 
-        public static CVServiceManager GetInstance()
+        public static AIServiceManager GetInstance()
         {
             return _this;
         }
 
-        private String GetCvServiceBaseUri()
+        private String GetAiServiceBaseUri()
         {
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             string host = rgSettings.GetAIServiceHostAddress();
 
             // If env var is set, use that instead
-            string hostOverride = RGEnvConfigs.ReadCvHost();
+            string hostOverride = RGEnvConfigs.ReadAiHost();
             if (hostOverride != null && hostOverride.Trim() != "")
             {
                 host = hostOverride.Trim();
@@ -56,7 +56,7 @@ namespace RegressionGames
             if (RGServiceManager.GetInstance().LoadAuth(out var authToken))
             {
                 await SendWebRequest(
-                    uri: $"{GetCvServiceBaseUri()}/criteria-image-match",
+                    uri: $"{GetAiServiceBaseUri()}/criteria-image-match",
                     method: "POST",
                     authToken: authToken,
                     payload: request.ToJsonString(),
@@ -105,7 +105,7 @@ namespace RegressionGames
                 }
 
                 await SendWebRequest(
-                    uri: $"{GetCvServiceBaseUri()}/{endpoint}",
+                    uri: $"{GetAiServiceBaseUri()}/{endpoint}",
                     method: "POST",
                     authToken: authToken,
                     payload: request.ToJsonString(),
@@ -129,7 +129,7 @@ namespace RegressionGames
             if (RGServiceManager.GetInstance().LoadAuth(out var authToken))
             {
                 await SendWebRequest(
-                    uri: $"{GetCvServiceBaseUri()}/criteria-text-discover",
+                    uri: $"{GetAiServiceBaseUri()}/criteria-text-discover",
                     method: "POST",
                     authToken: authToken,
                     payload: request.ToJsonString(),
