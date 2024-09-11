@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 [TestFixture]
@@ -16,6 +14,7 @@ public class RGDraggedCardTests
     [SetUp]
     public void SetUp()
     {
+        // create the card we want to test
         _uat = new GameObject();
         card = _uat.AddComponent<RGDraggedCard>();
         card.transform.SetParent(_uat.transform, false);

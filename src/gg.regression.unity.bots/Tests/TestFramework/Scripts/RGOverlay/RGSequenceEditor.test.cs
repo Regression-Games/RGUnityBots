@@ -19,10 +19,12 @@ public class RGSequenceEditorTests
     [SetUp]
     public void SetUp()
     {
+        // create the editor we want to test
         _uat = new GameObject();
         editor = _uat.AddComponent<RGSequenceEditor>();
         editor.transform.SetParent(_uat.transform, false);
 
+        // create the required public fields the editor needs
         var textObject = new GameObject();
         var text = textObject.AddComponent<TMP_InputField>();
         editor.NameInput = text;
@@ -39,6 +41,7 @@ public class RGSequenceEditorTests
         editor.SegmentIcon = RGTestUtils.CreateSpritePlaceholder();
         editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
         
+        // mock segment entries for the editor to utilize
         segments = new List<BotSequenceEntry>()
         {
             new()
@@ -68,7 +71,6 @@ public class RGSequenceEditorTests
     [TearDown]
     public void TearDown()
     {
-        Object.Destroy(editor);
         Object.Destroy(_uat);
     }
 
@@ -77,6 +79,7 @@ public class RGSequenceEditorTests
     {
         editor.Initialize();
 
+        // ensure that the editor consumes its public fields properly
         Assert.NotNull(editor.NameInput.onValueChanged);
         Assert.NotNull(editor.SearchInput.onValueChanged);
         Assert.NotNull(editor.CurrentSequence);
@@ -87,6 +90,7 @@ public class RGSequenceEditorTests
     {
         editor.CreateAvailableSegments(segments);
 
+        // ensure that the mock segments were instantiated as prefabs properly
         Assert.AreEqual(segments.Count, editor.AvailableSegmentsList.transform.childCount);
     }
     
@@ -96,6 +100,7 @@ public class RGSequenceEditorTests
         editor.CreateAvailableSegments(segments);
         var numSegmentsCleared = editor.ClearAvailableSegments();
 
+        // ensure that the number of segments removed matches the expected amount
         Assert.AreEqual(segments.Count, numSegmentsCleared);
     }
     
@@ -104,11 +109,13 @@ public class RGSequenceEditorTests
     {
         editor.Initialize();
         
+        // set the name and description values to save
         editor.NameInput.text = "Sequence Editor Name";
         editor.DescriptionInput.text = "Sequence Editor Description";
         
         editor.SaveSequence();
         
+        // ensure that the editor extracts the values from the text inputs properly
         Assert.AreEqual(editor.CurrentSequence.name, editor.NameInput.text);
         Assert.AreEqual(editor.CurrentSequence.description, editor.DescriptionInput.text);
     }
@@ -118,6 +125,7 @@ public class RGSequenceEditorTests
     {
         editor.Initialize();
 
+        // set the name and description values we want to reset
         editor.NameInput.text = "Sequence Editor Name";
         editor.DescriptionInput.text = "Sequence Editor Description";
         
@@ -126,6 +134,8 @@ public class RGSequenceEditorTests
         var dropZone = editor.DropZonePrefab.GetComponent<RGDropZone>();
         var button = editor.CreateSequenceButton.GetComponent<Button>();
         
+        // ensure that the name and description text inputs are cleared, the drop zone's children are cleared, and that
+        // the create sequence button is disabled
         Assert.IsEmpty(editor.NameInput.text);
         Assert.IsEmpty(editor.DescriptionInput.text);
         Assert.IsEmpty(dropZone.GetChildren());
@@ -149,6 +159,7 @@ public class RGSequenceEditorTests
         
         editor.SetCreateSequenceButtonEnabled(true);
         
+        // ensure that the create sequence button is enabled
         var button = editor.CreateSequenceButton.GetComponent<Button>();
         Assert.IsTrue(button.interactable);
     }
@@ -160,6 +171,7 @@ public class RGSequenceEditorTests
         
         editor.SetCreateSequenceButtonEnabled(false);
         
+        // ensure that the create sequence button is disabled
         var button = editor.CreateSequenceButton.GetComponent<Button>();
         Assert.IsFalse(button.interactable);
     }

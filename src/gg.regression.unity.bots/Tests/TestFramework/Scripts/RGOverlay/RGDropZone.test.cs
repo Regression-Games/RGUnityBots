@@ -18,10 +18,13 @@ public class RGDropZoneTests
     [SetUp]
     public void SetUp()
     {
+        // create the drop zone we want to test
         _uat = new GameObject();
         dropZone = _uat.AddComponent<RGDropZone>();
         dropZone.transform.SetParent(_uat.transform, false);
         dropZone.droppables = new List<GameObject> { new() };
+        
+        // create the sequence editor this drop zone requires, and any other required public fields
         var sequenceEditor = new GameObject();
         var sequenceEditorScript = sequenceEditor.AddComponent<RGSequenceEditor>();
         var input = sequenceEditorScript.gameObject.AddComponent<TMP_InputField>();
@@ -36,14 +39,13 @@ public class RGDropZoneTests
     [TearDown]
     public void TearDown()
     {
-        Object.Destroy(dropZone);
         Object.Destroy(_uat);
     }
     
     [Test]
     public void Start()
     {
-        // Check for instance of RGSequenceEditor in SequenceEditor
+        // ensure the drop zone initializes properly
         var sequenceEditorComponent = dropZone.SequenceEditor.GetComponent<RGSequenceEditor>();
         Assert.IsNotNull(sequenceEditorComponent, "SequenceEditor does not have RGSequenceEditor component");
     }
@@ -53,7 +55,8 @@ public class RGDropZoneTests
     {
         var newChild = new GameObject();
         dropZone.AddChild(newChild);
-        
+     
+        // ensure that the new child was properly attached as a child to the drop zone
         Assert.AreSame(newChild.transform.parent, dropZone.transform);
     }
     
@@ -62,11 +65,9 @@ public class RGDropZoneTests
     {
         var newChild = new GameObject();
         dropZone.AddChild(newChild);
-        
-        Assert.AreSame(newChild.transform.parent, dropZone.transform);
-        
         dropZone.RemoveChild(newChild);
-        
+
+        // ensure that the child has been removed from the drop zone, and that the child has no parent
         Assert.AreNotSame(newChild.transform.parent, dropZone.transform);
         Assert.IsNull(newChild.transform.parent);
     }
@@ -77,6 +78,7 @@ public class RGDropZoneTests
         var newChild = new GameObject();
         dropZone.AddChild(newChild);
         
+        // ensure the drop zone knows when it contains a specific child
         Assert.IsTrue(dropZone.Contains(newChild));
     }
     
@@ -87,6 +89,7 @@ public class RGDropZoneTests
         dropZone.AddChild(newChild);
         var childThatIsNeverAdded = new GameObject();
         
+        // ensure that the drop zone does not provide false positives for knowing its children
         Assert.IsFalse(dropZone.Contains(childThatIsNeverAdded));
     }
     
@@ -97,6 +100,7 @@ public class RGDropZoneTests
         dropZone.AddChild(newChild);
         dropZone.RemoveChild(newChild);
         
+        // ensure that the drop zone has zero children
         Assert.IsTrue(dropZone.IsEmpty());
     }
     
@@ -106,12 +110,14 @@ public class RGDropZoneTests
         var newChild = new GameObject();
         dropZone.AddChild(newChild);
         
+        // ensure that the drop zone has at least one child
         Assert.IsFalse(dropZone.IsEmpty());
     }
     
     [Test]
     public void GetChildren()
     {
+        // start by adding children to the drop zone
         var children = new List<GameObject>
         {
             new(),
@@ -119,13 +125,13 @@ public class RGDropZoneTests
             new()
         };
         var numChildren = children.Count;
-        
         foreach (var child in children)
         {
             child.AddComponent<RGDraggableCard>();
             dropZone.AddChild(child);
         }
         
+        // check that each child was added to the drop zone properly
         var dropZoneChildren = dropZone.GetChildren();
         foreach (var child in children)
         {
@@ -141,9 +147,9 @@ public class RGDropZoneTests
     {
         var newChild = new GameObject();
         dropZone.AddChild(newChild);
-        
         dropZone.ClearChildren();
         
+        // ensure that the drop zone removed its children properly, and that it tracks this state
         Assert.IsEmpty(dropZone.GetChildren());
         Assert.IsTrue(dropZone.IsEmpty());
     }
@@ -156,6 +162,7 @@ public class RGDropZoneTests
         
         dropZone.OnPointerEnter(pEvent);
         
+        // ensure that the drop zone tracks when a droppable object is within its bounds
         Assert.IsTrue(dropZone.HasValidDroppable());
     }
     
@@ -167,20 +174,25 @@ public class RGDropZoneTests
         
         dropZone.OnPointerEnter(pEvent);
         
+        // ensure that the drop zone does not track invalid droppable objects
         Assert.IsFalse(dropZone.HasValidDroppable());
     }
     
     [Test]
     public void OnPointerExit()
     {
+        // create a draggable card
         var dragged = new GameObject();
         var draggableScript = dragged.AddComponent<RGDraggableCard>();
+        
+        // drag a card outside the drop zone
         PointerEventData pEvent = new(EventSystem.current);
         pEvent.pointerDrag = dragged;
         dropZone.OnPointerEnter(pEvent);
-        
         dropZone.OnPointerExit(genericPointerEvent);
         
+        // ensure that the card tracks that it is not over a drop zone, and that the drop zone tracks
+        // if it has valid droppable objects within its bounds
         Assert.IsFalse(draggableScript.IsOverDropZone());
         Assert.IsFalse(dropZone.HasValidDroppable());
     }

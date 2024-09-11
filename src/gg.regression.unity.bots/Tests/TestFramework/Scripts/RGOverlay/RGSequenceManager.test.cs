@@ -13,6 +13,7 @@ public class RGSequenceManagerTests
     [SetUp]
     public void SetUp()
     {
+        // create the manager we want to test
         _uat = new GameObject();
         manager = _uat.AddComponent<RGSequenceManager>();
         manager.sequencesPanel = new GameObject();
@@ -24,24 +25,15 @@ public class RGSequenceManagerTests
     [TearDown]
     public void TearDown()
     {
-        Object.Destroy(manager.sequencesPanel);
-        Object.Destroy(manager.sequenceCardPrefab);
-        Object.Destroy(manager.sequenceEditor);
-        Object.Destroy(manager);
         Object.Destroy(_uat);
-    }
-
-    [Test]
-    public void Initialization()
-    {
-        Assert.NotNull(_uat);
-        Assert.NotNull(manager);
     }
 
     [Test]
     public void ShowEditSequenceDialog()
     {
         manager.ShowEditSequenceDialog();
+        
+        // ensure the sequence editor is visible
         Assert.IsTrue(manager.sequenceEditor.activeSelf);
     }
     
@@ -49,12 +41,15 @@ public class RGSequenceManagerTests
     public void HideEditSequenceDialog()
     {
         manager.HideEditSequenceDialog();
+        
+        // ensure the sequence editor is hidden
         Assert.IsFalse(manager.sequenceEditor.activeSelf);
     }
     
     [Test]
     public void InstantiateSequences()
     {
+        // add a list of bot sequences to the manager for instantiation
         const int numSequences = 5;
         var sequences = new List<BotSequence>();
         for (var i = 0; i < numSequences; ++i)
@@ -64,6 +59,7 @@ public class RGSequenceManagerTests
 
         manager.InstantiateSequences(sequences);
 
+        // ensure that the sequences panel is populated with the correct number of prefabs
         Assert.AreEqual(numSequences, manager.sequencesPanel.transform.childCount);
     }
 }

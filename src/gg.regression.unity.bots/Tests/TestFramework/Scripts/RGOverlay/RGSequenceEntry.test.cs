@@ -13,6 +13,7 @@ public class RGSequenceEntryTests
     [SetUp]
     public void SetUp()
     {
+        // create the entry we want to test
         _uat = new GameObject();
         entry = _uat.AddComponent<RGSequenceEntry>();
         entry.sequenceName = "Sequence Entry Name";
@@ -25,7 +26,6 @@ public class RGSequenceEntryTests
     [TearDown]
     public void TearDown()
     {
-        Object.Destroy(entry);
         Object.Destroy(_uat);
     }
 
@@ -34,6 +34,7 @@ public class RGSequenceEntryTests
     {
         entry.Start();
 
+        // ensure that the entry consumes its public fields properly
         Assert.AreEqual(entry.sequenceName, entry.nameComponent.text);
         Assert.AreEqual(entry.description, entry.descriptionComponent.text);
     }
@@ -41,6 +42,7 @@ public class RGSequenceEntryTests
     [Test]
     public void OnPlay()
     {
+        // mock the action that the play button uses
         var playActionCalled = false;
         entry.playAction = () =>
         {
@@ -49,6 +51,7 @@ public class RGSequenceEntryTests
         
         entry.OnPlay();
 
+        // ensure that the play button's mock action was utilized
         Assert.IsTrue(playActionCalled);
     }
 }
