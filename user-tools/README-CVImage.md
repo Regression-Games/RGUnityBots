@@ -16,7 +16,7 @@ Disclaimer: The `CVImage` type is still in an experimental phase and may provide
 - `transient` - `transient`=`true` means that this image can match at any time during the evaluation of this bot segment and that passing result will persist even if it takes multiple more frames before other criteria in this segment are matched.  `transient`=`false` means that this criteria and other non-transient criteria must all be true at the same time (any transient criteria must also have matched already).  For `CVImage` evaluation, it is not recommended to mark `transient`=`false`.  **Transient should almost always be `true` for `CVImage`**.
 - `data` - The data json object that defines how to evaluate this `CVImage` criteria.
   - `imageData` - The base64 encoded string of the JPG image data.  This is the entire JPG image file, not just the visible bytes.
-  - `withinRect` - An optional (can be null/undefined) field to limit the search area to a specific pixel region of the current frame.  The SDK will linearly tranform the supplied `rect` to fit the current resolution using the `screenSize` as the initial reference resolution.
+  - `withinRect` - An optional (can be null/undefined) field to limit the search area to a specific pixel region of the current frame.  The SDK will linearly transform the supplied `rect` to fit the current resolution using the `screenSize` as the initial reference resolution.
     - `screenSize` - The reference resolution in pixels which defines the screen space that `rect` is defined within.
     - `rect` - The position (x=0, y=0 is bottom left) and size (width, height) of the rectangle that must contain the supplied image data.  The values are defined in pixels.
 
