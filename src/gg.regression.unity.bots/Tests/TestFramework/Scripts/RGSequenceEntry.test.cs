@@ -17,7 +17,6 @@ public class RGSequenceEntryTests
         entry = _uat.AddComponent<RGSequenceEntry>();
         entry.sequenceName = "Sequence Entry Name";
         entry.description = "Sequence Entry Description";
-        entry.playAction = () => { };
         entry.playButton = entry.gameObject.AddComponent<Button>();
         entry.nameComponent = RGTestUtils.CreateTMProPlaceholder();
         entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder();
