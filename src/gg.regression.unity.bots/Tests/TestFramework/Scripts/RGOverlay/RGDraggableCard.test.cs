@@ -87,9 +87,8 @@ public class RGDraggableCardTests
         var dropZone = CreateNewDropZone();
         var dropZoneScript = dropZone.GetComponent<RGDropZone>();
         
-        // the card begins already inside the drop zone
+        // assume the card begins already inside the drop zone
         card.IsReordering = true;
-        card.transform.SetParent(dropZone.transform, false);
         
         card.OnBeginDrag(genericDragEvent);
 
@@ -109,9 +108,8 @@ public class RGDraggableCardTests
         var dropZone = CreateNewDropZone();
         var dropZoneScript = dropZone.GetComponent<RGDropZone>();
 
-        // the card begins already inside the drop zone
+        // assume the card begins already inside the drop zone
         card.IsReordering = true;
-        card.transform.SetParent(dropZone.transform, false);
 
         card.OnBeginDrag(genericDragEvent);
 
