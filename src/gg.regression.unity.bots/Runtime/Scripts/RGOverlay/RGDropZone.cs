@@ -156,7 +156,7 @@ namespace RegressionGames
 
             newChild.transform.SetParent(transform, false);
             newChild.transform.SetSiblingIndex(dropIndex);
-            
+
             _sequenceEditorScript.SetCreateSequenceButtonEnabled(_sequenceEditorScript.NameInput.text.Length > 0);
             
             ResetDraggableTracking();   
@@ -206,6 +206,16 @@ namespace RegressionGames
         public bool IsEmpty()
         {
             return _emptyStatePrefabInstance != null;
+        }
+
+        /**
+         * <summary>
+         * If a valid member of the `droppables` field is currently being dragged within this drop zone
+         * </summary>
+         */
+        public bool HasValidDroppable()
+        {
+            return _currentDraggable != null;
         }
 
         /**

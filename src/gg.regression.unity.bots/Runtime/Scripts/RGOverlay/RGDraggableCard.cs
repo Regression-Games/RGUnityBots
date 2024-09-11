@@ -71,6 +71,16 @@ namespace RegressionGames
 
         /**
          * <summary>
+         * If this draggable card is over a valid Drop Zone
+         * </summary>
+         */
+        public bool IsOverDropZone()
+        {
+            return _dropZone != null;
+        }
+
+        /**
+         * <summary>
          * When starting to drag this card, create the prefab that represents this card in motion
          * </summary>
          * <param name="eventData">Cursor event data</param>
