@@ -168,7 +168,7 @@ namespace RegressionGames
         public void OnEndDrag(PointerEventData eventData)
         {
             ToggleHighlight();
-            
+
             if (_draggingStateInstance == null)
             {
                 return;
@@ -191,7 +191,7 @@ namespace RegressionGames
                 _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
-            
+
             // this card is not in a drop zone. Ignore it
             if (_dropZone == null)
             {
@@ -199,7 +199,7 @@ namespace RegressionGames
                 _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
-            
+
             // this card is being reordered. Reset its drop zone's state
             if (IsReordering)
             {

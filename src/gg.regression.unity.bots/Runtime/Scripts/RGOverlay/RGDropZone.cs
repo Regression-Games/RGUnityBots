@@ -158,7 +158,7 @@ namespace RegressionGames
             newChild.transform.SetSiblingIndex(dropIndex);
 
             _sequenceEditorScript.SetCreateSequenceButtonEnabled(_sequenceEditorScript.NameInput.text.Length > 0);
-            
+
             ResetDraggableTracking();   
         }
 
