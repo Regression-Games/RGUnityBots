@@ -3,7 +3,7 @@
 ###  CVImage
 
 Disclaimer: The `CVImage` type is still in an experimental phase and may provide inconsistent or unexpected results in many situations.  We are continuing to evaluate and tune this type.  See the [Limitations and Notes](#limitations-and-notes) section below for more information.
-  - The `CVImage` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of the supplied image in the current frame of the game.  This type communicates with our remote AIService instance to perform the evaluation.  When a result is found, the AIService provides the bounding rect information to our SDK to confirm the existence and location of the supplied image in the current frame.
+  - The `CVImage` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of the supplied image in the current frame of the game until a frame contains the supplied image.  This type communicates with our remote AIService instance to perform the evaluation.  When a result is found, the AIService provides the bounding rect information to our SDK to confirm the existence and location of the supplied image in the current frame.
 
 **TODO:** [Loom Video - Feel free to ignore this as I will be making these from my own demos]
 
@@ -13,7 +13,7 @@ Disclaimer: The `CVImage` type is still in an experimental phase and may provide
 
 #### `endCriteria`
 - `type` - `CVImage` - tells the SDK to evaluate this type of criteria using the supplied data
-- `transient` - `transient`=`true` means that this image can match at any time during the evaluation of this bot segment and that passing result will persist even if it takes multiple more frames before other criteria in this segment are matched.  `transient`=`false` means that this criteria and other non-transient criteria must all be true at the same time (any transient criteria must also have matched already).  For `CVImage` evaluation, it is not recommended to mark `transient`=`false`.  **Transient should almost always be `true` for `CVImage`**.
+- `transient` - `transient`=`true` means that this image can match at any time during the evaluation of this bot segment and that passing result will persist even if it takes multiple more frames before other criteria in this segment are matched.  `transient`=`false` means that this criteria and other non-transient criteria must all be true at the same time (any transient criteria must also have matched already).  **Transient should almost always be `true` for `CVImage`**.  `CVImage` evaluation is a largely asynchronous process that can take multiple frames to complete, thus setting `trasient`=`false` for the criteria to match within a single frame can lead to situations where the criteria matched on the frame when the request was made, but are no longer matching by the time the result comes back.  Setting `transient`=`true` allows the needed flexibility for this asynchronous operation to pass more easily, especially when used  combination with other `endCriteria`.
 - `data` - The data json object that defines how to evaluate this `CVImage` criteria.
   - `imageData` - The base64 encoded string of the JPG image data.  This is the entire JPG image file, not just the visible bytes.
   - `withinRect` - An optional (can be null/undefined) field to limit the search area to a specific pixel region of the current frame.  The SDK will linearly transform the supplied `rect` to fit the current resolution using the `screenSize` as the initial reference resolution.
@@ -50,7 +50,6 @@ Disclaimer: The `CVImage` type is still in an experimental phase and may provide
 ```json
 {
     "name":"CV Image Criteria: Menu Change Profile Button",
-    "sessionId":"12345",
     "endCriteria":[
         {
             "type":"CVImage",
@@ -74,7 +73,6 @@ Disclaimer: The `CVImage` type is still in an experimental phase and may provide
 {
     "name": "CV Image Action: Click Menu Change Profile Button",
     "description":"Moves the mouse over the change profile button, then clicks and releases on the button. Criteria waits for the action to complete.",
-    "sessionId":"67890",
     "endCriteria": [
         {"type":"ActionComplete" }
     ],

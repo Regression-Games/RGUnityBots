@@ -2,7 +2,7 @@
 
 ###  CVText
 Disclaimer: The `CVText` type is still in an experimental phase and may provide inconsistent or unexpected results in some situations.  We are continuing to evaluate and tune this type.  See the [Limitations and Notes](#limitations-and-notes) section below for more information.
-  - The `CVText` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of the supplied text in the current frame of the game.  This type communicates with our remote AIService instance to perform the evaluation.  When a result is found, the AIService provides the bounding rect information to our SDK to confirm the existence and location of the supplied text in the current frame.
+  - The `CVText` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of the supplied text in the current frame of the game until a frame contains the supplied text.  This type communicates with our remote AIService instance to perform the evaluation.  When a result is found, the AIService provides the bounding rect information to our SDK to confirm the existence and location of the supplied text in the current frame.
 
 **TODO:** [Loom Video - Feel free to ignore this as I will be making these from my own demos]
 
@@ -12,7 +12,7 @@ Disclaimer: The `CVText` type is still in an experimental phase and may provide 
 
 #### `endCriteria`
 - `type` - `CVText` - tells the SDK to evaluate this type of criteria using the supplied data
-- `transient` - `transient`=`true` means that this text can match at any time during the evaluation of this bot segment and that passing result will persist even if it takes multiple more frames before other criteria in this segment are matched.  `transient`=`false` means that his criteria and other non-transient criteria must all be true at the same time (any transient criteria must also have matched already).  For `CVText` evaluation, it is not recommended to mark `transient`=`false`.  **Transient should almost always be `true` for `CVText`**.
+- `transient` - `transient`=`true` means that this text can match at any time during the evaluation of this bot segment and that passing result will persist even if it takes multiple more frames before other criteria in this segment are matched.  `transient`=`false` means that his criteria and other non-transient criteria must all be true at the same time (any transient criteria must also have matched already).  **Transient should almost always be `true` for `CVText`**.  `CVText` evaluation is a largely asynchronous process that can take multiple frames to complete, thus setting `trasient`=`false` for the criteria to match within a single frame can lead to situations where the criteria matched on the frame when the request was made, but are no longer matching by the time the result comes back.  Setting `transient`=`true` allows the needed flexibility for this asynchronous operation to pass more easily, especially when used  combination with other `endCriteria`.
 - `data` - The data json object that defines how to evaluate this `CVText` criteria.
   - `text` - The text to find.  Note that this algorithm will treat this as a set of words to find, NOT a sentence.  Thus if you have 'Create New Profile' on a single line on one button, but have 'Create' 'New' 'Profile' each on a separate line in different screen area, the algorithm has to choose which one to select.  The current method is to select the smallest bounding area containing all required words that is also `withinRect` (if specified).
   - `textMatchingRule` - One of `Matches` or `Contains`
@@ -47,7 +47,6 @@ Disclaimer: The `CVText` type is still in an experimental phase and may provide 
 ```json
 {
     "name":"CV Text Criteria: Create New Profile Button Text",
-    "sessionId":"12345",
     "endCriteria":[
         {
             "type":"CVText",
@@ -73,7 +72,6 @@ Disclaimer: The `CVText` type is still in an experimental phase and may provide 
 {
     "name": "CV Text Action: Click Create New Profile Button",
     "description":"Moves the mouse over the Create New Profile button text, then clicks and releases on the button. Criteria waits for the action to complete.",
-    "sessionId":"67890",
     "endCriteria": [
         {"type":"ActionComplete" }
     ],
