@@ -35,7 +35,8 @@ public class RGSequenceManager : MonoBehaviour
     {
         _sequences = new List<BotSequence>();
 
-        LoadSequences();
+        var sequences = ResolveSequenceFiles();
+        InstantiateSequences(sequences);
 
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
@@ -59,14 +60,18 @@ public class RGSequenceManager : MonoBehaviour
             }
             
             sequenceEditor.SetActive(false);
-            LoadSequences();
+            
+            var sequences = ResolveSequenceFiles();
+            InstantiateSequences(sequences);
         }
     }
 
     public void DeleteSequenceByPath(string path)
     {
         BotSequence.DeleteSequence(path);
-        LoadSequences();
+        
+        var sequences = ResolveSequenceFiles();
+        InstantiateSequences(sequences);
     }
 
     /**
@@ -137,12 +142,10 @@ public class RGSequenceManager : MonoBehaviour
      * Loads all Sequence json files within the Unity project, and creates their relevant UI components
      * </summary>
      */
-    public void LoadSequences()
+    public void InstantiateSequences(IDictionary<string, BotSequence> sequences)
     {
         // ensure we aren't appending new sequences on to the previous ones
         ClearExistingSequences();
-
-        var sequences = ResolveSequenceFiles();
         
         // instantiate a prefab for each sequence file that has been loaded
         foreach (var sequenceKVPair in sequences)
