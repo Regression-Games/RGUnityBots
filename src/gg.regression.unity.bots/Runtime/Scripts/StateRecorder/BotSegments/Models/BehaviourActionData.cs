@@ -43,6 +43,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         private volatile Type _typeToCreate = null;
         private volatile bool _readyToCreate;
+        private volatile string _error = null;
 
         private float _startTime = -1f;
 
@@ -70,7 +71,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 if (t == null)
                 {
-                    RGDebug.LogError($"Regression Games could not load Bot Segment Behaviour Action for Type - {behaviourFullName}. Type was not found in any assembly in the current runtime.");
+                    _error = $"Regression Games could not load Bot Segment Behaviour Action for Type - {behaviourFullName}. Type was not found in any assembly in the current runtime.";
+                    RGDebug.LogError(_error);
                 }
                 else
                 {
@@ -89,6 +91,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 if (_readyToCreate)
                 {
+                    _readyToCreate = false;
                     if (_typeToCreate != null)
                     {
                         // load behaviour and set as a child of the playback controller
@@ -107,53 +110,67 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     }
                     else
                     {
-                        // couldn't load the type.. just stop
-                        _isStopped = true;
+                        // couldn't load the type; don't stop or error reporting won't work
+                        error = _error;
+                        return false;
                     }
-
-                    _readyToCreate = false;
                 }
 
                 if (_myGameObject != null)
                 {
                     if (!_myGameObject.GetComponent(_typeToCreate))
                     {
-                        // behaviour was destroyed, stop .. really this is an abort, but this is sample for how to call stop
+                        // StopAction really calls AbortAction by default, but this is a code sample of how to call StopAction in case it is overridden
+                        // This represents the 'clean end' case where the behaviour destroyed itself after completing
                         ((IBotActionData)this).StopAction(segmentNumber, currentTransforms, currentEntities);
-                        // will return false
+                        _error = null;
+                        error = _error;
+                        return false;
+                    }
 
-                    }
-                    else if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
+                    if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
                     {
-                        // really this is an abort, but this is sample for how to call stop
-                        ((IBotActionData)this).StopAction(segmentNumber, currentTransforms, currentEntities);
-                        // will return false
+                        // behaviour is still not destroyed at the time limit
+                        // This represents a segment failure case where the timeout stops the Behaviour that did not find its criteria and end in a timely manner
+                        // we destroy the behaviour + gameObject, but don't mark this stopped so that error reporting works
+                        DestroyGameObject();
+                        _error = $"Behaviour did not complete within maxRuntimeSeconds: {maxRuntimeSeconds.Value}";
+                        error = _error;
+                        return false;
                     }
-                    else
-                    {
-                        error = null;
-                        return true;
-                    }
-                    // Behaviour is expected to perform its actions in its own 'Update' or 'LateUpdate' calls
+
+                    // Behaviour is expected to perform its actions in its own 'Update' or 'LateUpdate' calls... we don't directly call it
+                    // When it reaches its own self determined end condition, it should destroy itself
+
                     // It can get the current state information from the runtime directly... or can access our information by using
                     // UnityEngine.Object.FindObjectOfType<TransformObjectFinder>().GetObjectStatusForCurrentFrame();
                     // and/or
                     // UnityEngine.Object.FindObjectOfType<EntityObjectFinder>().GetObjectStatusForCurrentFrame(); - for runtimes with ECS support
+
+                    // This is the regular update loop case while the behaviour is still actively running
+                    _error = null;
+                    error = _error;
+                    return true;
                 }
             }
 
-            error = null;
+            error = _error;
             return false;
         }
 
-        public void AbortAction(int segmentNumber)
+        private void DestroyGameObject()
         {
-            _isStopped = true;
             if (_myGameObject != null)
             {
                 UnityEngine.Object.Destroy(_myGameObject);
             }
             _myGameObject = null;
+        }
+
+        public void AbortAction(int segmentNumber)
+        {
+            _isStopped = true;
+            DestroyGameObject();
         }
 
         public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
