@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,7 +13,7 @@ namespace RegressionGames
         
         public Button cancelButton;
 
-        private string _sequencePath;
+        public string sequencePath;
 
         public void Start()
         {
@@ -37,7 +38,7 @@ namespace RegressionGames
 
         public void Initialize(RGSequenceEntry sequence)
         {
-            _sequencePath = sequence.sequencePath;
+            sequencePath = sequence.sequencePath;
             
             if (sequenceNamePrefab != null)
             {
@@ -51,10 +52,9 @@ namespace RegressionGames
 
         public void OnDelete()
         {
-            if (string.IsNullOrEmpty(_sequencePath))
+            if (string.IsNullOrEmpty(sequencePath))
             {
-                Debug.LogError($"RGDeleteSequence is missing its _sequencePath when attempting to delete a Sequence");
-                return;
+                throw new Exception($"RGDeleteSequence is missing its _sequencePath when attempting to delete a Sequence");
             }
             
             var botManager = RGBotManager.GetInstance();
@@ -63,10 +63,12 @@ namespace RegressionGames
                 var sequenceManager = botManager.GetComponent<RGSequenceManager>();
                 if (sequenceManager != null)
                 {
-                    sequenceManager.DeleteSequenceByPath(_sequencePath);
+                    sequenceManager.DeleteSequenceByPath(sequencePath);
                     sequenceManager.HideDeleteSequenceDialog();
                 }
             }
+
+            Reset();
         }
 
         public void OnCancel()
@@ -80,6 +82,14 @@ namespace RegressionGames
                     sequenceManager.HideDeleteSequenceDialog();
                 }
             }
+
+            Reset();
+        }
+
+        private void Reset()
+        {
+            sequenceNamePrefab.text = string.Empty;
+            sequencePath = string.Empty;
         }
     }
 }
