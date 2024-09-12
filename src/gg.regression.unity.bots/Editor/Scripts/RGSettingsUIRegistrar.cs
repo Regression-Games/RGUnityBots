@@ -17,8 +17,6 @@ namespace RegressionGames.Editor
     public class RGSettingsUIRegistrar
     {
 
-        private static RGServiceManager rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
-
         [SettingsProvider]
         public static SettingsProvider CreateRGSettingsProvider()
         {
@@ -128,7 +126,7 @@ namespace RegressionGames.Editor
 
             var tcs = new TaskCompletionSource<bool>();
 
-            await rgServiceManager.Auth(user, password,
+            await RGServiceManager.GetInstance().Auth(user, password,
                 responseToken =>
                 {
                     SerializedObject settings = RGSettings.GetSerializedSettings();

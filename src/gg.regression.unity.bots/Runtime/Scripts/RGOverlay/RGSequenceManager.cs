@@ -24,17 +24,13 @@ public class RGSequenceManager : MonoBehaviour
     
     private static RGSequenceManager _this;
 
-    private IList<BotSequence> _sequences;
-
     public static RGSequenceManager GetInstance()
     {
         return _this;
     }
 
-    private void Awake()
+    public void Start()
     {
-        _sequences = new List<BotSequence>();
-
         var sequences = ResolveSequenceFiles();
         InstantiateSequences(sequences);
 
@@ -139,8 +135,9 @@ public class RGSequenceManager : MonoBehaviour
 
     /**
      * <summary>
-     * Loads all Sequence json files within the Unity project, and creates their relevant UI components
+     * Instantiates Sequence prefabs and adds them to the list of available Sequences
      * </summary>
+     * <param name="sequences">List of Bot Sequence data we want to instantiate as prefabs</param>
      */
     public void InstantiateSequences(IDictionary<string, BotSequence> sequences)
     {
@@ -164,8 +161,6 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.description = sequence.description;
                 prefabComponent.playAction = sequence.Play;
             }
-
-            _sequences.Add(sequence);
         }
     }
 
@@ -174,8 +169,6 @@ public class RGSequenceManager : MonoBehaviour
      */
     private void ClearExistingSequences()
     {
-        _sequences.Clear();
-
         for(int i = 0; i < sequencesPanel.transform.childCount; i++)
         {
             if (i == 0)

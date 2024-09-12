@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using JetBrains.Annotations;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
-using RegressionGames.StateRecorder.BotSegments.Models.CVService;
+using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -115,7 +115,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         _cvResultsBoundsRect = null;
 
                         // do NOT await this, let it run async
-                        _ = CVServiceManager.GetInstance().PostCriteriaTextDiscover(
+                        _ = AIServiceManager.GetInstance().PostCriteriaTextDiscover(
                             request: new CVTextCriteriaRequest()
                             {
                                 screenshot = new CVImageBinaryData()
@@ -380,7 +380,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             onFailure:
                             () =>
                             {
-                                RGDebug.LogWarning($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService Text criteria evaluation");
+                                RGDebug.LogWarning($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking AIService Text criteria evaluation");
                                 lock (_syncLock)
                                 {
                                     RGDebug.LogVerbose($"CVTextMouseActionData - RequestCVTextEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");
