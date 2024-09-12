@@ -65,7 +65,6 @@ public class RGSequenceManager : MonoBehaviour
 
     public void DeleteSequenceByPath(string path)
     {
-        Debug.Log($"Deleting: {path}");
         BotSequence.DeleteSequence(path);
         LoadSequences();
     }
