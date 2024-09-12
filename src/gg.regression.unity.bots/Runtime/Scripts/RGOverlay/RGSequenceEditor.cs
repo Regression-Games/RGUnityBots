@@ -152,14 +152,19 @@ namespace RegressionGames
          * <summary>
          * Destroy the Segments in the Available Segments List
          * </summary>
+         * <returns>
+         * The number of child Segments destroyed
+         * </returns>
          */
-        public void ClearAvailableSegments()
+        public int ClearAvailableSegments()
         {
-            var childCount = AvailableSegmentsList.transform.childCount - 1;
-            for (var i = childCount; i >= 0; i--)
+            var childCount = AvailableSegmentsList.transform.childCount;
+            for (var i = 0; i < childCount; ++i)
             {
                 Destroy(AvailableSegmentsList.transform.GetChild(i).gameObject);
             }
+
+            return childCount;
         }
 
         /**

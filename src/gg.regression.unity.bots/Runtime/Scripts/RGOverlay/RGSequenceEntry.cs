@@ -28,7 +28,7 @@ public class RGSequenceEntry : MonoBehaviour
     [SerializeField]
     public TMP_Text descriptionComponent;
 
-    void Start()
+    public void Start()
     {
         if (nameComponent != null)
         {
@@ -52,10 +52,7 @@ public class RGSequenceEntry : MonoBehaviour
     public void OnPlay()
     {
         var botManager = RGBotManager.GetInstance();
-        if (botManager != null && playAction != null)
-        {
-            botManager.OnBeginPlaying();
-            playAction?.Invoke();
-        }
+        botManager?.OnBeginPlaying();
+        playAction?.Invoke();
     }
 }
