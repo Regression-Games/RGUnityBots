@@ -71,6 +71,16 @@ namespace RegressionGames
 
         /**
          * <summary>
+         * If this draggable card is over a valid Drop Zone
+         * </summary>
+         */
+        public bool IsOverDropZone()
+        {
+            return _dropZone != null;
+        }
+
+        /**
+         * <summary>
          * When starting to drag this card, create the prefab that represents this card in motion
          * </summary>
          * <param name="eventData">Cursor event data</param>
@@ -161,6 +171,7 @@ namespace RegressionGames
 
             if (_draggingStateInstance == null)
             {
+                // this card is not dragging currently
                 return;
             }
             
@@ -264,11 +275,17 @@ namespace RegressionGames
          */
         private void ToggleHighlight()
         {
+            if (transform.parent == null)
+            {
+                // this card will have no siblings to toggle the highlight state for
+                return;
+            }
+            
             var newAlpha = _isHighlighted ? HIGHLIGHTED_ALPHA : MUTED_ALPHA;
             
             // if the selfIndex is -1, we can know that all cards are being returned to their regular alpha value
             var selfIndex = _isHighlighted ?  -1 : transform.GetSiblingIndex();
-            
+
             for (var i = 0; i < transform.parent.transform.childCount; ++i)
             {
                 var child = transform.parent.transform.GetChild(i).GetComponent<RGDraggableCard>();
