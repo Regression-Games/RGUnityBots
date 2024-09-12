@@ -180,33 +180,6 @@ public class RGSequenceManager : MonoBehaviour
             Destroy(sequencesPanel.transform.GetChild(i).gameObject);
         }
     }
-
-    /**
-     * <summary>
-     * Search a directory for any *.json files, then attempt to read them as Bot Sequences
-     * </summary>
-     * <param name="path">The directory to look for Bot Sequences json files</param>
-     * <returns>Dictionary containing (file name, Bot Sequence) entires</returns>
-     */
-    private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
-    {
-        var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
-        return sequenceFiles
-            .Select(fileName =>
-            {
-                try
-                {
-                    return BotSequence.LoadSequenceJsonFromPath(fileName);
-                }
-                catch (Exception exception)
-                {
-                    Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
-                    return (string.Empty, null);
-                }
-            })
-            .Where(s => s.Item2 != null)
-            .ToDictionary(s => s.Item1, s => s.Item2);
-    }
     
     /**
      * <summary>
@@ -271,5 +244,32 @@ public class RGSequenceManager : MonoBehaviour
 
         return sequences;
 #endif
+    }
+    
+    /**
+     * <summary>
+     * Search a directory for any *.json files, then attempt to read them as Bot Sequences
+     * </summary>
+     * <param name="path">The directory to look for Bot Sequences json files</param>
+     * <returns>Dictionary containing (file name, Bot Sequence) entires</returns>
+     */
+    private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
+    {
+        var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
+        return sequenceFiles
+            .Select(fileName =>
+            {
+                try
+                {
+                    return BotSequence.LoadSequenceJsonFromPath(fileName);
+                }
+                catch (Exception exception)
+                {
+                    Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
+                    return (string.Empty, null);
+                }
+            })
+            .Where(s => s.Item2 != null)
+            .ToDictionary(s => s.Item1, s => s.Item2);
     }
 }
