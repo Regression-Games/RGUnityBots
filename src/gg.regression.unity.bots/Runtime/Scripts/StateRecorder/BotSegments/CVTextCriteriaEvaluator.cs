@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.CVService;
+using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments
@@ -10,7 +10,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
 
     /**
-     * <summary>Evaluates CV Text criteria using CVServiceManager to send/receive HTTP requests to a python server for doing the actual CV evaluations.
+     * <summary>Evaluates CV Text criteria using AIServiceManager to send/receive HTTP requests to a python server for doing the actual CV evaluations.
      * Python 'detects' text in a provided image and then this class evaluates those results against the specified bot segment criteria.</summary>
      */
     public static class CVTextCriteriaEvaluator
@@ -235,7 +235,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 _resultTracker[segmentNumber] = null;
 
                                 // do NOT await this, let it run async
-                                _ = CVServiceManager.GetInstance().PostCriteriaTextDiscover(
+                                _ = AIServiceManager.GetInstance().PostCriteriaTextDiscover(
                                     new CVTextCriteriaRequest()
                                     {
                                         screenshot = new CVImageBinaryData()
@@ -278,7 +278,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     },
                                     onFailure: () =>
                                     {
-                                        RGDebug.LogWarning($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService text criteria evaluation");
+                                        RGDebug.LogWarning($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking AIService text criteria evaluation");
                                         lock (_requestTracker)
                                         {
                                             RGDebug.LogVerbose($"CVTextCriteriaEvaluator - Matched - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");

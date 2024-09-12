@@ -11,7 +11,7 @@ namespace RegressionGames
     {
         public static readonly string RG_API_KEY = "RG_API_KEY";
         public static readonly string RG_HOST = "RG_HOST";
-        public static readonly string RG_CV_HOST = "RG_CV_HOST";
+        public static readonly string RG_AI_HOST = "RG_AI_HOST";
         public static readonly string RG_BOT = "RG_BOT";
 
         /**
@@ -39,7 +39,7 @@ namespace RegressionGames
          * necessarily.
          */
         [CanBeNull]
-        public static string ReadCvHost() => ReadEnvVarOrCommandLine(RG_CV_HOST);
+        public static string ReadAiHost() => ReadEnvVarOrCommandLine(RG_AI_HOST);
 
         /**
          * Reads the BOT from either the environment variable or command

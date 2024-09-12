@@ -5,7 +5,7 @@ using System.Threading;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
-using RegressionGames.StateRecorder.BotSegments.Models.CVService;
+using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -129,7 +129,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         _cvResultsBoundsRect = null;
 
                         // do NOT await this, let it run async
-                        _ = CVServiceManager.GetInstance().PostCriteriaObjectDetection(
+                        _ = AIServiceManager.GetInstance().PostCriteriaObjectDetection(
                             new CVObjectDetectionRequest(
                                 screenshot: new CVImageBinaryData()
                                 {
@@ -179,7 +179,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /// <param name="segmentNumber">The segment number of the bot action, used for logging and debugging purposes.</param>
         private void OnFailure(int segmentNumber)
         {
-            RGDebug.LogWarning($"CVObjectDetectionMouseActionData - RequestCVObjectDetectionEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking CVService criteria-object-text-query evaluation");
+            RGDebug.LogWarning($"CVObjectDetectionMouseActionData - RequestCVObjectDetectionEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - failure invoking AIService criteria-object-text-query evaluation");
             lock (_syncLock)
             {
                 RGDebug.LogVerbose($"CVObjectDetectionMouseActionData - RequestCVObjectDetectionEvaluation - botSegment: {segmentNumber} - Request - onFailure callback - insideLock");

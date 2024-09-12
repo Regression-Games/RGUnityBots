@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 using UnityEngine;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
+namespace RegressionGames.StateRecorder.BotSegments.Models.AIService
 {
     public class CVObjectDetectionRequest
     {

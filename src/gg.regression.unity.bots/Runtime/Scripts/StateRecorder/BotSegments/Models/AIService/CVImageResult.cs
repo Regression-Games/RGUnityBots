@@ -2,7 +2,7 @@
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
+namespace RegressionGames.StateRecorder.BotSegments.Models.AIService
 {
     public class CVImageResult
     {

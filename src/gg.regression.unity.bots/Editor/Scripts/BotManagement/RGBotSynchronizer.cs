@@ -21,8 +21,6 @@ namespace RegressionGames.Editor.BotManagement
 #if UNITY_EDITOR
         private static readonly RGBotSynchronizer _this = new();
 
-        private static RGServiceManager _rgServiceManager = new(); // editor, not game/scene so don't look for one, make one
-
         // This must match RGBotRuntimeManagement.cs
         private const string BOTS_PATH = "Assets/RegressionGames/Runtime/Bots";
 
@@ -53,7 +51,7 @@ namespace RegressionGames.Editor.BotManagement
         {
             try
             {
-                if (!_rgServiceManager.LoadAuth())
+                if (!RGServiceManager.GetInstance().LoadAuth(out _))
                 {
                     RGDebug.LogWarning("Unable to synchronize bots with Regression Games.  Check your configuration and ensure that your network connection can reach the configured Regression Games server.");
                     return;
@@ -86,7 +84,7 @@ namespace RegressionGames.Editor.BotManagement
                     localBotAssets.Where(lb => remoteBots.FirstOrDefault(rb => rb.id == lb.Bot.id) == null);
                 foreach (var botAsset in botsNeedingCreation)
                 {
-                    await _rgServiceManager.CreateBot(
+                    await RGServiceManager.GetInstance().CreateBot(
                         new RGCreateBotRequest(botAsset.Bot.name),
                         (botResult) =>
                         {
@@ -207,7 +205,7 @@ namespace RegressionGames.Editor.BotManagement
 
             //download and extract zip
             string botChecksum = null;
-            await _rgServiceManager.DownloadBotCode(newRemoteBot.id,
+            await RGServiceManager.GetInstance().DownloadBotCode(newRemoteBot.id,
                 zipDownloadPath,
                 () =>
                 {
@@ -227,7 +225,7 @@ namespace RegressionGames.Editor.BotManagement
             var remoteBots = new List<RGBot>();
 
             // check for and create 'new' bots on regression games
-            await _rgServiceManager.GetBotsForCurrentUser(
+            await RGServiceManager.GetInstance().GetBotsForCurrentUser(
                 (existingRGBots) =>
                 {
                     remoteBots = existingRGBots
@@ -293,7 +291,7 @@ namespace RegressionGames.Editor.BotManagement
 
             // Fetch code details from the server.
             RGBotCodeDetails botCodeDetails = null;
-            await _rgServiceManager.GetBotCodeDetails(
+            await RGServiceManager.GetInstance().GetBotCodeDetails(
                 remoteBot.id,
                 (details) =>
                 {
@@ -315,7 +313,7 @@ namespace RegressionGames.Editor.BotManagement
             {
                 // Upload bot code
                 string zipFilePath = ZipPathForBot(remoteBot.id);
-                await _rgServiceManager.UpdateBotCode(
+                await RGServiceManager.GetInstance().UpdateBotCode(
                     remoteBot.id,
                     zipFilePath,
                     (_) =>
