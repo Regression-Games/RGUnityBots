@@ -123,7 +123,7 @@ namespace RegressionGames
         {
             RGDebug.LogInfo("Loading and starting bot sequence from " + sequencePath);
 
-            var botSequence = BotSequence.LoadSequenceJsonFromPath(sequencePath);
+            var botSequence = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item2;
 
             botSequence.Play();
 

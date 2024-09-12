@@ -401,7 +401,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sequenceName: 
   description: 
+  sequencePath: 
   playButton: {fileID: 2445726624697383442}
+  deleteButton: {fileID: 3433092397220868272}
   nameComponent: {fileID: 714608286913792316}
   descriptionComponent: {fileID: 0}
 --- !u!1 &6874878903579090770

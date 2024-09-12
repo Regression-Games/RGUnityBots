@@ -2,8 +2,6 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
-using RegressionGames.StateRecorder;
 
 /**
  * <summary>Displays the high-level information for a Sequence</summary>
@@ -14,10 +12,15 @@ public class RGSequenceEntry : MonoBehaviour
 
     public string description;
 
+    public string sequencePath;
+    
     public Action playAction;
 
     [SerializeField]
     public Button playButton;
+    
+    [SerializeField]
+    public Button deleteButton;
 
     /**
      * UI component fields
@@ -44,6 +47,11 @@ public class RGSequenceEntry : MonoBehaviour
         {
             playButton.onClick.AddListener(OnPlay);
         }
+        
+        if (deleteButton != null)
+        {
+            deleteButton.onClick.AddListener(OnDelete);
+        }
     }
 
     /**
@@ -56,6 +64,22 @@ public class RGSequenceEntry : MonoBehaviour
         {
             botManager.OnBeginPlaying();
             playAction?.Invoke();
+        }
+    }
+
+    /**
+     * <summary></summary>
+     */
+    public void OnDelete()
+    {
+        var botManager = RGBotManager.GetInstance();
+        if (botManager != null)
+        {
+            var sequenceManager = botManager.GetComponent<RGSequenceManager>();
+            if (sequenceManager != null)
+            {
+                sequenceManager.ShowDeleteSequenceDialog(this);
+            }
         }
     }
 }

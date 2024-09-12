@@ -19,6 +19,8 @@ public class RGSequenceManager : MonoBehaviour
     public GameObject sequenceCardPrefab;
 
     public GameObject sequenceEditor;
+
+    public GameObject deleteSequenceDialog;
     
     private static RGSequenceManager _this;
 
@@ -61,6 +63,13 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    public void DeleteSequenceByPath(string path)
+    {
+        Debug.Log($"Deleting: {path}");
+        BotSequence.DeleteSequence(path);
+        LoadSequences();
+    }
+
     /**
      * <summary>
      * Show the Sequence Editor, and initialize its fields
@@ -92,6 +101,37 @@ public class RGSequenceManager : MonoBehaviour
             sequenceEditor.SetActive(false);
         }
     }
+    
+    /**
+     * <summary>
+     * Show the Delete Sequence confirmation dialog and set its fields
+     * </summary>
+     */
+    public void ShowDeleteSequenceDialog(RGSequenceEntry sequence)
+    {
+        if (deleteSequenceDialog != null)
+        {
+            var script = deleteSequenceDialog.GetComponent<RGDeleteSequence>();
+            if (script != null)
+            {
+                script.Initialize(sequence);
+                deleteSequenceDialog.SetActive(true);
+            }
+        }
+    }
+
+    /**
+     * <summary>
+     * Hide the Delete Sequence confirmation dialog
+     * </summary>
+     */
+    public void HideDeleteSequenceDialog()
+    {
+        if (deleteSequenceDialog != null)
+        {
+            deleteSequenceDialog.SetActive(false);
+        }
+    }
 
     /**
      * <summary>
@@ -106,8 +146,10 @@ public class RGSequenceManager : MonoBehaviour
         var sequences = ResolveSequenceFiles();
         
         // instantiate a prefab for each sequence file that has been loaded
-        foreach (var sequence in sequences)
+        foreach (var sequenceKVPair in sequences)
         {
+            var path = sequenceKVPair.Key;
+            var sequence = sequenceKVPair.Value;
             var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
             
             // map sequence data fields to new prefab
@@ -116,6 +158,7 @@ public class RGSequenceManager : MonoBehaviour
             if (prefabComponent != null)
             {
                 prefabComponent.sequenceName = sequence.name;
+                prefabComponent.sequencePath = path;
                 prefabComponent.description = sequence.description;
                 prefabComponent.playAction = sequence.Play;
             }
@@ -158,12 +201,12 @@ public class RGSequenceManager : MonoBehaviour
             {
                 try
                 {
-                    return (Path.GetFileNameWithoutExtension(fileName), BotSequence.LoadSequenceJsonFromPath(fileName));
+                    return BotSequence.LoadSequenceJsonFromPath(fileName);
                 }
                 catch (Exception exception)
                 {
                     Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
-                    return (null, null);
+                    return (string.Empty, null);
                 }
             })
             .Where(s => s.Item2 != null)
@@ -179,16 +222,16 @@ public class RGSequenceManager : MonoBehaviour
      * </summary>
      * <returns>List of Bot Sequences</returns>
      */
-    private IList<BotSequence> ResolveSequenceFiles()
+    private IDictionary<string, BotSequence> ResolveSequenceFiles()
     {
 #if UNITY_EDITOR
         const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
         if (!Directory.Exists(sequencePath))
         {
-            return new List<BotSequence>();
+            return new Dictionary<string, BotSequence>();
         }
-
-        return EnumerateSequencesInDirectory(sequencePath).Values.ToList();
+        
+        return EnumerateSequencesInDirectory(sequencePath);
 #else
         var sequences = new Dictionary<string, BotSequence>();
 
@@ -231,7 +274,7 @@ public class RGSequenceManager : MonoBehaviour
             }
         }
 
-        return sequences.Values.ToList();
+        return sequences;
 #endif
     }
 }
