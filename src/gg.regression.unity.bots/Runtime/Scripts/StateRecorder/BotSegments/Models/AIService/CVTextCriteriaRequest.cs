@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Threading;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.CVService
+namespace RegressionGames.StateRecorder.BotSegments.Models.AIService
 {
     public class CVTextCriteriaRequest
     {

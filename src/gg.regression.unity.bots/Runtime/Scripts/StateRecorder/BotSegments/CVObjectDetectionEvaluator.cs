@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.CVService;
+using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 {
 
     /**
-     * <summary>Evaluates CV Object Detection criteria using CVServiceManager to send/receive HTTP requests to a python server for doing the actual CV evaluations.
+     * <summary>Evaluates CV Object Detection criteria using AIServiceManager to send/receive HTTP requests to a python server for doing the actual CV evaluations.
      * Python 'detects' classes of objects in a provided screenshot based on image and text queries, and then this class evaluates those results against the specified bot segment criteria.</summary>
      */
     public static class CVObjectDetectionEvaluator
@@ -319,7 +319,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     var textQuery = criteriaData.textQuery;
                     var imageQuery = criteriaData.imageQuery;
                     // do NOT await this, let it run async
-                    _ = CVServiceManager.GetInstance().PostCriteriaObjectDetection(
+                    _ = AIServiceManager.GetInstance().PostCriteriaObjectDetection(
                         new CVObjectDetectionRequest(
                             screenshot: new CVImageBinaryData()
                             {
@@ -429,7 +429,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         /// </remarks>
         private static void OnFailure(int segmentNumber, int index)
         {
-            RGDebug.LogWarning($"CVObjectDetectionEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - onFailure callback - failure invoking CVService image criteria evaluation");
+            RGDebug.LogWarning($"CVObjectDetectionEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - onFailure callback - failure invoking AIService image criteria evaluation");
             lock (_requestTracker)
             {
                 RGDebug.LogVerbose($"CVObjectDetectionEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - onFailure callback - insideLock");
