@@ -54,7 +54,7 @@ public class RGSequenceManagerTests
         var sequences = new Dictionary<string, BotSequence>();
         for (var i = 0; i < numSequences; ++i)
         {
-            sequences.Add("placeholder-path", new BotSequence());
+            sequences.Add($"/placeholder/path/{i}", new BotSequence());
         }
 
         manager.InstantiateSequences(sequences);
