@@ -5,6 +5,12 @@ using UnityEngine.UI;
 
 namespace RegressionGames
 {
+    /**
+     * <summary>
+     * Initializes the delete sequence dialog with the correct content, and is responsible for
+     * deleting sequences via RGSequenceManager
+     * </summary>
+     */
     public class RGDeleteSequence : MonoBehaviour
     {
         public TMP_Text sequenceNamePrefab; 
@@ -15,6 +21,11 @@ namespace RegressionGames
 
         public string sequencePath;
 
+        /**
+         * <summary>
+         * Initializes the delete sequence dialog with the correct content
+         * </summary>
+         */
         public void Start()
         {
             if (confirmButton != null)
@@ -36,6 +47,12 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * Set the path and name of the Sequence the user is wanting to delete
+         * </summary>
+         * <param name="sequence">The Sequence Entry to delete</param>
+         */
         public void Initialize(RGSequenceEntry sequence)
         {
             sequencePath = sequence.sequencePath;
@@ -50,6 +67,12 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * When the deletion is confirmed, ensure that the initialized Sequence path is valid and complete the deletion
+         * and reset the dialog's contents
+         * </summary>
+         */
         public void OnDelete()
         {
             if (string.IsNullOrEmpty(sequencePath))
@@ -71,6 +94,11 @@ namespace RegressionGames
             Reset();
         }
 
+        /**
+         * <summary>
+         * When the deletion is canceled, hide this dialog and reset its contents
+         * </summary>
+         */
         public void OnCancel()
         {
             var botManager = RGBotManager.GetInstance();
@@ -86,6 +114,11 @@ namespace RegressionGames
             Reset();
         }
 
+        /**
+         * <summary>
+         * Reset the Sequence to delete path and name in the dialog
+         * </summary>
+         */
         private void Reset()
         {
             sequenceNamePrefab.text = string.Empty;

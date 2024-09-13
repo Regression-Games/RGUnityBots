@@ -132,6 +132,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
+        /**
+         * <summary>
+         * Checks if there exists a file at the path param, and deletes the file if so.
+         * </summary>
+         * <para name="path">The Sequence path to delete</para>
+         */
         public static void DeleteSequence(string path)
         {
             if (!File.Exists(path))

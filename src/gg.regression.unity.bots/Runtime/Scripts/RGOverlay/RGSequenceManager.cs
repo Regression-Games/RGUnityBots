@@ -62,6 +62,12 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    /**
+     * <summary>
+     * Deletes the Sequence provided by the path param, then reload all Sequences
+     * </summary>
+     * <param name="path">The path of the Sequence to delete</param>
+     */
     public void DeleteSequenceByPath(string path)
     {
         BotSequence.DeleteSequence(path);
@@ -137,7 +143,7 @@ public class RGSequenceManager : MonoBehaviour
      * <summary>
      * Instantiates Sequence prefabs and adds them to the list of available Sequences
      * </summary>
-     * <param name="sequences">List of Bot Sequence data we want to instantiate as prefabs</param>
+     * <param name="sequences">Dictionary of (path, Bot Sequence) data we want to instantiate as prefabs</param>
      */
     public void InstantiateSequences(IDictionary<string, BotSequence> sequences)
     {
@@ -188,7 +194,7 @@ public class RGSequenceManager : MonoBehaviour
      * will use the persistent data path as an override, so any Sequences that are found in Resources will only be kept
      * if they are not also within the persistent data path
      * </summary>
-     * <returns>List of Bot Sequences</returns>
+     * <returns>Dictionary of (path, Bot Sequence)</returns>
      */
     private IDictionary<string, BotSequence> ResolveSequenceFiles()
     {
@@ -198,7 +204,7 @@ public class RGSequenceManager : MonoBehaviour
         {
             return new Dictionary<string, BotSequence>();
         }
-        
+
         return EnumerateSequencesInDirectory(sequencePath);
 #else
         var sequences = new Dictionary<string, BotSequence>();
@@ -251,7 +257,7 @@ public class RGSequenceManager : MonoBehaviour
      * Search a directory for any *.json files, then attempt to read them as Bot Sequences
      * </summary>
      * <param name="path">The directory to look for Bot Sequences json files</param>
-     * <returns>Dictionary containing (file name, Bot Sequence) entires</returns>
+     * <returns>Dictionary containing (path, Bot Sequence) entires</returns>
      */
     private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
     {

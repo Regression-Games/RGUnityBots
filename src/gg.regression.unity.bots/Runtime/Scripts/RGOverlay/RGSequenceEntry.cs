@@ -55,7 +55,9 @@ public class RGSequenceEntry : MonoBehaviour
     }
 
     /**
-     * <summary>When the play button is clicked, start the Sequence and close the RGOverlay</summary>
+     * <summary>
+     * When the play button is clicked, start the Sequence and close the RGOverlay
+     * </summary>
      */
     public void OnPlay()
     {
@@ -65,7 +67,9 @@ public class RGSequenceEntry : MonoBehaviour
     }
 
     /**
-     * <summary></summary>
+     * <summary>
+     * When the delete button is pressed, show a confirmation dialog
+     * </summary>
      */
     public void OnDelete()
     {
