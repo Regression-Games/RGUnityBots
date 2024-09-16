@@ -45,7 +45,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /**
          * <summary>Loads a Json sequence file from a json path.  This API expects a relative path</summary>
          */
-        public static BotSequence LoadSequenceJsonFromPath(string path)
+        public static (string, BotSequence) LoadSequenceJsonFromPath(string path)
         {
             if (path.StartsWith('/') || path.StartsWith('\\'))
             {
@@ -70,7 +70,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            return JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
+            return (sequenceJson.Item1, JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2));
         }
 
         public string ToJsonString()
@@ -129,6 +129,29 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             catch (Exception e)
             {
                 throw new Exception($"Exception trying to persist BotSequence name: {name}", e);
+            }
+        }
+
+        /**
+         * <summary>
+         * Checks if there exists a file at the path param, and deletes the file if so.
+         * </summary>
+         * <para name="path">The Sequence path to delete</para>
+         */
+        public static void DeleteSequence(string path)
+        {
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"Bot Sequence at: {path} cannot be deleted, as it does not exist");
+            }
+
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Exception trying to delete bot sequences at: {path}");
             }
         }
 
