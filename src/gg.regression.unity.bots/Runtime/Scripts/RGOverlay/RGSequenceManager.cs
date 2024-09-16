@@ -26,10 +26,15 @@ public class RGSequenceManager : MonoBehaviour
         return _this;
     }
 
-    public void Start()
+    public void LoadSequences()
     {
         var sequences = ResolveSequenceFiles();
         InstantiateSequences(sequences);
+    }
+
+    public void Start()
+    {
+        LoadSequences();
 
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
