@@ -62,6 +62,14 @@ public class RGBotManager : MonoBehaviour
                 recordingToolbar.SetActive(false);
             }
         }
+
+        // if the Sequence Manager is present, we do not need to initialize the bot/behavior
+        // dropdowns. They are only kept in this script for backwards compatibility
+        var sequenceManager = GetComponentInChildren<RGSequenceManager>();
+        if (sequenceManager != null)
+        {
+            _initialized = true;
+        }
     }
 
     private void InitializeDropdown()
