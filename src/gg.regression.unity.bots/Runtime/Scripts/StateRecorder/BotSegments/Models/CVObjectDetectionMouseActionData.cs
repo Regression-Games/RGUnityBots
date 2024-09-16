@@ -138,7 +138,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     data = screenshot
                                 },
                                 textQuery: textQuery,
-                                imageQuery: imageQuery,
+                                imageQuery: CVImageCriteriaEvaluator.GetImageData(imageQuery),
                                 withinRect: queryWithinRect
                             ),
                             // Register the abort action.

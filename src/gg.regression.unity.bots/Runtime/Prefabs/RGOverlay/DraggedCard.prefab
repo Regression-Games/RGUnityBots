@@ -215,7 +215,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 2
+  m_PixelsPerUnitMultiplier: 1.5
 --- !u!114 &4887653292590274915
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,7 +229,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   draggedCardName: Placeholder dragged card name
-  icon: {fileID: 21300000, guid: ac32a463b941b41fab54ea9dd8a1745f, type: 3}
+  draggedCardDescription: 
   iconPrefab: {fileID: 9081759233827119378}
   namePrefab: {fileID: 7153013761642342452}
 --- !u!114 &3635310732519825840
