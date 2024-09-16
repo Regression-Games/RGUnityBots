@@ -86,71 +86,74 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public static string GetImageData(string imageData)
         {
-            if (imageData.StartsWith("file://"))
+            if (!string.IsNullOrEmpty(imageData))
             {
-                try
+                if (imageData.StartsWith("file://"))
                 {
-                    var filePath = imageData.Substring(7);
-                    var fileData = File.ReadAllBytes(filePath);
-                    var extension = PictureHelper.TryGetExtension(fileData);
-                    if (extension != null)
+                    try
                     {
-                        switch(extension)
+                        var filePath = imageData.Substring(7);
+                        var fileData = File.ReadAllBytes(filePath);
+                        var extension = PictureHelper.TryGetExtension(fileData);
+                        if (extension != null)
                         {
-                            case "jpg":
-                                // keeps the original jpg lossless
-                                return Convert.ToBase64String(fileData);
-                                break;
-                            case "png":
-                                // this may be somewhat lossy in that it converts to JPG, but it should handle all supported image types for Texture2D
-                                var texture = CreateTextureFromJpgOrPngImageFileBytes(fileData);
-                                return Convert.ToBase64String(texture.EncodeToJPG(100));
-                                break;
-                            default:
-                                throw new Exception("Unsupported image type for file://.  Only JPG and PNG are supported by Unity ImageConversion.LoadImage (https://docs.unity3d.com/ScriptReference/ImageConversion.LoadImage.html).");
+                            switch (extension)
+                            {
+                                case "jpg":
+                                    // keeps the original jpg lossless
+                                    return Convert.ToBase64String(fileData);
+                                    break;
+                                case "png":
+                                    // this may be somewhat lossy in that it converts to JPG, but it should handle all supported image types for Texture2D
+                                    var texture = CreateTextureFromJpgOrPngImageFileBytes(fileData);
+                                    return Convert.ToBase64String(texture.EncodeToJPG(100));
+                                    break;
+                                default:
+                                    throw new Exception("Unsupported image type for file://.  Only JPG and PNG are supported by Unity ImageConversion.LoadImage (https://docs.unity3d.com/ScriptReference/ImageConversion.LoadImage.html).");
+                            }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"Error Loading CVImage imageData from file:// url - {imageData}", ex);
-                }
-            }
-
-            if (imageData.StartsWith("resource://"))
-            {
-                try
-                {
-                    var filePath = imageData.Substring(11);
-                    var index = filePath.LastIndexOf('.');
-                    if (index >= 0)
+                    catch (Exception ex)
                     {
-                        // remove trailing extension if provided (hint: they shouldn't provide this for resources
-                        filePath = filePath.Substring(0, index);
+                        throw new Exception($"Error Loading CVImage imageData from file:// url - {imageData}", ex);
                     }
-
-                    Texture2D texture;
-                    // this may be somewhat lossy in that it converts to JPG, even if the existing file was already jpg, but it should handle all supported image types for Texture2D
-                    var textAsset = Resources.Load<TextAsset>(filePath);
-                    if (textAsset != null)
-                    {
-                        var fileData = textAsset.bytes;
-                        texture = CreateTextureFromJpgOrPngImageFileBytes(fileData);
-                    }
-                    else
-                    {
-                        var fileTexture = Resources.Load<Texture2D>(filePath);
-                        // force ARGB32 so that EncodeToJPG works.
-                        texture = new Texture2D(fileTexture.width, fileTexture.height, TextureFormat.ARGB32, false);
-                        texture.SetPixels32(fileTexture.GetPixels32());
-                    }
-
-                    var textureJpgBytes = texture.EncodeToJPG(100);
-                    return Convert.ToBase64String(textureJpgBytes);
                 }
-                catch (Exception ex)
+
+                if (imageData.StartsWith("resource://"))
                 {
-                    throw new Exception($"Error Loading CVImage imageData from resource:// name - {imageData} - Resource was not a valid Texture2D or a .bytes TextAsset.  Check your path, import your JPG/PNG into your project as a READABLE Texture, or ensure that your raw JPG/PNG image is saved in your project Resource folder with a .bytes extension.", ex);
+                    try
+                    {
+                        var filePath = imageData.Substring(11);
+                        var index = filePath.LastIndexOf('.');
+                        if (index >= 0)
+                        {
+                            // remove trailing extension if provided (hint: they shouldn't provide this for resources
+                            filePath = filePath.Substring(0, index);
+                        }
+
+                        Texture2D texture;
+                        // this may be somewhat lossy in that it converts to JPG, even if the existing file was already jpg, but it should handle all supported image types for Texture2D
+                        var textAsset = Resources.Load<TextAsset>(filePath);
+                        if (textAsset != null)
+                        {
+                            var fileData = textAsset.bytes;
+                            texture = CreateTextureFromJpgOrPngImageFileBytes(fileData);
+                        }
+                        else
+                        {
+                            var fileTexture = Resources.Load<Texture2D>(filePath);
+                            // force ARGB32 so that EncodeToJPG works.
+                            texture = new Texture2D(fileTexture.width, fileTexture.height, TextureFormat.ARGB32, false);
+                            texture.SetPixels32(fileTexture.GetPixels32());
+                        }
+
+                        var textureJpgBytes = texture.EncodeToJPG(100);
+                        return Convert.ToBase64String(textureJpgBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"Error Loading CVImage imageData from resource:// name - {imageData} - Resource was not a valid Texture2D or a .bytes TextAsset.  Check your path, import your JPG/PNG into your project as a READABLE Texture, or ensure that your raw JPG/PNG image is saved in your project Resource folder with a .bytes extension.", ex);
+                    }
                 }
             }
 
