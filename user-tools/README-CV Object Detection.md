@@ -82,11 +82,11 @@ This approach is useful when you have an image of an asset, however the asset ca
             "description":"Checks for the presence of a tree.",
             "transient":true,
             "data":{
-                "imageData":"/9j/4AAQ...<rest of the base64 encoded image data>...VLj3ieS/9k=",
+                "imageQuery":"/9j/4AAQ...<rest of the base64 encoded image data>...VLj3ieS/9k=",
                 or
-                "imageData":"file://???/sample_images/tree.jpg",
+                "imageQuery":"file://???/sample_images/tree.jpg",
                 or  
-                "imageData":"resource://sample_images/tree.jpg",
+                "imageQuery":"resource://sample_images/tree.jpg",
                 or
                 "textQuery": "Tree",
 
@@ -117,11 +117,11 @@ This approach is useful when you have an image of an asset, however the asset ca
     "botAction":{    
         "type":"Mouse_ObjectDetection",
         "data": {
-            "imageData":"/9j/4AAQ...<rest of the base64 encoded image data>...VLj3ieS/9k=",
+            "imageQuery":"/9j/4AAQ...<rest of the base64 encoded image data>...VLj3ieS/9k=",
             or
-            "imageData":"file://???/sample_images/tree.jpg",
+            "imageQuery":"file://???/sample_images/tree.jpg",
             or  
-            "imageData":"resource://sample_images/tree",
+            "imageQuery":"resource://sample_images/tree",
             or
             "textQuery": "Tree",
 
