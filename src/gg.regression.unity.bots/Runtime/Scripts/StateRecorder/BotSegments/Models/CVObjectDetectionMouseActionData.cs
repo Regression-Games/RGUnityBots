@@ -56,7 +56,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public List<CVMouseActionDetails> actions;
 
         /**
-         * Optional threshold to accept a returned value from the owl model.
+         * Optional threshold to accept a returned match from the object detection model. Returned matches with a confidence score less than this threshold are ignored.
          */
         public float? threshold;
 

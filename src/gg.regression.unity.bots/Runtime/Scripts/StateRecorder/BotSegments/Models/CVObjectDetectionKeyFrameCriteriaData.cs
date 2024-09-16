@@ -31,7 +31,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public CVWithinRect withinRect;
 
         /// <summary>
-        /// The threshold to accept a returned value from the owl model.
+        /// The threshold to accept a returned match from the object detection model. Returned matches with a confidence score less than this threshold are ignored.
         /// </summary>
         public float? threshold;
 
@@ -41,7 +41,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /// <param name="textQuery">The text query used for object detection.</param>
         /// <param name="imageQuery">Currently not supported. The image query used for object detection.</param>
         /// <param name="withinRect">Optional rectangle defining the region of interest within the image.</param>
-        /// <param name="threshold">Optional threshold to accept a returned value from the owl model.</param>
+        /// <param name="threshold">Optional threshold to accept a returned match from the object detection model. Returned matches with a confidence score less than this threshold are ignored.</param>
         public CVObjectDetectionKeyFrameCriteriaData(string textQuery = null, string imageQuery = null, CVWithinRect withinRect = null, float? threshold = null)
         {
             
