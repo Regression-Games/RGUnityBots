@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -8,7 +7,8 @@ namespace RegressionGames
 {
     /**
      * <summary>
-     * 
+     * A simple tooltip that adds listeners for PointerEnter/PointerExit events on the `target`.
+     * When moused over, the `target` will display the tooltip
      * </summary>
      */
     public class RGTooltip : MonoBehaviour
@@ -35,6 +35,8 @@ namespace RegressionGames
                 Debug.LogError("RGTooltip is missing its contentPrefab");
             }
 
+            // Add OnPointerEnter + OnPointerExit events to the target. This will show and hide the
+            // tooltip's contents respectively
             if (target != null)
             {
                 var eventTrigger = target.AddComponent<EventTrigger>();
@@ -56,16 +58,28 @@ namespace RegressionGames
 
             gameObject.SetActive(isEnabled);
 
+            // the tooltip is hidden by default
             contentPrefab.CrossFadeAlpha(0, 0, false);
             backgroundPrefab.CrossFadeAlpha(0, 0, false);
         }
 
+        /**
+         * <summary>
+         * Enable the tooltip to allow it to show and hide its contents
+         * </summary>
+         * <param name="newEnabled">The new enabled state</param>
+         */
         public void SetEnabled(bool newEnabled)
         {
             isEnabled = newEnabled;
             gameObject.SetActive(isEnabled);
         }
 
+        /**
+         * <summary>
+         * If this tooltip is enabled, show its contents
+         * </summary>
+         */
         public void OnShow()
         {
             if (isEnabled)
@@ -75,6 +89,11 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * If this tooltip is enabled, hide its contents
+         * </summary>
+         */
         public void OnHide()
         {
             if (isEnabled)
