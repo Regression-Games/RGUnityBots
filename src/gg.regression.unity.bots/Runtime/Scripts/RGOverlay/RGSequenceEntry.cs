@@ -1,4 +1,5 @@
 using System;
+using RegressionGames;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -50,11 +51,23 @@ public class RGSequenceEntry : MonoBehaviour
         
         if (deleteButton != null)
         {
-            #if UNITY_EDITOR
+            /*
+             * Sequences cannot be deleted in runtime builds, as we cannot delete resources
+             * that have been loaded using Resources.Load()
+             */
+#if UNITY_EDITOR
                 deleteButton.onClick.AddListener(OnDelete);
-            #else
+                
+                // hide the delete button tooltip. We CAN delete
+                // Sequences while playing in the editor
+                var tooltip = GetComponentInChildren<RGTooltip>();
+                if (tooltip != null)
+                {
+                    tooltip.SetEnabled(false);
+                }
+#else
                 deleteButton.interactable = false;
-            #endif
+#endif
         }
     }
 
