@@ -177,6 +177,7 @@ namespace RegressionGames
                 _sequenceEditorScript.SetCreateSequenceButtonEnabled(false);
             }
             
+            childToRemove.transform.parent = null;
             Destroy(childToRemove);
         }
 
@@ -205,6 +206,16 @@ namespace RegressionGames
         public bool IsEmpty()
         {
             return _emptyStatePrefabInstance != null;
+        }
+
+        /**
+         * <summary>
+         * If a valid member of the `droppables` field is currently being dragged within this drop zone
+         * </summary>
+         */
+        public bool HasValidDroppable()
+        {
+            return _currentDraggable != null;
         }
 
         /**
