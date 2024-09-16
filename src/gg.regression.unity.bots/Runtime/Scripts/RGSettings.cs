@@ -43,7 +43,7 @@ namespace RegressionGames
 
         // AI Service Settings - Use "http://127.0.0.1:18888/" for local aiservice dev testing
         // NOTE: By default this is left as NULL and tracks rgHostAddress value unless overridden
-        [SerializeField] private string aiServiceHostAddress;
+        [SerializeField] private string aiServiceHostAddress = "http://127.0.0.1:18888/";
 
         /*
          * This is setup to be safely callable on the non-main thread.

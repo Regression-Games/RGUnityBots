@@ -102,12 +102,10 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 case "jpg":
                                     // keeps the original jpg lossless
                                     return Convert.ToBase64String(fileData);
-                                    break;
                                 case "png":
                                     // this may be somewhat lossy in that it converts to JPG, but it should handle all supported image types for Texture2D
                                     var texture = CreateTextureFromJpgOrPngImageFileBytes(fileData);
                                     return Convert.ToBase64String(texture.EncodeToJPG(100));
-                                    break;
                                 default:
                                     throw new Exception("Unsupported image type for file://.  Only JPG and PNG are supported by Unity ImageConversion.LoadImage (https://docs.unity3d.com/ScriptReference/ImageConversion.LoadImage.html).");
                             }

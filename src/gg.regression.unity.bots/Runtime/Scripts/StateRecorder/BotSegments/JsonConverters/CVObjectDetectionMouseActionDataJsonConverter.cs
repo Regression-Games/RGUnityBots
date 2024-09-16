@@ -24,6 +24,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                 actionModel.imageQuery = jObject.GetValue("imageQuery")?.ToObject<string>(serializer);
                 actionModel.textQuery = jObject.GetValue("textQuery")?.ToObject<string>(serializer);
                 actionModel.withinRect = jObject.GetValue("withinRect")?.ToObject<CVWithinRect>(serializer);
+                actionModel.threshold = jObject.GetValue("threshold")?.ToObject<float?>(serializer);
                 actionModel.actions = jObject.GetValue("actions").ToObject<List<CVMouseActionDetails>>(serializer);
                 return actionModel;
             }
