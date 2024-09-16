@@ -34,16 +34,23 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.AIService
         /// </summary>
         public int index;
 
+        /// <summary>
+        /// Optional threshold to accept a returned value from the owl model.
+        /// </summary>
+        public float? threshold;
+
         public CVObjectDetectionRequest(CVImageBinaryData screenshot,
                                         [CanBeNull] string textQuery,
                                         [CanBeNull] string imageQuery,
                                         RectInt? withinRect,
+                                        float? threshold = null,
                                         int index = 0)
         {
             this.screenshot = screenshot;
             this.textQuery = textQuery;
             this.imageQuery = imageQuery;
             this.withinRect = withinRect;
+            this.threshold = threshold;
             this.index = index;
 
             if (textQuery != null && imageQuery != null)
@@ -77,6 +84,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.AIService
             StringJsonConverter.WriteToStringBuilder(stringBuilder, imageQuery);
             stringBuilder.Append(",\"withinRect\":");
             RectIntJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
+            stringBuilder.Append(",\"threshold\":");
+            FloatJsonConverter.WriteToStringBuilderNullable(stringBuilder, threshold);
             stringBuilder.Append(",\"index\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, index);
             stringBuilder.Append("}");

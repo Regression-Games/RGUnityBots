@@ -80,7 +80,13 @@
          */
         public const int VERSION_17 = 17;
 
+        /*
+         * <summary> Added CV Object Detection threshold. </summary>
+         */
+        public const int VERSION_18 = 18;
+
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_17;
+        public const int CURRENT_VERSION = VERSION_18;
+
     }
 }

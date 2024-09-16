@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVObjectDetectionMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = SdkApiVersion.VERSION_17;
+        public int apiVersion = SdkApiVersion.VERSION_18;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.Mouse_ObjectDetection;
@@ -54,6 +54,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * Mouse down in one bot segment, then mouse up as a separate bot segment.
          */
         public List<CVMouseActionDetails> actions;
+
+        /**
+         * Optional threshold to accept a returned value from the owl model.
+         */
+        public float? threshold;
 
         private bool _isStopped;
 
@@ -139,7 +144,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                 },
                                 textQuery: textQuery,
                                 imageQuery: imageQuery,
-                                withinRect: queryWithinRect
+                                withinRect: queryWithinRect,
+                                threshold: threshold
                             ),
                             // Register the abort action.
                             abortRegistrationHook: action => OnAbort(segmentNumber, action),
@@ -343,6 +349,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, textQuery);
             stringBuilder.Append(",\"withinRect\":");
             CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
+            stringBuilder.Append(",\"threshold\":");
+            FloatJsonConverter.WriteToStringBuilderNullable(stringBuilder, threshold);
             stringBuilder.Append(",\"actions\":[");
             var actionsCount = actions.Count;
             for (var i = 0; i < actionsCount; i++)

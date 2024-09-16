@@ -126,7 +126,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             // If a request is in progress, we'll wait for the results.
             else
             {
-                resultList.Add("Awaiting CV Image evaluation results ...");
+                resultList.Add("Awaiting CV Object Detection evaluation results ...");
             }
 
             lock (_requestTracker)
@@ -210,7 +210,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
             else
             {
-                resultList.Add("Awaiting CV Image evaluation results ...");
+                resultList.Add("Awaiting CV Object Detection evaluation results ...");
             }
             return resultList;
         }
@@ -330,6 +330,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             textQuery: textQuery,
                             imageQuery: imageQuery,
                             withinRect: withinRect,
+                            threshold: criteriaData.threshold,
                             index: index
                         ),
                         // Cancel ongoing request in a thread safe manner.
@@ -342,7 +343,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         onFailure: () => OnFailure(segmentNumber, index)
                     );
                     RGDebug.LogVerbose($"CVObjectDetectionEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - SENT");
-                    resultList.Add("Awaiting CV Image evaluation results ...");
+                    resultList.Add("Awaiting CV Object Detection evaluation results ...");
                 }
             }
             else

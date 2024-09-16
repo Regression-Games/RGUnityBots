@@ -11,7 +11,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVObjectDetectionKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_16;
+        public int apiVersion = SdkApiVersion.VERSION_18;
 
         /// <summary>
         /// The text query used for object detection.
@@ -31,12 +31,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public CVWithinRect withinRect;
 
         /// <summary>
+        /// The threshold to accept a returned value from the owl model.
+        /// </summary>
+        public float? threshold;
+
+        /// <summary>
         /// Constructor for CVObjectDetectionKeyFrameCriteriaData.
         /// </summary>
         /// <param name="textQuery">The text query used for object detection.</param>
         /// <param name="imageQuery">Currently not supported. The image query used for object detection.</param>
         /// <param name="withinRect">Optional rectangle defining the region of interest within the image.</param>
-        public CVObjectDetectionKeyFrameCriteriaData(string textQuery = null, string imageQuery = null, CVWithinRect withinRect = null)
+        /// <param name="threshold">Optional threshold to accept a returned value from the owl model.</param>
+        public CVObjectDetectionKeyFrameCriteriaData(string textQuery = null, string imageQuery = null, CVWithinRect withinRect = null, float? threshold = null)
         {
             
             if (textQuery != null && imageQuery != null)
@@ -53,6 +59,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             this.textQuery = textQuery;
             this.imageQuery = imageQuery;
             this.withinRect = withinRect;
+            this.threshold = threshold;
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
@@ -63,6 +70,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"withinRect\":");
             CVWithinRectJsonConverter.WriteToStringBuilderNullable(stringBuilder, withinRect);
+            stringBuilder.Append(",\"threshold\":");
+            FloatJsonConverter.WriteToStringBuilderNullable(stringBuilder, threshold);
             stringBuilder.Append("}");
         }
 
