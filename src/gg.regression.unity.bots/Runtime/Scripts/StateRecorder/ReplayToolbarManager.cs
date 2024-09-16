@@ -31,6 +31,7 @@ namespace RegressionGames.StateRecorder
         public BotSegmentsPlaybackController replayDataController;
 
         private bool _recording;
+        private string _selectedReplayFilePath;
 
         // Start is called before the first frame update
         void Start()
@@ -89,27 +90,48 @@ namespace RegressionGames.StateRecorder
 
             if (FileBrowser.Success)
             {
-                OnFilesSelected(FileBrowser.Result); // FileBrowser.Result is null, if FileBrowser.Success is false
+                // FileBrowser.Result is null, if FileBrowser.Success is false
+                // Get the file path of the first selected file
+                _selectedReplayFilePath = FileBrowser.Result[0];
+                RefreshSelectedFile();
             }
         }
-
+        
         private volatile bool _parsingZipFile;
 
-        void OnFilesSelected(string[] filePaths)
+        void RefreshSelectedFile(Action onFileLoadComplete = null)
         {
-            // Get the file path of the first selected file
-            var filePath = filePaths[0];
-
             _parsingZipFile = true;
             recordButton.SetActive(false);
             chooseReplayButton.SetActive(false);
             fileOpenIndicator.Normal();
 
-            // do this on background thread
-            Task.Run(() => ProcessDataContainerZipAndSetup(filePath));
+            // do this on background thread then return to the main thread for continuation
+            Task.Run(() => ProcessDataContainerZipAndSetup(_selectedReplayFilePath)).ContinueWith(_ =>
+            {
+                if (_playbackContainer != null)
+                {
+                    // setup the new replay data
+                    replayDataController.SetDataContainer(_playbackContainer);
+                    _playbackContainer = null;
+                    SetDefaultButtonStates();
+                    // set button states
+                    chooseReplayButton.SetActive(false);
+                    playButton.SetActive(true);
+                    loopButton.SetActive(true);
+                    stopButton.SetActive(true);
+                    recordButton.SetActive(false);
+                    
+                    // if we have something to do after loading then do that here
+                    onFileLoadComplete?.Invoke();
+                }
+                else
+                {
+                    // failed to load
+                    SetDefaultButtonStates();
+                }
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
-
-        private bool _justLoaded;
 
         private void ProcessDataContainerZipAndSetup(String filePath)
         {
@@ -117,7 +139,7 @@ namespace RegressionGames.StateRecorder
             {
                 // do this on background thread
                 var dataContainer = new BotSegmentsPlaybackContainer(BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(filePath, out var sessionId), sessionId);
-                _loadedNextUpdate = dataContainer;
+                _playbackContainer = dataContainer;
             }
             catch (Exception e)
             {
@@ -127,44 +149,18 @@ namespace RegressionGames.StateRecorder
             {
                 fileOpenIndicator.Stop();
                 _parsingZipFile = false;
-                _justLoaded = true;
             }
         }
 
-        private volatile BotSegmentsPlaybackContainer _loadedNextUpdate;
-
-        private void Update()
-        {
-            if (_justLoaded)
-            {
-                _justLoaded = false;
-                if (_loadedNextUpdate != null)
-                {
-                    // setup the new replay data
-                    replayDataController.SetDataContainer(_loadedNextUpdate);
-                    _loadedNextUpdate = null;
-                    SetDefaultButtonStates();
-                    // set button states
-                    chooseReplayButton.SetActive(false);
-                    playButton.SetActive(true);
-                    loopButton.SetActive(true);
-                    stopButton.SetActive(true);
-                    recordButton.SetActive(false);
-                }
-                else
-                {
-                    // failed to load
-                    SetDefaultButtonStates();
-                }
-
-            }
-        }
+        private volatile BotSegmentsPlaybackContainer _playbackContainer;
 
         public void PlayReplay()
         {
-            SetInUseButtonStates();
-
-            replayDataController.Play();
+            RefreshSelectedFile(() =>
+            {
+                SetInUseButtonStates();
+                replayDataController.Play();
+            });
         }
 
         public void LoopReplay()
