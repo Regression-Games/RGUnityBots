@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments.Models;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -234,111 +235,88 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             botAction.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
         }
-        
+
         /**
          * <summary>
          * Loads all the Segments that exist in this project (for use in the Editor or in a build)
          * </summary>
          */
-        public static List<BotSequenceEntry> LoadAllSegments()
+        public static Dictionary<string, BotSequenceEntry> LoadAllSegments()
         {
-            var segments = new List<BotSequenceEntry>();
-            
+            var segments = new Dictionary<string,BotSequenceEntry>();
+
 #if UNITY_EDITOR
-            const string sequencePath = "Assets/RegressionGames/Resources/BotSegments";
-            if (!Directory.Exists(sequencePath))
+            const string segmentPath = "Assets/RegressionGames/Resources/BotSegments";
+            if (!Directory.Exists(segmentPath))
             {
-                return new List<BotSequenceEntry>();
+                return segments;
             }
 
-            segments = LoadSegmentsInDirectory(sequencePath);
+            segments = LoadSegmentsInDirectory(segmentPath);
+
 #else
             // 1. check the persistentDataPath for segments
             var persistentDataPath = Application.persistentDataPath + "/BotSegments";
             if (Directory.Exists(persistentDataPath))
             {
-                segments = LoadSegmentsInDirectoryForRuntime(persistentDataPath);
+                segments = LoadSegmentsInDirectory(persistentDataPath);
             }
-        
-            // 2. load Segments from Resources, and ensure that no Segments have duplicate names
-            const string runtimePath = "BotSegments";
-            segments = segments.Concat(LoadSegmentsInDirectoryForRuntime(runtimePath)).ToList();
+
+            // 2. load Segments from Resources, while skipping any that have already been fetched from the
+            //    persistentDataPath. We will compare Segments by their filename (without extension), and by the actual
+            //    Segment name
+            var rgBotSequencesAsset = Resources.Load<IRGBotSequences>("RGBotSequences");
+            foreach (var resourceFilename in rgBotSequencesAsset.segments)
+            {
+                try
+                {
+                    if (!segments.ContainsKey(resourceFilename))
+                    {
+                        var sequenceInfo = Resources.Load<TextAsset>(resourceFilename);
+                        var sequenceEntry = ParseSegment(sequenceInfo.text ?? "", resourceFilename);
+
+                        // add the new sequence if its filename doesn't already exist
+                        segments.Add(resourceFilename, sequenceEntry);
+                    }
+                }
+                catch (Exception e)
+                {
+                    throw new Exception($"Exception reading Sequence json file from resource path: {resourceFilename}", e);
+                }
+            }
 #endif
 
             return segments;
         }
-        
+
         /**
          * <summary>
-         * Recursively look through directories for Segment files, and load them
+         * Recursively look through directories for Segment and segment list files, and load them
          * </summary>
          * <param name="path">Directory to search for Segments</param>
          */
-        private static List<BotSequenceEntry> LoadSegmentsInDirectory(string path)
+        private static Dictionary<string, BotSequenceEntry> LoadSegmentsInDirectory(string path)
         {
-            var results = new List<BotSequenceEntry>();
-            var directories = Directory.EnumerateDirectories(path);
-            foreach (var directory in directories)
+            var results = new Dictionary<string, BotSequenceEntry>();
+            var files = Directory.GetFiles(path, "*.json", SearchOption.AllDirectories).Select(s=> s.Replace('\\','/'));
+            foreach (var fileName in files)
             {
-                var files = Directory.GetFiles(directory, "*.json");
-                foreach (var fileName in files)
+                using var sr = new StreamReader(File.OpenRead(fileName));
+                var json = sr.ReadToEnd();
+                var resource = BotSequence.LoadJsonResource(json);
+
+                if (!results.ContainsKey(resource.Item2))
                 {
-                    using var sr = new StreamReader(File.OpenRead(fileName));
-                    var result = (fileName, sr.ReadToEnd());
-                    var segment = ParseSegment(result.Item2, fileName);
-                    if (segment != null)
-                    {
-                        results.Add(segment);
-                    }   
+                    // parse the result as either a segment or segment list
+                    results[resource.Item2] = ParseSegment(resource.Item3, resource.Item2);
                 }
 
-                // recurse into the next level of directories
-                results = results.Concat(
-                    LoadSegmentsInDirectory(directory)
-                ).ToList();
             }
 
             return results;
         }
-        
-        /**
-         * <summary>
-         * Search for Segment files and load them (in a build of the game)
-         * </summary>
-         * <param name="path">Directory to search for Segments</param>
-         */
-        private static List<BotSequenceEntry> LoadSegmentsInDirectoryForRuntime(string path)
-        {
-            var results = new List<BotSequenceEntry>();
-            var jsons = Resources.LoadAll(path, typeof(TextAsset));
-            foreach (var jsonObject in jsons)
-            {
-                try
-                {
-                    var json = (jsonObject as TextAsset)?.text ?? "";
-                    var segment = ParseSegment(json, jsonObject.name);
-                    if (segment == null)
-                    {
-                        continue;
-                    }
 
-                    // don't add segments with duplicate names
-                    if (results.Any(s => s.entryName == segment.entryName))
-                    {
-                        continue;
-                    }
-                    
-                    results.Add(segment);
-                }
-                catch (Exception e)
-                {
-                    throw new Exception($"Exception reading a Segment json file from resource path: {path}", e);
-                }
-            }
 
-            return results;
-        }
-        
         /**
          * <summary>
          * Parses a json string as either a Segment or SegmentList
@@ -368,7 +346,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         );
                         return null;
                     }
-                    
+
                     entry.description = segmentList.description;
                     entry.entryName = segmentList.name;
                     entry.type = BotSequenceEntryType.SegmentList;
@@ -385,7 +363,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                             );
                             return null;
                         }
-                        
+
                         entry.description = segment.description;
                         entry.entryName = segment.name;
                         entry.type = BotSequenceEntryType.Segment;

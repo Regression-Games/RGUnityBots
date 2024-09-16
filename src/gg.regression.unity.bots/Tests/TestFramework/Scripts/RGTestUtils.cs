@@ -127,7 +127,7 @@ namespace RegressionGames
 
             var botSequence = BotSequence.LoadSequenceJsonFromPath(sequencePath);
 
-            botSequence.Play();
+            botSequence.Item3.Play();
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
@@ -167,7 +167,7 @@ namespace RegressionGames
             var placeholder = textObject.AddComponent<TextPlaceholder>();
             return placeholder;
         }
-        
+
         // <summary>
         // Implements the TMP_Text abstract class, in order to act as a placeholder for TMPro inputs
         // </summary>

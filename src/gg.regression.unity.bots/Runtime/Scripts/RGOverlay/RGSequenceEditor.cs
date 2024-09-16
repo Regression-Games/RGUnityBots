@@ -11,9 +11,9 @@ namespace RegressionGames
     /**
      * <summary>
      * Provides a method of constructing, or editing, Sequences by altering the Segments comprising the Sequence. We
-     * can also give the Sequence a name and description 
+     * can also give the Sequence a name and description
      * </summary>
-     * 
+     *
      */
     public class RGSequenceEditor : MonoBehaviour
     {
@@ -22,13 +22,13 @@ namespace RegressionGames
         public TMP_InputField NameInput;
 
         public TMP_InputField DescriptionInput;
-        
+
         public TMP_InputField SearchInput;
-        
+
         public GameObject AvailableSegmentsList;
 
         public GameObject CreateSequenceButton;
-        
+
         public GameObject DropZonePrefab;
 
         public GameObject SegmentCardPrefab;
@@ -38,7 +38,7 @@ namespace RegressionGames
         public Sprite SegmentListIcon;
 
         public RGDropZone _dropZone;
-        
+
         private IList<BotSequenceEntry> _segmentEntries;
 
         private IList<BotSequenceEntry> _filteredSegmentEntries;
@@ -58,7 +58,7 @@ namespace RegressionGames
             {
                 SearchInput.onValueChanged.AddListener(OnSearchInputChange);
             }
-            
+
             if (NameInput == null)
             {
                 Debug.LogError("RGSequenceEditor is missing its NameInput");
@@ -72,7 +72,7 @@ namespace RegressionGames
             {
                 Debug.LogError("RGSequenceEditor is missing its DescriptionInput");
             }
-            
+
             if (DropZonePrefab == null)
             {
                 Debug.LogError("RGSequenceEditor is missing its DropZone");
@@ -83,10 +83,10 @@ namespace RegressionGames
             }
 
             if (SegmentCardPrefab == null)
-            {   
+            {
                 Debug.LogError("RGSequenceEditor is missing its SegmentCardPrefab");
             }
-            
+
             // if the Available Segment List cannot be found, we will try to find it somewhere in the scene
             if (AvailableSegmentsList == null)
             {
@@ -106,14 +106,14 @@ namespace RegressionGames
                     Debug.LogError("RGSequenceEditor is missing its AvailableSegmentsList, and could not find one in the scene");
                 }
             }
-            
+
             CurrentSequence = new BotSequence();
-            
+
             // reset the editor to its default values
             ResetEditor();
-            
-            // TODO ensure we can load segments when editing an existing Sequence
-            _segmentEntries = BotSegment.LoadAllSegments();
+
+            // TODO: ensure we can load segments when editing an existing Sequence
+            _segmentEntries = BotSegment.LoadAllSegments().Values.ToList();
             CreateAvailableSegments(_segmentEntries);
         }
 
@@ -122,13 +122,13 @@ namespace RegressionGames
          * Create UI components for each Segment in the Available Segments List
          * </summary>
          * <param name="segments">
-         * Bot Sequence Entries to turn into UI components 
+         * Bot Sequence Entries to turn into UI components
          * </param>
          */
         public void CreateAvailableSegments(IList<BotSequenceEntry> segments)
         {
             ClearAvailableSegments();
-            
+
             foreach (var segment in segments)
             {
                 var prefab = Instantiate(SegmentCardPrefab, AvailableSegmentsList.transform, false);
@@ -175,7 +175,7 @@ namespace RegressionGames
         public void SaveSequence()
         {
             var addedSegments = _dropZone.GetChildren();
-            
+
             foreach (var segment in addedSegments)
             {
                 var path = segment.payload["path"];
@@ -184,7 +184,7 @@ namespace RegressionGames
                 {
                     continue;
                 }
-                
+
                 if (type == BotSequenceEntryType.Segment)
                 {
                     CurrentSequence.AddBotSegmentPath(path);
@@ -220,9 +220,9 @@ namespace RegressionGames
             {
                 DescriptionInput.text = string.Empty;
             }
-            
+
             ClearAvailableSegments();
-            
+
             _dropZone.ClearChildren();
 
             SetCreateSequenceButtonEnabled(false);
@@ -236,7 +236,7 @@ namespace RegressionGames
         public void ReloadAvailableSegments()
         {
             SearchInput.text = string.Empty;
-            _segmentEntries = BotSegment.LoadAllSegments();
+            _segmentEntries = BotSegment.LoadAllSegments().Values.ToList();
             CreateAvailableSegments(_segmentEntries);
         }
 
@@ -297,10 +297,10 @@ namespace RegressionGames
                         // don't adjust anything, the requested change is redundant
                         return;
                     }
-                    
+
                     button.interactable = isEnabled;
                 }
-                
+
                 var imageChildren = CreateSequenceButton.GetComponentsInChildren<Image>();
                 foreach (var child in imageChildren)
                 {
@@ -308,7 +308,7 @@ namespace RegressionGames
                     color.a = alpha;
                     child.color = color;
                 }
-                
+
                 var textChildren = CreateSequenceButton.GetComponentsInChildren<TMP_Text>();
                 foreach (var child in textChildren)
                 {

@@ -38,14 +38,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public string description;
 
         /**
-         * <summary>LastModified is the date that the sequence file was last altered</summary>
-         */
-        public DateTime lastModified;
-
-        /**
          * <summary>Loads a Json sequence file from a json path.  This API expects a relative path</summary>
+         * <returns>(filePath(null if resource / not-writeable), resourcePath, BotSequence)</returns>
          */
-        public static BotSequence LoadSequenceJsonFromPath(string path)
+        public static (string, string, BotSequence) LoadSequenceJsonFromPath(string path)
         {
             if (path.StartsWith('/') || path.StartsWith('\\'))
             {
@@ -54,14 +50,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             path = path.Replace('\\', '/');
 
-            (string,string) sequenceJson;
+            (string, string, string) sequenceJson;
             try
             {
                 sequenceJson = LoadJsonResource(path);
             }
             catch (Exception)
             {
-                if (path.StartsWith("Assets/"))
+                if (path.Contains("Assets/"))
                 {
                     // they were already explicit and it wasn't found
                     throw;
@@ -70,7 +66,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            return JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item2);
+            return (sequenceJson.Item1, sequenceJson.Item2, JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3));
         }
 
         public string ToJsonString()
@@ -134,36 +130,49 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         /**
          * <summary>Load the json resource at the specified path.  If .json is not on this path it will be auto appended.</summary>
-         * <returns>A (filename, contentString) pair</returns>
+         * <returns>A (FilePath (null - if loaded as resource), resourcePath, contentString) pair</returns>
          */
-        private static (string, string) LoadJsonResource(string path)
+        public static (string, string, string) LoadJsonResource(string path)
         {
-            (string, string)? result = null;
+            (string, string, string)? result = null;
 
-            if (!path.EndsWith(".json"))
+            var resourcePath = path;
+            if (resourcePath.Contains("Resources/"))
             {
-                path += ".json";
+                resourcePath = resourcePath.Substring(resourcePath.LastIndexOf("Resources/") + "Resources/".Length);
             }
+
+            var lastIndex = resourcePath.LastIndexOf(".json");
+            if (lastIndex >=0)
+            {
+                resourcePath = resourcePath.Substring(0, lastIndex);
+            }
+
             // document ..
 #if UNITY_EDITOR
-            // #if editor .. load and save files directly from the resources folder
-            using var sr = new StreamReader(File.OpenRead(path));
-            result = (path,sr.ReadToEnd());
+            // #if editor .. load and save files directly from the resources folder, we need the extension on the file
+            var editorFilePath = path;
+            if (!editorFilePath.EndsWith(".json"))
+            {
+                editorFilePath += ".json";
+            }
+            using var sr = new StreamReader(File.OpenRead(editorFilePath));
+            result = (editorFilePath, resourcePath, sr.ReadToEnd());
 #else
             // #if runtime .. load files from either resources, OR .. persistentDataPath.. preferring persistentDataPath as an 'override' to resources
-            var runtimePath = path;
-            // get only the part AFTER Resources in the path
-            if (runtimePath.Contains("Resources/"))
-            {
-                runtimePath = runtimePath.Substring(runtimePath.LastIndexOf("Resources/") + "Resources/".Length);
-            }
+            var runtimePath = resourcePath;
 
             try
             {
+                // for override we need the full path with extension
+                if (!runtimePath.EndsWith(".json"))
+                {
+                    runtimePath += ".json";
+                }
                 if (File.Exists(Application.persistentDataPath + "/" + runtimePath))
                 {
                     using var fr = new StreamReader(File.OpenRead(Application.persistentDataPath + "/" + runtimePath));
-                    result = (runtimePath, fr.ReadToEnd());
+                    result = (Application.persistentDataPath + "/" + runtimePath, resourcePath, fr.ReadToEnd());
                 }
             }
             catch (Exception e)
@@ -176,8 +185,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (!result.HasValue)
                 {
                     // load from resources asset in the build
-                    var json = Resources.Load<TextAsset>(runtimePath);
-                    result = (runtimePath, json.text);
+                    var json = Resources.Load<TextAsset>(resourcePath);
+                    result = (null, resourcePath, json.text);
                 }
             }
             catch (Exception e)
@@ -194,79 +203,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return result.Value;
         }
 
-        /**
-         * <returns>A List of (filename, contentString) pairs.</returns>
-         */
-        private static List<(string, string)> LoadJsonResourcesFromDirectory(string path)
-        {
-            List<(string, string)> results = new();
-            // document ..
-#if UNITY_EDITOR
-
-            // #if editor .. load and save files directly from the resources folder
-            var filesInDirectory = Directory.GetFiles(path, "*.json", SearchOption.TopDirectoryOnly);
-
-            IOrderedEnumerable<string> entries = BotSegmentDirectoryParser.OrderJsonFiles(filesInDirectory);
-
-            foreach (var entry in entries)
-            {
-                using var sr = new StreamReader(File.OpenRead(entry));
-                results.Add((entry,sr.ReadToEnd()));
-            }
-#else
-            // #if runtime .. load files from either resources, OR .. persistentDataPath.. preferring persistentDataPath as an 'override' to resources
-
-            var runtimePath = path;
-            // get only the part AFTER Resources in the path
-            if (runtimePath.Contains("Resources/"))
-            {
-                runtimePath = runtimePath.Substring(runtimePath.LastIndexOf("Resources/") + "Resources/".Length);
-            }
-
-            try
-            {
-                var filesInDirectory = Directory.GetFiles(Application.persistentDataPath + "/" + runtimePath, "*.json", SearchOption.TopDirectoryOnly);
-
-                IOrderedEnumerable<string> entries = BotSegmentDirectoryParser.OrderJsonFiles(filesInDirectory);
-
-                foreach (var entry in entries)
-                {
-                    using var sr = new StreamReader(File.OpenRead(entry));
-                    results.Add((entry,sr.ReadToEnd()));
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Exception reading json files from directory: {Application.persistentDataPath + "/" + runtimePath}", e);
-            }
-
-            try
-            {
-                if (results.Count == 0)
-                {
-                    // load from resources asset in the build
-                    //TODO: Find a way to sort these based on their path name; thanks a lot Unity for not easily exposing this
-                    var jsons = Resources.LoadAll(runtimePath, typeof(TextAsset));
-                    foreach (var jsonObject in jsons)
-                    {
-                        var json = (jsonObject as TextAsset).text;
-                        results.Add(("TODO: Find Resource Name", json));
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Exception reading json files from resource path: {runtimePath}", e);
-            }
-#endif
-
-            if (results.Count == 0)
-            {
-                throw new Exception($"Error loading json resources from path: {path}.  Must include at least 1 json.  Ensure you are loading a valid json directory path.");
-            }
-
-            return results;
-        }
 
         private void InitializeBotSequence()
         {
@@ -349,7 +285,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             try
             {
-                (string,string) jsonFile;
+                (string, string, string) jsonFile;
                 try
                 {
                     jsonFile = LoadJsonResource(path);
@@ -365,7 +301,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     jsonFile = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
                 }
 
-                var segment = JsonConvert.DeserializeObject<BotSegmentList>(jsonFile.Item2);
+                var segment = JsonConvert.DeserializeObject<BotSegmentList>(jsonFile.Item3);
                 if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
                     throw new Exception($"Bot segment list file contains a segment which requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
@@ -373,7 +309,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 if (string.IsNullOrEmpty(segment.name))
                 {
-                    segment.name = jsonFile.Item1;
+                    segment.name = jsonFile.Item2;
                 }
 
                 return segment;
@@ -430,7 +366,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             try
             {
 
-                (string,string) jsonFile;
+                (string,string,string) jsonFile;
                 try
                 {
                     jsonFile = LoadJsonResource(path);
@@ -446,84 +382,23 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     jsonFile = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
                 }
 
-                var segment = JsonConvert.DeserializeObject<BotSegment>(jsonFile.Item2);
+                var segment = JsonConvert.DeserializeObject<BotSegment>(jsonFile.Item3);
                 if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
                     throw new Exception($"Bot segment file requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
                 }
+
+                if (string.IsNullOrEmpty(segment.name))
+                {
+                    segment.name = jsonFile.Item2;
+                }
+
                return new BotSegmentList(path, new List<BotSegment> {segment});
             }
             catch (Exception e)
             {
                 throw new Exception($"Exception while parsing bot segment from resource path: {path}", e);
             }
-        }
-
-        /**
-         * <summary>
-         * Adds all segments from a folder path to this sequence.  This assumes that the path is a Unity Resource path to a folder containing bot segment json files.
-         * If all files in the directory have numeric file names, then they will be ordered numerically.  Otherwise the files will be ordered lexicographically.
-         * This API will only load .json files from the directory that are parsable as a BotSegment.
-         * NOTE: This API imports the files in the directory as an immutable BotSegmentList.
-         * </summary>
-         * <exception>If any of the .json files in the directory are NOT parsable as a BotSegment, this API will throw an exception.</exception>
-         */
-        private void AddBotSegmentsFromFolderAsBotSegmentList(string path)
-        {
-            //TODO: Future ... We haven't found a way to get the resource names for the path in `LoadJsonResourcesFromDirectory` and thus cannot reliably order them.  Until we can, this API is disabled
-        }
-
-        // FUTURE: Unused for now, but used during parsing a directory listing
-        private static BotSegmentList ParseDirectoryBotSegmentJsons(List<(string,string)> jsons, out string sessionId)
-        {
-            BotSegmentList result = new BotSegmentList();
-            List<BotSegment> resultSegments = new();
-
-            sessionId = null;
-            var versionMismatch = -1;
-            string badSegmentPath = null;
-            try
-            {
-                foreach (var jsonFile in jsons)
-                {
-                    badSegmentPath = jsonFile.Item1;
-
-                    var frameData = JsonConvert.DeserializeObject<BotSegment>(jsonFile.Item2);
-
-                    if (frameData.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
-                    {
-                        versionMismatch = frameData.EffectiveApiVersion;
-                        break;
-                    }
-
-                    if (sessionId == null)
-                    {
-                        sessionId = frameData.sessionId;
-                    }
-
-                    resultSegments.Add(frameData);
-                }
-            }
-            catch (Exception e)
-            {
-                // Failed to parse the json.  End user doesn't really need this message, this is for developers at RG creating new bot segment types.. we give them a for real exception below
-                throw new Exception($"Exception while parsing bot segment: {badSegmentPath}", e);
-            }
-
-            if (versionMismatch > 0)
-            {
-                throw new Exception($"Error parsing bot segment: {badSegmentPath}.  A segment requires SDK version {versionMismatch}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
-            }
-
-            if (resultSegments.Count == 0)
-            {
-                // entries was empty
-                throw new Exception($"Error parsing bot segments: [{string.Join(',',jsons.Select(e=>e.Item1))}].  All files must include a bot segment json.  Ensure you are loading valid bot segment resource paths.");
-            }
-
-            result.segments = resultSegments;
-
-            return result;
         }
     }
 }
