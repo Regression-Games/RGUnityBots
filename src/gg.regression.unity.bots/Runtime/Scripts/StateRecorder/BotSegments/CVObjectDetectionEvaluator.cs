@@ -317,7 +317,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
 
                     var textQuery = criteriaData.textQuery;
-                    var imageQuery = criteriaData.imageQuery;
+                    var imageQuery = CVImageCriteriaEvaluator.GetImageData(criteriaData.imageQuery);
                     // do NOT await this, let it run async
                     _ = AIServiceManager.GetInstance().PostCriteriaObjectDetection(
                         new CVObjectDetectionRequest(
