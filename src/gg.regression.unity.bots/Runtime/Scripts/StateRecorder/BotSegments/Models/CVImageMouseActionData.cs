@@ -131,7 +131,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                                     height = height,
                                     data = screenshot
                                 },
-                                imageToMatch = imageData,
+                                imageToMatch = CVImageCriteriaEvaluator.GetImageData(imageData),
                                 withinRect = queryWithinRect
                             },
                             abortRegistrationHook:

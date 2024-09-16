@@ -11,10 +11,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVImageKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_9;
+        public int apiVersion = SdkApiVersion.VERSION_18;
 
         /**
          * base64 encoded byte[] of jpg image data , NOT the raw pixel data, the full jpg file bytes
+         * OR a file:// path
          */
         public string imageData;
 

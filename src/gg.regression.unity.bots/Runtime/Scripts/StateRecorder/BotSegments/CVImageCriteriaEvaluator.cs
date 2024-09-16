@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder.BotSegments;
 using UnityEngine;
+
+using File = UnityEngine.Windows.File;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -38,7 +42,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     var pair = keyValuePair.Value;
                     foreach (var pairValue in pair.Values)
                     {
-                        pairValue.Invoke();
+                        pairValue?.Invoke();
                     }
                 }
 
@@ -78,6 +82,88 @@ namespace RegressionGames.StateRecorder.BotSegments
                 _priorResultsTracker.Remove(segmentNumber, out _);
                 RGDebug.LogVerbose($"CVImageCriteriaEvaluator - Cleanup - botSegment: {segmentNumber} - END");
             }
+        }
+
+        public static string GetImageData(string imageData)
+        {
+            if (imageData.StartsWith("file://"))
+            {
+                try
+                {
+                    var filePath = imageData.Substring(7);
+                    var fileData = File.ReadAllBytes(filePath);
+                    var extension = PictureHelper.TryGetExtension(fileData);
+                    if (extension != null)
+                    {
+                        switch(extension)
+                        {
+                            case "jpg":
+                                // keeps the original jpg lossless
+                                return Convert.ToBase64String(fileData);
+                                break;
+                            case "png":
+                                // this may be somewhat lossy in that it converts to JPG, but it should handle all supported image types for Texture2D
+                                var texture = CreateTextureFromJpgOrPngImageFileBytes(fileData);
+                                return Convert.ToBase64String(texture.EncodeToJPG(100));
+                                break;
+                            default:
+                                throw new Exception("Unsupported image type for file://.  Only JPG and PNG are supported by Unity ImageConversion.LoadImage (https://docs.unity3d.com/ScriptReference/ImageConversion.LoadImage.html).");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Error Loading CVImage imageData from file:// url - {imageData}", ex);
+                }
+            }
+
+            if (imageData.StartsWith("resource://"))
+            {
+                try
+                {
+                    var filePath = imageData.Substring(11);
+                    var index = filePath.LastIndexOf('.');
+                    if (index >= 0)
+                    {
+                        // remove trailing extension if provided (hint: they shouldn't provide this for resources
+                        filePath = filePath.Substring(0, index);
+                    }
+
+                    Texture2D texture;
+                    // this may be somewhat lossy in that it converts to JPG, even if the existing file was already jpg, but it should handle all supported image types for Texture2D
+                    var textAsset = Resources.Load<TextAsset>(filePath);
+                    if (textAsset != null)
+                    {
+                        var fileData = textAsset.bytes;
+                        texture = CreateTextureFromJpgOrPngImageFileBytes(fileData);
+                    }
+                    else
+                    {
+                        var fileTexture = Resources.Load<Texture2D>(filePath);
+                        // force ARGB32 so that EncodeToJPG works.
+                        texture = new Texture2D(fileTexture.width, fileTexture.height, TextureFormat.ARGB32, false);
+                        texture.SetPixels32(fileTexture.GetPixels32());
+                    }
+
+                    var textureJpgBytes = texture.EncodeToJPG(100);
+                    return Convert.ToBase64String(textureJpgBytes);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Error Loading CVImage imageData from resource:// name - {imageData} - Resource was not a valid Texture2D or a .bytes TextAsset.  Check your path, import your JPG/PNG into your project as a READABLE Texture, or ensure that your raw JPG/PNG image is saved in your project Resource folder with a .bytes extension.", ex);
+                }
+            }
+
+            // already an encoded image
+            return imageData;
+        }
+
+        private static Texture2D CreateTextureFromJpgOrPngImageFileBytes(byte[] fileData)
+        {
+            // force ARGB32 so that EncodeToJPG works.
+            Texture2D tex = new Texture2D(2, 2, TextureFormat.ARGB32, false);
+            tex.LoadImage(fileData);
+            return tex;
         }
 
         // Returns a list of non-matched entries
@@ -164,7 +250,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     height = height,
                                     data = imageData
                                 },
-                                imageToMatch = criteriaData.imageData,
+                                imageToMatch = GetImageData(criteriaData.imageData),
                                 withinRect = withinRect
                             },
                             abortRegistrationHook:
