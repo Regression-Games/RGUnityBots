@@ -50,7 +50,11 @@ public class RGSequenceEntry : MonoBehaviour
         
         if (deleteButton != null)
         {
-            deleteButton.onClick.AddListener(OnDelete);
+            #if UNITY_EDITOR
+                deleteButton.onClick.AddListener(OnDelete);
+            #else
+                deleteButton.interactable = false;
+            #endif
         }
     }
 
