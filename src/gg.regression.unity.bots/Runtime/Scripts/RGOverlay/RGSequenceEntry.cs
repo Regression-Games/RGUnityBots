@@ -1,9 +1,8 @@
 using System;
+using RegressionGames;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
-using RegressionGames.StateRecorder;
 
 /**
  * <summary>Displays the high-level information for a Sequence</summary>
@@ -14,10 +13,15 @@ public class RGSequenceEntry : MonoBehaviour
 
     public string description;
 
+    public string sequencePath;
+    
     public Action playAction;
 
     [SerializeField]
     public Button playButton;
+    
+    [SerializeField]
+    public Button deleteButton;
 
     /**
      * UI component fields
@@ -44,15 +48,56 @@ public class RGSequenceEntry : MonoBehaviour
         {
             playButton.onClick.AddListener(OnPlay);
         }
+        
+        if (deleteButton != null)
+        {
+            /*
+             * Sequences cannot be deleted in runtime builds, as we cannot delete resources
+             * that have been loaded using Resources.Load()
+             */
+#if UNITY_EDITOR
+                deleteButton.onClick.AddListener(OnDelete);
+                
+                // hide the delete button tooltip. We CAN delete
+                // Sequences while playing in the editor
+                var tooltip = GetComponentInChildren<RGTooltip>();
+                if (tooltip != null)
+                {
+                    tooltip.SetEnabled(false);
+                }
+#else
+                deleteButton.interactable = false;
+#endif
+        }
     }
 
     /**
-     * <summary>When the play button is clicked, start the Sequence and close the RGOverlay</summary>
+     * <summary>
+     * When the play button is clicked, start the Sequence and close the RGOverlay
+     * </summary>
      */
     public void OnPlay()
     {
         var botManager = RGBotManager.GetInstance();
         botManager?.OnBeginPlaying();
         playAction?.Invoke();
+    }
+
+    /**
+     * <summary>
+     * When the delete button is pressed, show a confirmation dialog
+     * </summary>
+     */
+    public void OnDelete()
+    {
+        var botManager = RGBotManager.GetInstance();
+        if (botManager != null)
+        {
+            var sequenceManager = botManager.GetComponent<RGSequenceManager>();
+            if (sequenceManager != null)
+            {
+                sequenceManager.ShowDeleteSequenceDialog(this);
+            }
+        }
     }
 }

@@ -20,6 +20,8 @@ public class RGSequenceManager : MonoBehaviour
 
     public GameObject sequenceEditor;
 
+    public GameObject deleteSequenceDialog;
+    
     private static RGSequenceManager _this;
 
     public static RGSequenceManager GetInstance()
@@ -62,6 +64,20 @@ public class RGSequenceManager : MonoBehaviour
 
     /**
      * <summary>
+     * Deletes the Sequence provided by the path param, then reload all Sequences
+     * </summary>
+     * <param name="path">The path of the Sequence to delete</param>
+     */
+    public void DeleteSequenceByPath(string path)
+    {
+        BotSequence.DeleteSequence(path);
+        
+        var sequences = ResolveSequenceFiles();
+        InstantiateSequences(sequences);
+    }
+
+    /**
+     * <summary>
      * Show the Sequence Editor, and initialize its fields
      * </summary>
      */
@@ -91,21 +107,54 @@ public class RGSequenceManager : MonoBehaviour
             sequenceEditor.SetActive(false);
         }
     }
+    
+    /**
+     * <summary>
+     * Show the Delete Sequence confirmation dialog and set its fields
+     * </summary>
+     */
+    public void ShowDeleteSequenceDialog(RGSequenceEntry sequence)
+    {
+        if (deleteSequenceDialog != null)
+        {
+            var script = deleteSequenceDialog.GetComponent<RGDeleteSequence>();
+            if (script != null)
+            {
+                script.Initialize(sequence);
+                deleteSequenceDialog.SetActive(true);
+            }
+        }
+    }
+
+    /**
+     * <summary>
+     * Hide the Delete Sequence confirmation dialog
+     * </summary>
+     */
+    public void HideDeleteSequenceDialog()
+    {
+        if (deleteSequenceDialog != null)
+        {
+            deleteSequenceDialog.SetActive(false);
+        }
+    }
 
     /**
      * <summary>
      * Instantiates Sequence prefabs and adds them to the list of available Sequences
      * </summary>
-     * <param name="sequences">List of Bot Sequence data we want to instantiate as prefabs</param>
+     * <param name="sequences">Dictionary of (path, Bot Sequence) data we want to instantiate as prefabs</param>
      */
-    public void InstantiateSequences(IList<BotSequence> sequences)
+    public void InstantiateSequences(IDictionary<string, BotSequence> sequences)
     {
         // ensure we aren't appending new sequences on to the previous ones
         ClearExistingSequences();
         
         // instantiate a prefab for each sequence file that has been loaded
-        foreach (var sequence in sequences)
+        foreach (var sequenceKVPair in sequences)
         {
+            var path = sequenceKVPair.Key;
+            var sequence = sequenceKVPair.Value;
             var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
             
             // map sequence data fields to new prefab
@@ -114,6 +163,7 @@ public class RGSequenceManager : MonoBehaviour
             if (prefabComponent != null)
             {
                 prefabComponent.sequenceName = sequence.name;
+                prefabComponent.sequencePath = path;
                 prefabComponent.description = sequence.description;
                 prefabComponent.playAction = sequence.Play;
             }
@@ -144,18 +194,18 @@ public class RGSequenceManager : MonoBehaviour
      * will use the persistent data path as an override, so any Sequences that are found in Resources will only be kept
      * if they are not also within the persistent data path
      * </summary>
-     * <returns>List of Bot Sequences</returns>
+     * <returns>Dictionary of (path, Bot Sequence)</returns>
      */
-    private IList<BotSequence> ResolveSequenceFiles()
+    private IDictionary<string, BotSequence> ResolveSequenceFiles()
     {
 #if UNITY_EDITOR
         const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
         if (!Directory.Exists(sequencePath))
         {
-            return new List<BotSequence>();
+            return new Dictionary<string, BotSequence>();
         }
 
-        return EnumerateSequencesInDirectory(sequencePath).Values.ToList();
+        return EnumerateSequencesInDirectory(sequencePath);
 #else
         var sequences = new Dictionary<string, BotSequence>();
 
@@ -198,7 +248,7 @@ public class RGSequenceManager : MonoBehaviour
             }
         }
 
-        return sequences.Values.ToList();
+        return sequences;
 #endif
     }
     
@@ -207,7 +257,7 @@ public class RGSequenceManager : MonoBehaviour
      * Search a directory for any *.json files, then attempt to read them as Bot Sequences
      * </summary>
      * <param name="path">The directory to look for Bot Sequences json files</param>
-     * <returns>Dictionary containing (file name, Bot Sequence) entires</returns>
+     * <returns>Dictionary containing (path, Bot Sequence) entires</returns>
      */
     private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
     {
@@ -217,12 +267,12 @@ public class RGSequenceManager : MonoBehaviour
             {
                 try
                 {
-                    return (Path.GetFileNameWithoutExtension(fileName), BotSequence.LoadSequenceJsonFromPath(fileName));
+                    return BotSequence.LoadSequenceJsonFromPath(fileName);
                 }
                 catch (Exception exception)
                 {
                     Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
-                    return (null, null);
+                    return (string.Empty, null);
                 }
             })
             .Where(s => s.Item2 != null)
