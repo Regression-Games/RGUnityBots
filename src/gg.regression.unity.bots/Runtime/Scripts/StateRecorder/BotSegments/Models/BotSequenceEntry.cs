@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int apiVersion = SdkApiVersion.VERSION_19;
         public string path;
 
-        // NOT WRITTEN TO JSON
+        // NOT WRITTEN TO JSON - Computed dynamically when loaded from disk or created
         public BotSequenceEntryType type;
         // NOT WRITTEN TO JSON - Populated from the BotSegment/BotSegmentList at file load time
         public string name;
