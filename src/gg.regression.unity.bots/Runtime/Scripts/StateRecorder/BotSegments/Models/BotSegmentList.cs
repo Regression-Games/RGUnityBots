@@ -39,17 +39,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             // used by json converter
         }
 
+        public void FixupNames()
+        {
+            var segmentNumber = 0;
+            foreach (var botSegment in segments)
+            {
+                if (string.IsNullOrEmpty(botSegment.name))
+                {
+                    botSegment.name = name + " - Segment #" + segmentNumber;
+                }
+
+                ++segmentNumber;
+            }
+        }
+
         public BotSegmentList(string name, List<BotSegment> botSegments)
         {
             this.name = name;
-            foreach (var botSegment in botSegments)
-            {
-                if (description == null)
-                {
-                    description = botSegment.description;
-                }
-                segments.Add(botSegment);
-            }
+            segments.AddRange(botSegments);
+            FixupNames();
         }
 
 
