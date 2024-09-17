@@ -140,7 +140,7 @@ namespace RegressionGames
                         { "path", segment.path },
                         { "type", segment.type.ToString() }
                     };
-                    segmentCard.draggableCardName = segment.entryName;
+                    segmentCard.draggableCardName = segment.name;
                     segmentCard.draggableCardDescription = segment.description;
                     segmentCard.icon = segment.type == BotSequenceEntryType.Segment ? SegmentIcon : SegmentListIcon;
                 }
@@ -238,7 +238,7 @@ namespace RegressionGames
             {
                 var comparisonText = text.Trim().ToLower();
                 _filteredSegmentEntries = _segmentEntries.Where(s =>
-                    s.entryName.ToLower().Contains(comparisonText)
+                    s.name.ToLower().Contains(comparisonText)
                 ).ToList();
                 CreateAvailableSegments(_filteredSegmentEntries);
             }

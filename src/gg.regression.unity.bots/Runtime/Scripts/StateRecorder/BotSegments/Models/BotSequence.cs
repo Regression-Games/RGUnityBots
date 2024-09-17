@@ -196,7 +196,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         }
 
         /**
-         * <summary>In the Unity Editor this will create a new resource under "Assets/RegressionGames/Resources/BotSequences".  In runtime builds, it will write to "{Application.persistentDataPath}/BotSequences" .</summary>
+         * <summary>In the Unity Editor this will create a new resource under "Assets/RegressionGames/Resources/BotSequences".  In runtime builds, it will write to "{Application.persistentDataPath}/RegressionGames/Resources/BotSequences" .</summary>
          */
         public void SaveSequenceAsJson()
         {
@@ -206,7 +206,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 #if UNITY_EDITOR
                 directoryPath = "Assets/RegressionGames/Resources/BotSequences";
 #else
-                directoryPath = Application.persistentDataPath + "/BotSequences";
+                directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences";
 #endif
                 Directory.CreateDirectory(directoryPath);
                 var filename = string.Join("-", name.Split(" "));
@@ -269,15 +269,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 {
                     runtimePath += ".json";
                 }
-                if (File.Exists(Application.persistentDataPath + "/" + runtimePath))
+                if (File.Exists(Application.persistentDataPath + "/RegressionGames/Resources/" + runtimePath))
                 {
-                    using var fr = new StreamReader(File.OpenRead(Application.persistentDataPath + "/" + runtimePath));
-                    result = (Application.persistentDataPath + "/" + runtimePath, resourcePath, fr.ReadToEnd());
+                    using var fr = new StreamReader(File.OpenRead(Application.persistentDataPath + "/RegressionGames/Resources/" + runtimePath));
+                    result = (Application.persistentDataPath + "/RegressionGames/Resources/" + runtimePath, resourcePath, fr.ReadToEnd());
                 }
             }
             catch (Exception e)
             {
-                throw new Exception($"Exception reading json files from directory: {Application.persistentDataPath + "/" + path}", e);
+                throw new Exception($"Exception reading json files from directory: {Application.persistentDataPath + "/RegressionGames/Resources/" + path}", e);
             }
 
             try
@@ -340,19 +340,24 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             try
             {
                 var result = LoadBotSegmentOrBotSegmentListFromPath(path);
-                if (result.Item3 is BotSegmentList)
+                if (result.Item3 is BotSegmentList bsl)
                 {
                     return (result.Item1, result.Item2, new BotSequenceEntry()
                     {
                         type = BotSequenceEntryType.SegmentList,
-                        path = result.Item1 ?? result.Item2
+                        path = result.Item1 ?? result.Item2,
+                        name = bsl.name,
+                        description = bsl.description
                     });
                 }
 
+                var botSegment = (BotSegment)result.Item3;
                 return (result.Item1, result.Item2, new BotSequenceEntry()
                 {
                     type = BotSequenceEntryType.Segment,
-                    path = result.Item1 ?? result.Item2
+                    path = result.Item1 ?? result.Item2,
+                    name = botSegment.name,
+                    description = botSegment.description
                 });
 
             }

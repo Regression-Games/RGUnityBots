@@ -17,27 +17,25 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
         {
             JObject jObject = JObject.Load(reader);
             // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
-            BotSequenceEntry sequence = new();
-            sequence.path = jObject.GetValue("path").ToObject<string>(serializer);
-            if (jObject.TryGetValue("type", out var type))
+            BotSequenceEntry sequenceEntry = new();
+            sequenceEntry.path = jObject.GetValue("path").ToObject<string>(serializer);
+            // dynamically find out the type
+            var result = BotSequence.LoadBotSegmentOrBotSegmentListFromPath(sequenceEntry.path);
+            if (result.Item3 is BotSegmentList bsl)
             {
-                sequence.type = type.ToObject<BotSequenceEntryType>(serializer);
+                sequenceEntry.type = BotSequenceEntryType.SegmentList;
+                sequenceEntry.name = bsl.name;
+                sequenceEntry.description = bsl.description;
             }
             else
             {
-                // dynamically find out the type if not in the file
-                var result = BotSequence.LoadBotSegmentOrBotSegmentListFromPath(sequence.path);
-                if (result is BotSegmentList)
-                {
-                    sequence.type = BotSequenceEntryType.SegmentList;
-                }
-                else
-                {
-                    sequence.type = BotSequenceEntryType.Segment;
-                }
+                var botSegment = (BotSegment)result.Item3;
+                sequenceEntry.type = BotSequenceEntryType.Segment;
+                sequenceEntry.name = botSegment.name;
+                sequenceEntry.description = botSegment.description;
             }
 
-            return sequence;
+            return sequenceEntry;
         }
 
         public override bool CanWrite => false;

@@ -301,7 +301,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             var files = Directory.GetFiles(path, "*.json", SearchOption.AllDirectories).Select(s=> s.Replace('\\','/'));
             foreach (var fileName in files)
             {
-                var entry = BotSequence.CreateBotSequenceEntryForPath(path);
+                var entry = BotSequence.CreateBotSequenceEntryForPath(fileName);
 
                 if (entry.Item2 != null && !results.ContainsKey(entry.Item2))
                 {

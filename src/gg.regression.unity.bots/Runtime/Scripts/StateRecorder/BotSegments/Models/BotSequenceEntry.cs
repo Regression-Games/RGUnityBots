@@ -18,20 +18,21 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [JsonConverter(typeof(BotSequenceEntryJsonConverter))]
     public class BotSequenceEntry
     {
-        public int apiVersion = SdkApiVersion.VERSION_12;
-        public BotSequenceEntryType type;
+        public int apiVersion = SdkApiVersion.VERSION_19;
         public string path;
-        public string entryName;
+
+        // NOT WRITTEN TO JSON
+        public BotSequenceEntryType type;
+        // NOT WRITTEN TO JSON - Populated from the BotSegment/BotSegmentList at file load time
+        public string name;
+        // NOT WRITTEN TO JSON - Populated from the BotSegment/BotSegmentList at file load time
         public string description;
-        public Image icon;
 
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (()=>new(100));
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"type\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, type.ToString());
-            stringBuilder.Append(",\"apiVersion\":");
+            stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"path\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, path);

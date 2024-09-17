@@ -40,7 +40,7 @@ public class RGSequenceEditorTests
         editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
         editor.SegmentIcon = RGTestUtils.CreateSpritePlaceholder();
         editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
-        
+
         // mock segment entries for the editor to utilize
         segments = new List<BotSequenceEntry>()
         {
@@ -48,21 +48,21 @@ public class RGSequenceEditorTests
             {
                 type = BotSequenceEntryType.Segment,
                 path = "segment/one",
-                entryName = "Segment One",
+                name = "Segment One",
                 description = "Segment One Description"
             },
             new()
             {
                 type = BotSequenceEntryType.Segment,
                 path = "segment/two",
-                entryName = "Segment Two",
+                name = "Segment Two",
                 description = "Segment Two Description",
             },
             new()
             {
                 type = BotSequenceEntryType.SegmentList,
                 path = "segment/three/list",
-                entryName = "Segment Three",
+                name = "Segment Three",
                 description = "Segment Three Description",
             }
         };
@@ -84,7 +84,7 @@ public class RGSequenceEditorTests
         Assert.NotNull(editor.SearchInput.onValueChanged);
         Assert.NotNull(editor.CurrentSequence);
     }
-    
+
     [Test]
     public void CreateAvailableSegments()
     {
@@ -93,7 +93,7 @@ public class RGSequenceEditorTests
         // ensure that the mock segments were instantiated as prefabs properly
         Assert.AreEqual(segments.Count, editor.AvailableSegmentsList.transform.childCount);
     }
-    
+
     [Test]
     public void ClearAvailableSegments()
     {
@@ -103,23 +103,23 @@ public class RGSequenceEditorTests
         // ensure that the number of segments removed matches the expected amount
         Assert.AreEqual(segments.Count, numSegmentsCleared);
     }
-    
+
     [Test]
     public void SaveSequence()
     {
         editor.Initialize();
-        
+
         // set the name and description values to save
         editor.NameInput.text = "Sequence Editor Name";
         editor.DescriptionInput.text = "Sequence Editor Description";
-        
+
         editor.SaveSequence();
-        
+
         // ensure that the editor extracts the values from the text inputs properly
         Assert.AreEqual(editor.CurrentSequence.name, editor.NameInput.text);
         Assert.AreEqual(editor.CurrentSequence.description, editor.DescriptionInput.text);
     }
-    
+
     [Test]
     public void ResetEditor()
     {
@@ -128,12 +128,12 @@ public class RGSequenceEditorTests
         // set the name and description values we want to reset
         editor.NameInput.text = "Sequence Editor Name";
         editor.DescriptionInput.text = "Sequence Editor Description";
-        
+
         editor.ResetEditor();
-        
+
         var dropZone = editor.DropZonePrefab.GetComponent<RGDropZone>();
         var button = editor.CreateSequenceButton.GetComponent<Button>();
-        
+
         // ensure that the name and description text inputs are cleared, the drop zone's children are cleared, and that
         // the create sequence button is disabled
         Assert.IsEmpty(editor.NameInput.text);
@@ -146,9 +146,9 @@ public class RGSequenceEditorTests
     public void ReloadAvailableSegments()
     {
         editor.Initialize();
-        
+
         editor.ReloadAvailableSegments();
-        
+
         Assert.IsEmpty(editor.SearchInput.text);
     }
 
@@ -156,21 +156,21 @@ public class RGSequenceEditorTests
     public void SetCreateSequenceButtonEnabled_Enabled()
     {
         editor.Initialize();
-        
+
         editor.SetCreateSequenceButtonEnabled(true);
-        
+
         // ensure that the create sequence button is enabled
         var button = editor.CreateSequenceButton.GetComponent<Button>();
         Assert.IsTrue(button.interactable);
     }
-    
+
     [Test]
     public void SetCreateSequenceButtonEnabled_Disabled()
     {
         editor.Initialize();
-        
+
         editor.SetCreateSequenceButtonEnabled(false);
-        
+
         // ensure that the create sequence button is disabled
         var button = editor.CreateSequenceButton.GetComponent<Button>();
         Assert.IsFalse(button.interactable);
