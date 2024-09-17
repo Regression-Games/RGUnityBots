@@ -81,8 +81,8 @@
          * <summary> Added file:// and resource:// support to CVImage data. </summary>
          */
         public const int VERSION_18 = 18;
-        /**
-         * <summary> Removed 'type' field from bot sequence entry</summary>
+        /*
+         * <summary> Added CV Object Detection threshold. </summary>
          */
         public const int VERSION_19 = 19;
 

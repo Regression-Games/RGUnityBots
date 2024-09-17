@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames;
@@ -176,11 +175,4 @@ public class RGSequenceEditorTests
         var button = editor.CreateSequenceButton.GetComponent<Button>();
         Assert.IsFalse(button.interactable);
     }
-}
-public class MethodGroup
-{
-    public void LoadSequenceJsonFromPath()
-    {
-    }
-
 }
