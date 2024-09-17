@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RegressionGames.RGOverlay;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
@@ -32,11 +33,13 @@ namespace RegressionGames
         public GameObject DropZonePrefab;
 
         public GameObject SegmentCardPrefab;
-
+        
         public Sprite SegmentIcon;
 
         public Sprite SegmentListIcon;
 
+        public TMP_Text titleComponent;
+        
         public RGDropZone _dropZone;
         
         private IList<BotSequenceEntry> _segmentEntries;
@@ -48,7 +51,7 @@ namespace RegressionGames
          * Ensure all required fields are provided, and set any event listening functions
          * </summary>
          */
-        public void Initialize()
+        public void Initialize(string existingSequencePath = null)
         {
             if (SearchInput == null)
             {
@@ -106,15 +109,51 @@ namespace RegressionGames
                     Debug.LogError("RGSequenceEditor is missing its AvailableSegmentsList, and could not find one in the scene");
                 }
             }
-            
-            CurrentSequence = new BotSequence();
-            
+
             // reset the editor to its default values
             ResetEditor();
+
+            var isBeingEdited = !string.IsNullOrEmpty(existingSequencePath);
+            if (isBeingEdited)
+            {
+                SetEditFields(existingSequencePath);
+                titleComponent.text = "Edit Sequence";
+            }
+            else
+            {
+                var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
+                if (saveButton != null)
+                {
+                    saveButton.SetEditModeEnabled(false);
+                }
+                titleComponent.text = "Create Sequence";
+            }
             
-            // TODO ensure we can load segments when editing an existing Sequence
             _segmentEntries = BotSegment.LoadAllSegments();
             CreateAvailableSegments(_segmentEntries);
+        }
+
+        public void SetEditFields(string sequencePath)
+        {
+            var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item2;
+            NameInput.text = sequenceToEdit.name;
+            DescriptionInput.text = sequenceToEdit.description;
+            foreach (var entry in sequenceToEdit.segments)
+            {
+                var segment = BotSegment.LoadSegment(entry.path);
+                if (segment != null)
+                {
+                    InstantiateDraggableSegmentCard(segment, _dropZone.transform);
+                }
+            }
+
+            var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
+            if (saveButton != null)
+            {
+                saveButton.SetEditModeEnabled(true);
+            }
+                
+            SetCreateSequenceButtonEnabled(true);
         }
 
         /**
@@ -131,20 +170,7 @@ namespace RegressionGames
             
             foreach (var segment in segments)
             {
-                var prefab = Instantiate(SegmentCardPrefab, AvailableSegmentsList.transform, false);
-                var segmentCard = prefab.GetComponent<RGDraggableCard>();
-                if (segmentCard != null)
-                {
-                    // load each card's payload
-                    segmentCard.payload = new Dictionary<string, string>
-                    {
-                        { "path", segment.path },
-                        { "type", segment.type.ToString() }
-                    };
-                    segmentCard.draggableCardName = segment.entryName;
-                    segmentCard.draggableCardDescription = segment.description;
-                    segmentCard.icon = segment.type == BotSequenceEntryType.Segment ? SegmentIcon : SegmentListIcon;
-                }
+                InstantiateDraggableSegmentCard(segment, AvailableSegmentsList.transform);
             }
         }
 
@@ -175,7 +201,8 @@ namespace RegressionGames
         public void SaveSequence()
         {
             var addedSegments = _dropZone.GetChildren();
-            
+            var newSequence = new BotSequence();
+
             foreach (var segment in addedSegments)
             {
                 var path = segment.payload["path"];
@@ -187,11 +214,11 @@ namespace RegressionGames
                 
                 if (type == BotSequenceEntryType.Segment)
                 {
-                    CurrentSequence.AddBotSegmentPath(path);
+                    newSequence.AddBotSegmentPath(path);
                 }
                 else if (type == BotSequenceEntryType.SegmentList)
                 {
-                    CurrentSequence.AddBotSegmentListPath(path);
+                    newSequence.AddBotSegmentListPath(path);
                 }
                 else
                 {
@@ -199,9 +226,9 @@ namespace RegressionGames
                 }
             }
 
-            CurrentSequence.name = NameInput.text;
-            CurrentSequence.description = DescriptionInput.text;
-            CurrentSequence.SaveSequenceAsJson();
+            newSequence.name = NameInput.text;
+            newSequence.description = DescriptionInput.text;
+            newSequence.SaveSequenceAsJson();
         }
 
         /**
@@ -316,6 +343,31 @@ namespace RegressionGames
                     color.a = alpha;
                     child.color = color;
                 }
+            }
+        }
+        
+        /**
+         * <summary>
+         * Instantiate a Segment Card prefab and attach it to a parent
+         * </summary>
+         * <param name="entry">The Bot Sequence Entry to use as the source for prefab instantiation</param>
+         * <param name="parentTransform">The transform to attach to newly instantiated Segment Card to</param>
+         */
+        private void InstantiateDraggableSegmentCard(BotSequenceEntry entry, Transform parentTransform)
+        {
+            var prefab = Instantiate(SegmentCardPrefab, parentTransform, false);
+            var segmentCard = prefab.GetComponent<RGDraggableCard>();
+            if (segmentCard != null)
+            {
+                // load the card's payload
+                segmentCard.payload = new Dictionary<string, string>
+                {
+                    { "path", entry.path },
+                    { "type", entry.type.ToString() }
+                };
+                segmentCard.draggableCardName = entry.entryName;
+                segmentCard.draggableCardDescription = entry.description;
+                segmentCard.icon = entry.type == BotSequenceEntryType.Segment ? SegmentIcon : SegmentListIcon;
             }
         }
     }

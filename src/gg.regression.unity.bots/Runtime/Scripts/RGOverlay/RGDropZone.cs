@@ -177,7 +177,7 @@ namespace RegressionGames
                 _sequenceEditorScript.SetCreateSequenceButtonEnabled(false);
             }
             
-            childToRemove.transform.parent = null;
+            childToRemove.transform.SetParent(null);
             Destroy(childToRemove);
         }
 

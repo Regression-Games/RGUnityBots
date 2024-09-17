@@ -267,6 +267,23 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             return segments;
         }
+
+        public static BotSequenceEntry LoadSegment(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+            
+            using var sr = new StreamReader(File.OpenRead(path));
+            var result = (path, sr.ReadToEnd());
+            return ParseSegment(result.Item2, path);
+        }
         
         /**
          * <summary>

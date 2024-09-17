@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 using RegressionGames;
+using RegressionGames.RGOverlay;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
@@ -40,6 +40,17 @@ public class RGSequenceManager : MonoBehaviour
 
     /**
      * <summary>
+     * Load and instantiate the Sequences list
+     * </summary>
+     */
+    public void ReloadSequences()
+    {
+        var sequences = ResolveSequenceFiles();
+        InstantiateSequences(sequences);
+    }
+
+    /**
+     * <summary>
      * Saves the Sequence currently loaded in the Sequence Editor, hides the Sequence Editor, and reloads the list
      * of Sequences
      * </summary>
@@ -57,8 +68,7 @@ public class RGSequenceManager : MonoBehaviour
             
             sequenceEditor.SetActive(false);
             
-            var sequences = ResolveSequenceFiles();
-            InstantiateSequences(sequences);
+            ReloadSequences();
         }
     }
 
@@ -72,16 +82,16 @@ public class RGSequenceManager : MonoBehaviour
     {
         BotSequence.DeleteSequence(path);
         
-        var sequences = ResolveSequenceFiles();
-        InstantiateSequences(sequences);
+        ReloadSequences();
     }
 
     /**
      * <summary>
      * Show the Sequence Editor, and initialize its fields
      * </summary>
+     * <param name="existingSequencePath">The path for an existing Sequence for editing (optional)</param>
      */
-    public void ShowEditSequenceDialog()
+    public void ShowEditSequenceDialog(string existingSequencePath = null)
     {
         if (sequenceEditor != null)
         {
@@ -90,7 +100,7 @@ public class RGSequenceManager : MonoBehaviour
             var script = sequenceEditor.GetComponent<RGSequenceEditor>();
             if (script != null)
             {
-                script.Initialize();
+                script.Initialize(existingSequencePath);
             }
         }
     }
