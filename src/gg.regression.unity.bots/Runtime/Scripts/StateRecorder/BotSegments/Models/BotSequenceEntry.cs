@@ -18,7 +18,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [JsonConverter(typeof(BotSequenceEntryJsonConverter))]
     public class BotSequenceEntry
     {
-        public int apiVersion = SdkApiVersion.VERSION_19;
+        public int apiVersion = SdkApiVersion.VERSION_20;
         public string path;
 
         // NOT WRITTEN TO JSON - Computed dynamically when loaded from disk or created

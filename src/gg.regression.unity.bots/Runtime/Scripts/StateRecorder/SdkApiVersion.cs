@@ -85,8 +85,12 @@
          * <summary> Added CV Object Detection threshold. </summary>
          */
         public const int VERSION_19 = 19;
+        /**
+         * <summary> Removed 'type' field from bot sequence entry</summary>
+         */
+        public const int VERSION_20 = 20;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_19;
+        public const int CURRENT_VERSION = VERSION_20;
     }
 }
