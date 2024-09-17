@@ -6,7 +6,7 @@ namespace RegressionGames
 {
     /**
      * <summary>
-     * When clicked, save the Sequence currently loaded in the SequenceEditor
+     * When clicked, save or update the Sequence currently loaded in the SequenceEditor
      * </summary>
      */
     public class RGSaveSequenceButton : MonoBehaviour
@@ -48,7 +48,13 @@ namespace RegressionGames
                 Debug.LogError("RGSaveSequenceButton is missing its ButtonText");
             }
         }
-        
+
+        /**
+         * <summary>
+         * Show the correct icon and text depending on if a Sequence is being created or updated
+         * </summary>
+         * <param name="isEditing">If the Sequence Editor is loaded with an existing Sequence</param>
+         */
         public void SetEditModeEnabled(bool isEditing)
         {
             if (isEditing)
@@ -62,7 +68,12 @@ namespace RegressionGames
                 ButtonIcon.GetComponent<Image>().sprite = CreateIcon;
             }
         }
-        
+
+        /**
+         * <summary>
+         * When clicked, save or update the Sequence loaded in the Sequence Editor
+         * </summary>
+         */
         public void OnClick()
         {
             if (overlayContainer != null)

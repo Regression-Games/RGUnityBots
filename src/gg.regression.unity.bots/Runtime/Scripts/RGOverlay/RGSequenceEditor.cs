@@ -113,12 +113,14 @@ namespace RegressionGames
             // reset the editor to its default values
             ResetEditor();
 
-            var isBeingEdited = !string.IsNullOrEmpty(existingSequencePath);
+            // set the editor to either be in an editing or creating state
+            _existingSequencePath = existingSequencePath;
+            var isBeingEdited = !string.IsNullOrEmpty(_existingSequencePath);
             if (isBeingEdited)
             {
-                CurrentSequence = SetEditingState(existingSequencePath);
+                // populate the segment list from the contents of the loaded sequence
+                CurrentSequence = SetEditingState(_existingSequencePath);
                 titleComponent.text = "Edit Sequence";
-                _existingSequencePath = existingSequencePath;
             }
             else
             {
@@ -126,17 +128,27 @@ namespace RegressionGames
                 titleComponent.text = "Create Sequence";
             }
 
+            // ensure that the create/update button is in the correct default state:
+            // - creating -> disabled
+            // - editing -> enabled
+            SetCreateSequenceButtonEnabled(isBeingEdited);
             var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
             if (saveButton != null)
             {
                 saveButton.SetEditModeEnabled(isBeingEdited);
             }
 
+            // load all segments and add them to the Available Segments list
             _segmentEntries = BotSegment.LoadAllSegments().Values.ToList();
-
             CreateAvailableSegments(_segmentEntries);
         }
 
+        /**
+         * <summary>
+         * Load an existing Sequence and set its name, description, and segments.
+         * </summary>
+         * <param name="sequencePath">The existing Sequence to load</param>
+         */
         public BotSequence SetEditingState(string sequencePath)
         {
             var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item3;
@@ -193,7 +205,7 @@ namespace RegressionGames
 
         /**
          * <summary>
-         * Save the current Sequence to disk
+         * Save or update the current Sequence
          * </summary>
          */
         public void SaveSequence()
@@ -202,6 +214,8 @@ namespace RegressionGames
             {
                 CurrentSequence.segments.Clear();
 
+                // If the Sequence being edited is renamed, we must delete the original Sequence
+                // first. Else we will end up with a duplicate
                 if (CurrentSequence.name != NameInput.text)
                 {
                     BotSequence.DeleteSequenceAtPath(_existingSequencePath);

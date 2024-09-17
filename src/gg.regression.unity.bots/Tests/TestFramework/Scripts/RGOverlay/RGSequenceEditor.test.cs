@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames;
@@ -30,6 +31,7 @@ public class RGSequenceEditorTests
         editor.NameInput = text;
         editor.DescriptionInput = text;
         editor.SearchInput = text;
+        editor.titleComponent = RGTestUtils.CreateTMProPlaceholder();
         editor.AvailableSegmentsList = new GameObject();
         editor.CreateSequenceButton = new GameObject();
         editor.CreateSequenceButton.AddComponent<Button>();
@@ -174,4 +176,11 @@ public class RGSequenceEditorTests
         var button = editor.CreateSequenceButton.GetComponent<Button>();
         Assert.IsFalse(button.interactable);
     }
+}
+public class MethodGroup
+{
+    public void LoadSequenceJsonFromPath()
+    {
+    }
+
 }
