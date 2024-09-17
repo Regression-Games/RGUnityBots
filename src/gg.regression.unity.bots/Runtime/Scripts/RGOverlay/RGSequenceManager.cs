@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using RegressionGames;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
@@ -23,6 +24,8 @@ public class RGSequenceManager : MonoBehaviour
     public GameObject deleteSequenceDialog;
     
     private static RGSequenceManager _this;
+    
+    private ReplayToolbarManager _replayToolbarManager;
 
     public static RGSequenceManager GetInstance()
     {
@@ -34,6 +37,7 @@ public class RGSequenceManager : MonoBehaviour
         var sequences = ResolveSequenceFiles();
         InstantiateSequences(sequences);
 
+        _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
     }
@@ -165,7 +169,11 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.sequenceName = sequence.name;
                 prefabComponent.sequencePath = path;
                 prefabComponent.description = sequence.description;
-                prefabComponent.playAction = sequence.Play;
+                prefabComponent.playAction = () =>
+                {
+                    _replayToolbarManager.selectedReplayFilePath = null;
+                    sequence.Play();
+                };
             }
         }
     }
