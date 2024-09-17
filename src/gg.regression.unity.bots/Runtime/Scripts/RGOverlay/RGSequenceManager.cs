@@ -173,7 +173,8 @@ public class RGSequenceManager : MonoBehaviour
             if (prefabComponent != null)
             {
                 prefabComponent.sequenceName = sequenceInfo.Item2.name;
-                prefabComponent.sequencePath = resourcePath;
+                prefabComponent.filePath = sequenceInfo.Item1;
+                prefabComponent.resourcePath = resourcePath;
                 prefabComponent.description = sequenceInfo.Item2.description;
                 prefabComponent.playAction = () =>
                 {
@@ -212,7 +213,6 @@ public class RGSequenceManager : MonoBehaviour
      * <returns>Dictionary of {key=resourcePath, value=(filePath[null if resource],Bot Sequence) tuple}</returns>
      */
     private IDictionary<string, (string,BotSequence)> ResolveSequenceFiles()
-
     {
 #if UNITY_EDITOR
         const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
@@ -228,7 +228,7 @@ public class RGSequenceManager : MonoBehaviour
         var sequences = new Dictionary<string, BotSequence>();
 
         // 1. check the persistentDataPath for sequences
-        var persistentDataPath = Application.persistentDataPath + "/BotSequences";
+        var persistentDataPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences";
         if (Directory.Exists(persistentDataPath))
         {
             sequences = EnumerateSequencesInDirectory(persistentDataPath);

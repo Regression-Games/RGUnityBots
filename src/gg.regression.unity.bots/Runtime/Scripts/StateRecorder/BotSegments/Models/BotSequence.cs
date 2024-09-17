@@ -249,6 +249,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     try
                     {
                         File.Delete(resource.Item1);
+                        // attempt to remove unity's meta file for this if it exists
+                        var metaPath = resource.Item1 + ".meta";
+                        if (File.Exists(metaPath))
+                        {
+                            File.Delete(metaPath);
+                        }
                     }
                     catch (Exception e)
                     {
