@@ -31,13 +31,13 @@ namespace RegressionGames
         public GameObject DropZonePrefab;
 
         public GameObject SegmentCardPrefab;
-        
+
         public Sprite SegmentIcon;
 
         public Sprite SegmentListIcon;
 
         public TMP_Text titleComponent;
-        
+
         public RGDropZone _dropZone;
 
         private IList<BotSequenceEntry> _segmentEntries;
@@ -50,6 +50,7 @@ namespace RegressionGames
          * <summary>
          * Ensure all required fields are provided, and set any event listening functions
          * </summary>
+         * <param name="existingSequencePath">The path of the sequence that is being edited (optional)</param>
          */
         public void Initialize(string existingSequencePath = null)
         {
@@ -348,7 +349,7 @@ namespace RegressionGames
                 }
             }
         }
-        
+
         /**
          * <summary>
          * Instantiate a Segment Card prefab and attach it to a parent
