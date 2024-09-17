@@ -211,17 +211,12 @@ namespace RegressionGames
          */
         public void SaveSequence()
         {
-            if (!string.IsNullOrEmpty(_existingSequencePath))
-            {
-                CurrentSequence.segments.Clear();
+            CurrentSequence.segments.Clear();
 
-                // If the Sequence being edited is renamed, we must delete the original Sequence
-                // first. Else we will end up with a duplicate
-                if (CurrentSequence.name != NameInput.text)
-                {
-                    BotSequence.DeleteSequenceAtPath(_existingSequencePath);
-                }
-            }
+            // If the Sequence being edited is renamed, we must delete the original Sequence
+            // after saving due to the new file name being based on the Sequence name
+            var shouldDeleteOriginal =
+                !string.IsNullOrEmpty(_existingSequencePath) && CurrentSequence.name != NameInput.text;
 
             var addedSegments = _dropZone.GetChildren();
             foreach (var segment in addedSegments)
@@ -233,6 +228,11 @@ namespace RegressionGames
             CurrentSequence.name = NameInput.text;
             CurrentSequence.description = DescriptionInput.text;
             CurrentSequence.SaveSequenceAsJson();
+
+            if (shouldDeleteOriginal)
+            {
+                BotSequence.DeleteSequenceAtPath(_existingSequencePath);
+            }
         }
 
         /**
