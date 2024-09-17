@@ -1212,7 +1212,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 6602689997961244080}
         m_TargetAssemblyTypeName: RGSequenceManager, RegressionGames
-        m_MethodName: ReloadSequences
+        m_MethodName: LoadSequences
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3582,6 +3582,7 @@ MonoBehaviour:
   recordingPulse: {fileID: 2788856397230457161}
   uploadingIndicator: {fileID: 4082924595279891428}
   fileOpenIndicator: {fileID: 6646297724481399087}
+  selectedReplayFilePath: 
   replayDataController: {fileID: 5893801167117800152}
 --- !u!114 &5893801167117800152
 MonoBehaviour:

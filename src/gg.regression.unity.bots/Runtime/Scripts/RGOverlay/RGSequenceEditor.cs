@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using RegressionGames.RGOverlay;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
@@ -120,12 +119,13 @@ namespace RegressionGames
             }
             else
             {
-                var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
-                if (saveButton != null)
-                {
-                    saveButton.SetEditModeEnabled(false);
-                }
                 titleComponent.text = "Create Sequence";
+            }
+
+            var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
+            if (saveButton != null)
+            {
+                saveButton.SetEditModeEnabled(isBeingEdited);
             }
 
             _segmentEntries = BotSegment.LoadAllSegments().Values.ToList();
@@ -140,19 +140,10 @@ namespace RegressionGames
             DescriptionInput.text = sequenceToEdit.description;
             foreach (var entry in sequenceToEdit.segments)
             {
-                var segment = BotSegment.LoadSegment(entry.path);
-                if (segment != null)
-                {
-                    InstantiateDraggableSegmentCard(segment, _dropZone.transform);
-                }
+                InstantiateDraggableSegmentCard(entry, _dropZone.transform);
             }
+            _dropZone.SetEmptyState(false);
 
-            var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
-            if (saveButton != null)
-            {
-                saveButton.SetEditModeEnabled(true);
-            }
-                
             SetCreateSequenceButtonEnabled(true);
         }
 
@@ -200,18 +191,18 @@ namespace RegressionGames
          */
         public void SaveSequence()
         {
+            CurrentSequence = new BotSequence();
+
             var addedSegments = _dropZone.GetChildren();
-            var newSequence = new BotSequence();
-            
             foreach (var segment in addedSegments)
             {
                 var path = segment.payload["path"];
                 CurrentSequence.AddSequenceEntryForPath(path);
             }
 
-            newSequence.name = NameInput.text;
-            newSequence.description = DescriptionInput.text;
-            newSequence.SaveSequenceAsJson();
+            CurrentSequence.name = NameInput.text;
+            CurrentSequence.description = DescriptionInput.text;
+            CurrentSequence.SaveSequenceAsJson();
         }
 
         /**

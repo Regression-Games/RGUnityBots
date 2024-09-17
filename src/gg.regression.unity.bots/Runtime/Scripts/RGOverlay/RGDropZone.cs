@@ -144,7 +144,7 @@ namespace RegressionGames
          */
         public void AddChild(GameObject newChild)
         {
-            Destroy(_emptyStatePrefabInstance);
+            SetEmptyState(false);
 
             // place the new child in the drop index that the potential drop spot is occupying
             var dropIndex = 0;
@@ -173,7 +173,7 @@ namespace RegressionGames
             // perform this check before destroying the child, as the childCount won't update until the next frame
             if (transform.childCount - 1 == 0)
             {
-                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, transform, false);
+                SetEmptyState(true);
                 _sequenceEditorScript.SetCreateSequenceButtonEnabled(false);
             }
             
@@ -206,6 +206,25 @@ namespace RegressionGames
         public bool IsEmpty()
         {
             return _emptyStatePrefabInstance != null;
+        }
+
+        /**
+         * <summary>
+         * Show or hide the empty state assigned to this drop zone
+         * </summary>
+         * <param name="isEmpty">If the empty state should be shown or hidden</param>
+         */
+        public void SetEmptyState(bool isEmpty)
+        {
+            if (isEmpty && _emptyStatePrefabInstance == null)
+            {
+                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, transform, false);
+            }
+
+            if (!isEmpty)
+            {
+                Destroy(_emptyStatePrefabInstance);
+            }
         }
 
         /**
@@ -250,11 +269,8 @@ namespace RegressionGames
             {
                 Destroy(transform.GetChild(i).gameObject);
             }
-            
-            if (_emptyStatePrefabInstance == null)
-            {
-                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, transform, false);
-            }
+
+            SetEmptyState(true);
         }
 
         /**

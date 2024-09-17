@@ -82,7 +82,6 @@ public class RGSequenceEditorTests
         // ensure that the editor consumes its public fields properly
         Assert.NotNull(editor.NameInput.onValueChanged);
         Assert.NotNull(editor.SearchInput.onValueChanged);
-        Assert.NotNull(editor.CurrentSequence);
     }
 
     [Test]

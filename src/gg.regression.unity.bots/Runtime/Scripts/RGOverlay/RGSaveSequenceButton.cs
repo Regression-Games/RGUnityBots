@@ -53,7 +53,7 @@ namespace RegressionGames
         {
             if (isEditing)
             {
-                ButtonText.text = "Edit";
+                ButtonText.text = "Update";
                 ButtonIcon.GetComponent<Image>().sprite = EditIcon;
             }
             else
