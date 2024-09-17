@@ -417,8 +417,14 @@ namespace RegressionGames.StateRecorder
             var wasRecording = IsRecording;
             IsRecording = false;
 
-            long loggedWarnings = _loggingObserver.LoggedWarnings;
-            long loggedErrors = _loggingObserver.LoggedErrors;
+            long loggedWarnings = 0;
+            long loggedErrors = 0;
+            if (_loggingObserver != null)
+            {
+                loggedWarnings = _loggingObserver.LoggedWarnings;
+                loggedErrors = _loggingObserver.LoggedErrors;
+            }
+
             if (wasRecording)
             {
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
@@ -429,7 +435,10 @@ namespace RegressionGames.StateRecorder
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
                 _profilerObserver.StopProfiling();
-                _loggingObserver.StopCapturingLogs();
+                if (_loggingObserver != null)
+                {
+                    _loggingObserver.StopCapturingLogs();
+                }
             }
 
             ScreenshotCapture.GetInstance()?.WaitForCompletion();

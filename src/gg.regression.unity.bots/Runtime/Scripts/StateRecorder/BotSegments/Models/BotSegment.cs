@@ -301,88 +301,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             var files = Directory.GetFiles(path, "*.json", SearchOption.AllDirectories).Select(s=> s.Replace('\\','/'));
             foreach (var fileName in files)
             {
-                using var sr = new StreamReader(File.OpenRead(fileName));
-                var json = sr.ReadToEnd();
-                var resource = BotSequence.LoadJsonResource(json);
+                var entry = BotSequence.CreateBotSequenceEntryForPath(path);
 
-                if (!results.ContainsKey(resource.Item2))
+                if (entry.Item2 != null && !results.ContainsKey(entry.Item2))
                 {
                     // parse the result as either a segment or segment list
-                    results[resource.Item2] = ParseSegment(resource.Item3, resource.Item2);
+                    results[entry.Item2] = entry.Item3;
                 }
-
             }
 
             return results;
         }
 
-
-        /**
-         * <summary>
-         * Parses a json string as either a Segment or SegmentList
-         * </summary>
-         * <param name="json">JSON string to parse</param>
-         * <param name="fileName">File the Segment or SegmentList is derived from</param>
-         */
-        private static BotSequenceEntry ParseSegment(string json, string fileName)
-        {
-            try
-            {
-                var currentVersion = SdkApiVersion.CURRENT_VERSION;
-                var entry = new BotSequenceEntry
-                {
-                    path = fileName,
-                };
-
-                // First we will try to parse the file as a SegmentList, if that fails we will try to parse
-                // the file as a standard Segment
-                try
-                {
-                    var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(json);
-                    if (segmentList.EffectiveApiVersion > currentVersion)
-                    {
-                        Debug.LogError(
-                            $"SegmentList ({segmentList.name}) contains a Segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {currentVersion}"
-                        );
-                        return null;
-                    }
-
-                    entry.description = segmentList.description;
-                    entry.entryName = segmentList.name;
-                    entry.type = BotSequenceEntryType.SegmentList;
-                }
-                catch
-                {
-                    try
-                    {
-                        var segment = JsonConvert.DeserializeObject<BotSegment>(json);
-                        if (segment.EffectiveApiVersion > currentVersion)
-                        {
-                            Debug.LogError(
-                                $"Segment ({segment.name}) requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {currentVersion}"
-                            );
-                            return null;
-                        }
-
-                        entry.description = segment.description;
-                        entry.entryName = segment.name;
-                        entry.type = BotSequenceEntryType.Segment;
-                    }
-                    catch
-                    {
-                        Debug.LogError($"RGSequenceEditor Could not parse Bot Segment file: {fileName}");
-                        throw;
-                    }
-                }
-
-                return entry;
-            }
-            catch (Exception exception)
-            {
-                Debug.Log($"RGSequenceEditor could not open Bot Sequence Entry: {exception}");
-            }
-
-            return null;
-        }
     }
 }

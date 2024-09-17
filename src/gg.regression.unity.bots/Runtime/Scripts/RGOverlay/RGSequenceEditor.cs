@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
@@ -179,24 +178,7 @@ namespace RegressionGames
             foreach (var segment in addedSegments)
             {
                 var path = segment.payload["path"];
-                var hasValue = Enum.TryParse(segment.payload["type"], out BotSequenceEntryType type);
-                if (!hasValue)
-                {
-                    continue;
-                }
-
-                if (type == BotSequenceEntryType.Segment)
-                {
-                    CurrentSequence.AddBotSegmentPath(path);
-                }
-                else if (type == BotSequenceEntryType.SegmentList)
-                {
-                    CurrentSequence.AddBotSegmentListPath(path);
-                }
-                else
-                {
-                    Debug.LogError($"RGSequenceEditor could not add Bot Segment of type {type}");
-                }
+                CurrentSequence.AddSequenceEntryForPath(path);
             }
 
             CurrentSequence.name = NameInput.text;

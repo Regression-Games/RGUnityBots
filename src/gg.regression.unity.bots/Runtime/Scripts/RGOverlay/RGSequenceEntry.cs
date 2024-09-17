@@ -2,8 +2,6 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
-using RegressionGames.StateRecorder;
 
 /**
  * <summary>Displays the high-level information for a Sequence</summary>

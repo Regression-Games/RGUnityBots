@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments
@@ -7,15 +8,16 @@ namespace RegressionGames.StateRecorder.BotSegments
 
     public class BotSegmentsPlaybackContainer
     {
-        private readonly List<BotSegment> _botSegments = new();
+        private readonly List<BotSegment> _botSegments;
         private int _botSegmentIndex = 0;
 
         public readonly string SessionId;
 
         public BotSegmentsPlaybackContainer(IEnumerable<BotSegment> segments, string sessionId = null)
         {
-            _botSegments.Clear();
-            _botSegments.AddRange(segments);
+            var replayNumber = 0;
+            _botSegments = new(segments);
+            _botSegments.ForEach(a => a.Replay_SegmentNumber = replayNumber++);
             this.SessionId = sessionId ?? Guid.NewGuid().ToString("n");
         }
 
