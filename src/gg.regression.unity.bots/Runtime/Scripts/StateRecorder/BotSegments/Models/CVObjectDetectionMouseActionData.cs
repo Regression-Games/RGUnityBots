@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class CVObjectDetectionMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes
-        public int apiVersion = SdkApiVersion.VERSION_18;
+        public int apiVersion = SdkApiVersion.VERSION_19;
 
         [NonSerialized]
         public static readonly BotActionType Type = BotActionType.Mouse_ObjectDetection;
