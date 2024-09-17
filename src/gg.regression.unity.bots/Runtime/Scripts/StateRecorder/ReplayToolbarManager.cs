@@ -28,10 +28,10 @@ namespace RegressionGames.StateRecorder
         public RGTextPulse uploadingIndicator;
         public RGTextPulse fileOpenIndicator;
 
+        public string selectedReplayFilePath;
         public BotSegmentsPlaybackController replayDataController;
 
         private bool _recording;
-        private string _selectedReplayFilePath;
 
         // Start is called before the first frame update
         void Start()
@@ -92,7 +92,7 @@ namespace RegressionGames.StateRecorder
             {
                 // FileBrowser.Result is null, if FileBrowser.Success is false
                 // Get the file path of the first selected file
-                _selectedReplayFilePath = FileBrowser.Result[0];
+                selectedReplayFilePath = FileBrowser.Result[0];
                 RefreshSelectedFile();
             }
         }
@@ -107,7 +107,7 @@ namespace RegressionGames.StateRecorder
             fileOpenIndicator.Normal();
 
             // do this on background thread then return to the main thread for continuation
-            Task.Run(() => ProcessDataContainerZipAndSetup(_selectedReplayFilePath)).ContinueWith(_ =>
+            Task.Run(() => ProcessDataContainerZipAndSetup(selectedReplayFilePath)).ContinueWith(_ =>
             {
                 if (_playbackContainer != null)
                 {
@@ -156,11 +156,21 @@ namespace RegressionGames.StateRecorder
 
         public void PlayReplay()
         {
-            RefreshSelectedFile(() =>
+            if (selectedReplayFilePath == null)
             {
+                // this happens when the user plays a bot sequence from the overlay
+                // (no zip file to load)
                 SetInUseButtonStates();
                 replayDataController.Play();
-            });
+            }
+            else
+            {
+                RefreshSelectedFile(() =>
+                {
+                    SetInUseButtonStates();
+                    replayDataController.Play();
+                });
+            }
         }
 
         public void LoopReplay()

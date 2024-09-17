@@ -13,13 +13,17 @@ namespace RegressionGames
      */
     public class RGDeleteSequence : MonoBehaviour
     {
-        public TMP_Text sequenceNamePrefab; 
-        
+        public TMP_Text sequenceNamePrefab;
+
         public Button confirmButton;
-        
+
         public Button cancelButton;
 
-        public string sequencePath;
+        /**
+         * <summary>Null if this is a resource load, or path if this is a file.</summary>
+         */
+        public string filePath = string.Empty;
+        public string resourcePath = string.Empty;
 
         /**
          * <summary>
@@ -36,7 +40,7 @@ namespace RegressionGames
             {
                 Debug.LogError("RGDeleteSequence is missing its confirmButton");
             }
-            
+
             if (cancelButton != null)
             {
                 cancelButton.onClick.AddListener(OnCancel);
@@ -55,8 +59,9 @@ namespace RegressionGames
          */
         public void Initialize(RGSequenceEntry sequence)
         {
-            sequencePath = sequence.sequencePath;
-            
+            filePath = sequence.filePath;
+            resourcePath = sequence.resourcePath;
+
             if (sequenceNamePrefab != null)
             {
                 sequenceNamePrefab.text = sequence.sequenceName;
@@ -75,18 +80,18 @@ namespace RegressionGames
          */
         public void OnDelete()
         {
-            if (string.IsNullOrEmpty(sequencePath))
+            if (string.IsNullOrEmpty(filePath))
             {
-                throw new Exception($"RGDeleteSequence is missing its _sequencePath when attempting to delete a Sequence");
+                throw new Exception($"Cannot delete BotSequence resource at: {resourcePath}.  It was loaded as a Resource from your project's Assets.  If you wish to permanently delete it, remove it from your project's Assets and rebuild.");
             }
-            
+
             var botManager = RGBotManager.GetInstance();
             if (botManager != null)
             {
                 var sequenceManager = botManager.GetComponent<RGSequenceManager>();
                 if (sequenceManager != null)
                 {
-                    sequenceManager.DeleteSequenceByPath(sequencePath);
+                    sequenceManager.DeleteSequenceByPath(filePath);
                     sequenceManager.HideDeleteSequenceDialog();
                 }
             }
@@ -122,7 +127,8 @@ namespace RegressionGames
         private void Reset()
         {
             sequenceNamePrefab.text = string.Empty;
-            sequencePath = string.Empty;
+            filePath = string.Empty;
+            resourcePath = string.Empty;
         }
     }
 }

@@ -7,7 +7,7 @@ using UnityEngine;
 public class RGSequenceManagerTests
 {
     private GameObject _uat;
-    
+
     private RGSequenceManager manager;
 
     [SetUp]
@@ -32,29 +32,29 @@ public class RGSequenceManagerTests
     public void ShowEditSequenceDialog()
     {
         manager.ShowEditSequenceDialog();
-        
+
         // ensure the sequence editor is visible
         Assert.IsTrue(manager.sequenceEditor.activeSelf);
     }
-    
+
     [Test]
     public void HideEditSequenceDialog()
     {
         manager.HideEditSequenceDialog();
-        
+
         // ensure the sequence editor is hidden
         Assert.IsFalse(manager.sequenceEditor.activeSelf);
     }
-    
+
     [Test]
     public void InstantiateSequences()
     {
         // add a list of bot sequences to the manager for instantiation
         const int numSequences = 5;
-        var sequences = new Dictionary<string, BotSequence>();
+        var sequences = new Dictionary<string, (string,BotSequence)>();
         for (var i = 0; i < numSequences; ++i)
         {
-            sequences.Add($"/placeholder/path/{i}", new BotSequence());
+            sequences.Add($"/placeholder/path/{i}", (null,new BotSequence()));
         }
 
         manager.InstantiateSequences(sequences);

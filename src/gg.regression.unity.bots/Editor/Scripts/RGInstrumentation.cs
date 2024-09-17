@@ -37,6 +37,7 @@ namespace RegressionGames.Editor
             CompilationPipeline.compilationStarted += ResetAssemblyResolver;
             CompilationPipeline.assemblyCompilationFinished += OnAssemblyCompiled;
 
+
             _numInstrumentationAttempts = 0;
             _scheduledInstrumentationTime = EditorApplication.timeSinceStartup;
             EditorApplication.update += ScheduledInstrumentationLoop;
