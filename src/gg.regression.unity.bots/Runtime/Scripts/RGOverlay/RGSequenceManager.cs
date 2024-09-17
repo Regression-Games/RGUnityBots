@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 using RegressionGames;
 using RegressionGames.StateRecorder;
 using UnityEngine;
@@ -22,9 +21,9 @@ public class RGSequenceManager : MonoBehaviour
     public GameObject sequenceEditor;
 
     public GameObject deleteSequenceDialog;
-    
+
     private static RGSequenceManager _this;
-    
+
     private ReplayToolbarManager _replayToolbarManager;
 
     public static RGSequenceManager GetInstance()
@@ -32,10 +31,15 @@ public class RGSequenceManager : MonoBehaviour
         return _this;
     }
 
-    public void Start()
+    public void LoadSequences()
     {
         var sequences = ResolveSequenceFiles();
         InstantiateSequences(sequences);
+    }
+
+    public void Start()
+    {
+        LoadSequences();
 
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
         _this = this;
@@ -52,15 +56,15 @@ public class RGSequenceManager : MonoBehaviour
     {
         if (sequenceEditor != null)
         {
-            
+
             var script = sequenceEditor.GetComponent<RGSequenceEditor>();
             if (script != null)
             {
                 script.SaveSequence();
             }
-            
+
             sequenceEditor.SetActive(false);
-            
+
             var sequences = ResolveSequenceFiles();
             InstantiateSequences(sequences);
         }
@@ -74,8 +78,8 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void DeleteSequenceByPath(string path)
     {
-        BotSequence.DeleteSequence(path);
-        
+        BotSequence.DeleteSequenceAtPath(path);
+
         var sequences = ResolveSequenceFiles();
         InstantiateSequences(sequences);
     }
@@ -90,7 +94,7 @@ public class RGSequenceManager : MonoBehaviour
         if (sequenceEditor != null)
         {
             sequenceEditor.SetActive(true);
-            
+
             var script = sequenceEditor.GetComponent<RGSequenceEditor>();
             if (script != null)
             {
@@ -111,7 +115,7 @@ public class RGSequenceManager : MonoBehaviour
             sequenceEditor.SetActive(false);
         }
     }
-    
+
     /**
      * <summary>
      * Show the Delete Sequence confirmation dialog and set its fields
@@ -147,33 +151,37 @@ public class RGSequenceManager : MonoBehaviour
      * <summary>
      * Instantiates Sequence prefabs and adds them to the list of available Sequences
      * </summary>
-     * <param name="sequences">Dictionary of (path, Bot Sequence) data we want to instantiate as prefabs</param>
+     * <param name="sequences">Dictionary of {key=resourcePath, value=(filePath[null if not writeable],Bot Sequence) tuples} we want to instantiate as prefabs</param>
      */
-    public void InstantiateSequences(IDictionary<string, BotSequence> sequences)
+
+    public void InstantiateSequences(IDictionary<string, (string,BotSequence)> sequences)
+
     {
         // ensure we aren't appending new sequences on to the previous ones
         ClearExistingSequences();
-        
+
         // instantiate a prefab for each sequence file that has been loaded
         foreach (var sequenceKVPair in sequences)
         {
-            var path = sequenceKVPair.Key;
-            var sequence = sequenceKVPair.Value;
+            var resourcePath = sequenceKVPair.Key;
+            var sequenceInfo = sequenceKVPair.Value;
             var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
-            
+
             // map sequence data fields to new prefab
             instance.transform.SetParent(sequencesPanel.transform, false);
             var prefabComponent = instance.GetComponent<RGSequenceEntry>();
             if (prefabComponent != null)
             {
-                prefabComponent.sequenceName = sequence.name;
-                prefabComponent.sequencePath = path;
-                prefabComponent.description = sequence.description;
+                prefabComponent.sequenceName = sequenceInfo.Item2.name;
+                prefabComponent.filePath = sequenceInfo.Item1;
+                prefabComponent.resourcePath = resourcePath;
+                prefabComponent.description = sequenceInfo.Item2.description;
                 prefabComponent.playAction = () =>
                 {
                     _replayToolbarManager.selectedReplayFilePath = null;
-                    sequence.Play();
+                    sequenceInfo.Item2.Play();
                 };
+
             }
         }
     }
@@ -194,7 +202,7 @@ public class RGSequenceManager : MonoBehaviour
             Destroy(sequencesPanel.transform.GetChild(i).gameObject);
         }
     }
-    
+
     /**
      * <summary>
      * Load Bot Sequences relative to if we're running in the Unity editor, or in a packaged build. For the packaged
@@ -202,15 +210,17 @@ public class RGSequenceManager : MonoBehaviour
      * will use the persistent data path as an override, so any Sequences that are found in Resources will only be kept
      * if they are not also within the persistent data path
      * </summary>
-     * <returns>Dictionary of (path, Bot Sequence)</returns>
+     * <returns>Dictionary of {key=resourcePath, value=(filePath[null if resource],Bot Sequence) tuple}</returns>
      */
-    private IDictionary<string, BotSequence> ResolveSequenceFiles()
+    private IDictionary<string, (string,BotSequence)> ResolveSequenceFiles()
     {
 #if UNITY_EDITOR
         const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
         if (!Directory.Exists(sequencePath))
         {
-            return new Dictionary<string, BotSequence>();
+
+            return new Dictionary<string, (string,BotSequence)>();
+
         }
 
         return EnumerateSequencesInDirectory(sequencePath);
@@ -218,35 +228,32 @@ public class RGSequenceManager : MonoBehaviour
         var sequences = new Dictionary<string, BotSequence>();
 
         // 1. check the persistentDataPath for sequences
-        var persistentDataPath = Application.persistentDataPath + "/BotSequences";
+        var persistentDataPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences";
         if (Directory.Exists(persistentDataPath))
         {
             sequences = EnumerateSequencesInDirectory(persistentDataPath);
         }
-    
+
         // 2. load Sequences from Resources, while skipping any that have already been fetched from the
         //    persistentDataPath. We will compare Sequences by their filename (without extension), and by the actual
         //    Sequence name
-        const string runtimePath = "BotSequences";
-        var jsons = Resources.LoadAll(runtimePath, typeof(TextAsset));
-        foreach (var jsonObject in jsons)
+        var rgBotSequencesAsset = Resources.Load<IRGBotSequences>("RGBotSequences");
+        foreach (var resourceFilename in rgBotSequencesAsset.sequences)
         {
             try
             {
-                var resourceFilename = jsonObject.name;
-                var json = (jsonObject as TextAsset)?.text ?? "";
-                
-                var sequence = JsonConvert.DeserializeObject<BotSequence>(json);
-
-                // don't add sequences with duplicate names
-                if (sequences.Values.Any(s => s.name == sequence.name))
-                {
-                    continue;
-                }
-                
-                // add the new sequence if its filename doesn't already exist
                 if (!sequences.ContainsKey(resourceFilename))
                 {
+                    var sequenceInfo = Resources.Load<TextAsset>(resourceFilename);
+                    var sequence = JsonConvert.DeserializeObject<BotSequence>(sequenceInfo.text ?? "");
+
+                    // don't add sequences with duplicate names
+                    if (sequences.Values.Any(s => s.name == sequence.name))
+                    {
+                        continue;
+                    }
+
+                    // add the new sequence if its filename doesn't already exist
                     sequences.Add(resourceFilename, sequence);
                 }
             }
@@ -259,15 +266,15 @@ public class RGSequenceManager : MonoBehaviour
         return sequences;
 #endif
     }
-    
+
     /**
      * <summary>
      * Search a directory for any *.json files, then attempt to read them as Bot Sequences
      * </summary>
      * <param name="path">The directory to look for Bot Sequences json files</param>
-     * <returns>Dictionary containing (path, Bot Sequence) entires</returns>
+     * <returns>Dictionary containing {key = resourcePath, value = (filePath[if writeable], Bot Sequence} entries</returns>
      */
-    private Dictionary<string, BotSequence> EnumerateSequencesInDirectory(string path)
+    private Dictionary<string, (string, BotSequence)> EnumerateSequencesInDirectory(string path)
     {
         var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
         return sequenceFiles
@@ -280,10 +287,11 @@ public class RGSequenceManager : MonoBehaviour
                 catch (Exception exception)
                 {
                     Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
-                    return (string.Empty, null);
+                    return (null,null,null);
+
                 }
             })
             .Where(s => s.Item2 != null)
-            .ToDictionary(s => s.Item1, s => s.Item2);
+            .ToDictionary(s => s.Item2, s => (s.Item1, s.Item3));
     }
 }

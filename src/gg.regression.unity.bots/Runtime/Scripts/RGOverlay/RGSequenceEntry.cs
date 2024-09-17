@@ -13,13 +13,18 @@ public class RGSequenceEntry : MonoBehaviour
 
     public string description;
 
-    public string sequencePath;
-    
+    /**
+     * <summary>Null if this is a resource load, or path if this is a file.</summary>
+     */
+    public string filePath;
+
+    public string resourcePath;
+
     public Action playAction;
 
     [SerializeField]
     public Button playButton;
-    
+
     [SerializeField]
     public Button deleteButton;
 
@@ -48,7 +53,7 @@ public class RGSequenceEntry : MonoBehaviour
         {
             playButton.onClick.AddListener(OnPlay);
         }
-        
+
         if (deleteButton != null)
         {
             /*
@@ -57,7 +62,7 @@ public class RGSequenceEntry : MonoBehaviour
              */
 #if UNITY_EDITOR
                 deleteButton.onClick.AddListener(OnDelete);
-                
+
                 // hide the delete button tooltip. We CAN delete
                 // Sequences while playing in the editor
                 var tooltip = GetComponentInChildren<RGTooltip>();

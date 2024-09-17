@@ -18,7 +18,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             JObject jObject = JObject.Load(reader);
             // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
             BotSegmentList list = new();
-            // allow name to be null/undefined in the file
+            // allow name to be null/undefined in the file for backwards compatibility
             list.name = jObject.GetValue("name")?.ToObject<string>(serializer) ?? "";
             // allow description to be null/undefined in the file
             list.description = jObject.GetValue("description")?.ToObject<string>(serializer) ?? "";

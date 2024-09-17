@@ -21,7 +21,7 @@ using UnityEngine.Rendering;
 // ReSharper disable once LoopCanBeConvertedToQuery - Better performance using indexing vs enumerators
 namespace RegressionGames.StateRecorder
 {
-    
+
     struct TickDataToWriteToDisk
     {
         public string directoryPrefix { get; }
@@ -46,7 +46,7 @@ namespace RegressionGames.StateRecorder
             this.logs = logs;
         }
     }
-    
+
     public class ScreenRecorder : MonoBehaviour
     {
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
@@ -82,11 +82,11 @@ namespace RegressionGames.StateRecorder
 
         private long _tickNumber;
         private DateTime _startTime;
-        
+
         // data to record for a given tick
         // and a "cleanup" callback to invoke after the data is written
         private BlockingCollection<(TickDataToWriteToDisk, Action)> _tickQueue;
-        
+
         private readonly List<(string, Task)> _fileWriteTasks = new();
 
         private MouseInputActionObserver _mouseObserver;
@@ -212,16 +212,16 @@ namespace RegressionGames.StateRecorder
             Directory.Delete(logsDirectoryPrefix, true);
 
             await CreateAndUploadGameplaySession(
-                tickCount, 
-                startTime, 
-                endTime,  
+                tickCount,
+                startTime,
+                endTime,
                 loggedWarnings,
-                loggedErrors, 
-                dataDirectoryPrefix, 
+                loggedErrors,
+                dataDirectoryPrefix,
                 botSegmentsDirectoryPrefix,
-                screenshotsDirectoryPrefix, 
-                thumbnailPath, 
-                logsDirectoryPrefix, 
+                screenshotsDirectoryPrefix,
+                thumbnailPath,
+                logsDirectoryPrefix,
                 onDestroy
             );
         }
@@ -273,7 +273,7 @@ namespace RegressionGames.StateRecorder
                     thumbnailPath,
                     () => { RGDebug.LogInfo($"Uploaded gameplay session thumbnail from {thumbnailPath}"); },
                     () => { });
-                
+
                 // Upload the logs
                 await RGServiceManager.GetInstance().UploadGameplaySessionLogs(gameplaySessionId,
                     logsPathPrefix + ".zip",
@@ -416,9 +416,15 @@ namespace RegressionGames.StateRecorder
         {
             var wasRecording = IsRecording;
             IsRecording = false;
-            
-            long loggedWarnings = _loggingObserver.LoggedWarnings;
-            long loggedErrors = _loggingObserver.LoggedErrors;
+
+            long loggedWarnings = 0;
+            long loggedErrors = 0;
+            if (_loggingObserver != null)
+            {
+                loggedWarnings = _loggingObserver.LoggedWarnings;
+                loggedErrors = _loggingObserver.LoggedErrors;
+            }
+
             if (wasRecording)
             {
                 var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
@@ -429,10 +435,13 @@ namespace RegressionGames.StateRecorder
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
                 _profilerObserver.StopProfiling();
-                _loggingObserver.StopCapturingLogs();
+                if (_loggingObserver != null)
+                {
+                    _loggingObserver.StopCapturingLogs();
+                }
             }
 
-            ScreenshotCapture.GetInstance().WaitForCompletion();
+            ScreenshotCapture.GetInstance()?.WaitForCompletion();
 
             _tickQueue?.CompleteAdding();
 
@@ -456,16 +465,16 @@ namespace RegressionGames.StateRecorder
             if (wasRecording)
             {
                 _ = HandleEndRecording(
-                    _tickNumber, 
-                    _startTime, 
-                    DateTime.Now, 
-                    loggedWarnings, 
-                    loggedErrors, 
+                    _tickNumber,
+                    _startTime,
+                    DateTime.Now,
+                    loggedWarnings,
+                    loggedErrors,
                     _currentGameplaySessionDataDirectoryPrefix,
-                    _currentGameplaySessionBotSegmentsDirectoryPrefix, 
+                    _currentGameplaySessionBotSegmentsDirectoryPrefix,
                     _currentGameplaySessionScreenshotsDirectoryPrefix,
                     _currentGameplaySessionCodeCoverageMetadataPath,
-                    _currentGameplaySessionThumbnailPath, 
+                    _currentGameplaySessionThumbnailPath,
                     _currentGameplaySessionLogsDirectoryPrefix,
                     true);
             }
@@ -675,7 +684,7 @@ namespace RegressionGames.StateRecorder
                             codeCoverage = codeCoverageState,
                             inputs = inputData
                         };
-                        
+
                         if (codeCovEnabled)
                         {
                             RGCodeCoverage.Clear();
@@ -699,7 +708,7 @@ namespace RegressionGames.StateRecorder
                         );
 
                         logs = _loggingObserver.DequeueLogs();
-                        
+
                         inputData.MarkSent();
                     }
                     catch (Exception e)
@@ -728,7 +737,7 @@ namespace RegressionGames.StateRecorder
                                     if (Interlocked.CompareExchange(ref didQueue, 1, 0) == 0)
                                     {
                                         // queue up writing the tick data to disk async
-                                        _tickQueue.Add(( 
+                                        _tickQueue.Add((
                                                 new TickDataToWriteToDisk(
                                                     directoryPrefix: _currentGameplaySessionDirectoryPrefix,
                                                     tickNumber: currentTickNumber,
@@ -765,7 +774,7 @@ namespace RegressionGames.StateRecorder
                                                     screenshotHeight: screenHeight,
                                                     screenshotData: null,
                                                     logs: logs
-                                                ), 
+                                                ),
                                                 () => { }
                                             )
                                         );
@@ -791,7 +800,7 @@ namespace RegressionGames.StateRecorder
                     var tuple = _tickQueue.Take(_tokenSource.Token);
                     var tickData = tuple.Item1;
                     ProcessTick(tickData);
-                    
+
                     // invoke the cleanup callback function
                     tuple.Item2();
                 }
