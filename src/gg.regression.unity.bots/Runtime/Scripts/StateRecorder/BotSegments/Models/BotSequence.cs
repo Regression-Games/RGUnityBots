@@ -228,6 +228,42 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         }
 
         /**
+         * <summary>
+         * Checks if there exists a file at the path param, and deletes the file if so.
+         * </summary>
+         * <para name="path">The Sequence path to delete</para>
+         */
+        public static void DeleteSequenceAtPath(string path)
+        {
+            // load the resource to get correct pathing information
+            var resource = LoadJsonResource(path);
+
+            if (!string.IsNullOrEmpty(resource.Item1))
+            {
+                if (!File.Exists(resource.Item1))
+                {
+                    RGDebug.LogError($"BotSequence at: {resource.Item1} cannot be deleted... path does not exist");
+                }
+                else
+                {
+                    try
+                    {
+                        File.Delete(resource.Item1);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new Exception($"Exception trying to delete BotSequence at: {resource.Item1}", e);
+                    }
+                }
+            }
+            else
+            {
+                RGDebug.LogError($"BotSequence at path: {resource.Item2} cannot be deleted... BotSequence was loaded as a Resource.  Remove that BotSequence json file from your project's Assets if you wish to permanently delete it.");
+            }
+
+        }
+
+        /**
          * <summary>Load the json resource at the specified path.  If .json is not on this path it will be auto appended.</summary>
          * <returns>A (FilePath [null - if loaded as resource], resourcePath, contentString) tuple</returns>
          */

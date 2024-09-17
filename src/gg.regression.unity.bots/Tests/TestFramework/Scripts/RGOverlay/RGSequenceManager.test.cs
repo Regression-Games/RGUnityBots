@@ -51,10 +51,10 @@ public class RGSequenceManagerTests
     {
         // add a list of bot sequences to the manager for instantiation
         const int numSequences = 5;
-        var sequences = new List<(string,BotSequence)>();
+        var sequences = new Dictionary<string, (string,BotSequence)>();
         for (var i = 0; i < numSequences; ++i)
         {
-            sequences.Add(("testing/"+i, new BotSequence()));
+            sequences.Add($"/placeholder/path/{i}", (null,new BotSequence()));
         }
 
         manager.InstantiateSequences(sequences);

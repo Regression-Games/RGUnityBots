@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames;
+using RegressionGames.StateRecorder;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
@@ -19,7 +20,11 @@ public class RGSequenceManager : MonoBehaviour
 
     public GameObject sequenceEditor;
 
+    public GameObject deleteSequenceDialog;
+
     private static RGSequenceManager _this;
+
+    private ReplayToolbarManager _replayToolbarManager;
 
     public static RGSequenceManager GetInstance()
     {
@@ -36,6 +41,7 @@ public class RGSequenceManager : MonoBehaviour
     {
         LoadSequences();
 
+        _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
     }
@@ -62,6 +68,20 @@ public class RGSequenceManager : MonoBehaviour
             var sequences = ResolveSequenceFiles();
             InstantiateSequences(sequences);
         }
+    }
+
+    /**
+     * <summary>
+     * Deletes the Sequence provided by the path param, then reload all Sequences
+     * </summary>
+     * <param name="path">The path of the Sequence to delete</param>
+     */
+    public void DeleteSequenceByPath(string path)
+    {
+        BotSequence.DeleteSequenceAtPath(path);
+
+        var sequences = ResolveSequenceFiles();
+        InstantiateSequences(sequences);
     }
 
     /**
@@ -98,18 +118,53 @@ public class RGSequenceManager : MonoBehaviour
 
     /**
      * <summary>
+     * Show the Delete Sequence confirmation dialog and set its fields
+     * </summary>
+     */
+    public void ShowDeleteSequenceDialog(RGSequenceEntry sequence)
+    {
+        if (deleteSequenceDialog != null)
+        {
+            var script = deleteSequenceDialog.GetComponent<RGDeleteSequence>();
+            if (script != null)
+            {
+                script.Initialize(sequence);
+                deleteSequenceDialog.SetActive(true);
+            }
+        }
+    }
+
+    /**
+     * <summary>
+     * Hide the Delete Sequence confirmation dialog
+     * </summary>
+     */
+    public void HideDeleteSequenceDialog()
+    {
+        if (deleteSequenceDialog != null)
+        {
+            deleteSequenceDialog.SetActive(false);
+        }
+    }
+
+    /**
+     * <summary>
      * Instantiates Sequence prefabs and adds them to the list of available Sequences
      * </summary>
-     * <param name="sequences">List of (filePath[null if not writeable],Bot Sequence) tuples we want to instantiate as prefabs</param>
+     * <param name="sequences">Dictionary of {key=resourcePath, value=(filePath[null if not writeable],Bot Sequence) tuples} we want to instantiate as prefabs</param>
      */
-    public void InstantiateSequences(IList<(string,BotSequence)> sequences)
+
+    public void InstantiateSequences(IDictionary<string, (string,BotSequence)> sequences)
+
     {
         // ensure we aren't appending new sequences on to the previous ones
         ClearExistingSequences();
 
         // instantiate a prefab for each sequence file that has been loaded
-        foreach (var sequence in sequences)
+        foreach (var sequenceKVPair in sequences)
         {
+            var resourcePath = sequenceKVPair.Key;
+            var sequenceInfo = sequenceKVPair.Value;
             var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
 
             // map sequence data fields to new prefab
@@ -117,9 +172,15 @@ public class RGSequenceManager : MonoBehaviour
             var prefabComponent = instance.GetComponent<RGSequenceEntry>();
             if (prefabComponent != null)
             {
-                prefabComponent.sequenceName = sequence.Item2.name;
-                prefabComponent.description = sequence.Item2.description;
-                prefabComponent.playAction = sequence.Item2.Play;
+                prefabComponent.sequenceName = sequenceInfo.Item2.name;
+                prefabComponent.sequencePath = resourcePath;
+                prefabComponent.description = sequenceInfo.Item2.description;
+                prefabComponent.playAction = () =>
+                {
+                    _replayToolbarManager.selectedReplayFilePath = null;
+                    sequenceInfo.Item2.Play();
+                };
+
             }
         }
     }
@@ -148,18 +209,21 @@ public class RGSequenceManager : MonoBehaviour
      * will use the persistent data path as an override, so any Sequences that are found in Resources will only be kept
      * if they are not also within the persistent data path
      * </summary>
-     * <returns>List of (filePath[null if not writeable],Bot Sequence) tuples</returns>
+     * <returns>Dictionary of {key=resourcePath, value=(filePath[null if resource],Bot Sequence) tuple}</returns>
      */
-    private IList<(string, BotSequence)> ResolveSequenceFiles()
+    private IDictionary<string, (string,BotSequence)> ResolveSequenceFiles()
+
     {
 #if UNITY_EDITOR
         const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
         if (!Directory.Exists(sequencePath))
         {
-            return new List<(string,BotSequence)>();
+
+            return new Dictionary<string, (string,BotSequence)>();
+
         }
 
-        return EnumerateSequencesInDirectory(sequencePath).Values.ToList();
+        return EnumerateSequencesInDirectory(sequencePath);
 #else
         var sequences = new Dictionary<string, BotSequence>();
 
@@ -199,7 +263,7 @@ public class RGSequenceManager : MonoBehaviour
             }
         }
 
-        return sequences.Values.ToList();
+        return sequences;
 #endif
     }
 
@@ -224,6 +288,7 @@ public class RGSequenceManager : MonoBehaviour
                 {
                     Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
                     return (null,null,null);
+
                 }
             })
             .Where(s => s.Item2 != null)
