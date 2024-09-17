@@ -3,22 +3,22 @@
 ###  CVObjectDetection
 
 Disclaimer: The `CVObjectDetection` type is still in an experimental phase and may provide inconsistent or unexpected results in many situations.  We are continuing to evaluate and tune this type.  See the [Limitations and Notes](#limitations-and-notes) section below for more information.
-  - The `CVObjectDetection` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of an object in the current frame of the game until a frame contains the object. The object can either be specified by an image or by text.  This type communicates with our remote tool instance to perform the evaluation.  When a result is found, the tool provides the bounding rect information to our SDK to confirm the existence and location of the supplied image in the current frame.
+  - The `CVObjectDetection` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of an object in the current frame of the game until a frame contains the object. The object can either be specified by an image or by text.  This type communicates with our remote server instance to perform the evaluation.  When a result is found, the server provides the bounding rect information to our SDK to confirm the existence and location of the supplied image in the current frame.
 
 **TODO:** [Loom Video - Feel free to ignore this as I will be making these from my own demos]
 
 #### **CVObjectDetection via textQuery**
 
-When a `textQuery` is specified the tool will search for the specified object in the image. For example, if the textQuery is "Dog" then the tool will look for a dog in the image. If a dog is detected then the bounding box of the dog will be returned.
+When a `textQuery` is specified this method will search for the specified object in the image. For example, if the textQuery is "Dog" then this method will look for a dog in the image. If a dog is detected then the bounding box of the dog will be returned.
 
-This approach is useful when you want to detect an object that can look differently in the game. For example, you might want to click on a "Tree" but there might be several types of trees in the game, and you do not want to differentiate between them. This is also useful when the orientation of the object in the camera view is dynamic and it can't directly match a static image. If you know exactly what the tree might look like (such as a static sprite) then [CV Image](user-tools\README-CVImage.md) might be a better option for you.
+This method is useful when you want to detect an object that can look differently in the game. For example, you might want to click on a "Tree" but there might be several types of trees in the game, and you do not want to differentiate between them. This is also useful when the orientation of the object in the camera view is dynamic and it can't directly match a static image. If you know exactly what the tree might look like (such as a static sprite) then [CV Image](user-tools\README-CVImage.md) might be a better option for you.
 
 
 #### **CVObjectDetection via imageQuery**
 
-When an `imageQuery` is specified the tool will search for the type of object that is contained in the image. For example, if the `imageQuery` is an image of a dog then the tool will first identify that the main object in the `imageQuery` is a dog, then it will look for a dog in the image. If a dog is detected then the tool will return the bounding box of the dog.
+When an `imageQuery` is specified this method will search for the type of object that is contained in the image. For example, if the `imageQuery` is an image of a dog then this method will first identify that the main object in the `imageQuery` is a dog, then it will look for a dog in the image. If a dog is detected then this method will return the bounding box of the dog.
 
-This approach is useful when you have an image of an asset, however the asset can look different in the game. For example, the asset might be rotated, have an effect on it, or the rendering details might be different.
+This method is useful when you have an image of an asset, however the asset can look different in the game. For example, the asset might be rotated, have an effect on it, or the rendering details might be different.
 
 ## Configuration
 
@@ -78,9 +78,10 @@ or
 
 ### `endCriteria`
 
+#### Image Query Example
 ```json
 {
-    "name":"CV Object Detection Criteria: Tree",
+    "name":"CV Object Detection Criteria: Find a tree using an image query",
     "endCriteria":[
         {
             "type":"CVObjectDetection",
@@ -92,10 +93,6 @@ or
                 "imageQuery":"file://???/sample_images/tree.jpg",
                 or  
                 "imageQuery":"resource://sample_images/tree.jpg",
-                or
-                "textQuery": "Tree",
-
-                "threshold": 0.4, # Only valid for textQuery.
                 "withinRect": {
                     "screenSize":{"x":1920,"y":1080},
                     "rect":{"x":1250,"y":210,"width":250,"height":275}
@@ -106,15 +103,35 @@ or
     "botAction":{}
 }
 ```
-
 - Using file:// path (??? represents the path to this folder on your system)
 - Using resoure:// path (note that the `sample_images` folder must be under a Resources folder in your project)
 
-### `botAction`
-
+#### Text Query Example
 ```json
 {
-    "name": "CV Object Detection Action: Click on a tree",
+    "name":"CV Object Detection Criteria: Find a tree using a text query",
+    "endCriteria":[
+        {
+            "type":"CVObjectDetection",
+            "description":"Checks for the presence of a tree.",
+            "transient":true,
+            "data":{
+                "textQuery": "Tree",
+                "threshold": 0.4,
+            }
+        }
+    ],
+    "botAction":{}
+}
+```
+
+
+### `botAction`
+
+#### Image Query Example
+```json
+{
+    "name": "CV Object Detection Action: Click on a tree using an image query",
     "description":"Moves the mouse over the tree, then clicks and releases on the tree. Criteria waits for the action to complete.",
     "endCriteria": [
          {"type":"ActionComplete", "transient":false, "data":{}}
@@ -127,10 +144,31 @@ or
             "imageQuery":"file://???/sample_images/tree.jpg",
             or  
             "imageQuery":"resource://sample_images/tree",
-            or
-            "textQuery": "Tree",
+            "actions": [
+                {"leftButton":false, "duration":0.1}, # Move the mouse to the center of the tree
+                {"leftButton":true, "duration":0.1},  # Click the left mouse button
+                {"leftButton":false, "duration":0.1}  # Release the left mouse button
+            ]
+        }
+    }
+}
+```
+- Using file:// path (??? represents the path to this folder on your system)
+- Using resoure:// path (note that the `sample_images` folder must be under a Resources folder in your project)
 
-            "threshold": 0.4, # Only valid for textQuery.
+#### Text Query Example
+```json
+{
+    "name": "CV Object Detection Action: Click on a tree using a text query",
+    "description":"Moves the mouse over the tree, then clicks and releases on the tree. Criteria waits for the action to complete.",
+    "endCriteria": [
+         {"type":"ActionComplete", "transient":false, "data":{}}
+    ],
+    "botAction":{    
+        "type":"Mouse_ObjectDetection",
+        "data": {
+            "textQuery": "Tree",
+            "threshold": 0.4,
             "actions": [
                 {"leftButton":false, "duration":0.1}, # Move the mouse to the center of the tree
                 {"leftButton":true, "duration":0.1},   # Click the left mouse button
@@ -140,8 +178,6 @@ or
     }
 }
 ```
-- Using file:// path (??? represents the path to this folder on your system)
-- Using resoure:// path (note that the `sample_images` folder must be under a Resources folder in your project)
 
 ## Demos
 **TODO:** Link to a public git repo files that are using this feature. **Feel free to skip this as I might be making a lot of these myself.**

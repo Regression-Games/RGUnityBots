@@ -3,7 +3,7 @@
 ###  CVImage
 
 Disclaimer: The `CVImage` type is still in an experimental phase and may provide inconsistent or unexpected results in many situations.  We are continuing to evaluate and tune this type.  See the [Limitations and Notes](#limitations-and-notes) section below for more information.
-  - The `CVImage` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of the supplied image in the current frame of the game until a frame contains the supplied image.  This type communicates with our remote tool instance to perform the evaluation.  When a result is found, the tool provides the bounding rect information to our SDK to confirm the existence and location of the supplied image in the current frame.
+  - The `CVImage` type can be used in Bot Segments for both `endCriteria` and/or `botAction`.  This type looks for the presence of the supplied image in the current frame of the game until a frame contains the supplied image.  This type communicates with our remote server instance to perform the evaluation.  When a result is found, the server provides the bounding rect information to our SDK to confirm the existence and location of the supplied image in the current frame.
 
 **TODO:** [Loom Video - Feel free to ignore this as I will be making these from my own demos]
 
