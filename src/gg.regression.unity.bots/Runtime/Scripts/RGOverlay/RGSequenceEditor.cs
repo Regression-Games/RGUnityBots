@@ -44,6 +44,8 @@ namespace RegressionGames
 
         private IList<BotSequenceEntry> _filteredSegmentEntries;
 
+        private string _existingSequencePath;
+
         /**
          * <summary>
          * Ensure all required fields are provided, and set any event listening functions
@@ -114,11 +116,13 @@ namespace RegressionGames
             var isBeingEdited = !string.IsNullOrEmpty(existingSequencePath);
             if (isBeingEdited)
             {
-                SetEditFields(existingSequencePath);
+                CurrentSequence = SetEditingState(existingSequencePath);
                 titleComponent.text = "Edit Sequence";
+                _existingSequencePath = existingSequencePath;
             }
             else
             {
+                CurrentSequence = new BotSequence();
                 titleComponent.text = "Create Sequence";
             }
 
@@ -133,7 +137,7 @@ namespace RegressionGames
             CreateAvailableSegments(_segmentEntries);
         }
 
-        public void SetEditFields(string sequencePath)
+        public BotSequence SetEditingState(string sequencePath)
         {
             var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item3;
             NameInput.text = sequenceToEdit.name;
@@ -142,9 +146,12 @@ namespace RegressionGames
             {
                 InstantiateDraggableSegmentCard(entry, _dropZone.transform);
             }
+
             _dropZone.SetEmptyState(false);
 
             SetCreateSequenceButtonEnabled(true);
+
+            return sequenceToEdit;
         }
 
         /**
@@ -191,7 +198,15 @@ namespace RegressionGames
          */
         public void SaveSequence()
         {
-            CurrentSequence = new BotSequence();
+            if (!string.IsNullOrEmpty(_existingSequencePath))
+            {
+                CurrentSequence.segments.Clear();
+
+                if (CurrentSequence.name != NameInput.text)
+                {
+                    BotSequence.DeleteSequenceAtPath(_existingSequencePath);
+                }
+            }
 
             var addedSegments = _dropZone.GetChildren();
             foreach (var segment in addedSegments)
