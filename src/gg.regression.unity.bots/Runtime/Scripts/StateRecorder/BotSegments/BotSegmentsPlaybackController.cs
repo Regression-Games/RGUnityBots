@@ -374,6 +374,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                 }
 
+                var matchedThisUpdate = false;
+
                 // check count each loop because we remove from it during the loop
                 for (var i = 0; i < _nextBotSegments.Count; /* do not increment here*/)
                 {
@@ -399,8 +401,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             {
                                 _lastTimeLoggedKeyFrameConditions = now;
                                 FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                                // only do this when it is the zero index segment that passes
-                                KeyFrameEvaluator.Evaluator.PersistPriorFrameStatus();
+                                matchedThisUpdate = true;
                             }
                         }
 
@@ -444,6 +445,12 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                         ++i;
                     }
+                }
+
+                if (matchedThisUpdate)
+                {
+                    // only do this when a segment passed this update after all segments have been considered for this update
+                    KeyFrameEvaluator.Evaluator.PersistPriorFrameStatus();
                 }
 
                 if (_nextBotSegments.Count > 0)
