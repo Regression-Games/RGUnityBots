@@ -16,13 +16,13 @@ namespace RegressionGames
         public List<GameObject> droppables;
 
         public GameObject SequenceEditor;
-        
+
         public GameObject potentialDropSpotPrefab;
 
         public GameObject emptyStatePrefab;
 
         private RGSequenceEditor _sequenceEditorScript;
-        
+
         private GameObject _emptyStatePrefabInstance;
 
         private GameObject _potentialDropSpotInstance;
@@ -41,7 +41,7 @@ namespace RegressionGames
             {
                 Debug.LogError("RGDropZone has no droppable types set");
             }
-            
+
             if (SequenceEditor == null)
             {
                 Debug.LogError("RGDropZone has no SequenceEditor set");
@@ -50,18 +50,18 @@ namespace RegressionGames
             {
                 _sequenceEditorScript = SequenceEditor.GetComponent<RGSequenceEditor>();
             }
-            
+
             if (potentialDropSpotPrefab == null)
             {
                 Debug.LogError("RGDropZone has no potentialDropSpotPrefab set");
             }
-            
+
             if (emptyStatePrefab == null)
             {
                 Debug.LogError("RGDropZone has no emptyStatePrefab set");
             }
         }
-        
+
         /**
          * <summary>
          * When a draggable card is over this drop zone, we will update the potential location that the draggable card
@@ -109,7 +109,7 @@ namespace RegressionGames
                 }
                 else
                 {
-                    // create and place the potential drop spot if needed 
+                    // create and place the potential drop spot if needed
                     if (_potentialDropSpotInstance == null)
                     {
                         _potentialDropSpotInstance = Instantiate(
@@ -124,7 +124,7 @@ namespace RegressionGames
                 }
             }
         }
-        
+
         /**
          * <summary>
          * Reset the state used to track the current draggable
@@ -159,7 +159,7 @@ namespace RegressionGames
 
             _sequenceEditorScript.SetCreateSequenceButtonEnabled(_sequenceEditorScript.NameInput.text.Length > 0);
 
-            ResetDraggableTracking();   
+            ResetDraggableTracking();
         }
 
         /**
@@ -176,7 +176,7 @@ namespace RegressionGames
                 SetEmptyState(true);
                 _sequenceEditorScript.SetCreateSequenceButtonEnabled(false);
             }
-            
+
             childToRemove.transform.SetParent(null);
             Destroy(childToRemove);
         }
@@ -212,16 +212,16 @@ namespace RegressionGames
          * <summary>
          * Show or hide the empty state assigned to this drop zone
          * </summary>
-         * <param name="isEmpty">If the empty state should be shown or hidden</param>
+         * <param name="setEmpty">If the empty state should be shown or hidden</param>
          */
-        public void SetEmptyState(bool isEmpty)
+        public void SetEmptyState(bool setEmpty)
         {
-            if (isEmpty && _emptyStatePrefabInstance == null)
+            if (setEmpty && _emptyStatePrefabInstance == null)
             {
                 _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, transform, false);
             }
 
-            if (!isEmpty)
+            if (!setEmpty)
             {
                 Destroy(_emptyStatePrefabInstance);
             }
@@ -256,7 +256,7 @@ namespace RegressionGames
 
             return children;
         }
-        
+
         /**
          * <summary>
          * Destroy all the children added to this drop zone, then show the empty state prefab
