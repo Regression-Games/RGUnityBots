@@ -18,6 +18,7 @@ using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
 using RegressionGames.Editor;
+using RegressionGames.StateRecorder.BotSegments;
 using TMPro;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
@@ -99,17 +100,24 @@ namespace RegressionGames.ActionManager
         /// </summary>
         private ISet<string> GetIgnoredAssemblyNames()
         {
-            Assembly rgAssembly = RGEditorUtils.FindRGAssembly();
+            Assembly rgAssembly = FindRGPlayerAssembly();
+            if (rgAssembly == null)
+            {
+                return null;
+            }
+
             Assembly rgEditorAssembly = FindRGEditorAssembly();
-            if (rgAssembly == null || rgEditorAssembly == null)
+            if (rgEditorAssembly == null)
             {
                 return null;
             }
 
             // ignore RG SDK assemblies and their dependencies
-            HashSet<string> result = new HashSet<string>();
-            result.Add(Path.GetFileNameWithoutExtension(rgAssembly.outputPath));
-            result.Add(Path.GetFileNameWithoutExtension(rgEditorAssembly.outputPath));
+            HashSet<string> result = new()
+            {
+                Path.GetFileNameWithoutExtension(rgAssembly.outputPath),
+                Path.GetFileNameWithoutExtension(rgEditorAssembly.outputPath)
+            };
             foreach (string asmPath in rgAssembly.allReferences)
             {
                 result.Add(Path.GetFileNameWithoutExtension(asmPath));
@@ -120,6 +128,20 @@ namespace RegressionGames.ActionManager
             }
 
             return result;
+        }
+
+        public static Assembly FindRGPlayerAssembly()
+        {
+            var rgAsmName = Path.GetFileName(typeof(BotSegmentsPlaybackController).Assembly.Location);
+            Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
+            foreach (Assembly assembly in assemblies)
+            {
+                if (Path.GetFileName(assembly.outputPath) == rgAsmName)
+                {
+                    return assembly;
+                }
+            }
+            return null;
         }
 
         public static Assembly FindRGEditorAssembly()
@@ -133,7 +155,6 @@ namespace RegressionGames.ActionManager
                     return assembly;
                 }
             }
-
             return null;
         }
 
