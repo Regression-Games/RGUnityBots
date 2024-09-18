@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using RegressionGames;
 using RegressionGames.StateRecorder;
 using UnityEngine;
@@ -26,6 +27,9 @@ public class RGSequenceManager : MonoBehaviour
 
     private ReplayToolbarManager _replayToolbarManager;
 
+    private bool _loadingSequences = false;
+    private IDictionary<string, (string, BotSequence)> _loadedSequences = null;
+
     public static RGSequenceManager GetInstance()
     {
         return _this;
@@ -38,8 +42,15 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void LoadSequences()
     {
-        var sequences = ResolveSequenceFiles();
-        InstantiateSequences(sequences);
+        if (_loadingSequences == false)
+        {
+            // not perfectly thread safe.. but close enough for this case
+            _loadingSequences = true;
+            new Thread(() =>
+            {
+                _loadedSequences = ResolveSequenceFiles();
+            }).Start();
+        }
     }
 
     public void Start()
@@ -49,6 +60,16 @@ public class RGSequenceManager : MonoBehaviour
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
+    }
+
+    public void Update()
+    {
+        if (_loadedSequences != null)
+        {
+            InstantiateSequences(_loadedSequences);
+            _loadingSequences = false;
+            _loadedSequences = null;
+        }
     }
 
     /**
@@ -161,31 +182,34 @@ public class RGSequenceManager : MonoBehaviour
     public void InstantiateSequences(IDictionary<string, (string,BotSequence)> sequences)
 
     {
-        // ensure we aren't appending new sequences on to the previous ones
-        ClearExistingSequences();
-
-        // instantiate a prefab for each sequence file that has been loaded
-        foreach (var sequenceKVPair in sequences)
+        if (sequencesPanel != null && sequenceCardPrefab != null)
         {
-            var resourcePath = sequenceKVPair.Key;
-            var sequenceInfo = sequenceKVPair.Value;
-            var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
+            // ensure we aren't appending new sequences on to the previous ones
+            ClearExistingSequences();
 
-            // map sequence data fields to new prefab
-            instance.transform.SetParent(sequencesPanel.transform, false);
-            var prefabComponent = instance.GetComponent<RGSequenceEntry>();
-            if (prefabComponent != null)
+            // instantiate a prefab for each sequence file that has been loaded
+            foreach (var sequenceKVPair in sequences)
             {
-                prefabComponent.sequenceName = sequenceInfo.Item2.name;
-                prefabComponent.filePath = sequenceInfo.Item1;
-                prefabComponent.resourcePath = resourcePath;
-                prefabComponent.description = sequenceInfo.Item2.description;
-                prefabComponent.playAction = () =>
-                {
-                    _replayToolbarManager.selectedReplayFilePath = null;
-                    sequenceInfo.Item2.Play();
-                };
+                var resourcePath = sequenceKVPair.Key;
+                var sequenceInfo = sequenceKVPair.Value;
+                var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
 
+                // map sequence data fields to new prefab
+                instance.transform.SetParent(sequencesPanel.transform, false);
+                var prefabComponent = instance.GetComponent<RGSequenceEntry>();
+                if (prefabComponent != null)
+                {
+                    prefabComponent.sequenceName = sequenceInfo.Item2.name;
+                    prefabComponent.filePath = sequenceInfo.Item1;
+                    prefabComponent.resourcePath = resourcePath;
+                    prefabComponent.description = sequenceInfo.Item2.description;
+                    prefabComponent.playAction = () =>
+                    {
+                        _replayToolbarManager.selectedReplayFilePath = null;
+                        sequenceInfo.Item2.Play();
+                    };
+
+                }
             }
         }
     }
@@ -195,15 +219,18 @@ public class RGSequenceManager : MonoBehaviour
      */
     private void ClearExistingSequences()
     {
-        for(int i = 0; i < sequencesPanel.transform.childCount; i++)
+        if (sequencesPanel != null)
         {
-            if (i == 0)
+            for (int i = 0; i < sequencesPanel.transform.childCount; i++)
             {
-                // don't destroy the 'create new sequence' button child. It is always the first one
-                continue;
-            }
+                if (i == 0)
+                {
+                    // don't destroy the 'create new sequence' button child. It is always the first one
+                    continue;
+                }
 
-            Destroy(sequencesPanel.transform.GetChild(i).gameObject);
+                Destroy(sequencesPanel.transform.GetChild(i).gameObject);
+            }
         }
     }
 
