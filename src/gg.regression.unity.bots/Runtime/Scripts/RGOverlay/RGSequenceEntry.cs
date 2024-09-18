@@ -26,6 +26,9 @@ public class RGSequenceEntry : MonoBehaviour
     public Button playButton;
 
     [SerializeField]
+    public Button editButton;
+
+    [SerializeField]
     public Button deleteButton;
 
     /**
@@ -54,6 +57,11 @@ public class RGSequenceEntry : MonoBehaviour
             playButton.onClick.AddListener(OnPlay);
         }
 
+        if (editButton != null)
+        {
+            editButton.onClick.AddListener(OnEdit);
+        }
+        
         if (deleteButton != null)
         {
             /*
@@ -86,6 +94,20 @@ public class RGSequenceEntry : MonoBehaviour
         var botManager = RGBotManager.GetInstance();
         botManager?.OnBeginPlaying();
         playAction?.Invoke();
+    }
+
+    /**
+     * <summary>
+     * When the edit button is pressed, open the Sequence Editor preloaded and populate it
+     * </summary>
+     */
+    public void OnEdit()
+    {
+        var sequenceManager = RGSequenceManager.GetInstance();
+        if (sequenceManager != null)
+        {
+            sequenceManager.ShowEditSequenceDialog(filePath);
+        }
     }
 
     /**
