@@ -245,10 +245,10 @@ public class RegressionPackagePopup : EditorWindow
         GUI.Label(new Rect(20, 450, 580, 20), "API Key", titleStyle);
 
         // Draw the description
-        GUI.Label(new Rect(20, 480, 565, 20), "Set an API key to utilize our features.", descriptionStyle);
+        GUI.Label(new Rect(20, 480, 565, 20), "Set up an API key to utilize our features.", descriptionStyle);
         
         // Draw the button
-        if (GUI.Button(new Rect(20, 510, 170, 30), "Set an API Key"))
+        if (GUI.Button(new Rect(20, 510, 170, 30), "Set up API Key"))
         {
             OpenRGSettings();
         }
