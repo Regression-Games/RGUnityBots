@@ -404,6 +404,7 @@ MonoBehaviour:
   description: 
   sequencePath: 
   playButton: {fileID: 2445726624697383442}
+  editButton: {fileID: 552020959801161968}
   deleteButton: {fileID: 3433092397220868272}
   nameComponent: {fileID: 714608286913792316}
   descriptionComponent: {fileID: 0}

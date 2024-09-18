@@ -1261,7 +1261,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: -502.29858}
+  m_SizeDelta: {x: 0, y: -510.94196}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &4464557815510263973
 CanvasRenderer:
@@ -3582,6 +3582,7 @@ MonoBehaviour:
   recordingPulse: {fileID: 2788856397230457161}
   uploadingIndicator: {fileID: 4082924595279891428}
   fileOpenIndicator: {fileID: 6646297724481399087}
+  selectedReplayFilePath: 
   replayDataController: {fileID: 5893801167117800152}
 --- !u!114 &5893801167117800152
 MonoBehaviour:

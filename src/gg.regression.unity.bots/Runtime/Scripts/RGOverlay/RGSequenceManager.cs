@@ -31,6 +31,11 @@ public class RGSequenceManager : MonoBehaviour
         return _this;
     }
 
+    /**
+     * <summary>
+     * Load and instantiate the Sequences list
+     * </summary>
+     */
     public void LoadSequences()
     {
         var sequences = ResolveSequenceFiles();
@@ -65,8 +70,7 @@ public class RGSequenceManager : MonoBehaviour
 
             sequenceEditor.SetActive(false);
 
-            var sequences = ResolveSequenceFiles();
-            InstantiateSequences(sequences);
+            LoadSequences();
         }
     }
 
@@ -80,16 +84,16 @@ public class RGSequenceManager : MonoBehaviour
     {
         BotSequence.DeleteSequenceAtPath(path);
 
-        var sequences = ResolveSequenceFiles();
-        InstantiateSequences(sequences);
+        LoadSequences();
     }
 
     /**
      * <summary>
      * Show the Sequence Editor, and initialize its fields
      * </summary>
+     * <param name="existingSequencePath">The path for an existing Sequence for editing (optional)</param>
      */
-    public void ShowEditSequenceDialog()
+    public void ShowEditSequenceDialog(string existingSequencePath = null)
     {
         if (sequenceEditor != null)
         {
@@ -98,7 +102,7 @@ public class RGSequenceManager : MonoBehaviour
             var script = sequenceEditor.GetComponent<RGSequenceEditor>();
             if (script != null)
             {
-                script.Initialize();
+                script.Initialize(existingSequencePath);
             }
         }
     }

@@ -113,6 +113,24 @@ public class RGDropZoneTests
         // ensure that the drop zone has at least one child
         Assert.IsFalse(dropZone.IsEmpty());
     }
+
+    [Test]
+    public void SetEmptyState_IsEmpty()
+    {
+        dropZone.SetEmptyState(true);
+
+        // ensure that the empty state was created
+        Assert.IsTrue(dropZone.IsEmpty());
+    }
+
+    [Test]
+    public void SetEmptyState_IsNotEmpty()
+    {
+        dropZone.SetEmptyState(false);
+
+        // ensure that the empty state is not present
+        Assert.IsFalse(dropZone.IsEmpty());
+    }
     
     [Test]
     public void GetChildren()

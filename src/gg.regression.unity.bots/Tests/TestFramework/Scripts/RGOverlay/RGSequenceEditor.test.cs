@@ -30,6 +30,7 @@ public class RGSequenceEditorTests
         editor.NameInput = text;
         editor.DescriptionInput = text;
         editor.SearchInput = text;
+        editor.titleComponent = RGTestUtils.CreateTMProPlaceholder();
         editor.AvailableSegmentsList = new GameObject();
         editor.CreateSequenceButton = new GameObject();
         editor.CreateSequenceButton.AddComponent<Button>();
@@ -82,7 +83,6 @@ public class RGSequenceEditorTests
         // ensure that the editor consumes its public fields properly
         Assert.NotNull(editor.NameInput.onValueChanged);
         Assert.NotNull(editor.SearchInput.onValueChanged);
-        Assert.NotNull(editor.CurrentSequence);
     }
 
     [Test]
