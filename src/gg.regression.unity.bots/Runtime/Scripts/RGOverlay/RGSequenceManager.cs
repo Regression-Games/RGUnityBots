@@ -42,7 +42,6 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void LoadSequences()
     {
-        return;
         if (_loadingSequences == false)
         {
             // not perfectly thread safe.. but close enough for this case
