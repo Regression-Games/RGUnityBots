@@ -1,11 +1,9 @@
 using System;
 using System.IO;
-using System.Threading.Tasks;
 using RegressionGames;
 using UnityEngine;
 using UnityEngine.Rendering;
 #if UNITY_EDITOR
-using RegressionGames.Editor;
 using UnityEditor;
 using UnityEditor.PackageManager.Requests;
 using UnityEditor.SceneManagement;
@@ -17,13 +15,8 @@ public class RegressionPackagePopup : EditorWindow
 
     private const string RGUnityCheck = "rgunitycheck";
     private const string RGWindowCheck = "rgwindowcheck";
-    private const string RGGuestCheck = "rgguest";
     private Texture2D bannerImage;
     private static RegressionPackagePopup window;
-    private static bool loggedIn = false;
-    private static string email = "";
-    private static string password = "";
-    private static bool requestingLogin = false;
     private static AddRequest addRequest;
     private static ListRequest listRequest;
 
@@ -45,15 +38,6 @@ public class RegressionPackagePopup : EditorWindow
         }
     }
 
-    public static void ShowWindow(bool shouldShowLogin)
-    {
-        ShowWindow();
-        if (shouldShowLogin)
-        {
-            requestingLogin = true;
-        }
-    }
-
     [MenuItem("Regression Games/Getting Started")]
     public static void ShowWindow()
     {
@@ -68,138 +52,20 @@ public class RegressionPackagePopup : EditorWindow
         }
     }
 
+    [MenuItem("Regression Games/Open Settings")]
+    public static void OpenRGSettings()
+    {
+        SettingsService.OpenProjectSettings("Regression Games");
+    }
+
     void OnGUI()
     {
-        bool isGuest = PlayerPrefs.HasKey(RGGuestCheck);
-        if ((!loggedIn && !isGuest) || requestingLogin)
-        {
-            RenderLoginScreen();
-        }
-        else
-        {
-            RenderWelcomeScreen();
-        }
-    }
-
-    private void RenderLoginScreen()
-    {
-        if (bannerImage != null)
-        {
-            GUILayout.Box(bannerImage, GUILayout.ExpandWidth(true), GUILayout.Height(200));
-        }
-
-        // H1
-        GUIStyle h1Style = new GUIStyle(EditorStyles.largeLabel);
-        h1Style.fontSize = 20;
-        h1Style.fontStyle = FontStyle.Bold;
-        h1Style.normal.textColor = Color.white;
-
-        // P
-        GUIStyle pStyle = new GUIStyle(EditorStyles.label);
-        pStyle.fontSize = 12;
-        pStyle.wordWrap = true;
-
-        // Title
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        GUILayout.Label("Welcome to Regression Games!", h1Style, GUILayout.Width(550));
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-        GUILayout.Space(10);
-
-        // Description
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        GUILayout.Label(
-            "This Regression Games SDK makes it easy to integrate powerful and useful bots into " +
-            "your game. Build bots to QA test your game, act as NPCs, compete against players in multiplayer, and " +
-            "determine optimal game balance, and more. Our integration patterns, ready-to-go bots (coming soon), and samples " +
-            "will help you get started quickly.", pStyle, GUILayout.Width(550));
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-
-        GUILayout.Space(20);
-        // Email field
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        email = EditorGUILayout.TextField("Email:", email, GUILayout.Width(550));
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-
-        // Password field
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        password = EditorGUILayout.PasswordField("Password:", password, GUILayout.Width(550));
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-
-        // Login button
-        GUILayout.Space(10);
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        if (GUILayout.Button("Login", GUILayout.Width(550), GUILayout.Height(30)))
-        {
-            _ = Login();
-        }
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-
-        // Continue as guest button
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        if (GUILayout.Button("Continue as Guest", GUILayout.Width(550), GUILayout.Height(30)))
-        {
-            ContinueAsGuest();
-        }
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-        GUILayout.Space(20);
-
-        // Create Account and Forgot Password Links
-        GUIStyle linkStyle = new GUIStyle(EditorStyles.label);
-        linkStyle.fontSize = 12;
-
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        if (GUILayout.Button("Create Account", linkStyle))
-        {
-            Application.OpenURL("https://play.regression.gg/signup");
-        }
-
-        GUILayout.Space(10);
-
-        // For mouse hover effect
-        if (Event.current.type == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
-        {
-            EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
-        }
-
-        if (GUILayout.Button("Forgot Password", linkStyle))
-        {
-            Application.OpenURL("https://play.regression.gg/forgot-password");
-        }
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-
-        // For mouse hover effect
-        if (Event.current.type == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
-        {
-            EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
-        }
-    }
-
-    private void RenderWelcomeScreen()
-    {
-        // set flags on render as extra check against duplicated popups
-        PlayerPrefs.SetInt(RGGuestCheck, 1);
-
         // render window info
         RenderBanner();
         RenderAlwaysShowOnStartupCheckbox();
         RenderQuickstartDocs();
         RenderSampleQuickstart();
-        RenderLoginButtonOption();
-        
+        RenderApiKeySection();
     }
 
     private void RenderBanner()
@@ -300,12 +166,12 @@ public class RegressionPackagePopup : EditorWindow
         GUI.Label(new Rect(20, 170, 580, 20), "Quick Start with Automated Recordings", titleStyle);
 
         // Draw the description
-        GUI.Label(new Rect(20, 170, 580, 100), "Jump into creating your first first automated test using our Gameplay Session recording and playback system. Record gameplay, automatically extract game state, and use our web UI to build functional tests for your game.", descriptionStyle);
+        GUI.Label(new Rect(20, 170, 580, 100), "Jump into creating your first automated test using our Gameplay Session recording and playback system. Record gameplay, automatically extract game state, and use our web UI to build functional tests for your game.", descriptionStyle);
 
         // Draw the docs button
         if (GUI.Button(new Rect(20, 250, 100, 30), "View Docs"))
         {
-            Application.OpenURL("https://docs.regression.gg/tutorials/building-your-first-bot");
+            Application.OpenURL("https://docs.regression.gg/getting-started/creating-your-first-automated-test");
         }
     }
 
@@ -354,9 +220,9 @@ public class RegressionPackagePopup : EditorWindow
         GUI.enabled = true;
     }
 
-    private void RenderLoginButtonOption()
+    private void RenderApiKeySection()
     {
-        // Define the styles for the login button section
+        // Define the styles for the api key section
         GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel)
         {
             fontSize = 14,
@@ -375,16 +241,16 @@ public class RegressionPackagePopup : EditorWindow
         GUI.Box(demoInfoBoxRect, "");
         GUI.color = prevColor;
 
-        // Draw the login title
-        GUI.Label(new Rect(20, 450, 580, 20), "Login", titleStyle);
+        // Draw the title
+        GUI.Label(new Rect(20, 450, 580, 20), "API Key", titleStyle);
 
-        // Draw the description for logging in
-        GUI.Label(new Rect(20, 480, 565, 20), "Login to Regression Games to utilize our features.", descriptionStyle);
+        // Draw the description
+        GUI.Label(new Rect(20, 480, 565, 20), "Set an API key to utilize our features.", descriptionStyle);
         
-        // Draw the "Login" button
-        if (GUI.Button(new Rect(20, 510, 170, 30), "Login to Regression Games"))
+        // Draw the button
+        if (GUI.Button(new Rect(20, 510, 170, 30), "Set an API Key"))
         {
-            requestingLogin = true;
+            OpenRGSettings();
         }
     }
 
@@ -465,44 +331,6 @@ public class RegressionPackagePopup : EditorWindow
         {
             EditorApplication.update -= ShowOnStartup;
             ShowWindow();
-        }
-    }
-
-    private static async Task Login()
-    {
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
-        {
-            Debug.LogWarning("Email or password is empty.");
-            return;
-        }
-
-        loggedIn = await RGSettingsUIRegistrar.Login(email, password);
-        if (loggedIn)
-        {
-            requestingLogin = false;
-        }
-        if (window != null)
-        {
-            window.Repaint();
-        }
-    }
-
-    private static void ContinueAsGuest()
-    {
-
-        requestingLogin = false;
-        // check if already logged in
-        if (loggedIn && window != null)
-        {
-            window.Repaint();
-            return;
-        }
-
-        // continue without log in
-        PlayerPrefs.SetInt(RGGuestCheck, 1);
-        if (window != null)
-        {
-            window.Repaint();
         }
     }
 
