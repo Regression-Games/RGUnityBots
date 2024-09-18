@@ -16,6 +16,7 @@ using Assembly = UnityEditor.Compilation.Assembly;
 
 #if ENABLE_LEGACY_INPUT_MANAGER
 using RegressionGames.RGLegacyInputUtility;
+using RegressionGames.StateRecorder.BotSegments;
 #endif
 
 namespace RegressionGames.Editor
@@ -43,24 +44,20 @@ namespace RegressionGames.Editor
             EditorApplication.update += ScheduledInstrumentationLoop;
         }
 
-        private static bool IsAssemblyIgnored(string assemblyPath)
+        private static bool IsAssemblyIgnored(Assembly assembly, Assembly rgAssembly)
         {
-            string fileName = Path.GetFileName(assemblyPath);
-
-            var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
-            var asm = assemblies.FirstOrDefault(asm => Path.GetFileName(asm.outputPath) == Path.GetFileName(assemblyPath));
-            if (asm == null)
+            if (assembly == null)
             {
                 return true; // not a player assembly
             }
 
-            if (asm.sourceFiles.Length == 0)
+            if (assembly.sourceFiles.Length == 0)
             {
                 // don't instrument any assemblies we don't have the source code for
                 return true;
             }
 
-            foreach (var sourceFile in asm.sourceFiles)
+            foreach (var sourceFile in assembly.sourceFiles)
             {
                 if (sourceFile.StartsWith("Packages/"))
                 {
@@ -70,9 +67,9 @@ namespace RegressionGames.Editor
             }
 
             // ignore plugin packages referenced by the RG package
-            var rgAssembly = RGEditorUtils.FindRGAssembly();
             if (rgAssembly != null)
             {
+                string fileName = Path.GetFileName(assembly.outputPath);
                 foreach (string asmPath in rgAssembly.allReferences)
                 {
                     if (Path.GetFileName(asmPath) == fileName)
@@ -323,92 +320,132 @@ namespace RegressionGames.Editor
             return anyChanges;
         }
 
-        private static void InstrumentAssemblyIfNeeded(string assemblyPath)
+        private static void InstrumentAssemblyIfNeeded(Assembly assembly, Assembly rgAssembly)
         {
-            if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assemblyPath))
+            if (assembly != null)
             {
-                return;
-            }
-
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            bool codeCovEnabled = rgSettings.GetFeatureCodeCoverage();
-            if (BuildPipeline.isBuildingPlayer && !EditorUserBuildSettings.development)
-            {
-                // disable code coverage instrumentation for production builds
-                codeCovEnabled = false;
-            }
-
-            bool anyChanges = false;
-            string tmpOutputPath = assemblyPath + ".tmp.dll";
-
-            if (_assemblyResolver == null)
-            {
-                ResetAssemblyResolver(null);
-            }
-
-            using (ModuleDefinition module = ReadAssembly(assemblyPath))
-            using (ModuleDefinition wrapperModule = ReadRGRuntimeAssembly())
-            {
-                #if ENABLE_LEGACY_INPUT_MANAGER
+                var assemblyPath = assembly.outputPath;
+                if (!File.Exists(assemblyPath) || IsAssemblyIgnored(assembly, rgAssembly))
                 {
-                    var wrapperMethods = FindWrapperMethods(wrapperModule);
-                    if (ApplyLegacyInputInstrumentation(module, wrapperMethods))
-                    {
-                        anyChanges = true;
-                        RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
-                    }
+                    return;
                 }
-                #endif
 
-                if (codeCovEnabled)
+                RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+                bool codeCovEnabled = rgSettings.GetFeatureCodeCoverage();
+                if (BuildPipeline.isBuildingPlayer && !EditorUserBuildSettings.development)
                 {
-                    var visitMethod = FindCodeCoverageVisitMethod(wrapperModule);
-                    if (visitMethod != null)
+                    // disable code coverage instrumentation for production builds
+                    codeCovEnabled = false;
+                }
+
+                bool anyChanges = false;
+                string tmpOutputPath = assemblyPath + ".tmp.dll";
+
+                if (_assemblyResolver == null)
+                {
+                    ResetAssemblyResolver(null);
+                }
+
+                using (ModuleDefinition module = ReadAssembly(assemblyPath))
+                using (ModuleDefinition wrapperModule = ReadRGRuntimeAssembly())
+                {
+#if ENABLE_LEGACY_INPUT_MANAGER
                     {
-                        if (ApplyCodeCovInstrumentation(module, visitMethod))
+                        var wrapperMethods = FindWrapperMethods(wrapperModule);
+                        if (ApplyLegacyInputInstrumentation(module, wrapperMethods))
                         {
                             anyChanges = true;
+                            RGDebug.LogInfo($"Instrumented legacy input API usage in assembly: {assemblyPath}");
                         }
                     }
-                    else
+#endif
+
+                    if (codeCovEnabled)
                     {
-                        RGDebug.LogError($"Failed to find RGCodeCoverage.Visit method, code coverage instrumentation not applied");
+                        var visitMethod = FindCodeCoverageVisitMethod(wrapperModule);
+                        if (visitMethod != null)
+                        {
+                            if (ApplyCodeCovInstrumentation(module, visitMethod))
+                            {
+                                anyChanges = true;
+                            }
+                        }
+                        else
+                        {
+                            RGDebug.LogError($"Failed to find RGCodeCoverage.Visit method, code coverage instrumentation not applied");
+                        }
+                    }
+
+                    if (anyChanges)
+                    {
+                        module.Write(tmpOutputPath, new WriterParameters()
+                        {
+                            WriteSymbols = true,
+                            SymbolWriterProvider = new PdbWriterProvider()
+                        });
                     }
                 }
 
                 if (anyChanges)
                 {
-                    module.Write(tmpOutputPath, new WriterParameters()
+                    string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
+                    File.Delete(assemblyPath);
+                    if (File.Exists(pdbPath))
                     {
-                        WriteSymbols = true,
-                        SymbolWriterProvider = new PdbWriterProvider()
-                    });
+                        File.Delete(pdbPath);
+                    }
+
+                    string outPdbPath = Path.ChangeExtension(tmpOutputPath, ".pdb");
+                    File.Move(tmpOutputPath, assemblyPath);
+                    if (File.Exists(outPdbPath))
+                    {
+                        File.Move(outPdbPath, pdbPath);
+                    }
                 }
             }
+        }
 
-            if (anyChanges)
+        private static readonly string RgAsmName = Path.GetFileName(typeof(BotSegmentsPlaybackController).Assembly.Location);
+
+        private static Assembly GetAssemblyForPath(string assemblyPath, out Assembly rgAssembly)
+        {
+            var assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
+
+
+
+            var asmPathname = Path.GetFileName(assemblyPath);
+
+            Assembly result = null;
+            rgAssembly = null;
+            foreach (Assembly assembly in assemblies)
             {
-                string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
-                File.Delete(assemblyPath);
-                if (File.Exists(pdbPath))
+                var pathname = Path.GetFileName(assembly.outputPath);
+                if (pathname == RgAsmName)
                 {
-                    File.Delete(pdbPath);
+                    rgAssembly = assembly;
+                    if (result != null)
+                    {
+                        return result;
+                    }
                 }
-
-                string outPdbPath = Path.ChangeExtension(tmpOutputPath, ".pdb");
-                File.Move(tmpOutputPath, assemblyPath);
-                if (File.Exists(outPdbPath))
+                else if (pathname == asmPathname)
                 {
-                    File.Move(outPdbPath, pdbPath);
+                    result = assembly;
+                    if (rgAssembly != null)
+                    {
+                        return result;
+                    }
                 }
             }
+            return result;
         }
 
         private static void OnAssemblyCompiled(string assemblyAssetPath, CompilerMessage[] messages)
         {
             try
             {
-                InstrumentAssemblyIfNeeded(assemblyAssetPath);
+                var assembly = GetAssemblyForPath(assemblyAssetPath, out var rgAssembly);
+                InstrumentAssemblyIfNeeded(assembly, rgAssembly);
             }
             catch (Exception e)
             {
@@ -460,9 +497,20 @@ namespace RegressionGames.Editor
             try
             {
                 Assembly[] assemblies = CompilationPipeline.GetAssemblies(AssembliesType.Player);
+                Assembly rgAssembly = null;
                 foreach (Assembly assembly in assemblies)
                 {
-                    InstrumentAssemblyIfNeeded(assembly.outputPath);
+                    var pathname = Path.GetFileName(assembly.outputPath);
+                    if (pathname == RgAsmName)
+                    {
+                        rgAssembly = assembly;
+                        break;
+                    }
+                }
+
+                foreach (Assembly assembly in assemblies)
+                {
+                    InstrumentAssemblyIfNeeded(assembly, rgAssembly);
                 }
                 return true;
             }

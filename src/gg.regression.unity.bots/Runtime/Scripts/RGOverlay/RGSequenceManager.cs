@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using RegressionGames;
 using RegressionGames.StateRecorder;
 using UnityEngine;
@@ -26,6 +27,9 @@ public class RGSequenceManager : MonoBehaviour
 
     private ReplayToolbarManager _replayToolbarManager;
 
+    private bool _loadingSequences = false;
+    private IDictionary<string, (string, BotSequence)> _loadedSequences = null;
+
     public static RGSequenceManager GetInstance()
     {
         return _this;
@@ -38,8 +42,16 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void LoadSequences()
     {
-        var sequences = ResolveSequenceFiles();
-        InstantiateSequences(sequences);
+        return;
+        if (_loadingSequences == false)
+        {
+            // not perfectly thread safe.. but close enough for this case
+            _loadingSequences = true;
+            new Thread(() =>
+            {
+                _loadedSequences = ResolveSequenceFiles();
+            }).Start();
+        }
     }
 
     public void Start()
@@ -49,6 +61,16 @@ public class RGSequenceManager : MonoBehaviour
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
+    }
+
+    public void Update()
+    {
+        if (_loadedSequences != null)
+        {
+            InstantiateSequences(_loadedSequences);
+            _loadingSequences = false;
+            _loadedSequences = null;
+        }
     }
 
     /**
