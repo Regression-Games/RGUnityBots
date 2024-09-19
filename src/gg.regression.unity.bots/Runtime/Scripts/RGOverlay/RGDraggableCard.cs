@@ -16,21 +16,21 @@ namespace RegressionGames
     public class RGDraggableCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
         public Dictionary<string, string> payload;
-        
+
         public bool IsReordering;
-        
+
         public string draggableCardName;
 
         public string draggableCardDescription;
-        
+
         public Sprite icon;
-        
+
         public GameObject iconPrefab;
 
         public TMP_Text namePrefab;
 
         public TMP_Text descriptionPrefab;
-        
+
         public GameObject restingStatePrefab;
 
         public GameObject draggingStatePrefab;
@@ -108,7 +108,7 @@ namespace RegressionGames
 
                 instance.transform.SetParent(transform.root, false);
                 _draggingStateInstance = instance;
-                
+
                 // darken the cards not being dragged
                 ToggleHighlight();
                 ToggleExpand(true);
@@ -120,20 +120,20 @@ namespace RegressionGames
             var potentialDropZones = GameObject.FindObjectsOfType<RGDropZone>();
             foreach (var dz in potentialDropZones)
             {
-                // get the potential cursor position within this drop zone 
-                var dropZoneRectTransform = dz.GetComponent<RectTransform>();
+                // get the potential cursor position within this drop zone
+                var dropZoneRectTransform = dz.Content.GetComponent<RectTransform>();
                 var localMousePos = dropZoneRectTransform.InverseTransformPoint(mouseScreenSpacePosition);
 
                 if (dropZoneRectTransform.rect.Contains(localMousePos))
                 {
-                    // this card has begun dragging within a drop zone. It is being reordered (or deleted) 
+                    // this card has begun dragging within a drop zone. It is being reordered (or deleted)
                     var ev = new PointerEventData(EventSystem.current)
                     {
                         pointerDrag = this.gameObject
                     };
                     dz.OnPointerEnter(ev);
                     IsReordering = true;
-                    _dropZone = dz;
+                    SetDropZone(dz);
                     break;
                 }
             }
@@ -141,7 +141,7 @@ namespace RegressionGames
 
         /**
          * <summary>
-         * When this card begins dragging, update the dragging state's position and set the current drop zone
+         * When this card begins dragging, show the dragging state and set its position
          * </summary>
          * <param name="eventData">Cursor event data</param>
          */
@@ -151,11 +151,11 @@ namespace RegressionGames
             {
                 _draggingStateInstance.transform.position = eventData.position;
             }
+        }
 
-            if (_dropZone == null)
-            {
-                _dropZone = eventData.pointerEnter?.GetComponent<RGDropZone>();
-            }
+        public void SetDropZone(RGDropZone dropZone)
+        {
+            _dropZone = dropZone;
         }
 
         /**
@@ -174,7 +174,7 @@ namespace RegressionGames
                 // this card is not dragging currently
                 return;
             }
-            
+
             // this card is not in a drop zone, and is being reordered, this card is being deleted from its drop zone
             if (_dropZone == null && IsReordering)
             {
@@ -187,8 +187,8 @@ namespace RegressionGames
                         break;
                     }
                 }
-                
-                // destroy the dragging state after a fade out animation 
+
+                // destroy the dragging state after a fade out animation
                 _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
@@ -196,7 +196,7 @@ namespace RegressionGames
             // this card is not in a drop zone. Ignore it
             if (_dropZone == null)
             {
-                // destroy the dragging state after a fade out animation 
+                // destroy the dragging state after a fade out animation
                 _draggingStateInstance.GetComponent<RGDraggedCard>()?.FadeOutAndDestroy();
                 return;
             }
@@ -206,7 +206,7 @@ namespace RegressionGames
             {
                 IsReordering = false;
                 _dropZone.ResetDraggableTracking();
-                _dropZone = null;
+                SetDropZone(null);
                 Destroy(_draggingStateInstance);
                 return;
             }
@@ -215,7 +215,7 @@ namespace RegressionGames
             var newCard = Instantiate(restingStatePrefab);
             newCard.GetComponent<RGDraggableCard>().payload = payload;
             _dropZone.AddChild(newCard);
-            _dropZone = null;
+            SetDropZone(null);
             Destroy(_draggingStateInstance);
         }
 
@@ -226,6 +226,7 @@ namespace RegressionGames
          */
         public void OnExitDropZone()
         {
+            Debug.Log("DropZone Removed!");
             _dropZone = null;
         }
 
@@ -255,14 +256,14 @@ namespace RegressionGames
 
             var isActive = descriptionPrefab.gameObject.activeSelf || forceShrink;
             var newHeight = isActive ? SHRUNKEN_HEIGHT : EXPANDED_HEIGHT;
-            
+
             // show full card name when expanded
             var newOverflow = isActive ? TextOverflowModes.Ellipsis : TextOverflowModes.Overflow;
             namePrefab.overflowMode = newOverflow;
-            
+
             descriptionPrefab.gameObject.SetActive(!isActive);
-            
-            var rect = GetComponent<RectTransform>(); 
+
+            var rect = GetComponent<RectTransform>();
             var size = rect.sizeDelta;
             size.y = newHeight;
             rect.sizeDelta = size;
@@ -280,9 +281,9 @@ namespace RegressionGames
                 // this card will have no siblings to toggle the highlight state for
                 return;
             }
-            
+
             var newAlpha = _isHighlighted ? HIGHLIGHTED_ALPHA : MUTED_ALPHA;
-            
+
             // if the selfIndex is -1, we can know that all cards are being returned to their regular alpha value
             var selfIndex = _isHighlighted ?  -1 : transform.GetSiblingIndex();
 

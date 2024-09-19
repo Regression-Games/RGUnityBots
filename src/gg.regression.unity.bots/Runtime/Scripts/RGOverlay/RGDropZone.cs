@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 namespace RegressionGames
@@ -11,11 +12,13 @@ namespace RegressionGames
      * A vertical layout that can have RGDraggableCards dropped into it, and also reordered
      * </summary>
      */
-    public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    public class RGDropZone : MonoBehaviour //, IPointerEnterHandler, IPointerExitHandler
     {
         public List<GameObject> droppables;
 
         public GameObject SequenceEditor;
+
+        public GameObject Content;
 
         public GameObject potentialDropSpotPrefab;
 
@@ -40,6 +43,33 @@ namespace RegressionGames
             if (droppables.Count == 0)
             {
                 Debug.LogError("RGDropZone has no droppable types set");
+            }
+
+            if (Content == null)
+            {
+                Debug.LogError("RGDropZone has not Content set");
+            }
+            else
+            {
+                // Ensure the child has an EventTrigger component
+                var eventTrigger = Content.GetComponent<EventTrigger>();
+                if (eventTrigger == null)
+                {
+                    eventTrigger = Content.AddComponent<EventTrigger>();
+                }
+
+                // Create the entry for the OnPointerEnter event
+                var entry = new EventTrigger.Entry();
+                entry.eventID = EventTriggerType.PointerEnter;
+                entry.callback.AddListener((eventData) => { OnPointerEnter((PointerEventData)eventData); });
+
+                var entry2 = new EventTrigger.Entry();
+                entry2.eventID = EventTriggerType.PointerExit;
+                entry2.callback.AddListener((eventData) => { OnPointerExit((PointerEventData)eventData); });
+
+                // Add the entry to the EventTrigger
+                eventTrigger.triggers.Add(entry);
+                eventTrigger.triggers.Add(entry2);
             }
 
             if (SequenceEditor == null)
@@ -77,14 +107,11 @@ namespace RegressionGames
 
             // get screenspace location of the mouse cursor, within the bounds of this drop zone
             Vector2 mouseScreenSpacePosition = Input.mousePosition;
-            var rectTransform = GetComponent<RectTransform>();
+            var rectTransform = Content.GetComponent<RectTransform>();
             Vector2 localPoint = rectTransform.InverseTransformPoint(mouseScreenSpacePosition);
 
-            // adjust the local point to have the origin in the top-left corner (Y-axis facing down)
-            var resultPosition = new Vector2(
-                localPoint.x + rectTransform.rect.size.x * rectTransform.pivot.x,
-                -localPoint.y + rectTransform.rect.size.y * rectTransform.pivot.y
-            );
+            // adjust the local point to have the Y-axis facing down (ie: y values increase as we go down)
+            var resultPosition = new Vector2(localPoint.x, -localPoint.y);
 
             // update the position of the potential drop spot when the drop index changes
             var dropIndex = ComputeDropIndex(resultPosition);
@@ -114,7 +141,7 @@ namespace RegressionGames
                     {
                         _potentialDropSpotInstance = Instantiate(
                             potentialDropSpotPrefab,
-                            transform,
+                            Content.transform,
                             false);
                     }
 
@@ -154,7 +181,7 @@ namespace RegressionGames
                 Destroy(_potentialDropSpotInstance);
             }
 
-            newChild.transform.SetParent(transform, false);
+            newChild.transform.SetParent(Content.transform, false);
             newChild.transform.SetSiblingIndex(dropIndex);
 
             _sequenceEditorScript.SetCreateSequenceButtonEnabled(_sequenceEditorScript.NameInput.text.Length > 0);
@@ -171,7 +198,7 @@ namespace RegressionGames
         public void RemoveChild(GameObject childToRemove)
         {
             // perform this check before destroying the child, as the childCount won't update until the next frame
-            if (transform.childCount - 1 == 0)
+            if (Content.transform.childCount - 1 == 0)
             {
                 SetEmptyState(true);
                 _sequenceEditorScript.SetCreateSequenceButtonEnabled(false);
@@ -189,10 +216,10 @@ namespace RegressionGames
          */
         public bool Contains(GameObject possibleChild)
         {
-            var childIDs = new List<int>(transform.childCount);
-            for (int i = 0; i < transform.childCount; ++i)
+            var childIDs = new List<int>(Content.transform.childCount);
+            for (int i = 0; i < Content.transform.childCount; ++i)
             {
-                childIDs.Add(transform.GetChild(i).GetInstanceID());
+                childIDs.Add(Content.transform.GetChild(i).GetInstanceID());
             }
 
             return childIDs.Contains(possibleChild.transform.GetInstanceID());
@@ -218,7 +245,7 @@ namespace RegressionGames
         {
             if (setEmpty && _emptyStatePrefabInstance == null)
             {
-                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, transform, false);
+                _emptyStatePrefabInstance = Instantiate(emptyStatePrefab, Content.transform, false);
             }
 
             if (!setEmpty)
@@ -245,9 +272,9 @@ namespace RegressionGames
         public List<RGDraggableCard> GetChildren()
         {
             var children = new List<RGDraggableCard>();
-            for (var i = 0; i < transform.childCount; i++)
+            for (var i = 0; i < Content.transform.childCount; i++)
             {
-                var asDraggableCard = transform.GetChild(i).GetComponent<RGDraggableCard>();
+                var asDraggableCard = Content.transform.GetChild(i).GetComponent<RGDraggableCard>();
                 if (asDraggableCard != null)
                 {
                     children.Add(asDraggableCard);
@@ -264,10 +291,10 @@ namespace RegressionGames
          */
         public void ClearChildren()
         {
-            var childCount = transform.childCount - 1;
+            var childCount = Content.transform.childCount - 1;
             for (var i = childCount; i >= 0; i--)
             {
-                Destroy(transform.GetChild(i).gameObject);
+                Destroy(Content.transform.GetChild(i).gameObject);
             }
 
             SetEmptyState(true);
@@ -289,6 +316,11 @@ namespace RegressionGames
                     if (target.GetType() == droppable.GetType())
                     {
                         _currentDraggable = target;
+                        var draggableCard = _currentDraggable?.GetComponent<RGDraggableCard>();
+                        if (draggableCard != null)
+                        {
+                            draggableCard.SetDropZone(this);
+                        }
                         return;
                     }
                 }
@@ -297,7 +329,7 @@ namespace RegressionGames
 
         /**
          * <summary>
-         * When the cursor exists the drop zone: reset the state used to track the current draggable, and let the
+         * When the cursor exits the drop zone: reset the state used to track the current draggable, and let the
          * current draggable update its internal state
          * </summary>
          * <param name="eventData">Cursor event data</param>
@@ -312,7 +344,7 @@ namespace RegressionGames
             var draggableCard = _currentDraggable?.GetComponent<RGDraggableCard>();
             if (draggableCard != null)
             {
-                draggableCard.OnExitDropZone();
+                draggableCard.SetDropZone(null);
             }
 
             ResetDraggableTracking();
@@ -334,7 +366,7 @@ namespace RegressionGames
                 return -1;
             }
 
-            if (transform.childCount == 0)
+            if (Content.transform.childCount == 0)
             {
                 // this child is the first
                 return 0;
@@ -344,15 +376,15 @@ namespace RegressionGames
             var childHeight = _currentDraggable.GetComponent<RectTransform>()?.rect.height ?? DEFAULT_CHILD_HEIGHT;
 
             // get the child spacing within this Drop Zone instance
-            var childSpacing = GetComponent<VerticalLayoutGroup>()?.spacing ?? DEFAULT_CHILD_SPACING;
+            var childSpacing = Content.GetComponent<VerticalLayoutGroup>()?.spacing ?? DEFAULT_CHILD_SPACING;
 
             // get the total child height + spacing. Used for detecting the end of the child list
-            var totalHeight = (childHeight + childSpacing) * transform.childCount;
+            var totalHeight = (childHeight + childSpacing) * Content.transform.childCount;
 
             // mouse location is at or below the bottom of list
             if (location.y >= totalHeight)
             {
-                return transform.childCount + 1;
+                return Content.transform.childCount + 1;
             }
 
             return (int)Math.Round(location.y / (childHeight + childSpacing));
@@ -367,14 +399,14 @@ namespace RegressionGames
         private void ShiftChildrenForCurrentDrop()
         {
             // no need to shift children if the current drop index is at the bottom of the child list
-            if (_currentDropIndex > transform.childCount - 1)
+            if (_currentDropIndex > Content.transform.childCount - 1)
             {
                 return;
             }
 
-            for (var i = _currentDropIndex; i > transform.childCount - 1; i++)
+            for (var i = _currentDropIndex; i > Content.transform.childCount - 1; i++)
             {
-                transform.GetChild(i).SetSiblingIndex(i + 1);
+                Content.transform.GetChild(i).SetSiblingIndex(i + 1);
             }
         }
     }
