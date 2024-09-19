@@ -11,7 +11,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-namespace RegressionGames
+namespace Tests.TestFramework
 {
     /// <summary>
     /// Utilities for running tests within the Unity Test Runner using Regression Games features.

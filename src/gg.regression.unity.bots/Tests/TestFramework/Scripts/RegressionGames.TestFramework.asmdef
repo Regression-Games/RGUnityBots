@@ -1,17 +1,22 @@
 ﻿{
   "name": "RegressionGames.TestFramework",
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
   "references": [
     "RegressionGames",
-    "UnityEngine.TestRunner",
-    "UnityEditor.TestRunner",
-    "Unity.TextMeshPro"
+    "Unity.TextMeshPro",
+    "Unity.InputSystem",
+    "Unity.InputSystem.TestFramework"
   ],
-  "includePlatforms": [],
+  "precompiledReferences": [
+    "Newtonsoft.Json.dll"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
   "excludePlatforms": [],
   "allowUnsafeCode": true,
   "overrideReferences": true,
-  "precompiledReferences": [
-    "nunit.framework.dll"
-  ],
   "autoReferenced": false
 }

@@ -4,9 +4,9 @@ using NUnit.Framework;
 using RegressionGames.RGLegacyInputUtility;
 using UnityEngine;
 
-namespace Tests.Runtime
+namespace Tests.TestFramework.LegacyInput
 {
-    
+    [TestFixture]
     public class RGLegacyInputUtilityTests
     {
         [Test]

@@ -6,9 +6,11 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using NUnit.Framework;
 
-namespace Tests.Runtime
+namespace Tests.TestFramework.LegacyInput
 {
+    [TestFixture]
     public class RGLegacyInputSimulationTests
     {
         private void ResetState()
@@ -19,7 +21,7 @@ namespace Tests.Runtime
             RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.MANUAL;
             RGLegacyInputWrapper.StartSimulation(eventSys);
         }
-        
+
         [UnitySetUp]
         public IEnumerator SetUp()
         {
@@ -50,7 +52,7 @@ namespace Tests.Runtime
                 yield return null;
                 AssertLogMessagesPresent("ClickedHandler()");
             }
-            
+
             // Key press/release
             {
                 ResetState();
@@ -67,13 +69,13 @@ namespace Tests.Runtime
             // Mouse handling
             {
                 ResetState();
-            
+
                 GameObject col2DObj = GameObject.Find("Col2DObj");
                 GameObject col3DObj = GameObject.Find("Col3DObj");
 
                 var col3D = col3DObj.GetComponent<Collider>();
                 var col3Dpt = Camera.main.WorldToScreenPoint(col3D.bounds.center);
-            
+
                 var col2D = col2DObj.GetComponent<Collider2D>();
                 var col2Dpt = Camera.main.WorldToScreenPoint(col2D.bounds.center);
 
@@ -84,7 +86,7 @@ namespace Tests.Runtime
                 {
                     string objName = objNames[i];
                     Vector3 screenPt = screenPts[i];
-                
+
                     RGLegacyInputWrapper.SimulateMouseMovement(new Vector3(screenPt.x, screenPt.y, 0));
                     yield return null;
                     AssertLogMessagesPresent(
@@ -105,7 +107,7 @@ namespace Tests.Runtime
                     RGLegacyInputWrapper.Update();
                     yield return null;
 
-                    AssertLogMessagesPresent($"{objName} OnMouseUp()", 
+                    AssertLogMessagesPresent($"{objName} OnMouseUp()",
                         $"{objName} OnMouseUpAsButton()",
                         "GetMouseButtonUp(0)");
 
@@ -125,56 +127,56 @@ namespace Tests.Runtime
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetMouseButtonDown(1)");
-            
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse2);
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetMouseButton(2)");
             }
-            
+
             // Axis handling
             {
                 ResetState();
-            
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.RightArrow);
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetAxis(\"Horizontal\") > 0.0f");
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.RightArrow);
-            
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.LeftArrow);
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetAxis(\"Horizontal\") < 0.0f");
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.LeftArrow);
-            
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.UpArrow);
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetAxisRaw(\"Vertical\") > 0.0f");
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.UpArrow);
-            
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.DownArrow);
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetAxisRaw(\"Vertical\") < 0.0f");
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.DownArrow);
             }
-            
+
             // Button handling
             {
                 ResetState();
-            
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Space);
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetButton(\"Jump\")");
-            
+
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Space);
                 RGLegacyInputWrapper.Update();
                 yield return null;
                 AssertLogMessagesPresent("GetButtonUp(\"Jump\")");
-            
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.LeftControl);
                 RGLegacyInputWrapper.Update();
                 yield return null;

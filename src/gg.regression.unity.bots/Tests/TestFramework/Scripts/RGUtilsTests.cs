@@ -2,8 +2,9 @@ using System.IO;
 using NUnit.Framework;
 using RegressionGames;
 
-namespace Tests.Runtime
+namespace Tests.TestFramework
 {
+    [TestFixture]
     public class RGUtilsTests
     {
         [Test]
