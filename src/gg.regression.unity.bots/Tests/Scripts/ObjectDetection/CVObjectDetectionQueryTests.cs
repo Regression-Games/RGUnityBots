@@ -3,8 +3,9 @@ using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using UnityEngine;
 using UnityEngine.TestTools;
 using System;
+using RegressionGames.TestFramework;
 
-namespace Tests.TestFramework.ObjectDetection
+namespace RegressionGames.Tests.ObjectDetection
 {
     [TestFixture]
     public class CVObjectDetectionQueryTests

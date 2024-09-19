@@ -9,6 +9,7 @@ using RegressionGames.ActionManager;
 using RegressionGames.ActionManager.Actions;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
+using RegressionGames.TestFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -16,7 +17,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 
-namespace Tests.TestFramework.ActionManager
+namespace RegressionGames.Tests.ActionManager
 {
     [TestFixture]
     public class RGActionManagerTests : InputTestFixture
@@ -159,6 +160,7 @@ namespace Tests.TestFramework.ActionManager
                     return t.gameObject;
                 }
             }
+
             return null;
         }
 
@@ -219,6 +221,7 @@ namespace Tests.TestFramework.ActionManager
             {
                 InputSystem.AddDevice<Keyboard>();
             }
+
             SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
 
@@ -258,100 +261,100 @@ namespace Tests.TestFramework.ActionManager
                 RGActionManager.StopSession();
             }
 
-            #if ENABLE_LEGACY_INPUT_MANAGER
-            // Test Legacy Input Manager Axis
-            ResetInputSystem();
-            RGActionManager.StartSession(eventSys);
-            GameObject legacyAxisListener = FindGameObject("LegacyAxisListener");
-            legacyAxisListener.SetActive(true);
-            try
-            {
-                FindAndPerformAction("Axis \"Mouse X\"", 1);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetAxisRaw(\"Mouse X\")");
+#if ENABLE_LEGACY_INPUT_MANAGER
+        // Test Legacy Input Manager Axis
+        ResetInputSystem();
+        RGActionManager.StartSession(eventSys);
+        GameObject legacyAxisListener = FindGameObject("LegacyAxisListener");
+        legacyAxisListener.SetActive(true);
+        try
+        {
+            FindAndPerformAction("Axis \"Mouse X\"", 1);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetAxisRaw(\"Mouse X\")");
 
-                FindAndPerformAction("Axis \"Mouse ScrollWheel\"", 1);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetAxis(\"Mouse ScrollWheel\")");
+            FindAndPerformAction("Axis \"Mouse ScrollWheel\"", 1);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetAxis(\"Mouse ScrollWheel\")");
 
-                FindAndPerformAction("Axis axisName", 1);
-                FindAndPerformAction("Axis axisName2", 1);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetAxis(axis)");
-            }
-            finally
-            {
-                legacyAxisListener.SetActive(false);
-                RGActionManager.StopSession();
-            }
+            FindAndPerformAction("Axis axisName", 1);
+            FindAndPerformAction("Axis axisName2", 1);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetAxis(axis)");
+        }
+        finally
+        {
+            legacyAxisListener.SetActive(false);
+            RGActionManager.StopSession();
+        }
 
-            // Test Legacy Input Manager Button
-            ResetInputSystem();
-            RGActionManager.StartSession(eventSys);
-            GameObject legacyButtonListener = FindGameObject("LegacyButtonListener");
-            legacyButtonListener.SetActive(true);
-            try
-            {
-                FindAndPerformAction("Button ButtonName", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetButton(ButtonName)");
+        // Test Legacy Input Manager Button
+        ResetInputSystem();
+        RGActionManager.StartSession(eventSys);
+        GameObject legacyButtonListener = FindGameObject("LegacyButtonListener");
+        legacyButtonListener.SetActive(true);
+        try
+        {
+            FindAndPerformAction("Button ButtonName", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetButton(ButtonName)");
 
-                FindAndPerformAction("Button \"Fire1\"", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetButtonDown(btn)");
+            FindAndPerformAction("Button \"Fire1\"", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetButtonDown(btn)");
 
-                FindAndPerformAction("Button \"Fire2\"", true);
-                yield return WaitForInputUpdate();
-                FindAndPerformAction("Button \"Fire2\"", false);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetButtonUp(\"Fire2\")");
-            }
-            finally
-            {
-                legacyButtonListener.SetActive(false);
-                RGActionManager.StopSession();
-            }
+            FindAndPerformAction("Button \"Fire2\"", true);
+            yield return WaitForInputUpdate();
+            FindAndPerformAction("Button \"Fire2\"", false);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetButtonUp(\"Fire2\")");
+        }
+        finally
+        {
+            legacyButtonListener.SetActive(false);
+            RGActionManager.StopSession();
+        }
 
-            // Test Legacy Input Manager Key
-            ResetInputSystem();
-            RGActionManager.StartSession(eventSys);
-            GameObject legacyKeyListener = FindGameObject("LegacyKeyListener");
-            legacyKeyListener.SetActive(true);
-            try
-            {
-                FindAndPerformAction("Any Key", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.anyKey");
-                LogAssert.Expect(LogType.Log, "Input.anyKeyDown");
+        // Test Legacy Input Manager Key
+        ResetInputSystem();
+        RGActionManager.StartSession(eventSys);
+        GameObject legacyKeyListener = FindGameObject("LegacyKeyListener");
+        legacyKeyListener.SetActive(true);
+        try
+        {
+            FindAndPerformAction("Any Key", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.anyKey");
+            LogAssert.Expect(LogType.Log, "Input.anyKeyDown");
 
-                FindAndPerformAction("Key _gameSettings.bindings.CrouchKey", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetKey(crouchKey)");
+            FindAndPerformAction("Key _gameSettings.bindings.CrouchKey", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetKey(crouchKey)");
 
-                FindAndPerformAction("Key _gameSettings.bindings.fireKey", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetKeyDown(_gameSettings.bindings.fireKey)");
+            FindAndPerformAction("Key _gameSettings.bindings.fireKey", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetKeyDown(_gameSettings.bindings.fireKey)");
 
-                FindAndPerformAction("Key _gameSettings.bindings.jumpKey", true);
-                yield return WaitForInputUpdate();
-                FindAndPerformAction("Key _gameSettings.bindings.jumpKey", false);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
+            FindAndPerformAction("Key _gameSettings.bindings.jumpKey", true);
+            yield return WaitForInputUpdate();
+            FindAndPerformAction("Key _gameSettings.bindings.jumpKey", false);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
 
-                FindAndPerformAction("Key KeyCode.LeftShift", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetKey(aimKey)");
+            FindAndPerformAction("Key KeyCode.LeftShift", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetKey(aimKey)");
 
-                FindAndPerformAction("Key MOVE_RIGHT_KEY", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetKey(MOVE_RIGHT_KEY)");
-            }
-            finally
-            {
-                legacyKeyListener.SetActive(false);
-                RGActionManager.StopSession();
-            }
-            #endif
+            FindAndPerformAction("Key MOVE_RIGHT_KEY", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetKey(MOVE_RIGHT_KEY)");
+        }
+        finally
+        {
+            legacyKeyListener.SetActive(false);
+            RGActionManager.StopSession();
+        }
+#endif
 
             // Test Mouse Button
             ResetInputSystem();
@@ -360,21 +363,21 @@ namespace Tests.TestFramework.ActionManager
             mouseBtnListener.SetActive(true);
             try
             {
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                FindAndPerformAction("Mouse Button 0", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetMouseButton(0)");
+#if ENABLE_LEGACY_INPUT_MANAGER
+            FindAndPerformAction("Mouse Button 0", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetMouseButton(0)");
 
-                FindAndPerformAction("Mouse Button mouseBtn", true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetMouseButtonDown(mouseBtn)");
+            FindAndPerformAction("Mouse Button mouseBtn", true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetMouseButtonDown(mouseBtn)");
 
-                FindAndPerformAction("Mouse Button otherMouseBtn", true);
-                yield return WaitForInputUpdate();
-                FindAndPerformAction("Mouse Button otherMouseBtn", false);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "Input.GetMouseButtonUp(btn)");
-                #endif
+            FindAndPerformAction("Mouse Button otherMouseBtn", true);
+            yield return WaitForInputUpdate();
+            FindAndPerformAction("Mouse Button otherMouseBtn", false);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "Input.GetMouseButtonUp(btn)");
+#endif
 
                 FindAndPerformAction("Mouse Button 3", true);
                 yield return WaitForInputUpdate();
@@ -401,16 +404,16 @@ namespace Tests.TestFramework.ActionManager
                 yield return WaitForInputUpdate();
                 FindAndPerformAction("Mouse Position", new Vector2(0.8f, 0.7f));
                 yield return WaitForInputUpdate();
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos1");
-                #endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos1");
+#endif
                 LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos2");
 
                 FindAndPerformAction("Mouse Scroll", new Vector2Int(1, 1));
                 yield return WaitForInputUpdate();
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
-                #endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
+#endif
                 LogAssert.Expect(LogType.Log, "Mouse.current.scroll.value.sqrMagnitude");
             }
             finally
@@ -419,43 +422,43 @@ namespace Tests.TestFramework.ActionManager
                 RGActionManager.StopSession();
             }
 
-            #if ENABLE_LEGACY_INPUT_MANAGER
-            // Test Mouse Handlers
-            ResetInputSystem();
-            RGActionManager.StartSession(eventSys);
-            GameObject mouseHandlerListener = FindGameObject("MouseHandlerListener");
-            mouseHandlerListener.SetActive(true);
-            try
-            {
-                string hoverAction = "Mouse Hover Over MouseHandlerObject";
-                string pressAction = "Mouse Press On MouseHandlerObject";
+#if ENABLE_LEGACY_INPUT_MANAGER
+        // Test Mouse Handlers
+        ResetInputSystem();
+        RGActionManager.StartSession(eventSys);
+        GameObject mouseHandlerListener = FindGameObject("MouseHandlerListener");
+        mouseHandlerListener.SetActive(true);
+        try
+        {
+            string hoverAction = "Mouse Hover Over MouseHandlerObject";
+            string pressAction = "Mouse Press On MouseHandlerObject";
 
-                FindAndPerformAction(hoverAction, true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "OnMouseEnter MouseHandlerListener");
-                LogAssert.Expect(LogType.Log, "OnMouseOver MouseHandlerListener");
+            FindAndPerformAction(hoverAction, true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "OnMouseEnter MouseHandlerListener");
+            LogAssert.Expect(LogType.Log, "OnMouseOver MouseHandlerListener");
 
-                FindAndPerformAction(hoverAction, false);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "OnMouseExit MouseHandlerListener");
+            FindAndPerformAction(hoverAction, false);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "OnMouseExit MouseHandlerListener");
 
-                FindAndPerformAction(pressAction, true);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "OnMouseDown MouseHandlerListener");
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "OnMouseDrag MouseHandlerListener");
+            FindAndPerformAction(pressAction, true);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "OnMouseDown MouseHandlerListener");
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "OnMouseDrag MouseHandlerListener");
 
-                FindAndPerformAction(pressAction, false);
-                yield return WaitForInputUpdate();
-                LogAssert.Expect(LogType.Log, "OnMouseUpAsButton MouseHandlerListener");
-                LogAssert.Expect(LogType.Log, "OnMouseUp MouseHandlerListener");
-            }
-            finally
-            {
-                mouseHandlerListener.SetActive(false);
-                RGActionManager.StopSession();
-            }
-            #endif
+            FindAndPerformAction(pressAction, false);
+            yield return WaitForInputUpdate();
+            LogAssert.Expect(LogType.Log, "OnMouseUpAsButton MouseHandlerListener");
+            LogAssert.Expect(LogType.Log, "OnMouseUp MouseHandlerListener");
+        }
+        finally
+        {
+            mouseHandlerListener.SetActive(false);
+            RGActionManager.StopSession();
+        }
+#endif
 
             // Test Mouse Raycast 2D
             ResetInputSystem();
@@ -562,6 +565,7 @@ namespace Tests.TestFramework.ActionManager
                 GameObject uiObject = FindGameObject(uiObjectName);
                 uiObject.SetActive(true);
             }
+
             try
             {
                 // UI Button Click
@@ -626,6 +630,7 @@ namespace Tests.TestFramework.ActionManager
                     FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_NULL);
                     yield return WaitForInputUpdate();
                 }
+
                 FindAndPerformAction("Text Submit InputField", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "InputField submitted with text Hello");
@@ -646,6 +651,7 @@ namespace Tests.TestFramework.ActionManager
                     FindAndPerformAction("Text Entry TMP_InputField", UIInputFieldTextEntryAction.PARAM_NULL);
                     yield return WaitForInputUpdate();
                 }
+
                 FindAndPerformAction("Text Submit TMP_InputField", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "TMP_InputField submitted with text World");
@@ -713,6 +719,7 @@ namespace Tests.TestFramework.ActionManager
                     GameObject uiObject = FindGameObject(uiObjectName);
                     uiObject.SetActive(false);
                 }
+
                 RGActionManager.StopSession();
             }
 

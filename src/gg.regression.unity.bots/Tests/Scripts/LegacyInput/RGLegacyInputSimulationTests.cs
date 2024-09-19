@@ -2,13 +2,14 @@
 using System.Collections;
 using RegressionGames;
 using RegressionGames.RGLegacyInputUtility;
+using RegressionGames.TestFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using NUnit.Framework;
 
-namespace Tests.TestFramework.LegacyInput
+namespace RegressionGames.Tests.LegacyInput
 {
     [TestFixture]
     public class RGLegacyInputSimulationTests

@@ -1,11 +1,17 @@
 ﻿{
-  "name": "RegressionGames.TestFramework",
+  "name": "RegressionGames.Tests",
   "optionalUnityReferences": [
     "TestAssemblies"
   ],
   "references": [
     "RegressionGames",
-    "Unity.TextMeshPro"
+    "RegressionGames.TestFramework",
+    "Unity.TextMeshPro",
+    "Unity.InputSystem",
+    "Unity.InputSystem.TestFramework"
+  ],
+  "precompiledReferences": [
+    "Newtonsoft.Json.dll"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
