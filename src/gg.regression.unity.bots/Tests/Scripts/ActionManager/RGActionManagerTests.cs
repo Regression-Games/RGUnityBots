@@ -9,6 +9,7 @@ using RegressionGames.ActionManager;
 using RegressionGames.ActionManager.Actions;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
+using RegressionGames.TestFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -16,8 +17,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 
-namespace Tests.Runtime
+namespace RegressionGames.Tests.ActionManager
 {
+    [TestFixture]
     public class RGActionManagerTests : InputTestFixture
     {
         private void TestRangeSerialization(IRGValueRange rng)
@@ -29,7 +31,7 @@ namespace Tests.Runtime
             Assert.IsTrue(parsedRange.RangeEquals(rng));
             Assert.IsTrue(rng.RangeEquals(parsedRange));
         }
-        
+
         [Test]
         public void TestValueRanges()
         {
@@ -158,6 +160,7 @@ namespace Tests.Runtime
                     return t.gameObject;
                 }
             }
+
             return null;
         }
 
@@ -182,7 +185,13 @@ namespace Tests.Runtime
         private void ResetInputSystem()
         {
             InputSystem.ResetDevice(Keyboard.current, true);
-            InputSystem.ResetDevice(MouseEventSender.GetMouse(), true);
+            MouseEventSender.Reset();
+            if (Mouse.current != null)
+            {
+                InputSystem.ResetDevice(Mouse.current, true);
+            }
+
+            MouseEventSender.InitializeVirtualMouse();
         }
 
         private bool _inputUpdateCompleted = false;
@@ -197,7 +206,7 @@ namespace Tests.Runtime
         {
             _inputUpdateCompleted = true;
         }
-        
+
         /// <summary>
         /// Wait for both legacy and new Input System event processing updates to complete, then
         /// immediately invoke the given callback.
@@ -208,19 +217,20 @@ namespace Tests.Runtime
             _inputUpdateCompleted = false;
             yield return new WaitUntil(() => _inputUpdateCompleted); // wait for new Input System update to complete
         }
-        
+
         [UnityTest]
         public IEnumerator TestActionManager()
         {
             RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.MANUAL;
-            
+
             if (Keyboard.current == null)
             {
                 InputSystem.AddDevice<Keyboard>();
             }
+
             SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
-            
+
             GameObject eventSystem = GameObject.Find("EventSystem");
             var eventSys = eventSystem.GetComponent<EventSystem>();
 
@@ -234,11 +244,11 @@ namespace Tests.Runtime
                 FindAndPerformAction("Any Key", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Keyboard.current.anyKey.wasPressedThisFrame");
-                
+
                 FindAndPerformAction("Key fireKey", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "keyboard[key].isPressed");
-                
+
                 FindAndPerformAction("Key Key.Backslash", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Keyboard.current.backslashKey.isPressed");
@@ -246,7 +256,7 @@ namespace Tests.Runtime
                 FindAndPerformAction("Key Key.LeftAlt", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "keyboard.altKey.wasPressedThisFrame");
-                
+
                 FindAndPerformAction("Key Key.F2", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Keyboard.current[Key.F2].isPressed");
@@ -256,7 +266,7 @@ namespace Tests.Runtime
                 inputSysKeyListener.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             #if ENABLE_LEGACY_INPUT_MANAGER
             // Test Legacy Input Manager Axis
             ResetInputSystem();
@@ -268,11 +278,11 @@ namespace Tests.Runtime
                 FindAndPerformAction("Axis \"Mouse X\"", 1);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetAxisRaw(\"Mouse X\")");
-                
+
                 FindAndPerformAction("Axis \"Mouse ScrollWheel\"", 1);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetAxis(\"Mouse ScrollWheel\")");
-                
+
                 FindAndPerformAction("Axis axisName", 1);
                 FindAndPerformAction("Axis axisName2", 1);
                 yield return WaitForInputUpdate();
@@ -283,8 +293,8 @@ namespace Tests.Runtime
                 legacyAxisListener.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
-            // Test Legacy Input Manager Button 
+
+            // Test Legacy Input Manager Button
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
             GameObject legacyButtonListener = FindGameObject("LegacyButtonListener");
@@ -294,11 +304,11 @@ namespace Tests.Runtime
                 FindAndPerformAction("Button ButtonName", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetButton(ButtonName)");
-                
+
                 FindAndPerformAction("Button \"Fire1\"", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetButtonDown(btn)");
-                
+
                 FindAndPerformAction("Button \"Fire2\"", true);
                 yield return WaitForInputUpdate();
                 FindAndPerformAction("Button \"Fire2\"", false);
@@ -310,7 +320,7 @@ namespace Tests.Runtime
                 legacyButtonListener.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             // Test Legacy Input Manager Key
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -322,25 +332,25 @@ namespace Tests.Runtime
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.anyKey");
                 LogAssert.Expect(LogType.Log, "Input.anyKeyDown");
-                
+
                 FindAndPerformAction("Key _gameSettings.bindings.CrouchKey", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetKey(crouchKey)");
-                
+
                 FindAndPerformAction("Key _gameSettings.bindings.fireKey", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetKeyDown(_gameSettings.bindings.fireKey)");
-                
+
                 FindAndPerformAction("Key _gameSettings.bindings.jumpKey", true);
                 yield return WaitForInputUpdate();
                 FindAndPerformAction("Key _gameSettings.bindings.jumpKey", false);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetKeyUp(_gameSettings.bindings.jumpKey)");
-                
+
                 FindAndPerformAction("Key KeyCode.LeftShift", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetKey(aimKey)");
-                
+
                 FindAndPerformAction("Key MOVE_RIGHT_KEY", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetKey(MOVE_RIGHT_KEY)");
@@ -351,7 +361,7 @@ namespace Tests.Runtime
                 RGActionManager.StopSession();
             }
             #endif
-            
+
             // Test Mouse Button
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -363,22 +373,22 @@ namespace Tests.Runtime
                 FindAndPerformAction("Mouse Button 0", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButton(0)");
-                
+
                 FindAndPerformAction("Mouse Button mouseBtn", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonDown(mouseBtn)");
-                
+
                 FindAndPerformAction("Mouse Button otherMouseBtn", true);
                 yield return WaitForInputUpdate();
                 FindAndPerformAction("Mouse Button otherMouseBtn", false);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Input.GetMouseButtonUp(btn)");
                 #endif
-                
+
                 FindAndPerformAction("Mouse Button 3", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Mouse.current.forwardButton.isPressed");
-                
+
                 FindAndPerformAction("Mouse Button 4", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "mouse.backButton.wasPressedThisFrame");
@@ -388,7 +398,7 @@ namespace Tests.Runtime
                 mouseBtnListener.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             // Test Mouse Movement
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -400,16 +410,16 @@ namespace Tests.Runtime
                 yield return WaitForInputUpdate();
                 FindAndPerformAction("Mouse Position", new Vector2(0.8f, 0.7f));
                 yield return WaitForInputUpdate();
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos1");
-                #endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos1");
+#endif
                 LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos2");
 
                 FindAndPerformAction("Mouse Scroll", new Vector2Int(1, 1));
                 yield return WaitForInputUpdate();
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
-                #endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
+#endif
                 LogAssert.Expect(LogType.Log, "Mouse.current.scroll.value.sqrMagnitude");
             }
             finally
@@ -417,7 +427,7 @@ namespace Tests.Runtime
                 mouseMovementListener.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             #if ENABLE_LEGACY_INPUT_MANAGER
             // Test Mouse Handlers
             ResetInputSystem();
@@ -433,17 +443,17 @@ namespace Tests.Runtime
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "OnMouseEnter MouseHandlerListener");
                 LogAssert.Expect(LogType.Log, "OnMouseOver MouseHandlerListener");
-                
+
                 FindAndPerformAction(hoverAction, false);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "OnMouseExit MouseHandlerListener");
-                
+
                 FindAndPerformAction(pressAction, true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "OnMouseDown MouseHandlerListener");
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "OnMouseDrag MouseHandlerListener");
-                
+
                 FindAndPerformAction(pressAction, false);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "OnMouseUpAsButton MouseHandlerListener");
@@ -455,7 +465,7 @@ namespace Tests.Runtime
                 RGActionManager.StopSession();
             }
             #endif
-            
+
             // Test Mouse Raycast 2D
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -483,7 +493,7 @@ namespace Tests.Runtime
                         }
                     }
                 }
-                
+
                 Debug.Assert(hitCoord.HasValue);
                 foreach (var inp in actionInst.GetInputs(hitCoord.Value))
                 {
@@ -491,7 +501,7 @@ namespace Tests.Runtime
                 }
 
                 yield return WaitForInputUpdate();
-                
+
                 LogAssert.Expect(LogType.Log, "Hit 2D game object The_Square");
             }
             finally
@@ -500,7 +510,7 @@ namespace Tests.Runtime
                 theSquare.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             // Test Mouse Raycast 3D
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -513,7 +523,7 @@ namespace Tests.Runtime
                 var actionInst = RGActionManager.GetValidActions().FirstOrDefault(actionInst =>
                     actionInst.BaseAction is MousePositionAction && actionInst.TargetObject.GetType().Name == "MouseRaycast3DObject");
                 Debug.Assert(actionInst != null);
-                
+
                 Vector2? hitCoord = null;
                 int gridLength = 16;
                 for (int x = 0; x < gridLength; ++x)
@@ -528,7 +538,7 @@ namespace Tests.Runtime
                         }
                     }
                 }
-                
+
                 Debug.Assert(hitCoord.HasValue);
                 foreach (var inp in actionInst.GetInputs(hitCoord.Value))
                 {
@@ -536,7 +546,7 @@ namespace Tests.Runtime
                 }
 
                 yield return WaitForInputUpdate();
-                
+
                 LogAssert.Expect(LogType.Log, "Hit 3D game object The_Cube");
             }
             finally
@@ -545,12 +555,12 @@ namespace Tests.Runtime
                 theCube.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             // Test Unity UI interaction
             string[] uiObjects =
             {
-                "The_Button", "The_Toggle", 
-                "Slider_Horizontal", "Slider_Vertical", 
+                "The_Button", "The_Toggle",
+                "Slider_Horizontal", "Slider_Vertical",
                 "Scrollbar_Horizontal", "Scrollbar_Vertical",
                 "Dropdown", "TMP_Dropdown", "InputField", "TMP_InputField"
             };
@@ -561,6 +571,7 @@ namespace Tests.Runtime
                 GameObject uiObject = FindGameObject(uiObjectName);
                 uiObject.SetActive(true);
             }
+
             try
             {
                 // UI Button Click
@@ -570,7 +581,7 @@ namespace Tests.Runtime
                 FindAndPerformAction("ActionManagerTests.UIHandler.OnBtnClick", false);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Clicked button The_Button");
-                
+
                 // Toggle Click
                 FindAndPerformAction("Press The_Toggle", true);
                 yield return WaitForInputUpdate();
@@ -582,7 +593,7 @@ namespace Tests.Runtime
                 FindAndPerformAction("Press The_Toggle", false);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "The_Toggle changed to False");
-                
+
                 // Dropdown Press
                 FindAndPerformAction("Press Dropdown", true);
                 yield return WaitForInputUpdate();
@@ -595,7 +606,7 @@ namespace Tests.Runtime
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Dropdown value changed");
                 yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null, 5, "Dropdown item did not disappear");
-                
+
                 // TextMeshPro Dropdown Press
                 FindAndPerformAction("Press TMP_Dropdown", true);
                 yield return WaitForInputUpdate();
@@ -608,7 +619,7 @@ namespace Tests.Runtime
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "TMP_Dropdown value changed");
                 yield return RGTestUtils.WaitUntil(() => GameObject.Find("Dropdown List") == null, 5, "TMP_Dropdown item did not disappear");
-                
+
                 // InputField text entry
                 FindAndPerformAction("Press InputField", true);
                 yield return WaitForInputUpdate();
@@ -625,10 +636,11 @@ namespace Tests.Runtime
                     FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_NULL);
                     yield return WaitForInputUpdate();
                 }
+
                 FindAndPerformAction("Text Submit InputField", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "InputField submitted with text Hello");
-                
+
                 // TextMeshPro InputField text entry
                 FindAndPerformAction("Press TMP_InputField", true);
                 yield return WaitForInputUpdate();
@@ -645,10 +657,11 @@ namespace Tests.Runtime
                     FindAndPerformAction("Text Entry TMP_InputField", UIInputFieldTextEntryAction.PARAM_NULL);
                     yield return WaitForInputUpdate();
                 }
+
                 FindAndPerformAction("Text Submit TMP_InputField", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "TMP_InputField submitted with text World");
-                
+
                 // Horizontal Slider Movement
                 FindAndPerformAction("Press Slider_Horizontal", 0.25f);
                 yield return WaitForInputUpdate();
@@ -660,7 +673,7 @@ namespace Tests.Runtime
                 FindAndPerformAction("Release Slider_Horizontal", 0.75f);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Slider_Horizontal changed to second half");
-                
+
                 // Vertical Slider Movement
                 FindAndPerformAction("Press Slider_Vertical", 0.25f);
                 yield return WaitForInputUpdate();
@@ -689,7 +702,7 @@ namespace Tests.Runtime
                     FindAndPerformAction("Release Scrollbar_Horizontal", 0.75f);
                     yield return WaitForInputUpdate();
                     LogAssert.Expect(LogType.Log, "Scrollbar_Horizontal changed to second half");
-                    
+
                     // Vertical Scrollbar Movement
                     FindAndPerformAction("Press Scrollbar_Vertical", 0.25f);
                     yield return WaitForInputUpdate();
@@ -712,9 +725,10 @@ namespace Tests.Runtime
                     GameObject uiObject = FindGameObject(uiObjectName);
                     uiObject.SetActive(false);
                 }
+
                 RGActionManager.StopSession();
             }
-            
+
             // Test interprocedural analysis
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -731,7 +745,7 @@ namespace Tests.Runtime
                 interprocObj.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             // Test triggering inputs handled via InputActionAsset and embedded InputAction
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -740,7 +754,7 @@ namespace Tests.Runtime
             try
             {
                 yield return null; // wait one frame for the InputActions to become active
-                
+
                 FindAndPerformAction("InputAction Move", new Vector2Int(1, 1));
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "moveVal.sqrMagnitude");
@@ -765,7 +779,7 @@ namespace Tests.Runtime
                 inputActionListener.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             // Test triggering inputs handled via InputActionAsset C# wrapper
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -774,15 +788,15 @@ namespace Tests.Runtime
             try
             {
                 yield return null; // wait one frame for the InputActions to become active
-                
+
                 FindAndPerformAction("InputAction Crouch", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "Crouch pressed");
-                
+
                 FindAndPerformAction("InputAction Horizontal", 1);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "horizVal > 0");
-                
+
                 FindAndPerformAction("InputAction Horizontal", -1);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "horizVal < 0");
@@ -792,7 +806,7 @@ namespace Tests.Runtime
                 csWrapperListener.SetActive(false);
                 RGActionManager.StopSession();
             }
-            
+
             // Test triggering inputs handled via PlayerInput
             ResetInputSystem();
             RGActionManager.StartSession(eventSys);
@@ -801,15 +815,15 @@ namespace Tests.Runtime
             try
             {
                 yield return null; // wait one frame for the InputActions to become active
-                
+
                 FindAndPerformAction("InputAction Move", new Vector2Int(1, 1));
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "OnMove()");
-                
+
                 FindAndPerformAction("InputAction Jump", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "OnJump()");
-                
+
                 FindAndPerformAction("InputAction Aim", new Vector2Int(-1, -1));
                 yield return WaitForInputUpdate();
                 FindAndPerformAction("InputAction Aim", new Vector2Int(1, 1));

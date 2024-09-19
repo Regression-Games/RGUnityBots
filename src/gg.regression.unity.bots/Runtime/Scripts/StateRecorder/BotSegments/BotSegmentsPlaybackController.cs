@@ -79,7 +79,6 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             _screenRecorder = GetComponentInParent<ScreenRecorder>();
             SetupEventSystem();
-            MouseEventSender.GetMouse();
         }
 
         private bool unpaused;
@@ -108,7 +107,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             Stop();
             _replaySuccessful = null;
 
-            MouseEventSender.MoveMouseOffScreen();
+            MouseEventSender.Reset();
 
             _dataPlaybackContainer = dataPlaybackContainer;
         }
@@ -185,7 +184,6 @@ namespace RegressionGames.StateRecorder.BotSegments
             _dataPlaybackContainer = null;
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
-            MouseEventSender.MoveMouseOffScreen();
 
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
@@ -215,7 +213,6 @@ namespace RegressionGames.StateRecorder.BotSegments
             _dataPlaybackContainer?.Reset();
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
-            MouseEventSender.MoveMouseOffScreen();
 
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
@@ -244,7 +241,6 @@ namespace RegressionGames.StateRecorder.BotSegments
             _dataPlaybackContainer?.Reset();
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();
-            MouseEventSender.MoveMouseOffScreen();
 
             TransformStatus.Reset();
             KeyFrameEvaluator.Evaluator.Reset();
@@ -267,6 +263,9 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 if (_startPlaying)
                 {
+                    // initialize the virtual mouse
+                    MouseEventSender.InitializeVirtualMouse();
+
                     // start the mouse off the screen.. this avoids CV or other things failing because the virtual mouse is in the way at the start
                     MouseEventSender.MoveMouseOffScreen();
 
