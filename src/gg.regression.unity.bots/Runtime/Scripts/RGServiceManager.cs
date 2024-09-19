@@ -106,29 +106,6 @@ namespace RegressionGames
             }
         }
 
-        public async Task Auth(string email, string password, Action<string> onSuccess, Action<string> onFailure)
-        {
-            RGDebug.LogInfo($"Signing in to RGService at {GetRgServiceBaseUri()}");
-            await SendWebRequest(
-                uri: $"{GetRgServiceBaseUri()}/auth",
-                method: "POST",
-                payload: JsonUtility.ToJson(new RGAuthRequest(email, password)),
-                onSuccess: (s) =>
-                {
-                    RGAuthResponse response = JsonUtility.FromJson<RGAuthResponse>(s);
-                    RGDebug.LogInfo($"Signed in to RG Service");
-                    _rgAuthToken = response.token;
-                    onSuccess.Invoke(response.token);
-                },
-                onFailure: (f) =>
-                {
-                    RGDebug.LogWarning($"Failed signing in to RG Service - {f}");
-                    onFailure.Invoke(f);
-                },
-                isAuth: true
-            );
-        }
-
         public async Task GetBotsForCurrentUser(Action<RGBot[]> onSuccess, Action onFailure)
         {
             if (LoadAuth(out _))
