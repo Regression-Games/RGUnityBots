@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Tests.Runtime
 {
-    
+    [TestFixture]
     public class RGLegacyInputUtilityTests
     {
         [Test]

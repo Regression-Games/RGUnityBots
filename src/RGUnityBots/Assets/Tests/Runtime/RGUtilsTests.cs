@@ -4,6 +4,7 @@ using RegressionGames;
 
 namespace Tests.Runtime
 {
+    [TestFixture]
     public class RGUtilsTests
     {
         [Test]

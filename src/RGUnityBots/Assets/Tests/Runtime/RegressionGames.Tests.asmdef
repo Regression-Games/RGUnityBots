@@ -5,11 +5,12 @@
     ],
     "references": [
         "RegressionGames",
-        "RegressionGames.TestFramework",
         "Unity.InputSystem",
-        "Unity.InputSystem.TestFramework"
+        "Unity.InputSystem.TestFramework",
+        "Unity.TextMeshPro"
     ],
     "precompiledReferences": [
-        "Newtonsoft.Json.dll"
+        "Newtonsoft.Json.dll",
+        "nunit.framework.dll"
     ]
 }
