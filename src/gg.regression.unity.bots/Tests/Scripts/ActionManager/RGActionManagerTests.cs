@@ -9,6 +9,7 @@ using RegressionGames.ActionManager;
 using RegressionGames.ActionManager.Actions;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
+using RegressionGames.TestFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -16,8 +17,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 
-namespace Tests.Runtime
+namespace RegressionGames.Tests.ActionManager
 {
+    [TestFixture]
     public class RGActionManagerTests : InputTestFixture
     {
         private void TestRangeSerialization(IRGValueRange rng)
@@ -158,6 +160,7 @@ namespace Tests.Runtime
                     return t.gameObject;
                 }
             }
+
             return null;
         }
 
@@ -224,6 +227,7 @@ namespace Tests.Runtime
             {
                 InputSystem.AddDevice<Keyboard>();
             }
+
             SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
 
@@ -406,16 +410,16 @@ namespace Tests.Runtime
                 yield return WaitForInputUpdate();
                 FindAndPerformAction("Mouse Position", new Vector2(0.8f, 0.7f));
                 yield return WaitForInputUpdate();
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos1");
-                #endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            LogAssert.Expect(LogType.Log, "mousePos1 != lastMousePos1");
+#endif
                 LogAssert.Expect(LogType.Log, "mousePos2 != lastMousePos2");
 
                 FindAndPerformAction("Mouse Scroll", new Vector2Int(1, 1));
                 yield return WaitForInputUpdate();
-                #if ENABLE_LEGACY_INPUT_MANAGER
-                LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
-                #endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+            LogAssert.Expect(LogType.Log, "Input.mouseScrollDelta.sqrMagnitude");
+#endif
                 LogAssert.Expect(LogType.Log, "Mouse.current.scroll.value.sqrMagnitude");
             }
             finally
@@ -567,6 +571,7 @@ namespace Tests.Runtime
                 GameObject uiObject = FindGameObject(uiObjectName);
                 uiObject.SetActive(true);
             }
+
             try
             {
                 // UI Button Click
@@ -631,6 +636,7 @@ namespace Tests.Runtime
                     FindAndPerformAction("Text Entry InputField", UIInputFieldTextEntryAction.PARAM_NULL);
                     yield return WaitForInputUpdate();
                 }
+
                 FindAndPerformAction("Text Submit InputField", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "InputField submitted with text Hello");
@@ -651,6 +657,7 @@ namespace Tests.Runtime
                     FindAndPerformAction("Text Entry TMP_InputField", UIInputFieldTextEntryAction.PARAM_NULL);
                     yield return WaitForInputUpdate();
                 }
+
                 FindAndPerformAction("Text Submit TMP_InputField", true);
                 yield return WaitForInputUpdate();
                 LogAssert.Expect(LogType.Log, "TMP_InputField submitted with text World");
@@ -718,6 +725,7 @@ namespace Tests.Runtime
                     GameObject uiObject = FindGameObject(uiObjectName);
                     uiObject.SetActive(false);
                 }
+
                 RGActionManager.StopSession();
             }
 
