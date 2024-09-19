@@ -1,12 +1,20 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using JetBrains.Annotations;
 using RegressionGames;
 using RegressionGames.StateRecorder;
 using UnityEngine;
 using RegressionGames.StateRecorder.BotSegments.Models;
+
+// ReSharper disable once RedundantUsingDirective - used in #if
+using Newtonsoft.Json;
+// ReSharper disable once RedundantUsingDirective - used in #if
+using StateRecorder.BotSegments.Models;
 
 /**
  * <summary>
@@ -42,15 +50,7 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void LoadSequences()
     {
-        if (_loadingSequences == false)
-        {
-            // not perfectly thread safe.. but close enough for this case
-            _loadingSequences = true;
-            new Thread(() =>
-            {
-                _loadedSequences = ResolveSequenceFiles();
-            }).Start();
-        }
+        StartCoroutine(ResolveSequenceFiles());
     }
 
     public void Start()
@@ -60,16 +60,6 @@ public class RGSequenceManager : MonoBehaviour
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
         _this = this;
         DontDestroyOnLoad(_this.gameObject);
-    }
-
-    public void Update()
-    {
-        if (_loadedSequences != null)
-        {
-            InstantiateSequences(_loadedSequences);
-            _loadingSequences = false;
-            _loadedSequences = null;
-        }
     }
 
     /**
@@ -243,20 +233,23 @@ public class RGSequenceManager : MonoBehaviour
      * </summary>
      * <returns>Dictionary of {key=resourcePath, value=(filePath[null if resource],Bot Sequence) tuple}</returns>
      */
-    private IDictionary<string, (string,BotSequence)> ResolveSequenceFiles()
+    [CanBeNull]
+    private IEnumerator ResolveSequenceFiles()
     {
 #if UNITY_EDITOR
         const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
-        if (!Directory.Exists(sequencePath))
+
+        if (Directory.Exists(sequencePath))
         {
-
-            return new Dictionary<string, (string,BotSequence)>();
-
+            InstantiateSequences(EnumerateSequencesInDirectory(sequencePath));
         }
-
-        return EnumerateSequencesInDirectory(sequencePath);
+        else
+        {
+            InstantiateSequences(new Dictionary<string, (string, BotSequence)>());
+        }
+        yield return null;
 #else
-        var sequences = new Dictionary<string, BotSequence>();
+        var sequences = new Dictionary<string, (string,BotSequence)>();
 
         // 1. check the persistentDataPath for sequences
         var persistentDataPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences";
@@ -271,6 +264,7 @@ public class RGSequenceManager : MonoBehaviour
         var rgBotSequencesAsset = Resources.Load<IRGBotSequences>("RGBotSequences");
         foreach (var resourceFilename in rgBotSequencesAsset.sequences)
         {
+            yield return null;
             try
             {
                 if (!sequences.ContainsKey(resourceFilename))
@@ -279,22 +273,24 @@ public class RGSequenceManager : MonoBehaviour
                     var sequence = JsonConvert.DeserializeObject<BotSequence>(sequenceInfo.text ?? "");
 
                     // don't add sequences with duplicate names
-                    if (sequences.Values.Any(s => s.name == sequence.name))
+                    if (sequences.Values.Any(s => s.Item2.name == sequence.name))
                     {
                         continue;
                     }
 
                     // add the new sequence if its filename doesn't already exist
-                    sequences.Add(resourceFilename, sequence);
+                    sequences.Add(resourceFilename, (null,sequence));
                 }
             }
             catch (Exception e)
             {
-                throw new Exception($"Exception reading Sequence json file from resource path: {runtimePath}", e);
+                throw new Exception($"Exception reading Sequence json file from resource path: {resourceFilename}", e);
             }
+
         }
 
-        return sequences;
+        yield return null;
+        InstantiateSequences(sequences);
 #endif
     }
 
@@ -307,22 +303,24 @@ public class RGSequenceManager : MonoBehaviour
      */
     private Dictionary<string, (string, BotSequence)> EnumerateSequencesInDirectory(string path)
     {
-        var sequenceFiles = Directory.EnumerateFiles(path, "*.json");
-        return sequenceFiles
-            .Select(fileName =>
+        var sequenceFiles = Directory.EnumerateFiles(path, "*.json", SearchOption.AllDirectories);
+        Dictionary<string, (string, BotSequence)> result = new();
+        foreach (var fileName in sequenceFiles)
+        {
+            try
             {
-                try
+                var sequenceJsonInfo = BotSequence.LoadSequenceJsonFromPath(fileName);
+                if (sequenceJsonInfo.Item2 != null)
                 {
-                    return BotSequence.LoadSequenceJsonFromPath(fileName);
+                    result.Add(sequenceJsonInfo.Item2, (sequenceJsonInfo.Item1, sequenceJsonInfo.Item3));
                 }
-                catch (Exception exception)
-                {
-                    Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
-                    return (null,null,null);
+            }
+            catch (Exception exception)
+            {
+                Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
+            }
+        }
 
-                }
-            })
-            .Where(s => s.Item2 != null)
-            .ToDictionary(s => s.Item2, s => (s.Item1, s.Item3));
+        return result;
     }
 }

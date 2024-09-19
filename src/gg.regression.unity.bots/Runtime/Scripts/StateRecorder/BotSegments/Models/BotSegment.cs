@@ -253,7 +253,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             segments = LoadSegmentsInDirectory(segmentPath);
-
 #else
             // 1. check the persistentDataPath for segments
             var persistentDataPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments";
@@ -273,7 +272,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     if (!segments.ContainsKey(resourceFilename))
                     {
                         var sequenceInfo = Resources.Load<TextAsset>(resourceFilename);
-                        var sequenceEntry = ParseSegment(sequenceInfo.text ?? "", resourceFilename);
+                        var sequenceEntry = BotSequence.CreateBotSequenceEntryForJson(null, resourceFilename, sequenceInfo.text ?? "");
 
                         // add the new sequence if its filename doesn't already exist
                         segments.Add(resourceFilename, sequenceEntry);
