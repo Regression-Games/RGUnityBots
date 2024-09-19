@@ -37,15 +37,17 @@ namespace RegressionGames.Editor
                     apiKeyField.stringValue = EditorGUILayout.PasswordField("RG API Key", apiKeyField.stringValue);
 
                     EditorGUILayout.BeginHorizontal();
+                    
+                    // links to user account settings and the docs site
                     GUILayout.FlexibleSpace();
                     if (GUILayout.Button("Click here to access API keys on your account", EditorStyles.linkLabel))
                     {
                         Application.OpenURL("https://play.regression.gg/account");
                     }
                     GUILayout.Label("or", EditorStyles.whiteLabel);
-                    if (GUILayout.Button("login and get an API key", EditorStyles.linkLabel))
+                    if (GUILayout.Button("see API Key docs", EditorStyles.linkLabel))
                     {
-                        RegressionPackagePopup.ShowWindow(true);
+                        Application.OpenURL("https://docs.regression.gg/core-concepts/authenticating-with-api-keys");
                     }
                     EditorGUILayout.EndHorizontal();
 
@@ -119,35 +121,6 @@ namespace RegressionGames.Editor
             r.x += horizontalPadding / 2.0f;
             r.width -= horizontalPadding;
             EditorGUI.DrawRect(r, color);
-        }
-
-        public static async Task<bool> Login(string user, string password)
-        {
-
-            var tcs = new TaskCompletionSource<bool>();
-
-            await RGServiceManager.GetInstance().Auth(user, password,
-                responseToken =>
-                {
-                    SerializedObject settings = RGSettings.GetSerializedSettings();
-                    settings.FindProperty("apiKey").stringValue = responseToken;
-                    settings.ApplyModifiedProperties();
-                    AssetDatabase.SaveAssets();
-                    RGSettings.OptionsUpdated();
-                    tcs.SetResult(true);
-                },
-                f =>
-                {
-                    SerializedObject settings = RGSettings.GetSerializedSettings();
-                    settings.FindProperty("apiKey").stringValue = null;
-                    settings.ApplyModifiedProperties();
-                    AssetDatabase.SaveAssets();
-                    RGSettings.OptionsUpdated();
-                    tcs.SetResult(false);
-                });
-
-            await tcs.Task;
-            return tcs.Task.Result;
         }
     }
 #endif
