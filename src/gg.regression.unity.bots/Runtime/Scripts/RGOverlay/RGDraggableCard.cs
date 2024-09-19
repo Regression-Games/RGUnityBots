@@ -41,7 +41,10 @@ namespace RegressionGames
 
         private bool _isHighlighted;
 
+        // the card's alpha value when inert, or being dragged
         private const float HIGHLIGHTED_ALPHA = 1.0f;
+
+        // the card's alpha value when another card is being manipulated
         private const float MUTED_ALPHA = 0.2f;
 
         private const int EXPANDED_HEIGHT = 80;
@@ -153,6 +156,12 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * Sets the Drop Zone for this card
+         * </summary>
+         * <param name="dropZone">The Drop Zone this card is within, or null if not</param>
+         */
         public void SetDropZone(RGDropZone dropZone)
         {
             _dropZone = dropZone;
@@ -217,17 +226,6 @@ namespace RegressionGames
             _dropZone.AddChild(newCard);
             SetDropZone(null);
             Destroy(_draggingStateInstance);
-        }
-
-        /**
-         * <summary>
-         * Unset this card's drop zone if dragged outside of it
-         * </summary>
-         */
-        public void OnExitDropZone()
-        {
-            Debug.Log("DropZone Removed!");
-            _dropZone = null;
         }
 
         /**
