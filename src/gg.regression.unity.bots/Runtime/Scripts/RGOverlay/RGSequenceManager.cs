@@ -35,9 +35,6 @@ public class RGSequenceManager : MonoBehaviour
 
     private ReplayToolbarManager _replayToolbarManager;
 
-    private bool _loadingSequences = false;
-    private IDictionary<string, (string, BotSequence)> _loadedSequences = null;
-
     public static RGSequenceManager GetInstance()
     {
         return _this;
