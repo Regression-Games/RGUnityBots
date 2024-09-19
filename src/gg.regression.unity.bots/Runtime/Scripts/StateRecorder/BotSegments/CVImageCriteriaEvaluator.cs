@@ -9,7 +9,6 @@ using RegressionGames.StateRecorder.JsonConverters;
 using StateRecorder.BotSegments;
 using UnityEngine;
 
-using File = UnityEngine.Windows.File;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
