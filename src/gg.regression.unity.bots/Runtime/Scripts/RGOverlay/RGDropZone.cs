@@ -19,6 +19,8 @@ namespace RegressionGames
 
         public GameObject Content;
 
+        public GameObject ScrollView;
+
         public GameObject potentialDropSpotPrefab;
 
         public GameObject emptyStatePrefab;
@@ -33,9 +35,17 @@ namespace RegressionGames
 
         private int _currentDropIndex = -1;
 
+        // if not specified, default to this child height
         private const int DEFAULT_CHILD_HEIGHT = 30;
 
+        // if not specified, default to this spacing between children
         private const int DEFAULT_CHILD_SPACING = 8;
+
+        // the pixel distance from the bottom and top of the ScrollView's scrollable area where auto-scrolling should trigger
+        private const int EDGE_SCROLL_BUFFER = 100;
+
+        // the pixel speed that the auto-scrolling should occur
+        private const float EDGE_SCROLL_SPEED = 300f;
 
         public void Start()
         {
@@ -46,7 +56,12 @@ namespace RegressionGames
 
             if (Content == null)
             {
-                Debug.LogError("RGDropZone has not Content set");
+                Debug.LogError("RGDropZone has no Content set");
+            }
+
+            if (ScrollView == null)
+            {
+                Debug.LogError("RGDropZone has no ScrollView set");
             }
 
             if (SequenceEditor == null)
@@ -72,7 +87,8 @@ namespace RegressionGames
         /**
          * <summary>
          * When a draggable card is over this drop zone, we will update the potential location that the draggable card
-         * could possibly be dropped. If the draggable card started over this drop zone, then it is being reordered
+         * could possibly be dropped. If the draggable card started over this drop zone, then it is being reordered. The
+         * scrollable drop zone content container will scroll if the user is dragging a card near the bottom or top of it.
          * </summary>
          */
         public void Update()
@@ -82,16 +98,42 @@ namespace RegressionGames
                 return;
             }
 
-            // get screenspace location of the mouse cursor, within the bounds of this drop zone
+            // get screen space location of the mouse cursor
             Vector2 mouseScreenSpacePosition = Input.mousePosition;
-            var rectTransform = Content.GetComponent<RectTransform>();
-            Vector2 localPoint = rectTransform.InverseTransformPoint(mouseScreenSpacePosition);
+
+            // get the cursor position within the scrollable area
+            var scrollRect = ScrollView.GetComponent<ScrollRect>();
+            Vector2 localPoint = scrollRect.viewport.InverseTransformPoint(mouseScreenSpacePosition);
 
             // adjust the local point to have the Y-axis facing down (ie: y values increase as we go down)
             var resultPosition = new Vector2(localPoint.x, -localPoint.y);
 
+            // used to modify the scrolling speed based on the height of the scrollable area
+            var maxScrollDistance = scrollRect.content.GetComponent<RectTransform>().rect.height -
+                                    scrollRect.viewport.GetComponent<RectTransform>().rect.height;
+
+            // calc the cursor distance from the bottom of the non-scrollable, viewport area
+            var distanceToBottom = scrollRect.viewport.rect.height - resultPosition.y;
+
+            // scroll the scrollable area up or down when the cursor is both dragging a card, and near the top or bottom
+            // of the scrollable area
+            if (resultPosition.y < EDGE_SCROLL_BUFFER)
+            {
+                // scroll up
+                scrollRect.verticalNormalizedPosition += (Time.deltaTime * EDGE_SCROLL_SPEED) / maxScrollDistance;
+            }
+            else if (distanceToBottom < EDGE_SCROLL_BUFFER)
+            {
+                // scroll down
+                scrollRect.verticalNormalizedPosition -= (Time.deltaTime * EDGE_SCROLL_SPEED) / maxScrollDistance;
+            }
+
+            // get the mouse position within the actual content, used for calculating the drop spot of a new or reordering card
+            var contentPoint = Content.GetComponent<RectTransform>().InverseTransformPoint(mouseScreenSpacePosition);
+            var resultContentPosition = new Vector2(contentPoint.x, -contentPoint.y);
+
             // update the position of the potential drop spot when the drop index changes
-            var dropIndex = ComputeDropIndex(resultPosition);
+            var dropIndex = ComputeDropIndex(resultContentPosition);
             if (dropIndex >= 0 && dropIndex != _currentDropIndex)
             {
                 _currentDropIndex = dropIndex;
