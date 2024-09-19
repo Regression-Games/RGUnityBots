@@ -8,6 +8,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames
 {
@@ -73,19 +75,51 @@ namespace RegressionGames
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
 
+        public static void TeardownOverrideEventSystem(Scene? scene = null)
+        {
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            // should only be one of these existing at a time... but anyway
+            var eventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Where(a=> scene == null || a.gameObject.scene == scene);
+            foreach (var eventSystem in eventSystems)
+            {
+                if(eventSystem.gameObject.TryGetComponent<RGStandaloneInputModule>(out var rgModule))
+                {
+                    // remove it
+                    Object.Destroy(rgModule);
+                }
+                BaseInputModule inputModule = eventSystem.gameObject
+                    .GetComponents<BaseInputModule>()
+                    .FirstOrDefault(module => module is not RGStandaloneInputModule && module.inputOverride != null);
+
+                // remove the override settings from the non RG one
+                if (inputModule != null)
+                {
+                    // Reset and re-enable the one we overrode
+                    inputModule.inputOverride = null;
+                    inputModule.enabled = true;
+                    if (inputModule is TouchInputModule tim)
+                    {
+                        // for old deprecated touch input module we have to force re-enable it
+                        tim.forceModuleActive = true;
+                    }
+                }
+            }
+            #endif
+        }
 
         /// <summary>
         /// Configures a scene's EventSystems to support replay and other functionality requiring simulated inputs
         /// </summary>
-        public static void SetupEventSystem()
+        public static void SetupOverrideEventSystem(Scene? scene = null)
         {
-            var eventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
+            // should only be one of these existing at a time... but anyway
+            var eventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Where(a=> scene == null || a.gameObject.scene == scene);
             foreach (var eventSystem in eventSystems)
             {
                 BaseInputModule inputModule = eventSystem.gameObject
                     .GetComponents<BaseInputModule>()
                     #if ENABLE_LEGACY_INPUT_MANAGER
-                    .FirstOrDefault(module => module is not RGStandaloneInputModule);
+                    .FirstOrDefault(module => module is not RGStandaloneInputModule && module.isActiveAndEnabled);
                     #else
                     .FirstOrDefault();
                     #endif

@@ -47,9 +47,9 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private void Start()
         {
-            SetupEventSystem();
             KeyboardEventSender.Initialize();
             SceneManager.sceneLoaded += OnSceneLoad;
+            SceneManager.sceneUnloaded += OnSceneUnload;
 #if UNITY_EDITOR
             EditorApplication.pauseStateChanged += ResetErrorTimer;
 #endif
@@ -59,6 +59,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             MouseEventSender.Reset();
             SceneManager.sceneLoaded -= OnSceneLoad;
+            SceneManager.sceneUnloaded -= OnSceneUnload;
 #if UNITY_EDITOR
             EditorApplication.pauseStateChanged -= ResetErrorTimer;
 #endif
@@ -66,19 +67,24 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         void OnSceneLoad(Scene s, LoadSceneMode m)
         {
-            // since this is a don't destroy on load, we need to 'fix' the event systems in each new scene that loads
-            SetupEventSystem();
+            if (_isPlaying)
+            {
+                // since this is a don't destroy on load, we need to 'fix' the event systems in each new scene that loads
+                RGUtils.SetupOverrideEventSystem(s);
+            }
         }
 
-        private void SetupEventSystem()
+        void OnSceneUnload(Scene s)
         {
-            RGUtils.SetupEventSystem();
+            if (_isPlaying)
+            {
+                RGUtils.TeardownOverrideEventSystem(s);
+            }
         }
 
         void OnEnable()
         {
             _screenRecorder = GetComponentInParent<ScreenRecorder>();
-            SetupEventSystem();
         }
 
         private bool unpaused;
@@ -179,6 +185,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
             #endif
+            RGUtils.TeardownOverrideEventSystem();
             RGUtils.RestoreInputSettings();
 
             _dataPlaybackContainer = null;
@@ -208,6 +215,8 @@ namespace RegressionGames.StateRecorder.BotSegments
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
             #endif
+            RGUtils.TeardownOverrideEventSystem();
+            RGUtils.RestoreInputSettings();
 
             // similar to Stop, but assumes will play again
             _dataPlaybackContainer?.Reset();
@@ -236,6 +245,8 @@ namespace RegressionGames.StateRecorder.BotSegments
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
             #endif
+            RGUtils.TeardownOverrideEventSystem();
+            RGUtils.RestoreInputSettings();
 
             // similar to Stop, but assumes continued looping .. doesn't stop recording
             _dataPlaybackContainer?.Reset();
@@ -269,6 +280,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     // start the mouse off the screen.. this avoids CV or other things failing because the virtual mouse is in the way at the start
                     MouseEventSender.MoveMouseOffScreen();
 
+                    RGUtils.SetupOverrideEventSystem();
                     #if ENABLE_LEGACY_INPUT_MANAGER
                     RGLegacyInputWrapper.StartSimulation(this);
                     #endif
