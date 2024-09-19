@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 namespace RegressionGames
@@ -12,7 +11,7 @@ namespace RegressionGames
      * A vertical layout that can have RGDraggableCards dropped into it, and also reordered
      * </summary>
      */
-    public class RGDropZone : MonoBehaviour //, IPointerEnterHandler, IPointerExitHandler
+    public class RGDropZone : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         public List<GameObject> droppables;
 
@@ -48,28 +47,6 @@ namespace RegressionGames
             if (Content == null)
             {
                 Debug.LogError("RGDropZone has not Content set");
-            }
-            else
-            {
-                // Ensure the child has an EventTrigger component
-                var eventTrigger = Content.GetComponent<EventTrigger>();
-                if (eventTrigger == null)
-                {
-                    eventTrigger = Content.AddComponent<EventTrigger>();
-                }
-
-                // Create the entry for the OnPointerEnter event
-                var entry = new EventTrigger.Entry();
-                entry.eventID = EventTriggerType.PointerEnter;
-                entry.callback.AddListener((eventData) => { OnPointerEnter((PointerEventData)eventData); });
-
-                var entry2 = new EventTrigger.Entry();
-                entry2.eventID = EventTriggerType.PointerExit;
-                entry2.callback.AddListener((eventData) => { OnPointerExit((PointerEventData)eventData); });
-
-                // Add the entry to the EventTrigger
-                eventTrigger.triggers.Add(entry);
-                eventTrigger.triggers.Add(entry2);
             }
 
             if (SequenceEditor == null)
