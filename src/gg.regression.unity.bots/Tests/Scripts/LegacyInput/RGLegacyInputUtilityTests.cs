@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames.RGLegacyInputUtility;
+using RegressionGames.TestFramework;
 using UnityEngine;
 
-namespace Tests.Runtime
+namespace RegressionGames.Tests.LegacyInput
 {
-    
+    [TestFixture]
     public class RGLegacyInputUtilityTests
     {
         [Test]
