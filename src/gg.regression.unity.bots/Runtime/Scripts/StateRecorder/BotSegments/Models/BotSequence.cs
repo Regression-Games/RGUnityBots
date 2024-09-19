@@ -7,6 +7,8 @@ using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
+// ReSharper disable once RedundantUsingDirective - used in #if block
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -95,6 +97,42 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
+        private static object ParseSegmentOrListJson(string resourcePath, string fileData)
+        {
+            try
+            {
+                var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileData);
+                if (segmentList.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
+                {
+                    throw new Exception($"BotSegmentList file contains a segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
+                }
+
+                if (string.IsNullOrEmpty(segmentList.name))
+                {
+                    segmentList.name = resourcePath;
+                }
+
+                segmentList.FixupNames();
+                return segmentList;
+            }
+            catch (Exception)
+            {
+                // This wasn't a segment list, so it must be a normal segment
+                var segment = JsonConvert.DeserializeObject<BotSegment>(fileData);
+                if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
+                {
+                    throw new Exception($"BotSegment file requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
+                }
+
+                if (string.IsNullOrEmpty(segment.name))
+                {
+                    segment.name = resourcePath;
+                }
+
+                return segment;
+            }
+        }
+
         /**
          *
          * <returns>A (FilePath [null - if loaded as resource], resourcePath, object [BotSegment or BotSegmentList]) tuple</returns>
@@ -128,38 +166,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     jsonFile = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
                 }
 
-                try
-                {
-                    var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(jsonFile.Item3);
-                    if (segmentList.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
-                    {
-                        throw new Exception($"BotSegmentList file contains a segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
-                    }
-
-                    if (string.IsNullOrEmpty(segmentList.name))
-                    {
-                        segmentList.name = jsonFile.Item2;
-                    }
-
-                    segmentList.FixupNames();
-                    return (jsonFile.Item1, jsonFile.Item2, segmentList);
-                }
-                catch (Exception)
-                {
-                    // This wasn't a segment list, so it must be a normal segment
-                    var segment = JsonConvert.DeserializeObject<BotSegment>(jsonFile.Item3);
-                    if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
-                    {
-                        throw new Exception($"BotSegment file requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
-                    }
-
-                    if (string.IsNullOrEmpty(segment.name))
-                    {
-                        segment.name = jsonFile.Item2;
-                    }
-
-                    return (jsonFile.Item1, jsonFile.Item2, segment);
-                }
+                return (jsonFile.Item1, jsonFile.Item2, ParseSegmentOrListJson(jsonFile.Item2, jsonFile.Item3));
             }
             catch (Exception e)
             {
@@ -300,6 +307,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             using var sr = new StreamReader(File.OpenRead(editorFilePath));
             result = (editorFilePath, resourcePath, sr.ReadToEnd());
+
 #else
             // #if runtime .. load files from either resources, OR .. persistentDataPath.. preferring persistentDataPath as an 'override' to resources
             var runtimePath = resourcePath;
@@ -372,6 +380,40 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
             playbackController.Stop();
             playbackController.Reset();
+        }
+
+        public static BotSequenceEntry CreateBotSequenceEntryForJson(string filePath, string resourcePath, string jsonData)
+        {
+            try
+            {
+                var result = ParseSegmentOrListJson(resourcePath, jsonData);
+                if (result is BotSegmentList bsl)
+                {
+                    return new BotSequenceEntry()
+                    {
+                        type = BotSequenceEntryType.SegmentList,
+                        path = filePath ?? resourcePath,
+                        name = bsl.name,
+                        description = bsl.description
+                    };
+                }
+
+                var botSegment = (BotSegment)result;
+                return new BotSequenceEntry()
+                {
+                    type = BotSequenceEntryType.Segment,
+                    path = filePath ?? resourcePath,
+                    name = botSegment.name,
+                    description = botSegment.description
+                };
+
+            }
+            catch (Exception e)
+            {
+                RGDebug.LogWarning($"Exception parsing BotSegmentList or BotSegment from json at path: {resourcePath} - {e}");
+            }
+
+            return null;
         }
 
         /**
