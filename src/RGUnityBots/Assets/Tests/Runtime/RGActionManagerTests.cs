@@ -183,7 +183,12 @@ namespace Tests.Runtime
         {
             InputSystem.ResetDevice(Keyboard.current, true);
             MouseEventSender.Reset();
-            InputSystem.ResetDevice(Mouse.current, true);
+            if (Mouse.current != null)
+            {
+                InputSystem.ResetDevice(Mouse.current, true);
+            }
+
+            MouseEventSender.InitializeVirtualMouse();
         }
 
         private bool _inputUpdateCompleted = false;

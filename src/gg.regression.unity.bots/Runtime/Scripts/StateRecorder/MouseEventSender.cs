@@ -62,6 +62,11 @@ namespace RegressionGames.StateRecorder
                     RGDebug.LogDebug("reset - Enabling the real mouse device for mouse event");
                     InputSystem.EnableDevice(_realMouse);
                 }
+
+                if (_realMouse != null)
+                {
+                    _realMouse.MakeCurrent();
+                }
             }
 
             _virtualMouse = null;
