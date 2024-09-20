@@ -101,31 +101,39 @@ namespace RegressionGames
             // get screen space location of the mouse cursor
             Vector2 mouseScreenSpacePosition = Input.mousePosition;
 
-            // get the cursor position within the scrollable area
+            // scroll the drop zone up or down when dragging a card near the top or bottom of the drop zone. This
+            // will only apply when the drop zone's scroll bar is visible (ie: when the drop zone children overflow)
             var scrollRect = ScrollView.GetComponent<ScrollRect>();
-            Vector2 localPoint = scrollRect.viewport.InverseTransformPoint(mouseScreenSpacePosition);
-
-            // adjust the local point to have the Y-axis facing down (ie: y values increase as we go down)
-            var resultPosition = new Vector2(localPoint.x, -localPoint.y);
-
-            // used to modify the scrolling speed based on the height of the scrollable area
-            var maxScrollDistance = scrollRect.content.GetComponent<RectTransform>().rect.height -
-                                    scrollRect.viewport.GetComponent<RectTransform>().rect.height;
-
-            // calc the cursor distance from the bottom of the non-scrollable, viewport area
-            var distanceToBottom = scrollRect.viewport.rect.height - resultPosition.y;
-
-            // scroll the scrollable area up or down when the cursor is both dragging a card, and near the top or bottom
-            // of the scrollable area
-            if (resultPosition.y < EDGE_SCROLL_BUFFER)
+            if (scrollRect.content.rect.height > scrollRect.viewport.rect.height)
             {
-                // scroll up
-                scrollRect.verticalNormalizedPosition += (Time.deltaTime * EDGE_SCROLL_SPEED) / maxScrollDistance;
-            }
-            else if (distanceToBottom < EDGE_SCROLL_BUFFER)
-            {
-                // scroll down
-                scrollRect.verticalNormalizedPosition -= (Time.deltaTime * EDGE_SCROLL_SPEED) / maxScrollDistance;
+                // get the cursor position within the scrollable area
+                Vector2 localPoint = scrollRect.viewport.InverseTransformPoint(mouseScreenSpacePosition);
+
+                // adjust the local point to have the Y-axis facing down (ie: y values increase as we go down)
+                var resultPosition = new Vector2(localPoint.x, -localPoint.y);
+
+                // used to modify the scrolling speed based on the height of the scrollable area
+                var maxScrollDistance = scrollRect.content.GetComponent<RectTransform>().rect.height -
+                                        scrollRect.viewport.GetComponent<RectTransform>().rect.height;
+
+                // calc the cursor distance from the bottom of the non-scrollable, viewport area
+                var distanceToBottom = scrollRect.viewport.rect.height - resultPosition.y;
+
+                // compute the scrolling speed
+                var scrollAmount = Math.Clamp((Time.deltaTime * EDGE_SCROLL_SPEED) / maxScrollDistance, 0, 1);
+
+                // scroll the scrollable area up or down when the cursor is both dragging a card, and near the top or bottom
+                // of the scrollable area
+                if (resultPosition.y < EDGE_SCROLL_BUFFER)
+                {
+                    // scroll up
+                    scrollRect.verticalNormalizedPosition += scrollAmount;
+                }
+                else if (distanceToBottom < EDGE_SCROLL_BUFFER)
+                {
+                    // scroll down
+                    scrollRect.verticalNormalizedPosition -= scrollAmount;
+                }
             }
 
             // get the mouse position within the actual content, used for calculating the drop spot of a new or reordering card
