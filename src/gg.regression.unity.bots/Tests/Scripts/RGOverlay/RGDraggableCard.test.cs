@@ -140,9 +140,10 @@ namespace RegressionGames.Tests.RGOverlay
             // drag and drop the card outside the drop zone
             var onDragEvent = new PointerEventData(EventSystem.current)
             {
-                pointerEnter = null
+                position = new Vector2()
             };
             card.OnDrag(onDragEvent);
+            card.SetDropZone(null);
 
             card.OnEndDrag(genericDragEvent);
 
