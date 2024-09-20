@@ -56,6 +56,17 @@ namespace RegressionGames.Tests.RGOverlay
         }
 
         [Test]
+        public void SetDropZone_IsOverDropZone()
+        {
+            Assert.IsFalse(card.IsOverDropZone());
+
+            var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
+            card.SetDropZone(dropZone.GetComponent<RGDropZone>());
+
+            Assert.IsTrue(card.IsOverDropZone());
+        }
+
+        [Test]
         public void OnBeginDrag()
         {
             var dragEvent = new PointerEventData(EventSystem.current);
