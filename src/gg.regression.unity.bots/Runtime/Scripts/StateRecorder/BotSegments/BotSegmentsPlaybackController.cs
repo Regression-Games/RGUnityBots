@@ -401,24 +401,26 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                     if (matched)
                     {
-                        if (!nextBotSegment.Replay_Matched)
+                        // only update the time when the first index matches, but keeps us from logging this while waiting for actions to complete
+                        if (i == 0)
                         {
-                            nextBotSegment.Replay_Matched = true;
-                            // log this the first time
-                            RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched - {nextBotSegment.name} - {nextBotSegment.description}");
-                            // tell the action that our segment completed and it should stop when it finishes its current actions
-                            nextBotSegment.StopAction(transformStatuses, entityStatuses);
-                            if (i == 0)
+                            if (!nextBotSegment.Replay_Matched)
                             {
+                                // only mark this fully matched (as opposed to transient if it is the current segment)
+                                nextBotSegment.Replay_Matched = true;
+                                RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched - {nextBotSegment.name} - {nextBotSegment.description}");
+
+                                if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted)
+                                {
+                                    // tell the action that our segment completed and it should stop when it finishes its current actions.. only do this the first time we pass through as matched
+                                    nextBotSegment.StopAction(transformStatuses, entityStatuses);
+                                }
+
                                 _lastTimeLoggedKeyFrameConditions = now;
                                 FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                                 matchedThisUpdate = true;
                             }
-                        }
 
-                        // only update the time when the first index matches, but keeps us from logging this while waiting for actions to complete
-                        if (i == 0)
-                        {
                             // wait 10 seconds between logging this as some actions take quite a while
                             if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                             {
@@ -429,10 +431,10 @@ namespace RegressionGames.StateRecorder.BotSegments
                             }
                         }
 
-                        if (nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
+                        if (nextBotSegment.Replay_Matched && nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
                         {
                             _lastTimeLoggedKeyFrameConditions = now;
-                            RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Completed - {nextBotSegment.name} - {nextBotSegment.description}");
+                            RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Criteria Matched && Action Completed - {nextBotSegment.name} - {nextBotSegment.description}");
                             //Process the inputs from that bot segment if necessary
                             _nextBotSegments.RemoveAt(i);
                         }
@@ -466,17 +468,21 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                 if (_nextBotSegments.Count > 0)
                 {
-                    // see if the last entry has transient matches.. if so.. dequeue another
+                    // see if the last entry has transient matches.. if so.. dequeue another up to a limit of 2 total segments being evaluated... we may need to come back to this.. but without this look ahead, loading screens like bossroom fail due to background loading
+                    // but if you go too far.. you can match segments in the replay that you won't see for another 50 segments when you go back to the menu again.. which is obviously wrong
                     var lastSegment = _nextBotSegments[^1];
                     if (lastSegment.Replay_TransientMatched)
                     {
-                        var next = _dataPlaybackContainer.DequeueBotSegment();
-                        if (next != null)
+                        if (_nextBotSegments.Count < 2)
                         {
-                            _lastTimeLoggedKeyFrameConditions = now;
-                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                            RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment - {next.name} - {next.description}");
-                            _nextBotSegments.Add(next);
+                            var next = _dataPlaybackContainer.DequeueBotSegment();
+                            if (next != null)
+                            {
+                                _lastTimeLoggedKeyFrameConditions = now;
+                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                                RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment - {next.name} - {next.description}");
+                                _nextBotSegments.Add(next);
+                            }
                         }
                     }
                 }
