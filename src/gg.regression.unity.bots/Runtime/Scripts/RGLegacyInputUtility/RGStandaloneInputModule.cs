@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace RegressionGames.RGLegacyInputUtility
 {
@@ -35,47 +36,56 @@ namespace RegressionGames.RGLegacyInputUtility
             base.OnDisable();
             SendMessageToPlaybackInputModule("OnDisable");
         }
-        
+
         public override bool IsModuleSupported()
         {
-            return base.IsModuleSupported() && GetPlaybackInputModule().IsModuleSupported();
+            return base.IsModuleSupported() && (GetPlaybackInputModule()?.IsModuleSupported() ?? true);
         }
 
         public override bool ShouldActivateModule()
         {
-            return base.ShouldActivateModule() || GetPlaybackInputModule().ShouldActivateModule();
+            return base.ShouldActivateModule() || (GetPlaybackInputModule()?.ShouldActivateModule() ?? true);
         }
 
         public override void ActivateModule()
         {
             base.ActivateModule();
-            GetPlaybackInputModule().ActivateModule();
+            GetPlaybackInputModule()?.ActivateModule();
         }
 
         public override void DeactivateModule()
         {
             base.DeactivateModule();
-            GetPlaybackInputModule().DeactivateModule();
-            
+            GetPlaybackInputModule()?.DeactivateModule();
+
         }
         public override void UpdateModule()
         {
             // When playback is NOT active, then the playback module is just reading input from the user as usual,
-            // so we don't need this input module to be reading user input. 
+            // so we don't need this input module to be reading user input.
             if (IsPlaybackActive())
             {
                 base.UpdateModule();
             }
-            GetPlaybackInputModule().UpdateModule();
+            GetPlaybackInputModule()?.UpdateModule();
         }
-        
+
         public override void Process()
         {
             if (IsPlaybackActive())
             {
                 base.Process();
             }
-            GetPlaybackInputModule().Process();
+            GetPlaybackInputModule()?.Process();
+        }
+
+        public override bool IsPointerOverGameObject(int pointerId)
+        {
+            if (pointerId == -1)
+            {
+                return RGLegacyInputWrapper.IsLeftMouseButtonPointerCurrentlyOverGameObject();
+            }
+            return base.IsPointerOverGameObject(pointerId);
         }
 
         private bool IsPlaybackActive()
@@ -94,7 +104,9 @@ namespace RegressionGames.RGLegacyInputUtility
                     return module;
                 }
             }
-            throw new Exception("Missing playback input module (must be disabled and overridden with RGBaseInput)");
+
+            // during teardown, the object.destroy doesn't process immediately, so we have to be tolerant of this maybe being null for the rest of the frame
+            return null;
         }
 
         private void SendMessageToPlaybackInputModule(string methodName)

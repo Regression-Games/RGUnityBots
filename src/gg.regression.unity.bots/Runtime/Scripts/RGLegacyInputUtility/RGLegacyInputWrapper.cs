@@ -1,4 +1,4 @@
-﻿#if ENABLE_LEGACY_INPUT_MANAGER 
+﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ namespace RegressionGames.RGLegacyInputUtility
         AUTOMATIC,
         MANUAL
     }
-    
+
     class RGLegacyAxisInputState
     {
         public float rawValue;
@@ -39,19 +39,19 @@ namespace RegressionGames.RGLegacyInputUtility
     struct RGLegacySimulatedInputEvent
     {
         public RGLegacySimulatedInputEventType eventType;
-        
+
         // Key event
         public KeyCode keyCode;
         public bool isKeyPressed;
-        
+
         // Mouse movement event
         public Vector3 newMousePosition;
         public Vector3? newMouseDelta;
-        
+
         // Mouse scroll event
         public Vector2 newMouseScrollDelta;
     }
-    
+
     /**
      * Class that provides APIs for simulating device inputs, and also
      * provides the necessary wrappers for the UnityEngine.Input APIs that
@@ -72,10 +72,15 @@ namespace RegressionGames.RGLegacyInputUtility
         private static Vector2 _mouseScrollDelta;
         private static Dictionary<InputManagerEntry, RGLegacyAxisInputState> _axisStates;
         private static Camera[] _camerasBuf;
+
+        private static (GameObject, Camera)? _currentHitObject;
         private static (GameObject, Camera)? _lastHitObject;
         private static (GameObject, Camera)? _mouseDownObject;
+
+        private static (GameObject, Camera)? _currentHitObject2D;
         private static (GameObject, Camera)? _lastHitObject2D;
         private static (GameObject, Camera)? _mouseDownObject2D;
+
         private static RGLegacyInputManagerSettings _inputManagerSettings;
         private static Coroutine _autoUpdateLoopCoro;
         private static Queue<RGLegacySimulatedInputEvent> _inputSimEventQueue;
@@ -149,12 +154,14 @@ namespace RegressionGames.RGLegacyInputUtility
             _mouseScrollDelta = Vector2.zero;
             _axisStates = new Dictionary<InputManagerEntry, RGLegacyAxisInputState>();
             _lastHitObject = null;
+            _currentHitObject = null;
             _mouseDownObject = null;
             _lastHitObject2D = null;
+            _currentHitObject2D = null;
             _mouseDownObject2D = null;
             _inputManagerSettings = new RGLegacyInputManagerSettings();
             _inputSimEventQueue = new Queue<RGLegacySimulatedInputEvent>();
-            
+
             // initialize axis states
             foreach (var entry in _inputManagerSettings.Entries)
             {
@@ -167,7 +174,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 _autoUpdateLoopCoro = _simulationContext.StartCoroutine(AutoUpdateLoop());
             }
         }
-        
+
         /**
          * Called by the test driver to release control of the user input.
          */
@@ -186,8 +193,10 @@ namespace RegressionGames.RGLegacyInputUtility
                 _newKeysUp = null;
                 _axisStates = null;
                 _lastHitObject = null;
+                _currentHitObject = null;
                 _mouseDownObject = null;
                 _lastHitObject2D = null;
+                _currentHitObject2D = null;
                 _mouseDownObject2D = null;
                 _keysHeld = null;
                 _simulationContext = null;
@@ -206,7 +215,7 @@ namespace RegressionGames.RGLegacyInputUtility
             _anyKeyDown = false;
             _mousePosDelta = Vector3.zero;
             _mouseScrollDelta = Vector2.zero;
-                
+
             // Process simulated input event queue
             while (_inputSimEventQueue.TryDequeue(out RGLegacySimulatedInputEvent evt))
             {
@@ -262,7 +271,7 @@ namespace RegressionGames.RGLegacyInputUtility
                     }
                 }
             }
-                
+
             // Update axis states based on input
             foreach (var p in _axisStates)
             {
@@ -300,13 +309,13 @@ namespace RegressionGames.RGLegacyInputUtility
                     }
                     float rate = (anyHeld ? entry.sensitivity : entry.gravity) * Time.deltaTime;
                     state.smoothedValue = Mathf.MoveTowards(startVal, state.rawValue, rate);
-                } 
+                }
                 else if (entry.type == InputManagerEntryType.MOUSE_MOVEMENT)
                 {
                     if (entry.axis == 0) // X Axis
                     {
                         state.rawValue = _mousePosDelta.x * entry.sensitivity;
-                    } 
+                    }
                     else if (entry.axis == 1) // Y Axis
                     {
                         state.rawValue = _mousePosDelta.y * entry.sensitivity;
@@ -320,27 +329,26 @@ namespace RegressionGames.RGLegacyInputUtility
                         state.rawValue *= -1.0f;
                     }
                     state.smoothedValue = state.rawValue; // smoothing is not applied on mouse movement
-                } 
+                }
                 else if (entry.type == InputManagerEntryType.JOYSTICK_AXIS)
                 {
                     // joysticks unsupported currently
                     // eventually this will read the joystick value, incorporating entry.dead for dead zone
-                } 
+                }
                 else
                 {
                     RGDebug.LogWarning($"Unexpected input manager entry type: {entry.type}");
                 }
             }
-                
+
             // Invoke the appropriate mouse event handlers on MonoBehaviours
             {
-                (GameObject, Camera)? hitObject = null;
-                (GameObject, Camera)? hitObject2D = null;
                 int numCameras = Camera.allCamerasCount;
                 if (_camerasBuf == null || _camerasBuf.Length != numCameras)
                 {
                     _camerasBuf = new Camera[numCameras];
                 }
+
                 Camera.GetAllCameras(_camerasBuf);
                 foreach (Camera camera in _camerasBuf)
                 {
@@ -348,36 +356,58 @@ namespace RegressionGames.RGLegacyInputUtility
                     {
                         continue;
                     }
-                        
-                    int cameraRaycastMask = camera.cullingMask & camera.eventMask;
-                        
+
+                    var cameraRaycastMask = camera.cullingMask & camera.eventMask;
+
+                    (GameObject, GameObject) result = (null, null);
                     // 3D raycast
                     {
                         Ray mouseRay = camera.ScreenPointToRay(_mousePosition);
                         if (Physics.Raycast(mouseRay, out RaycastHit hit, maxDistance: Mathf.Infinity,
                                 layerMask: cameraRaycastMask))
                         {
-                            hitObject = (hit.collider.gameObject, camera);
+                            _currentHitObject = (hit.collider.gameObject, camera);
                         }
                     }
-                        
+
                     // 2D raycast
                     {
                         Vector3 mouseWorldPt = camera.ScreenToWorldPoint(new Vector3(_mousePosition.x, _mousePosition.y, camera.nearClipPlane));
-                        RaycastHit2D hit2D = Physics2D.Raycast(mouseWorldPt, Vector2.zero, distance: Mathf.Infinity, 
-                            layerMask: cameraRaycastMask);
-                        if (hit2D.collider != null)
+                        var collider = Physics2D.OverlapPoint(mouseWorldPt, cameraRaycastMask);
+                        if (collider != null)
                         {
-                            hitObject2D = (hit2D.collider.gameObject, camera);
+                            _currentHitObject2D = (collider.gameObject, camera);
                         }
                     }
                 }
+
                 // 3D collider mouse events are always handled before 2D collider mouse events
-                InvokeMouseEventHandlers(hitObject, _lastHitObject, ref _mouseDownObject);
-                InvokeMouseEventHandlers(hitObject2D, _lastHitObject2D, ref _mouseDownObject2D);
-                _lastHitObject = hitObject;
-                _lastHitObject2D = hitObject2D;
+                InvokeMouseEventHandlers(_currentHitObject, _lastHitObject, ref _mouseDownObject);
+                InvokeMouseEventHandlers(_currentHitObject2D, _lastHitObject2D, ref _mouseDownObject2D);
+                _lastHitObject = _currentHitObject;
+                _lastHitObject2D = _currentHitObject2D;
+                _currentHitObject = null;
+                _currentHitObject2D = null;
             }
+
+        }
+
+        public static bool IsLeftMouseButtonPointerCurrentlyOverGameObject()
+        {
+            if (anyKeyDown &&
+                (_keysHeld.Contains(KeyCode.Mouse0)
+                 || _keysHeld.Contains(KeyCode.Mouse1)
+                 || _keysHeld.Contains(KeyCode.Mouse2)
+                 || _keysHeld.Contains(KeyCode.Mouse3)
+                 || _keysHeld.Contains(KeyCode.Mouse4)
+                 || _keysHeld.Contains(KeyCode.Mouse5)
+                 || _keysHeld.Contains(KeyCode.Mouse6))
+               )
+            {
+                return _currentHitObject != null || _currentHitObject2D != null;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -407,7 +437,7 @@ namespace RegressionGames.RGLegacyInputUtility
         {
             bool leftButton = _keysHeld.Contains(KeyCode.Mouse0);
             bool leftButtonDown = _newKeysDown.Contains(KeyCode.Mouse0);
-            
+
             if (leftButtonDown)
             {
                 if (hitObject.HasValue)
@@ -453,7 +483,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 }
             }
         }
-        
+
         /**
          * Called by the test driver to simulate a key press.
          */
@@ -498,9 +528,9 @@ namespace RegressionGames.RGLegacyInputUtility
             evt.newMouseScrollDelta = newMouseScrollDelta;
             _inputSimEventQueue.Enqueue(evt);
         }
-        
+
         private static Regex _joystickButtonPattern = new Regex(@"joystick (\d+) button (\d+)", RegexOptions.Compiled);
-        
+
         // Based on https://docs.unity3d.com/Manual/class-InputManager.html
         public static KeyCode KeyNameToCode(string buttonName)
         {
@@ -545,7 +575,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 }
             }
         }
-        
+
         ////////////////////////////////////////////////////////////////////////////////////////////
         // The following code defines the wrapper methods corresponding to the UnityEngine.Input API
         // The RGLegacyInputInstrumentation class will automatically redirect the legacy input API invocations to these.
@@ -625,7 +655,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 }
             }
         }
-        
+
         public static bool GetKey(string name)
         {
             if (IsPassthrough)
@@ -697,7 +727,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 return _newKeysUp.Contains(key);
             }
         }
-        
+
         private static KeyCode MouseButtonToKeyCode(int button)
         {
         	if (button < 0 || button > 6)
@@ -762,7 +792,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 return 0.0f;
             }
         }
-        
+
         public static float GetAxis(string name)
         {
             if (IsPassthrough)
