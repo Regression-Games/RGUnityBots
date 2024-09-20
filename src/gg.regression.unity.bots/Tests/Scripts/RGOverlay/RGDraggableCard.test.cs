@@ -106,6 +106,7 @@ namespace RegressionGames.Tests.RGOverlay
                 pointerEnter = dropZone.gameObject
             };
             card.OnDrag(onDragEvent);
+            card.SetDropZone(dropZone.GetComponent<RGDropZone>());
 
             card.OnEndDrag(genericDragEvent);
 
@@ -155,6 +156,10 @@ namespace RegressionGames.Tests.RGOverlay
             dropZone.transform.SetParent(_uat.transform, false);
             dropZone.gameObject.AddComponent<RectTransform>();
             var dzScript = dropZone.AddComponent<RGDropZone>();
+            dzScript.Content = new GameObject();
+            dzScript.Content.AddComponent<RectTransform>();
+            dzScript.ScrollView = new GameObject();
+            dzScript.ScrollView.AddComponent<ScrollRect>();
             dzScript.potentialDropSpotPrefab = new GameObject();
             dzScript.emptyStatePrefab = new GameObject();
             dzScript.SequenceEditor = sequenceEditor;
