@@ -4,6 +4,7 @@ using RegressionGames;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.Tests.RGOverlay
@@ -25,6 +26,11 @@ namespace RegressionGames.Tests.RGOverlay
             dropZone = _uat.AddComponent<RGDropZone>();
             dropZone.transform.SetParent(_uat.transform, false);
             dropZone.droppables = new List<GameObject> { new() };
+
+            dropZone.Content = new GameObject();
+            dropZone.Content.AddComponent<RectTransform>();
+            dropZone.ScrollView = new GameObject();
+            dropZone.ScrollView.AddComponent<ScrollRect>();
 
             // create the sequence editor this drop zone requires, and any other required public fields
             var sequenceEditor = new GameObject();
@@ -59,7 +65,7 @@ namespace RegressionGames.Tests.RGOverlay
             dropZone.AddChild(newChild);
 
             // ensure that the new child was properly attached as a child to the drop zone
-            Assert.AreSame(newChild.transform.parent, dropZone.transform);
+            Assert.AreSame(newChild.transform.parent, dropZone.Content.transform);
         }
 
         [Test]
