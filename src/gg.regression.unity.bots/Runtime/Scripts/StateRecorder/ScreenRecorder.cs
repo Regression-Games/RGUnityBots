@@ -392,9 +392,15 @@ namespace RegressionGames.StateRecorder
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
 
-        private void GetKeyFrameType(bool firstFrame, bool hasDeltas, bool pixelHashChanged)
+        private void GetKeyFrameType(bool firstFrame, bool hasDeltas, bool pixelHashChanged, bool endRecording)
         {
             _keyFrameTypeList.Clear();
+            if (endRecording)
+            {
+                _keyFrameTypeList.Add(KeyFrameType.END_RECORDING );
+                return;
+            }
+
             if (firstFrame)
             {
                 _keyFrameTypeList.Add(KeyFrameType.FIRST_FRAME );
@@ -412,9 +418,15 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public void StopRecording()
+        /**
+         * Done as a coroutine so we can wait for record frame to finish one more time
+         */
+        private IEnumerator StopRecordingCoroutine()
         {
             var wasRecording = IsRecording;
+
+            yield return StartCoroutine(RecordFrame(endRecording:true));
+
             IsRecording = false;
 
             long loggedWarnings = 0;
@@ -490,7 +502,12 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private IEnumerator RecordFrame()
+        public void StopRecording()
+        {
+            StartCoroutine(StopRecordingCoroutine());
+        }
+
+        private IEnumerator RecordFrame(bool endRecording = false)
         {
             if (!_tickQueue.IsCompleted)
             {
@@ -541,7 +558,7 @@ namespace RegressionGames.StateRecorder
                 var pixelHashChanged = gameFacePixelHashObserver != null && gameFacePixelHashObserver.HasPixelHashChanged();
 
                 // tell if the new frame is a key frame or the first frame (always a key frame)
-                GetKeyFrameType(_tickNumber ==0, hasDeltas, pixelHashChanged);
+                GetKeyFrameType(_tickNumber ==0, hasDeltas, pixelHashChanged, endRecording);
 
                 // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                 if (_keyFrameTypeList.Count > 0
