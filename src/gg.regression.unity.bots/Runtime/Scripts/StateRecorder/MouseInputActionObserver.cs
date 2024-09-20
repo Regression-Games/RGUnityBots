@@ -144,7 +144,7 @@ namespace RegressionGames.StateRecorder
             _mouseInputActions.Clear();
         }
 
-        public List<MouseInputActionData> FlushInputDataBuffer(bool ensureOne = false)
+        public List<MouseInputActionData> FlushInputDataBuffer(bool ignoreLastClick)
         {
             List<MouseInputActionData> result = new();
             while (_mouseInputActions.TryPeek(out var action))
@@ -153,10 +153,20 @@ namespace RegressionGames.StateRecorder
                 result.Add(action);
             }
 
-            if (ensureOne && result.Count == 0 && _priorMouseState != null)
+            if (result.Count == 0 && _priorMouseState != null)
             {
                 // or.. we asked for at least 1 mouse observation per tick
                 result.Add(_priorMouseState);
+            }
+
+            // get all mouse inputs up to the last click... this is used when we stop the recording from the toolbar to avoid capturing the click on our record button on end recording
+            if (ignoreLastClick)
+            {
+                var lastIndex = result.FindLastIndex(a => a.IsButtonClicked);
+                if (lastIndex > -1)
+                {
+                    result = result.GetRange(0, lastIndex);
+                }
             }
 
             return result;

@@ -130,9 +130,9 @@ namespace RegressionGames.StateRecorder
             _this._loggingObserver = GetComponent<LoggingObserver>();
         }
 
-        private void OnDestroy()
+        private void OnApplicationQuit()
         {
-            StopRecording();
+            StopRecordingNoCoroutine();
         }
 
         private void Start()
@@ -418,17 +418,8 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        /**
-         * Done as a coroutine so we can wait for record frame to finish one more time
-         */
-        private IEnumerator StopRecordingCoroutine()
+        private void StopRecordingCleanupHelper(bool wasRecording)
         {
-            var wasRecording = IsRecording;
-
-            yield return StartCoroutine(RecordFrame(endRecording:true));
-
-            IsRecording = false;
-
             long loggedWarnings = 0;
             long loggedErrors = 0;
             if (_loggingObserver != null)
@@ -502,16 +493,45 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public void StopRecording()
+        /**
+         * Done as a coroutine so we can wait for record frame to finish one more time
+         */
+        private IEnumerator StopRecordingCoroutine(bool toolbarButtonTriggered)
         {
-            StartCoroutine(StopRecordingCoroutine());
+            var wasRecording = IsRecording;
+            IsRecording = false;
+
+            if (wasRecording)
+            {
+                yield return RecordFrame(endRecording: true, endRecordingFromToolbarButton: toolbarButtonTriggered);
+            }
+
+            StopRecordingCleanupHelper(wasRecording);
         }
 
-        private IEnumerator RecordFrame(bool endRecording = false)
+        /**
+         * used on application quit/destroy... can't record the remaining data, but ends cleanly
+         */
+        private void StopRecordingNoCoroutine()
+        {
+            var wasRecording = IsRecording;
+            IsRecording = false;
+            StopRecordingCleanupHelper(wasRecording);
+        }
+
+        /**
+         * When triggered from the toolbar button, we need to exclude the last mouse click events so we don't capture the click on our own interface buttons
+         */
+        public void StopRecording(bool toolbarButtonTriggered = false)
+        {
+            StartCoroutine(StopRecordingCoroutine(toolbarButtonTriggered));
+        }
+
+        private IEnumerator RecordFrame(bool endRecording = false, bool endRecordingFromToolbarButton = false)
         {
             if (!_tickQueue.IsCompleted)
             {
-                // wait for end of frame before capturing, otherwise .isVisible is wrong and GPU data won't be accurate for screenshot
+                // wait for end of frame before capturing, otherwise .isVisible on game objects is wrong and GPU data won't be accurate for screenshot
                 // also impacts ordering for clearing the pixel hash
                 yield return new WaitForEndOfFrame();
 
@@ -565,7 +585,6 @@ namespace RegressionGames.StateRecorder
                     || (recordingMinFPS > 0 && (int)(1000 * (now - _lastCvFrameTime)) >= (int)(1000.0f / (recordingMinFPS)))
                    )
                 {
-
                     // record full frame state and screenshot
                     var screenWidth = Screen.width;
                     var screenHeight = Screen.height;
@@ -583,7 +602,7 @@ namespace RegressionGames.StateRecorder
                         }
 
                         var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                        var mouseInputData = _mouseObserver.FlushInputDataBuffer();
+                        var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton);
 
                         // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                         // update the frame time to be latest of 'now' or the last device event in it
