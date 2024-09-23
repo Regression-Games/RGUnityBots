@@ -96,7 +96,7 @@ namespace RegressionGames.StateRecorder
                 RefreshSelectedFile();
             }
         }
-        
+
         private volatile bool _parsingZipFile;
 
         void RefreshSelectedFile(Action onFileLoadComplete = null)
@@ -121,7 +121,7 @@ namespace RegressionGames.StateRecorder
                     loopButton.SetActive(true);
                     stopButton.SetActive(true);
                     recordButton.SetActive(false);
-                    
+
                     // if we have something to do after loading then do that here
                     onFileLoadComplete?.Invoke();
                 }
@@ -199,7 +199,7 @@ namespace RegressionGames.StateRecorder
             if (!_recording)
             {
                 recordingPulse.Stop();
-                ScreenRecorder.GetInstance()?.StopRecording();
+                ScreenRecorder.GetInstance()?.StopRecording(true);
                 SetDefaultButtonStates();
             }
             else

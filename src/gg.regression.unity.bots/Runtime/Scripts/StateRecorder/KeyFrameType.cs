@@ -11,6 +11,7 @@
         // No longer used, transform-ui, transform-worldspace, entity all map to GAME_ELEMENT now
         UI_ELEMENT,
         UI_PIXELHASH,
-        TIMER
+        TIMER,
+        END_RECORDING // the trailing logs/inputs/etc leftover when a recording is stopped or the game is exited
     }
 }
