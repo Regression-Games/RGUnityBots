@@ -28,7 +28,7 @@ namespace RegressionGames.Tests.LegacyInput
         {
             SceneManager.LoadSceneAsync("LegacyInputTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("LegacyInputTestScene");
-            RGUtils.SetupEventSystem();
+            RGUtils.SetupOverrideEventSystem();
         }
 
         /**
