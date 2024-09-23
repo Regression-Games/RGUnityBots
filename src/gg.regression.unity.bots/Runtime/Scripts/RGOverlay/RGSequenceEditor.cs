@@ -157,7 +157,7 @@ namespace RegressionGames
             DescriptionInput.text = sequenceToEdit.description;
             foreach (var entry in sequenceToEdit.segments)
             {
-                InstantiateDraggableSegmentCard(entry, _dropZone.transform);
+                InstantiateDraggableSegmentCard(entry, _dropZone.Content.transform);
             }
 
             _dropZone.SetEmptyState(false);

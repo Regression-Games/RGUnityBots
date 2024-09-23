@@ -26,6 +26,8 @@ namespace RegressionGames.Tests.RGOverlay
             editor = _uat.AddComponent<RGSequenceEditor>();
             editor.transform.SetParent(_uat.transform, false);
 
+            var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
+
             // create the required public fields the editor needs
             var textObject = new GameObject();
             var text = textObject.AddComponent<TMP_InputField>();
@@ -37,9 +39,7 @@ namespace RegressionGames.Tests.RGOverlay
             editor.CreateSequenceButton = new GameObject();
             editor.CreateSequenceButton.AddComponent<Button>();
             editor.SegmentCardPrefab = new GameObject();
-            editor.DropZonePrefab = new GameObject();
-            var dropZone = editor.DropZonePrefab.AddComponent<RGDropZone>();
-            dropZone.emptyStatePrefab = new GameObject();
+            editor.DropZonePrefab = dropZone;
             editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
             editor.SegmentIcon = RGTestUtils.CreateSpritePlaceholder();
             editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
