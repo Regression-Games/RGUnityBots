@@ -170,7 +170,8 @@ namespace RegressionGames.ActionManager
                 #endif
                 KeyboardEventSender.Initialize();
                 SceneManager.sceneLoaded += OnSceneLoad;
-                RGUtils.SetupEventSystem();
+                SceneManager.sceneUnloaded += OnSceneUnload;
+                RGUtils.SetupOverrideEventSystem();
                 RGUtils.ConfigureInputSettings();
             }
 
@@ -187,9 +188,11 @@ namespace RegressionGames.ActionManager
                 if (DoesContextNeedSetUp())
                 {
                     SceneManager.sceneLoaded -= OnSceneLoad;
+                    SceneManager.sceneUnloaded -= OnSceneUnload;
                     #if ENABLE_LEGACY_INPUT_MANAGER
                     RGLegacyInputWrapper.StopSimulation();
                     #endif
+                    RGUtils.TeardownOverrideEventSystem();
                     RGUtils.RestoreInputSettings();
                 }
                 _context = null;
@@ -261,10 +264,15 @@ namespace RegressionGames.ActionManager
             }
         }
 
+        private static void OnSceneUnload(Scene s)
+        {
+            RGUtils.TeardownOverrideEventSystem(s);
+        }
+
         private static void OnSceneLoad(Scene s, LoadSceneMode m)
         {
             // configure the event system for simulated input whenever a new scene is loaded
-            RGUtils.SetupEventSystem();
+            RGUtils.SetupOverrideEventSystem(s);
         }
 
 

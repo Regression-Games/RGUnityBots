@@ -8,6 +8,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames
 {
@@ -73,50 +75,94 @@ namespace RegressionGames
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
 
+        public static void TeardownOverrideEventSystem(Scene? scene = null)
+        {
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            // should only be one of these existing at a time... but anyway
+            var eventSystems = Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Where(a=> scene == null || a.gameObject.scene == scene);
+            foreach (var eventSystem in eventSystems)
+            {
+                if(eventSystem.gameObject.TryGetComponent<RGStandaloneInputModule>(out var rgModule))
+                {
+                    // remove it
+                    Object.Destroy(rgModule);
+                }
+
+                List<BaseInputModule> inputModules = eventSystem.gameObject
+                    .GetComponents<BaseInputModule>()
+                    .Where(module => module is not RGStandaloneInputModule && module.inputOverride != null).ToList();
+
+                // remove the override settings from the non RG one
+                if (inputModules.Count > 0)
+                {
+                    foreach (var inputModule in inputModules)
+                    {
+                        // Reset and re-enable the one we overrode
+                        inputModule.inputOverride = null;
+                        inputModule.enabled = true;
+                    }
+                }
+
+                if (eventSystem.gameObject.TryGetComponent<RGBaseInput>(out var biModule))
+                {
+                    Object.Destroy(biModule);
+                }
+            }
+            #endif
+        }
 
         /// <summary>
         /// Configures a scene's EventSystems to support replay and other functionality requiring simulated inputs
         /// </summary>
-        public static void SetupEventSystem()
+        public static void SetupOverrideEventSystem(Scene? scene = null)
         {
-            var eventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
+            // should only be one of these existing at a time... but anyway
+            var eventSystems = Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Where(a=> scene == null || a.gameObject.scene == scene);
             foreach (var eventSystem in eventSystems)
             {
-                BaseInputModule inputModule = eventSystem.gameObject
+                List<BaseInputModule> inputModules = eventSystem.gameObject
                     .GetComponents<BaseInputModule>()
                     #if ENABLE_LEGACY_INPUT_MANAGER
-                    .FirstOrDefault(module => module is not RGStandaloneInputModule);
+                    .Where(module => module is not RGStandaloneInputModule && module.isActiveAndEnabled).ToList();
                     #else
-                    .FirstOrDefault();
+                    .ToList();
                     #endif
 
                 // If there is no module, add the appropriate input module so that the replay can simulate UI inputs.
                 // If both the new and old input systems are active, prefer the new input system's UI module.
-                if (inputModule == null)
+                if (inputModules.Count == 0)
                 {
                     #if ENABLE_INPUT_SYSTEM
-                    inputModule = eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+                    inputModules = new List<BaseInputModule>() {eventSystem.gameObject.AddComponent<InputSystemUIInputModule>()};
                     #elif ENABLE_LEGACY_INPUT_MANAGER
-                    inputModule = eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                    inputModules = new List<BaseInputModule>() {eventSystem.gameObject.AddComponent<StandaloneInputModule>()};
                     #endif
                 }
 
                 #if ENABLE_LEGACY_INPUT_MANAGER
-                // Override the UI module's input source to read inputs from RGLegacyInputWrapper instead of UnityEngine.Input
-                if (inputModule != null && inputModule is not InputSystemUIInputModule && inputModule.inputOverride == null)
+                foreach (var inputModule in inputModules)
                 {
-                    // Override and disable the existing module's input
-                    inputModule.inputOverride = eventSystem.gameObject.AddComponent<RGBaseInput>();
-                    inputModule.enabled = false;
-
-                    var rgModule = eventSystem.gameObject.GetComponent<RGStandaloneInputModule>();
-                    if (rgModule == null)
+                    // Override the UI module's input source to read inputs from RGLegacyInputWrapper instead of UnityEngine.Input
+                    if (inputModule != null && inputModule is not InputSystemUIInputModule && inputModule.inputOverride == null)
                     {
-                        // Add RGUIInputModule to read input from both playback and user input
-                        eventSystem.gameObject.AddComponent<RGStandaloneInputModule>();
+                        if (!eventSystem.gameObject.TryGetComponent<RGBaseInput>(out var rgBaseInput))
+                        {
+                            rgBaseInput = eventSystem.gameObject.AddComponent<RGBaseInput>();
+                        }
+
+                        // Override and disable the existing module's input
+                        inputModule.inputOverride = rgBaseInput;
+                        inputModule.enabled = false;
+
+                        var rgModule = eventSystem.gameObject.GetComponent<RGStandaloneInputModule>();
+                        if (rgModule == null)
+                        {
+                            // Add RGUIInputModule to read input from both playback and user input
+                            eventSystem.gameObject.AddComponent<RGStandaloneInputModule>();
+                        }
                     }
                 }
-                #endif
+#endif
             }
         }
 
@@ -126,10 +172,10 @@ namespace RegressionGames
         /// </summary>
         public static void ForceApplicationFocus()
         {
-            bool anyNotFocused = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Any(eventSys => !eventSys.isFocused);
+            bool anyNotFocused = Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Any(eventSys => !eventSys.isFocused);
             if (anyNotFocused)
             {
-                foreach (var behaviour in UnityEngine.Object.FindObjectsByType<Behaviour>(FindObjectsSortMode.None))
+                foreach (var behaviour in Object.FindObjectsByType<Behaviour>(FindObjectsSortMode.None))
                 {
                     behaviour.SendMessage("OnApplicationFocus", true, SendMessageOptions.DontRequireReceiver);
                 }
