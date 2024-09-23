@@ -359,7 +359,6 @@ namespace RegressionGames.RGLegacyInputUtility
 
                     var cameraRaycastMask = camera.cullingMask & camera.eventMask;
 
-                    (GameObject, GameObject) result = (null, null);
                     // 3D raycast
                     {
                         Ray mouseRay = camera.ScreenPointToRay(_mousePosition);
@@ -417,7 +416,7 @@ namespace RegressionGames.RGLegacyInputUtility
         /// </summary>
         private static IEnumerator AutoUpdateLoop()
         {
-            for (;;)
+            while(_simulationContext!=null)
             {
                 Update();
                 yield return null;
@@ -538,41 +537,40 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 return (KeyCode)Enum.Parse(typeof(KeyCode), "JoystickButton" + int.Parse(buttonName.Replace("joystick button", "").Trim()));
             }
-            else if (buttonName.StartsWith("mouse "))
+
+            if (buttonName.StartsWith("mouse "))
             {
                 return KeyCode.Mouse0 + int.Parse(buttonName.Substring(6).Trim());
             }
-            else
+
+            Match joystickMatch = _joystickButtonPattern.Match(buttonName);
+            if (joystickMatch.Success)
             {
-                Match joystickMatch = _joystickButtonPattern.Match(buttonName);
-                if (joystickMatch.Success)
-                {
-                    return (KeyCode)Enum.Parse(typeof(KeyCode),
-                        "Joystick" + joystickMatch.Groups[1].Value + "Button" + joystickMatch.Groups[2].Value);
-                }
-                switch (buttonName)
-                {
-                    case "right shift":
-                        return KeyCode.RightShift;
-                    case "left shift":
-                        return KeyCode.LeftShift;
-                    case "right ctrl":
-                        return KeyCode.RightControl;
-                    case "left ctrl":
-                        return KeyCode.LeftControl;
-                    case "right alt":
-                        return KeyCode.RightAlt;
-                    case "left alt":
-                        return KeyCode.LeftAlt;
-                    case "right cmd":
-                        return KeyCode.RightCommand;
-                    case "left cmd":
-                        return KeyCode.LeftCommand;
-                    case "enter":
-                        return KeyCode.Return;
-                    default:
-                        return Event.KeyboardEvent(buttonName).keyCode;
-                }
+                return (KeyCode)Enum.Parse(typeof(KeyCode),
+                    "Joystick" + joystickMatch.Groups[1].Value + "Button" + joystickMatch.Groups[2].Value);
+            }
+            switch (buttonName)
+            {
+                case "right shift":
+                    return KeyCode.RightShift;
+                case "left shift":
+                    return KeyCode.LeftShift;
+                case "right ctrl":
+                    return KeyCode.RightControl;
+                case "left ctrl":
+                    return KeyCode.LeftControl;
+                case "right alt":
+                    return KeyCode.RightAlt;
+                case "left alt":
+                    return KeyCode.LeftAlt;
+                case "right cmd":
+                    return KeyCode.RightCommand;
+                case "left cmd":
+                    return KeyCode.LeftCommand;
+                case "enter":
+                    return KeyCode.Return;
+                default:
+                    return Event.KeyboardEvent(buttonName).keyCode;
             }
         }
 
@@ -587,12 +585,10 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 if (IsPassthrough)
                 {
-                    return UnityEngine.Input.anyKey;
+                    return Input.anyKey;
                 }
-                else
-                {
-                    return _keysHeld.Count > 0;
-                }
+
+                return _keysHeld.Count > 0;
             }
         }
 
@@ -602,12 +598,10 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 if (IsPassthrough)
                 {
-                    return UnityEngine.Input.anyKeyDown;
+                    return Input.anyKeyDown;
                 }
-                else
-                {
-                    return _anyKeyDown;
-                }
+
+                return _anyKeyDown;
             }
         }
 
@@ -617,12 +611,10 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 if (IsPassthrough)
                 {
-                    return UnityEngine.Input.mousePresent;
+                    return Input.mousePresent;
                 }
-                else
-                {
-                    return true;
-                }
+
+                return true;
             }
         }
 
@@ -632,12 +624,10 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 if (IsPassthrough)
                 {
-                    return UnityEngine.Input.mousePosition;
+                    return Input.mousePosition;
                 }
-                else
-                {
-                    return _mousePosition;
-                }
+
+                return _mousePosition;
             }
         }
 
@@ -647,12 +637,10 @@ namespace RegressionGames.RGLegacyInputUtility
             {
                 if (IsPassthrough)
                 {
-                    return UnityEngine.Input.mouseScrollDelta;
+                    return Input.mouseScrollDelta;
                 }
-                else
-                {
-                    return _mouseScrollDelta;
-                }
+
+                return _mouseScrollDelta;
             }
         }
 
@@ -660,72 +648,60 @@ namespace RegressionGames.RGLegacyInputUtility
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetKey(name);
+                return Input.GetKey(name);
             }
-            else
-            {
-                return _keysHeld.Contains(KeyNameToCode(name));
-            }
+
+            return _keysHeld.Contains(KeyNameToCode(name));
         }
 
         public static bool GetKey(KeyCode key)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetKey(key);
+                return Input.GetKey(key);
             }
-            else
-            {
-                return _keysHeld.Contains(key);
-            }
+
+            return _keysHeld.Contains(key);
         }
 
         public static bool GetKeyDown(string name)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetKeyDown(name);
+                return Input.GetKeyDown(name);
             }
-            else
-            {
-                return _newKeysDown.Contains(KeyNameToCode(name));
-            }
+
+            return _newKeysDown.Contains(KeyNameToCode(name));
         }
 
         public static bool GetKeyDown(KeyCode key)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetKeyDown(key);
+                return Input.GetKeyDown(key);
             }
-            else
-            {
-                return _newKeysDown.Contains(key);
-            }
+
+            return _newKeysDown.Contains(key);
         }
 
         public static bool GetKeyUp(string name)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetKeyUp(name);
+                return Input.GetKeyUp(name);
             }
-            else
-            {
-                return _newKeysUp.Contains(KeyNameToCode(name));
-            }
+
+            return _newKeysUp.Contains(KeyNameToCode(name));
         }
 
         public static bool GetKeyUp(KeyCode key)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetKeyUp(key);
+                return Input.GetKeyUp(key);
             }
-            else
-            {
-                return _newKeysUp.Contains(key);
-            }
+
+            return _newKeysUp.Contains(key);
         }
 
         private static KeyCode MouseButtonToKeyCode(int button)
@@ -741,142 +717,126 @@ namespace RegressionGames.RGLegacyInputUtility
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetMouseButton(button);
+                return Input.GetMouseButton(button);
             }
-            else
-            {
-                return GetKey(MouseButtonToKeyCode(button));
-            }
+
+            return GetKey(MouseButtonToKeyCode(button));
         }
 
         public static bool GetMouseButtonDown(int button)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetMouseButtonDown(button);
+                return Input.GetMouseButtonDown(button);
             }
-            else
-            {
-                return GetKeyDown(MouseButtonToKeyCode(button));
-            }
+
+            return GetKeyDown(MouseButtonToKeyCode(button));
         }
 
         public static bool GetMouseButtonUp(int button)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetMouseButtonUp(button);
+                return Input.GetMouseButtonUp(button);
             }
-            else
-            {
-                return GetKeyUp(MouseButtonToKeyCode(button));
-            }
+
+            return GetKeyUp(MouseButtonToKeyCode(button));
         }
 
         public static float GetAxisRaw(string name)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetAxisRaw(name);
+                return Input.GetAxisRaw(name);
             }
-            else
+
+            foreach (var entry in _inputManagerSettings.GetEntriesByName(name))
             {
-                foreach (var entry in _inputManagerSettings.GetEntriesByName(name))
+                var state = _axisStates[entry];
+                if (Mathf.Abs(state.rawValue) >= float.Epsilon)
                 {
-                    var state = _axisStates[entry];
-                    if (Mathf.Abs(state.rawValue) >= float.Epsilon)
-                    {
-                        return state.rawValue;
-                    }
+                    return state.rawValue;
                 }
-                return 0.0f;
             }
+            return 0.0f;
         }
 
         public static float GetAxis(string name)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetAxis(name);
+                return Input.GetAxis(name);
             }
-            else
+
+            foreach (var entry in _inputManagerSettings.GetEntriesByName(name))
             {
-                foreach (var entry in _inputManagerSettings.GetEntriesByName(name))
+                var state = _axisStates[entry];
+                if (Mathf.Abs(state.smoothedValue) >= float.Epsilon)
                 {
-                    var state = _axisStates[entry];
-                    if (Mathf.Abs(state.smoothedValue) >= float.Epsilon)
-                    {
-                        return state.smoothedValue;
-                    }
+                    return state.smoothedValue;
                 }
-                return 0.0f;
             }
+            return 0.0f;
         }
 
         public static bool GetButton(string buttonName)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetButton(buttonName);
+                return Input.GetButton(buttonName);
             }
-            else
+
+            foreach (var entry in _inputManagerSettings.GetEntriesByName(buttonName))
             {
-                foreach (var entry in _inputManagerSettings.GetEntriesByName(buttonName))
-                {
-                    if ((entry.positiveButtonKeyCode.HasValue && _keysHeld.Contains(entry.positiveButtonKeyCode.Value))
+                if ((entry.positiveButtonKeyCode.HasValue && _keysHeld.Contains(entry.positiveButtonKeyCode.Value))
                     || (entry.negativeButtonKeyCode.HasValue && _keysHeld.Contains(entry.negativeButtonKeyCode.Value))
                     || (entry.altPositiveButtonKeyCode.HasValue && _keysHeld.Contains(entry.altPositiveButtonKeyCode.Value))
                     || (entry.altNegativeButtonKeyCode.HasValue && _keysHeld.Contains(entry.altNegativeButtonKeyCode.Value)))
-                    {
-                        return true;
-                    }
+                {
+                    return true;
                 }
-                return false;
             }
+            return false;
         }
 
         public static bool GetButtonDown(string buttonName)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetButtonDown(buttonName);
+                return Input.GetButtonDown(buttonName);
             }
-            else
+
+            foreach (var entry in _inputManagerSettings.GetEntriesByName(buttonName))
             {
-                foreach (var entry in _inputManagerSettings.GetEntriesByName(buttonName))
-                {
-                    if ((entry.positiveButtonKeyCode.HasValue && _newKeysDown.Contains(entry.positiveButtonKeyCode.Value))
+                if ((entry.positiveButtonKeyCode.HasValue && _newKeysDown.Contains(entry.positiveButtonKeyCode.Value))
                     || (entry.negativeButtonKeyCode.HasValue && _newKeysDown.Contains(entry.negativeButtonKeyCode.Value))
                     || (entry.altPositiveButtonKeyCode.HasValue && _newKeysDown.Contains(entry.altPositiveButtonKeyCode.Value))
                     || (entry.altNegativeButtonKeyCode.HasValue && _newKeysDown.Contains(entry.altNegativeButtonKeyCode.Value)))
-                    {
-                        return true;
-                    }
+                {
+                    return true;
                 }
-                return false;
             }
+            return false;
         }
 
         public static bool GetButtonUp(string buttonName)
         {
             if (IsPassthrough)
             {
-                return UnityEngine.Input.GetButtonUp(buttonName);
+                return Input.GetButtonUp(buttonName);
             }
-            else
+
+            foreach (var entry in _inputManagerSettings.GetEntriesByName(buttonName))
             {
-                foreach (var entry in _inputManagerSettings.GetEntriesByName(buttonName))
-                {
-                    if ((entry.positiveButtonKeyCode.HasValue && _newKeysUp.Contains(entry.positiveButtonKeyCode.Value))
+                if ((entry.positiveButtonKeyCode.HasValue && _newKeysUp.Contains(entry.positiveButtonKeyCode.Value))
                     || (entry.negativeButtonKeyCode.HasValue && _newKeysUp.Contains(entry.negativeButtonKeyCode.Value))
                     || (entry.altPositiveButtonKeyCode.HasValue && _newKeysUp.Contains(entry.altPositiveButtonKeyCode.Value))
                     || (entry.altNegativeButtonKeyCode.HasValue && _newKeysUp.Contains(entry.altNegativeButtonKeyCode.Value)))
-                    {
-                        return true;
-                    }
+                {
+                    return true;
                 }
-                return false;
             }
+            return false;
         }
     }
 }
