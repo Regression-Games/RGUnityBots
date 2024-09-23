@@ -15,7 +15,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public BotSegmentsPlaybackContainer(IEnumerable<BotSegment> segments, string sessionId = null)
         {
-            var replayNumber = 0;
+            var replayNumber = 1; // 1 to align with the actual numbers in the recording
             _botSegments = new(segments);
             _botSegments.ForEach(a => a.Replay_SegmentNumber = replayNumber++);
             this.SessionId = sessionId ?? Guid.NewGuid().ToString("n");

@@ -81,7 +81,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             string badSegmentName = null;
             try
             {
-                var replayNumber = 1;
+                var replayNumber = 1; // 1 to align with the actual numbers in the recording
                 foreach (var entry in entries)
                 {
                     using var sr = new StreamReader(entry.Open());
