@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.Models
     public class RecordingFrameStateData
     {
         //Update me if fields/types change
-        public int apiVersion = SdkApiVersion.VERSION_13;
+        public int apiVersion = SdkApiVersion.VERSION_21;
 
         /// <summary>
         /// Effective API version for this state recording considering all sub elements
@@ -35,6 +35,9 @@ namespace RegressionGames.StateRecorder.Models
         public float timeScale;
         public Vector2Int screenSize;
         public string pixelHash;
+        public string currentRenderPipeline;
+        public List<string> activeEventSystemInputModules;
+        public List<string> activeInputDevices;
         public IEnumerable<RecordedGameObjectState> state;
         public RecordingCodeCoverageState codeCoverage;
         public InputData inputs;
@@ -72,9 +75,31 @@ namespace RegressionGames.StateRecorder.Models
             Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\n\"performance\":");
             performance.WriteToStringBuilder(stringBuilder);
-            stringBuilder.Append(",\n\"pixelHash\":\"");
-            stringBuilder.Append(pixelHash);
-            stringBuilder.Append("\",\n\"state\":[\n");
+            stringBuilder.Append(",\n\"pixelHash\"");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, pixelHash);
+            stringBuilder.Append(",\n\"currentRenderPipeline\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, currentRenderPipeline);
+            stringBuilder.Append(",\n\"activeEventSystemInputModules\":[");
+            var activeEventSystemInputModulesCount = activeEventSystemInputModules.Count;
+            for (var i = 0; i < activeEventSystemInputModulesCount; i++)
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, activeEventSystemInputModules[i]);
+                if (i + 1 < activeEventSystemInputModulesCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"activeInputDevices\":[");
+            var activeInputDevicesCount = activeInputDevices.Count;
+            for (var i = 0; i < activeInputDevicesCount; i++)
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, activeInputDevices[i]);
+                if (i + 1 < activeInputDevicesCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"state\":[\n");
             var counter = 0;
             var stateCount = state.Count();
             foreach( var stateEntry in state)
