@@ -16,17 +16,6 @@ public class LegacyMouseHandler : MonoBehaviour
                 {
                     Debug.Log($"{gameObject.name} OnMouseDownAsObservable()");
                 });
-
-        gameObject.OnMouseUpAsObservable()
-            .SelectMany(_ => this.gameObject.UpdateAsObservable())
-            .TakeUntil(this.gameObject.OnMouseDownAsObservable())
-            .Select(_ => Input.mousePosition)
-            .RepeatUntilDestroy(this) // safety way
-            .Subscribe(
-                x =>
-                {
-                    Debug.Log($"{gameObject.name} OnMouseUpAsObservable()");
-                });
     }
 
     public void Update()

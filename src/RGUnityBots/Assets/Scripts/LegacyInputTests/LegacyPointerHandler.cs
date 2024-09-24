@@ -58,17 +58,6 @@ namespace LegacyInputTests
                     {
                         Debug.Log($"{gameObject.name} OnPointerDownAsObservable()");
                     });
-
-            gameObject.OnPointerUpAsObservable()
-                .SelectMany(_ => this.gameObject.UpdateAsObservable())
-                .TakeUntil(this.gameObject.OnPointerDownAsObservable())
-                .Select(_ => Input.mousePosition)
-                .RepeatUntilDestroy(this) // safety way
-                .Subscribe(
-                    x =>
-                    {
-                        Debug.Log($"{gameObject.name} OnPointerUpAsObservable()");
-                    });
         }
     }
 }

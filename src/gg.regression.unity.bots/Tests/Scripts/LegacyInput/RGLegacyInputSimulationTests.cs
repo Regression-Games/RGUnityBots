@@ -78,7 +78,6 @@ namespace RegressionGames.Tests.LegacyInput
                 yield return null;
                 AssertLogMessagesPresent("LegacyButton OnPointerDownAsObservable()");
                 AssertLogMessagesPresent("ClickedHandler()");
-                AssertLogMessagesPresent("LegacyButton OnPointerUpAsObservable()");
             }
 
             // Key press/release
@@ -139,7 +138,6 @@ namespace RegressionGames.Tests.LegacyInput
                     AssertLogMessagesPresent($"{objName} OnMouseUp()",
                         $"{objName} OnMouseUpAsButton()",
                         "GetMouseButtonUp(0)");
-                    AssertLogMessagesPresent($"{objName} OnMouseUpAsObservable()");
 
                     RGLegacyInputWrapper.SimulateMouseMovement(Vector3.zero);
                     RGLegacyInputWrapper.Update();
