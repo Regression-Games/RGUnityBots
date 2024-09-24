@@ -28,7 +28,7 @@ namespace RegressionGames.StateRecorder
 
         public void ObserveMouse(IEnumerable<ObjectStatus> statefulObjects)
         {
-            var mousePosition = Mouse.current.position.ReadValue();
+            var mousePosition = Pointer.current.position.ReadValue();
             var newMouseState = GetCurrentMouseState(mousePosition);
             if (newMouseState != null)
             {
@@ -112,25 +112,45 @@ namespace RegressionGames.StateRecorder
 
         public MouseInputActionData GetCurrentMouseState(Vector2? position = null)
         {
-            var mouse = Mouse.current;
-            if (mouse != null)
+            var pointer = Pointer.current;
+            if (pointer != null)
             {
-                position ??= mouse.position.ReadValue();
-                var newMouseState = new MouseInputActionData()
+                position ??= pointer.position.ReadValue();
+
+                if (pointer is Mouse mouse)
+                {
+                    return new MouseInputActionData()
+                    {
+                        startTime = Time.unscaledTimeAsDouble,
+                        position = new Vector2Int((int)position.Value.x, (int)position.Value.y),
+                        leftButton = mouse.leftButton.isPressed,
+                        middleButton = mouse.middleButton.isPressed,
+                        rightButton = mouse.rightButton.isPressed,
+                        forwardButton = mouse.forwardButton.isPressed,
+                        backButton = mouse.backButton.isPressed,
+                        scroll = mouse.scroll.ReadValue(),
+                        clickedObjectNormalizedPaths = Array.Empty<string>(),
+                        worldPosition = null,
+                        screenSize = new Vector2Int(Screen.width, Screen.height)
+                    };
+                }
+
+                // touch/pen pointer
+                return new MouseInputActionData()
                 {
                     startTime = Time.unscaledTimeAsDouble,
                     position = new Vector2Int((int)position.Value.x, (int)position.Value.y),
-                    leftButton = mouse.leftButton.isPressed,
-                    middleButton = mouse.middleButton.isPressed,
-                    rightButton = mouse.rightButton.isPressed,
-                    forwardButton = mouse.forwardButton.isPressed,
-                    backButton = mouse.backButton.isPressed,
-                    scroll = mouse.scroll.ReadValue(),
+                    leftButton = pointer.press.isPressed,
+                    middleButton = false,
+                    rightButton = false,
+                    forwardButton = false,
+                    backButton = false,
+                    scroll = Vector2.zero,
                     clickedObjectNormalizedPaths = Array.Empty<string>(),
                     worldPosition = null,
                     screenSize = new Vector2Int(Screen.width, Screen.height)
                 };
-                return newMouseState;
+
             }
 
             return null;
