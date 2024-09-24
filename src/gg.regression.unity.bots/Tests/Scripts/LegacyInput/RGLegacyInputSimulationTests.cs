@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using NUnit.Framework;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace RegressionGames.Tests.LegacyInput
 {
@@ -17,6 +18,7 @@ namespace RegressionGames.Tests.LegacyInput
         private void ResetState()
         {
             RGLegacyInputWrapper.StopSimulation();
+            TouchSimulation.Enable();
             GameObject eventSystem = GameObject.Find("EventSystem");
             var eventSys = eventSystem.GetComponent<EventSystem>();
             RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.MANUAL;
@@ -38,20 +40,26 @@ namespace RegressionGames.Tests.LegacyInput
         [UnityTest]
         public IEnumerator TestLegacyInputSimulation()
         {
+
             // UI button click
             {
                 ResetState();
                 GameObject legacyBtn = GameObject.Find("LegacyButton");
                 var pos = legacyBtn.transform.position;
                 RGLegacyInputWrapper.SimulateMouseMovement(new Vector3(pos.x, pos.y, 0.0f));
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse0);
                 yield return null;
                 RGLegacyInputWrapper.Update();
+                yield return null;
+
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse0);
                 yield return null;
                 RGLegacyInputWrapper.Update();
                 yield return null;
+                AssertLogMessagesPresent("LegacyButton OnPointerDownAsObservable()");
                 AssertLogMessagesPresent("ClickedHandler()");
+                AssertLogMessagesPresent("LegacyButton OnPointerUpAsObservable()");
             }
 
             // Key press/release
@@ -99,6 +107,7 @@ namespace RegressionGames.Tests.LegacyInput
                     RGLegacyInputWrapper.Update();
                     yield return null;
                     AssertLogMessagesPresent($"{objName} OnMouseDown()");
+                    AssertLogMessagesPresent($"{objName} OnMouseDownAsObservable()");
 
                     RGLegacyInputWrapper.Update();
                     yield return null;
@@ -111,6 +120,7 @@ namespace RegressionGames.Tests.LegacyInput
                     AssertLogMessagesPresent($"{objName} OnMouseUp()",
                         $"{objName} OnMouseUpAsButton()",
                         "GetMouseButtonUp(0)");
+                    AssertLogMessagesPresent($"{objName} OnMouseUpAsObservable()");
 
                     RGLegacyInputWrapper.SimulateMouseMovement(Vector3.zero);
                     RGLegacyInputWrapper.Update();

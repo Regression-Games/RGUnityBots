@@ -1,8 +1,34 @@
-﻿using System;
+﻿using UniRx;
+using UniRx.Triggers;
 using UnityEngine;
 
 public class LegacyMouseHandler : MonoBehaviour
 {
+    public void Start()
+    {
+        gameObject.OnMouseDownAsObservable()
+            .SelectMany(_ => this.gameObject.UpdateAsObservable())
+            .TakeUntil(this.gameObject.OnMouseUpAsObservable())
+            .Select(_ => Input.mousePosition)
+            .RepeatUntilDestroy(this) // safety way
+            .Subscribe(
+                x =>
+                {
+                    Debug.Log($"{gameObject.name} OnMouseDownAsObservable()");
+                });
+
+        gameObject.OnMouseUpAsObservable()
+            .SelectMany(_ => this.gameObject.UpdateAsObservable())
+            .TakeUntil(this.gameObject.OnMouseDownAsObservable())
+            .Select(_ => Input.mousePosition)
+            .RepeatUntilDestroy(this) // safety way
+            .Subscribe(
+                x =>
+                {
+                    Debug.Log($"{gameObject.name} OnMouseUpAsObservable()");
+                });
+    }
+
     public void Update()
     {
         if (!Mathf.Approximately(Input.GetAxisRaw("Mouse X"), 0.0f))
@@ -25,7 +51,7 @@ public class LegacyMouseHandler : MonoBehaviour
         if (Input.GetMouseButtonDown(1))
         {
             Debug.Log("GetMouseButtonDown(1)");
-        } 
+        }
         if (Input.GetMouseButton(2))
         {
             Debug.Log("GetMouseButton(2)");
@@ -35,7 +61,7 @@ public class LegacyMouseHandler : MonoBehaviour
             Debug.Log("GetMouseButtonUp(0)");
         }
     }
-    
+
     public void OnMouseDown()
     {
         Debug.Log($"{gameObject.name} OnMouseDown()");
