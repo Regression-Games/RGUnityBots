@@ -14,6 +14,8 @@ namespace RegressionGames.StateRecorder
 
         public GameObject playButton;
 
+        public GameObject pauseButton;
+
         public GameObject loopButton;
         public TextMeshProUGUI loopCount;
 
@@ -48,6 +50,7 @@ namespace RegressionGames.StateRecorder
             successIcon.SetActive(false);
 
             playButton.SetActive(false);
+            pauseButton.SetActive(false);
             loopButton.SetActive(false);
             stopButton.SetActive(false);
             loopCount.gameObject.SetActive(false);
@@ -58,6 +61,7 @@ namespace RegressionGames.StateRecorder
             chooseReplayButton.SetActive(false);
             successIcon.SetActive(false);
             playButton.SetActive(false);
+            pauseButton.SetActive(true);
             loopButton.SetActive(false);
             stopButton.SetActive(true);
             recordButton.SetActive(false);
@@ -118,6 +122,7 @@ namespace RegressionGames.StateRecorder
                     // set button states
                     chooseReplayButton.SetActive(false);
                     playButton.SetActive(true);
+                    pauseButton.SetActive(false);
                     loopButton.SetActive(true);
                     stopButton.SetActive(true);
                     recordButton.SetActive(false);
@@ -165,12 +170,33 @@ namespace RegressionGames.StateRecorder
             }
             else
             {
-                RefreshSelectedFile(() =>
+                if (replayDataController.IsPaused())
                 {
+                    // don't refresh from a pause
                     SetInUseButtonStates();
                     replayDataController.Play();
-                });
+                }
+                else
+                {
+                    // refresh on a new play after stop
+                    RefreshSelectedFile(() =>
+                    {
+                        SetInUseButtonStates();
+                        replayDataController.Play();
+                    });
+                }
             }
+        }
+
+        public void PauseReplay()
+        {
+            // reset the button states just in case
+            SetInUseButtonStates();
+            replayDataController.Pause();
+
+            // make it so they can hit play again
+            pauseButton.SetActive(false);
+            playButton.SetActive(true);
         }
 
         public void LoopReplay()
@@ -223,6 +249,7 @@ namespace RegressionGames.StateRecorder
                     chooseReplayButton.SetActive(false);
                     successIcon.SetActive(true);
                     playButton.SetActive(true);
+                    pauseButton.SetActive(false);
                     loopButton.SetActive(true);
                     stopButton.SetActive(true);
                     recordButton.SetActive(false);
