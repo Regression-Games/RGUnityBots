@@ -332,6 +332,7 @@ GameObject:
   - component: {fileID: 841796661}
   - component: {fileID: 841796660}
   - component: {fileID: 841796663}
+  - component: {fileID: 841796664}
   m_Layer: 5
   m_Name: LegacyButton
   m_TagString: Untagged
@@ -464,6 +465,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e49a0b3c6b2f1f847b9b17a865b30868, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &841796664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 841796658}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce0d8e85074d46cab1fd045fd8fc7f4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &896533087
@@ -762,6 +775,7 @@ GameObject:
   - component: {fileID: 1383487765}
   - component: {fileID: 1383487764}
   - component: {fileID: 1383487763}
+  - component: {fileID: 1383487767}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -851,6 +865,19 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1383487767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1383487762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a182a4f014e7e646837ab09fa1a7938, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetFrameRate: 30
 --- !u!1 &1568728560
 GameObject:
   m_ObjectHideFlags: 0

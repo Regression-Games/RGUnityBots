@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace RegressionGames.RGLegacyInputUtility
 {
@@ -431,6 +433,17 @@ namespace RegressionGames.RGLegacyInputUtility
             }
         }
 
+        private static void SendPointerEvent(GameObject gameObject, string methodName)
+        {
+            if (gameObject != null)
+            {
+                if (gameObject.TryGetComponent<Selectable>(out var selectable))
+                {
+                    selectable.SendMessage(methodName, new PointerEventData(EventSystem.current));
+                }
+            }
+        }
+
         private static void InvokeMouseEventHandlers((GameObject, Camera)? hitObject,
             (GameObject, Camera)? lastHitObject, ref (GameObject, Camera)? mouseDownObject)
         {
@@ -443,6 +456,7 @@ namespace RegressionGames.RGLegacyInputUtility
                 {
                     mouseDownObject = hitObject;
                     SendMouseEventMessage(mouseDownObject.Value.Item1, "OnMouseDown");
+                    SendPointerEvent(mouseDownObject.Value.Item1, "OnPointerDown");
                 }
             }
             else if (!leftButton)
@@ -454,6 +468,7 @@ namespace RegressionGames.RGLegacyInputUtility
                         SendMouseEventMessage(mouseDownObject.Value.Item1, "OnMouseUpAsButton");
                     }
                     SendMouseEventMessage(mouseDownObject.Value.Item1, "OnMouseUp");
+                    SendPointerEvent(mouseDownObject.Value.Item1, "OnPointerUp");
                     mouseDownObject = null;
                 }
             }
@@ -474,11 +489,13 @@ namespace RegressionGames.RGLegacyInputUtility
                 if (lastHitObject.HasValue)
                 {
                     SendMouseEventMessage(lastHitObject.Value.Item1, "OnMouseExit");
+                    SendPointerEvent(lastHitObject.Value.Item1, "OnPointerExit");
                 }
                 if (hitObject.HasValue)
                 {
                     SendMouseEventMessage(hitObject.Value.Item1, "OnMouseEnter");
                     SendMouseEventMessage(hitObject.Value.Item1, "OnMouseOver");
+                    SendPointerEvent(hitObject.Value.Item1, "OnPointerEnter");
                 }
             }
         }
