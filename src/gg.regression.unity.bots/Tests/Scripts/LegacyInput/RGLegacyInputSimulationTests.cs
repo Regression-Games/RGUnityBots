@@ -1,5 +1,6 @@
 ﻿#if ENABLE_LEGACY_INPUT_MANAGER
 using System.Collections;
+using System.Drawing;
 using RegressionGames;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.TestFramework;
@@ -8,6 +9,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using NUnit.Framework;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace RegressionGames.Tests.LegacyInput
 {
@@ -17,6 +20,24 @@ namespace RegressionGames.Tests.LegacyInput
         private void ResetState()
         {
             RGLegacyInputWrapper.StopSimulation();
+
+
+            TouchSimulation.Enable();
+
+            var inputDevicesLog = "------ Input Devices ------\r\n";
+            // Log Devices
+            inputDevicesLog += "Keyboard - " + Keyboard.current?.path + "\r\n";
+            inputDevicesLog += "Mouse - " + Mouse.current?.path + "\r\n";
+            inputDevicesLog += "Pointer - " + Pointer.current?.path + "\r\n";
+            inputDevicesLog += "------ All Devices List ------\r\n";
+
+            foreach (var inputDevice in InputSystem.devices)
+            {
+                inputDevicesLog += $"InputDevice - {inputDevice.name} - {inputDevice.path}\r\n";
+            }
+
+            Debug.Log(inputDevicesLog);
+
             GameObject eventSystem = GameObject.Find("EventSystem");
             var eventSys = eventSystem.GetComponent<EventSystem>();
             RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.MANUAL;
@@ -38,19 +59,24 @@ namespace RegressionGames.Tests.LegacyInput
         [UnityTest]
         public IEnumerator TestLegacyInputSimulation()
         {
+
             // UI button click
             {
                 ResetState();
                 GameObject legacyBtn = GameObject.Find("LegacyButton");
                 var pos = legacyBtn.transform.position;
                 RGLegacyInputWrapper.SimulateMouseMovement(new Vector3(pos.x, pos.y, 0.0f));
+
                 RGLegacyInputWrapper.SimulateKeyPress(KeyCode.Mouse0);
                 yield return null;
                 RGLegacyInputWrapper.Update();
+                yield return null;
+
                 RGLegacyInputWrapper.SimulateKeyRelease(KeyCode.Mouse0);
                 yield return null;
                 RGLegacyInputWrapper.Update();
                 yield return null;
+                AssertLogMessagesPresent("LegacyButton OnPointerDownAsObservable()");
                 AssertLogMessagesPresent("ClickedHandler()");
             }
 
@@ -99,6 +125,7 @@ namespace RegressionGames.Tests.LegacyInput
                     RGLegacyInputWrapper.Update();
                     yield return null;
                     AssertLogMessagesPresent($"{objName} OnMouseDown()");
+                    AssertLogMessagesPresent($"{objName} OnMouseDownAsObservable()");
 
                     RGLegacyInputWrapper.Update();
                     yield return null;
