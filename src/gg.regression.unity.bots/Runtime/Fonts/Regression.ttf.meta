@@ -11,7 +11,7 @@ TrueTypeFontImporter:
   fontNames:
   - Liberation Sans
   fallbackFontReferences:
-  - {fileID: 12800000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
+  - {fileID: 12800000, guid: a7d943bbe7fa3489d892c63cf932374e, type: 3}
   customCharacters: 
   fontRenderingMode: 0
   ascentCalculationMode: 1
