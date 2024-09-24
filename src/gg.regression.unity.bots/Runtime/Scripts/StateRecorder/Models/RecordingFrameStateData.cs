@@ -75,7 +75,7 @@ namespace RegressionGames.StateRecorder.Models
             Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
             stringBuilder.Append(",\n\"performance\":");
             performance.WriteToStringBuilder(stringBuilder);
-            stringBuilder.Append(",\n\"pixelHash\"");
+            stringBuilder.Append(",\n\"pixelHash\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, pixelHash);
             stringBuilder.Append(",\n\"currentRenderPipeline\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, currentRenderPipeline);
