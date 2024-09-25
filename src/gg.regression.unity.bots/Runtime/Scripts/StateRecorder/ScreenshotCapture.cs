@@ -289,7 +289,7 @@ namespace RegressionGames.StateRecorder
                     if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
                     {
                         // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows..
-                        //  this setting stops it from spam errors
+                        //  this setting stops it from spamming log errors
                         _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0, GraphicsFormat.R8G8B8A8_SRGB);
                     }
                     else
