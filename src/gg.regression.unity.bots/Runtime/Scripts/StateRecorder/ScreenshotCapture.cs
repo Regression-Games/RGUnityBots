@@ -285,8 +285,17 @@ namespace RegressionGames.StateRecorder
                     {
                         Object.Destroy(_screenShotTexture);
                     }
-
-                    _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
+                    
+                    if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
+                    {
+                        // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows..
+                        //  this setting stops it from spam errors
+                        _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0, GraphicsFormat.R8G8B8A8_SRGB);
+                    }
+                    else
+                    {
+                        _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);    
+                    }
                 }
 
                 var theGraphicsFormat = _screenShotTexture.graphicsFormat;
@@ -317,12 +326,6 @@ namespace RegressionGames.StateRecorder
                                     Array.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
                                 }
                             } //else.. we're fine
-
-                            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
-                            {
-                                // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows.. it also spams errors before this point ... so this is likely to change if Unity fixes that
-                                theGraphicsFormat = GraphicsFormat.R8G8B8A8_SRGB;
-                            }
 
                             var imageOutput = ImageConversion.EncodeArrayToJPG(pixels, theGraphicsFormat, (uint)screenWidth, (uint)screenHeight);
 
