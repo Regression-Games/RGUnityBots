@@ -114,6 +114,28 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
+        /**
+         * Handles resuming the paused action if un-paused from the UI; this is most useful for input playback
+         */
+        public void UnPauseAction()
+        {
+            if (botAction != null)
+            {
+                botAction.UnPauseAction(Replay_SegmentNumber);
+            }
+        }
+
+        /**
+          * Handle pausing the action if paused from the UI; this is most useful for input playback
+          */
+        public void PauseAction()
+        {
+            if (botAction != null)
+            {
+                botAction.PauseAction(Replay_SegmentNumber);
+            }
+        }
+
         // Replay only
         public void ReplayReset()
         {
