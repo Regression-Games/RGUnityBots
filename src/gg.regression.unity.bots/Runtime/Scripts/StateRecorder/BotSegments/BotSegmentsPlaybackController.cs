@@ -16,8 +16,9 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
-    enum PlayState
+    public enum PlayState
     {
+        NotLoaded,
         Starting,
         Playing,
         Paused,
@@ -31,7 +32,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         private BotSegmentsPlaybackContainer _dataPlaybackContainer;
 
         //tracks in playback is in progress or paused or starting or stopped
-        private PlayState _isPlaying = PlayState.Stopped;
+        private PlayState _isPlaying = PlayState.NotLoaded;
 
         // 0 or greater == isLooping true
         private int _loopCount = -1;
@@ -72,7 +73,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         void OnSceneLoad(Scene s, LoadSceneMode m)
         {
-            if (_isPlaying != PlayState.Stopped)
+            if (_isPlaying != PlayState.NotLoaded)
             {
                 // since this is a don't destroy on load, we need to 'fix' the event systems in each new scene that loads
                 RGUtils.SetupOverrideEventSystem(s);
@@ -81,7 +82,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         void OnSceneUnload(Scene s)
         {
-            if (_isPlaying != PlayState.Stopped)
+            if (_isPlaying != PlayState.NotLoaded)
             {
                 RGUtils.TeardownOverrideEventSystem(s);
             }
@@ -121,6 +122,20 @@ namespace RegressionGames.StateRecorder.BotSegments
             MouseEventSender.Reset();
 
             _dataPlaybackContainer = dataPlaybackContainer;
+            if (_dataPlaybackContainer != null)
+            {
+                _isPlaying = PlayState.Stopped;
+            }
+            else
+            {
+                _isPlaying = PlayState.NotLoaded;
+            }
+            LogHotkeyInformation();
+        }
+
+        public void LogHotkeyInformation()
+        {
+            RGDebug.LogInfo("BotSegments loaded.  Use the on screen overlay buttons or keyboard hotkeys to control playback.  CTRL+SHIFT_F9 = Play/Pause  , CTRL+SHIFT_F10 = Stop");
         }
 
         /**
@@ -206,7 +221,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
 
             _nextBotSegments.Clear();
-            _isPlaying = PlayState.Stopped;
+            _isPlaying = PlayState.NotLoaded;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
@@ -291,14 +306,9 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
-        public bool IsPlaying()
+        public PlayState GetState()
         {
-            return _isPlaying == PlayState.Playing;
-        }
-
-        public bool IsPaused()
-        {
-            return _isPlaying == PlayState.Paused;
+            return _isPlaying;
         }
 
         public void Update()

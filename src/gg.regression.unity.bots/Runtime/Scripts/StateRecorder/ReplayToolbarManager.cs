@@ -5,6 +5,7 @@ using RegressionGames.StateRecorder.BotSegments;
 using SimpleFileBrowser;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace RegressionGames.StateRecorder
 {
@@ -33,12 +34,94 @@ namespace RegressionGames.StateRecorder
         public string selectedReplayFilePath;
         public BotSegmentsPlaybackController replayDataController;
 
+        //CTRL+SHIFT_F9 to toggle play or pause
+        //CTRL+SHIFT_F10 to stop
+        private bool IsLeftCtrlPressed = false;
+        private bool IsRightCtrlPressed = false;
+        private bool IsLeftShiftPressed = false;
+        private bool IsRightShiftPressed = false;
+
         private bool _recording;
 
         // Start is called before the first frame update
         void Start()
         {
             SetDefaultButtonStates();
+        }
+
+        private void UpdateKeyStatesForFrame()
+        {
+            if (Keyboard.current[Key.LeftCtrl].wasPressedThisFrame || Input.GetKeyDown(KeyCode.LeftControl))
+            {
+                IsLeftCtrlPressed = true;
+            }
+
+            if (Keyboard.current[Key.LeftCtrl].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.LeftControl))
+            {
+                IsLeftCtrlPressed = false;
+            }
+
+            if (Keyboard.current[Key.RightCtrl].wasPressedThisFrame || Input.GetKeyDown(KeyCode.RightControl))
+            {
+                IsRightCtrlPressed = true;
+            }
+
+            if (Keyboard.current[Key.RightCtrl].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.RightControl))
+            {
+                IsRightCtrlPressed = false;
+            }
+
+            if (Keyboard.current[Key.LeftShift].wasPressedThisFrame || Input.GetKeyDown(KeyCode.LeftShift))
+            {
+                IsLeftShiftPressed = true;
+            }
+
+            if (Keyboard.current[Key.LeftShift].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.LeftShift))
+            {
+                IsLeftShiftPressed = false;
+            }
+
+            if (Keyboard.current[Key.RightShift].wasPressedThisFrame || Input.GetKeyDown(KeyCode.RightShift))
+            {
+                IsRightShiftPressed = true;
+            }
+
+            if (Keyboard.current[Key.RightShift].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.RightShift))
+            {
+                IsRightShiftPressed = false;
+            }
+
+        }
+
+        private bool WasF9PressedThisFrame => Keyboard.current[Key.F9].wasPressedThisFrame || Input.GetKeyDown(KeyCode.F9);
+        private bool WasF10PressedThisFrame => Keyboard.current[Key.F10].wasPressedThisFrame || Input.GetKeyDown(KeyCode.F10);
+
+        private void Update()
+        {
+            UpdateKeyStatesForFrame();
+
+            var state = replayDataController.GetState();
+            if (WasF9PressedThisFrame && (IsLeftCtrlPressed || IsRightCtrlPressed) && (IsLeftShiftPressed || IsRightShiftPressed))
+            {
+                RGDebug.LogInfo("CTRL+SHIFT_F9 hotkey pressed to toggle playback play/pause");
+                if (state == PlayState.Paused || state == PlayState.Stopped)
+                {
+                    PlayReplay();
+                }
+                else if (state == PlayState.Playing)
+                {
+                    PauseReplay();
+                }
+            }
+
+            if (WasF10PressedThisFrame && (IsLeftCtrlPressed || IsRightCtrlPressed) && (IsLeftShiftPressed || IsRightShiftPressed))
+            {
+                RGDebug.LogInfo("CTRL+SHIFT_F10 hotkey pressed to stop playback");
+                if (state == PlayState.Paused || state == PlayState.Playing || state == PlayState.Stopped)
+                {
+                    StopReplay();
+                }
+            }
         }
 
         private void SetDefaultButtonStates()
@@ -170,7 +253,8 @@ namespace RegressionGames.StateRecorder
             }
             else
             {
-                if (replayDataController.IsPaused())
+                var state = replayDataController.GetState();
+                if (state == PlayState.Paused)
                 {
                     // don't refresh from a pause
                     SetInUseButtonStates();
@@ -242,7 +326,8 @@ namespace RegressionGames.StateRecorder
         {
             if (replayDataController.ReplayCompletedSuccessfully() != null)
             {
-                if (!replayDataController.IsPlaying())
+                var state = replayDataController.GetState();
+                if (state == PlayState.Stopped)
                 {
                     replayDataController.Reset();
                     // playback complete
