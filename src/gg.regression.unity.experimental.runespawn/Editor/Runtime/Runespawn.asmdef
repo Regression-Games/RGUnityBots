@@ -1,0 +1,16 @@
+{
+    "name": "RegressionGames.Runespawn",
+    "rootNamespace": "",
+    "references": [
+        "GUID:c6e66b29de2c44f90985c972c4b1ebc6"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
