@@ -1,6 +1,6 @@
 {
     "name": "gg.regression.unity.experimental.runespawn",
-    "version": "0.0.1",
+    "version": "0.0.28",
     "description": "An experimental package that focuses on code generation.",
     "displayName": "Regression Games Experimental - Runespawn",
     "unity": "2021.3",
