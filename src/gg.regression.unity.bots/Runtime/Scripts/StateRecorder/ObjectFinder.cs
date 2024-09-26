@@ -25,8 +25,6 @@ namespace RegressionGames.StateRecorder
                     {
                         path = a.path,
                         count = a.count,
-                        addedCount = a.addedCount,
-                        removedCount = a.removedCount,
                         countRule = a.higherLowerCountTracker == 0 ? (a.count == 0 ? CountRule.Zero : CountRule.NonZero) : (a.higherLowerCountTracker > 0 ? CountRule.GreaterThanEqual : CountRule.LessThanEqual)
                     }
                 })
@@ -62,40 +60,24 @@ namespace RegressionGames.StateRecorder
                     pathCountEntry.count++;
                 }
 
-                // ids is used to track despawns
+                // ids is used to track changes from tick to tick
                 pathCountEntry.ids.Add(currentEntry.Id);
 
-                if (!priorStatusList.TryGetValue(currentEntry.Id, out var oldStatus))
+                // figure out newly visible objects
+                if (!priorStatusList.TryGetValue(currentEntry.Id, out _))
                 {
                     hasDelta = true;
-                    pathCountEntry.addedCount++;
-                }
-                else
-                {
-                    var onCameraBefore = (oldStatus.screenSpaceBounds != null);
-                    if ( onCameraBefore != onCameraNow )
-                    {
-                        if (onCameraNow)
-                        {
-                            pathCountEntry.higherLowerCountTracker++;
-                        }
-                        else
-                        {
-                            pathCountEntry.higherLowerCountTracker--;
-                        }
-                        // camera visibility changed.. only need to do this in one place, because if both lists didn't have it we can't compare
-                        hasDelta = true;
-                    }
+                    pathCountEntry.higherLowerCountTracker++;
                 }
             }
 
-            // figure out de-spawns
+            // figure out no longer visible objects
             foreach( KeyValuePair<long, ObjectStatus> entry in priorStatusList)
             {
                 var pathHash = entry.Value.NormalizedPath.GetHashCode();
                 if (!result.TryGetValue(pathHash, out var pathCountEntry))
                 {
-                    // this object wasn't in our result.. add an entry to so we can track the despawn
+                    // this object wasn't in our result.. add an entry to so we can track the change in visibility
                     pathCountEntry = new PathBasedDeltaCount(pathHash, entry.Value.NormalizedPath);
                     result[pathHash] = pathCountEntry;
                 }
@@ -103,7 +85,7 @@ namespace RegressionGames.StateRecorder
                 if (!pathCountEntry.ids.Contains(entry.Key))
                 {
                     hasDelta = true;
-                    pathCountEntry.removedCount++;
+                    pathCountEntry.higherLowerCountTracker--;
                 }
             }
 

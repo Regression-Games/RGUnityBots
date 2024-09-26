@@ -8,11 +8,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     public class PathKeyFrameCriteriaData : IKeyFrameCriteriaData
     {
         // update this if this schema changes
-        public int apiVersion = SdkApiVersion.VERSION_1;
+        public int apiVersion = SdkApiVersion.VERSION_22;
 
         public string path;
-        public int removedCount;
-        public int addedCount;
         public int count;
         public CountRule countRule;
 
@@ -22,10 +20,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             StringJsonConverter.WriteToStringBuilder(stringBuilder, path);
             stringBuilder.Append(",\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"removedCount\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, removedCount);
-            stringBuilder.Append(",\"addedCount\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, addedCount);
             stringBuilder.Append(",\"count\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, count);
             stringBuilder.Append(",\"countRule\":");
