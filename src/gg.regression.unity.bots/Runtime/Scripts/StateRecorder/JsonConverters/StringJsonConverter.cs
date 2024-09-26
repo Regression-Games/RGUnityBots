@@ -18,15 +18,17 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         static StringJsonConverter()
         {
-            // skip these
-            EscapeCharReplacements[0] = char.MaxValue;
-            EscapeCharReplacements[1] = char.MaxValue;
-            EscapeCharReplacements[2] = char.MaxValue;
-            EscapeCharReplacements[3] = char.MaxValue;
-            EscapeCharReplacements[4] = char.MaxValue;
-            EscapeCharReplacements[5] = char.MaxValue;
-            EscapeCharReplacements[6] = char.MaxValue;
-            EscapeCharReplacements[7] = char.MaxValue;
+            // skip these - control characters in ascii table
+            for (int i = 0; i <= 7; i++)
+            {
+                EscapeCharReplacements[i] = char.MaxValue;
+            }
+
+            // skip these - control characters in ascii table
+            for (int i = 14; i <= 27; i++)
+            {
+                EscapeCharReplacements[i] = char.MaxValue;
+            }
 
             // replace these
             EscapeCharReplacements['\n'] = 'n';
