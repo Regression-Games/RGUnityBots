@@ -49,6 +49,8 @@ namespace RegressionGames.StateRecorder
 
     public class ScreenRecorder : MonoBehaviour
     {
+        public static readonly string RecordingPathName = "Generated_Recording";
+
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
         public int recordingMinFPS;
 
@@ -236,12 +238,12 @@ namespace RegressionGames.StateRecorder
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
 #if UNITY_EDITOR
-            segmentResourceDirectory = "Assets/RegressionGames/Resources/BotSegments/Generated_Recording";
-            sequenceJsonPath = "Assets/RegressionGames/Resources/BotSequences/Generated_Recording.json";
+            segmentResourceDirectory = "Assets/RegressionGames/Resources/BotSegments/" + RecordingPathName;
+            sequenceJsonPath = "Assets/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
 #else
             // Production runtime should write to persistent data path
-            segmentResourceDirectory = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/Generated_Recording";
-            sequenceJsonPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences/Generated_Recording.json";
+            segmentResourceDirectory = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + RecordingPathName;
+            sequenceJsonPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
 #endif
             // delete the existing directory if it exists and re-create it
             Directory.Delete(segmentResourceDirectory, true);

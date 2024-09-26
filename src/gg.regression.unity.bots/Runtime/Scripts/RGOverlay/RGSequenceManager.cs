@@ -99,9 +99,11 @@ public class RGSequenceManager : MonoBehaviour
      * <summary>
      * Show the Sequence Editor, and initialize its fields
      * </summary>
-     * <param name="existingSequencePath">The path for an existing Sequence for editing (optional)</param>
+     * <param name="makingACopy">bool true if copying to a new file, or false if editing in place</param>
+     * <param name="existingResourcePath">The resource path for an existing Sequence for editing</param>
+     * <param name="existingSequencePath">The file path for an existing Sequence for editing (optional)</param>
      */
-    public void ShowEditSequenceDialog(string existingSequencePath = null)
+    public void ShowEditSequenceDialog(bool makingACopy, string existingResourcePath, string existingSequencePath = null)
     {
         if (sequenceEditor != null)
         {
@@ -110,7 +112,7 @@ public class RGSequenceManager : MonoBehaviour
             var script = sequenceEditor.GetComponent<RGSequenceEditor>();
             if (script != null)
             {
-                script.Initialize(existingSequencePath);
+                script.Initialize(makingACopy, existingResourcePath, existingSequencePath);
             }
         }
     }

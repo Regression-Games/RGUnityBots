@@ -202,6 +202,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append("\n]}");
         }
 
+        private string SequencePathName
+        {
+            get
+            {
+                var filepath = string.Join("-", name.Split(" "));
+                foreach (var c in Path.GetInvalidPathChars())
+                {
+                    filepath = filepath.Replace(c, '-');
+                }
+                return filepath;
+            }
+        }
+
         /**
          * <summary>In the Unity Editor this will create a new resource under "Assets/RegressionGames/Resources/BotSequences".  In runtime builds, it will write to "{Application.persistentDataPath}/RegressionGames/Resources/BotSequences" .</summary>
          */
@@ -216,14 +229,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences";
 #endif
                 Directory.CreateDirectory(directoryPath);
-                var filename = string.Join("-", name.Split(" "));
-                var filepath = directoryPath + "/" + filename + ".json";
-                foreach (var c in Path.GetInvalidPathChars())
-                {
-                    filepath = filepath.Replace(c, '-');
-                }
+
+                var filepath = directoryPath + "/" + SequencePathName + ".json";
 
                 File.Delete(filepath);
+
                 using var sw = File.CreateText(filepath);
                 sw.Write(this.ToJsonString());
                 sw.Close();
@@ -231,6 +241,64 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             catch (Exception e)
             {
                 throw new Exception($"Exception trying to persist BotSequence name: {name}", e);
+            }
+        }
+
+        /**
+         * Useful for copying segments from a sequence all to a new path.  This will update the path references of this sequence accordingly.
+         */
+        public void CopySequenceSegmentsToNewPath()
+        {
+            var segmentDataList = new List<((string, string, object), BotSequenceEntry)>();
+            // load them all into ram first so we can delete the directory safely.. this is in case the source and destination happen to be the same for some segments
+            foreach (var botSequenceEntry in segments)
+            {
+                segmentDataList.Add((LoadBotSegmentOrBotSegmentListFromPath(botSequenceEntry.path), botSequenceEntry));
+            }
+            foreach (var segmentData in segmentDataList)
+            {
+                var segment = segmentData.Item1;
+                var botSequencyEntry = segmentData.Item2;
+
+                // ReSharper disable once JoinDeclarationAndInitializer - #if clauses
+
+                string directoryPath;
+#if UNITY_EDITOR
+                directoryPath = "Assets/RegressionGames/Resources/BotSegments/" + SequencePathName;
+#else
+                directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + SequencePathName;
+#endif
+
+                Directory.Delete(directoryPath, true);
+                Directory.CreateDirectory(directoryPath);
+
+                var filename = segment.Item2.Replace('\\', '/');
+                var index = filename.LastIndexOf('/');
+                if (index >= 0)
+                {
+                    filename = filename.Substring(index+1);
+                }
+
+                if (!filename.EndsWith(".json"))
+                {
+                    filename += ".json";
+                }
+
+                var filePath = directoryPath + "/" + filename;
+                botSequencyEntry.path = filePath;
+
+                RGDebug.LogDebug($"Copying segment from: {segment.Item1 ?? segment.Item2} , to: {filePath}");
+                using var sw = File.CreateText(filePath);
+                if (segment.Item3 is BotSegment botSegment)
+                {
+                    sw.Write(botSegment.ToJsonString());
+                }
+                else if (segment.Item3 is BotSegmentList botSegmentList)
+                {
+                    sw.Write(botSegmentList .ToJsonString());
+                }
+                sw.Close();
+
             }
         }
 

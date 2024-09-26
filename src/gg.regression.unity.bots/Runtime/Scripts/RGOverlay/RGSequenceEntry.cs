@@ -1,5 +1,6 @@
 using System;
 using RegressionGames;
+using RegressionGames.StateRecorder;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -27,6 +28,9 @@ public class RGSequenceEntry : MonoBehaviour
 
     [SerializeField]
     public Button editButton;
+
+    [SerializeField]
+    public Button copyButton;
 
     [SerializeField]
     public Button deleteButton;
@@ -59,9 +63,22 @@ public class RGSequenceEntry : MonoBehaviour
 
         if (editButton != null)
         {
-            editButton.onClick.AddListener(OnEdit);
+            // Recordings cannot be edited.. only copied
+            if (resourcePath.Contains(ScreenRecorder.RecordingPathName))
+            {
+                editButton.interactable = false;
+            }
+            else
+            {
+                editButton.onClick.AddListener(OnEdit);
+            }
         }
-        
+
+        if (copyButton != null)
+        {
+            copyButton.onClick.AddListener(OnCopy);
+        }
+
         if (deleteButton != null)
         {
             /*
@@ -106,7 +123,16 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(filePath);
+            sequenceManager.ShowEditSequenceDialog(false, filePath, resourcePath);
+        }
+    }
+
+    public void OnCopy()
+    {
+        var sequenceManager = RGSequenceManager.GetInstance();
+        if (sequenceManager != null)
+        {
+            sequenceManager.ShowEditSequenceDialog(true, filePath, resourcePath);
         }
     }
 

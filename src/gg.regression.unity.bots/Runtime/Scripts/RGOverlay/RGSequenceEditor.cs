@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
@@ -46,13 +47,17 @@ namespace RegressionGames
 
         private string _existingSequencePath;
 
+        private string _originalName = "";
+
+        private bool _makingACopy;
+
         /**
          * <summary>
          * Ensure all required fields are provided, and set any event listening functions
          * </summary>
          * <param name="existingSequencePath">The path of the sequence that is being edited (optional)</param>
          */
-        public void Initialize(string existingSequencePath = null)
+        public void Initialize(bool makingACopy, string existingResourcePath, string existingSequencePath = null)
         {
             if (SearchInput == null)
             {
@@ -91,6 +96,8 @@ namespace RegressionGames
                 Debug.LogError("RGSequenceEditor is missing its SegmentCardPrefab");
             }
 
+            _makingACopy = makingACopy;
+
             // if the Available Segment List cannot be found, we will try to find it somewhere in the scene
             if (AvailableSegmentsList == null)
             {
@@ -115,9 +122,15 @@ namespace RegressionGames
             ResetEditor();
 
             // set the editor to either be in an editing or creating state
-            _existingSequencePath = existingSequencePath;
+            _existingSequencePath = existingResourcePath;
             var isBeingEdited = !string.IsNullOrEmpty(_existingSequencePath);
-            if (isBeingEdited)
+            if (_makingACopy)
+            {
+                // populate the segment list from the contents of the loaded sequence
+                CurrentSequence = SetEditingState(_existingSequencePath);
+                titleComponent.text = "Copy Sequence";
+            }
+            else if (isBeingEdited)
             {
                 // populate the segment list from the contents of the loaded sequence
                 CurrentSequence = SetEditingState(_existingSequencePath);
@@ -154,6 +167,7 @@ namespace RegressionGames
         {
             var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item3;
             NameInput.text = sequenceToEdit.name;
+            _originalName = sequenceToEdit.name;
             DescriptionInput.text = sequenceToEdit.description;
             foreach (var entry in sequenceToEdit.segments)
             {
@@ -216,7 +230,7 @@ namespace RegressionGames
             // If the Sequence being edited is renamed, we must delete the original Sequence
             // after saving due to the new file name being based on the Sequence name
             var shouldDeleteOriginal =
-                !string.IsNullOrEmpty(_existingSequencePath) && CurrentSequence.name != NameInput.text;
+                !_makingACopy && !string.IsNullOrEmpty(_existingSequencePath) && CurrentSequence.name != NameInput.text;
 
             var addedSegments = _dropZone.GetChildren();
             foreach (var segment in addedSegments)
@@ -227,6 +241,13 @@ namespace RegressionGames
 
             CurrentSequence.name = NameInput.text;
             CurrentSequence.description = DescriptionInput.text;
+
+            // special case for recordings... where we need to copy the underlying segments as well, not just the sequence file
+            if (_makingACopy && _originalName.Contains(ScreenRecorder.RecordingPathName))
+            {
+                CurrentSequence.CopySequenceSegmentsToNewPath();
+            }
+
             CurrentSequence.SaveSequenceAsJson();
 
             if (shouldDeleteOriginal)
@@ -302,7 +323,7 @@ namespace RegressionGames
         public void OnNameInputChange(string text)
         {
             NameInput.text = text;
-            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && text.Length > 0);
+            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && text.Length > 0 && (!_makingACopy || string.CompareOrdinal(text, _originalName) != 0));
         }
 
         /**
