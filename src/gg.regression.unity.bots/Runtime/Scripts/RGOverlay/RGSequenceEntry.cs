@@ -61,7 +61,7 @@ public class RGSequenceEntry : MonoBehaviour
         {
             editButton.onClick.AddListener(OnEdit);
         }
-        
+
         if (deleteButton != null)
         {
             /*
@@ -106,7 +106,9 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(filePath);
+            // filePath will be null when running in a build
+            var existingSequencePath = filePath ?? resourcePath;
+            sequenceManager.ShowEditSequenceDialog(existingSequencePath);
         }
     }
 

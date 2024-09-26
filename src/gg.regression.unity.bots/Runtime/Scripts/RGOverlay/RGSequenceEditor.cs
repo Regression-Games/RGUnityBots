@@ -152,6 +152,9 @@ namespace RegressionGames
          */
         public BotSequence SetEditingState(string sequencePath)
         {
+#if !UNITY_EDITOR
+            sequencePath = BotSequence.GetRelativeSequenceFilePath(sequencePath);
+#endif
             var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item3;
             NameInput.text = sequenceToEdit.name;
             DescriptionInput.text = sequenceToEdit.description;

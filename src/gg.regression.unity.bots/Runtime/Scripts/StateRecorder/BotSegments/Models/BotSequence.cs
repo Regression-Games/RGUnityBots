@@ -38,7 +38,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public string description;
 
         /**
-         * <summary>Loads a Json sequence file from a json path.  This API expects a relative path</summary>
+         * <summary>Loads a Json sequence file from a json path. This API expects a relative path</summary>
          * <returns>(filePath(null if resource / not-writeable), resourcePath, BotSequence)</returns>
          */
         public static (string, string, BotSequence) LoadSequenceJsonFromPath(string path)
@@ -172,6 +172,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 throw new Exception($"Exception while parsing BotSegment or BotSegmentList from resource path: {path}", e);
             }
+        }
+
+        /**
+         * <summary>
+         * Get a Sequence's file path relative to the Bot Sequences directory in a build
+         * </summary>
+         * <param name="path">The absolute file path.</param>
+         * <returns>The relative file path</returns>
+         */
+        public static string GetRelativeSequenceFilePath(string path)
+        {
+            var delimiter = "RegressionGames/Resources/BotSequences";
+            var index = path.IndexOf(delimiter, StringComparison.Ordinal);
+            if (index >= 0)
+            {
+                return path.Substring(index);
+            }
+
+            return path;
         }
 
         public string ToJsonString()

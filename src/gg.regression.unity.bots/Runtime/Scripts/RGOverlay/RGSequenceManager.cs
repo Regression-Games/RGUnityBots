@@ -304,9 +304,14 @@ public class RGSequenceManager : MonoBehaviour
         Dictionary<string, (string, BotSequence)> result = new();
         foreach (var fileName in sequenceFiles)
         {
+            var refinedFileName = fileName;
+#if !UNITY_EDITOR
+            refinedFileName = BotSequence.GetRelativeSequenceFilePath(fileName);
+#endif
+
             try
             {
-                var sequenceJsonInfo = BotSequence.LoadSequenceJsonFromPath(fileName);
+                var sequenceJsonInfo = BotSequence.LoadSequenceJsonFromPath(refinedFileName);
                 if (sequenceJsonInfo.Item2 != null)
                 {
                     result.Add(sequenceJsonInfo.Item2, (sequenceJsonInfo.Item1, sequenceJsonInfo.Item3));
@@ -314,7 +319,7 @@ public class RGSequenceManager : MonoBehaviour
             }
             catch (Exception exception)
             {
-                Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
+                Debug.Log($"Error reading Bot Sequence {refinedFileName}: {exception}");
             }
         }
 
