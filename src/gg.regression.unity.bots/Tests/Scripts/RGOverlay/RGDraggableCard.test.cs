@@ -36,15 +36,36 @@ namespace RegressionGames.Tests.RGOverlay
             card.descriptionPrefab = text;
 
             // ensure public prefabs are mocked
-            card.restingStatePrefab = new GameObject();
+            card.restingStatePrefab = new GameObject
+            {
+                transform =
+                {
+                    parent = card.transform
+                }
+            };
             card.restingStatePrefab.AddComponent<RGDraggableCard>();
-            card.draggingStatePrefab = new GameObject();
+            card.draggingStatePrefab = new GameObject(){
+                transform =
+                {
+                    parent = card.transform
+                }
+            };
             var draggedCard = card.draggingStatePrefab.AddComponent<RGDraggedCard>();
-            draggedCard.iconPrefab = new GameObject();
+            draggedCard.iconPrefab = new GameObject(){
+                transform =
+                {
+                    parent = card.transform
+                }
+            };
             draggedCard.iconPrefab.AddComponent<Image>();
             draggedCard.namePrefab = RGTestUtils.CreateTMProPlaceholder();
             card.icon = RGTestUtils.CreateSpritePlaceholder();
-            card.iconPrefab = new GameObject();
+            card.iconPrefab = new GameObject(){
+                transform =
+                {
+                    parent = card.transform
+                }
+            };
             card.iconPrefab.AddComponent<Image>();
             card.Start();
         }
@@ -61,94 +82,129 @@ namespace RegressionGames.Tests.RGOverlay
             Assert.IsFalse(card.IsOverDropZone());
 
             var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
-            card.SetDropZone(dropZone.GetComponent<RGDropZone>());
+            try
+            {
+                card.SetDropZone(dropZone.GetComponent<RGDropZone>());
 
-            Assert.IsTrue(card.IsOverDropZone());
+                Assert.IsTrue(card.IsOverDropZone());
+            }
+            finally
+            {
+                Object.Destroy(dropZone);
+            }
         }
 
         [Test]
         public void OnBeginDrag()
         {
-            var dragEvent = new PointerEventData(EventSystem.current);
-            card.OnBeginDrag(dragEvent);
+            var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
+            try
+            {
+                var dragEvent = new PointerEventData(EventSystem.current);
+                card.OnBeginDrag(dragEvent);
 
-            // ensure the card shows its dragging state
-            var draggedCard = Object.FindObjectOfType<RGDraggableCard>();
-            Assert.NotNull(draggedCard);
+                // ensure the card shows its dragging state
+                var draggedCard = Object.FindObjectOfType<RGDraggableCard>();
+                Assert.NotNull(draggedCard);
+            }
+            finally
+            {
+                Object.Destroy(dropZone);
+            }
         }
 
         [Test]
         public void OnEndDrag_AddCardToDropZone()
         {
             var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
-            var dropZoneScript = dropZone.GetComponent<RGDropZone>();
-
-            // assume the card begins outside the drop zone
-            card.IsReordering = false;
-
-            card.OnBeginDrag(genericDragEvent);
-
-            // place the card over the potential drop zone
-            var onDragEvent = new PointerEventData(EventSystem.current)
+            try
             {
-                pointerEnter = dropZone.gameObject
-            };
-            card.OnDrag(onDragEvent);
+                var dropZoneScript = dropZone.GetComponent<RGDropZone>();
 
-            // drop the card into the drop zone. The drop zone should no longer be empty
-            card.OnEndDrag(genericDragEvent);
+                // assume the card begins outside the drop zone
+                card.IsReordering = false;
 
-            Assert.IsFalse(dropZoneScript.IsEmpty());
+                card.OnBeginDrag(genericDragEvent);
+
+                // place the card over the potential drop zone
+                var onDragEvent = new PointerEventData(EventSystem.current)
+                {
+                    pointerEnter = dropZone.gameObject
+                };
+                card.OnDrag(onDragEvent);
+
+                // drop the card into the drop zone. The drop zone should no longer be empty
+                card.OnEndDrag(genericDragEvent);
+
+                Assert.IsFalse(dropZoneScript.IsEmpty());
+            }
+            finally
+            {
+                Object.Destroy(dropZone);
+            }
         }
 
         [Test]
         public void OnEndDrag_ReorderCard()
         {
             var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
-
-            // assume the card begins already inside the drop zone
-            card.IsReordering = true;
-
-            card.OnBeginDrag(genericDragEvent);
-
-            // drag and drop the card at another location within the drop zone
-            var onDragEvent = new PointerEventData(EventSystem.current)
+            try
             {
-                pointerEnter = dropZone.gameObject
-            };
-            card.OnDrag(onDragEvent);
-            card.SetDropZone(dropZone.GetComponent<RGDropZone>());
+                // assume the card begins already inside the drop zone
+                card.IsReordering = true;
 
-            card.OnEndDrag(genericDragEvent);
+                card.OnBeginDrag(genericDragEvent);
 
-            // the card should complete its reordering
-            Assert.IsFalse(card.IsReordering);
+                // drag and drop the card at another location within the drop zone
+                var onDragEvent = new PointerEventData(EventSystem.current)
+                {
+                    pointerEnter = dropZone.gameObject
+                };
+                card.OnDrag(onDragEvent);
+                card.SetDropZone(dropZone.GetComponent<RGDropZone>());
+
+                card.OnEndDrag(genericDragEvent);
+
+                // the card should complete its reordering
+                Assert.IsFalse(card.IsReordering);
+            }
+            finally
+            {
+                Object.Destroy(dropZone);
+            }
         }
 
         [Test]
         public void OnEndDrag_DestroyAddedCard()
         {
             var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
-            var dropZoneScript = dropZone.GetComponent<RGDropZone>();
-
-            // assume the card begins already inside the drop zone
-            dropZoneScript.AddChild(card.gameObject);
-            card.IsReordering = true;
-
-            card.OnBeginDrag(genericDragEvent);
-
-            // drag and drop the card outside the drop zone
-            var onDragEvent = new PointerEventData(EventSystem.current)
+            try
             {
-                position = new Vector2()
-            };
-            card.OnDrag(onDragEvent);
-            card.SetDropZone(null);
+                var dropZoneScript = dropZone.GetComponent<RGDropZone>();
 
-            card.OnEndDrag(genericDragEvent);
+                // assume the card begins already inside the drop zone
+                dropZoneScript.AddChild(card.gameObject);
+                card.IsReordering = true;
 
-            // the drop zone should have no children. The only one was removed
-            Assert.IsEmpty(dropZoneScript.GetChildren());
+                card.OnBeginDrag(genericDragEvent);
+
+                // drag and drop the card outside the drop zone
+                var onDragEvent = new PointerEventData(EventSystem.current)
+                {
+                    position = new Vector2()
+                };
+                card.OnDrag(onDragEvent);
+                card.SetDropZone(null);
+
+                card.OnEndDrag(genericDragEvent);
+
+                // the drop zone should have no children. The only one was removed
+                Assert.IsEmpty(dropZoneScript.GetChildren());
+            }
+            finally
+            {
+                Object.Destroy(dropZone);
+            }
         }
     }
 }

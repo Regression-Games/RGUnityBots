@@ -182,26 +182,34 @@ namespace RegressionGames
         public BotSequence SetEditingState(string sequencePath)
         {
             var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item3;
-            NameInput.text = sequenceToEdit.name;
-            _originalName = sequenceToEdit.name.Trim();
-            if (!IsRecordingSequencePath(sequencePath))
+            if (sequenceToEdit != null)
             {
-                // copy the description
-                DescriptionInput.text = sequenceToEdit.description;
+                NameInput.text = sequenceToEdit.name;
+                _originalName = sequenceToEdit.name.Trim();
+                if (!IsRecordingSequencePath(sequencePath))
+                {
+                    // copy the description
+                    DescriptionInput.text = sequenceToEdit.description;
+                }
+                else
+                {
+                    // for recording copies, leave the description empty.. they should make their own
+                }
+
+                foreach (var entry in sequenceToEdit.segments)
+                {
+                    InstantiateDraggableSegmentCard(entry, _dropZone.Content.transform);
+                }
+
+                _dropZone.SetEmptyState(false);
+
+                EnforceRequiredInputs();
             }
             else
             {
-                // for recording copies, leave the description empty.. they should make their own
+                // this is really here for unit testing ... shouldn't happen in prod
+                sequenceToEdit = new BotSequence();
             }
-
-            foreach (var entry in sequenceToEdit.segments)
-            {
-                InstantiateDraggableSegmentCard(entry, _dropZone.Content.transform);
-            }
-
-            _dropZone.SetEmptyState(false);
-
-            EnforceRequiredInputs();
 
             return sequenceToEdit;
         }

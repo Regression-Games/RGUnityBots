@@ -41,6 +41,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public static (string, string, BotSequence) LoadSequenceJsonFromPath(string path)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                return (null, null, null);
+            }
+
             if (path.StartsWith('/') || path.StartsWith('\\'))
             {
                 throw new Exception("Invalid path.  Path must be relative, not absolute in order to support editor vs production runtimes interchangeably.");

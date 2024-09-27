@@ -50,12 +50,17 @@ public class RGSequenceManager : MonoBehaviour
         StartCoroutine(ResolveSequenceFiles());
     }
 
+    public void Awake()
+    {
+        _this = this;
+    }
+
     public void Start()
     {
         LoadSequences();
 
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
-        _this = this;
+
         DontDestroyOnLoad(_this.gameObject);
     }
 
