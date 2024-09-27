@@ -88,7 +88,8 @@ public class RGSequenceEntry : MonoBehaviour
              * Sequences cannot be deleted in runtime builds, as we cannot delete resources
              * that have been loaded using Resources.Load()
              */
-#if UNITY_EDITOR
+            if (filePath != null)
+            {
                 deleteButton.onClick.AddListener(OnDelete);
 
                 // hide the delete button tooltip. We CAN delete
@@ -98,9 +99,11 @@ public class RGSequenceEntry : MonoBehaviour
                 {
                     tooltip.SetEnabled(false);
                 }
-#else
+            }
+            else
+            {
                 RGSequenceEditor.SetButtonEnabled(false, deleteButton);
-#endif
+            }
         }
 
         // set indicator that this is a recording
