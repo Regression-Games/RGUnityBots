@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using UnityEditor.Compilation;
 using System.Threading;
 using Newtonsoft.Json;
+using RegressionGames;
+
 
 public static class CompilationController
 {
@@ -28,7 +30,7 @@ public static class CompilationController
     {
         if (client == null)
         {
-            Debug.LogError("CompilationController: TcpClient is null for Compile command.");
+            RGDebug.LogError("CompilationController: TcpClient is null for Compile command.");
             return;
         }
 
@@ -47,7 +49,7 @@ public static class CompilationController
     {
         if (client == null)
         {
-            Debug.LogError("CompilationController: TcpClient is null for GetCompilationMessages command.");
+            RGDebug.LogError("CompilationController: TcpClient is null for GetCompilationMessages command.");
             return;
         }
 
@@ -81,7 +83,7 @@ public static class CompilationController
         }
         catch (Exception ex)
         {
-            Debug.LogError($"CompilationController: Exception while sending compilation errors - {ex.Message}");
+            RGDebug.LogError($"CompilationController: Exception while sending compilation errors - {ex.Message}");
             Utilities.SendJsonResponse(client.GetStream(), new { status = "Error", message = ex.Message });
             client.Close();
         }
@@ -121,7 +123,7 @@ public static class CompilationController
     /// <param name="context">Compilation context.</param>
     private static void OnCompilationFinished(object context)
     {
-        Debug.Log("CompilationController: Compilation finished.");
+        RGDebug.Log("CompilationController: Compilation finished.");
         if (compileClient != null)
         {
             SendCompileResponse();
@@ -135,7 +137,7 @@ public static class CompilationController
     {
         try
         {
-            Debug.Log("CompilationController: Sending compile response.");
+            RGDebug.Log("CompilationController: Sending compile response.");
             // Send the response to the client
             Utilities.SendJsonResponse(compileClient.GetStream(), new { status = "Complete", message = "Complete" });
 
@@ -145,7 +147,7 @@ public static class CompilationController
         }
         catch (Exception ex)
         {
-            Debug.LogError($"CompilationController: Exception while sending compile response - {ex.Message}");
+            RGDebug.LogError($"CompilationController: Exception while sending compile response - {ex.Message}");
             if (compileClient != null)
             {
                 Utilities.SendJsonResponse(compileClient.GetStream(), new { status = "Error", message = ex.Message });
@@ -163,7 +165,7 @@ public static class CompilationController
         // Close any stored client connections
         if (compileClient != null)
         {
-            Debug.Log("CompilationController: Closing compileClient.");
+            RGDebug.Log("CompilationController: Closing compileClient.");
             compileClient.Close();
             compileClient = null;
         }

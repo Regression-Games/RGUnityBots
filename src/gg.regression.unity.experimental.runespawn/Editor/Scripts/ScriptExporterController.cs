@@ -5,6 +5,8 @@ using System.Net.Sockets;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using RegressionGames;
+
 
 public static class ScriptExporterController
 {
@@ -16,7 +18,7 @@ public static class ScriptExporterController
     {
         if (client == null)
         {
-            Debug.LogError("ScriptExporterController: TcpClient is null for GetScripts command.");
+            RGDebug.LogError("ScriptExporterController: TcpClient is null for GetScripts command.");
             return;
         }
 
@@ -26,7 +28,7 @@ public static class ScriptExporterController
             string[] guids = AssetDatabase.FindAssets("t:ScriptExporterConfig");
             if (guids.Length == 0)
             {
-                Debug.LogError("ScriptExporterController: No ScriptExporterConfig asset found. Please create one.");
+                RGDebug.LogError("ScriptExporterController: No ScriptExporterConfig asset found. Please create one.");
                 Utilities.SendJsonResponse(client.GetStream(), new { status = "Error", message = "No ScriptExporterConfig found." });
                 client.Close();
                 return;
@@ -34,11 +36,11 @@ public static class ScriptExporterController
 
             if (guids.Length > 1)
             {
-                Debug.LogError("ScriptExporterController: Multiple ScriptExporterConfig assets found. Please ensure only one exists.");
-                Debug.Log("Found ScriptExporterConfig assets:");
+                RGDebug.LogError("ScriptExporterController: Multiple ScriptExporterConfig assets found. Please ensure only one exists.");
+                RGDebug.Log("Found ScriptExporterConfig assets:");
                 foreach (string guid in guids)
                 {
-                    Debug.Log(AssetDatabase.GUIDToAssetPath(guid));
+                    RGDebug.Log(AssetDatabase.GUIDToAssetPath(guid));
                 }
                 Utilities.SendJsonResponse(client.GetStream(), new { status = "Error", message = "Multiple ScriptExporterConfig assets found." });
                 client.Close();
@@ -50,7 +52,7 @@ public static class ScriptExporterController
 
             if (config == null)
             {
-                Debug.LogError("ScriptExporterController: Failed to load ScriptExporterConfig.");
+                RGDebug.LogError("ScriptExporterController: Failed to load ScriptExporterConfig.");
                 Utilities.SendJsonResponse(client.GetStream(), new { status = "Error", message = "Failed to load ScriptExporterConfig." });
                 client.Close();
                 return;
@@ -61,7 +63,7 @@ public static class ScriptExporterController
 
             if (string.IsNullOrEmpty(jsonPayload))
             {
-                Debug.LogWarning("ScriptExporterController: No script data to send.");
+                RGDebug.LogWarning("ScriptExporterController: No script data to send.");
                 Utilities.SendJsonResponse(client.GetStream(), new { status = "Error", message = "No script data available." });
                 client.Close();
                 return;
@@ -77,7 +79,7 @@ public static class ScriptExporterController
         }
         catch (Exception ex)
         {
-            Debug.LogError($"ScriptExporterController: Exception while sending scripts - {ex.Message}");
+            RGDebug.LogError($"ScriptExporterController: Exception while sending scripts - {ex.Message}");
             Utilities.SendJsonResponse(client.GetStream(), new { status = "Error", message = ex.Message });
             client.Close();
         }

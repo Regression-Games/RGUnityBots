@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Collections.Generic;
+using RegressionGames;
 
 [InitializeOnLoad]
 public class EditorCommandServer
@@ -32,7 +33,7 @@ public class EditorCommandServer
 
     static EditorCommandServer()
     {
-        Debug.Log("EditorCommandServer: Starting");
+        RGDebug.Log("EditorCommandServer: Starting");
         StartListening();
         EditorApplication.update += OnEditorUpdate;
         AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
@@ -80,7 +81,7 @@ public class EditorCommandServer
             IsBackground = true
         };
         listenerThread.Start();
-        Debug.Log($"EditorCommandServer: Listening on port {Port}'");
+        RGDebug.Log($"EditorCommandServer: Listening on port {Port}'");
     }
 
     /// <summary>
@@ -90,7 +91,7 @@ public class EditorCommandServer
     {
         listener = new TcpListener(IPAddress.Loopback, Port);
         listener.Start();
-        Debug.Log("EditorCommandServer: TCP Listener started.");
+        RGDebug.Log("EditorCommandServer: TCP Listener started.");
 
         try
         {
@@ -100,7 +101,7 @@ public class EditorCommandServer
                 {
                     TcpClient client = listener.AcceptTcpClient();
                     NetworkStream stream = client.GetStream();
-                    Debug.Log("EditorCommandServer: Client connected.");
+                    RGDebug.Log("EditorCommandServer: Client connected.");
 
                     // Handle client in a separate thread to prevent blocking
                     ThreadPool.QueueUserWorkItem(HandleClient, client);
@@ -115,14 +116,14 @@ public class EditorCommandServer
         {
             if (!stopThread)
             {
-                Debug.LogError($"EditorCommandServer: SocketException in ListenForCommands: {ex.Message}");
+                RGDebug.LogError($"EditorCommandServer: SocketException in ListenForCommands: {ex.Message}");
             }
         }
         finally
         {
             listener.Stop();
             listener = null;
-            Debug.Log("EditorCommandServer: TCP Listener stopped.");
+            RGDebug.Log("EditorCommandServer: TCP Listener stopped.");
         }
     }
 
@@ -143,7 +144,7 @@ public class EditorCommandServer
             string receivedToken = Utilities.ReadLine(stream);
             if (receivedToken != AuthToken)
             {
-                Debug.LogWarning("EditorCommandServer: Authentication failed.");
+                RGDebug.LogWarning("EditorCommandServer: Authentication failed.");
                 Utilities.SendJsonResponse(stream, new { status = "Error", message = "Authentication Failed" });
                 client.Close();
                 return;
@@ -154,7 +155,7 @@ public class EditorCommandServer
 
             // Read the command
             string commandStr = Utilities.ReadLine(stream);
-            Debug.Log($"EditorCommandServer: Received command '{commandStr}'");
+            RGDebug.Log($"EditorCommandServer: Received command '{commandStr}'");
 
             if (Enum.TryParse(commandStr, true, out CommandType commandType))
             {
@@ -166,19 +167,19 @@ public class EditorCommandServer
             }
             else
             {
-                Debug.LogWarning($"EditorCommandServer: Unknown command received - '{commandStr}'");
+                RGDebug.LogWarning($"EditorCommandServer: Unknown command received - '{commandStr}'");
                 Utilities.SendJsonResponse(stream, new { status = "Error", message = $"Unknown command '{commandStr}'" });
                 client.Close();
             }
         }
         catch (IOException ex)
         {
-            Debug.LogError($"EditorCommandServer: IOException while handling client: {ex.Message}");
+            RGDebug.LogError($"EditorCommandServer: IOException while handling client: {ex.Message}");
             client.Close();
         }
         catch (Exception ex)
         {
-            Debug.LogError($"EditorCommandServer: Exception while handling client: {ex.Message}");
+            RGDebug.LogError($"EditorCommandServer: Exception while handling client: {ex.Message}");
             client.Close();
         }
     }
@@ -193,7 +194,7 @@ public class EditorCommandServer
             while (commandQueue.Count > 0)
             {
                 EditorCommand editorCommand = commandQueue.Dequeue();
-                Debug.Log("EditorCommandServer: Processing command - " + editorCommand.CommandType);
+                RGDebug.Log("EditorCommandServer: Processing command - " + editorCommand.CommandType);
 
                 switch (editorCommand.CommandType)
                 {
@@ -236,7 +237,7 @@ public class EditorCommandServer
             }
             catch (Exception ex)
             {
-                Debug.LogError($"EditorCommandServer: Exception while stopping listener: {ex.Message}");
+                RGDebug.LogError($"EditorCommandServer: Exception while stopping listener: {ex.Message}");
             }
 
             listenerThread.Join();

@@ -3,6 +3,8 @@ using UnityEditor;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using RegressionGames;
+
 
 [CreateAssetMenu(fileName = "ScriptExporterConfig", menuName = "Script Exporter/Config", order = 1)]
 public class ScriptExporterConfig : ScriptableObject
@@ -31,13 +33,13 @@ public class ScriptExporterConfig : ScriptableObject
             }
             else
             {
-                Debug.LogWarning($"ScriptExporterConfig: Script file not found at path: {fullPath}");
+                RGDebug.LogWarning($"ScriptExporterConfig: Script file not found at path: {fullPath}");
             }
         }
 
         if (scriptContents.Count == 0)
         {
-            Debug.LogWarning("ScriptExporterConfig: No scripts found to serialize.");
+            RGDebug.LogWarning("ScriptExporterConfig: No scripts found to serialize.");
             return null;
         }
 
