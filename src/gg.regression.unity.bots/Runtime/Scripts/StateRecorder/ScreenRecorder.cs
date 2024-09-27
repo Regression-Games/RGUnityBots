@@ -14,7 +14,9 @@ using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Experimental.Rendering;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
 // ReSharper disable once ForCanBeConvertedToForeach - Better performance using indexing vs enumerators
@@ -69,6 +71,7 @@ namespace RegressionGames.StateRecorder
         private string _currentGameplaySessionBotSegmentsDirectoryPrefix;
         private string _currentGameplaySessionDataDirectoryPrefix;
         private string _currentGameplaySessionCodeCoverageMetadataPath;
+        private string _currentGameplaySessionGameMetadataPath;
         private string _currentGameplaySessionThumbnailPath;
         private string _currentGameplaySessionLogsDirectoryPrefix;
 
@@ -142,11 +145,51 @@ namespace RegressionGames.StateRecorder
             RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
-        private async Task HandleEndRecording(long tickCount, DateTime startTime, DateTime endTime, long loggedWarnings, long loggedErrors, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string codeCovMetadataPath, string thumbnailPath, string logsDirectoryPrefix, bool onDestroy = false)
+        private async Task HandleEndRecording(long tickCount,
+            DateTime startTime,
+            DateTime endTime,
+            long loggedWarnings,
+            long loggedErrors,
+            string dataDirectoryPrefix,
+            string botSegmentsDirectoryPrefix,
+            string screenshotsDirectoryPrefix,
+            string codeCovMetadataPath,
+            string thumbnailPath,
+            string logsDirectoryPrefix,
+            string gameMetadataPath,
+            bool onDestroy = false)
         {
             if (!onDestroy)
             {
                 StartCoroutine(ShowUploadingIndicator(true));
+            }
+
+            Task codeCovMetadataTask = null;
+            Task gameMetadataTask = null;
+
+            // Save code coverage metadata if code coverage is enabled
+            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
+            if (rgSettings.GetFeatureCodeCoverage())
+            {
+                var metadata = RGCodeCoverage.GetMetadata();
+                if (metadata != null)
+                {
+                    RGDebug.LogInfo($"Saving code coverage metadata to file: {codeCovMetadataPath}");
+                    using (StreamWriter sw = new StreamWriter(codeCovMetadataPath))
+                    {
+                        string metadataJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
+                        codeCovMetadataTask = sw.WriteAsync(metadataJson);
+                    }
+                }
+            }
+
+            // Save game metadata
+            var gameMetadata = RGGameMetadata.GetMetadata();
+            RGDebug.LogInfo($"Saving game metadata to file: {gameMetadataPath}");
+            using (StreamWriter sw = new StreamWriter(gameMetadataPath))
+            {
+                string metadataJson = JsonConvert.SerializeObject(gameMetadata, Formatting.Indented);
+                gameMetadataTask = sw.WriteAsync(metadataJson);
             }
 
             var zipTask1 = Task.Run(() =>
@@ -181,26 +224,17 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogInfo($"Finished zipping replay to file: {logsDirectoryPrefix}.zip");
             });
 
-            // Save code coverage metadata if code coverage is enabled
-            RGSettings rgSettings = RGSettings.GetOrCreateSettings();
-            if (rgSettings.GetFeatureCodeCoverage())
-            {
-                var metadata = RGCodeCoverage.GetMetadata();
-                if (metadata != null)
-                {
-                    RGDebug.LogInfo($"Saving code coverage metadata to file: {codeCovMetadataPath}");
-                    using (StreamWriter sw = new StreamWriter(codeCovMetadataPath))
-                    {
-                        string metadataJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
-                        sw.Write(metadataJson);
-                    }
-                }
-            }
-
             // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
             var screenshotFiles = Directory.GetFiles(screenshotsDirectoryPrefix);
             var middleFile = screenshotFiles[screenshotFiles.Length / 2]; // this gets floored automatically
             File.Copy(middleFile, thumbnailPath);
+
+            // wait for the metadata tasks to finish
+            if (codeCovMetadataTask != null)
+            {
+                Task.WaitAll(codeCovMetadataTask);
+            }
+            Task.WaitAll(gameMetadataTask);
 
             // wait for the zip tasks to finish
             Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4);
@@ -223,6 +257,7 @@ namespace RegressionGames.StateRecorder
                 screenshotsDirectoryPrefix,
                 thumbnailPath,
                 logsDirectoryPrefix,
+                gameMetadataPath,
                 onDestroy
             );
         }
@@ -270,7 +305,19 @@ namespace RegressionGames.StateRecorder
 
         }
 
-        private async Task CreateAndUploadGameplaySession(long tickCount, DateTime startTime, DateTime endTime, long loggedWarnings, long loggedErrors, string dataDirectoryPrefix, string botSegmentsDirectoryPrefix, string screenshotsDirectoryPrefix, string thumbnailPath, string logsPathPrefix, bool onDestroy = false)
+        private async Task CreateAndUploadGameplaySession(long tickCount,
+            DateTime startTime,
+            DateTime endTime,
+            long loggedWarnings,
+            long loggedErrors,
+            string dataDirectoryPrefix,
+            string botSegmentsDirectoryPrefix,
+            string screenshotsDirectoryPrefix,
+            string thumbnailPath,
+            string logsPathPrefix,
+            string gameMetadataPath,
+            bool onDestroy = false
+        )
         {
 
             try
@@ -316,6 +363,12 @@ namespace RegressionGames.StateRecorder
                 await RGServiceManager.GetInstance().UploadGameplaySessionThumbnail(gameplaySessionId,
                     thumbnailPath,
                     () => { RGDebug.LogInfo($"Uploaded gameplay session thumbnail from {thumbnailPath}"); },
+                    () => { });
+
+                // Upload the metadata
+                await RGServiceManager.GetInstance().UploadGameplaySessionMetadata(gameplaySessionId,
+                    gameMetadataPath,
+                    () => { RGDebug.LogInfo($"Uploaded gameplay session metadata from {gameMetadataPath}"); },
                     () => { });
 
                 // Upload the logs
@@ -402,6 +455,7 @@ namespace RegressionGames.StateRecorder
                 _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
                 _currentGameplaySessionBotSegmentsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/bot_segments";
                 _currentGameplaySessionCodeCoverageMetadataPath = _currentGameplaySessionDirectoryPrefix + "/code_coverage_metadata.json";
+                _currentGameplaySessionGameMetadataPath = _currentGameplaySessionDirectoryPrefix + "/game_metadata.json";
                 _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
                 _currentGameplaySessionLogsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/logs";
                 Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
@@ -523,6 +577,7 @@ namespace RegressionGames.StateRecorder
                     _currentGameplaySessionCodeCoverageMetadataPath,
                     _currentGameplaySessionThumbnailPath,
                     _currentGameplaySessionLogsDirectoryPrefix,
+                    _currentGameplaySessionGameMetadataPath,
                     true);
             }
 
@@ -749,6 +804,13 @@ namespace RegressionGames.StateRecorder
                             }
                         }
 
+                        GameObject esGameObject = (EventSystem.current != null? EventSystem.current.gameObject:null);
+                        List<string> eventSystemInputModules = new();
+                        if (esGameObject != null)
+                        {
+                            eventSystemInputModules = esGameObject.gameObject.GetComponents<BaseInputModule>().Where(a => a.isActiveAndEnabled).Select(a => a.GetType().FullName).ToList();
+                        }
+
                         var frameState = new RecordingFrameStateData()
                         {
                             sessionId = _currentSessionId,
@@ -760,10 +822,11 @@ namespace RegressionGames.StateRecorder
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
+                            currentRenderPipeline = GraphicsSettings.currentRenderPipeline.GetType().FullName,
+                            activeEventSystemInputModules = eventSystemInputModules,
+                            activeInputDevices = InputSystem.devices.Select(a=>$"{a.name} - {a.path}").ToList(),
                             state = currentStates.Values,
                             codeCoverage = codeCoverageState,
-                            activeInputDevices = activeInputDevices,
-                            activeEventSystemInputModules = activeEventSystemInputModules,
                             inputs = inputData
                         };
 
