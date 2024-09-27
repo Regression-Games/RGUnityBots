@@ -18,6 +18,19 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
         static StringJsonConverter()
         {
+            // skip these - control characters in ascii table
+            for (int i = 0; i <= 7; i++)
+            {
+                EscapeCharReplacements[i] = char.MaxValue;
+            }
+
+            // skip these - control characters in ascii table
+            for (int i = 14; i <= 27; i++)
+            {
+                EscapeCharReplacements[i] = char.MaxValue;
+            }
+
+            // replace these
             EscapeCharReplacements['\n'] = 'n';
             EscapeCharReplacements['\r'] = 'r';
             EscapeCharReplacements['\t'] = 't';
@@ -68,19 +81,29 @@ namespace RegressionGames.StateRecorder.JsonConverters
                 }
                 else
                 {
-                    // need to escape.. copy existing range to result
+                    // need to escape or skip.. copy existing range to result
                     if (startIndex != endIndex)
                     {
                         var length = endIndex - startIndex;
                         input.CopyTo(startIndex, bufferArray, currentNextIndex, length);
                         currentNextIndex += length;
                     }
+
                     // update indexes
                     endIndex = i + 1;
                     startIndex = i + 1;
-                    // write the escaped value to the buffer
-                    bufferArray[currentNextIndex++] = '\\';
-                    bufferArray[currentNextIndex++] = escapeReplacement;
+
+                    if (escapeReplacement == char.MaxValue)
+                    {
+                        // need to skip
+                    }
+                    else
+                    {
+                        // need to escape
+                        // write the escaped value to the buffer
+                        bufferArray[currentNextIndex++] = '\\';
+                        bufferArray[currentNextIndex++] = escapeReplacement;
+                    }
                 }
             }
 
