@@ -68,7 +68,7 @@ namespace RegressionGames.StateRecorder
                         // do this ourselves to bypass all the serializer creation junk for every object :/
                         if (_jsonSerializer == null)
                         {
-                            _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
+                            _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettingsHideErrors);
                             _jsonSerializer.Formatting = Formatting.None;
                         }
 
@@ -117,7 +117,7 @@ namespace RegressionGames.StateRecorder
                     // do this ourselves to bypass all the serializer creation junk for every object :/
                     if (_jsonSerializer == null)
                     {
-                        _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettings);
+                        _jsonSerializer = JsonSerializer.CreateDefault(JsonSerializerSettingsHideErrors);
                         _jsonSerializer.Formatting = Formatting.None;
                     }
 
@@ -146,7 +146,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public static readonly JsonSerializerSettings JsonSerializerSettings = new()
+        private static readonly JsonSerializerSettings JsonSerializerSettingsHideErrors = new()
         {
             Formatting = Formatting.None,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
@@ -165,5 +165,26 @@ namespace RegressionGames.StateRecorder
                 }
             },
         };
+
+        public static readonly JsonSerializerSettings JsonSerializerSettings = new()
+        {
+            Formatting = Formatting.None,
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+            ContractResolver = JsonConverterContractResolver.Instance,
+            Error = delegate(object _, ErrorEventArgs args)
+            {
+                // just eat certain errors
+                if (args.ErrorContext.Error is MissingComponentException || args.ErrorContext.Error.InnerException is UnityException or NotSupportedException or MissingComponentException)
+                {
+                    args.ErrorContext.Handled = true;
+                }
+                else
+                {
+                    args.ErrorContext.Handled = false;
+                }
+            },
+        };
+
+
     }
 }

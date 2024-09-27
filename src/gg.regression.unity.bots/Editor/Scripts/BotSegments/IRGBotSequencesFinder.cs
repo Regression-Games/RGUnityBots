@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using UnityEditor;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using UnityEngine;
 using UnityEditor.Compilation;
@@ -57,21 +58,21 @@ namespace RegressionGames.Editor
                     var fileContents = fr.ReadToEnd();
                     try
                     {
-                        var sequence = JsonConvert.DeserializeObject<BotSequence>(fileContents);
+                        var sequence = JsonConvert.DeserializeObject<BotSequence>(fileContents, JsonUtils.JsonSerializerSettings);
                         botSequences.sequences.Add(outputPath);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileContents);
+                            var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileContents, JsonUtils.JsonSerializerSettings);
                             botSequences.segmentLists.Add(outputPath);
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             try
                             {
-                                var segment = JsonConvert.DeserializeObject<BotSegment>(fileContents);
+                                var segment = JsonConvert.DeserializeObject<BotSegment>(fileContents, JsonUtils.JsonSerializerSettings);
                                 botSequences.segments.Add(outputPath);
                             }
                             catch (Exception)

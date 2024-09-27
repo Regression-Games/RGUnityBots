@@ -73,6 +73,8 @@ namespace RegressionGames.StateRecorder
             { typeof(RandomMouseObjectActionData), new RandomMouseObjectActionDataJsonConverter() },
             { typeof(RandomMousePixelActionData), new RandomMousePixelActionDataJsonConverter() },
 
+            { typeof(InputPlaybackActionData), new InputPlaybackActionDataJsonConverter() },
+            { typeof(InputData), new InputDataJsonConverter() },
             { typeof(KeyboardInputActionData), new KeyboardInputActionDataJsonConverter() },
             { typeof(MouseInputActionData), new MouseInputActionDataJsonConverter() },
             { typeof(RGGameMetadata), new RGGameMetadataJsonConverter() },
