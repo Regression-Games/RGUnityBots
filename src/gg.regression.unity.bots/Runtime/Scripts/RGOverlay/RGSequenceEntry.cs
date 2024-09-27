@@ -35,6 +35,9 @@ public class RGSequenceEntry : MonoBehaviour
     [SerializeField]
     public Button deleteButton;
 
+    [SerializeField]
+    public GameObject recordingDot;
+
     /**
      * UI component fields
      */
@@ -64,9 +67,9 @@ public class RGSequenceEntry : MonoBehaviour
         if (editButton != null)
         {
             // Recordings cannot be edited.. only copied
-            if (resourcePath.Contains(ScreenRecorder.RecordingPathName))
+            if (RGSequenceEditor.IsRecordingSequencePath(resourcePath))
             {
-                editButton.interactable = false;
+                RGSequenceEditor.SetButtonEnabled(false, editButton);
             }
             else
             {
@@ -96,8 +99,21 @@ public class RGSequenceEntry : MonoBehaviour
                     tooltip.SetEnabled(false);
                 }
 #else
-                deleteButton.interactable = false;
+                RGSequenceEditor.SetButtonEnabled(false, deleteButton);
 #endif
+        }
+
+        // set indicator that this is a recording
+        if (recordingDot != null)
+        {
+            if (RGSequenceEditor.IsRecordingSequencePath(resourcePath))
+            {
+                recordingDot.SetActive(true);
+            }
+            else
+            {
+                recordingDot.SetActive(false);
+            }
         }
     }
 

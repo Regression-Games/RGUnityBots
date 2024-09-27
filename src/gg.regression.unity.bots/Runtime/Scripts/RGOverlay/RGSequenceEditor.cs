@@ -83,6 +83,10 @@ namespace RegressionGames
             {
                 Debug.LogError("RGSequenceEditor is missing its DescriptionInput");
             }
+            else
+            {
+                DescriptionInput.onValueChanged.AddListener(OnDescriptionInputChange);
+            }
 
             if (DropZonePrefab == null)
             {
@@ -147,17 +151,26 @@ namespace RegressionGames
             // ensure that the create/update button is in the correct default state:
             // - creating -> disabled
             // - editing -> enabled
-            SetCreateSequenceButtonEnabled(isBeingEdited && !_dropZone.IsEmpty() && NameInput.text.Length > 0 && (!_makingACopy || string.CompareOrdinal(NameInput.text, _originalName) != 0));
-            UpdateColorForInputNameNeedsChanging();
             var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
             if (saveButton != null)
             {
                 saveButton.SetEditModeEnabled(isBeingEdited, makingACopy);
             }
 
+            EnforceRequiredInputs();
+
             // load all segments and add them to the Available Segments list
             _segmentEntries = BotSegment.LoadAllSegments().Values.ToList();
             CreateAvailableSegments(_segmentEntries);
+        }
+
+        public static bool IsRecordingSequencePath(string sequencePath)
+        {
+            if (sequencePath == null)
+            {
+                return false;
+            }
+            return sequencePath.EndsWith("/"+ScreenRecorder.RecordingPathName);
         }
 
         /**
@@ -171,7 +184,16 @@ namespace RegressionGames
             var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item3;
             NameInput.text = sequenceToEdit.name;
             _originalName = sequenceToEdit.name.Trim();
-            DescriptionInput.text = sequenceToEdit.description;
+            if (!IsRecordingSequencePath(sequencePath))
+            {
+                // copy the description
+                DescriptionInput.text = sequenceToEdit.description;
+            }
+            else
+            {
+                // for recording copies, leave the description empty.. they should make their own
+            }
+
             foreach (var entry in sequenceToEdit.segments)
             {
                 InstantiateDraggableSegmentCard(entry, _dropZone.Content.transform);
@@ -179,8 +201,7 @@ namespace RegressionGames
 
             _dropZone.SetEmptyState(false);
 
-            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && NameInput.text.Length > 0 && (!_makingACopy || string.CompareOrdinal(NameInput.text.Trim(), _originalName) != 0));
-            UpdateColorForInputNameNeedsChanging();
+            EnforceRequiredInputs();
 
             return sequenceToEdit;
         }
@@ -247,7 +268,7 @@ namespace RegressionGames
             CurrentSequence.description = DescriptionInput.text;
 
             // special case for recordings... where we need to copy the underlying segments as well, not just the sequence file
-            if (_makingACopy && _originalName.Contains(ScreenRecorder.RecordingPathName))
+            if (_makingACopy && string.CompareOrdinal(_originalName, ScreenRecorder.RecordingPathName) == 0)
             {
                 CurrentSequence.CopySequenceSegmentsToNewPath();
             }
@@ -283,6 +304,7 @@ namespace RegressionGames
 
             SetCreateSequenceButtonEnabled(false);
             UpdateColorForInputNameNeedsChanging();
+            UpdateColorForInputDescriptionNeedsChanging();
         }
 
         /**
@@ -321,15 +343,54 @@ namespace RegressionGames
 
         /**
          * <summary>
-         * Update the name input's text, and update the enabled state of the save/update Sequence button
+         * Update the name input's text, and update the enabled state of the save/update Sequence button, and update the required color border
          * </summary>
          * <param name="text">Name input text value</param>
          */
         public void OnNameInputChange(string text)
         {
             NameInput.text = text;
-            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && text.Length > 0 && (!_makingACopy || string.CompareOrdinal(text.Trim(), _originalName) != 0));
+            EnforceRequiredInputs();
+        }
+
+        /**
+         * <summary>
+         * Update the description input's text, and update the required color border
+         * </summary>
+         * <param name="text">description input text value</param>
+         */
+        public void OnDescriptionInputChange(string text)
+        {
+            DescriptionInput.text = text;
+            EnforceRequiredInputs();
+        }
+
+        public void EnforceRequiredInputs()
+        {
+            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && NameInput.text.Trim().Length > 0 && (!_makingACopy || string.CompareOrdinal(NameInput.text.Trim(), _originalName) != 0));
             UpdateColorForInputNameNeedsChanging();
+            UpdateColorForInputDescriptionNeedsChanging();
+        }
+
+        public void UpdateColorForInputDescriptionNeedsChanging()
+        {
+            var needsChanging = IsRecordingSequencePath(_existingSequencePath) && DescriptionInput.text.Trim().Length == 0;
+            if (DescriptionInput != null && DescriptionInput.gameObject != null)
+            {
+                var image = DescriptionInput.gameObject.GetComponent<Image>();
+                if (image != null)
+                {
+                    if (needsChanging)
+                    {
+                        // very light cyan - a suggestion color
+                        image.color = (Color.cyan + Color.white *5 )/6;
+                    }
+                    else
+                    {
+                        image.color = Color.white;
+                    }
+                }
+            }
         }
 
         public void UpdateColorForInputNameNeedsChanging()
@@ -353,33 +414,24 @@ namespace RegressionGames
         }
 
         /**
-         * <summary>
-         * Enable or disable the save/update Sequence button based on:
-         * - If the current Sequence has a name
-         * - If the current Sequence has at least 1 Segment
-         * </summary>
-         * <param name="isEnabled">
-         * Whether the save/update Sequence button should be enabled
-         * </param>
+         * <summary>Enabled or disable the given button and adjust alpha</summary>
+         * <param name="isEnabled">Whether the save/update Sequence button should be enabled</param>
+         * <param name="button">The button to enable/disable</param>
          */
-        public void SetCreateSequenceButtonEnabled(bool isEnabled)
+        public static void SetButtonEnabled(bool isEnabled, Button button)
         {
-            if (CreateSequenceButton != null)
+            var alpha = isEnabled ? 1.0f : 0.1f;
+            if (button != null)
             {
-                var alpha = isEnabled ? 1.0f : 0.1f;
-                var button = CreateSequenceButton.GetComponent<Button>();
-                if (button != null)
+                if (button.interactable && isEnabled || !button.interactable && !isEnabled)
                 {
-                    if (button.interactable && isEnabled || !button.interactable && !isEnabled)
-                    {
-                        // don't adjust anything, the requested change is redundant
-                        return;
-                    }
-
-                    button.interactable = isEnabled;
+                    // don't adjust anything, the requested change is redundant
+                    return;
                 }
 
-                var imageChildren = CreateSequenceButton.GetComponentsInChildren<Image>();
+                button.interactable = isEnabled;
+
+                var imageChildren = button.gameObject.GetComponentsInChildren<Image>();
                 foreach (var child in imageChildren)
                 {
                     var color = child.color;
@@ -387,13 +439,30 @@ namespace RegressionGames
                     child.color = color;
                 }
 
-                var textChildren = CreateSequenceButton.GetComponentsInChildren<TMP_Text>();
+                var textChildren = button.gameObject.GetComponentsInChildren<TMP_Text>();
                 foreach (var child in textChildren)
                 {
                     var color = child.color;
                     color.a = alpha;
                     child.color = color;
                 }
+            }
+        }
+
+        /**
+         * <summary>
+         * Enable or disable the save/update Sequence button based on:
+         * - If the current Sequence has a name
+         * - If the current Sequence has at least 1 Segment
+         * <param name="isEnabled">Whether the save/update Sequence button should be enabled</param>
+         * </summary>
+         */
+        public void SetCreateSequenceButtonEnabled(bool isEnabled)
+        {
+            if (CreateSequenceButton != null)
+            {
+                var button = CreateSequenceButton.GetComponent<Button>();
+                SetButtonEnabled(isEnabled, button);
             }
         }
 
