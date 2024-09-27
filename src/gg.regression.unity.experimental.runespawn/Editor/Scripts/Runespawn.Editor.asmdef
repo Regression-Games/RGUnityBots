@@ -2,8 +2,8 @@
     "name": "RegressionGames.Runespawn.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:b3342814c2707bf44acf27da86d3d6f2",
-        "GUID:c6e66b29de2c44f90985c972c4b1ebc6"
+        "RegressionGames",
+        "RegressionGames.Runespawn"
     ],
     "includePlatforms": [
         "Editor"
