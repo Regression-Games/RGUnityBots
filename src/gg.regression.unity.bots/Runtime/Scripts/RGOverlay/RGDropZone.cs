@@ -278,6 +278,7 @@ namespace RegressionGames
             if (!setEmpty)
             {
                 Destroy(_emptyStatePrefabInstance);
+                _emptyStatePrefabInstance = null;
             }
         }
 

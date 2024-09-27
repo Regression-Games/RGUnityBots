@@ -67,7 +67,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            return (sequenceJson.Item1, sequenceJson.Item2, JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3));
+            return (sequenceJson.Item1, sequenceJson.Item2, JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3, JsonUtils.JsonSerializerSettings));
         }
 
         /**
@@ -101,7 +101,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             try
             {
-                var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileData);
+                // this check is still way faster than running the json parser
+                if (!fileData.Contains("\"segments\":"))
+                {
+                    throw new Exception("Not a segment list");
+                }
+                var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileData, JsonUtils.JsonSerializerSettings);
                 if (segmentList.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
                     throw new Exception($"BotSegmentList file contains a segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
@@ -114,11 +119,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 segmentList.FixupNames();
                 return segmentList;
+
             }
             catch (Exception)
             {
                 // This wasn't a segment list, so it must be a normal segment
-                var segment = JsonConvert.DeserializeObject<BotSegment>(fileData);
+                var segment = JsonConvert.DeserializeObject<BotSegment>(fileData, JsonUtils.JsonSerializerSettings);
                 if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
                     throw new Exception($"BotSegment file requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");

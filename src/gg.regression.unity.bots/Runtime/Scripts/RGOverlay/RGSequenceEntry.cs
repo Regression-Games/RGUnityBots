@@ -123,7 +123,7 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(false, filePath, resourcePath);
+            sequenceManager.ShowEditSequenceDialog(false, resourcePath, filePath);
         }
     }
 
@@ -132,7 +132,7 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(true, filePath, resourcePath);
+            sequenceManager.ShowEditSequenceDialog(true, resourcePath, filePath);
         }
     }
 

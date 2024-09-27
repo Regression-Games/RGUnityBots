@@ -55,9 +55,11 @@ namespace RegressionGames
          * <summary>
          * Ensure all required fields are provided, and set any event listening functions
          * </summary>
-         * <param name="existingSequencePath">The path of the sequence that is being edited (optional)</param>
+         * <param name="makingACopy">bool true if copying to a new file, or false if editing in place</param>
+         * <param name="existingResourcePath">The resource path for an existing Sequence for editing</param>
+         * <param name="existingFilePath">The path of the sequence that is being edited (optional)</param>
          */
-        public void Initialize(bool makingACopy, string existingResourcePath, string existingSequencePath = null)
+        public void Initialize(bool makingACopy, string existingResourcePath, string existingFilePath = null)
         {
             if (SearchInput == null)
             {
@@ -145,11 +147,12 @@ namespace RegressionGames
             // ensure that the create/update button is in the correct default state:
             // - creating -> disabled
             // - editing -> enabled
-            SetCreateSequenceButtonEnabled(isBeingEdited);
+            SetCreateSequenceButtonEnabled(isBeingEdited && !_dropZone.IsEmpty() && NameInput.text.Length > 0 && (!_makingACopy || string.CompareOrdinal(NameInput.text, _originalName) != 0));
+            UpdateColorForInputNameNeedsChanging();
             var saveButton = GetComponentInChildren<RGSaveSequenceButton>();
             if (saveButton != null)
             {
-                saveButton.SetEditModeEnabled(isBeingEdited);
+                saveButton.SetEditModeEnabled(isBeingEdited, makingACopy);
             }
 
             // load all segments and add them to the Available Segments list
@@ -167,7 +170,7 @@ namespace RegressionGames
         {
             var sequenceToEdit = BotSequence.LoadSequenceJsonFromPath(sequencePath).Item3;
             NameInput.text = sequenceToEdit.name;
-            _originalName = sequenceToEdit.name;
+            _originalName = sequenceToEdit.name.Trim();
             DescriptionInput.text = sequenceToEdit.description;
             foreach (var entry in sequenceToEdit.segments)
             {
@@ -176,7 +179,8 @@ namespace RegressionGames
 
             _dropZone.SetEmptyState(false);
 
-            SetCreateSequenceButtonEnabled(true);
+            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && NameInput.text.Length > 0 && (!_makingACopy || string.CompareOrdinal(NameInput.text.Trim(), _originalName) != 0));
+            UpdateColorForInputNameNeedsChanging();
 
             return sequenceToEdit;
         }
@@ -278,6 +282,7 @@ namespace RegressionGames
             _dropZone.ClearChildren();
 
             SetCreateSequenceButtonEnabled(false);
+            UpdateColorForInputNameNeedsChanging();
         }
 
         /**
@@ -323,7 +328,28 @@ namespace RegressionGames
         public void OnNameInputChange(string text)
         {
             NameInput.text = text;
-            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && text.Length > 0 && (!_makingACopy || string.CompareOrdinal(text, _originalName) != 0));
+            SetCreateSequenceButtonEnabled(!_dropZone.IsEmpty() && text.Length > 0 && (!_makingACopy || string.CompareOrdinal(text.Trim(), _originalName) != 0));
+            UpdateColorForInputNameNeedsChanging();
+        }
+
+        public void UpdateColorForInputNameNeedsChanging()
+        {
+            var needsChanging = NameInput.text.Length == 0 || (_makingACopy && string.CompareOrdinal(NameInput.text.Trim(), _originalName) == 0);
+            if (NameInput != null && NameInput.gameObject != null)
+            {
+                var image = NameInput.gameObject.GetComponent<Image>();
+                if (image != null)
+                {
+                    if (needsChanging)
+                    {
+                        image.color = Color.red;
+                    }
+                    else
+                    {
+                        image.color = Color.white;
+                    }
+                }
+            }
         }
 
         /**

@@ -17,7 +17,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public bool transient;
         public IKeyFrameCriteriaData data;
 
-        public int EffectiveApiVersion => Math.Max(apiVersion, data.EffectiveApiVersion());
+        public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? SdkApiVersion.CURRENT_VERSION);
 
 
         // Replay only - used to track if transient has ever matched during replay

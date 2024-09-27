@@ -146,7 +146,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private static readonly JsonSerializerSettings JsonSerializerSettings = new()
+        public static readonly JsonSerializerSettings JsonSerializerSettings = new()
         {
             Formatting = Formatting.None,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,

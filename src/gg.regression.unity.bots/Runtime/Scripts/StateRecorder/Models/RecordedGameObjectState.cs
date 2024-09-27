@@ -17,7 +17,7 @@ namespace RegressionGames.StateRecorder.Models
         // version of this schema, update this if fields change
         public int apiVersion = SdkApiVersion.VERSION_4;
 
-        public int EffectiveApiVersion => Math.Max(apiVersion, componentDataProviders.DefaultIfEmpty().Max(a => a?.ApiVersion() ?? 0));
+        public int EffectiveApiVersion => Math.Max(apiVersion, componentDataProviders.DefaultIfEmpty().Max(a => a?.ApiVersion() ?? SdkApiVersion.CURRENT_VERSION));
 
         public long id;
 

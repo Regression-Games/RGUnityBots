@@ -101,9 +101,9 @@ public class RGSequenceManager : MonoBehaviour
      * </summary>
      * <param name="makingACopy">bool true if copying to a new file, or false if editing in place</param>
      * <param name="existingResourcePath">The resource path for an existing Sequence for editing</param>
-     * <param name="existingSequencePath">The file path for an existing Sequence for editing (optional)</param>
+     * <param name="existingFilePath">The file path for an existing Sequence for editing (optional)</param>
      */
-    public void ShowEditSequenceDialog(bool makingACopy, string existingResourcePath, string existingSequencePath = null)
+    public void ShowEditSequenceDialog(bool makingACopy, string existingResourcePath, string existingFilePath = null)
     {
         if (sequenceEditor != null)
         {
@@ -112,7 +112,7 @@ public class RGSequenceManager : MonoBehaviour
             var script = sequenceEditor.GetComponent<RGSequenceEditor>();
             if (script != null)
             {
-                script.Initialize(makingACopy, existingResourcePath, existingSequencePath);
+                script.Initialize(makingACopy, existingResourcePath, existingFilePath);
             }
         }
     }
@@ -235,6 +235,7 @@ public class RGSequenceManager : MonoBehaviour
     [CanBeNull]
     private IEnumerator ResolveSequenceFiles()
     {
+        yield return null;
 #if UNITY_EDITOR
         const string sequencePath = "Assets/RegressionGames/Resources/BotSequences";
 
@@ -246,7 +247,6 @@ public class RGSequenceManager : MonoBehaviour
         {
             InstantiateSequences(new Dictionary<string, (string, BotSequence)>());
         }
-        yield return null;
 #else
         var sequences = new Dictionary<string, (string,BotSequence)>();
 
@@ -269,7 +269,7 @@ public class RGSequenceManager : MonoBehaviour
                 if (!sequences.ContainsKey(resourceFilename))
                 {
                     var sequenceInfo = Resources.Load<TextAsset>(resourceFilename);
-                    var sequence = JsonConvert.DeserializeObject<BotSequence>(sequenceInfo.text ?? "");
+                    var sequence = JsonConvert.DeserializeObject<BotSequence>(sequenceInfo.text ?? "", JsonUtils.JsonSerializerSettings);
 
                     // don't add sequences with duplicate names
                     if (sequences.Values.Any(s => s.Item2.name == sequence.name))

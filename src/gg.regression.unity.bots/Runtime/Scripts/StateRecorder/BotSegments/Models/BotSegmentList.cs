@@ -21,7 +21,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int apiVersion = SdkApiVersion.VERSION_12;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
-        public int EffectiveApiVersion => Math.Max(apiVersion, segments.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
+        public int EffectiveApiVersion => Math.Max(apiVersion, segments.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
 
         /**
          * <summary>Title for this bot segment list. Used for naming on the UI.e</summary>
