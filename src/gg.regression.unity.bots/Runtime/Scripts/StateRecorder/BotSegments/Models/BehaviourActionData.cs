@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using RegressionGames.StateRecorder.Types;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
@@ -80,6 +81,34 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }).Start();
         }
 
+        public void PauseAction(int segmentNumber)
+        {
+            if (_myGameObject != null)
+            {
+                if (_myGameObject.TryGetComponent(_typeToCreate, out var createdType))
+                {
+                    if (createdType is IRGBotSegmentActionBehaviour bsab)
+                    {
+                        bsab.PauseAction();
+                    }
+                }
+            }
+        }
+
+        public void UnPauseAction(int segmentNumber)
+        {
+            if (_myGameObject != null)
+            {
+                if (_myGameObject.TryGetComponent(_typeToCreate, out var createdType))
+                {
+                    if (createdType is IRGBotSegmentActionBehaviour bsab)
+                    {
+                        bsab.UnPauseAction();
+                    }
+                }
+            }
+        }
+
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             var time = Time.unscaledTime;
@@ -115,7 +144,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 if (_myGameObject != null)
                 {
-                    if (!_myGameObject.GetComponent(_typeToCreate))
+                    if (!_myGameObject.TryGetComponent(_typeToCreate, out _))
                     {
                         // StopAction really calls AbortAction by default, but this is a code sample of how to call StopAction in case it is overridden
                         // This represents the 'clean end' case where the behaviour destroyed itself after completing

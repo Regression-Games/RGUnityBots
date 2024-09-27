@@ -13,6 +13,22 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities);
 
         /**
+         * Handles resuming the paused action if un-paused from the UI; this is most useful for input playback
+         */
+        public void UnPauseAction(int segmentNumber)
+        {
+            // no-op default
+        }
+
+        /**
+          * Handle pausing the action if paused from the UI; this is most useful for input playback
+          */
+        public void PauseAction(int segmentNumber)
+        {
+            // no-op default
+        }
+
+        /**
          * Called at least once per frame
          * returns true if an action was performed
          * Returns null or an error message string
