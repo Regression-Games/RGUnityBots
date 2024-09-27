@@ -76,7 +76,7 @@ namespace RegressionGames.TestFramework
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
             yield return null; // Allow the recording to start playing
-            while (playbackController.IsPlaying())
+            while (playbackController.GetState() == PlayState.Playing || playbackController.GetState() == PlayState.Paused)
             {
                 yield return null;
             }
@@ -103,7 +103,7 @@ namespace RegressionGames.TestFramework
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
             yield return null; // Allow the recording to start playing
-            while (playbackController.IsPlaying())
+            while (playbackController.GetState() == PlayState.Playing || playbackController.GetState() == PlayState.Paused)
             {
                 yield return null;
             }
@@ -132,7 +132,7 @@ namespace RegressionGames.TestFramework
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
             yield return null; // Allow the recording to start playing
-            while (playbackController.IsPlaying())
+            while (playbackController.GetState() == PlayState.Playing || playbackController.GetState() == PlayState.Paused)
             {
                 yield return null;
             }

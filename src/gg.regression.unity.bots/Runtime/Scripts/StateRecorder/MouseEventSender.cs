@@ -168,17 +168,14 @@ namespace RegressionGames.StateRecorder
         public static Vector2 MoveMouseOffScreen(int replaySegment = 0)
         {
             var mousePosition = new Vector2(Screen.width + 20, -20);
-            if (_virtualMouse != null)
-            {
-                SendRawPositionMouseEvent(replaySegment, mousePosition);
-            }
-            else
-            {
-                // if the virtual mouse is destroyed, just get the cursor off the screen
-                // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
-                var virtualMouseCursors = Object.FindObjectsOfType<VirtualMouseCursor>();
-                virtualMouseCursors.FirstOrDefault()?.SetPosition(mousePosition);
-            }
+
+            // just get the cursor off the screen
+            // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
+            var virtualMouseCursors = Object.FindObjectsOfType<VirtualMouseCursor>();
+            virtualMouseCursors.FirstOrDefault()?.SetPosition(mousePosition);
+
+            // also send the event to move it off screen in the tracking if it hasn't been destroyed
+            SendRawPositionMouseEvent(replaySegment, mousePosition);
 
             return mousePosition;
         }

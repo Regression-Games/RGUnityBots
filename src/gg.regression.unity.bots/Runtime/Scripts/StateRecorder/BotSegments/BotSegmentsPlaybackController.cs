@@ -16,17 +16,23 @@ using Object = UnityEngine.Object;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
+    public enum PlayState
+    {
+        NotLoaded,
+        Starting,
+        Playing,
+        Paused,
+        Stopped
+    }
+
     public class BotSegmentsPlaybackController : MonoBehaviour
     {
         public bool pauseEditorOnPlaybackWarning = false;
 
         private BotSegmentsPlaybackContainer _dataPlaybackContainer;
 
-        // flag to indicate the next update loop should start playing
-        private bool _startPlaying;
-
-        //tracks in playback is in progress or paused
-        private bool _isPlaying;
+        //tracks in playback is in progress or paused or starting or stopped
+        private PlayState _isPlaying = PlayState.NotLoaded;
 
         // 0 or greater == isLooping true
         private int _loopCount = -1;
@@ -67,7 +73,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         void OnSceneLoad(Scene s, LoadSceneMode m)
         {
-            if (_isPlaying)
+            if (_isPlaying != PlayState.NotLoaded)
             {
                 // since this is a don't destroy on load, we need to 'fix' the event systems in each new scene that loads
                 RGUtils.SetupOverrideEventSystem(s);
@@ -76,7 +82,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         void OnSceneUnload(Scene s)
         {
-            if (_isPlaying)
+            if (_isPlaying != PlayState.NotLoaded)
             {
                 RGUtils.TeardownOverrideEventSystem(s);
             }
@@ -116,6 +122,20 @@ namespace RegressionGames.StateRecorder.BotSegments
             MouseEventSender.Reset();
 
             _dataPlaybackContainer = dataPlaybackContainer;
+            if (_dataPlaybackContainer != null)
+            {
+                _isPlaying = PlayState.Stopped;
+            }
+            else
+            {
+                _isPlaying = PlayState.NotLoaded;
+            }
+            LogHotkeyInformation();
+        }
+
+        public void LogHotkeyInformation()
+        {
+            RGDebug.LogInfo("BotSegments loaded.  Use the on screen overlay buttons or keyboard hotkeys to control playback.  CTRL+SHIFT_F9 = Play/Pause  , CTRL+SHIFT_F10 = Stop");
         }
 
         /**
@@ -134,16 +154,42 @@ namespace RegressionGames.StateRecorder.BotSegments
             return _screenRecorder.GetCurrentSaveDirectory();
         }
 
+        public void Pause()
+        {
+            if (_dataPlaybackContainer != null)
+            {
+                if (_isPlaying == PlayState.Playing)
+                {
+                    _isPlaying = PlayState.Paused;
+
+                    foreach (var nextBotSegment in _nextBotSegments)
+                    {
+                        nextBotSegment.PauseAction();
+                    }
+                }
+            }
+        }
+
         public void Play()
         {
             if (_dataPlaybackContainer != null)
             {
-                if (!_startPlaying && !_isPlaying)
+                if (_isPlaying == PlayState.Stopped)
                 {
                     _replaySuccessful = null;
-                    _startPlaying = true;
+                    _isPlaying = PlayState.Starting;
                     _loopCount = -1;
                     _lastTimeLoggedKeyFrameConditions = Time.unscaledTime;
+                }
+                else if (_isPlaying == PlayState.Paused)
+                {
+                    // resume
+                    _isPlaying = PlayState.Playing;
+
+                    foreach (var nextBotSegment in _nextBotSegments)
+                    {
+                        nextBotSegment.UnPauseAction();
+                    }
                 }
             }
         }
@@ -152,10 +198,10 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             if (_dataPlaybackContainer != null)
             {
-                if (!_startPlaying && !_isPlaying)
+                if (_isPlaying == PlayState.Stopped)
                 {
                     _replaySuccessful = null;
-                    _startPlaying = true;
+                    _isPlaying = PlayState.Starting;
                     _loopCount = 1;
                     _loopCountCallback = loopCountCallback;
                     _loopCountCallback.Invoke(_loopCount);
@@ -175,8 +221,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
 
             _nextBotSegments.Clear();
-            _startPlaying = false;
-            _isPlaying = false;
+            _isPlaying = PlayState.NotLoaded;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
@@ -205,8 +250,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         public void Reset()
         {
             _nextBotSegments.Clear();
-            _startPlaying = false;
-            _isPlaying = false;
+            _isPlaying = PlayState.Stopped;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
@@ -236,8 +280,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         public void ResetForLooping()
         {
             _nextBotSegments.Clear();
-            _startPlaying = true;
-            _isPlaying = false;
+            _isPlaying = PlayState.Starting;
             // don't change _loopCount
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
@@ -263,7 +306,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
-        public bool IsPlaying()
+        public PlayState GetState()
         {
             return _isPlaying;
         }
@@ -272,7 +315,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             if (_dataPlaybackContainer != null)
             {
-                if (_startPlaying)
+                if (_isPlaying == PlayState.Starting)
                 {
                     // initialize the virtual mouse
                     MouseEventSender.InitializeVirtualMouse();
@@ -285,8 +328,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     RGLegacyInputWrapper.StartSimulation(this);
                     #endif
                     RGUtils.ConfigureInputSettings();
-                    _startPlaying = false;
-                    _isPlaying = true;
+                    _isPlaying = PlayState.Playing;
                     _nextBotSegments.Add(_dataPlaybackContainer.DequeueBotSegment());
                     // if starting to play, or on loop 1.. start recording
                     if (_loopCount < 2)
@@ -299,7 +341,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         _screenRecorder.StartRecording(_dataPlaybackContainer.SessionId);
                     }
                 }
-                if (_isPlaying)
+                if (_isPlaying == PlayState.Playing)
                 {
                     RGUtils.ForceApplicationFocus();
                 }
@@ -334,7 +376,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     unpaused = false;
                 }
 
-                var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
+                var objectFinders = FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
 
                 var transformStatuses = new Dictionary<long, ObjectStatus>();
                 var entityStatuses = new Dictionary<long, ObjectStatus>();
@@ -547,7 +589,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void LateUpdate()
         {
-            if (_isPlaying)
+            if (_isPlaying == PlayState.Playing)
             {
                 if (_dataPlaybackContainer != null)
                 {
@@ -575,7 +617,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void OnGUI()
         {
-            if (_isPlaying)
+            if (_isPlaying != PlayState.Stopped)
             {
                 // render any GUI things for the first segment action
                 if (_nextBotSegments.Count > 0)

@@ -573,6 +573,34 @@ namespace RegressionGames
             }
         }
 
+        public async Task UploadGameplaySessionMetadata(long gameplaySessionId, string metadataPath, Action onSuccess, Action onFailure)
+        {
+            if (LoadAuth(out _))
+            {
+                await SendWebFileUploadRequest(
+                    uri: $"{GetRgServiceBaseUri()}/gameplay-session/{gameplaySessionId}/metadata",
+                    method: "POST",
+                    filePath: metadataPath,
+                    contentType: "application/json",
+                    onSuccess: (s) =>
+                    {
+                        RGDebug.LogDebug(
+                            $"RGService GameplaySessionMetadata response received");
+                        onSuccess.Invoke();
+                    },
+                    onFailure: (f) =>
+                    {
+                        RGDebug.LogWarning($"Failed to upload metadata for gameplay session {gameplaySessionId}: {f}");
+                        onFailure.Invoke();
+                    }
+                );
+            }
+            else
+            {
+                onFailure.Invoke();
+            }
+        }
+
         public async Task UploadGameplaySessionLogs(long gameplaySessionId, string zipPath, Action onSuccess, Action onFailure)
         {
             if (LoadAuth(out _))

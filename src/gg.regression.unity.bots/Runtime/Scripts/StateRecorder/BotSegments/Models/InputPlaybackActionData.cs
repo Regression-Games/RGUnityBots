@@ -24,6 +24,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         private bool _isStopped;
 
+        private float pauseTime = -1f;
+
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
             RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - Processing InputPlaybackActionData");
@@ -40,6 +42,39 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
             }
+        }
+
+        public void PauseAction(int segmentNumber)
+        {
+            pauseTime = Time.unscaledTime;
+        }
+
+        public void UnPauseAction(int segmentNumber)
+        {
+            // reset the times to get the right spacing of inputs for any that haven't finished yet
+            if (pauseTime > 0)
+            {
+                var now = Time.unscaledTime;
+                var delta = now - pauseTime;
+
+                foreach (var keyboardInputActionData in inputData.keyboard)
+                {
+                    if (!keyboardInputActionData.Replay_IsDone)
+                    {
+                        keyboardInputActionData.Replay_OffsetTime += delta;
+                    }
+                }
+
+                foreach (var mouseInputActionData in inputData.mouse)
+                {
+                    if (!mouseInputActionData.Replay_IsDone)
+                    {
+                        mouseInputActionData.Replay_OffsetTime += delta;
+                    }
+                }
+            }
+
+            pauseTime = -1f;
         }
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)

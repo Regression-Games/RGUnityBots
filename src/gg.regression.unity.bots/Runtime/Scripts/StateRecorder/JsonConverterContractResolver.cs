@@ -57,6 +57,7 @@ namespace RegressionGames.StateRecorder
             { typeof(MeshRenderer), new MeshRendererJsonConverter() },
             { typeof(SkinnedMeshRenderer), new SkinnedMeshRendererJsonConverter() },
             { typeof(NavMeshAgent), new NavMeshAgentJsonConverter() },
+            { typeof(RGGameMetadataJsonConverter), new RGGameMetadataJsonConverter() }
 
         };
 
