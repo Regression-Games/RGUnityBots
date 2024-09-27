@@ -33,7 +33,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void ShowEditSequenceDialog()
         {
-            manager.ShowEditSequenceDialog();
+            manager.ShowEditSequenceDialog(false, null, null);
 
             // ensure the sequence editor is visible
             Assert.IsTrue(manager.sequenceEditor.activeSelf);
