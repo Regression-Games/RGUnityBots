@@ -19,23 +19,13 @@ namespace RegressionGames.StateRecorder.Models
          */
         public int count;
 
-        /**
-         * <summary>Tracks the number of new objects of this path, on camera or not</summary>
-         */
-        public int addedCount;
-
-        /**
-         * <summary>Tracks the number of removed objects of this path, on camera or not</summary>
-         */
-        public int removedCount;
-
         // if negative, this count went down CountRule.LessThanEqual; if positive, this count went up CountRule.GreaterThanEqual; if zero, this count didn't change CountRule.NonZero; if zero and count ==0, CountRule.Zero
         public int higherLowerCountTracker;
 
         public override string ToString()
         {
             // easier debugging
-            return path + " | " + pathHash + " - c:" + count + ", a:" + addedCount + ", r:" + removedCount + ", hlc:" + higherLowerCountTracker + ", ids:["+string.Join(",",ids)+"]";
+            return path + " | " + pathHash + " - c:" + count + ", hlc:" + higherLowerCountTracker + ", ids:["+string.Join(",",ids)+"]";
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -66,16 +65,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 break;
                         }
 
-                        // then evaluate added / removed data
-                        if (matched == null && objectCounts.addedCount < criteriaPathData.addedCount)
-                        {
-                            matched = $"PartialNormalizedPath (UI) - {partialNormalizedPath} - addedCount - actual: {objectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
-                        }
-
-                        if (matched == null && objectCounts.removedCount < criteriaPathData.removedCount)
-                        {
-                            matched = $"PartialNormalizedPath (UI) - {partialNormalizedPath} - removedCount - actual: {objectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
-                        }
                     }
                     else
                     {

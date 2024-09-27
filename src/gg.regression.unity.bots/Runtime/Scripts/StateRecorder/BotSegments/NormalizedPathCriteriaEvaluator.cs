@@ -59,17 +59,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 }
                                 break;
                         }
-
-                        // then evaluate added / removed data
-                        if (matched == null && objectCounts.addedCount < criteriaPathData.addedCount)
-                        {
-                            matched = $"NormalizedPath (UI) - {normalizedPath} - addedCount - actual: {objectCounts.addedCount} , expected: {criteriaPathData.addedCount}";
-                        }
-
-                        if (matched == null && objectCounts.removedCount < criteriaPathData.removedCount)
-                        {
-                            matched = $"NormalizedPath (UI) - {normalizedPath} - removedCount - actual: {objectCounts.removedCount} , expected: {criteriaPathData.removedCount}";
-                        }
                     }
                     else
                     {

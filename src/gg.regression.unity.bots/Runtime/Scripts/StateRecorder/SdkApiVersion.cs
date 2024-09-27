@@ -93,8 +93,12 @@
          * <summary> Define first version of RGGameMetadata. Add fields to FrameStateData</summary>
          */
         public const int VERSION_21 = 21;
+        /**
+         * <summary> Removed addedCount and removedCount from path criteria</summary>
+         */
+        public const int VERSION_22 = 22;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_21;
+        public const int CURRENT_VERSION = VERSION_22;
     }
 }
