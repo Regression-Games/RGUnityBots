@@ -765,6 +765,8 @@ namespace RegressionGames.StateRecorder
                             pixelHash = pixelHash,
                             state = currentStates.Values,
                             codeCoverage = codeCoverageState,
+                            activeInputDevices = activeInputDevices,
+                            activeEventSystemInputModules = activeEventSystemInputModules,
                             inputs = inputData
                         };
 

@@ -10,7 +10,6 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    [JsonConverter(typeof(MouseInputActionDataJsonConverter))]
     public class MouseInputActionData
     {
         // version of this schema, update this if fields change

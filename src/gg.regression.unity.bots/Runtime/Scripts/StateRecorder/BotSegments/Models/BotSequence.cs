@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 // ReSharper disable once RedundantUsingDirective - used in #if block
 using UnityEngine;
@@ -17,7 +16,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
      * <summary>Used to define a sequence of BotSegment/BotSegmentList as a single bot.  This is used to load bot sequences from json or to build a new sequence using the UI</summary>
      */
     [Serializable]
-    [JsonConverter(typeof(BotSequenceJsonConverter))]
     public class BotSequence
     {
         // re-usable and large enough to fit all sizes

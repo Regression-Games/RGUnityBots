@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
-    [JsonConverter(typeof(BotActionJsonConverter))]
     [Serializable]
     public class BotAction
     {

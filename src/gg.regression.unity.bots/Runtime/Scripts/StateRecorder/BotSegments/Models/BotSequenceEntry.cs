@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Threading;
-using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
-using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -15,7 +12,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     }
 
     [Serializable]
-    [JsonConverter(typeof(BotSequenceEntryJsonConverter))]
     public class BotSequenceEntry
     {
         public int apiVersion = SdkApiVersion.VERSION_20;
