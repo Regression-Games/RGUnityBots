@@ -5,7 +5,6 @@ using UnityEditor;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using UnityEngine;
-using StateRecorder.BotSegments.Models;
 using UnityEditor.Compilation;
 #endif
 

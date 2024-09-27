@@ -4,11 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine.Serialization;
+
+
+// ReSharper disable once RedundantUsingDirective - used inside #if #else - do not remove
+using UnityEngine;
+
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -272,7 +275,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             segments = LoadSegmentsInDirectory(segmentPath);
+
 #else
+
             // 1. check the persistentDataPath for segments
             var persistentDataPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments";
             if (Directory.Exists(persistentDataPath))
