@@ -259,22 +259,26 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 segmentDataList.Add((LoadBotSegmentOrBotSegmentListFromPath(botSequenceEntry.path), botSequenceEntry));
             }
+
+            // ReSharper disable once JoinDeclarationAndInitializer - #if clauses
+            string directoryPath;
+#if UNITY_EDITOR
+            directoryPath = "Assets/RegressionGames/Resources/BotSegments/" + SequencePathName;
+#else
+            directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + SequencePathName;
+#endif
+
+            if (Directory.Exists(directoryPath))
+            {
+                Directory.Delete(directoryPath, true);
+            }
+
+            Directory.CreateDirectory(directoryPath);
+
             foreach (var segmentData in segmentDataList)
             {
                 var segment = segmentData.Item1;
-                var botSequencyEntry = segmentData.Item2;
-
-                // ReSharper disable once JoinDeclarationAndInitializer - #if clauses
-
-                string directoryPath;
-#if UNITY_EDITOR
-                directoryPath = "Assets/RegressionGames/Resources/BotSegments/" + SequencePathName;
-#else
-                directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + SequencePathName;
-#endif
-
-                Directory.Delete(directoryPath, true);
-                Directory.CreateDirectory(directoryPath);
+                var botSequenceEntry = segmentData.Item2;
 
                 var filename = segment.Item2.Replace('\\', '/');
                 var index = filename.LastIndexOf('/');
@@ -289,7 +293,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 }
 
                 var filePath = directoryPath + "/" + filename;
-                botSequencyEntry.path = filePath;
+                botSequenceEntry.path = filePath;
 
                 RGDebug.LogDebug($"Copying segment from: {segment.Item1 ?? segment.Item2} , to: {filePath}");
                 using var sw = File.CreateText(filePath);
