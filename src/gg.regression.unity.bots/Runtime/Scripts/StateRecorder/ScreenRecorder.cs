@@ -78,8 +78,6 @@ namespace RegressionGames.StateRecorder
 
         public bool IsRecording { get; private set; }
 
-        private bool _usingIOSMetalGraphics = false;
-
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
         private long _tickNumber;
@@ -107,7 +105,6 @@ namespace RegressionGames.StateRecorder
 
         public void Awake()
         {
-            _usingIOSMetalGraphics = (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal);
             // only allow 1 of these to be alive
             if (_this != null && _this.gameObject != gameObject)
             {
