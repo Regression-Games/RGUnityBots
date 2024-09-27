@@ -49,7 +49,7 @@ namespace RegressionGames
 
         public void Start()
         {
-            if (droppables.Count == 0)
+            if (droppables == null || droppables.Count == 0)
             {
                 Debug.LogError("RGDropZone has no droppable types set");
             }
