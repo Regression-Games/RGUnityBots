@@ -1,7 +1,7 @@
 {
     "name": "gg.regression.unity.experimental.runespawn",
     "version": "0.0.28",
-    "description": "An experimental package that focuses on code generation.",
+    "description": "An experimental package that focuses on code generation. To use this package, please also add the gg.regression.unity.bots package from URL https://github.com/Regression-Games/RGUnityBots.git?path=src/gg.regression.unity.bots#v0.0.28",
     "displayName": "Regression Games Experimental - Runespawn",
     "unity": "2021.3",
     "unityRelease": "24f1",
