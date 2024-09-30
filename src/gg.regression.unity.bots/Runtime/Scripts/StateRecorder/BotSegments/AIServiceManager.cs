@@ -175,7 +175,14 @@ namespace RegressionGames
                 },
                 contentType);
 
-        private async Task SendWebRequest(string uri, string method, string authToken, string payload, Func<Action, Task> abortRegistrationHook, Func<string, Task> onSuccess, Func<string, Task> onFailure, string contentType = "application/json")
+        private async Task SendWebRequest(string uri,
+                                          string method,
+                                          string authToken,
+                                          string payload,
+                                          Func<Action, Task> abortRegistrationHook,
+                                          Func<string, Task> onSuccess,
+                                          Func<string, Task> onFailure,
+                                          string contentType = "application/json")
         {
             var messageId = ++_correlationId;
             // don't log the details of auth requests :)
