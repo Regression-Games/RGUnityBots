@@ -3,7 +3,6 @@ using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace LegacyInputTests
 {
@@ -37,26 +36,27 @@ namespace LegacyInputTests
         }
     }
 
-    public class LegacyPointerHandler: MonoBehaviour
+    public class LegacyPointerHandlerUniRx: MonoBehaviour
     {
-        void Update()
-        {
-            // if you call this like unity documents during startup, it gets removed again.. so dumb
-            TouchSimulation.Enable();
-        }
+        public GameObject clickedIndicator;
 
         public void Start()
         {
 
             gameObject.OnPointerDownAsObservable()
-                .SelectMany(_ => this.gameObject.UpdateAsObservable())
-                .TakeUntil(this.gameObject.OnPointerUpAsObservable())
-                .Select(_ => Input.mousePosition)
-                .RepeatUntilDestroy(this) // safety way
                 .Subscribe(
                     x =>
                     {
                         Debug.Log($"{gameObject.name} OnPointerDownAsObservable()");
+                        clickedIndicator.SetActive(true);
+                    });
+
+            gameObject.OnPointerUpAsObservable()
+                .Subscribe(
+                    x =>
+                    {
+                        Debug.Log($"{gameObject.name} OnPointerUpAsObservable()");
+                        clickedIndicator.SetActive(false);
                     });
         }
     }

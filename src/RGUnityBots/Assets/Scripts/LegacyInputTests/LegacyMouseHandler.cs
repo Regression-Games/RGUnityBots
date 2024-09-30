@@ -4,13 +4,12 @@ using UnityEngine;
 
 public class LegacyMouseHandler : MonoBehaviour
 {
+
+    public GameObject clickedIndicator;
+
     public void Start()
     {
         gameObject.OnMouseDownAsObservable()
-            .SelectMany(_ => this.gameObject.UpdateAsObservable())
-            .TakeUntil(this.gameObject.OnMouseUpAsObservable())
-            .Select(_ => Input.mousePosition)
-            .RepeatUntilDestroy(this) // safety way
             .Subscribe(
                 x =>
                 {

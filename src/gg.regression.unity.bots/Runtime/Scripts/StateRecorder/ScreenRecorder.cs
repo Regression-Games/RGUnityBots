@@ -779,7 +779,8 @@ namespace RegressionGames.StateRecorder
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
-                            currentRenderPipeline = GraphicsSettings.currentRenderPipeline.GetType().FullName,
+                            // In Unity, if the GraphicsSettings.currentRenderPipeline property is null, the default render pipeline is the Built-in Render Pipeline.
+                            currentRenderPipeline = GraphicsSettings.currentRenderPipeline == null ? null : GraphicsSettings.currentRenderPipeline.GetType().FullName,
                             activeEventSystemInputModules = eventSystemInputModules,
                             activeInputDevices = InputSystem.devices.Select(a=>$"{a.name} - {a.path}").ToList(),
                             state = currentStates.Values,
