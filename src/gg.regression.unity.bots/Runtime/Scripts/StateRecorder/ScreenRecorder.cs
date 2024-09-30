@@ -769,6 +769,18 @@ namespace RegressionGames.StateRecorder
                         }
 
                         var mainCamera = Camera.main;
+                        // Future/Maybe: We may want to capture all cameras, but for now, we're getting main for user visuals
+                        var cameraInfo = new List<CameraInfo>(){
+                            new() {
+                                name = mainCamera.name,
+                                farClipPlane = mainCamera.farClipPlane,
+                                nearClipPlane = mainCamera.nearClipPlane,
+                                fieldOfView = mainCamera.fieldOfView,
+                                orthographic = mainCamera.orthographic,
+                                orthographicSize = mainCamera.orthographicSize,
+                                position = mainCamera.transform.position
+                            }
+                        };
 
                         var frameState = new RecordingFrameStateData()
                         {
@@ -779,15 +791,11 @@ namespace RegressionGames.StateRecorder
                             time = frameTime,
                             timeScale = Time.timeScale,
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
-                            mainCameraInfo = new CameraInfo
-                            {
-                                farClipPlane = mainCamera.farClipPlane,
-                                nearClipPlane = mainCamera.nearClipPlane,
-                                fieldOfView = mainCamera.fieldOfView
-                            },
+                            cameraInfo = cameraInfo,
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
-                            currentRenderPipeline = GraphicsSettings.currentRenderPipeline.GetType().FullName,
+                            // In Unity, if the GraphicsSettings.currentRenderPipeline property is null, the default render pipeline is the Built-in Render Pipeline.
+                            currentRenderPipeline = GraphicsSettings.currentRenderPipeline == null ? null : GraphicsSettings.currentRenderPipeline.GetType().FullName,
                             activeEventSystemInputModules = eventSystemInputModules,
                             activeInputDevices = InputSystem.devices.Select(a=>$"{a.name} - {a.path}").ToList(),
                             state = currentStates.Values,
