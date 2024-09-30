@@ -76,8 +76,6 @@ namespace RegressionGames.StateRecorder.Models
             Vector3JsonConverter.WriteToStringBuilderNullable(stringBuilder, position);
             stringBuilder.Append(",\n\"rotation\":");
             QuaternionJsonConverter.WriteToStringBuilderNullable(stringBuilder, rotation);
-            // TODO: Someday remove these no longer used fields
-            stringBuilder.Append(",\n\"rigidbodies\":[],\n\"colliders\":[],\n\"behaviours\":[]");
             stringBuilder.Append(",\n\"components\":[\n");
             var componentDataProvidersCount = componentDataProviders.Count;
             for (var i = 0; i < componentDataProvidersCount; i++)

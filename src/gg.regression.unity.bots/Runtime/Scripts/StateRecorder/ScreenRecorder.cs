@@ -768,6 +768,8 @@ namespace RegressionGames.StateRecorder
                             eventSystemInputModules = esGameObject.gameObject.GetComponents<BaseInputModule>().Where(a => a.isActiveAndEnabled).Select(a => a.GetType().FullName).ToList();
                         }
 
+                        var mainCamera = Camera.main;
+
                         var frameState = new RecordingFrameStateData()
                         {
                             sessionId = _currentSessionId,
@@ -777,6 +779,12 @@ namespace RegressionGames.StateRecorder
                             time = frameTime,
                             timeScale = Time.timeScale,
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
+                            mainCameraInfo = new CameraInfo
+                            {
+                                farClipPlane = mainCamera.farClipPlane,
+                                nearClipPlane = mainCamera.nearClipPlane,
+                                fieldOfView = mainCamera.fieldOfView
+                            },
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
                             currentRenderPipeline = GraphicsSettings.currentRenderPipeline.GetType().FullName,
