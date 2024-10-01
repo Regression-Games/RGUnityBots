@@ -52,7 +52,7 @@ namespace RegressionGames.StateRecorder
 
     public class ScreenRecorder : MonoBehaviour
     {
-        public static readonly string RecordingPathName = "Generated_Recording";
+        public static readonly string RecordingPathName = "Latest_Recording";
 
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
         public int recordingMinFPS;
@@ -320,8 +320,8 @@ namespace RegressionGames.StateRecorder
 
             var botSequence = new BotSequence()
             {
-                name = "Generated_Recording",
-                description = "Note: This sequence is auto generated when recording a gameplay session and should not be modified.  Creating a new recording will overwrite this sequence.",
+                name = "Latest Recording",
+                description = "Note: This sequence was generated when recording a gameplay session and should not be modified.  Creating a new recording will overwrite this sequence.",
                 segments = sequenceEntries
             };
 
