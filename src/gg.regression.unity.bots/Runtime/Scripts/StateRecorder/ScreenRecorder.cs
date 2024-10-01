@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Experimental.Rendering;
@@ -51,6 +52,8 @@ namespace RegressionGames.StateRecorder
 
     public class ScreenRecorder : MonoBehaviour
     {
+        public static readonly string RecordingPathName = "Latest_Recording";
+
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
         public int recordingMinFPS;
 
@@ -79,8 +82,6 @@ namespace RegressionGames.StateRecorder
 
         public bool IsRecording { get; private set; }
 
-        private bool _usingIOSMetalGraphics = false;
-
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
         private long _tickNumber;
@@ -108,7 +109,6 @@ namespace RegressionGames.StateRecorder
 
         public void Awake()
         {
-            _usingIOSMetalGraphics = (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal);
             // only allow 1 of these to be alive
             if (_this != null && _this.gameObject != gameObject)
             {
@@ -146,8 +146,7 @@ namespace RegressionGames.StateRecorder
             RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
-        private async Task HandleEndRecording(
-            long tickCount,
+        private async Task HandleEndRecording(long tickCount,
             DateTime startTime,
             DateTime endTime,
             long loggedWarnings,
@@ -241,10 +240,24 @@ namespace RegressionGames.StateRecorder
             // wait for the zip tasks to finish
             Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4);
 
-            Directory.Delete(dataDirectoryPrefix, true);
-            Directory.Delete(botSegmentsDirectoryPrefix, true);
-            Directory.Delete(screenshotsDirectoryPrefix, true);
-            Directory.Delete(logsDirectoryPrefix, true);
+            // Copy the most recent recording into the user's project if running in the editor , or their persistent data path if running in production runtime
+            await MoveSegmentsToProject(botSegmentsDirectoryPrefix);
+
+            if (Directory.Exists(dataDirectoryPrefix))
+            {
+                Directory.Delete(dataDirectoryPrefix, true);
+            }
+            Directory.CreateDirectory(dataDirectoryPrefix);
+            if (Directory.Exists(screenshotsDirectoryPrefix))
+            {
+                Directory.Delete(screenshotsDirectoryPrefix, true);
+            }
+            Directory.CreateDirectory(screenshotsDirectoryPrefix);
+            if (Directory.Exists(logsDirectoryPrefix))
+            {
+                Directory.Delete(logsDirectoryPrefix, true);
+            }
+            Directory.CreateDirectory(logsDirectoryPrefix);
 
             await CreateAndUploadGameplaySession(
                 tickCount,
@@ -262,8 +275,64 @@ namespace RegressionGames.StateRecorder
             );
         }
 
-        private async Task CreateAndUploadGameplaySession(
-            long tickCount,
+        private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
+        {
+            // get all the file paths normalized to /
+            var segmentFiles = Directory.EnumerateFiles(botSegmentsDirectoryPrefix).Where(a=>a.EndsWith(".json")).Select(a=>a.Replace('\\','/')).Select(a=>a.Substring(a.LastIndexOf('/')+1));
+
+            string segmentResourceDirectory = null;
+            string sequenceJsonPath = null;
+#if UNITY_EDITOR
+            segmentResourceDirectory = "Assets/RegressionGames/Resources/BotSegments/" + RecordingPathName;
+            sequenceJsonPath = "Assets/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
+#else
+            // Production runtime should write to persistent data path
+            segmentResourceDirectory = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + RecordingPathName;
+            sequenceJsonPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
+#endif
+            try
+            {
+                // delete the existing directory if it exists and re-create it
+                if (Directory.Exists(segmentResourceDirectory))
+                {
+                    Directory.Delete(segmentResourceDirectory, true);
+                }
+
+                // move the directory (this also deletes the source directory)
+                Directory.Move(botSegmentsDirectoryPrefix, segmentResourceDirectory);
+            }
+            catch (Exception ex)
+            {
+                // this is here for dev debugging
+                RGDebug.LogException(ex, "Failed to copy bot segments into game resources");
+                throw ex;
+            }
+
+            // Write a README.txt into the directory explaining it is auto generated by recording
+            var segmentsReadmePath = segmentResourceDirectory + "/README.txt";
+            await File.WriteAllBytesAsync(segmentsReadmePath, Encoding.UTF8.GetBytes("The Bot Segment json files in this directory are auto generated when recording a gameplay session and should not be modified.  Creating a new recording will overwrite the files in this directory."));
+
+            // Create the bot_sequence json for this directory
+            var sequenceEntries = segmentFiles.Select(a => new BotSequenceEntry()
+            {
+                path = segmentResourceDirectory + "/" + a
+            }).ToList();
+
+            var botSequence = new BotSequence()
+            {
+                name = "Latest Recording",
+                description = "Note: This sequence was generated when recording a gameplay session and should not be modified.  Creating a new recording will overwrite this sequence.",
+                segments = sequenceEntries
+            };
+
+            await File.WriteAllBytesAsync(sequenceJsonPath, Encoding.UTF8.GetBytes(botSequence.ToJsonString()));
+
+            // refresh the sequences list
+            RGSequenceManager.GetInstance()?.LoadSequences();
+
+        }
+
+        private async Task CreateAndUploadGameplaySession(long tickCount,
             DateTime startTime,
             DateTime endTime,
             long loggedWarnings,
@@ -275,7 +344,7 @@ namespace RegressionGames.StateRecorder
             string logsPathPrefix,
             string gameMetadataPath,
             bool onDestroy = false
-            )
+        )
         {
 
             try
@@ -761,6 +830,7 @@ namespace RegressionGames.StateRecorder
                                 };
                             }
                         }
+
                         GameObject esGameObject = (EventSystem.current != null? EventSystem.current.gameObject:null);
                         List<string> eventSystemInputModules = new();
                         if (esGameObject != null)

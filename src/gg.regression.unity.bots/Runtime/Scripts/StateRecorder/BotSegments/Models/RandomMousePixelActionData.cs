@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -14,7 +12,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
      * <summary>Data for clicking on a random pixel in the frame</summary>
      */
     [Serializable]
-    [JsonConverter(typeof(RandomMousePixelActionDataJsonConverter))]
     public class RandomMousePixelActionData : IBotActionData
     {
         // api version for this object, update if object format changes

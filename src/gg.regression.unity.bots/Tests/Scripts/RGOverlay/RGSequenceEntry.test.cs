@@ -1,6 +1,9 @@
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using RegressionGames.TestFramework;
+using TMPro;
 using UnityEngine;
+using UnityEngine.TestTools;
 using UnityEngine.UI;
 
 namespace RegressionGames.Tests.RGOverlay
@@ -24,18 +27,95 @@ namespace RegressionGames.Tests.RGOverlay
             entry = _uat.AddComponent<RGSequenceEntry>();
             entry.sequenceName = "Sequence Entry Name";
             entry.description = "Sequence Entry Description";
-            entry.playButton = new GameObject().AddComponent<Button>();
-            entry.editButton = new GameObject().AddComponent<Button>();
-            entry.deleteButton = new GameObject().AddComponent<Button>();
+            entry.playButton = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            }.AddComponent<Button>();
+            entry.editButton = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            }.AddComponent<Button>();
+            entry.deleteButton = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            }.AddComponent<Button>();
             entry.nameComponent = RGTestUtils.CreateTMProPlaceholder();
             entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder();
 
             // mocks for the Sequence Editor + Manager
             manager = _uat.AddComponent<RGSequenceManager>();
             editor = manager.gameObject.AddComponent<RGSequenceEditor>();
+            editor.AvailableSegmentsList = new GameObject()
+            {
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
+            editor.SegmentCardPrefab = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
+            editor.DropZonePrefab = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
+            var dropZonePrefab = editor.DropZonePrefab.AddComponent<RGDropZone>();
+
+            dropZonePrefab.Content = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
+            dropZonePrefab.emptyStatePrefab = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
             editor.titleComponent = RGTestUtils.CreateTMProPlaceholder();
+            var ni = new GameObject
+            {
+                transform =
+                {
+                    parent = editor.transform
+                }
+            };
+            editor.NameInput = ni.AddComponent<TMP_InputField>();
+            var di = new GameObject
+            {
+                transform =
+                {
+                    parent = editor.transform
+                }
+            };
+            editor.DescriptionInput =  di.AddComponent<TMP_InputField>();
+            var si = new GameObject
+            {
+                transform =
+                {
+                    parent = editor.transform
+                }
+            };
+            editor.SearchInput =  si.AddComponent<TMP_InputField>();
             manager.sequenceEditor = editor.gameObject;
-            var deleteDialog = new GameObject();
+            var deleteDialog = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
             deleteDialog.AddComponent<RGDeleteSequence>();
             manager.deleteSequenceDialog = deleteDialog;
         }
@@ -70,12 +150,28 @@ namespace RegressionGames.Tests.RGOverlay
         }
 
         [Test]
+        public void OnCopy()
+        {
+            entry.OnCopy();
+
+            // ensure that the sequence editor is activated
+            Assert.IsTrue(editor.gameObject.activeSelf);
+
+            // ensure it says copy
+            Assert.IsTrue(editor.titleComponent.text.Contains("Copy Sequence"));
+        }
+
+        [Test]
         public void OnEdit()
         {
             entry.OnEdit();
 
             // ensure that the sequence editor is activated
             Assert.IsTrue(editor.gameObject.activeSelf);
+
+            // ensure it says edit
+            // TODO: This requires a ton more setup for a future time where it needs to really successfully load an existing sequence
+            //Assert.IsTrue(editor.titleComponent.text.Contains("Edit Sequence"));
         }
 
         [Test]

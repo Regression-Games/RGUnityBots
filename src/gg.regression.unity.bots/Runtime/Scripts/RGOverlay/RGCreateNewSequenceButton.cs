@@ -15,7 +15,7 @@ namespace RegressionGames
         {
             if (overlayContainer != null)
             {
-                overlayContainer.GetComponent<RGSequenceManager>().ShowEditSequenceDialog();
+                overlayContainer.GetComponent<RGSequenceManager>().ShowEditSequenceDialog(false, null, null);
             }
         }
     }

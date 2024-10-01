@@ -18,7 +18,7 @@ namespace RegressionGames.StateRecorder.Models
             return apiVersion;
         }
 
-        public int EffectiveApiVersion => Math.Max(apiVersion, perFrameStatistics.DefaultIfEmpty().Max(a => a?.apiVersion ?? 0));
+        public int EffectiveApiVersion => Math.Max(apiVersion, perFrameStatistics.DefaultIfEmpty().Max(a => a?.apiVersion ?? SdkApiVersion.CURRENT_VERSION));
 
         public double previousTickTime;
         public int framesSincePreviousTick;

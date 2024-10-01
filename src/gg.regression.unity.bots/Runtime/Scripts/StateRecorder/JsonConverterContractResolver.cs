@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using RegressionGames.StateRecorder.BotSegments.JsonConverters;
+using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using RegressionGames.StateRecorder.JsonConverters;
+using RegressionGames.StateRecorder.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
@@ -57,10 +61,30 @@ namespace RegressionGames.StateRecorder
             { typeof(MeshRenderer), new MeshRendererJsonConverter() },
             { typeof(SkinnedMeshRenderer), new SkinnedMeshRendererJsonConverter() },
             { typeof(NavMeshAgent), new NavMeshAgentJsonConverter() },
-            { typeof(RGGameMetadataJsonConverter), new RGGameMetadataJsonConverter() }
+
+            { typeof(BehaviourActionData), new BehaviourActionDataJsonConverter() },
+            { typeof(BotAction), new BotActionJsonConverter() },
+            { typeof(CVImageBinaryData), new CVImageBinaryDataJsonConverter() },
+            { typeof(CVImageMouseActionData), new CVImageMouseActionDataJsonConverter() },
+            { typeof(CVObjectDetectionMouseActionData), new CVObjectDetectionMouseActionDataJsonConverter() },
+            { typeof(CVWithinRect), new CVWithinRectJsonConverter() },
+            { typeof(KeyFrameCriteria), new KeyFrameCriteriaJsonConverter() },
+            { typeof(MonkeyBotActionData), new MonkeyBotActionDataJsonConverter() },
+            { typeof(RandomMouseObjectActionData), new RandomMouseObjectActionDataJsonConverter() },
+            { typeof(RandomMousePixelActionData), new RandomMousePixelActionDataJsonConverter() },
+
+            { typeof(InputPlaybackActionData), new InputPlaybackActionDataJsonConverter() },
+            { typeof(InputData), new InputDataJsonConverter() },
+            { typeof(KeyboardInputActionData), new KeyboardInputActionDataJsonConverter() },
+            { typeof(MouseInputActionData), new MouseInputActionDataJsonConverter() },
+            { typeof(RGGameMetadata), new RGGameMetadataJsonConverter() },
+
+            { typeof(BotSequence), new BotSequenceJsonConverter() },
+            { typeof(BotSegment), new BotSegmentJsonConverter() },
+            { typeof(BotSegmentList), new BotSegmentListJsonConverter() },
+            { typeof(BotSequenceEntry), new BotSequenceEntryJsonConverter() }
 
         };
-
 
         public void RegisterJsonConverterForType(Type type, JsonConverter converter)
         {

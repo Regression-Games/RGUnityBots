@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine.InputSystem;
 
@@ -11,7 +10,6 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    [JsonConverter(typeof(KeyboardInputActionDataJsonConverter))]
     public class KeyboardInputActionData
     {
         // version of this schema, update this if fields change

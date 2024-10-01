@@ -92,7 +92,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     try
                     {
                         // see if this is a bot segment list file
-                        var botSegmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileText);
+                        var botSegmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileText, JsonUtils.JsonSerializerSettings);
 
                         if (botSegmentList.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                         {
@@ -117,7 +117,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         try
                         {
                             // not a bot segment list, must be a regular segment
-                            var frameData = JsonConvert.DeserializeObject<BotSegment>(fileText);
+                            var frameData = JsonConvert.DeserializeObject<BotSegment>(fileText, JsonUtils.JsonSerializerSettings);
 
                             if (frameData.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                             {

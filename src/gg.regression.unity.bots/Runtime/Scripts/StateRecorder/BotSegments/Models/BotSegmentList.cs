@@ -3,13 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
-    [JsonConverter(typeof(BotSegmentListJsonConverter))]
     [Serializable]
     public class BotSegmentList
     {
@@ -21,7 +18,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int apiVersion = SdkApiVersion.VERSION_12;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
-        public int EffectiveApiVersion => Math.Max(apiVersion, segments.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
+        public int EffectiveApiVersion => Math.Max(apiVersion, segments.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
 
         /**
          * <summary>Title for this bot segment list. Used for naming on the UI.e</summary>

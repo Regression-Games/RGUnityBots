@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Newtonsoft.Json;
 using RegressionGames.ActionManager;
 using RegressionGames.GenericBots;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    [JsonConverter(typeof(MonkeyBotActionDataJsonConverter))]
     public class MonkeyBotActionData : IBotActionData
     {
         [NonSerialized]

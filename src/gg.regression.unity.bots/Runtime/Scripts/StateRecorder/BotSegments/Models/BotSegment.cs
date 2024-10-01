@@ -4,17 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using StateRecorder.BotSegments.Models;
-using UnityEngine;
 using UnityEngine.Serialization;
+
+
+// ReSharper disable once RedundantUsingDirective - used inside #if #else - do not remove
+using UnityEngine;
+
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
-    [JsonConverter(typeof(BotSegmentJsonConverter))]
     [Serializable]
     public class BotSegment
     {
@@ -27,7 +27,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int apiVersion = SdkApiVersion.VERSION_15;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
-        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? 0), endCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? 0));
+        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION), endCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
 
         /**
          * <summary>Title for this bot segment. Used for naming on the UI.</summary>
@@ -275,7 +275,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             segments = LoadSegmentsInDirectory(segmentPath);
+
 #else
+
             // 1. check the persistentDataPath for segments
             var persistentDataPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments";
             if (Directory.Exists(persistentDataPath))

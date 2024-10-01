@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using Newtonsoft.Json;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -15,7 +13,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
      * <summary>Data for clicking on a random renderable object in the frame</summary>
      */
     [Serializable]
-    [JsonConverter(typeof(RandomMouseObjectActionDataJsonConverter))]
     public class RandomMouseObjectActionData : IBotActionData
     {
         // api version for this object, update if object format changes

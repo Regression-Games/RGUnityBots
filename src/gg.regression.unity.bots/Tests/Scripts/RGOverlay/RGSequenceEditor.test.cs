@@ -80,7 +80,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void Initialize()
         {
-            editor.Initialize();
+            editor.Initialize(false, null,null);
 
             // ensure that the editor consumes its public fields properly
             Assert.NotNull(editor.NameInput.onValueChanged);
@@ -109,7 +109,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void SaveSequence()
         {
-            editor.Initialize();
+            editor.Initialize(false, null,null);
 
             // set the name and description values to save
             editor.NameInput.text = "Sequence Editor Name";
@@ -125,7 +125,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void ResetEditor()
         {
-            editor.Initialize();
+            editor.Initialize(false, null,null);
 
             // set the name and description values we want to reset
             editor.NameInput.text = "Sequence Editor Name";
@@ -147,7 +147,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void ReloadAvailableSegments()
         {
-            editor.Initialize();
+            editor.Initialize(false, null,null);
 
             editor.ReloadAvailableSegments();
 
@@ -157,7 +157,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void SetCreateSequenceButtonEnabled_Enabled()
         {
-            editor.Initialize();
+            editor.Initialize(false, null,null);
 
             editor.SetCreateSequenceButtonEnabled(true);
 
@@ -169,7 +169,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void SetCreateSequenceButtonEnabled_Disabled()
         {
-            editor.Initialize();
+            editor.Initialize(false, null,null);
 
             editor.SetCreateSequenceButtonEnabled(false);
 
