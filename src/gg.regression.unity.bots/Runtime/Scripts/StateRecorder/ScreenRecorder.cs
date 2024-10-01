@@ -838,6 +838,24 @@ namespace RegressionGames.StateRecorder
                             eventSystemInputModules = esGameObject.gameObject.GetComponents<BaseInputModule>().Where(a => a.isActiveAndEnabled).Select(a => a.GetType().FullName).ToList();
                         }
 
+                        var cameraInfo = new List<CameraInfo>();
+
+                        // Future/Maybe: We may want to capture all cameras, but for now, we're getting main for user visuals
+                        var mainCamera = Camera.main;
+                        if (mainCamera != null)
+                        {
+                            cameraInfo.Add(new()
+                            {
+                                name = mainCamera.name,
+                                farClipPlane = mainCamera.farClipPlane,
+                                nearClipPlane = mainCamera.nearClipPlane,
+                                fieldOfView = mainCamera.fieldOfView,
+                                orthographic = mainCamera.orthographic,
+                                orthographicSize = mainCamera.orthographicSize,
+                                position = mainCamera.transform.position
+                            });
+                        }
+
                         var frameState = new RecordingFrameStateData()
                         {
                             sessionId = _currentSessionId,
@@ -847,6 +865,7 @@ namespace RegressionGames.StateRecorder
                             time = frameTime,
                             timeScale = Time.timeScale,
                             screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
+                            cameraInfo = cameraInfo,
                             performance = performanceMetrics,
                             pixelHash = pixelHash,
                             // In Unity, if the GraphicsSettings.currentRenderPipeline property is null, the default render pipeline is the Built-in Render Pipeline.

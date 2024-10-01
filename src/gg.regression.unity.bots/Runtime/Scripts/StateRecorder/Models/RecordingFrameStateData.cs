@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.Models
     public class RecordingFrameStateData
     {
         //Update me if fields/types change
-        public int apiVersion = SdkApiVersion.VERSION_21;
+        public int apiVersion = SdkApiVersion.VERSION_23;
 
         /// <summary>
         /// Effective API version for this state recording considering all sub elements
@@ -34,6 +34,7 @@ namespace RegressionGames.StateRecorder.Models
         public double time;
         public float timeScale;
         public Vector2Int screenSize;
+        public List<CameraInfo> cameraInfo;
         public string pixelHash;
         public string currentRenderPipeline;
         public List<string> activeEventSystemInputModules;
@@ -61,7 +62,7 @@ namespace RegressionGames.StateRecorder.Models
             var keyFrameLength = keyFrame.Length;
             for (var i = 0; i < keyFrameLength; i++)
             {
-                stringBuilder.Append("\"").Append(keyFrame[i].ToString()).Append("\"");
+                StringJsonConverter.WriteToStringBuilder(stringBuilder,keyFrame[i].ToString());
                 if (i + 1 < keyFrameLength)
                 {
                     stringBuilder.Append(",");
@@ -73,7 +74,17 @@ namespace RegressionGames.StateRecorder.Models
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, timeScale);
             stringBuilder.Append(",\n\"screenSize\":");
             Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
-            stringBuilder.Append(",\n\"performance\":");
+            stringBuilder.Append(",\n\"cameraInfo\":[");
+            var cameraInfoCount = cameraInfo.Count;
+            for (var i = 0; i < cameraInfoCount; i++)
+            {
+                cameraInfo[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < cameraInfoCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("],\n\"performance\":");
             performance.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append(",\n\"pixelHash\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, pixelHash);

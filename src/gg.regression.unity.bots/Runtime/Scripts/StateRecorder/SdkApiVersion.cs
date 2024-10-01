@@ -97,8 +97,12 @@
          * <summary> Removed addedCount and removedCount from path criteria</summary>
          */
         public const int VERSION_22 = 22;
+        /**
+         * <summary> More detailed camera clipping plane information in state</summary>
+         */
+        public const int VERSION_23 = 23;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_22;
+        public const int CURRENT_VERSION = VERSION_23;
     }
 }
