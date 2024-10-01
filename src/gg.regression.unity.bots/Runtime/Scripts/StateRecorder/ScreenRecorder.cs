@@ -298,6 +298,7 @@ namespace RegressionGames.StateRecorder
                     Directory.Delete(segmentResourceDirectory, true);
                 }
 
+                Directory.CreateDirectory(Path.GetDirectoryName(segmentResourceDirectory));
                 // move the directory (this also deletes the source directory)
                 Directory.Move(botSegmentsDirectoryPrefix, segmentResourceDirectory);
             }
@@ -325,6 +326,7 @@ namespace RegressionGames.StateRecorder
                 segments = sequenceEntries
             };
 
+            Directory.CreateDirectory(Path.GetDirectoryName(sequenceJsonPath));
             await File.WriteAllBytesAsync(sequenceJsonPath, Encoding.UTF8.GetBytes(botSequence.ToJsonString()));
 
             // refresh the sequences list
