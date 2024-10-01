@@ -19,7 +19,7 @@ namespace RegressionGames.StateRecorder.Models
         /// <summary>
         /// Effective API version for this state recording considering all sub elements
         /// </summary>
-        public int EffectiveApiVersion => Math.Max(Math.Max(Math.Max(apiVersion, inputs?.EffectiveApiVersion ?? 0), performance.EffectiveApiVersion), state.DefaultIfEmpty().Max(a => a?.EffectiveApiVersion ?? 0));
+        public int EffectiveApiVersion => Math.Max(Math.Max(Math.Max(apiVersion, inputs?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION), performance.EffectiveApiVersion), state.DefaultIfEmpty().Max(a => a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
 
         /**
          * <summary>UUID of the session</summary>

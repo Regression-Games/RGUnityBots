@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using UnityEngine.Networking;
 
@@ -63,7 +64,7 @@ namespace RegressionGames
                     abortRegistrationHook: abortRegistrationHook.Invoke,
                     onSuccess: (s) =>
                     {
-                        var response = JsonConvert.DeserializeObject<CVImageResultList>(s);
+                        var response = JsonConvert.DeserializeObject<CVImageResultList>(s, JsonUtils.JsonSerializerSettings);
                         onSuccess.Invoke(response.results);
                     },
                     onFailure: (f) =>
@@ -112,7 +113,7 @@ namespace RegressionGames
                     abortRegistrationHook: abortRegistrationHook.Invoke,
                     onSuccess: (s) =>
                     {
-                        var response = JsonConvert.DeserializeObject<CVObjectDetectionResultList>(s);
+                        var response = JsonConvert.DeserializeObject<CVObjectDetectionResultList>(s, JsonUtils.JsonSerializerSettings);
                         onSuccess.Invoke(response.results);
                     },
                     onFailure: (f) =>
@@ -136,7 +137,7 @@ namespace RegressionGames
                     abortRegistrationHook: abortRegistrationHook.Invoke,
                     onSuccess: (s) =>
                     {
-                        var response = JsonConvert.DeserializeObject<CVTextResultList>(s);
+                        var response = JsonConvert.DeserializeObject<CVTextResultList>(s, JsonUtils.JsonSerializerSettings);
                         onSuccess.Invoke(response.results);
                     },
                     onFailure: (f) =>
@@ -175,7 +176,14 @@ namespace RegressionGames
                 },
                 contentType);
 
-        private async Task SendWebRequest(string uri, string method, string authToken, string payload, Func<Action, Task> abortRegistrationHook, Func<string, Task> onSuccess, Func<string, Task> onFailure, string contentType = "application/json")
+        private async Task SendWebRequest(string uri,
+                                          string method,
+                                          string authToken,
+                                          string payload,
+                                          Func<Action, Task> abortRegistrationHook,
+                                          Func<string, Task> onSuccess,
+                                          Func<string, Task> onFailure,
+                                          string contentType = "application/json")
         {
             var messageId = ++_correlationId;
             // don't log the details of auth requests :)

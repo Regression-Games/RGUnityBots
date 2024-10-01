@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 // ReSharper disable once RedundantUsingDirective - used in #if block
 using UnityEngine;
@@ -17,7 +16,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
      * <summary>Used to define a sequence of BotSegment/BotSegmentList as a single bot.  This is used to load bot sequences from json or to build a new sequence using the UI</summary>
      */
     [Serializable]
-    [JsonConverter(typeof(BotSequenceJsonConverter))]
     public class BotSequence
     {
         // re-usable and large enough to fit all sizes
@@ -43,6 +41,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public static (string, string, BotSequence) LoadSequenceJsonFromPath(string path)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                return (null, null, null);
+            }
+
             if (path.StartsWith('/') || path.StartsWith('\\'))
             {
                 throw new Exception("Invalid path.  Path must be relative, not absolute in order to support editor vs production runtimes interchangeably.");
@@ -67,7 +70,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            return (sequenceJson.Item1, sequenceJson.Item2, JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3));
+            return (sequenceJson.Item1, sequenceJson.Item2, JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3, JsonUtils.JsonSerializerSettings));
         }
 
         /**
@@ -101,7 +104,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             try
             {
-                var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileData);
+                // this check is still way faster than running the json parser
+                if (!fileData.Contains("\"segments\":"))
+                {
+                    throw new Exception("Not a segment list");
+                }
+                var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileData, JsonUtils.JsonSerializerSettings);
                 if (segmentList.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
                     throw new Exception($"BotSegmentList file contains a segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
@@ -114,11 +122,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
                 segmentList.FixupNames();
                 return segmentList;
+
             }
             catch (Exception)
             {
                 // This wasn't a segment list, so it must be a normal segment
-                var segment = JsonConvert.DeserializeObject<BotSegment>(fileData);
+                var segment = JsonConvert.DeserializeObject<BotSegment>(fileData, JsonUtils.JsonSerializerSettings);
                 if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                 {
                     throw new Exception($"BotSegment file requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
@@ -202,6 +211,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append("\n]}");
         }
 
+        private string SequencePathName
+        {
+            get
+            {
+                var filepath = string.Join("-", name.Split(" "));
+                foreach (var c in Path.GetInvalidPathChars())
+                {
+                    filepath = filepath.Replace(c, '-');
+                }
+                return filepath;
+            }
+        }
+
         /**
          * <summary>In the Unity Editor this will create a new resource under "Assets/RegressionGames/Resources/BotSequences".  In runtime builds, it will write to "{Application.persistentDataPath}/RegressionGames/Resources/BotSequences" .</summary>
          */
@@ -216,14 +238,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences";
 #endif
                 Directory.CreateDirectory(directoryPath);
-                var filename = string.Join("-", name.Split(" "));
-                var filepath = directoryPath + "/" + filename + ".json";
-                foreach (var c in Path.GetInvalidPathChars())
-                {
-                    filepath = filepath.Replace(c, '-');
-                }
+
+                var filepath = directoryPath + "/" + SequencePathName + ".json";
 
                 File.Delete(filepath);
+
                 using var sw = File.CreateText(filepath);
                 sw.Write(this.ToJsonString());
                 sw.Close();
@@ -231,6 +250,68 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             catch (Exception e)
             {
                 throw new Exception($"Exception trying to persist BotSequence name: {name}", e);
+            }
+        }
+
+        /**
+         * Useful for copying segments from a sequence all to a new path.  This will update the path references of this sequence accordingly.
+         */
+        public void CopySequenceSegmentsToNewPath()
+        {
+            var segmentDataList = new List<((string, string, object), BotSequenceEntry)>();
+            // load them all into ram first so we can delete the directory safely.. this is in case the source and destination happen to be the same for some segments
+            foreach (var botSequenceEntry in segments)
+            {
+                segmentDataList.Add((LoadBotSegmentOrBotSegmentListFromPath(botSequenceEntry.path), botSequenceEntry));
+            }
+
+            // ReSharper disable once JoinDeclarationAndInitializer - #if clauses
+            string directoryPath;
+#if UNITY_EDITOR
+            directoryPath = "Assets/RegressionGames/Resources/BotSegments/" + SequencePathName;
+#else
+            directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + SequencePathName;
+#endif
+
+            if (Directory.Exists(directoryPath))
+            {
+                Directory.Delete(directoryPath, true);
+            }
+
+            Directory.CreateDirectory(directoryPath);
+
+            foreach (var segmentData in segmentDataList)
+            {
+                var segment = segmentData.Item1;
+                var botSequenceEntry = segmentData.Item2;
+
+                var filename = segment.Item2.Replace('\\', '/');
+                var index = filename.LastIndexOf('/');
+                if (index >= 0)
+                {
+                    filename = filename.Substring(index+1);
+                }
+
+                if (!filename.EndsWith(".json"))
+                {
+                    filename += ".json";
+                }
+
+                var filePath = directoryPath + "/" + filename;
+                botSequenceEntry.path = filePath;
+
+                RGDebug.LogDebug($"Copying segment from: {segment.Item1 ?? segment.Item2} , to: {filePath}");
+                using var sw = File.CreateText(filePath);
+                if (segment.Item3 is BotSegment botSegment)
+                {
+                    sw.Write(botSegment.ToJsonString());
+                }
+                else if (segment.Item3 is BotSegmentList botSegmentList)
+                {
+                    sw.Write(botSegmentList .ToJsonString());
+                }
+                sw.Close();
+
             }
         }
 

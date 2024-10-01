@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using RegressionGames.StateRecorder;
 using UnityEditor;
 using UnityEngine;
 
@@ -25,17 +26,17 @@ namespace RegressionGames.CodeCoverage
                 return isStandalone;
             }
         }
-        
+
         public static string CodeCovMetadataJsonName => IsStandalone ? "RGCodeCoverageStandaloneMetadata" : "RGCodeCoverageMetadata";
         public static string CodeCovMetadataJsonPath => $"Assets/Resources/{CodeCovMetadataJsonName}.txt";
-        
+
         /// <summary>
         /// Dictionary tracking code coverage in the assemblies.
         /// Maps assembly name to visited code points.
         /// This dictionary should always be locked whenever accessing to ensure thread-safety.
         /// </summary>
         private static Dictionary<string, ISet<int>> _codeCoverage { get; set; } = new Dictionary<string, ISet<int>>();
-        
+
         private static bool _isRecording = false;
 
         private static CodeCoverageMetadata _metadataEditorCache;
@@ -75,7 +76,7 @@ namespace RegressionGames.CodeCoverage
             #endif
             if (json != null)
             {
-                MetadataCached = JsonConvert.DeserializeObject<CodeCoverageMetadata>(json);
+                MetadataCached = JsonConvert.DeserializeObject<CodeCoverageMetadata>(json, JsonUtils.JsonSerializerSettings);
             }
             if (MetadataCached != null && !MetadataCached.IsValid())
             {
@@ -97,10 +98,10 @@ namespace RegressionGames.CodeCoverage
             {
                 File.Delete(metaFilePath);
             }
-            
+
             MetadataCached = null;
         }
-        
+
         public static void SaveMetadata(CodeCoverageMetadata metadata)
         {
             string targetDir = Path.GetDirectoryName(CodeCovMetadataJsonPath);
@@ -112,7 +113,7 @@ namespace RegressionGames.CodeCoverage
             MetadataCached = metadata;
         }
         #endif
-        
+
         /// <summary>
         /// Begin recording code coverage
         /// </summary>
@@ -168,7 +169,7 @@ namespace RegressionGames.CodeCoverage
             }
             return result;
         }
-        
+
         /// <summary>
         /// Clear any recorded code coverage data up to now
         /// </summary>

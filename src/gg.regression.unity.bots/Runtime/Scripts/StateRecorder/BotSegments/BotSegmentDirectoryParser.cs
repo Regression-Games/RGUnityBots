@@ -30,7 +30,7 @@ namespace StateRecorder.BotSegments
                 foreach (var entry in jsons)
                 {
                     var jsonFile = entry as TextAsset;
-                    var frameData = JsonConvert.DeserializeObject<BotSegment>(jsonFile.text);
+                    var frameData = JsonConvert.DeserializeObject<BotSegment>(jsonFile.text, JsonUtils.JsonSerializerSettings);
 
                     if (frameData.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                     {
@@ -136,7 +136,7 @@ namespace StateRecorder.BotSegments
                 foreach (var entry in entries)
                 {
                     using var sr = new StreamReader(File.OpenRead(entry));
-                    var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd());
+                    var frameData = JsonConvert.DeserializeObject<BotSegment>(sr.ReadToEnd(), JsonUtils.JsonSerializerSettings);
 
                     if (frameData.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)
                     {

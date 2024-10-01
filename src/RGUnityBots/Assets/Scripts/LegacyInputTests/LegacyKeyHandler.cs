@@ -34,7 +34,8 @@ public class LegacyKeyHandler : MonoBehaviour
         if (Input.GetButton("Jump"))
         {
             Debug.Log("GetButton(\"Jump\")");
-        } else if (Input.GetButtonUp("Jump"))
+        }
+        else if (Input.GetButtonUp("Jump"))
         {
             Debug.Log("GetButtonUp(\"Jump\")");
         }

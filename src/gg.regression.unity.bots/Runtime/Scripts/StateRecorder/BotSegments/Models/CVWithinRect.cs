@@ -1,14 +1,12 @@
 ﻿using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
-    [JsonConverter(typeof(CVWithinRectJsonConverter))]
     public class CVWithinRect
     {
 

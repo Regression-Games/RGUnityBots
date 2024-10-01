@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading;
 using JetBrains.Annotations;
-using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using RegressionGames.StateRecorder.JsonConverters;
@@ -17,7 +15,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
      * <summary>Data for clicking on or moving the mouse to a CV Image location in the scene</summary>
      */
     [Serializable]
-    [JsonConverter(typeof(CVImageMouseActionDataJsonConverter))]
     public class CVImageMouseActionData : IBotActionData
     {
         // api version for this object, update if object format changes

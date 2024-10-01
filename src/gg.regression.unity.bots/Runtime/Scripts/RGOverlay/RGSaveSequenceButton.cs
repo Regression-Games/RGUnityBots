@@ -13,6 +13,8 @@ namespace RegressionGames
     {
         public GameObject overlayContainer;
 
+        public Sprite CopyIcon;
+
         public Sprite CreateIcon;
 
         public Sprite EditIcon;
@@ -27,22 +29,22 @@ namespace RegressionGames
             {
                 Debug.LogError("RGSaveSequenceButton is missing its overlayContainer");
             }
-            
+
             if (CreateIcon == null)
             {
                 Debug.LogError("RGSaveSequenceButton is missing its CreateIcon");
             }
-            
+
             if (EditIcon == null)
             {
                 Debug.LogError("RGSaveSequenceButton is missing its EditIcon");
             }
-            
+
             if (ButtonIcon == null)
             {
                 Debug.LogError("RGSaveSequenceButton is missing its ButtonIcon");
             }
-            
+
             if (ButtonText == null)
             {
                 Debug.LogError("RGSaveSequenceButton is missing its ButtonText");
@@ -55,9 +57,14 @@ namespace RegressionGames
          * </summary>
          * <param name="isEditing">If the Sequence Editor is loaded with an existing Sequence</param>
          */
-        public void SetEditModeEnabled(bool isEditing)
+        public void SetEditModeEnabled(bool isEditing, bool isCopying)
         {
-            if (isEditing)
+            if (isCopying)
+            {
+                ButtonText.text = "Copy";
+                ButtonIcon.GetComponent<Image>().sprite = CopyIcon;
+            }
+            else if (isEditing)
             {
                 ButtonText.text = "Update";
                 ButtonIcon.GetComponent<Image>().sprite = EditIcon;

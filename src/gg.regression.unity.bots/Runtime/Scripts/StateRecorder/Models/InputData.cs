@@ -72,7 +72,7 @@ namespace RegressionGames.StateRecorder.Models
             return allInputsSorted;
         }
 
-        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, keyboard.DefaultIfEmpty().Max(a => a?.apiVersion ?? 0)), mouse.DefaultIfEmpty().Max(a => a?.apiVersion ?? 0));
+        public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, keyboard.DefaultIfEmpty().Max(a => a?.apiVersion ?? SdkApiVersion.CURRENT_VERSION)), mouse.DefaultIfEmpty().Max(a => a?.apiVersion ?? SdkApiVersion.CURRENT_VERSION));
 
         public void MarkSent()
         {
