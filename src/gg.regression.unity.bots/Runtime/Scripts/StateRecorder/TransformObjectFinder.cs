@@ -327,19 +327,22 @@ namespace RegressionGames.StateRecorder
                                 }
                             }
 
-                            if (isWorldSpace)
+                            if (mainCamera != null)
                             {
-                                min = mainCamera.WorldToScreenPoint(min);
-                                max = mainCamera.WorldToScreenPoint(max);
-                            }
-                            else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
-                            {
-                                min = mainCamera.WorldToScreenPoint(min);
-                                max = mainCamera.WorldToScreenPoint(max);
-                            }
-                            else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
-                            {
-                                // already set.. use world space corners
+                                if (isWorldSpace)
+                                {
+                                    min = mainCamera.WorldToScreenPoint(min);
+                                    max = mainCamera.WorldToScreenPoint(max);
+                                }
+                                else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
+                                {
+                                    min = mainCamera.WorldToScreenPoint(min);
+                                    max = mainCamera.WorldToScreenPoint(max);
+                                }
+                                else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                                {
+                                    // already set.. use world space corners
+                                }
                             }
 
                             var onCamera = true;

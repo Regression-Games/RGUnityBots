@@ -768,10 +768,14 @@ namespace RegressionGames.StateRecorder
                             eventSystemInputModules = esGameObject.gameObject.GetComponents<BaseInputModule>().Where(a => a.isActiveAndEnabled).Select(a => a.GetType().FullName).ToList();
                         }
 
-                        var mainCamera = Camera.main;
+                        var cameraInfo = new List<CameraInfo>();
+
                         // Future/Maybe: We may want to capture all cameras, but for now, we're getting main for user visuals
-                        var cameraInfo = new List<CameraInfo>(){
-                            new() {
+                        var mainCamera = Camera.main;
+                        if (mainCamera != null)
+                        {
+                            cameraInfo.Add(new()
+                            {
                                 name = mainCamera.name,
                                 farClipPlane = mainCamera.farClipPlane,
                                 nearClipPlane = mainCamera.nearClipPlane,
@@ -779,8 +783,8 @@ namespace RegressionGames.StateRecorder
                                 orthographic = mainCamera.orthographic,
                                 orthographicSize = mainCamera.orthographicSize,
                                 position = mainCamera.transform.position
-                            }
-                        };
+                            });
+                        }
 
                         var frameState = new RecordingFrameStateData()
                         {

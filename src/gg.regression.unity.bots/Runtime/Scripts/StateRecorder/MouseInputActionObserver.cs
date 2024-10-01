@@ -39,10 +39,14 @@ namespace RegressionGames.StateRecorder
 
                     var mouseRayHits = 0;
 
-                    var ray = Camera.main.ScreenPointToRay(mousePosition);
-                    mouseRayHits = Physics.RaycastNonAlloc(ray,
-                        _cachedRaycastHits,
-                        maxZDepth * 2f + 1f); // make sure we go deep enough to hit the collider on that object.. we hope
+                    var mainCamera = Camera.main;
+                    if (mainCamera != null)
+                    {
+                        var ray = mainCamera.ScreenPointToRay(mousePosition);
+                        mouseRayHits = Physics.RaycastNonAlloc(ray,
+                            _cachedRaycastHits,
+                            maxZDepth * 2f + 1f); // make sure we go deep enough to hit the collider on that object.. we hope
+                    }
 
                     if (mouseRayHits > 0)
                     {

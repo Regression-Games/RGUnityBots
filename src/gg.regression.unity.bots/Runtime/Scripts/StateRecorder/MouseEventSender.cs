@@ -523,7 +523,12 @@ namespace RegressionGames.StateRecorder
                             // uses the collider bounds on that object as colliders are what would drive world space objects' click detection in scripts / etc
                             if (objectToCheck.PositionHitsCollider( mouseWorldPosition))
                             {
-                                var screenPoint = mainCamera.WorldToScreenPoint(mouseWorldPosition);
+                                var screenPoint = Vector3.zero;
+                                if (mainCamera != null)
+                                {
+                                    screenPoint = mainCamera.WorldToScreenPoint(mouseWorldPosition);
+                                }
+
                                 if (screenPoint.x < 0 || screenPoint.x > screenWidth || screenPoint.y < 0 || screenPoint.y > screenHeight)
                                 {
                                     RGDebug.LogWarning($"Attempted to click at worldPosition: [{mouseWorldPosition.x},{mouseWorldPosition.y},{mouseWorldPosition.z}], which is off screen at position: [{screenPoint.x},{screenPoint.y}]");
