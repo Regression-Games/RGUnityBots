@@ -163,43 +163,58 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    private void InstantiateSequence(string resourcePath, (string, BotSequence) sequenceInfo)
+    {
+        var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
+
+        // map sequence data fields to new prefab
+        instance.transform.SetParent(sequencesPanel.transform, false);
+        var prefabComponent = instance.GetComponent<RGSequenceEntry>();
+        if (prefabComponent != null)
+        {
+            prefabComponent.sequenceName = sequenceInfo.Item2.name;
+            prefabComponent.filePath = sequenceInfo.Item1;
+            prefabComponent.resourcePath = resourcePath;
+            prefabComponent.description = sequenceInfo.Item2.description;
+            prefabComponent.playAction = () =>
+            {
+                _replayToolbarManager.selectedReplayFilePath = null;
+                sequenceInfo.Item2.Play();
+            };
+        }
+    }
+
     /**
      * <summary>
      * Instantiates Sequence prefabs and adds them to the list of available Sequences
      * </summary>
      * <param name="sequences">Dictionary of {key=resourcePath, value=(filePath[null if not writeable],Bot Sequence) tuples} we want to instantiate as prefabs</param>
      */
-
     public void InstantiateSequences(IDictionary<string, (string,BotSequence)> sequences)
-
     {
         if (sequencesPanel != null && sequenceCardPrefab != null)
         {
             // ensure we aren't appending new sequences on to the previous ones
             ClearExistingSequences();
 
+            var latestRecording = sequences.FirstOrDefault(a => a.Key!= null && a.Key.EndsWith("/" + ScreenRecorder.RecordingPathName));
+
+            // make the latest recording the first child
+            if (latestRecording.Key != null)
+            {
+                var resourcePath = latestRecording.Key;
+                var sequenceInfo = latestRecording.Value;
+                InstantiateSequence(resourcePath, sequenceInfo);
+            }
+
             // instantiate a prefab for each sequence file that has been loaded
             foreach (var sequenceKVPair in sequences)
             {
                 var resourcePath = sequenceKVPair.Key;
-                var sequenceInfo = sequenceKVPair.Value;
-                var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
-
-                // map sequence data fields to new prefab
-                instance.transform.SetParent(sequencesPanel.transform, false);
-                var prefabComponent = instance.GetComponent<RGSequenceEntry>();
-                if (prefabComponent != null)
+                if (!resourcePath.EndsWith("/" + ScreenRecorder.RecordingPathName))
                 {
-                    prefabComponent.sequenceName = sequenceInfo.Item2.name;
-                    prefabComponent.filePath = sequenceInfo.Item1;
-                    prefabComponent.resourcePath = resourcePath;
-                    prefabComponent.description = sequenceInfo.Item2.description;
-                    prefabComponent.playAction = () =>
-                    {
-                        _replayToolbarManager.selectedReplayFilePath = null;
-                        sequenceInfo.Item2.Play();
-                    };
-
+                    var sequenceInfo = sequenceKVPair.Value;
+                    InstantiateSequence(resourcePath, sequenceInfo);
                 }
             }
         }
