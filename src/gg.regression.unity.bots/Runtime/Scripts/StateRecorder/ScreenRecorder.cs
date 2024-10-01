@@ -297,6 +297,11 @@ namespace RegressionGames.StateRecorder
                 {
                     Directory.Delete(segmentResourceDirectory, true);
                 }
+                
+                // Path.GetDirectoryName returns the parent directory (e.g. "Assets/RegressionGames/Resources/BotSegments")
+                // This is because our current path does not end with a trailing /
+                // So we can safely create this without interfering with the .Move command right below.
+                Directory.CreateDirectory(Path.GetDirectoryName(segmentResourceDirectory));
 
                 // move the directory (this also deletes the source directory)
                 Directory.Move(botSegmentsDirectoryPrefix, segmentResourceDirectory);
@@ -325,6 +330,7 @@ namespace RegressionGames.StateRecorder
                 segments = sequenceEntries
             };
 
+            Directory.CreateDirectory(Path.GetDirectoryName(sequenceJsonPath));
             await File.WriteAllBytesAsync(sequenceJsonPath, Encoding.UTF8.GetBytes(botSequence.ToJsonString()));
 
             // refresh the sequences list
