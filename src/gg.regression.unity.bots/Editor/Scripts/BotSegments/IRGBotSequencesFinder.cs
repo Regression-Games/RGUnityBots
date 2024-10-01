@@ -68,7 +68,7 @@ namespace RegressionGames.Editor
                             var segmentList = JsonConvert.DeserializeObject<BotSegmentList>(fileContents, JsonUtils.JsonSerializerSettings);
                             botSequences.segmentLists.Add(outputPath);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             try
                             {
