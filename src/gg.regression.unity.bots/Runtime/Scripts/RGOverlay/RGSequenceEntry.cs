@@ -128,7 +128,11 @@ public class RGSequenceEntry : MonoBehaviour
     public void OnPlay()
     {
         var botManager = RGBotManager.GetInstance();
-        botManager?.OnBeginPlaying();
+        if (botManager != null)
+        {
+            botManager.OnBeginPlaying();
+        }
+
         playAction?.Invoke();
     }
 

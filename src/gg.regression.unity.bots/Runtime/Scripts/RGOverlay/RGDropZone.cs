@@ -344,10 +344,13 @@ namespace RegressionGames
                     if (target.GetType() == droppable.GetType())
                     {
                         _currentDraggable = target;
-                        var draggableCard = _currentDraggable?.GetComponent<RGDraggableCard>();
-                        if (draggableCard != null)
+                        if (_currentDraggable != null)
                         {
-                            draggableCard.SetDropZone(this);
+                            var draggableCard = _currentDraggable.GetComponent<RGDraggableCard>();
+                            if (draggableCard != null)
+                            {
+                                draggableCard.SetDropZone(this);
+                            }
                         }
                         return;
                     }
@@ -369,10 +372,13 @@ namespace RegressionGames
                 Destroy(_potentialDropSpotInstance);
             }
 
-            var draggableCard = _currentDraggable?.GetComponent<RGDraggableCard>();
-            if (draggableCard != null)
+            if (_currentDraggable != null)
             {
-                draggableCard.SetDropZone(null);
+                var draggableCard = _currentDraggable.GetComponent<RGDraggableCard>();
+                if (draggableCard != null)
+                {
+                    draggableCard.SetDropZone(null);
+                }
             }
 
             ResetDraggableTracking();
