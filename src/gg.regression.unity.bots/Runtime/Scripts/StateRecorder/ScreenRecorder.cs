@@ -448,8 +448,8 @@ namespace RegressionGames.StateRecorder
             {
                 _needToRefreshAssets = false;
                 AssetDatabase.Refresh();
-#endif
             }
+#endif
         }
 
         private void LateUpdate()
