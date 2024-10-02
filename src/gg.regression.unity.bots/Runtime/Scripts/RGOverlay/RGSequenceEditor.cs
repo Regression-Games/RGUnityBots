@@ -48,7 +48,7 @@ namespace RegressionGames
         private string _existingSequencePath;
 
         private string _originalName = "";
-        private bool _isOriginalRecordingPath;
+        private bool _isOriginalTheRecordingPath;
 
         private bool _makingACopy;
 
@@ -187,8 +187,8 @@ namespace RegressionGames
             {
                 NameInput.text = sequenceToEdit.name;
                 _originalName = sequenceToEdit.name.Trim();
-                _isOriginalRecordingPath = IsRecordingSequencePath(sequencePath);
-                if (!_isOriginalRecordingPath)
+                _isOriginalTheRecordingPath = IsRecordingSequencePath(sequencePath);
+                if (!_isOriginalTheRecordingPath)
                 {
                     // copy the description
                     DescriptionInput.text = sequenceToEdit.description;
@@ -278,7 +278,7 @@ namespace RegressionGames
             CurrentSequence.description = DescriptionInput.text;
 
             // special case for recordings... where we need to copy the underlying segments as well, not just the sequence file
-            if (_makingACopy && _isOriginalRecordingPath)
+            if (_makingACopy && _isOriginalTheRecordingPath)
             {
                 CurrentSequence.CopySequenceSegmentsToNewPath();
             }
