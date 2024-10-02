@@ -53,11 +53,20 @@ public class RGSequenceManager : MonoBehaviour
         StartCoroutine(ResolveSequenceFiles());
     }
 
+    /**
+     * <summary>
+     * Load and instantiate the Segments list
+     * </summary>
+     */
     public void LoadSegments()
     {
         StartCoroutine(InstantiateSegments());
     }
 
+    /**
+     * Load and instantiate the prefabs relevant to the currently displayed tab
+     * (used with the reload button)
+     */
     public void LoadCurrentTab()
     {
         if (sequencesPanel.activeSelf)
@@ -87,15 +96,13 @@ public class RGSequenceManager : MonoBehaviour
         {
             Debug.LogError("RGSequenceManager is missing its segmentsPanel");
         }
-        
-        LoadSequences();
-        LoadSegments();
 
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
 
+        // load our assets and show the Sequences tab content
+        LoadSequences();
+        LoadSegments();
         SetSequencesTabActive();
-
-        DontDestroyOnLoad(_this.gameObject);
     }
 
     /**
@@ -200,18 +207,34 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    /**
+     * <summary>
+     * Show the Sequences list and hide the Segments
+     * </summary>
+     */
     public void SetSequencesTabActive()
     {
         sequencesPanel.SetActive(true);
         segmentsPanel.SetActive(false);
     }
     
+    /**
+     * <summary>
+     * Show the Segments list and hide the Sequences
+     * </summary>
+     */
     public void SetSegmentsTabActive()
     {
         sequencesPanel.SetActive(false);
         segmentsPanel.SetActive(true);
     }
 
+    /**
+     * <summary>
+     * Instantiate a Sequences card prefab, add it to the Sequences list, and populate the prefab with
+     * the required values
+     * </summary>
+     */
     private void InstantiateSequence(string resourcePath, (string, BotSequence) sequenceInfo)
     {
         var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
@@ -269,11 +292,17 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    /**
+     * <summary>
+     * Load Segment files from disk and instantate them as Segment card prefabs, and ensure that the required fields
+     * are set
+     * </summary>
+     */
     private IEnumerator InstantiateSegments()
     {
-        yield return null;
-
         ClearExistingSegments();
+        
+        yield return null;
         
         var segments = BotSegment.LoadAllSegments();
         foreach (var segmentPair in segments)
@@ -293,6 +322,8 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.path = path;
                 prefabComponent.type = segment.type;
             }
+            
+            yield return null;
         }
     }
 

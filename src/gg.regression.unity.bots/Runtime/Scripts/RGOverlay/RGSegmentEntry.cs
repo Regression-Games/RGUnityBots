@@ -9,6 +9,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/**
+ * <summary>
+ * Displays the high-level information for a Segment, and enables the user to play it
+ * </summary>
+ */
 public class RGSegmentEntry : MonoBehaviour
 {
     public string segmentName;
@@ -35,6 +40,11 @@ public class RGSegmentEntry : MonoBehaviour
     [SerializeField]
     public GameObject segmentListIndicatorComponent;
 
+    /**
+     * <summary>
+     * Ensures all needed prefabs and fields are properly set. Shows an icon if this segment is of the SegmentList type
+     * </summary>
+     */
     public void Start()
     {
         if (string.IsNullOrEmpty(path))
@@ -69,6 +79,7 @@ public class RGSegmentEntry : MonoBehaviour
             Debug.LogError($"RGSegmentEntry is missing its playButton");
         }
 
+        // create a tooltip containing the segment's description, but only if the description is populated
         var tooltip = GetComponentInChildren<RGTooltip>();
         if (tooltip != null && !string.IsNullOrEmpty(description))
         {
@@ -79,6 +90,7 @@ public class RGSegmentEntry : MonoBehaviour
             tooltip.SetEnabled(false);
         }
 
+        // show an icon indicating that this segment is a SegmentList (if needed)
         if (type == BotSequenceEntryType.SegmentList)
         {
             if (segmentListIndicatorComponent != null)
@@ -94,7 +106,7 @@ public class RGSegmentEntry : MonoBehaviour
 
     /**
      * <summary>
-     * When the play button is clicked, start the Segment and close the RGOverlay
+     * When the play button is clicked, start running the Segment and close the RGOverlay
      * </summary>
      */
     private void OnPlay()
@@ -114,8 +126,10 @@ public class RGSegmentEntry : MonoBehaviour
         }
         toolbarManager.selectedReplayFilePath = null;
         
+        // set the recording toolbar's state for playing this segment
         botManager.OnBeginPlaying();
 
+        // create the list of segments to play (in our case there will only be 1)
         var segmentList = new List<BotSegmentList>
         {
             BotSequence.CreateBotSegmentListForPath(path, out var sessId)
@@ -129,6 +143,7 @@ public class RGSegmentEntry : MonoBehaviour
             return;
         }
         
+        // play the segment
         playbackController.Stop();
         playbackController.Reset();
         playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.SelectMany(a => a.segments), sessionId));
