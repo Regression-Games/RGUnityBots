@@ -73,6 +73,7 @@ public class RGSequenceManager : MonoBehaviour
     public void Awake()
     {
         _this = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     public void Start()
