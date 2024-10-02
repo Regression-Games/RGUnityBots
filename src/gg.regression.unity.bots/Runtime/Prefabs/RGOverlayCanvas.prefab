@@ -3525,7 +3525,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sequencesPanel: {fileID: 3545653956877431460}
   segmentsPanel: {fileID: 1972991633119368260}
-  tabSwitcher: {fileID: 0}
   sequenceCardPrefab: {fileID: 4199513441948227604, guid: 1286929087b3c4db0aa7ebfeba68731c, type: 3}
   segmentCardPrefab: {fileID: 4199513441948227604, guid: 33bc06c2f7ebd144d8e50252f54768c9, type: 3}
   sequenceEditor: {fileID: 1768688999565580427}
