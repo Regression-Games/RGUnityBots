@@ -15,9 +15,9 @@ namespace RegressionGames
         public string draggedCardName;
 
         public string draggedCardDescription;
-        
+
         public Dictionary<string, string> payload;
-        
+
         public GameObject iconPrefab;
 
         [SerializeField] public TMP_Text namePrefab;

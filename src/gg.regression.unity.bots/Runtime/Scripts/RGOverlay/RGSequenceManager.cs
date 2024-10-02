@@ -34,6 +34,11 @@ public class RGSequenceManager : MonoBehaviour
 
     public static RGSequenceManager GetInstance()
     {
+        if (_this == null)
+        {
+            _this = FindObjectOfType<RGSequenceManager>();
+        }
+
         return _this;
     }
 
@@ -49,16 +54,13 @@ public class RGSequenceManager : MonoBehaviour
 
     public void Awake()
     {
-        _this = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     public void Start()
     {
         LoadSequences();
-
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
-
-        DontDestroyOnLoad(_this.gameObject);
     }
 
     /**
