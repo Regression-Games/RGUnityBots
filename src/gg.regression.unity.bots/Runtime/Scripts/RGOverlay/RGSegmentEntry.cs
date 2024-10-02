@@ -17,6 +17,8 @@ public class RGSegmentEntry : MonoBehaviour
     
     // will be a file path when in-editor, or a resources path when in a packaged build
     public string path;
+
+    public BotSequenceEntryType type;
     
     /**
      * UI component fields
@@ -29,6 +31,9 @@ public class RGSegmentEntry : MonoBehaviour
 
     [SerializeField]
     public TMP_Text descriptionComponent;
+    
+    [SerializeField]
+    public GameObject segmentListIndicatorComponent;
 
     public void Start()
     {
@@ -72,6 +77,18 @@ public class RGSegmentEntry : MonoBehaviour
         else
         {
             tooltip.SetEnabled(false);
+        }
+
+        if (type == BotSequenceEntryType.SegmentList)
+        {
+            if (segmentListIndicatorComponent != null)
+            {
+                segmentListIndicatorComponent.SetActive(true);
+            }
+            else
+            {
+                Debug.LogError($"RGSegmentEntry is missing its segmentListIndicatorComponent");
+            }
         }
     }
 

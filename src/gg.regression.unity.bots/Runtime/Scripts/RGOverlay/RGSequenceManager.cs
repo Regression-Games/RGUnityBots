@@ -268,7 +268,7 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
-    public IEnumerator InstantiateSegments()
+    private IEnumerator InstantiateSegments()
     {
         yield return null;
 
@@ -290,6 +290,7 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.segmentName = segment.name;
                 prefabComponent.description = segment.description;
                 prefabComponent.path = path;
+                prefabComponent.type = segment.type;
             }
         }
     }
