@@ -58,6 +58,18 @@ public class RGSequenceManager : MonoBehaviour
         StartCoroutine(InstantiateSegments());
     }
 
+    public void LoadCurrentTab()
+    {
+        if (sequencesPanel.activeSelf)
+        {
+            LoadSequences();
+        }
+        else
+        {
+            LoadSegments();
+        }
+    }
+
     public void Awake()
     {
         _this = this;
@@ -259,6 +271,8 @@ public class RGSequenceManager : MonoBehaviour
     public IEnumerator InstantiateSegments()
     {
         yield return null;
+
+        ClearExistingSegments();
         
         var segments = BotSegment.LoadAllSegments();
         foreach (var segmentPair in segments)
@@ -296,6 +310,20 @@ public class RGSequenceManager : MonoBehaviour
                 }
 
                 Destroy(sequencesPanel.transform.GetChild(i).gameObject);
+            }
+        }
+    }
+    
+    /**
+     * <summary>Destroy all Segment cards in the UI</summary>
+     */
+    private void ClearExistingSegments()
+    {
+        if (segmentsPanel != null)
+        {
+            for (var i = 0; i < segmentsPanel.transform.childCount; i++)
+            {
+                Destroy(segmentsPanel.transform.GetChild(i).gameObject);
             }
         }
     }

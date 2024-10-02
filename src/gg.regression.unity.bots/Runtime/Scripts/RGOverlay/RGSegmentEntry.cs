@@ -106,7 +106,7 @@ public class RGSegmentEntry : MonoBehaviour
         var sessionId = sessId ?? Guid.NewGuid().ToString();
         
         var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
-        if (playbackController != null)
+        if (playbackController == null)
         {
             Debug.LogError("RGSegmentEntry cannot find the BotSegmentsPlaybackController in its OnPlay function");
             return;
