@@ -6,8 +6,15 @@ using UnityEngine.UI;
 
 namespace RegressionGames
 {
+    /**
+     * <summary>
+     * A button that is intended to be used with other buttons of the same type. These buttons should be used to toggle
+     * visible content or settings
+     * </summary>
+     */
     public class RGTabButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler
     {
+        // is this button currently selected
         public bool isActive;
 
         public UnityEvent onClick;
@@ -30,6 +37,11 @@ namespace RegressionGames
 
         private static readonly Color ActiveColor = Color.white;
 
+        /**
+         * <summary>
+         * Ensure that the required fields are set, and set the active state
+         * </summary>
+         */
         public void Start()
         {
             var background = GetComponent<Image>();
@@ -56,6 +68,11 @@ namespace RegressionGames
             _label.color = isActive ? Color.black : ActiveColor;;
         }
 
+        /**
+         * <summary>
+         * When this button is changing color, update the color lerp process
+         * </summary>
+         */
         public void Update()
         {
             if (!_isChangingColor)
@@ -63,6 +80,7 @@ namespace RegressionGames
                 return;
             }
             
+            // change the colour over 0.1 second
             _colorChangeAlpha += Time.deltaTime * 10.0f;
             _background.color = Color.Lerp(_fromColor, _toColor, _colorChangeAlpha);
 
@@ -73,6 +91,11 @@ namespace RegressionGames
             }
         }
 
+        /**
+         * <summary>
+         * Show the hover state when the user's pointer enters this button
+         * </summary>
+         */
         public void OnPointerEnter(PointerEventData eventData)
         {
             if (isActive)
@@ -83,6 +106,11 @@ namespace RegressionGames
             StartColorChange(HoverColor);
         }
 
+        /**
+         * <summary>
+         * Revert the hover state when the user's pointer exits this button
+         * </summary>
+         */
         public void OnPointerExit(PointerEventData eventData)
         {
             if (isActive)
@@ -93,6 +121,11 @@ namespace RegressionGames
             StartColorChange(DefaultColor);
         }
 
+        /**
+         * <summary>
+         * Set this button as the currently selected one, and execute the click action assigned
+         * </summary>
+         */
         public void OnPointerDown(PointerEventData eventData)
         {
             if (isActive)
@@ -104,6 +137,16 @@ namespace RegressionGames
             SetAsCurrent(true);
         }
 
+        /**
+         * <summary>
+         * If this button is set to be active:
+         * - Set the button to be selected (active state)
+         * - Find any other sibling RGTabButtons and set them to the default state
+         * If this button is set to not be active:
+         * - Set the button to the default state
+         * </summary>
+         * <para name="setIsActive">Whether this button should change to the active state or not</para>
+         */
         private void SetAsCurrent(bool setIsActive)
         {
             var nextColor = setIsActive ? ActiveColor : DefaultColor;
