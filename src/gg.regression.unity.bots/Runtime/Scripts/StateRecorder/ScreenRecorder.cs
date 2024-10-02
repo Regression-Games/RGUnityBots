@@ -295,7 +295,7 @@ namespace RegressionGames.StateRecorder
                 .Select(a=>a.Substring(a.LastIndexOf('/')+1));
 
             // Order numerically instead of alphanumerically to ensure 2.json is before 10.json.
-            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles);
+            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles).ToList();
             
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
@@ -339,6 +339,7 @@ namespace RegressionGames.StateRecorder
             {
                 path = segmentResourceDirectory + "/" + a
             }).ToList();
+
 
             var botSequence = new BotSequence()
             {
