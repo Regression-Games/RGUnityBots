@@ -14,7 +14,9 @@ using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Experimental.Rendering;
@@ -97,6 +99,10 @@ namespace RegressionGames.StateRecorder
         private MouseInputActionObserver _mouseObserver;
         private ProfilerObserver _profilerObserver;
         private LoggingObserver _loggingObserver;
+
+#if UNITY_EDITOR
+        private bool _needToRefreshAssets;
+#endif
 
         public static ScreenRecorder GetInstance()
         {
@@ -244,6 +250,10 @@ namespace RegressionGames.StateRecorder
             // Copy the most recent recording into the user's project if running in the editor , or their persistent data path if running in production runtime
             await MoveSegmentsToProject(botSegmentsDirectoryPrefix);
 
+#if UNITY_EDITOR
+            _needToRefreshAssets = true;
+#endif
+
             if (Directory.Exists(dataDirectoryPrefix))
             {
                 Directory.Delete(dataDirectoryPrefix, true);
@@ -304,7 +314,7 @@ namespace RegressionGames.StateRecorder
                 {
                     Directory.Delete(segmentResourceDirectory, true);
                 }
-                
+
                 // Path.GetDirectoryName returns the parent directory (e.g. "Assets/RegressionGames/Resources/BotSegments")
                 // This is because our current path does not end with a trailing /
                 // So we can safely create this without interfering with the .Move command right below.
@@ -428,6 +438,17 @@ namespace RegressionGames.StateRecorder
                     // only do this when the game object is still alive :D
                     StartCoroutine(ShowUploadingIndicator(false));
                 }
+            }
+        }
+
+        private void Update()
+        {
+#if UNITY_EDITOR
+            if (_needToRefreshAssets)
+            {
+                _needToRefreshAssets = false;
+                AssetDatabase.Refresh();
+#endif
             }
         }
 
