@@ -14,10 +14,8 @@ public class RGSegmentEntry : MonoBehaviour
     public string segmentName;
 
     public string description;
-
-    /**
-     * <summary>Null if this is a resource load, or path if this is a file.</summary>
-     */
+    
+    // will be a file path when in-editor, or a resources path when in a packaged build
     public string path;
     
     /**
@@ -82,46 +80,41 @@ public class RGSegmentEntry : MonoBehaviour
      * When the play button is clicked, start the Segment and close the RGOverlay
      * </summary>
      */
-    public void OnPlay()
+    private void OnPlay()
     {
         var botManager = RGBotManager.GetInstance();
-        if (botManager != null)
+        if (botManager == null)
         {
-            var toolbarManager = FindObjectOfType<ReplayToolbarManager>();
-            toolbarManager.selectedReplayFilePath = null;
-            
-            botManager.OnBeginPlaying();
+            Debug.LogError("RGSegmentEntry cannot find the RGBotManager in its OnPlay function");
+            return;
+        }
+        
+        var toolbarManager = FindObjectOfType<ReplayToolbarManager>();
+        if (toolbarManager == null)
+        {
+            Debug.LogError("RGSegmentEntry cannot find the ReplayToolbarManager in its OnPlay function");
+            return;
+        }
+        toolbarManager.selectedReplayFilePath = null;
+        
+        botManager.OnBeginPlaying();
 
-            var segmentList = new List<BotSegmentList>();
-            segmentList.Add(CreateBotSegmentListForPath(path, out var sessId));
-            var sessionId = sessId;
-            sessionId ??= Guid.NewGuid().ToString();
-            
-            var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
-            playbackController.Stop();
-            playbackController.Reset();
-            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.SelectMany(a => a.segments), sessionId));
-            playbackController.Play();
-        }
-    }
-
-    private BotSegmentList CreateBotSegmentListForPath(string path, out string sessionId)
-    {
-        var result = BotSequence.LoadBotSegmentOrBotSegmentListFromPath(path);
-        if (result.Item3 is BotSegmentList bsl)
+        var segmentList = new List<BotSegmentList>
         {
-            sessionId = bsl.segments.FirstOrDefault(a => !string.IsNullOrEmpty(a.sessionId))?.sessionId;
-            return bsl;
-        }
-        else
+            BotSequence.CreateBotSegmentListForPath(path, out var sessId)
+        };
+        var sessionId = sessId ?? Guid.NewGuid().ToString();
+        
+        var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
+        if (playbackController != null)
         {
-            var segment = (BotSegment)result.Item3;
-            sessionId = segment.sessionId;
-            var segmentList = new BotSegmentList(path, new List<BotSegment> { segment });
-            segmentList.name = segment.name;
-            segmentList.description = segment.description;
-            segmentList.FixupNames();
-            return segmentList;
+            Debug.LogError("RGSegmentEntry cannot find the BotSegmentsPlaybackController in its OnPlay function");
+            return;
         }
+        
+        playbackController.Stop();
+        playbackController.Reset();
+        playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.SelectMany(a => a.segments), sessionId));
+        playbackController.Play();
     }
 }
