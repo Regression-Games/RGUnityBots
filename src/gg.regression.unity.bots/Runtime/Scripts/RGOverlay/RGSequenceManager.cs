@@ -20,9 +20,15 @@ using System.Linq;
  */
 public class RGSequenceManager : MonoBehaviour
 {
+    // a scrollable container populated with the project's Sequences
     public GameObject sequencesPanel;
+    
+    // a scrollable container populated with the project's Segments
+    public GameObject segmentsPanel;
 
     public GameObject sequenceCardPrefab;
+    
+    public GameObject segmentCardPrefab;
 
     public GameObject sequenceEditor;
 
@@ -34,11 +40,6 @@ public class RGSequenceManager : MonoBehaviour
 
     public static RGSequenceManager GetInstance()
     {
-        if (_this == null)
-        {
-            _this = FindObjectOfType<RGSequenceManager>();
-        }
-
         return _this;
     }
 
@@ -52,15 +53,36 @@ public class RGSequenceManager : MonoBehaviour
         StartCoroutine(ResolveSequenceFiles());
     }
 
+    public void LoadSegments()
+    {
+        StartCoroutine(InstantiateSegments());
+    }
+
     public void Awake()
     {
-        DontDestroyOnLoad(gameObject);
+        _this = this;
     }
 
     public void Start()
     {
+        if (sequencesPanel == null)
+        {
+            Debug.LogError("RGSequenceManager is missing its sequencesPanel");
+        }
+        
+        if (segmentsPanel == null)
+        {
+            Debug.LogError("RGSequenceManager is missing its segmentsPanel");
+        }
+        
         LoadSequences();
+        LoadSegments();
+
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
+
+        SetSequencesTabActive();
+
+        DontDestroyOnLoad(_this.gameObject);
     }
 
     /**
@@ -165,6 +187,18 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    public void SetSequencesTabActive()
+    {
+        sequencesPanel.SetActive(true);
+        segmentsPanel.SetActive(false);
+    }
+    
+    public void SetSegmentsTabActive()
+    {
+        sequencesPanel.SetActive(false);
+        segmentsPanel.SetActive(true);
+    }
+
     private void InstantiateSequence(string resourcePath, (string, BotSequence) sequenceInfo)
     {
         var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
@@ -218,6 +252,35 @@ public class RGSequenceManager : MonoBehaviour
                     var sequenceInfo = sequenceKVPair.Value;
                     InstantiateSequence(resourcePath, sequenceInfo);
                 }
+            }
+        }
+    }
+
+    public IEnumerator InstantiateSegments()
+    {
+        yield return null;
+        
+        var segments = BotSegment.LoadAllSegments();
+        foreach (var segmentPair in segments)
+        {
+            var path = segmentPair.Key;
+            var segment = segmentPair.Value;
+            
+            var instance = Instantiate(segmentCardPrefab, Vector3.zero, Quaternion.identity);
+
+            // map segment data fields to new prefab
+            instance.transform.SetParent(segmentsPanel.transform, false);
+            var prefabComponent = instance.GetComponent<RGSegmentEntry>();
+            if (prefabComponent != null)
+            {
+                prefabComponent.segmentName = segment.name;
+                prefabComponent.description = segment.description;
+                prefabComponent.path = path;
+                prefabComponent.playAction = () =>
+                {
+                    _replayToolbarManager.selectedReplayFilePath = null;
+                    // TODO play the segment
+                };
             }
         }
     }
