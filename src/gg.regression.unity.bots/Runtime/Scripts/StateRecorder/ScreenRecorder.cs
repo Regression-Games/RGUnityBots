@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -281,10 +282,11 @@ namespace RegressionGames.StateRecorder
             var segmentFiles = Directory.EnumerateFiles(botSegmentsDirectoryPrefix)
                 .Where(a=>a.EndsWith(".json"))
                 .Select(a=>a.Replace('\\','/'))
-                .Select(a=>a.Substring(a.LastIndexOf('/')+1))
-                .OrderBy(a => int.Parse(Path.GetFileNameWithoutExtension(a))); // Order numerically instead of alphanumerically
-                                                                               // to ensure 2.json is before 10.json.
+                .Select(a=>a.Substring(a.LastIndexOf('/')+1));
 
+            // Order numerically instead of alphanumerically to ensure 2.json is before 10.json.
+            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles);
+            
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
 #if UNITY_EDITOR
