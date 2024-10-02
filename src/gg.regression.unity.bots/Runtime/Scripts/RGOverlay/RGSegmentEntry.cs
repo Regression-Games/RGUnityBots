@@ -1,5 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using RegressionGames;
+using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.BotSegments;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,9 +20,6 @@ public class RGSegmentEntry : MonoBehaviour
      */
     public string path;
     
-    
-    public Action playAction;
-
     /**
      * UI component fields
      */
@@ -83,7 +85,43 @@ public class RGSegmentEntry : MonoBehaviour
     public void OnPlay()
     {
         var botManager = RGBotManager.GetInstance();
-        botManager?.OnBeginPlaying();
-        playAction?.Invoke();
+        if (botManager != null)
+        {
+            var toolbarManager = FindObjectOfType<ReplayToolbarManager>();
+            toolbarManager.selectedReplayFilePath = null;
+            
+            botManager.OnBeginPlaying();
+
+            var segmentList = new List<BotSegmentList>();
+            segmentList.Add(CreateBotSegmentListForPath(path, out var sessId));
+            var sessionId = sessId;
+            sessionId ??= Guid.NewGuid().ToString();
+            
+            var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
+            playbackController.Stop();
+            playbackController.Reset();
+            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.SelectMany(a => a.segments), sessionId));
+            playbackController.Play();
+        }
+    }
+
+    private BotSegmentList CreateBotSegmentListForPath(string path, out string sessionId)
+    {
+        var result = BotSequence.LoadBotSegmentOrBotSegmentListFromPath(path);
+        if (result.Item3 is BotSegmentList bsl)
+        {
+            sessionId = bsl.segments.FirstOrDefault(a => !string.IsNullOrEmpty(a.sessionId))?.sessionId;
+            return bsl;
+        }
+        else
+        {
+            var segment = (BotSegment)result.Item3;
+            sessionId = segment.sessionId;
+            var segmentList = new BotSegmentList(path, new List<BotSegment> { segment });
+            segmentList.name = segment.name;
+            segmentList.description = segment.description;
+            segmentList.FixupNames();
+            return segmentList;
+        }
     }
 }

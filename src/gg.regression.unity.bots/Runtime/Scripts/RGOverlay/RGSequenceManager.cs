@@ -276,11 +276,6 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.segmentName = segment.name;
                 prefabComponent.description = segment.description;
                 prefabComponent.path = path;
-                prefabComponent.playAction = () =>
-                {
-                    _replayToolbarManager.selectedReplayFilePath = null;
-                    // TODO play the segment
-                };
             }
         }
     }
