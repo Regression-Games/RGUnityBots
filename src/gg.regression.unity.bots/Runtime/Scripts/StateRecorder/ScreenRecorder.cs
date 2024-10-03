@@ -85,6 +85,8 @@ namespace RegressionGames.StateRecorder
 
         public bool IsRecording { get; private set; }
 
+        private bool _isReplay;
+
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
         private long _tickNumber;
@@ -156,6 +158,7 @@ namespace RegressionGames.StateRecorder
         private async Task HandleEndRecording(long tickCount,
             DateTime startTime,
             DateTime endTime,
+            bool wasReplay,
             long loggedWarnings,
             long loggedErrors,
             string dataDirectoryPrefix,
@@ -247,8 +250,12 @@ namespace RegressionGames.StateRecorder
             // wait for the zip tasks to finish
             Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4);
 
-            // Copy the most recent recording into the user's project if running in the editor , or their persistent data path if running in production runtime
-            await MoveSegmentsToProject(botSegmentsDirectoryPrefix);
+            if (!wasReplay)
+            {
+                // Copy the most recent recording into the user's project if running in the editor , or their persistent data path if running in production runtime
+                // do NOT copy if this was a replay
+                await MoveSegmentsToProject(botSegmentsDirectoryPrefix);
+            }
 
 #if UNITY_EDITOR
             _needToRefreshAssets = true;
@@ -298,7 +305,7 @@ namespace RegressionGames.StateRecorder
 
             // Order numerically instead of alphanumerically to ensure 2.json is before 10.json.
             segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles);
-            
+
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
 #if UNITY_EDITOR
@@ -503,7 +510,9 @@ namespace RegressionGames.StateRecorder
 
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
-                var prefix = referenceSessionId != null ? "replay" : "recording";
+                _isReplay = referenceSessionId != null;
+
+                var prefix = _isReplay ? "replay" : "recording";
                 var pf = _currentSessionId.Substring(Math.Max(0, _currentSessionId.Length - 6));
                 var postfix = referenceSessionId != null ? pf + "_" + referenceSessionId.Substring(Math.Max(0, referenceSessionId.Length - 6)) : pf;
                 var dateTimeString =  System.DateTime.Now.ToString("MM-dd-yyyy_HH.mm");
@@ -580,7 +589,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void StopRecordingCleanupHelper(bool wasRecording)
+        private void StopRecordingCleanupHelper(bool wasRecording, bool wasReplay)
         {
             long loggedWarnings = 0;
             long loggedErrors = 0;
@@ -633,6 +642,7 @@ namespace RegressionGames.StateRecorder
                     _tickNumber,
                     _startTime,
                     DateTime.Now,
+                    wasReplay,
                     loggedWarnings,
                     loggedErrors,
                     _currentGameplaySessionDataDirectoryPrefix,
@@ -663,13 +673,16 @@ namespace RegressionGames.StateRecorder
         {
             var wasRecording = IsRecording;
             IsRecording = false;
+            var wasReplay = _isReplay;
+            _isReplay = false;
+
 
             if (wasRecording)
             {
                 yield return RecordFrame(endRecording: true, endRecordingFromToolbarButton: toolbarButtonTriggered);
             }
 
-            StopRecordingCleanupHelper(wasRecording);
+            StopRecordingCleanupHelper(wasRecording, wasReplay);
         }
 
         /**
@@ -679,7 +692,10 @@ namespace RegressionGames.StateRecorder
         {
             var wasRecording = IsRecording;
             IsRecording = false;
-            StopRecordingCleanupHelper(wasRecording);
+            var wasReplay = _isReplay;
+            _isReplay = false;
+            StopRecordingCleanupHelper(wasRecording, wasReplay);
+
         }
 
         /**
