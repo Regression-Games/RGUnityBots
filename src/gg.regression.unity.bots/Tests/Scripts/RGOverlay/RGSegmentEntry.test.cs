@@ -28,17 +28,20 @@ namespace RegressionGames.Tests.RGOverlay
             entry.playButton = _uat.AddComponent<Button>();
             
             // create tooltip child
-            var tooltip = new GameObject()
-            {
-                transform = parent.transform,
+            var tooltip = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
             };
             tooltip.AddComponent<RGTooltip>();
             tooltip.transform.SetParent(entry.transform);
 
             // create segment list indicator w/Image
-            var segmentListIndicator = new GameObject()
-            {
-                transform = parent.transform,
+            var segmentListIndicator = new GameObject() {
+                transform = {
+                    parent = _uat.transform,
+                },
             };
             segmentListIndicator.AddComponent<Image>();
             entry.segmentListIndicatorComponent = segmentListIndicator;
