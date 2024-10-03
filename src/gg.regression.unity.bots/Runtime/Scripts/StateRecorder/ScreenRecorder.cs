@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using RegressionGames.CodeCoverage;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -287,9 +288,17 @@ namespace RegressionGames.StateRecorder
 
         private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
         {
-            // get all the file paths normalized to /
-            var segmentFiles = Directory.EnumerateFiles(botSegmentsDirectoryPrefix).Where(a=>a.EndsWith(".json")).Select(a=>a.Replace('\\','/')).Select(a=>a.Substring(a.LastIndexOf('/')+1));
+            // Get all the file paths normalized to /
+            // Note: Ensure that these files aren't loaded lazily (don't use Directory.EnumerateFiles)
+            // as the folder gets moved later down this function and lazy loading will not find the files.
+            var segmentFiles = Directory.GetFiles(botSegmentsDirectoryPrefix)
+                .Where(a=>a.EndsWith(".json"))
+                .Select(a=>a.Replace('\\','/'))
+                .Select(a=>a.Substring(a.LastIndexOf('/')+1));
 
+            // Order numerically instead of alphanumerically to ensure 2.json is before 10.json.
+            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles);
+            
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
 #if UNITY_EDITOR
@@ -332,6 +341,7 @@ namespace RegressionGames.StateRecorder
             {
                 path = segmentResourceDirectory + "/" + a
             }).ToList();
+
 
             var botSequence = new BotSequence()
             {
