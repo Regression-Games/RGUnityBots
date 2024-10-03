@@ -21,7 +21,7 @@ namespace RegressionGames
         internal static readonly int Rc_OverlayNotInScene = 3;
         internal static readonly int Rc_SequenceLoadFailure = 4;
 
-        internal static readonly string CommandLineArgument = "-rgSequencePath";
+        internal static readonly string CommandLineArgument = "-rgsequencepath";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         public static void Initialize()
