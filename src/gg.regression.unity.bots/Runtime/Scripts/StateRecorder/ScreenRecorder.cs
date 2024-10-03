@@ -289,13 +289,13 @@ namespace RegressionGames.StateRecorder
         private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
         {
             // get all the file paths normalized to /
-            var segmentFiles = Directory.EnumerateFiles(botSegmentsDirectoryPrefix)
+            var segmentFiles = Directory.GetFiles(botSegmentsDirectoryPrefix)
                 .Where(a=>a.EndsWith(".json"))
                 .Select(a=>a.Replace('\\','/'))
                 .Select(a=>a.Substring(a.LastIndexOf('/')+1));
 
             // Order numerically instead of alphanumerically to ensure 2.json is before 10.json.
-            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles).ToList();
+            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles);
             
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
