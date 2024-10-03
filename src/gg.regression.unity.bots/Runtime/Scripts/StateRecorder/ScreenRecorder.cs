@@ -288,7 +288,9 @@ namespace RegressionGames.StateRecorder
 
         private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
         {
-            // get all the file paths normalized to /
+            // Get all the file paths normalized to /
+            // Note: Ensure that these files aren't loaded lazily (don't use Directory.EnumerateFiles)
+            // as the folder gets moved later down this function and lazy loading will not find the files.
             var segmentFiles = Directory.GetFiles(botSegmentsDirectoryPrefix)
                 .Where(a=>a.EndsWith(".json"))
                 .Select(a=>a.Replace('\\','/'))
