@@ -264,8 +264,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * </summary>
          * <returns>
          * Dictionary of:
-         * - Item1: filePath
-         * - Item2: resourcePath
+         * - Item1: resourcePath
+         * - Item2: filePath
          * - Item3: BotSequenceEntry
          * </returns>
          */

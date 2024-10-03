@@ -90,11 +90,8 @@ public class RGSegmentEntry : MonoBehaviour
         var botManager = RGBotManager.GetInstance();
         botManager.OnBeginPlaying();
 
-        // create the list of segments to play (in our case there will only be 1)
-        var segmentList = new List<BotSegmentList>
-        {
-            BotSequence.CreateBotSegmentListForPath(filePath ?? resourcePath, out var sessId)
-        };
+        // create the list of segments to play. This list will either contain an individual segment, or a segment list
+        var segmentList = BotSequence.CreateBotSegmentListForPath(filePath ?? resourcePath, out var sessId);
         var sessionId = sessId ?? Guid.NewGuid().ToString();
         
         var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
@@ -107,7 +104,7 @@ public class RGSegmentEntry : MonoBehaviour
         // play the segment
         playbackController.Stop();
         playbackController.Reset();
-        playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.SelectMany(a => a.segments), sessionId));
+        playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.segments, sessionId));
         playbackController.Play();
     }
 }

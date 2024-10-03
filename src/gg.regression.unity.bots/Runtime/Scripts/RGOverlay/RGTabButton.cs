@@ -44,26 +44,8 @@ namespace RegressionGames
          */
         public void Start()
         {
-            var background = GetComponent<Image>();
-            if (background != null)
-            {
-                _background = background;
-            }
-            else
-            {
-                Debug.LogError("RGTabButton is missing its background");
-            }
-
-            var label = GetComponentInChildren<TMP_Text>();
-            if (label != null)
-            {
-                _label = label;
-            }
-            else
-            {
-                Debug.LogError("RGTabButton is missing its label");
-            }
-            
+            _background = GetComponent<Image>();
+            _label = GetComponentInChildren<TMP_Text>();
             _background.color = isActive ? ActiveColor : DefaultColor;
             _label.color = isActive ? Color.black : ActiveColor;;
         }

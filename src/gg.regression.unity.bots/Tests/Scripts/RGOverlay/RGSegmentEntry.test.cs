@@ -21,19 +21,25 @@ namespace RegressionGames.Tests.RGOverlay
             entry = _uat.AddComponent<RGSegmentEntry>();
             entry.segmentName = "TestSegment";
             entry.description = "TestDescription";
-            entry.path = "test/path";
+            entry.filePath = "test/path";
             entry.type = BotSequenceEntryType.Segment;
             entry.nameComponent = RGTestUtils.CreateTMProPlaceholder();
             entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder();
             entry.playButton = _uat.AddComponent<Button>();
             
             // create tooltip child
-            var tooltip = new GameObject();
+            var tooltip = new GameObject()
+            {
+                transform = parent.transform,
+            }
             tooltip.AddComponent<RGTooltip>();
             tooltip.transform.SetParent(entry.transform);
 
             // create segment list indicator w/Image
-            var segmentListIndicator = new GameObject();
+            var segmentListIndicator = new GameObject()
+            {
+                transform = parent.transform,
+            }
             segmentListIndicator.AddComponent<Image>();
             entry.segmentListIndicatorComponent = segmentListIndicator;
             entry.segmentListIndicatorComponent.SetActive(false);
@@ -50,7 +56,7 @@ namespace RegressionGames.Tests.RGOverlay
         {
             entry.Start();
             
-            Assert.AreEqual(entry.path, "test/path");
+            Assert.AreEqual(entry.filePath, "test/path");
             Assert.AreEqual(entry.nameComponent.text, entry.segmentName);
             Assert.AreEqual(entry.descriptionComponent.text, entry.description);
             Assert.IsFalse(entry.segmentListIndicatorComponent.activeSelf);
