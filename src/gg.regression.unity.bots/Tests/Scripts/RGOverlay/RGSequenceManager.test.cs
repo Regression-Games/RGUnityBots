@@ -19,7 +19,9 @@ namespace RegressionGames.Tests.RGOverlay
             _uat = new GameObject();
             manager = _uat.AddComponent<RGSequenceManager>();
             manager.sequencesPanel = new GameObject();
+            manager.segmentsPanel = new GameObject();
             manager.sequenceCardPrefab = new GameObject();
+            manager.segmentCardPrefab = new GameObject();
             manager.sequenceEditor = new GameObject();
             manager.sequenceEditor.SetActive(false);
         }
@@ -31,6 +33,17 @@ namespace RegressionGames.Tests.RGOverlay
         }
 
         [Test]
+        public void Start()
+        {
+            manager.Start();
+            
+            Assert.IsNotNull(manager.sequencesPanel);
+            Assert.IsNotNull(manager.segmentsPanel);
+            Assert.IsTrue(manager.sequencesPanel.activeSelf);
+            Assert.IsFalse(manager.segmentsPanel.activeSelf);
+        }
+
+    [Test]
         public void ShowEditSequenceDialog()
         {
             manager.ShowEditSequenceDialog(false, null, null);
