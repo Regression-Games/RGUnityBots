@@ -34,7 +34,29 @@ namespace RegressionGames
                 }
 
                 playbackController.gameObject.AddComponent<RGHeadlessSequenceRunnerBehaviour>();
+
+                //ensure a keyboard exists for the input playback
+                if (IsBatchMode())
+                {
+
+                }
             }
+        }
+
+        internal static bool IsBatchMode()
+        {
+            var args = Environment.GetCommandLineArgs();
+            var argsLength = args.Length;
+            for (var i = 0; i < argsLength; i++)
+            {
+                var arg = args[i];
+                if (arg == "-batchmode")
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal static string ParsePathArgument()

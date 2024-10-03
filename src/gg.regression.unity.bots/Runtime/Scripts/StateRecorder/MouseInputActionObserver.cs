@@ -28,89 +28,93 @@ namespace RegressionGames.StateRecorder
 
         public void ObserveMouse(IEnumerable<ObjectStatus> statefulObjects)
         {
-            var mousePosition = Pointer.current.position.ReadValue();
-            var newMouseState = GetCurrentMouseState(mousePosition);
-            if (newMouseState != null)
+            var pointer = Pointer.current;
+            if (pointer != null)
             {
-                if (_priorMouseState == null && newMouseState.IsButtonClicked || _priorMouseState != null && !_priorMouseState.ButtonStatesEqual(newMouseState))
+                var mousePosition = pointer.position.ReadValue();
+                var newMouseState = GetCurrentMouseState(mousePosition);
+                if (newMouseState != null)
                 {
-                    Vector3? worldPosition = null;
-                    var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);
-
-                    var mouseRayHits = 0;
-
-                    var mainCamera = Camera.main;
-                    if (mainCamera != null)
+                    if (_priorMouseState == null && newMouseState.IsButtonClicked || _priorMouseState != null && !_priorMouseState.ButtonStatesEqual(newMouseState))
                     {
-                        var ray = mainCamera.ScreenPointToRay(mousePosition);
-                        mouseRayHits = Physics.RaycastNonAlloc(ray,
-                            _cachedRaycastHits,
-                            maxZDepth * 2f + 1f); // make sure we go deep enough to hit the collider on that object.. we hope
-                    }
+                        Vector3? worldPosition = null;
+                        var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);
 
-                    if (mouseRayHits > 0)
-                    {
-                        // order by distance from camera
-                        Array.Sort(_cachedRaycastHits, 0, mouseRayHits, _mouseHitComparer);
-                    }
+                        var mouseRayHits = 0;
 
-                    _clickedObjectNormalizedPaths.Clear();
-
-                    var bestIndex = int.MaxValue;
-                    if (mouseRayHits > 0)
-                    {
-                        foreach (var clickedTransformStatus in clickedOnObjects)
+                        var mainCamera = Camera.main;
+                        if (mainCamera != null)
                         {
-                            _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
-                            if (clickedTransformStatus.worldSpaceBounds != null)
-                            {
-                                // compare to any raycast hits and pick the one closest to the camera
-                                if (bestIndex > 0)
-                                {
-                                    for (var i = 0; i < mouseRayHits; i++)
-                                    {
-                                        var rayHit = _cachedRaycastHits[i];
-                                        try
-                                        {
-                                            if (_cachedRaycastHits[i].transform.GetInstanceID() == clickedTransformStatus.Id)
-                                            {
-                                                if (i < bestIndex)
-                                                {
-                                                    worldPosition = _cachedRaycastHits[i].point;
-                                                    bestIndex = i;
-                                                }
+                            var ray = mainCamera.ScreenPointToRay(mousePosition);
+                            mouseRayHits = Physics.RaycastNonAlloc(ray,
+                                _cachedRaycastHits,
+                                maxZDepth * 2f + 1f); // make sure we go deep enough to hit the collider on that object.. we hope
+                        }
 
-                                                break;
-                                            }
-                                        }
-                                        catch (Exception e)
+                        if (mouseRayHits > 0)
+                        {
+                            // order by distance from camera
+                            Array.Sort(_cachedRaycastHits, 0, mouseRayHits, _mouseHitComparer);
+                        }
+
+                        _clickedObjectNormalizedPaths.Clear();
+
+                        var bestIndex = int.MaxValue;
+                        if (mouseRayHits > 0)
+                        {
+                            foreach (var clickedTransformStatus in clickedOnObjects)
+                            {
+                                _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
+                                if (clickedTransformStatus.worldSpaceBounds != null)
+                                {
+                                    // compare to any raycast hits and pick the one closest to the camera
+                                    if (bestIndex > 0)
+                                    {
+                                        for (var i = 0; i < mouseRayHits; i++)
                                         {
-                                            RGDebug.LogException(e, "Exception handling raycast hits for in game object click");
+                                            var rayHit = _cachedRaycastHits[i];
+                                            try
+                                            {
+                                                if (_cachedRaycastHits[i].transform.GetInstanceID() == clickedTransformStatus.Id)
+                                                {
+                                                    if (i < bestIndex)
+                                                    {
+                                                        worldPosition = _cachedRaycastHits[i].point;
+                                                        bestIndex = i;
+                                                    }
+
+                                                    break;
+                                                }
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                RGDebug.LogException(e, "Exception handling raycast hits for in game object click");
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        // without a collider hit, we can't set a worldPosition
-                        foreach (var recordedGameObjectState in clickedOnObjects)
+                        else
                         {
-                            _clickedObjectNormalizedPaths.Add(recordedGameObjectState.NormalizedPath);
+                            // without a collider hit, we can't set a worldPosition
+                            foreach (var recordedGameObjectState in clickedOnObjects)
+                            {
+                                _clickedObjectNormalizedPaths.Add(recordedGameObjectState.NormalizedPath);
+                            }
                         }
+
+                        newMouseState.worldPosition = worldPosition;
+                        newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.ToArray();
+                        _mouseInputActions.Enqueue(newMouseState);
+                    }
+                    else if (_priorMouseState?.PositionsEqual(newMouseState) != true)
+                    {
+                        _mouseInputActions.Enqueue(newMouseState);
                     }
 
-                    newMouseState.worldPosition = worldPosition;
-                    newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.ToArray();
-                    _mouseInputActions.Enqueue(newMouseState);
+                    _priorMouseState = newMouseState;
                 }
-                else if (_priorMouseState?.PositionsEqual(newMouseState) != true)
-                {
-                    _mouseInputActions.Enqueue(newMouseState);
-                }
-
-                _priorMouseState = newMouseState;
             }
         }
 
