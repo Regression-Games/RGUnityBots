@@ -20,8 +20,20 @@ namespace RegressionGames
         internal static readonly int Rc_SequencePathMissing = 2;
         internal static readonly int Rc_OverlayNotInScene = 3;
         internal static readonly int Rc_SequenceLoadFailure = 4;
+        internal static readonly int Rc_SequenceTimeoutNeedsPath = 5;
+        internal static readonly int Rc_SequenceTimeoutMissing = 6;
+        internal static readonly int Rc_SequenceTimeoutNotInt = 7;
 
-        internal static readonly string CommandLineArgument = "-rgsequencepath";
+        internal static readonly string SequencePathArgument = "-rgsequencepath";
+        internal static readonly string SequenceTimeoutArgument = "-rgsequencetimeout";
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
+        public static void FirstLoadChecks()
+        {
+            // do this here to fail fast on bad args
+            ParsePathArgument();
+            ParseTimeoutArgument();
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         public static void Initialize()
@@ -32,7 +44,7 @@ namespace RegressionGames
                 BotSegmentsPlaybackController playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
                 if (playbackController == null)
                 {
-                    RGDebug.LogError($"RGOverlay must be in the first scene loaded for your game to utilize {CommandLineArgument} command line argument");
+                    RGDebug.LogError($"RGOverlay must be in the first scene loaded for your game to utilize {SequencePathArgument} command line argument");
                     Application.Quit(Rc_OverlayNotInScene);
                 }
 
@@ -108,19 +120,55 @@ namespace RegressionGames
             for (var i = 0; i < argsLength; i++)
             {
                 var arg = args[i];
-                if (arg == CommandLineArgument)
+                if (arg == SequencePathArgument)
                 {
                     if (i + 1 < argsLength)
                     {
                         return args[i + 1];
                     }
                     // else
-                    RGDebug.LogError($"{CommandLineArgument} command line argument requires a path value to be passed after it");
+                    RGDebug.LogError($"{SequencePathArgument} command line argument requires a path value to be passed after it");
                     Application.Quit(Rc_SequencePathMissing);
                 }
             }
 
             return null;
+        }
+
+        internal static int ParseTimeoutArgument()
+        {
+            var pathArgument = ParsePathArgument();
+            if (pathArgument == null)
+            {
+                RGDebug.LogError($"{SequenceTimeoutArgument} command line argument requires {SequencePathArgument} to also be specified");
+                Application.Quit(Rc_SequenceTimeoutNeedsPath);
+            }
+            var args = Environment.GetCommandLineArgs();
+            var argsLength = args.Length;
+            for (var i = 0; i < argsLength; i++)
+            {
+                var arg = args[i];
+                if (arg == SequenceTimeoutArgument)
+                {
+                    if (i + 1 < argsLength)
+                    {
+                        var nextArg = args[i + 1];
+
+                        if (!int.TryParse(nextArg, out var timeout))
+                        {
+                            RGDebug.LogError($"{SequenceTimeoutArgument} command line argument requires an integer timeout value to be passed after it");
+                            Application.Quit(Rc_SequenceTimeoutNotInt);
+                        }
+
+                        return timeout;
+                    }
+                    // else
+                    RGDebug.LogError($"{SequenceTimeoutArgument} command line argument requires an integer timeout value to be passed after it");
+                    Application.Quit(Rc_SequenceTimeoutMissing);
+                }
+            }
+
+            return 0;
         }
 
         /// <summary>
@@ -186,12 +234,13 @@ namespace RegressionGames
 
             _started = true;
             var sequencePath = RGHeadlessSequenceRunner.ParsePathArgument();
-            RGDebug.LogInfo("Regression Games bot sequence playback - loading and starting bot sequence from path: " + sequencePath);
+            var sequenceTimeout = RGHeadlessSequenceRunner.ParseTimeoutArgument();
+            RGDebug.LogInfo("Regression Games bot sequence playback - loading and starting bot sequence from path: " + sequencePath + " , with timeout: " + (sequenceTimeout<=0 ? "NONE":sequenceTimeout));
 
             try
             {
                 var botSequenceInfo = BotSequence.LoadSequenceJsonFromPath(sequencePath);
-                StartCoroutine(RGHeadlessSequenceRunner.StartBotSequence(botSequenceInfo, _result));
+                StartCoroutine(RGHeadlessSequenceRunner.StartBotSequence(botSequenceInfo, _result, sequenceTimeout));
             }
             catch (Exception ex)
             {
