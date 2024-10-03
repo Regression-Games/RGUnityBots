@@ -21,9 +21,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int EffectiveApiVersion => Math.Max(apiVersion, segments.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
 
         /**
-         * <summary>Title for this bot segment list. Used for naming on the UI.e</summary>
+         * <summary>Title for this bot segment list. Used for naming on the UI.</summary>
          */
         public string name;
+
+        // NOT WRITTEN TO JSON - The resource path for this botSegmentList... normally populated during load of saved lists
+        public string resourcePath;
 
         /**
          * <summary>Description for this bot segment list. Used for naming on the UI.</summary>
@@ -43,9 +46,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 if (string.IsNullOrEmpty(botSegment.name))
                 {
-                    botSegment.name = name + " - Segment #" + segmentNumber;
+                    botSegment.name = (name ?? resourcePath) + " - Segment #" + segmentNumber;
                 }
-
                 ++segmentNumber;
             }
         }

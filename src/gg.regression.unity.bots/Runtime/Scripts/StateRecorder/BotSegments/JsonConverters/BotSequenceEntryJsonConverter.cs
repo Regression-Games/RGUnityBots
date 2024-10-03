@@ -19,6 +19,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug when on separate lines
             BotSequenceEntry sequenceEntry = new();
             sequenceEntry.path = jObject.GetValue("path").ToObject<string>(serializer);
+            sequenceEntry.resourcePath = BotSequence.ToResourcePath(sequenceEntry.path);
             // dynamically find out the type
             var result = BotSequence.LoadBotSegmentOrBotSegmentListFromPath(sequenceEntry.path);
             if (result.Item3 is BotSegmentList bsl)
