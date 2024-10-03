@@ -34,6 +34,7 @@ namespace RegressionGames.Tests.RGOverlay
             var text = RGTestUtils.CreateTMProPlaceholder();
             card.namePrefab = text;
             card.descriptionPrefab = text;
+            card.resourcePathPrefab = text;
 
             // ensure public prefabs are mocked
             card.restingStatePrefab = new GameObject
