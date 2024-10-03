@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections;
+using System.Linq;
+using System.Reflection;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.Types;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
 
 // ReSharper disable InconsistentNaming
@@ -38,7 +41,46 @@ namespace RegressionGames
                 //ensure a keyboard exists for the input playback
                 if (IsBatchMode())
                 {
+                    var currentKeyboard = Keyboard.current;
+                    // this should always be null as -batchmode has no keyboard.. but if a game already has their own virtual keyboard for some reason, we don't need to make another
+                    if (currentKeyboard == null)
+                    {
+                        var virtualKeyboard = InputSystem.devices.FirstOrDefault(a => a.name == "RGVirtualKeyboard");
 
+                        if (virtualKeyboard == null)
+                        {
+                            virtualKeyboard = InputSystem.AddDevice<Keyboard>("RGVirtualKeyboard");
+                        }
+
+                        if (virtualKeyboard != null)
+                        {
+                            if (!virtualKeyboard.enabled)
+                            {
+                                InputSystem.EnableDevice(virtualKeyboard);
+                            }
+
+                            if (!virtualKeyboard.canRunInBackground)
+                            {
+                                // Forcibly allow the virtual keyboard to send events while the application is backgrounded
+                                // Note that if the user continues creating keyboard events while outside the application, this could still interfere
+                                // with the game if it is reading keyboard input via the Input System.
+                                var deviceFlagsField = virtualKeyboard.GetType().GetField("m_DeviceFlags", BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (deviceFlagsField != null)
+                                {
+                                    int canRunInBackground = 1 << 11;
+                                    int canRunInBackgroundHasBeenQueried = 1 << 12;
+                                    var deviceFlags = (int)deviceFlagsField.GetValue(virtualKeyboard);
+                                    deviceFlags |= canRunInBackground;
+                                    deviceFlags |= canRunInBackgroundHasBeenQueried;
+                                    deviceFlagsField.SetValue(virtualKeyboard, deviceFlags);
+                                }
+                                else
+                                {
+                                    RGDebug.LogWarning("Unable to set device canRunInBackground flags for virtual Keyboard");
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

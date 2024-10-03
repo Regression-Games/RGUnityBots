@@ -46,7 +46,7 @@ namespace RegressionGames.StateRecorder
         /// Queues a StateEvent onto the InputSystem event queue containing the desired state changes
         /// in the _keyStates field.
         /// </summary>
-        private static void QueueKeyboardUpdateEvent()
+        private static void QueueKeyboardUpdateEvent(int replaySegment)
         {
             var keyboard = Keyboard.current;
             if (keyboard != null)
@@ -65,7 +65,7 @@ namespace RegressionGames.StateRecorder
                             inputControl.WriteValueIntoEvent(entry.Value == KeyState.Down ? 1f : 0f, eventPtr);
                         }
                     }
-
+                    RGDebug.LogDebug($"({replaySegment}) [frame: {Time.frameCount}] - Queueing Keyboard Event to InputSystem");
                     InputSystem.QueueEvent(eventPtr);
                 }
             }
@@ -165,7 +165,7 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            QueueKeyboardUpdateEvent();
+            QueueKeyboardUpdateEvent(replaySegment);
 
             foreach (var entry in keyStates)
             {
@@ -198,7 +198,7 @@ namespace RegressionGames.StateRecorder
 
             _keyStates[key] = upOrDown;
 
-            QueueKeyboardUpdateEvent();
+            QueueKeyboardUpdateEvent(replaySegment);
 
             if (upOrDown == KeyState.Down)
             {
