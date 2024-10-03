@@ -121,8 +121,10 @@ namespace RegressionGames.TestFramework
         /// </summary>
         /// <param name="sequencePath">The relative path to the bot sequence</param>
         /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
-        public static IEnumerator StartBotSequence(string sequencePath, Action<PlaybackResult> setPlaybackResult)
+        /// <param name="timeout">How long in seconds to wait for this sequence to complete, <= 0 means wait forever (default)</param>
+        public static IEnumerator StartBotSequence(string sequencePath, Action<PlaybackResult> setPlaybackResult, int timeout = 0)
         {
+            var startTime = Time.unscaledTime;
             RGDebug.LogInfo("Loading and starting bot sequence from " + sequencePath);
 
             var botSequenceInfo = BotSequence.LoadSequenceJsonFromPath(sequencePath);
@@ -132,15 +134,22 @@ namespace RegressionGames.TestFramework
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
             yield return null; // Allow the recording to start playing
+            var didTimeout = false;
             while (playbackController.GetState() == PlayState.Playing || playbackController.GetState() == PlayState.Paused)
             {
+                if (timeout > 0 && Time.unscaledTime > startTime + timeout )
+                {
+                    didTimeout = true;
+                    break;
+                }
                 yield return null;
             }
             yield return null;
-            RGDebug.LogInfo("Playback complete!");
+            RGDebug.LogInfo("Playback complete! - " + (didTimeout? "TIMEOUT":"SUCCESS"));
             var result = new PlaybackResult
             {
-                saveLocation = playbackController.SaveLocation() + ".zip"
+                saveLocation = playbackController.SaveLocation() + ".zip",
+                success = !didTimeout
             };
             setPlaybackResult(result);
         }

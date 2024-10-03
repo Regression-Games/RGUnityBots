@@ -51,50 +51,52 @@ namespace RegressionGames.StateRecorder
 
         private void UpdateKeyStatesForFrame()
         {
-            if (Keyboard.current[Key.LeftCtrl].wasPressedThisFrame || Input.GetKeyDown(KeyCode.LeftControl))
+            if (Keyboard.current != null)
             {
-                IsLeftCtrlPressed = true;
-            }
+                if (Keyboard.current[Key.LeftCtrl].wasPressedThisFrame || Input.GetKeyDown(KeyCode.LeftControl))
+                {
+                    IsLeftCtrlPressed = true;
+                }
 
-            if (Keyboard.current[Key.LeftCtrl].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.LeftControl))
-            {
-                IsLeftCtrlPressed = false;
-            }
+                if (Keyboard.current[Key.LeftCtrl].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.LeftControl))
+                {
+                    IsLeftCtrlPressed = false;
+                }
 
-            if (Keyboard.current[Key.RightCtrl].wasPressedThisFrame || Input.GetKeyDown(KeyCode.RightControl))
-            {
-                IsRightCtrlPressed = true;
-            }
+                if (Keyboard.current[Key.RightCtrl].wasPressedThisFrame || Input.GetKeyDown(KeyCode.RightControl))
+                {
+                    IsRightCtrlPressed = true;
+                }
 
-            if (Keyboard.current[Key.RightCtrl].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.RightControl))
-            {
-                IsRightCtrlPressed = false;
-            }
+                if (Keyboard.current[Key.RightCtrl].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.RightControl))
+                {
+                    IsRightCtrlPressed = false;
+                }
 
-            if (Keyboard.current[Key.LeftShift].wasPressedThisFrame || Input.GetKeyDown(KeyCode.LeftShift))
-            {
-                IsLeftShiftPressed = true;
-            }
+                if (Keyboard.current[Key.LeftShift].wasPressedThisFrame || Input.GetKeyDown(KeyCode.LeftShift))
+                {
+                    IsLeftShiftPressed = true;
+                }
 
-            if (Keyboard.current[Key.LeftShift].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.LeftShift))
-            {
-                IsLeftShiftPressed = false;
-            }
+                if (Keyboard.current[Key.LeftShift].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.LeftShift))
+                {
+                    IsLeftShiftPressed = false;
+                }
 
-            if (Keyboard.current[Key.RightShift].wasPressedThisFrame || Input.GetKeyDown(KeyCode.RightShift))
-            {
-                IsRightShiftPressed = true;
-            }
+                if (Keyboard.current[Key.RightShift].wasPressedThisFrame || Input.GetKeyDown(KeyCode.RightShift))
+                {
+                    IsRightShiftPressed = true;
+                }
 
-            if (Keyboard.current[Key.RightShift].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.RightShift))
-            {
-                IsRightShiftPressed = false;
+                if (Keyboard.current[Key.RightShift].wasReleasedThisFrame || Input.GetKeyUp(KeyCode.RightShift))
+                {
+                    IsRightShiftPressed = false;
+                }
             }
-
         }
 
-        private bool WasF9PressedThisFrame => Keyboard.current[Key.F9].wasPressedThisFrame || Input.GetKeyDown(KeyCode.F9);
-        private bool WasF10PressedThisFrame => Keyboard.current[Key.F10].wasPressedThisFrame || Input.GetKeyDown(KeyCode.F10);
+        private bool WasF9PressedThisFrame => (Keyboard.current != null && Keyboard.current[Key.F9].wasPressedThisFrame) || Input.GetKeyDown(KeyCode.F9);
+        private bool WasF10PressedThisFrame => (Keyboard.current != null && Keyboard.current[Key.F10].wasPressedThisFrame) || Input.GetKeyDown(KeyCode.F10);
 
         private void Update()
         {
