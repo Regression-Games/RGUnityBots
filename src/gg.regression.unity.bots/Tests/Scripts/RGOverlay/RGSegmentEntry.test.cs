@@ -31,7 +31,7 @@ namespace RegressionGames.Tests.RGOverlay
             var tooltip = new GameObject()
             {
                 transform = parent.transform,
-            }
+            };
             tooltip.AddComponent<RGTooltip>();
             tooltip.transform.SetParent(entry.transform);
 
@@ -39,7 +39,7 @@ namespace RegressionGames.Tests.RGOverlay
             var segmentListIndicator = new GameObject()
             {
                 transform = parent.transform,
-            }
+            };
             segmentListIndicator.AddComponent<Image>();
             entry.segmentListIndicatorComponent = segmentListIndicator;
             entry.segmentListIndicatorComponent.SetActive(false);
