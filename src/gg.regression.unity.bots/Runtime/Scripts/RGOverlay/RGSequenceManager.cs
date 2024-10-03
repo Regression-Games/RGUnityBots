@@ -91,16 +91,6 @@ public class RGSequenceManager : MonoBehaviour
 
     public void Start()
     {
-        if (sequencesPanel == null)
-        {
-            Debug.LogError("RGSequenceManager is missing its sequencesPanel");
-        }
-        
-        if (segmentsPanel == null)
-        {
-            Debug.LogError("RGSequenceManager is missing its segmentsPanel");
-        }
-
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
 
         // load our assets and show the Sequences tab content
@@ -298,7 +288,7 @@ public class RGSequenceManager : MonoBehaviour
 
     /**
      * <summary>
-     * Load Segment files from disk and instantate them as Segment card prefabs, and ensure that the required fields
+     * Load Segment files from disk and instantiate them as Segment card prefabs, and ensure that the required fields
      * are set
      * </summary>
      */
@@ -309,10 +299,11 @@ public class RGSequenceManager : MonoBehaviour
         yield return null;
         
         var segments = BotSegment.LoadAllSegments();
-        foreach (var segmentPair in segments)
+        foreach (var segmentKV in segments)
         {
-            var path = segmentPair.Key;
-            var segment = segmentPair.Value;
+            var resourcePath = segmentKV.Key;
+            var filePath = segmentKV.Value.Item1;
+            var segment = segmentKV.Value.Item2;
             
             var instance = Instantiate(segmentCardPrefab, Vector3.zero, Quaternion.identity);
 
@@ -323,7 +314,8 @@ public class RGSequenceManager : MonoBehaviour
             {
                 prefabComponent.segmentName = segment.name;
                 prefabComponent.description = segment.description;
-                prefabComponent.path = path;
+                prefabComponent.filePath = filePath;
+                prefabComponent.resourcePath = resourcePath;
                 prefabComponent.type = segment.type;
             }
             

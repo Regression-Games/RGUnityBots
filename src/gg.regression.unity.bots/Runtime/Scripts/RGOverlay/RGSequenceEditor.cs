@@ -62,46 +62,10 @@ namespace RegressionGames
          */
         public void Initialize(bool makingACopy, string existingResourcePath, string existingFilePath = null)
         {
-            if (SearchInput == null)
-            {
-                Debug.LogError("RGSequenceEditor is missing its SearchInput");
-            }
-            else
-            {
-                SearchInput.onValueChanged.AddListener(OnSearchInputChange);
-            }
-
-            if (NameInput == null)
-            {
-                Debug.LogError("RGSequenceEditor is missing its NameInput");
-            }
-            else
-            {
-                NameInput.onValueChanged.AddListener(OnNameInputChange);
-            }
-
-            if (DescriptionInput == null)
-            {
-                Debug.LogError("RGSequenceEditor is missing its DescriptionInput");
-            }
-            else
-            {
-                DescriptionInput.onValueChanged.AddListener(OnDescriptionInputChange);
-            }
-
-            if (DropZonePrefab == null)
-            {
-                Debug.LogError("RGSequenceEditor is missing its DropZone");
-            }
-            else
-            {
-                _dropZone = DropZonePrefab.GetComponent<RGDropZone>();
-            }
-
-            if (SegmentCardPrefab == null)
-            {
-                Debug.LogError("RGSequenceEditor is missing its SegmentCardPrefab");
-            }
+            SearchInput.onValueChanged.AddListener(OnSearchInputChange);
+            NameInput.onValueChanged.AddListener(OnNameInputChange);
+            DescriptionInput.onValueChanged.AddListener(OnDescriptionInputChange);
+            _dropZone = DropZonePrefab.GetComponent<RGDropZone>();
 
             _makingACopy = makingACopy;
 
@@ -161,7 +125,11 @@ namespace RegressionGames
             EnforceRequiredInputs();
 
             // load all segments and add them to the Available Segments list
-            _segmentEntries = BotSegment.LoadAllSegments().Values.ToList();
+            _segmentEntries = BotSegment
+                .LoadAllSegments()
+                .Values
+                .Select(seg => seg.Item2)
+                .ToList();
             CreateAvailableSegments(_segmentEntries);
         }
 
@@ -325,7 +293,11 @@ namespace RegressionGames
         public void ReloadAvailableSegments()
         {
             SearchInput.text = string.Empty;
-            _segmentEntries = BotSegment.LoadAllSegments().Values.ToList();
+            _segmentEntries = BotSegment
+                .LoadAllSegments()
+                .Values
+                .Select(seg => seg.Item2)
+                .ToList();
             CreateAvailableSegments(_segmentEntries);
         }
 

@@ -19,9 +19,10 @@ public class RGSegmentEntry : MonoBehaviour
     public string segmentName;
 
     public string description;
-    
-    // will be a file path when in-editor, or a resources path when in a packaged build
-    public string path;
+
+    public string filePath;
+
+    public string resourcePath;
 
     public BotSequenceEntryType type;
     
@@ -47,37 +48,10 @@ public class RGSegmentEntry : MonoBehaviour
      */
     public void Start()
     {
-        if (string.IsNullOrEmpty(path))
-        {
-            Debug.LogError($"RGSegmentEntry is missing its path");
-        }
-        
-        if (nameComponent != null)
-        {
-            nameComponent.text = segmentName;
-        }
-        else
-        {
-            Debug.LogError($"RGSegmentEntry is missing its nameComponent");            
-        }
-
-        if (descriptionComponent != null)
-        {
-            descriptionComponent.text = description;
-        }
-        else
-        {
-            Debug.LogError($"RGSegmentEntry is missing its descriptionComponent");
-        }
-
-        if (playButton != null)
-        {
-            playButton.onClick.AddListener(OnPlay);
-        }
-        else
-        {
-            Debug.LogError($"RGSegmentEntry is missing its playButton");
-        }
+        // assign values to the UI components
+        nameComponent.text = segmentName;
+        descriptionComponent.text = description;
+        playButton.onClick.AddListener(OnPlay);
 
         // create a tooltip containing the segment's description, but only if the description is populated
         var tooltip = GetComponentInChildren<RGTooltip>();
@@ -93,14 +67,7 @@ public class RGSegmentEntry : MonoBehaviour
         // show an icon indicating that this segment is a SegmentList (if needed)
         if (type == BotSequenceEntryType.SegmentList)
         {
-            if (segmentListIndicatorComponent != null)
-            {
-                segmentListIndicatorComponent.SetActive(true);
-            }
-            else
-            {
-                Debug.LogError($"RGSegmentEntry is missing its segmentListIndicatorComponent");
-            }
+            segmentListIndicatorComponent.SetActive(true);
         }
     }
 
@@ -111,13 +78,6 @@ public class RGSegmentEntry : MonoBehaviour
      */
     private void OnPlay()
     {
-        var botManager = RGBotManager.GetInstance();
-        if (botManager == null)
-        {
-            Debug.LogError("RGSegmentEntry cannot find the RGBotManager in its OnPlay function");
-            return;
-        }
-        
         var toolbarManager = FindObjectOfType<ReplayToolbarManager>();
         if (toolbarManager == null)
         {
@@ -127,12 +87,13 @@ public class RGSegmentEntry : MonoBehaviour
         toolbarManager.selectedReplayFilePath = null;
         
         // set the recording toolbar's state for playing this segment
+        var botManager = RGBotManager.GetInstance();
         botManager.OnBeginPlaying();
 
         // create the list of segments to play (in our case there will only be 1)
         var segmentList = new List<BotSegmentList>
         {
-            BotSequence.CreateBotSegmentListForPath(path, out var sessId)
+            BotSequence.CreateBotSegmentListForPath(filePath ?? resourcePath, out var sessId)
         };
         var sessionId = sessId ?? Guid.NewGuid().ToString();
         
