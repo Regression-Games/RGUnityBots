@@ -265,10 +265,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * <summary>
          * Loads all the Segments that exist in this project (for use in the Editor or in a build)
          * </summary>
+         * <returns>
+         * Dictionary of:
+         * - Item1: resourcePath
+         * - Item2: filePath
+         * - Item3: BotSequenceEntry
+         * </returns>
          */
-        public static Dictionary<string, BotSequenceEntry> LoadAllSegments()
+        public static Dictionary<string, (string, BotSequenceEntry)> LoadAllSegments()
         {
-            var segments = new Dictionary<string,BotSequenceEntry>();
+            var segments = new Dictionary<string, (string,BotSequenceEntry)>();
 
 #if UNITY_EDITOR
             const string segmentPath = "Assets/RegressionGames/Resources/BotSegments";
@@ -302,7 +308,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         var sequenceEntry = BotSequence.CreateBotSequenceEntryForJson(null, resourceFilename, sequenceInfo.text ?? "");
 
                         // add the new sequence if its filename doesn't already exist
-                        segments.Add(sequenceEntry.resourcePath, sequenceEntry);
+                        // add the new sequence with a null filePath
+                        segments.Add(sequenceEntry.resourcePath, (null, sequenceEntry));
                     }
                 }
                 catch (Exception e)
@@ -321,9 +328,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * </summary>
          * <param name="path">Directory to search for Segments</param>
          */
-        private static Dictionary<string, BotSequenceEntry> LoadSegmentsInDirectory(string path)
+        private static Dictionary<string, (string, BotSequenceEntry)> LoadSegmentsInDirectory(string path)
         {
-            var results = new Dictionary<string, BotSequenceEntry>();
+            var results = new Dictionary<string, (string, BotSequenceEntry)>();
             var files = Directory.GetFiles(path, "*.json", SearchOption.AllDirectories).Select(s=> s.Replace('\\','/'));
             foreach (var fileName in files)
             {
@@ -332,7 +339,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (entry.Item2 != null && !results.ContainsKey(entry.Item2))
                 {
                     // parse the result as either a segment or segment list
-                    results[entry.Item2] = entry.Item3;
+                    results[entry.Item2] = (entry.Item1, entry.Item3);
                 }
             }
 

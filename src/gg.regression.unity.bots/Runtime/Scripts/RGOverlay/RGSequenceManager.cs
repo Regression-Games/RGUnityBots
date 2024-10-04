@@ -20,9 +20,15 @@ using System.Linq;
  */
 public class RGSequenceManager : MonoBehaviour
 {
+    // a scrollable container populated with the project's Sequences
     public GameObject sequencesPanel;
+    
+    // a scrollable container populated with the project's Segments
+    public GameObject segmentsPanel;
 
     public GameObject sequenceCardPrefab;
+    
+    public GameObject segmentCardPrefab;
 
     public GameObject sequenceEditor;
 
@@ -38,7 +44,7 @@ public class RGSequenceManager : MonoBehaviour
         {
             _this = FindObjectOfType<RGSequenceManager>();
         }
-
+        
         return _this;
     }
 
@@ -52,6 +58,32 @@ public class RGSequenceManager : MonoBehaviour
         StartCoroutine(ResolveSequenceFiles());
     }
 
+    /**
+     * <summary>
+     * Load and instantiate the Segments list
+     * </summary>
+     */
+    public void LoadSegments()
+    {
+        StartCoroutine(InstantiateSegments());
+    }
+
+    /**
+     * Load and instantiate the prefabs relevant to the currently displayed tab
+     * (used with the reload button)
+     */
+    public void LoadCurrentTab()
+    {
+        if (sequencesPanel.activeSelf)
+        {
+            LoadSequences();
+        }
+        else
+        {
+            LoadSegments();
+        }
+    }
+
     public void Awake()
     {
         DontDestroyOnLoad(gameObject);
@@ -59,8 +91,12 @@ public class RGSequenceManager : MonoBehaviour
 
     public void Start()
     {
-        LoadSequences();
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
+
+        // load our assets and show the Sequences tab content
+        LoadSequences();
+        LoadSegments();
+        SetSequencesTabActive();
     }
 
     /**
@@ -165,6 +201,34 @@ public class RGSequenceManager : MonoBehaviour
         }
     }
 
+    /**
+     * <summary>
+     * Show the Sequences list and hide the Segments
+     * </summary>
+     */
+    public void SetSequencesTabActive()
+    {
+        sequencesPanel.SetActive(true);
+        segmentsPanel.SetActive(false);
+    }
+    
+    /**
+     * <summary>
+     * Show the Segments list and hide the Sequences
+     * </summary>
+     */
+    public void SetSegmentsTabActive()
+    {
+        sequencesPanel.SetActive(false);
+        segmentsPanel.SetActive(true);
+    }
+
+    /**
+     * <summary>
+     * Instantiate a Sequences card prefab, add it to the Sequences list, and populate the prefab with
+     * the required values
+     * </summary>
+     */
     private void InstantiateSequence(string resourcePath, (string, BotSequence) sequenceInfo)
     {
         var instance = Instantiate(sequenceCardPrefab, Vector3.zero, Quaternion.identity);
@@ -223,6 +287,43 @@ public class RGSequenceManager : MonoBehaviour
     }
 
     /**
+     * <summary>
+     * Load Segment files from disk and instantiate them as Segment card prefabs, and ensure that the required fields
+     * are set
+     * </summary>
+     */
+    private IEnumerator InstantiateSegments()
+    {
+        ClearExistingSegments();
+        
+        yield return null;
+        
+        var segments = BotSegment.LoadAllSegments();
+        foreach (var segmentKV in segments)
+        {
+            var resourcePath = segmentKV.Key;
+            var filePath = segmentKV.Value.Item1;
+            var segment = segmentKV.Value.Item2;
+            
+            var instance = Instantiate(segmentCardPrefab, Vector3.zero, Quaternion.identity);
+
+            // map segment data fields to new prefab
+            instance.transform.SetParent(segmentsPanel.transform, false);
+            var prefabComponent = instance.GetComponent<RGSegmentEntry>();
+            if (prefabComponent != null)
+            {
+                prefabComponent.segmentName = segment.name;
+                prefabComponent.description = segment.description;
+                prefabComponent.filePath = filePath;
+                prefabComponent.resourcePath = resourcePath;
+                prefabComponent.type = segment.type;
+            }
+            
+            yield return null;
+        }
+    }
+
+    /**
      * <summary>Destroy all Sequence cards in the UI</summary>
      */
     private void ClearExistingSequences()
@@ -238,6 +339,20 @@ public class RGSequenceManager : MonoBehaviour
                 }
 
                 Destroy(sequencesPanel.transform.GetChild(i).gameObject);
+            }
+        }
+    }
+    
+    /**
+     * <summary>Destroy all Segment cards in the UI</summary>
+     */
+    private void ClearExistingSegments()
+    {
+        if (segmentsPanel != null)
+        {
+            for (var i = 0; i < segmentsPanel.transform.childCount; i++)
+            {
+                Destroy(segmentsPanel.transform.GetChild(i).gameObject);
             }
         }
     }

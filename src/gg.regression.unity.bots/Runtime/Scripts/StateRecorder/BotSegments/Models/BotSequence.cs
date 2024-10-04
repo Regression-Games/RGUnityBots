@@ -80,7 +80,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * <exception>If the .json path specified is NOT parsable as a BotSegment or BotSegmentList, this API will throw an exception.</exception>
          * <returns>The parsed BotSegmentList or a BotSegmentList with the single BotSegment Found</returns>
          */
-        private static BotSegmentList CreateBotSegmentListForPath(string path, out string sessionId)
+        public static BotSegmentList CreateBotSegmentListForPath(string path, out string sessionId)
         {
             var result = LoadBotSegmentOrBotSegmentListFromPath(path);
             if (result.Item3 is BotSegmentList bsl)
