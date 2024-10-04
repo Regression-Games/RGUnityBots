@@ -422,7 +422,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             catch (Exception e)
             {
-                throw new Exception($"Exception reading json files from resource path: {runtimePath}", e);
+                throw new Exception($"Exception reading json files from resource path: {resourcePath}", e);
             }
 #endif
 
