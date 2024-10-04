@@ -450,7 +450,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             {
                                 // only mark this fully matched (as opposed to transient if it is the current segment)
                                 nextBotSegment.Replay_Matched = true;
-                                RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched - {nextBotSegment.name} - {nextBotSegment.description}");
+                                RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Criteria Matched - {nextBotSegment.name ?? nextBotSegment.resourcePath} - {nextBotSegment.description}");
 
                                 if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted)
                                 {
@@ -476,7 +476,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         if (nextBotSegment.Replay_Matched && nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
                         {
                             _lastTimeLoggedKeyFrameConditions = now;
-                            RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Criteria Matched && Action Completed - {nextBotSegment.name} - {nextBotSegment.description}");
+                            RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Criteria Matched && Action Completed - {nextBotSegment.name ?? nextBotSegment.resourcePath} - {nextBotSegment.description}");
                             //Process the inputs from that bot segment if necessary
                             _nextBotSegments.RemoveAt(i);
                         }
@@ -522,7 +522,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             {
                                 _lastTimeLoggedKeyFrameConditions = now;
                                 FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                                RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment - {next.name} - {next.description}");
+                                RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment - {next.name ?? next.resourcePath} - {next.description}");
                                 _nextBotSegments.Add(next);
                             }
                         }
@@ -536,7 +536,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     {
                         _lastTimeLoggedKeyFrameConditions = now;
                         FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation - {next.name} - {next.description}");
+                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation - {next.name ?? next.resourcePath} - {next.description}");
                         _nextBotSegments.Add(next);
                     }
                 }

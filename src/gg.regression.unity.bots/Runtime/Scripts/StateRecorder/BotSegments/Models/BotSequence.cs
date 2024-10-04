@@ -92,9 +92,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 var segment = (BotSegment)result.Item3;
                 sessionId = segment.sessionId;
-                var segmentList = new BotSegmentList(path, new List<BotSegment> { segment });
-                segmentList.name = segment.name;
-                segmentList.description = segment.description;
+                var segmentList = new BotSegmentList(path, new List<BotSegment> { segment })
+                {
+                    name = segment.name,
+                    resourcePath = segment.resourcePath,
+                    description = segment.description
+                };
                 segmentList.FixupNames();
                 return segmentList;
             }
@@ -115,10 +118,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     throw new Exception($"BotSegmentList file contains a segment which requires SDK version {segmentList.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
                 }
 
-                if (string.IsNullOrEmpty(segmentList.name))
-                {
-                    segmentList.name = resourcePath;
-                }
+                segmentList.resourcePath = resourcePath;
 
                 segmentList.FixupNames();
                 return segmentList;
@@ -133,11 +133,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     throw new Exception($"BotSegment file requires SDK version {segment.EffectiveApiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}");
                 }
 
-                if (string.IsNullOrEmpty(segment.name))
-                {
-                    segment.name = resourcePath;
-                }
-
+                segment.resourcePath = resourcePath;
                 return segment;
             }
         }
@@ -357,14 +353,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         }
 
-        /**
-         * <summary>Load the json resource at the specified path.  If .json is not on this path it will be auto appended.</summary>
-         * <returns>A (FilePath [null - if loaded as resource], resourcePath, contentString) tuple</returns>
-         */
-        public static (string, string, string) LoadJsonResource(string path)
+        public static string ToResourcePath(string path)
         {
-            (string, string, string)? result = null;
-
             var resourcePath = path;
             if (resourcePath.Contains("Resources/"))
             {
@@ -376,6 +366,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 resourcePath = resourcePath.Substring(0, lastIndex);
             }
+
+            return resourcePath;
+        }
+
+        /**
+         * <summary>Load the json resource at the specified path.  If .json is not on this path it will be auto appended.</summary>
+         * <returns>A (FilePath [null - if loaded as resource], resourcePath, contentString) tuple</returns>
+         */
+        public static (string, string, string) LoadJsonResource(string path)
+        {
+            (string, string, string)? result = null;
+
+            var resourcePath = ToResourcePath(path);
 
             // document ..
 #if UNITY_EDITOR
@@ -474,6 +477,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     {
                         type = BotSequenceEntryType.SegmentList,
                         path = filePath ?? resourcePath,
+                        resourcePath = resourcePath,
                         name = bsl.name,
                         description = bsl.description
                     };
@@ -484,6 +488,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 {
                     type = BotSequenceEntryType.Segment,
                     path = filePath ?? resourcePath,
+                    resourcePath = resourcePath,
                     name = botSegment.name,
                     description = botSegment.description
                 };
@@ -511,6 +516,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     {
                         type = BotSequenceEntryType.SegmentList,
                         path = result.Item1 ?? result.Item2,
+                        resourcePath = result.Item2,
                         name = bsl.name,
                         description = bsl.description
                     });
@@ -521,6 +527,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 {
                     type = BotSequenceEntryType.Segment,
                     path = result.Item1 ?? result.Item2,
+                    resourcePath = result.Item2,
                     name = botSegment.name,
                     description = botSegment.description
                 });

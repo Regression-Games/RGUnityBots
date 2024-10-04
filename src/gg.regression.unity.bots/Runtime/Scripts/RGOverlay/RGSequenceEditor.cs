@@ -464,11 +464,11 @@ namespace RegressionGames
                 // load the card's payload
                 segmentCard.payload = new Dictionary<string, string>
                 {
-                    { "path", entry.path },
-                    { "type", entry.type.ToString() }
+                    { "path", entry.resourcePath }
                 };
                 segmentCard.draggableCardName = entry.name;
                 segmentCard.draggableCardDescription = entry.description;
+                segmentCard.draggableCardResourcePath = entry.resourcePath;
                 segmentCard.icon = entry.type == BotSequenceEntryType.Segment ? SegmentIcon : SegmentListIcon;
             }
         }
