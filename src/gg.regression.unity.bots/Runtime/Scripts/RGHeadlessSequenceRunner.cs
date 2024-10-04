@@ -30,12 +30,9 @@ namespace RegressionGames
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
         public static void FirstLoadChecks()
         {
-            // If we are not in headless mode, we don't need these checks.
-            if (Application.isBatchMode){
-                // do this here to fail fast on bad args
-                ParsePathArgument();
-                ParseTimeoutArgument();
-            }
+            // do this here to fail fast on bad args
+            ParsePathArgument();
+            ParseTimeoutArgument();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -140,12 +137,6 @@ namespace RegressionGames
 
         internal static int ParseTimeoutArgument()
         {
-            var pathArgument = ParsePathArgument();
-            if (pathArgument == null)
-            {
-                RGDebug.LogError($"{SequenceTimeoutArgument} command line argument requires {SequencePathArgument} to also be specified");
-                Application.Quit(Rc_SequenceTimeoutNeedsPath);
-            }
             var args = Environment.GetCommandLineArgs();
             var argsLength = args.Length;
             for (var i = 0; i < argsLength; i++)
@@ -153,6 +144,13 @@ namespace RegressionGames
                 var arg = args[i];
                 if (arg == SequenceTimeoutArgument)
                 {
+                    var pathArgument = ParsePathArgument();
+                    if (pathArgument == null)
+                    {
+                        RGDebug.LogError($"{SequenceTimeoutArgument} command line argument requires {SequencePathArgument} to also be specified");
+                        Application.Quit(Rc_SequenceTimeoutNeedsPath);
+                    }
+
                     if (i + 1 < argsLength)
                     {
                         var nextArg = args[i + 1];
