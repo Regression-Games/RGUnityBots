@@ -30,9 +30,12 @@ namespace RegressionGames
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
         public static void FirstLoadChecks()
         {
-            // do this here to fail fast on bad args
-            ParsePathArgument();
-            ParseTimeoutArgument();
+            // If we are not in headless mode, we don't need these checks.
+            if (Application.isBatchMode){
+                // do this here to fail fast on bad args
+                ParsePathArgument();
+                ParseTimeoutArgument();
+            }
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
