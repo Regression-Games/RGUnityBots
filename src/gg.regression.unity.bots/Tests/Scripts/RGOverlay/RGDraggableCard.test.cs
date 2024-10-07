@@ -59,7 +59,8 @@ namespace RegressionGames.Tests.RGOverlay
                 }
             };
             draggedCard.iconPrefab.AddComponent<Image>();
-            draggedCard.namePrefab = RGTestUtils.CreateTMProPlaceholder();
+            draggedCard.nameComponent = RGTestUtils.CreateTMProPlaceholder();
+            draggedCard.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder();
             card.icon = RGTestUtils.CreateSpritePlaceholder();
             card.iconPrefab = new GameObject(){
                 transform =
