@@ -34,6 +34,9 @@ public class RGSegmentEntry : MonoBehaviour
     
     [SerializeField]
     public TMP_Text nameComponent;
+    
+    [SerializeField]
+    public TMP_Text resourcePathComponent;
 
     [SerializeField]
     public TMP_Text descriptionComponent;
@@ -48,8 +51,32 @@ public class RGSegmentEntry : MonoBehaviour
      */
     public void Start()
     {
+        // if we have a name set
+        if (!string.IsNullOrEmpty(segmentName))
+        {
+            if (nameComponent != null)
+            {
+                nameComponent.text = segmentName;
+            }
+
+            if (resourcePathComponent != null)
+            {
+                resourcePathComponent.text = resourcePath;
+                resourcePathComponent.gameObject.SetActive(true);
+            }
+        }
+        else
+        {
+            // use the resource path as the name and hide the hint path
+            nameComponent.text = resourcePath;
+            if (resourcePathComponent != null)
+            {
+                resourcePathComponent.text = "";
+                resourcePathComponent.gameObject.SetActive(false);
+            }
+        }
+        
         // assign values to the UI components
-        nameComponent.text = segmentName;
         descriptionComponent.text = description;
         playButton.onClick.AddListener(OnPlay);
 
