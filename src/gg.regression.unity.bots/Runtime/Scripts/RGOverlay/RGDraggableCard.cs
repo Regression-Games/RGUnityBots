@@ -20,6 +20,8 @@ namespace RegressionGames
 
         public string draggableCardName;
 
+        public string draggableCardResourcePath;
+
         public string draggableCardDescription;
 
         public Sprite icon;
@@ -27,6 +29,8 @@ namespace RegressionGames
         public GameObject iconPrefab;
 
         public TMP_Text namePrefab;
+
+        public TMP_Text resourcePathPrefab;
 
         public TMP_Text descriptionPrefab;
 
@@ -47,7 +51,8 @@ namespace RegressionGames
         private const float MUTED_ALPHA = 0.2f;
 
         private const int EXPANDED_HEIGHT = 80;
-        private const int SHRUNKEN_HEIGHT = 30;
+
+        private float originalHeight = 40;
 
         public void Start()
         {
@@ -55,9 +60,29 @@ namespace RegressionGames
 
             _isHighlighted = false;
 
-            if (namePrefab != null)
+            // if we have a name set
+            if (!string.IsNullOrEmpty(draggableCardName))
             {
-                namePrefab.text = draggableCardName;
+                if (namePrefab != null)
+                {
+                    namePrefab.text = draggableCardName;
+                }
+
+                if (resourcePathPrefab != null)
+                {
+                    resourcePathPrefab.text = draggableCardResourcePath;
+                    resourcePathPrefab.gameObject.SetActive(true);
+                }
+            }
+            else
+            {
+                // use the resource path as the name and hide the hint path
+                namePrefab.text = draggableCardResourcePath;
+                if (resourcePathPrefab != null)
+                {
+                    resourcePathPrefab.text = "";
+                    resourcePathPrefab.gameObject.SetActive(false);
+                }
             }
 
             if (descriptionPrefab != null)
@@ -69,6 +94,10 @@ namespace RegressionGames
             {
                 iconPrefab.GetComponent<Image>().overrideSprite = icon;
             }
+
+            var rect = GetComponent<RectTransform>();
+            var size = rect.sizeDelta;
+            originalHeight = size.y;
         }
 
         /**
@@ -105,6 +134,7 @@ namespace RegressionGames
                 {
                     dragged.payload = payload;
                     dragged.draggedCardName = draggableCardName;
+                    dragged.draggedCardResourcePath = draggableCardResourcePath;
                     dragged.iconPrefab.GetComponent<Image>().overrideSprite = icon;
                 }
 
@@ -245,18 +275,21 @@ namespace RegressionGames
          */
         private void ToggleExpand(bool forceShrink = false)
         {
-            if (string.IsNullOrEmpty(descriptionPrefab.text) && !namePrefab.isTextOverflowing)
+            if (string.IsNullOrEmpty(descriptionPrefab.text) && !namePrefab.isTextOverflowing && !resourcePathPrefab.isTextOverflowing)
             {
                 // don't expand cards without a description or overtly long name
                 return;
             }
 
             var isActive = descriptionPrefab.gameObject.activeSelf || forceShrink;
-            var newHeight = isActive ? SHRUNKEN_HEIGHT : EXPANDED_HEIGHT;
+            var newHeight = isActive ? originalHeight : EXPANDED_HEIGHT;
 
             // show full card name when expanded
             var newOverflow = isActive ? TextOverflowModes.Ellipsis : TextOverflowModes.Overflow;
             namePrefab.overflowMode = newOverflow;
+
+            // show full path with expanded
+            resourcePathPrefab.overflowMode = newOverflow;
 
             descriptionPrefab.gameObject.SetActive(!isActive);
 
@@ -290,6 +323,7 @@ namespace RegressionGames
                 if (child != null && i != selfIndex)
                 {
                     child.namePrefab.CrossFadeAlpha(newAlpha, 0.1f, false);
+                    child.resourcePathPrefab.CrossFadeAlpha(newAlpha, 0.1f, false);
                     child.descriptionPrefab.CrossFadeAlpha(newAlpha, 0.1f, false);
                     child.iconPrefab.GetComponent<Image>().color = new Color(1.0f, 1.0f, 1.0f, newAlpha);
                 }

@@ -34,6 +34,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public string name;
 
+        // NOT WRITTEN TO JSON - The resource path for this botSegment... normally populated during load of saved segments
+        public string resourcePath;
+
         /**
          * <summary>Description for this bot segment. Used for naming on the UI.</summary>
          */
@@ -304,8 +307,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         var sequenceInfo = Resources.Load<TextAsset>(resourceFilename);
                         var sequenceEntry = BotSequence.CreateBotSequenceEntryForJson(null, resourceFilename, sequenceInfo.text ?? "");
 
+                        // add the new sequence if its filename doesn't already exist
                         // add the new sequence with a null filePath
-                        segments.Add(resourceFilename, (null, sequenceEntry));
+                        segments.Add(sequenceEntry.resourcePath, (null, sequenceEntry));
                     }
                 }
                 catch (Exception e)

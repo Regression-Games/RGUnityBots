@@ -18,7 +18,7 @@ namespace RegressionGames.StateRecorder
 
         // Stores the changed state of keys. When the Input System completes an update, this is cleared.
         // If multiple key state changes occur within the same frame, all of these are added to the keyboard event that is sent to the Input System.
-        private static Dictionary<Key, KeyState> _keyStates = new Dictionary<Key, KeyState>();
+        private static Dictionary<Key, KeyState> _keyStates = new ();
 
         private static bool _isInitialized = false;
 
@@ -46,25 +46,28 @@ namespace RegressionGames.StateRecorder
         /// Queues a StateEvent onto the InputSystem event queue containing the desired state changes
         /// in the _keyStates field.
         /// </summary>
-        private static void QueueKeyboardUpdateEvent()
+        private static void QueueKeyboardUpdateEvent(int replaySegment)
         {
             var keyboard = Keyboard.current;
-            using (StateEvent.From(keyboard, out var eventPtr))
+            if (keyboard != null)
             {
-                var time = InputState.currentTime;
-                eventPtr.time = time;
-
-                // Include all key states that have been changed since the last InputSystem update cycle
-                foreach (var entry in _keyStates)
+                using (StateEvent.From(keyboard, out var eventPtr))
                 {
-                    var inputControl = keyboard.allControls.FirstOrDefault(a => a is KeyControl kc && kc.keyCode == entry.Key);
-                    if (inputControl != null)
-                    {
-                        inputControl.WriteValueIntoEvent(entry.Value == KeyState.Down ? 1f : 0f, eventPtr);
-                    }
-                }
+                    var time = InputState.currentTime;
+                    eventPtr.time = time;
 
-                InputSystem.QueueEvent(eventPtr);
+                    // Include all key states that have been changed since the last InputSystem update cycle
+                    foreach (var entry in _keyStates)
+                    {
+                        var inputControl = keyboard.allControls.FirstOrDefault(a => a is KeyControl kc && kc.keyCode == entry.Key);
+                        if (inputControl != null)
+                        {
+                            inputControl.WriteValueIntoEvent(entry.Value == KeyState.Down ? 1f : 0f, eventPtr);
+                        }
+                    }
+                    RGDebug.LogDebug($"({replaySegment}) [frame: {Time.frameCount}] - Queueing Keyboard Event to InputSystem");
+                    InputSystem.QueueEvent(eventPtr);
+                }
             }
         }
 
@@ -73,52 +76,63 @@ namespace RegressionGames.StateRecorder
         /// </summary>
         private static bool IsKeyPressedOrPending(Key key)
         {
-            return Keyboard.current[key].isPressed
+            var keyboard = Keyboard.current;
+            if (keyboard == null)
+            {
+                return false;
+            }
+
+            return keyboard[key].isPressed
                    || (_keyStates.TryGetValue(key, out KeyState state) && state == KeyState.Down);
         }
 
         private static void QueueTextEvent(int replaySegment, Key key)
         {
-            // send a text event so that 'onChange' text events fire
-            // convert key to text
-            if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(key, out var possibleValues))
+            var currentKeyboard = Keyboard.current;
+            if (currentKeyboard != null)
             {
-                var value = _isShiftDown ? possibleValues.Item2 : possibleValues.Item1;
-                if (value == 0x00)
+                // send a text event so that 'onChange' text events fire
+                // convert key to text
+                if (KeyboardInputActionObserver.KeyboardKeyToValueMap.TryGetValue(key, out var possibleValues))
                 {
-                    RGDebug.LogError($"Found null value for keyboard input {key}");
-                    return;
-                }
-
-                var inputEvent = TextEvent.Create(Keyboard.current.deviceId, value, InputState.currentTime);
-                RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
-                InputSystem.QueueEvent(ref inputEvent);
-            }
-
-            // If there are active UI input fields, simulate a KeyDown UI event for newly pressed keys
-            // This simulation is done directly on the components, because there is no way to directly queue the event to Unity's event manager
-            var inputFields = UnityEngine.Object.FindObjectsOfType<InputField>();
-            var tmpInputFields = UnityEngine.Object.FindObjectsOfType<TMP_InputField>();
-            if (inputFields.Length > 0 || tmpInputFields.Length > 0)
-            {
-                var keyCode = RGLegacyInputUtils.InputSystemKeyToKeyCode(key);
-                Event evt = CreateUIKeyboardEvent(keyCode,
-                    isShiftDown: _isShiftDown,
-                    isCommandDown: IsKeyPressedOrPending(Key.LeftCommand) || IsKeyPressedOrPending(Key.RightCommand),
-                    isAltDown: IsKeyPressedOrPending(Key.LeftAlt) || IsKeyPressedOrPending(Key.RightAlt),
-                    isControlDown: IsKeyPressedOrPending(Key.LeftCtrl) || IsKeyPressedOrPending(Key.RightCtrl));
-                foreach (var inputField in inputFields)
-                {
-                    if (inputField.isFocused)
+                    var value = _isShiftDown ? possibleValues.Item2 : possibleValues.Item1;
+                    if (value == 0x00)
                     {
-                        SendKeyEventToInputField(evt, inputField);
+                        RGDebug.LogError($"Found null value for keyboard input {key}");
+                        return;
                     }
+
+                    var inputEvent = TextEvent.Create(currentKeyboard.deviceId, value, InputState.currentTime);
+                    RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
+                    InputSystem.QueueEvent(ref inputEvent);
                 }
-                foreach (var tmpInputField in tmpInputFields)
+
+                // If there are active UI input fields, simulate a KeyDown UI event for newly pressed keys
+                // This simulation is done directly on the components, because there is no way to directly queue the event to Unity's event manager
+                var inputFields = UnityEngine.Object.FindObjectsOfType<InputField>();
+                var tmpInputFields = UnityEngine.Object.FindObjectsOfType<TMP_InputField>();
+                if (inputFields.Length > 0 || tmpInputFields.Length > 0)
                 {
-                    if (tmpInputField.isFocused)
+                    var keyCode = RGLegacyInputUtils.InputSystemKeyToKeyCode(key);
+                    Event evt = CreateUIKeyboardEvent(keyCode,
+                        isShiftDown: _isShiftDown,
+                        isCommandDown: IsKeyPressedOrPending(Key.LeftCommand) || IsKeyPressedOrPending(Key.RightCommand),
+                        isAltDown: IsKeyPressedOrPending(Key.LeftAlt) || IsKeyPressedOrPending(Key.RightAlt),
+                        isControlDown: IsKeyPressedOrPending(Key.LeftCtrl) || IsKeyPressedOrPending(Key.RightCtrl));
+                    foreach (var inputField in inputFields)
                     {
-                        SendKeyEventToInputField(evt, tmpInputField);
+                        if (inputField.isFocused)
+                        {
+                            SendKeyEventToInputField(evt, inputField);
+                        }
+                    }
+
+                    foreach (var tmpInputField in tmpInputFields)
+                    {
+                        if (tmpInputField.isFocused)
+                        {
+                            SendKeyEventToInputField(evt, tmpInputField);
+                        }
                     }
                 }
             }
@@ -151,7 +165,7 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            QueueKeyboardUpdateEvent();
+            QueueKeyboardUpdateEvent(replaySegment);
 
             foreach (var entry in keyStates)
             {
@@ -184,7 +198,7 @@ namespace RegressionGames.StateRecorder
 
             _keyStates[key] = upOrDown;
 
-            QueueKeyboardUpdateEvent();
+            QueueKeyboardUpdateEvent(replaySegment);
 
             if (upOrDown == KeyState.Down)
             {

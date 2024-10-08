@@ -14,19 +14,43 @@ namespace RegressionGames
     {
         public string draggedCardName;
 
-        public string draggedCardDescription;
+        public string draggedCardResourcePath;
 
         public Dictionary<string, string> payload;
 
         public GameObject iconPrefab;
 
-        [SerializeField] public TMP_Text namePrefab;
+        [SerializeField]
+        public TMP_Text nameComponent;
+        
+        [SerializeField]
+        public TMP_Text resourcePathComponent;
 
         public void Start()
         {
-            if (namePrefab != null)
+            // if we have a name set
+            if (!string.IsNullOrEmpty(draggedCardName))
             {
-                namePrefab.text = draggedCardName;
+                if (nameComponent != null)
+                {
+                    nameComponent.text = draggedCardName;
+                }
+
+                if (resourcePathComponent != null)
+                {
+                    resourcePathComponent.text = draggedCardResourcePath;
+                    resourcePathComponent.gameObject.SetActive(true);
+                }
+            }
+            else
+            {
+                // use the resource path as the name and hide the hint path
+                nameComponent.text = draggedCardResourcePath;
+                if (resourcePathComponent != null)
+                {
+                    resourcePathComponent.text = "";
+                    resourcePathComponent.gameObject.SetActive(false);
+                }
             }
         }
 

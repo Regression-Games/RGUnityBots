@@ -313,6 +313,7 @@ public class RGSequenceManager : MonoBehaviour
             if (prefabComponent != null)
             {
                 prefabComponent.segmentName = segment.name;
+                prefabComponent.resourcePath = resourcePath;
                 prefabComponent.description = segment.description;
                 prefabComponent.filePath = filePath;
                 prefabComponent.resourcePath = resourcePath;

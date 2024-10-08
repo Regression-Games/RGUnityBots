@@ -34,6 +34,7 @@ namespace RegressionGames.Tests.RGOverlay
             var text = RGTestUtils.CreateTMProPlaceholder();
             card.namePrefab = text;
             card.descriptionPrefab = text;
+            card.resourcePathPrefab = text;
 
             // ensure public prefabs are mocked
             card.restingStatePrefab = new GameObject
@@ -58,7 +59,8 @@ namespace RegressionGames.Tests.RGOverlay
                 }
             };
             draggedCard.iconPrefab.AddComponent<Image>();
-            draggedCard.namePrefab = RGTestUtils.CreateTMProPlaceholder();
+            draggedCard.nameComponent = RGTestUtils.CreateTMProPlaceholder();
+            draggedCard.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder();
             card.icon = RGTestUtils.CreateSpritePlaceholder();
             card.iconPrefab = new GameObject(){
                 transform =
