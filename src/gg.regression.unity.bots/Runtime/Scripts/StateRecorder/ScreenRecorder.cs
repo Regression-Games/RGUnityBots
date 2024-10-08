@@ -333,7 +333,7 @@ namespace RegressionGames.StateRecorder
                     {
                         var sourcePath = botSegmentsDirectoryPrefix + "/" + segmentFile;
                         var destinationPath = segmentResourceDirectory + "/" + segmentFile;
-                        await File.WriteAllBytesAsync(destinationPath, await File.ReadAllBytesAsync(sourcePath));
+                        File.Copy(sourcePath, destinationPath);
                     }
                     // Then delete the original directory
                     Directory.Delete(botSegmentsDirectoryPrefix, true);
