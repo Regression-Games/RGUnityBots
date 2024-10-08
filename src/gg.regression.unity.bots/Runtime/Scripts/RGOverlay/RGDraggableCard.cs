@@ -134,6 +134,7 @@ namespace RegressionGames
                 {
                     dragged.payload = payload;
                     dragged.draggedCardName = draggableCardName;
+                    dragged.draggedCardResourcePath = draggableCardResourcePath;
                     dragged.iconPrefab.GetComponent<Image>().overrideSprite = icon;
                 }
 

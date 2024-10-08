@@ -36,7 +36,7 @@ namespace RegressionGames
         private int _currentDropIndex = -1;
 
         // if not specified, default to this child height
-        private const int DEFAULT_CHILD_HEIGHT = 30;
+        private const int DEFAULT_CHILD_HEIGHT = 40;
 
         // if not specified, default to this spacing between children
         private const int DEFAULT_CHILD_SPACING = 8;

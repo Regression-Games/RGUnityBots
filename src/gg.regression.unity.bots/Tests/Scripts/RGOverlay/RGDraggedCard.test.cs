@@ -21,10 +21,11 @@ namespace RegressionGames.Tests.RGOverlay
             card = _uat.AddComponent<RGDraggedCard>();
             card.transform.SetParent(_uat.transform, false);
             card.draggedCardName = "Dragged Card";
-            card.draggedCardDescription = "Dragged Description";
+            card.draggedCardResourcePath = "my/resource/path";
             card.payload = new Dictionary<string, string>();
             card.iconPrefab = new GameObject();
-            card.namePrefab = RGTestUtils.CreateTMProPlaceholder();
+            card.nameComponent = RGTestUtils.CreateTMProPlaceholder();
+            card.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder();
             card.Start();
         }
 
@@ -38,7 +39,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void Initialize()
         {
-            Assert.AreEqual(card.namePrefab.text, card.draggedCardName);
+            Assert.AreEqual(card.nameComponent.text, card.draggedCardName);
         }
     }
 }
