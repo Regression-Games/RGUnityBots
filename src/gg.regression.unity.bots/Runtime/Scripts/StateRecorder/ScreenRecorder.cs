@@ -332,7 +332,7 @@ namespace RegressionGames.StateRecorder
                 // If on a Mac, for some weird reason, .Move will fail for project paths that have spaces. We predict
                 // that downstream, something is happening where the space is not properly handled in Unix commands. 
                 // Unfortunately, we could only reproduce this once, but this change should fix it. On Mac, we instead
-                // read and write the files by hand, and avoid any move operations.
+                // use the File.Copy function.
                 if (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer)
                 {
                     Directory.CreateDirectory(segmentResourceDirectory); // Since we aren't moving, we need to create the directory
