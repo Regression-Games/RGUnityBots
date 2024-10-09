@@ -329,8 +329,28 @@ namespace RegressionGames.StateRecorder
                 // So we can safely create this without interfering with the .Move command right below.
                 Directory.CreateDirectory(Path.GetDirectoryName(segmentResourceDirectory));
 
-                // move the directory (this also deletes the source directory)
-                Directory.Move(botSegmentsDirectoryPrefix, segmentResourceDirectory);
+                // If on a Mac, for some weird reason, .Move will fail for project paths that have spaces. We predict
+                // that downstream, something is happening where the space is not properly handled in Unix commands. 
+                // Unfortunately, we could only reproduce this once, but this change should fix it. On Mac, we instead
+                // use the File.Copy function.
+                if (Application.platform == RuntimePlatform.OSXEditor || Application.platform == RuntimePlatform.OSXPlayer)
+                {
+                    Directory.CreateDirectory(segmentResourceDirectory); // Since we aren't moving, we need to create the directory
+                    foreach (var segmentFile in segmentFiles)
+                    {
+                        var sourcePath = botSegmentsDirectoryPrefix + "/" + segmentFile;
+                        var destinationPath = segmentResourceDirectory + "/" + segmentFile;
+                        File.Copy(sourcePath, destinationPath);
+                    }
+                    // Then delete the original directory
+                    Directory.Delete(botSegmentsDirectoryPrefix, true);
+                }
+                else
+                {
+                    // move the directory (this also deletes the source directory)
+                    Directory.Move(botSegmentsDirectoryPrefix, segmentResourceDirectory);
+                }
+                
             }
             catch (Exception ex)
             {
