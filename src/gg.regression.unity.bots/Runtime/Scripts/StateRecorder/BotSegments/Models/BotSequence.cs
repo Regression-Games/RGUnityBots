@@ -46,11 +46,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 return (null, null, null);
             }
 
-            if (path.StartsWith('/') || path.StartsWith('\\'))
-            {
-                throw new Exception("Invalid path.  Path must be relative, not absolute in order to support editor vs production runtimes interchangeably.");
-            }
-
             path = path.Replace('\\', '/');
 
             (string, string, string) sequenceJson;
@@ -144,10 +139,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public static (string, string, object) LoadBotSegmentOrBotSegmentListFromPath(string path)
         {
-            if (path.StartsWith('/') || path.StartsWith('\\'))
-            {
-                throw new Exception("Invalid path.  Path must be relative, not absolute, in order to support editor vs production runtimes interchangeably.");
-            }
 
             path = path.Replace('\\', '/');
 
