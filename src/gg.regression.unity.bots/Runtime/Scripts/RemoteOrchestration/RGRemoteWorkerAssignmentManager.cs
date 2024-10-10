@@ -126,20 +126,26 @@ namespace RegressionGames.RemoteOrchestration
                 }
 
                 var now = Time.unscaledTime;
-                // check to send heartbeat
+                // check to send heartbeat if past the interval
                 if (_lastHeartbeatTime + HeartbeatInterval < now)
                 {
-                    _lastHeartbeatTime = now;
-                    var heartbeatRequest = new SDKClientHeartbeatRequest()
-                    {
-                        clientId = this.ClientId,
-                        activeSequence = GetActiveBotSequence(),
-                        activeWorkAssignment = ActiveWorkAssignment
-                    };
-                    _ = RGServiceManager.GetInstance().SendRemoteWorkerHeartbeat(heartbeatRequest, HeartbeatResponseHandler, () => { });
+                    SendHeartbeatForCurrentState();
                 }
             }
 
+        }
+
+        private void SendHeartbeatForCurrentState()
+        {
+            var now = Time.unscaledTime;
+            _lastHeartbeatTime = now;
+            var heartbeatRequest = new SDKClientHeartbeatRequest()
+            {
+                clientId = this.ClientId,
+                activeSequence = GetActiveBotSequence(),
+                activeWorkAssignment = ActiveWorkAssignment
+            };
+            _ = RGServiceManager.GetInstance().SendRemoteWorkerHeartbeat(heartbeatRequest, HeartbeatResponseHandler, () => { });
         }
 
         private void ProcessResolvedSequences(IDictionary<string, (string, BotSequence)> sequences)
@@ -177,8 +183,13 @@ namespace RegressionGames.RemoteOrchestration
                             activeSequence = GetActiveBotSequence(),
                             activeWorkAssignment = incomingWorkAssignment
                         };
-                        // send report of CONFLICT immediately, don't mess with the active work assignment
+                        // send report of CONFLICT immediately - if we have a running sequence this will tell them that
                         _ = RGServiceManager.GetInstance().SendRemoteWorkerHeartbeat(heartbeatRequest, HeartbeatResponseHandler, () => { });
+                        if (ActiveWorkAssignment != null)
+                        {
+                            // if we also have an active workAssignment already (really this shouldn't ever happen short of network blip hell).. then send them that too
+                            SendHeartbeatForCurrentState();
+                        }
                     }
                     else
                     {
