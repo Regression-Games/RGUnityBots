@@ -22,12 +22,12 @@ public class RGSequenceManager : MonoBehaviour
 {
     // a scrollable container populated with the project's Sequences
     public GameObject sequencesPanel;
-    
+
     // a scrollable container populated with the project's Segments
     public GameObject segmentsPanel;
 
     public GameObject sequenceCardPrefab;
-    
+
     public GameObject segmentCardPrefab;
 
     public GameObject sequenceEditor;
@@ -44,7 +44,7 @@ public class RGSequenceManager : MonoBehaviour
         {
             _this = FindObjectOfType<RGSequenceManager>();
         }
-        
+
         return _this;
     }
 
@@ -55,7 +55,7 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void LoadSequences()
     {
-        StartCoroutine(ResolveSequenceFiles());
+        StartCoroutine(ResolveSequenceFiles(InstantiateSequences));
     }
 
     /**
@@ -211,7 +211,7 @@ public class RGSequenceManager : MonoBehaviour
         sequencesPanel.SetActive(true);
         segmentsPanel.SetActive(false);
     }
-    
+
     /**
      * <summary>
      * Show the Segments list and hide the Sequences
@@ -295,16 +295,16 @@ public class RGSequenceManager : MonoBehaviour
     private IEnumerator InstantiateSegments()
     {
         ClearExistingSegments();
-        
+
         yield return null;
-        
+
         var segments = BotSegment.LoadAllSegments();
         foreach (var segmentKV in segments)
         {
             var resourcePath = segmentKV.Key;
             var filePath = segmentKV.Value.Item1;
             var segment = segmentKV.Value.Item2;
-            
+
             var instance = Instantiate(segmentCardPrefab, Vector3.zero, Quaternion.identity);
 
             // map segment data fields to new prefab
@@ -318,7 +318,7 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.resourcePath = resourcePath;
                 prefabComponent.type = segment.type;
             }
-            
+
             yield return null;
         }
     }
@@ -342,7 +342,7 @@ public class RGSequenceManager : MonoBehaviour
             }
         }
     }
-    
+
     /**
      * <summary>Destroy all Segment cards in the UI</summary>
      */
@@ -364,10 +364,11 @@ public class RGSequenceManager : MonoBehaviour
      * will use the persistent data path as an override, so any Sequences that are found in Resources will only be kept
      * if they are not also within the persistent data path
      * </summary>
+     * <param name="sequenceHandlerAction"> Action to process the resolved sequences </param>
      * <returns>Dictionary of {key=resourcePath, value=(filePath[null if resource],Bot Sequence) tuple}</returns>
      */
     [CanBeNull]
-    private IEnumerator ResolveSequenceFiles()
+    public static IEnumerator ResolveSequenceFiles(Action<IDictionary<string,(string,BotSequence)>> sequenceHandlerAction)
     {
         yield return null;
 #if UNITY_EDITOR
@@ -375,11 +376,11 @@ public class RGSequenceManager : MonoBehaviour
 
         if (Directory.Exists(sequencePath))
         {
-            InstantiateSequences(EnumerateSequencesInDirectory(sequencePath));
+            sequenceHandlerAction(EnumerateSequencesInDirectory(sequencePath));
         }
         else
         {
-            InstantiateSequences(new Dictionary<string, (string, BotSequence)>());
+            sequenceHandlerAction(new Dictionary<string, (string, BotSequence)>());
         }
 #else
         var sequences = new Dictionary<string, (string,BotSequence)>();
@@ -410,7 +411,7 @@ public class RGSequenceManager : MonoBehaviour
                     {
                         continue;
                     }
-
+                    sequence.resourcePath = resourceFilename;
                     // add the new sequence if its filename doesn't already exist
                     sequences.Add(resourceFilename, (null,sequence));
                 }
@@ -423,7 +424,7 @@ public class RGSequenceManager : MonoBehaviour
         }
 
         yield return null;
-        InstantiateSequences(sequences);
+        sequenceHandlerAction(sequences);
 #endif
     }
 
@@ -434,7 +435,7 @@ public class RGSequenceManager : MonoBehaviour
      * <param name="path">The directory to look for Bot Sequences json files</param>
      * <returns>Dictionary containing {key = resourcePath, value = (filePath[if writeable], Bot Sequence} entries</returns>
      */
-    private Dictionary<string, (string, BotSequence)> EnumerateSequencesInDirectory(string path)
+    private static Dictionary<string, (string, BotSequence)> EnumerateSequencesInDirectory(string path)
     {
         var sequenceFiles = Directory.EnumerateFiles(path, "*.json", SearchOption.AllDirectories);
         Dictionary<string, (string, BotSequence)> result = new();

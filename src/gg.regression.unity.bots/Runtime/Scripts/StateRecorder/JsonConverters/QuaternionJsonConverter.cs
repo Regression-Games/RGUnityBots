@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class QuaternionJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Quaternion>
+    public class QuaternionJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<Quaternion>
     {
         // re-usable and large enough to fit quaternions of all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(200));
@@ -21,12 +21,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
-        void ITypedStringBuilderWriteable<Quaternion>.WriteToStringBuilder(StringBuilder stringBuilder, Quaternion val)
+        void ITypedStringBuilderConverter<Quaternion>.WriteToStringBuilder(StringBuilder stringBuilder, Quaternion val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<Quaternion>.ToJsonString(Quaternion val)
+        string ITypedStringBuilderConverter<Quaternion>.ToJsonString(Quaternion val)
         {
             return ToJsonString(val);
         }
