@@ -103,7 +103,7 @@ namespace RegressionGames.StateRecorder
                     }
 
                     var inputEvent = TextEvent.Create(currentKeyboard.deviceId, value, InputState.currentTime);
-                    RGDebug.LogInfo($"({replaySegment}) Sending Text Event for char: '{value}'");
+                    RGDebug.LogDebug($"({replaySegment}) Sending Text Event for char: '{value}'");
                     InputSystem.QueueEvent(ref inputEvent);
                 }
 
@@ -147,7 +147,7 @@ namespace RegressionGames.StateRecorder
             SendKeysInOneEventLegacy(keyStates);
             #endif
 
-            RGDebug.LogInfo($"({replaySegment}) Sending Multiple Key Event: [" +
+            RGDebug.LogDebug($"({replaySegment}) Sending Multiple Key Event: [" +
                             string.Join(", ", keyStates.Select(a => a.Key + ":" + a.Value).ToArray()) + "]");
 
             foreach (var (key, upOrDown) in keyStates)
@@ -194,7 +194,7 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogWarning($"KeyboardEventSender - Multiple key events have been sent within one frame for {key}. Only the last state ({upOrDown}) will be kept.");
             }
 
-            RGDebug.LogInfo($"({replaySegment}) [frame: {Time.frameCount}] - Sending Key Event: {key} - {upOrDown}");
+            RGDebug.LogDebug($"({replaySegment}) [frame: {Time.frameCount}] - Sending Key Event: {key} - {upOrDown}");
 
             _keyStates[key] = upOrDown;
 
