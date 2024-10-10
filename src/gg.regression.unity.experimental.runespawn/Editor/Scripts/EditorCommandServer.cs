@@ -19,7 +19,8 @@ public class EditorCommandServer
         Stop,
         GetScripts,
         Compile,
-        GetCompilationMessages
+        GetCompilationMessages,
+        GetRuntimeLogs
     }
 
     // Configuration: Read from environment variables with defaults
@@ -38,6 +39,7 @@ public class EditorCommandServer
         EditorApplication.update += OnEditorUpdate;
         AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
         EditorApplication.quitting += OnEditorQuitting;
+        Application.logMessageReceived += PlayModeController.OnLogMessageReceived;
     }
 
     /// <summary>
@@ -206,6 +208,10 @@ public class EditorCommandServer
                         PlayModeController.StopPlayMode(editorCommand.Client);
                         break;
 
+                    case CommandType.GetRuntimeLogs:
+                        PlayModeController.SendRuntimeLogsToClient(editorCommand.Client);
+                        break;
+
                     case CommandType.GetScripts:
                         ScriptExporterController.SendScriptsToClient(editorCommand.Client);
                         break;
@@ -252,6 +258,7 @@ public class EditorCommandServer
         EditorApplication.update -= OnEditorUpdate;
         AssemblyReloadEvents.beforeAssemblyReload -= OnBeforeAssemblyReload;
         EditorApplication.quitting -= OnEditorQuitting;
+        Application.logMessageReceived -= PlayModeController.OnLogMessageReceived;
     }
 
     /// <summary>
