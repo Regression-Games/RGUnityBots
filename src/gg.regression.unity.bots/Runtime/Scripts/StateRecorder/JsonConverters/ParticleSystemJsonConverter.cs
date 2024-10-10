@@ -6,18 +6,18 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class ParticleSystemJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<ParticleSystem>
+    public class ParticleSystemJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<ParticleSystem>
     {
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(500));
 
-        void ITypedStringBuilderWriteable<ParticleSystem>.WriteToStringBuilder(StringBuilder stringBuilder, ParticleSystem val)
+        void ITypedStringBuilderConverter<ParticleSystem>.WriteToStringBuilder(StringBuilder stringBuilder, ParticleSystem val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<ParticleSystem>.ToJsonString(ParticleSystem val)
+        string ITypedStringBuilderConverter<ParticleSystem>.ToJsonString(ParticleSystem val)
         {
             return ToJsonString(val);
         }

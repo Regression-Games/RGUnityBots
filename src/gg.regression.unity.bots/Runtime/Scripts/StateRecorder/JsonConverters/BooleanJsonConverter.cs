@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class BooleanJsonConverter: JsonConverter, ITypedStringBuilderWriteable<bool>
+    public class BooleanJsonConverter: JsonConverter, ITypedStringBuilderConverter<bool>
     {
         // re-usable and large enough to fit objects of all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(20));
@@ -20,12 +20,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
-        void ITypedStringBuilderWriteable<bool>.WriteToStringBuilder(StringBuilder stringBuilder, bool val)
+        void ITypedStringBuilderConverter<bool>.WriteToStringBuilder(StringBuilder stringBuilder, bool val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<bool>.ToJsonString(bool val)
+        string ITypedStringBuilderConverter<bool>.ToJsonString(bool val)
         {
             return ToJsonString(val);
         }

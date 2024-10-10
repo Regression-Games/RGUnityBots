@@ -10,18 +10,18 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class RGGameMetadataJsonConverter : JsonConverter, ITypedStringBuilderWriteable<RGGameMetadata>
+    public class RGGameMetadataJsonConverter : JsonConverter, ITypedStringBuilderConverter<RGGameMetadata>
     {
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1000));
 
-        void ITypedStringBuilderWriteable<RGGameMetadata>.WriteToStringBuilder(StringBuilder stringBuilder, RGGameMetadata val)
+        void ITypedStringBuilderConverter<RGGameMetadata>.WriteToStringBuilder(StringBuilder stringBuilder, RGGameMetadata val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<RGGameMetadata>.ToJsonString(RGGameMetadata val)
+        string ITypedStringBuilderConverter<RGGameMetadata>.ToJsonString(RGGameMetadata val)
         {
             return ToJsonString(val);
         }

@@ -6,18 +6,18 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class Collider2DJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Collider2D>
+    public class Collider2DJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<Collider2D>
     {
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1000));
 
-        void ITypedStringBuilderWriteable<Collider2D>.WriteToStringBuilder(StringBuilder stringBuilder, Collider2D val)
+        void ITypedStringBuilderConverter<Collider2D>.WriteToStringBuilder(StringBuilder stringBuilder, Collider2D val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<Collider2D>.ToJsonString(Collider2D val)
+        string ITypedStringBuilderConverter<Collider2D>.ToJsonString(Collider2D val)
         {
             return ToJsonString(val);
         }

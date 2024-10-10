@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class Vector2JsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Vector2>
+    public class Vector2JsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<Vector2>
     {
         // re-usable and large enough to fit vectors of all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(200));
@@ -21,12 +21,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
-        void ITypedStringBuilderWriteable<Vector2>.WriteToStringBuilder(StringBuilder stringBuilder, Vector2 val)
+        void ITypedStringBuilderConverter<Vector2>.WriteToStringBuilder(StringBuilder stringBuilder, Vector2 val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<Vector2>.ToJsonString(Vector2 val)
+        string ITypedStringBuilderConverter<Vector2>.ToJsonString(Vector2 val)
         {
             return ToJsonString(val);
         }

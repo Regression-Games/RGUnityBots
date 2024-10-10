@@ -1,36 +1,22 @@
 using System.Text;
-using JetBrains.Annotations;
+using System.Threading;
 
 namespace RegressionGames.StateRecorder
 {
     public interface IStringBuilderWriteable
     {
 
-        public void WriteToStringBuilderNullable(StringBuilder stringBuilder, [CanBeNull] object val)
+        static readonly ThreadLocal<StringBuilder> StringBuilder = new (() => new());
+
+        public void WriteToStringBuilder(StringBuilder stringBuilder);
+
+        public string ToJsonString()
         {
-            if (val != null)
-            {
-                WriteToStringBuilder(stringBuilder, val);
-            }
-            else
-            {
-                WriteToStringBuilder(stringBuilder, "null");
-            }
+            var sb = StringBuilder.Value;
+            sb.Clear();
+            WriteToStringBuilder(sb);
+            return sb.ToString();
         }
-
-        public void WriteToStringBuilder(StringBuilder stringBuilder, object val);
-
-        public string ToJsonStringNullable([CanBeNull] object val)
-        {
-            if (val != null)
-            {
-                return ToJsonString(val);
-            }
-
-            return "null";
-        }
-
-        public string ToJsonString(object val);
     }
 
 }

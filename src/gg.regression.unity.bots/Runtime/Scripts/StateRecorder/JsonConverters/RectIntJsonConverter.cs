@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class RectIntJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<RectInt>
+    public class RectIntJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<RectInt>
     {
 
         // re-usable and large enough to fit all sizes
@@ -24,12 +24,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
-        void ITypedStringBuilderWriteable<RectInt>.WriteToStringBuilder(StringBuilder stringBuilder, RectInt val)
+        void ITypedStringBuilderConverter<RectInt>.WriteToStringBuilder(StringBuilder stringBuilder, RectInt val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<RectInt>.ToJsonString(RectInt val)
+        string ITypedStringBuilderConverter<RectInt>.ToJsonString(RectInt val)
         {
             return ToJsonString(val);
         }

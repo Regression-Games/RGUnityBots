@@ -43,7 +43,7 @@ namespace RegressionGames.StateRecorder
 
             if (converter != null)
             {
-                if (converter is IStringBuilderWriteable writeable)
+                if (converter is IStringBuilderConverter writeable)
                 {
                     // we had one of our fancy converters .. use it to speed this way way up
                     if (IsNullableType(stateType))

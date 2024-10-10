@@ -6,18 +6,18 @@ using UnityEngine;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class SkinnedMeshRendererJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<SkinnedMeshRenderer>
+    public class SkinnedMeshRendererJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<SkinnedMeshRenderer>
     {
 
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(1_000));
 
-        void ITypedStringBuilderWriteable<SkinnedMeshRenderer>.WriteToStringBuilder(StringBuilder stringBuilder, SkinnedMeshRenderer val)
+        void ITypedStringBuilderConverter<SkinnedMeshRenderer>.WriteToStringBuilder(StringBuilder stringBuilder, SkinnedMeshRenderer val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<SkinnedMeshRenderer>.ToJsonString(SkinnedMeshRenderer val)
+        string ITypedStringBuilderConverter<SkinnedMeshRenderer>.ToJsonString(SkinnedMeshRenderer val)
         {
             return ToJsonString(val);
         }
