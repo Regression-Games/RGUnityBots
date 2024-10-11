@@ -39,6 +39,8 @@ public class EditorCommandServer
         EditorApplication.update += OnEditorUpdate;
         AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
         EditorApplication.quitting += OnEditorQuitting;
+
+        // TODO (REG-2113): Use LoggingObserver to parse runtime logs.
         Application.logMessageReceived += PlayModeController.OnLogMessageReceived;
     }
 
