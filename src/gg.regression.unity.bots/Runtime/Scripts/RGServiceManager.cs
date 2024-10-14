@@ -450,7 +450,7 @@ namespace RegressionGames
             if (LoadAuth(out _))
             {
                 await SendWebRequest(
-                    uri: $"{GetRgServiceBaseUri()}/remoteSDKClient/heartbeat",
+                    uri: $"{GetRgServiceBaseUri()}/sdk-clients/heartbeat",
                     method: "POST",
                     payload: JsonConvert.SerializeObject(request),
                     onSuccess: (s) =>
@@ -478,7 +478,7 @@ namespace RegressionGames
             if (LoadAuth(out _))
             {
                 await SendWebRequest(
-                    uri: $"{GetRgServiceBaseUri()}/remoteSDKClient/register",
+                    uri: $"{GetRgServiceBaseUri()}/sdk-clients/register",
                     method: "POST",
                     payload: JsonConvert.SerializeObject(request),
                     onSuccess: (s) =>
