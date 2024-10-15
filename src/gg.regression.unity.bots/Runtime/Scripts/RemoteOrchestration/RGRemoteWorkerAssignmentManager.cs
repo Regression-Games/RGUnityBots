@@ -209,7 +209,14 @@ namespace RegressionGames.RemoteOrchestration
                             // send ACK of CANCEL immediately
                             _ = RGServiceManager.GetInstance().SendRemoteWorkerHeartbeat(heartbeatRequest, HeartbeatResponseHandler, () => { });
                         }
-                        // else - we're still on the right assignment, just keep going
+                        else if (incomingWorkAssignment.status == WorkAssignmentStatus.COMPLETE_ERROR || incomingWorkAssignment.status == WorkAssignmentStatus.COMPLETE_SUCCESS || incomingWorkAssignment.status == WorkAssignmentStatus.COMPLETE_TIMEOUT)
+                        {
+                            // server ack'd our completion.. clear out the assignment
+                            var currentWorkAssignment = ActiveWorkAssignment;
+                            ActiveWorkAssignment = null;
+                            currentWorkAssignment.Stop();
+                        }
+                        // else - we're still on the right assignment, just keep going if necessary
                     }
                 }
                 else // ActiveWorkAssignment == null
