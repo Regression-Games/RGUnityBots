@@ -76,7 +76,7 @@ namespace RegressionGames.RemoteOrchestration
                 Application.Quit(Rc_RemoteWorkerPlusSequenceConflict);
             }
 
-            return false;
+            return isRemoteWorker;
         }
 
     }
