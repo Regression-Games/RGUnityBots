@@ -165,6 +165,9 @@ namespace RegressionGames.RemoteOrchestration
                     var currentWorkAssignment = ActiveWorkAssignment;
                     ActiveWorkAssignment = null;
                     currentWorkAssignment.Stop();
+
+                    // immediately send another heartbeat in case there is a new assignment
+                    SendHeartbeatForCurrentState();
                 }
             }
             else
@@ -215,6 +218,8 @@ namespace RegressionGames.RemoteOrchestration
                             var currentWorkAssignment = ActiveWorkAssignment;
                             ActiveWorkAssignment = null;
                             currentWorkAssignment.Stop();
+                            // immediately send another heartbeat in case there is a new assignment
+                            SendHeartbeatForCurrentState();
                         }
                         // else - we're still on the right assignment, just keep going if necessary
                     }
