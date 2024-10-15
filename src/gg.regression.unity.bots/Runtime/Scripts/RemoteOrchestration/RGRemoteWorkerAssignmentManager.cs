@@ -87,8 +87,10 @@ namespace RegressionGames.RemoteOrchestration
         private static readonly int HeartbeatInterval = 10; // seconds
 
         private float _lastHeartbeatTime = float.MinValue;
+        private float _lastRegistrationTime = float.MinValue;
 
         private bool _firstRun = true;
+        private volatile bool _registrationInProgress = false;
         private volatile bool _registrationComplete = false;
 
         private long ClientId = long.MinValue;
@@ -96,6 +98,7 @@ namespace RegressionGames.RemoteOrchestration
         private List<AvailableBotSequence> _availableBotSequences = null;
 
         public WorkAssignment ActiveWorkAssignment = null;
+
 
         private void Update()
         {
@@ -107,14 +110,25 @@ namespace RegressionGames.RemoteOrchestration
                 return;
             }
 
-            if (_availableBotSequences != null)
+            if (!_registrationComplete && !_registrationInProgress && _availableBotSequences != null)
             {
-                var registrationRequest = new SDKClientRegistrationRequest(RGRemoteWorkerAssignmentManager.Guid)
+                var timeNow = Time.unscaledTime;
+                // check to send registration if past the interval - rate limited to avoid request spam if server offline
+                if (_lastRegistrationTime + HeartbeatInterval < timeNow)
                 {
-                    availableSequences = _availableBotSequences
-                };
-                _ = RGServiceManager.GetInstance().SendRemoteWorkerRegistration(registrationRequest, RegistrationResponseHandler, () => { });
-                return;
+                    _lastRegistrationTime = timeNow;
+                    var registrationRequest = new SDKClientRegistrationRequest(RGRemoteWorkerAssignmentManager.Guid)
+                    {
+                        availableSequences = _availableBotSequences
+                    };
+                    _registrationInProgress = true;
+                    _ = RGServiceManager.GetInstance().SendRemoteWorkerRegistration(
+                        request: registrationRequest,
+                        onSuccess: RegistrationResponseHandler,
+                        onFailure: () => { _registrationInProgress = false; }
+                    );
+                    return;
+                }
             }
 
             if (_registrationComplete)
@@ -279,6 +293,7 @@ namespace RegressionGames.RemoteOrchestration
         private void RegistrationResponseHandler(SDKClientRegistrationResponse response)
         {
             _registrationComplete = true;
+            _registrationInProgress = false;
             ClientId = response.id;
         }
 
