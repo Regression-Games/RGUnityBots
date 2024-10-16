@@ -137,7 +137,7 @@ namespace RegressionGames
                             return null;
                         }
                         
-                        return args[i + 1];
+                        return path;
                     }
                     // else
                     RGDebug.LogError($"{SequencePathArgument} command line argument requires a path value to be passed after it");
