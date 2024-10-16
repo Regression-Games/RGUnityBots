@@ -24,6 +24,7 @@ namespace RegressionGames
         internal static readonly int Rc_SequenceTimeoutNeedsPath = 5;
         internal static readonly int Rc_SequenceTimeoutMissing = 6;
         internal static readonly int Rc_SequenceTimeoutNotInt = 7;
+        internal static readonly int Rc_SequencePathNotRelative = 8;
 
         internal static readonly string SequencePathArgument = "-rgsequencepath";
         internal static readonly string SequenceTimeoutArgument = "-rgsequencetimeout";
@@ -133,7 +134,7 @@ namespace RegressionGames
                         if (Path.IsPathRooted(path))
                         {
                             RGDebug.LogError($"{SequencePathArgument} command line argument requires a relative path");
-                            Application.Quit(Rc_SequencePathMissing);
+                            Application.Quit(Rc_SequencePathNotRelative);
                             return null;
                         }
                         
