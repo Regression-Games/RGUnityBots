@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using RegressionGames.StateRecorder.BotSegments;
@@ -124,6 +125,18 @@ namespace RegressionGames
                 {
                     if (i + 1 < argsLength)
                     {
+
+                        var path = args[i + 1];
+                        
+                        // Sequences that are run via -rgsequencepath must be relative, as we only allows sequences
+                        // included in the Resource or persistent path directories.
+                        if (Path.IsPathRooted(path))
+                        {
+                            RGDebug.LogError($"{SequencePathArgument} command line argument requires a relative path");
+                            Application.Quit(Rc_SequencePathMissing);
+                            return null;
+                        }
+                        
                         return args[i + 1];
                     }
                     // else
