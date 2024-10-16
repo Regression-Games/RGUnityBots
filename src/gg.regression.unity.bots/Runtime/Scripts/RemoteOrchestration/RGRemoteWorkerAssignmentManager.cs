@@ -21,7 +21,8 @@ namespace RegressionGames.RemoteOrchestration
 
         internal static Guid Guid = new();
 
-        internal static readonly int Rc_RemoteWorkerPlusSequenceConflict = 8;
+        // Uses 2x numbers to avoid conflicts with RGHeadlessSequenceRunner
+        internal static readonly int Rc_RemoteWorkerPlusSequenceConflict = 21;
 
         internal static readonly string RemoteWorkerPathArgument = "-rgremoteworker";
 
