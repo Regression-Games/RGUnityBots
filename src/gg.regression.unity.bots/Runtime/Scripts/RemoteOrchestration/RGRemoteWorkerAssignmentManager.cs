@@ -97,7 +97,7 @@ namespace RegressionGames.RemoteOrchestration
 
         private List<AvailableBotSequence> _availableBotSequences = null;
 
-        public WorkAssignment ActiveWorkAssignment = null;
+        public volatile WorkAssignment ActiveWorkAssignment = null;
 
 
         private void Update()
@@ -143,21 +143,22 @@ namespace RegressionGames.RemoteOrchestration
                 // check to send heartbeat if past the interval
                 if (_lastHeartbeatTime + HeartbeatInterval < now)
                 {
-                    SendHeartbeatForCurrentState();
+                    SendHeartbeatForCurrentState(null);
                 }
             }
 
         }
 
-        private void SendHeartbeatForCurrentState()
+        private void SendHeartbeatForCurrentState(WorkAssignment currentWorkAssignment)
         {
             var now = Time.unscaledTime;
             _lastHeartbeatTime = now;
+            currentWorkAssignment ??= ActiveWorkAssignment;
             var heartbeatRequest = new SDKClientHeartbeatRequest()
             {
                 clientId = this.ClientId,
                 activeSequence = GetActiveBotSequence(),
-                activeWorkAssignment = ActiveWorkAssignment
+                activeWorkAssignment = currentWorkAssignment
             };
             _ = RGServiceManager.GetInstance().SendRemoteWorkerHeartbeat(heartbeatRequest, HeartbeatResponseHandler, () => { });
         }
@@ -179,9 +180,8 @@ namespace RegressionGames.RemoteOrchestration
                     var currentWorkAssignment = ActiveWorkAssignment;
                     ActiveWorkAssignment = null;
                     currentWorkAssignment.Stop();
-
                     // immediately send another heartbeat in case there is a new assignment
-                    SendHeartbeatForCurrentState();
+                    SendHeartbeatForCurrentState(null);
                 }
             }
             else
@@ -200,13 +200,12 @@ namespace RegressionGames.RemoteOrchestration
                             activeSequence = GetActiveBotSequence(),
                             activeWorkAssignment = incomingWorkAssignment
                         };
+                        // keep a reference to this in case a response changes it somehow before we send
+                        var currentWorkAssignment = ActiveWorkAssignment;
                         // send report of CONFLICT immediately - if we have a running sequence this will tell them that
                         _ = RGServiceManager.GetInstance().SendRemoteWorkerHeartbeat(heartbeatRequest, HeartbeatResponseHandler, () => { });
-                        if (ActiveWorkAssignment != null)
-                        {
-                            // if we also have an active workAssignment already (really this shouldn't ever happen short of network blip hell).. then send them that too
-                            SendHeartbeatForCurrentState();
-                        }
+                        SendHeartbeatForCurrentState(currentWorkAssignment);
+
                     }
                     else
                     {
@@ -233,7 +232,7 @@ namespace RegressionGames.RemoteOrchestration
                             ActiveWorkAssignment = null;
                             currentWorkAssignment.Stop();
                             // immediately send another heartbeat in case there is a new assignment
-                            SendHeartbeatForCurrentState();
+                            SendHeartbeatForCurrentState(null);
                         }
                         // else - we're still on the right assignment, just keep going if necessary
                     }
