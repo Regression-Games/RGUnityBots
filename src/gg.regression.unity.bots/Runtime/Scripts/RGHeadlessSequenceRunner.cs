@@ -53,7 +53,7 @@ namespace RegressionGames
                 playbackController.gameObject.AddComponent<RGHeadlessSequenceRunnerBehaviour>();
 
                 //ensure a keyboard exists for the input playback
-                if (IsBatchMode())
+                if (Application.isBatchMode)
                 {
                     var currentKeyboard = Keyboard.current;
                     // this should always be null as -batchmode has no keyboard.. but if a game already has their own virtual keyboard for some reason, we don't need to make another
@@ -97,22 +97,6 @@ namespace RegressionGames
                     }
                 }
             }
-        }
-
-        internal static bool IsBatchMode()
-        {
-            var args = Environment.GetCommandLineArgs();
-            var argsLength = args.Length;
-            for (var i = 0; i < argsLength; i++)
-            {
-                var arg = args[i];
-                if (arg == "-batchmode")
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         internal static string ParsePathArgument()

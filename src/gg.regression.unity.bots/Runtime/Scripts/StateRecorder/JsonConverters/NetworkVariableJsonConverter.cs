@@ -4,7 +4,7 @@ using System.Threading;
 using Newtonsoft.Json;
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class NetworkVariableJsonConverter : Newtonsoft.Json.JsonConverter, IStringBuilderWriteable
+    public class NetworkVariableJsonConverter : Newtonsoft.Json.JsonConverter, IStringBuilderConverter
     {
 
         // re-usable and large enough to fit all sizes

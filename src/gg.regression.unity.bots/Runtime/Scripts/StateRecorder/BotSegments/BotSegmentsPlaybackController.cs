@@ -39,6 +39,8 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private Action<int> _loopCountCallback;
 
+        private string _lastSegmentPlaybackWarning = null;
+
         // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
         // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
         // This is done this way to allow situations like when loading screens (UI) are changing while game objects are loading in the background and the process is not consistent/deterministic between the 2
@@ -118,6 +120,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             Stop();
             _replaySuccessful = null;
+            _lastSegmentPlaybackWarning = null;
 
             MouseEventSender.Reset();
 
@@ -250,10 +253,11 @@ namespace RegressionGames.StateRecorder.BotSegments
         public void Reset()
         {
             _nextBotSegments.Clear();
-            _isPlaying = PlayState.Stopped;
+            _isPlaying = PlayState.NotLoaded;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
+            _lastSegmentPlaybackWarning = null;
 
             _screenRecorder.StopRecording();
             #if ENABLE_LEGACY_INPUT_MANAGER
@@ -284,6 +288,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             // don't change _loopCount
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
+            _lastSegmentPlaybackWarning = null;
 
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
@@ -309,6 +314,11 @@ namespace RegressionGames.StateRecorder.BotSegments
         public PlayState GetState()
         {
             return _isPlaying;
+        }
+
+        public string GetLastSegmentPlaybackWarning()
+        {
+            return _lastSegmentPlaybackWarning;
         }
 
         public void Update()
@@ -357,6 +367,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             var now = Time.unscaledTime;
             _lastTimeLoggedKeyFrameConditions = now;
             RGDebug.LogWarning(loggedMessage);
+            _lastSegmentPlaybackWarning = loggedMessage;
             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
             if (pauseEditorOnPlaybackWarning)
             {
@@ -617,7 +628,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void OnGUI()
         {
-            if (_isPlaying != PlayState.Stopped)
+            if (_isPlaying == PlayState.Playing || _isPlaying == PlayState.Paused)
             {
                 // render any GUI things for the first segment action
                 if (_nextBotSegments.Count > 0)

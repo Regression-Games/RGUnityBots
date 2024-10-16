@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class LongJsonConverter: JsonConverter, ITypedStringBuilderWriteable<long>
+    public class LongJsonConverter: JsonConverter, ITypedStringBuilderConverter<long>
     {
         // re-usable and large enough to fit objects of all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(20));
@@ -27,12 +27,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, f.Value);
         }
 
-        void ITypedStringBuilderWriteable<long>.WriteToStringBuilder(StringBuilder stringBuilder, long val)
+        void ITypedStringBuilderConverter<long>.WriteToStringBuilder(StringBuilder stringBuilder, long val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<long>.ToJsonString(long val)
+        string ITypedStringBuilderConverter<long>.ToJsonString(long val)
         {
             return ToJsonString(val);
         }

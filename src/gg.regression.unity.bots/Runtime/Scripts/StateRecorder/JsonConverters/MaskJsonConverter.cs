@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class MaskJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Mask>, IBehaviourStringBuilderWritable
+    public class MaskJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<Mask>, IBehaviourStringBuilderWritable
     {
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(500));
@@ -17,12 +17,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, (Mask)behaviour);
         }
 
-        void ITypedStringBuilderWriteable<Mask>.WriteToStringBuilder(StringBuilder stringBuilder, Mask val)
+        void ITypedStringBuilderConverter<Mask>.WriteToStringBuilder(StringBuilder stringBuilder, Mask val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<Mask>.ToJsonString(Mask val)
+        string ITypedStringBuilderConverter<Mask>.ToJsonString(Mask val)
         {
             return ToJsonString(val);
         }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using RegressionGames.RemoteOrchestration.JsonConverters;
+using RegressionGames.RemoteOrchestration.Models;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.AIService;
@@ -82,7 +84,9 @@ namespace RegressionGames.StateRecorder
             { typeof(BotSequence), new BotSequenceJsonConverter() },
             { typeof(BotSegment), new BotSegmentJsonConverter() },
             { typeof(BotSegmentList), new BotSegmentListJsonConverter() },
-            { typeof(BotSequenceEntry), new BotSequenceEntryJsonConverter() }
+            { typeof(BotSequenceEntry), new BotSequenceEntryJsonConverter() },
+
+            { typeof(WorkAssignment), new WorkAssignmentJsonConverter() }
 
         };
 
