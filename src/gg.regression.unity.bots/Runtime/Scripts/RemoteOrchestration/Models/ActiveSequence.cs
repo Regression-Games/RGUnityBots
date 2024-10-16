@@ -11,6 +11,7 @@ namespace RegressionGames.RemoteOrchestration.Models
     public class ActiveSequence
     {
         public string name;
+        public string description;
         public string resourcePath;
 
         [NonSerialized]
@@ -20,6 +21,8 @@ namespace RegressionGames.RemoteOrchestration.Models
         {
             stringBuilder.Append("{\"name\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, name);
+            stringBuilder.Append(",\"description\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, description);
             stringBuilder.Append(",\"resourcePath\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, resourcePath);
             stringBuilder.Append("}");

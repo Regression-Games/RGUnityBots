@@ -308,6 +308,7 @@ namespace RegressionGames.RemoteOrchestration
                     return new ActiveSequence()
                     {
                         name = BotSequence.ActiveBotSequence.name,
+                        description = BotSequence.ActiveBotSequence.description,
                         resourcePath = BotSequence.ActiveBotSequence.resourcePath,
                         sequence = BotSequence.ActiveBotSequence
                     };
@@ -316,6 +317,7 @@ namespace RegressionGames.RemoteOrchestration
                 return new ActiveSequence()
                 {
                     name = "BotSegments are active outside of a BotSequence",
+                    description = "BotSegment(s) are active outside of a BotSequence.  This happens when a user is testing individual BotSegments or BotSegmentLists from the overlay, or when a replay is running from a .zip file.",
                     resourcePath = "",
                     sequence = null
                 };
