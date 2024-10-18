@@ -4,6 +4,7 @@ using System;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using UnityEditor.Compilation;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames;
 
 
@@ -13,6 +14,8 @@ public static class PlayModeController
 
     private static List<string> _logs = new List<string>();
     private static List<string> _errors = new List<string>();
+
+    private static string _botSequencePath = "";
 
     /// <summary>
     /// Static constructor for PlayModeController.
@@ -56,10 +59,11 @@ public static class PlayModeController
     }
 
     /// <summary>
-    /// Starts Play mode and sends a response to the client.
+    /// Starts Play mode and optionally runs a bot sequence.
     /// </summary>
     /// <param name="client">TcpClient object.</param>
-    public static void StartPlayMode(TcpClient client)
+    /// <param name="botSequencePath">Optional path to the bot sequence file.</param>
+    public static void StartPlayMode(TcpClient client, string botSequencePath = null)
     {
         try
         {
@@ -68,6 +72,25 @@ public static class PlayModeController
             EditorApplication.delayCall += () =>
             {
                 Application.runInBackground = true;
+
+                _botSequencePath = botSequencePath;
+                // If a bot sequence path is provided, run the sequence after entering play mode
+                if (!string.IsNullOrEmpty(botSequencePath))
+                {
+                    if (!System.IO.File.Exists(botSequencePath))
+                    {
+                        Debug.LogError($"Bot sequence file not found at path: {botSequencePath}");
+                        Utilities.SendJsonResponse(
+                            client.GetStream(), 
+                            new { status = "Error", message = $"Bot sequence file not found at path: {botSequencePath}" }
+                        );
+                        return;
+                    }
+                    EditorApplication.playModeStateChanged += RunBotSequenceOnPlayModeEnter;
+                } else {
+                    // Ensure we don't have any duplicate subscriptions.
+                    EditorApplication.playModeStateChanged -= RunBotSequenceOnPlayModeEnter;
+                }
             };
 
             EditorApplication.isPlaying = true;
@@ -88,6 +111,41 @@ public static class PlayModeController
         finally
         {
             client.Close();
+        }
+    }
+
+    /// <summary>
+    /// Handles the execution of a bot sequence when Unity enters Play Mode.
+    /// </summary>
+    /// <param name="state">The current state of the Play Mode transition.</param>
+    private static void RunBotSequenceOnPlayModeEnter(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredPlayMode)
+        {
+            // Unsubscribe to prevent multiple executions
+            EditorApplication.playModeStateChanged -= RunBotSequenceOnPlayModeEnter;
+            RunBotSequence();
+        }
+    }
+
+    /// <summary>
+    /// Loads and executes a bot sequence from the specified path.
+    /// </summary>
+    /// <remarks>
+    /// This method attempts to load a bot sequence from the path stored in _botSequencePath.
+    /// If successful, it plays the sequence. If loading fails, it logs an error.
+    /// </remarks>
+    private static void RunBotSequence()
+    {
+        var (_, _, botSequence) = BotSequence.LoadSequenceJsonFromPath(_botSequencePath);
+        if (botSequence != null)
+        {
+            // Play the bot sequence
+            botSequence.Play();
+        }
+        else
+        {
+            Debug.LogError($"Failed to load BotSequence from path: {_botSequencePath}");
         }
     }
 
