@@ -366,7 +366,63 @@ namespace RegressionGames.StateRecorder
             }
 
             SendRawPositionMouseEvent(replaySegment, normalizedPosition, mouseInput.leftButton, mouseInput.middleButton, mouseInput.rightButton, mouseInput.forwardButton, mouseInput.backButton, mouseInput.scroll);
+        }
 
+        /// <summary>
+        /// Simulates a mouse event at the screen space position corresponding to the given Transform's world position.
+        /// </summary>
+        /// <param name="mouseTarget">The Transform whose world position will be converted to screen space for the mouse event.</param>
+        /// <param name="leftButton">Simulates left mouse button press if true.</param>
+        /// <param name="middleButton">Simulates middle mouse button press if true.</param>
+        /// <param name="rightButton">Simulates right mouse button press if true.</param>
+        /// <param name="forwardButton">Simulates forward mouse button press if true.</param>
+        /// <param name="backButton">Simulates back mouse button press if true.</param>
+        /// <param name="scroll">Simulates mouse scroll wheel movement.</param>
+        public static void SendMouseEvent(Transform mouseTarget,
+                                          bool leftButton=false,
+                                          bool middleButton=false,
+                                          bool rightButton=false,
+                                          bool forwardButton=false,
+                                          bool backButton=false,
+                                          Vector2 scroll = default)
+        {
+            Vector2 screenPosition = Camera.main.WorldToScreenPoint(mouseTarget.position);
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            SendMouseEventLegacy(screenPosition, Vector2.zero, scroll, leftButton, middleButton, rightButton, forwardButton, backButton);
+            #else
+            var screenWidth = Screen.width;
+            var screenHeight = Screen.height;
+            var normalizedPosition = new Vector2(screenPosition.x / screenWidth, screenPosition.y / screenHeight);
+            SendRawPositionMouseEvent(0, normalizedPosition, leftButton, middleButton, rightButton, forwardButton, backButton, scroll);
+            #endif
+        }
+
+        /// <summary>
+        /// Simulates a mouse event at the specified screen position. Bottom left is (0,0) and top right is (Screen.width, Screen.height).
+        /// </summary>
+        /// <param name="mouseScreenPosition">The screen coordinates where the mouse event will be simulated.</param>
+        /// <param name="leftButton">Simulates left mouse button press if true.</param>
+        /// <param name="middleButton">Simulates middle mouse button press if true.</param>
+        /// <param name="rightButton">Simulates right mouse button press if true.</param>
+        /// <param name="forwardButton">Simulates forward mouse button press if true.</param>
+        /// <param name="backButton">Simulates back mouse button press if true.</param>
+        /// <param name="scroll">Simulates mouse scroll wheel movement.</param>
+        public static void SendMouseEvent(Vector2 mouseScreenPosition,
+                                          bool leftButton=false,
+                                          bool middleButton=false,
+                                          bool rightButton=false,
+                                          bool forwardButton=false,
+                                          bool backButton=false,
+                                          Vector2 scroll = default)
+        {
+            #if ENABLE_LEGACY_INPUT_MANAGER
+            SendMouseEventLegacy(mouseScreenPosition, Vector2.zero, scroll, leftButton, middleButton, rightButton, forwardButton, backButton);
+            #else
+            var screenWidth = Screen.width;
+            var screenHeight = Screen.height;
+            var normalizedPosition = new Vector2(mouseScreenPosition.x / screenWidth, mouseScreenPosition.y / screenHeight);
+            SendRawPositionMouseEvent(0, normalizedPosition, leftButton, middleButton, rightButton, forwardButton, backButton, scroll);
+            #endif
         }
 
 #if ENABLE_LEGACY_INPUT_MANAGER
