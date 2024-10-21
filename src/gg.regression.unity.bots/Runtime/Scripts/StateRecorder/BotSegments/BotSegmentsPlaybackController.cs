@@ -253,7 +253,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         public void Reset()
         {
             _nextBotSegments.Clear();
-            _isPlaying = PlayState.NotLoaded;
+            _isPlaying = PlayState.Stopped;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
