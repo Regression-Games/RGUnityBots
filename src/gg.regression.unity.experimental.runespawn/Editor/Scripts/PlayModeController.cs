@@ -157,9 +157,9 @@ public static class PlayModeController
     /// <param name="type">The type of log message.</param>
     public static void OnLogMessageReceived(string logString, string stackTrace, LogType type)
     {
-        if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
+        if (type == LogType.Error || type == LogType.Exception || type == LogType.Warning || type == LogType.Assert)
         {
-            _errors.Add($"[{type}] {logString}\n{stackTrace}");
+            _errors.Add($"[{type}] {logString}\n{stackTrace}\n");
         }
         else if (type == LogType.Log)
         {
