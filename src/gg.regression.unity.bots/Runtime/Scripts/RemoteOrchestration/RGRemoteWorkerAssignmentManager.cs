@@ -98,7 +98,9 @@ namespace RegressionGames.RemoteOrchestration
 
         private List<AvailableBotSequence> _availableBotSequences = null;
 
-        public volatile WorkAssignment ActiveWorkAssignment = null;
+        private volatile WorkAssignment ActiveWorkAssignment = null;
+
+        public bool HasActiveWorkAssignment => ActiveWorkAssignment != null;
 
 
         private void Update()
@@ -326,41 +328,5 @@ namespace RegressionGames.RemoteOrchestration
 
             return null;
         }
-
-        /// <summary>
-        /// Plays back a bot sequence, and then returns the save location of the recording.
-        /// </summary>
-        /// <param name="botSequenceInfo">(filePath,resourcePath,BotSequence) tuple of the bot sequence</param>
-        /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
-        /// <param name="timeout">How long in seconds to wait for this sequence to complete, less than or == 0 means wait forever (default=0)</param>
-        internal static IEnumerator StartBotSequence((string,string, BotSequence) botSequenceInfo, Action<PlaybackResult> setPlaybackResult, int timeout = 0)
-        {
-            var startTime = Time.unscaledTime;
-
-            botSequenceInfo.Item3.Play();
-
-            var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
-
-            yield return null; // Allow the recording to start playing
-            var didTimeout = false;
-            while (playbackController.GetState() == PlayState.Playing || playbackController.GetState() == PlayState.Paused)
-            {
-                if (timeout > 0 && Time.unscaledTime > startTime + timeout )
-                {
-                    didTimeout = true;
-                    break;
-                }
-                yield return null;
-            }
-            yield return null;
-            var result = new PlaybackResult
-            {
-                saveLocation = playbackController.SaveLocation() + ".zip",
-                success = !didTimeout
-            };
-            setPlaybackResult(result);
-        }
-
-
     }
 }
