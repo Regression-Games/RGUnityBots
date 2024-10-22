@@ -12,8 +12,8 @@ public static class PlayModeController
     private static bool originalRunInBackground = Application.runInBackground;
 
     private static List<string> _logs = new List<string>();
+    private static List<string> _warnings = new List<string>();
     private static List<string> _errors = new List<string>();
-
     /// <summary>
     /// Static constructor for PlayModeController.
     /// Initializes event subscriptions and prevents multiple subscriptions.
@@ -51,6 +51,7 @@ public static class PlayModeController
         {
             // Clear logs and errors when manually entering play mode as well. 
             _logs.Clear();
+            _warnings.Clear();
             _errors.Clear();
         }
     }
@@ -75,6 +76,7 @@ public static class PlayModeController
 
             // Clear the previous logs and errors when entering play mode.
             _logs.Clear();
+            _warnings.Clear();
             _errors.Clear();
            
             // Send success response
@@ -130,10 +132,12 @@ public static class PlayModeController
         try
         {
             string logs_string = string.Join("\n", _logs);
+            string warnings_string = string.Join("\n", _warnings);
             string errors_string = string.Join("\n", _errors);
             Utilities.SendJsonResponse(client.GetStream(), new {
                 status = "Success",
                 logs = logs_string,
+                warnings = warnings_string,
                 errors = errors_string
             });
         }
@@ -159,7 +163,11 @@ public static class PlayModeController
     {
         if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
         {
-            _errors.Add($"[{type}] {logString}\n{stackTrace}");
+            _errors.Add($"[{type}] {logString}\n{stackTrace}\n");
+        }
+        else if (type == LogType.Warning)
+        {
+            _warnings.Add($"[{type}] {logString}\n{stackTrace}\n");
         }
         else if (type == LogType.Log)
         {
