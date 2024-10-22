@@ -163,7 +163,23 @@ public class EditorCommandServer
 
             if (Enum.TryParse(commandStr, true, out CommandType commandType))
             {
-                EditorCommand editorCommand = new EditorCommand(commandType, client);
+                EditorCommand editorCommand;
+                if (commandType == CommandType.Start)
+                {
+                    // Check if there's more data to read (bot sequence path)
+                    string botSequencePath = "";
+                    if (stream.DataAvailable)
+                    {
+                        botSequencePath = Utilities.ReadLine(stream);
+                        Debug.Log($"EditorCommandServer: Bot sequence path: {botSequencePath}");
+                    }
+                    editorCommand = new PlayModeCommand(commandType, client, botSequencePath);
+                }
+                else
+                {
+                    editorCommand = new EditorCommand(commandType, client);
+                }
+
                 lock (commandQueue)
                 {
                     commandQueue.Enqueue(editorCommand);
@@ -203,7 +219,16 @@ public class EditorCommandServer
                 switch (editorCommand.CommandType)
                 {
                     case CommandType.Start:
-                        PlayModeController.StartPlayMode(editorCommand.Client);
+                        if (editorCommand is PlayModeCommand playModeCommand)
+                        {
+                            PlayModeController.StartPlayMode(playModeCommand.Client, playModeCommand.BotSequencePath);
+                        }
+                        else
+                        {
+                            RGDebug.LogError("EditorCommandServer: Expected PlayModeCommand for Start command, but received " + editorCommand.GetType().Name);
+                            Utilities.SendJsonResponse(editorCommand.Client.GetStream(), new { status = "Error", message = "Invalid command type for Start" });
+                            editorCommand.Client.Close();
+                        }
                         break;
 
                     case CommandType.Stop:
@@ -292,5 +317,21 @@ public class EditorCommand
     {
         CommandType = commandType;
         Client = client;
+    }
+}
+
+/// <summary>
+/// Represents a play mode-specific command received from the client.
+/// </summary>
+public class PlayModeCommand : EditorCommand
+{
+    public string BotSequencePath { get; private set; }
+
+    public PlayModeCommand(EditorCommandServer.CommandType commandType, 
+                           TcpClient client, 
+                           string botSequencePath)
+        : base(commandType, client)
+    {
+        BotSequencePath = botSequencePath;
     }
 }
