@@ -137,7 +137,6 @@ public static class PlayModeController
     {
         if (state == PlayModeStateChange.EnteredPlayMode)
         {
-            Debug.Log($"PlayModeController: Playing bot sequence: {_botSequence.name}");
             // Unsubscribe to prevent multiple executions
             EditorApplication.playModeStateChanged -= PlayBotSequenceOnPlayModeEnter;
             _botSequence.Play();
