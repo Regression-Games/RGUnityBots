@@ -29,6 +29,7 @@ namespace RegressionGames.StateRecorder
 
         private static InputDevice _virtualMouse;
 
+        private static ObjectFinder[] _objectFinders;
 
         public static void Reset()
         {
@@ -328,7 +329,6 @@ namespace RegressionGames.StateRecorder
         public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<long, ObjectStatus> priorTransforms, Dictionary<long, ObjectStatus> priorEntities, Dictionary<long, ObjectStatus> transforms, Dictionary<long, ObjectStatus> entities)
         {
             var clickObjectResult = FindBestClickObject(Camera.main, mouseInput, priorTransforms, priorEntities, transforms, entities);
-
             var bestObject = clickObjectResult.Item1;
             var normalizedPosition = clickObjectResult.Item3;
 
@@ -387,14 +387,7 @@ namespace RegressionGames.StateRecorder
                                           Vector2 scroll = default)
         {
             Vector2 screenPosition = Camera.main.WorldToScreenPoint(mouseTarget.position);
-            #if ENABLE_LEGACY_INPUT_MANAGER
-            SendMouseEventLegacy(screenPosition, Vector2.zero, scroll, leftButton, middleButton, rightButton, forwardButton, backButton);
-            #else
-            var screenWidth = Screen.width;
-            var screenHeight = Screen.height;
-            var normalizedPosition = new Vector2(screenPosition.x / screenWidth, screenPosition.y / screenHeight);
-            SendRawPositionMouseEvent(0, normalizedPosition, leftButton, middleButton, rightButton, forwardButton, backButton, scroll);
-            #endif
+            SendMouseEvent(screenPosition, leftButton, middleButton, rightButton, forwardButton, backButton, scroll);
         }
 
         /// <summary>
@@ -418,10 +411,7 @@ namespace RegressionGames.StateRecorder
             #if ENABLE_LEGACY_INPUT_MANAGER
             SendMouseEventLegacy(mouseScreenPosition, Vector2.zero, scroll, leftButton, middleButton, rightButton, forwardButton, backButton);
             #else
-            var screenWidth = Screen.width;
-            var screenHeight = Screen.height;
-            var normalizedPosition = new Vector2(mouseScreenPosition.x / screenWidth, mouseScreenPosition.y / screenHeight);
-            SendRawPositionMouseEvent(0, normalizedPosition, leftButton, middleButton, rightButton, forwardButton, backButton, scroll);
+            SendRawPositionMouseEvent(0, mouseScreenPosition, leftButton, middleButton, rightButton, forwardButton, backButton, scroll);
             #endif
         }
 
