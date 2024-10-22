@@ -106,7 +106,7 @@ public static class PlayModeController
     private static void SetupBotSequence(TcpClient client, string botSequencePath)
     {
         // If no bot sequence path is provided, return early.
-        if (botSequencePath == null)
+        if (string.IsNullOrEmpty(botSequencePath))
             return;
 
         // Load the bot sequence.

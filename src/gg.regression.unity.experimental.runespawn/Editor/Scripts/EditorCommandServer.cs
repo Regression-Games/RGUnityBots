@@ -166,8 +166,13 @@ public class EditorCommandServer
                 EditorCommand editorCommand;
                 if (commandType == CommandType.Start)
                 {
-                    // Read the optional bot sequence path
-                    string botSequencePath = Utilities.ReadLine(stream);
+                    // Check if there's more data to read (bot sequence path)
+                    string botSequencePath = "";
+                    if (stream.DataAvailable)
+                    {
+                        botSequencePath = Utilities.ReadLine(stream);
+                        Debug.Log($"EditorCommandServer: Bot sequence path: {botSequencePath}");
+                    }
                     editorCommand = new PlayModeCommand(commandType, client, botSequencePath);
                 }
                 else
