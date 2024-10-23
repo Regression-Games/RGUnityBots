@@ -57,6 +57,7 @@ public class CameraLookAtPoint : MonoBehaviour
             if ((myCamera.transform.position - positions[nextIndex]).sqrMagnitude < 0.02f)
             {
                 // make sure we compute the new position cleanly on the line between points regardless of camera move speed
+
                 nextPosition = positions[nextIndex];
 
                 // close enough to the point
