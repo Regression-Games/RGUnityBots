@@ -1,1 +1,0 @@
-The Bot Segment json files in this directory are auto generated when recording a gameplay session and should not be modified.  Creating a new recording will overwrite the files in this directory.
