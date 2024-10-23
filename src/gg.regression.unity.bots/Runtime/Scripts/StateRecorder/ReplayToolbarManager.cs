@@ -359,10 +359,6 @@ namespace RegressionGames.StateRecorder
                 {
                     SetInUseButtonStates();
                 }
-                else if (state == PlayState.Stopped)
-                {
-                    SetDefaultButtonStates();
-                }
             }
         }
 

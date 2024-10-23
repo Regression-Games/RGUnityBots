@@ -449,9 +449,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             ActiveBotSequence = this;
 
             var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
-            if (playbackController.GetState() != PlayState.NotLoaded)
+            if (!(playbackController.GetState() == PlayState.NotLoaded || playbackController.GetState() == PlayState.Stopped))
             {
-                throw new Exception("Cannot bot sequence while other bot segments are running.");
+                throw new Exception("Cannot start bot sequence while other bot segments are running.");
             }
 
             string sessionId = null;

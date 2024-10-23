@@ -34,7 +34,12 @@
 
 ],
 "mouse":[
-{"apiVersion":1,"startTime":150.6568995,"screenSize":{"x":1675,"y":822},"position":{"x":1660,"y":19},"worldPosition":null,"leftButton":false,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":[]}
+{"apiVersion":1,"startTime":150.6568995,"screenSize":{"x":1675,"y":822},"position":{"x":1660,"y":19},"worldPosition":null,"leftButton":false,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":[]},
+{"apiVersion":1,"startTime":150.6576371,"screenSize":{"x":1675,"y":822},"position":{"x":515,"y":799},"worldPosition":null,"leftButton":false,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":[]},
+{"apiVersion":1,"startTime":150.8084467,"screenSize":{"x":1675,"y":822},"position":{"x":515,"y":799},"worldPosition":null,"leftButton":true,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":["RGOverlayCanvas","Canvas/Reset Button/Text","Canvas/Reset Button"]},
+{"apiVersion":1,"startTime":150.8286827,"screenSize":{"x":1675,"y":822},"position":{"x":515,"y":801},"worldPosition":null,"leftButton":true,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":[]},
+{"apiVersion":1,"startTime":150.9053195,"screenSize":{"x":1675,"y":822},"position":{"x":515,"y":801},"worldPosition":null,"leftButton":false,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":["RGOverlayCanvas","Canvas/Reset Button/Text","Canvas/Reset Button"]},
+{"apiVersion":1,"startTime":151.0998170,"screenSize":{"x":1675,"y":822},"position":{"x":517,"y":801},"worldPosition":null,"leftButton":false,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":[]}
 ]
 }
 }}}
