@@ -1,0 +1,31 @@
+{
+"name":null,
+"description":null,
+"sessionId":"4faede3f676f42a190ec96b59bd1270b",
+"apiVersion":15,
+"endCriteria":[
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Stop Button/Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Reset Button","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Start Button","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Start Button/Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Stop Button","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Reset Button/Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"CameraPath","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"SceneObjects/Sphere","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"SceneObjects/Cube","apiVersion":22,"count":2,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"FloorPlanes/FloorSegment","apiVersion":22,"count":7,"countRule":"LessThanEqual"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"SceneObjects/Cylinder","apiVersion":22,"count":2,"countRule":"NonZero"}}
+],
+"botAction":{"type":"InputPlayback","apiVersion":1,"data":{
+"apiVersion":1,
+"startTime":37.9546030,
+"inputData":{
+"apiVersion":1,
+"keyboard":[
+
+],
+"mouse":[
+{"apiVersion":1,"startTime":38.4028686,"screenSize":{"x":1518,"y":822},"position":{"x":440,"y":786},"worldPosition":null,"leftButton":false,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":[]}
+]
+}
+}}}
