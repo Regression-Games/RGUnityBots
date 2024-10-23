@@ -203,13 +203,13 @@ namespace RegressionGames
                 yield return null;
             }
             yield return null;
-            botSequenceInfo.Item3.Stop();
             var result = new PlaybackResult
             {
                 saveLocation = playbackController.SaveLocation() + ".zip",
                 success = !didTimeout
             };
             setPlaybackResult(result);
+            botSequenceInfo.Item3.Stop();
         }
     }
 
