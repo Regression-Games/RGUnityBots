@@ -26,10 +26,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            var controller = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
-            RGActionManager.StartSession(controller, actionSettings);
-            _monkey = new RGMonkeyBotLogic();
-            _monkey.ActionInterval = actionInterval;
+            if (!_isStopped)
+            {
+                var controller = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
+                RGActionManager.StartSession(controller, actionSettings);
+                _monkey = new RGMonkeyBotLogic();
+                _monkey.ActionInterval = actionInterval;
+            }
         }
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)

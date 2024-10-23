@@ -28,19 +28,22 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - Processing InputPlaybackActionData");
-
-            var now = Time.unscaledTime;
-            var currentInputTimePoint = now - startTime;
-
-            foreach (var keyboardInputActionData in inputData.keyboard)
+            if (!_isStopped)
             {
-                keyboardInputActionData.Replay_OffsetTime = currentInputTimePoint;
-            }
+                RGDebug.LogInfo($"({segmentNumber}) - Bot Segment - Processing InputPlaybackActionData");
 
-            foreach (var mouseInputActionData in inputData.mouse)
-            {
-                mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                var now = Time.unscaledTime;
+                var currentInputTimePoint = now - startTime;
+
+                foreach (var keyboardInputActionData in inputData.keyboard)
+                {
+                    keyboardInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                }
+
+                foreach (var mouseInputActionData in inputData.mouse)
+                {
+                    mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                }
             }
         }
 

@@ -152,6 +152,7 @@ namespace RegressionGames.TestFramework
                 success = !didTimeout
             };
             setPlaybackResult(result);
+            botSequenceInfo.Item3.Stop();
         }
 
         // <summary>

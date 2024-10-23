@@ -47,38 +47,41 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            // load the type on another thread to avoid 'hitching' the game
-            new Thread(() =>
+            if (!_isStopped)
             {
-                if (!CachedTypes.TryGetValue(behaviourFullName, out var t))
+                // load the type on another thread to avoid 'hitching' the game
+                new Thread(() =>
                 {
-                    // load our script type without knowing the assembly name, just the full type
-                    foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
+                    if (!CachedTypes.TryGetValue(behaviourFullName, out var t))
                     {
-                        foreach (var type in a.GetTypes())
+                        // load our script type without knowing the assembly name, just the full type
+                        foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
                         {
-                            if (type.FullName != null && type.FullName.Equals(behaviourFullName))
+                            foreach (var type in a.GetTypes())
                             {
-                                t = type;
-                                CachedTypes[behaviourFullName] = t;
-                                break;
+                                if (type.FullName != null && type.FullName.Equals(behaviourFullName))
+                                {
+                                    t = type;
+                                    CachedTypes[behaviourFullName] = t;
+                                    break;
+                                }
                             }
                         }
                     }
-                }
 
-                if (t == null)
-                {
-                    _error = $"Regression Games could not load Bot Segment Behaviour Action for Type - {behaviourFullName}. Type was not found in any assembly in the current runtime.";
-                    RGDebug.LogError(_error);
-                }
-                else
-                {
-                    _typeToCreate = t;
-                }
+                    if (t == null)
+                    {
+                        _error = $"Regression Games could not load Bot Segment Behaviour Action for Type - {behaviourFullName}. Type was not found in any assembly in the current runtime.";
+                        RGDebug.LogError(_error);
+                    }
+                    else
+                    {
+                        _typeToCreate = t;
+                    }
 
-                _readyToCreate = true;
-            }).Start();
+                    _readyToCreate = true;
+                }).Start();
+            }
         }
 
         public void PauseAction(int segmentNumber)

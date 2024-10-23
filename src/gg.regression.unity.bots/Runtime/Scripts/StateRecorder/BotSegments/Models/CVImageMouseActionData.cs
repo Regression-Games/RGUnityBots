@@ -86,8 +86,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            // get the CV evaluate started...
-            RequestCVImageEvaluation(segmentNumber);
+            if (!_isStopped)
+            {
+                // get the CV evaluate started...
+                RequestCVImageEvaluation(segmentNumber);
+            }
         }
 
         private void RequestCVImageEvaluation(int segmentNumber)

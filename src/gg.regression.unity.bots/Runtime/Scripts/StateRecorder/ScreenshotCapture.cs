@@ -204,10 +204,18 @@ namespace RegressionGames.StateRecorder
                             var lnData = lastNFrame.Item2;
                             if (lnFrame >= caFrame)
                             {
+
                                 // found a frame >= my frame
                                 foreach (var caAction in caActions)
                                 {
-                                    caAction.Invoke(lnData);
+                                    try
+                                    {
+                                        caAction.Invoke(lnData);
+                                    }
+                                    catch (InvalidOperationException)
+                                    {
+                                        // tick processing already stopped
+                                    }
                                 }
 
                                 caActions.Clear();
@@ -221,7 +229,15 @@ namespace RegressionGames.StateRecorder
                     {
                         foreach (var caAction in caActions)
                         {
-                            caAction.Invoke(LastNFrames[^1].Item2);
+                            try
+                            {
+                                caAction.Invoke(LastNFrames[^1].Item2);
+                            }
+
+                            catch (InvalidOperationException)
+                            {
+                                // tick processing already stopped
+                            }
                         }
 
                         caActions.Clear();
@@ -285,7 +301,7 @@ namespace RegressionGames.StateRecorder
                     {
                         Object.Destroy(_screenShotTexture);
                     }
-                    
+
                     if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
                     {
                         // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows..
@@ -294,7 +310,7 @@ namespace RegressionGames.StateRecorder
                     }
                     else
                     {
-                        _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);    
+                        _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
                     }
                 }
 
