@@ -145,6 +145,7 @@ namespace RegressionGames.TestFramework
                 yield return null;
             }
             yield return null;
+            botSequenceInfo.Item3.Stop();
             RGDebug.LogInfo("Playback complete! - " + (didTimeout? "TIMEOUT":"SUCCESS"));
             var result = new PlaybackResult
             {
