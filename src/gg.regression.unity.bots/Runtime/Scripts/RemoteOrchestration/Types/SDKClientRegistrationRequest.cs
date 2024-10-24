@@ -39,7 +39,7 @@ namespace RegressionGames.RemoteOrchestration.Types
     }
 
     [Serializable]
-    public class SDKClientRegistrationRequest
+    public class SDKClientRegistrationRequest : IStringBuilderWriteable
     {
 
         private readonly Guid clientGuid;
@@ -81,7 +81,7 @@ namespace RegressionGames.RemoteOrchestration.Types
         {
             stringBuilder.Append("{\"ipAddresses\":[");
             var ipAddresses = GetLocalIPSv4();
-            for (var i = ipAddresses.Length; i >= 0; i--)
+            for (var i = ipAddresses.Length-1; i >= 0; i--)
             {
                 StringJsonConverter.WriteToStringBuilder(stringBuilder, ipAddresses[i]);
                 if (i > 0)

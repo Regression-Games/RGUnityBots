@@ -146,7 +146,7 @@ namespace RegressionGames.RemoteOrchestration
                 // check to send heartbeat if past the interval
                 if (_lastHeartbeatTime + HeartbeatInterval < now)
                 {
-                    SendHeartbeatForCurrentState(null);
+                    SendHeartbeatForCurrentState(ActiveWorkAssignment);
                 }
             }
 
@@ -304,26 +304,30 @@ namespace RegressionGames.RemoteOrchestration
             var controller = FindObjectOfType<BotSegmentsPlaybackController>();
             if (controller != null && controller.GetState() != PlayState.NotLoaded)
             {
-                // a group of segments is playing.. let's see if we can figure out more details or not
-                if (BotSequence.ActiveBotSequence != null)
+                if (controller.GetState() == PlayState.Playing || controller.GetState() == PlayState.Starting || (controller.GetState() == PlayState.Stopped && controller.ReplayCompletedSuccessfully() == null && controller.GetLastSegmentPlaybackWarning() == null))
                 {
-                    // this is a bot sequence, give them the name and path
+                    // a group of segments is playing.. let's see if we can figure out more details or not
+                    if (BotSequence.ActiveBotSequence != null)
+                    {
+                        // this is a bot sequence, give them the name and path
+                        return new ActiveSequence()
+                        {
+                            name = BotSequence.ActiveBotSequence.name,
+                            description = BotSequence.ActiveBotSequence.description,
+                            resourcePath = BotSequence.ActiveBotSequence.resourcePath,
+                            sequence = BotSequence.ActiveBotSequence
+                        };
+                    }
+
+                    // else - a zip file or other bot segments are running outside of a sequence
                     return new ActiveSequence()
                     {
-                        name = BotSequence.ActiveBotSequence.name,
-                        description = BotSequence.ActiveBotSequence.description,
-                        resourcePath = BotSequence.ActiveBotSequence.resourcePath,
-                        sequence = BotSequence.ActiveBotSequence
+                        name = "BotSegments are active outside of a BotSequence",
+                        description = "BotSegment(s) are active outside of a BotSequence.  This happens when a user is testing individual BotSegments or BotSegmentLists from the overlay, or when a replay is running from a .zip file.",
+                        resourcePath = "",
+                        sequence = null
                     };
                 }
-                // else - a zip file or other bot segments are running outside of a sequence
-                return new ActiveSequence()
-                {
-                    name = "BotSegments are active outside of a BotSequence",
-                    description = "BotSegment(s) are active outside of a BotSequence.  This happens when a user is testing individual BotSegments or BotSegmentLists from the overlay, or when a replay is running from a .zip file.",
-                    resourcePath = "",
-                    sequence = null
-                };
             }
 
             return null;

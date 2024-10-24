@@ -449,13 +449,15 @@ namespace RegressionGames
         {
             if (LoadAuth(out _))
             {
+                var payload = request.ToJsonString();
+                RGDebug.LogDebug($"Sending WebRequest to {GetRgServiceBaseUri()}/sdk-clients/heartbeat - {payload}");
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/sdk-clients/heartbeat",
                     method: "POST",
-                    payload: JsonConvert.SerializeObject(request),
+                    payload: payload,
                     onSuccess: (s) =>
                     {
-                        SDKClientHeartbeatResponse response = JsonUtility.FromJson<SDKClientHeartbeatResponse>(s);
+                        SDKClientHeartbeatResponse response = JsonConvert.DeserializeObject<SDKClientHeartbeatResponse>(s);
                         RGDebug.LogDebug(
                             $"RGService SDKClientHeartbeatResponse received: {s}");
                         onSuccess.Invoke(response);
@@ -477,13 +479,15 @@ namespace RegressionGames
         {
             if (LoadAuth(out _))
             {
+                var payload = request.ToJsonString();
+                RGDebug.LogDebug($"Sending WebRequest to {GetRgServiceBaseUri()}/sdk-clients/register - {payload}");
                 await SendWebRequest(
                     uri: $"{GetRgServiceBaseUri()}/sdk-clients/register",
                     method: "POST",
-                    payload: JsonConvert.SerializeObject(request),
+                    payload: payload,
                     onSuccess: (s) =>
                     {
-                        SDKClientRegistrationResponse response = JsonUtility.FromJson<SDKClientRegistrationResponse>(s);
+                        SDKClientRegistrationResponse response = JsonConvert.DeserializeObject<SDKClientRegistrationResponse>(s);
                         RGDebug.LogDebug(
                             $"RGService SDKClientRegistrationResponse received: {s}");
                         onSuccess.Invoke(response);
