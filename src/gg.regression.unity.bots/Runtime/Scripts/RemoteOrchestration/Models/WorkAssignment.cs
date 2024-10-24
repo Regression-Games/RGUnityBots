@@ -4,6 +4,7 @@ using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
+using UnityEngine;
 
 // ReSharper disable InconsistentNaming
 namespace RegressionGames.RemoteOrchestration.Models
@@ -14,12 +15,15 @@ namespace RegressionGames.RemoteOrchestration.Models
         public long id;
         public string resourcePath;
         public DateTime startTime;
-        public int timeout;
+        public int? timeout;
         public WorkAssignmentStatus status;
         public IStringBuilderWriteable details;
 
         [NonSerialized]
         private BotSequence _botSequence;
+
+        [NonSerialized]
+        private float _realStartTime;
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -41,6 +45,7 @@ namespace RegressionGames.RemoteOrchestration.Models
 
         private void StartHelper()
         {
+            resourcePath = BotSequence.ToResourcePath(resourcePath);
             try
             {
                 var botSequence = BotSequence.LoadSequenceJsonFromPath(resourcePath);
@@ -54,6 +59,7 @@ namespace RegressionGames.RemoteOrchestration.Models
                 {
                     status = WorkAssignmentStatus.IN_PROGRESS;
                     _botSequence = botSequence.Item3;
+                    _realStartTime = Time.unscaledTime;
                     _botSequence.Play();
                 }
             }
@@ -69,11 +75,11 @@ namespace RegressionGames.RemoteOrchestration.Models
         {
             if (status == WorkAssignmentStatus.IN_PROGRESS)
             {
-                if (timeout > 0)
+                if (timeout is > 0)
                 {
-                    var now = DateTime.UtcNow;
-                    var utcTimeout = startTime.AddSeconds(timeout);
-                    if (now > utcTimeout)
+                    var now = Time.unscaledTime;
+                    var timeoutTime = _realStartTime + timeout.Value;
+                    if (now > timeoutTime)
                     {
                         status = WorkAssignmentStatus.COMPLETE_TIMEOUT;
                         Stop();
