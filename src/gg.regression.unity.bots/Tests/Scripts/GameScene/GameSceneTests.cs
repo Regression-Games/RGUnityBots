@@ -97,6 +97,8 @@ namespace RegressionGames.Tests.Z_RunMeLast_GameScene
                 // remove our altered overlay
                 Object.Destroy(botManager.gameObject);
             }
+
+            SceneManager.UnloadSceneAsync("GameObjectTestScene");
         }
 
         [OneTimeTearDown]
