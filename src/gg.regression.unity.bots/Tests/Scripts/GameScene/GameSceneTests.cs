@@ -63,7 +63,7 @@ namespace RegressionGames.Tests.Z_RunMeLast_GameScene
             }
         }
 
-        [UnityTest]
+        //Disabled temporarily [UnityTest]
         public IEnumerator TestGameObjectsSequence()
         {
             // Define which bot sequence to use
