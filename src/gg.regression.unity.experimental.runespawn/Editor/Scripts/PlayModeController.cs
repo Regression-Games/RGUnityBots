@@ -69,6 +69,9 @@ public static class PlayModeController
     {
         try
         {
+            // Ensure the previous bot sequence is cleared.
+            BotSequence.ActiveBotSequence = null;
+
             // Reset the previous bot sequence when a new request is received.
             _botSequence = null;
             SetupBotSequence(client, botSequencePath);
