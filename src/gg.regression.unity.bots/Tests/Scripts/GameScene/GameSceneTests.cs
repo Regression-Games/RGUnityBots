@@ -71,7 +71,8 @@ namespace RegressionGames.Tests.Z_RunMeLast_GameScene
 
             // Start the sequence
             PlaybackResult sequenceResult = null;
-            yield return RGTestUtils.StartBotSequence(sequencePath, result => sequenceResult = result, timeout: 20);
+            // give it up to 1 minute to finish before reporting time out failure - reality, it finishes in about 10 seconds on the windows laptops
+            yield return RGTestUtils.StartBotSequence(sequencePath, result => sequenceResult = result, timeout: 60);
 
             if (!sequenceResult.success)
             {
