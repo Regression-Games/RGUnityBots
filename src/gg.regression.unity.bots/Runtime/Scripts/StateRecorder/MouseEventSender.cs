@@ -29,7 +29,6 @@ namespace RegressionGames.StateRecorder
 
         private static InputDevice _virtualMouse;
 
-        private static ObjectFinder[] _objectFinders;
 
         public static void Reset()
         {
