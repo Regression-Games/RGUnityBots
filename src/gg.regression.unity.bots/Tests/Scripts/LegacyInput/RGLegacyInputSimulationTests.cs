@@ -222,6 +222,7 @@ namespace RegressionGames.Tests.LegacyInput
         public IEnumerator TearDown()
         {
             RGLegacyInputWrapper.StopSimulation();
+            RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.AUTOMATIC;
             RGUtils.TeardownOverrideEventSystem();
             yield break;
         }

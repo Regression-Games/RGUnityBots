@@ -16,7 +16,7 @@ using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 // ReSharper disable CheckNamespace
 // ReSharper disable InconsistentNaming
-namespace RegressionGames.Tests.a_RunMeFirst_GameScene
+namespace RegressionGames.Tests.Z_RunMeLast_GameScene
 {
     [TestFixture]
 

@@ -189,22 +189,18 @@ namespace RegressionGames.Tests.ActionManager
 
         private void ResetInputSystem()
         {
-            if (Keyboard.current != null)
-            {
-                InputSystem.ResetDevice(Keyboard.current, true);
-            }
-            MouseEventSender.Reset();
-            if (Mouse.current != null)
-            {
-                InputSystem.ResetDevice(Mouse.current, true);
-            }
+            TeardownEventSystemChanges();
 
             MouseEventSender.InitializeVirtualMouse();
         }
 
         private void TeardownEventSystemChanges()
         {
-            InputSystem.ResetDevice(Keyboard.current, true);
+            if (Keyboard.current != null)
+            {
+                InputSystem.ResetDevice(Keyboard.current, true);
+            }
+
             MouseEventSender.Reset();
             if (Mouse.current != null)
             {
@@ -225,11 +221,13 @@ namespace RegressionGames.Tests.ActionManager
         public override void TearDown()
         {
             RGActionManager.StopSession();
-            ResetInputSystem();
+            TeardownEventSystemChanges();
 
             base.TearDown();
 
             InputSystem.onAfterUpdate -= OnAfterInputSystemUpdate;
+
+            RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.AUTOMATIC;
         }
 
         private void OnAfterInputSystemUpdate()
