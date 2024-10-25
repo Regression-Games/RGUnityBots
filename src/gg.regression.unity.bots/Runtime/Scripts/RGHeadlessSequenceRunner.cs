@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.Types;
@@ -112,7 +113,7 @@ namespace RegressionGames
                     {
 
                         var path = args[i + 1];
-                        
+
                         // Sequences that are run via -rgsequencepath must be relative, as we only allows sequences
                         // included in the Resource or persistent path directories.
                         if (Path.IsPathRooted(path))
@@ -121,7 +122,7 @@ namespace RegressionGames
                             Application.Quit(Rc_SequencePathNotRelative);
                             return null;
                         }
-                        
+
                         return path;
                     }
                     // else
@@ -183,6 +184,12 @@ namespace RegressionGames
             botSequenceInfo.Item3.Play();
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+
+            var replayToolbar = Object.FindObjectOfType<ReplayToolbarManager>();
+            if (replayToolbar != null)
+            {
+                replayToolbar.SetInUseButtonStates();
+            }
 
             yield return null; // Allow the recording to start playing
             var didTimeout = false;

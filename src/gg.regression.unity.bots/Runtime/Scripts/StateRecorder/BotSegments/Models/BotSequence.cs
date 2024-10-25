@@ -355,7 +355,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public static string ToResourcePath(string path)
         {
-            var resourcePath = path;
+            if (path == null)
+            {
+                return null;
+            }
+            var resourcePath = path.Replace('\\', '/');
             if (resourcePath.Contains("Resources/"))
             {
                 resourcePath = resourcePath.Substring(resourcePath.LastIndexOf("Resources/") + "Resources/".Length);
@@ -476,7 +480,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
                 playbackController.Stop();
-                playbackController.Reset();
                 ActiveBotSequence = null;
             }
         }

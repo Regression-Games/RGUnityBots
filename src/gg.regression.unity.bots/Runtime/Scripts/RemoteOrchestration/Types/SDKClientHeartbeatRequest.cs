@@ -6,13 +6,14 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using RegressionGames.RemoteOrchestration.Models;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.JsonConverters;
 
 // ReSharper disable InconsistentNaming
 namespace RegressionGames.RemoteOrchestration.Types
 {
     [Serializable]
-    public class SDKClientHeartbeatRequest
+    public class SDKClientHeartbeatRequest : IStringBuilderWriteable
     {
 
         public long clientId;
@@ -56,7 +57,7 @@ namespace RegressionGames.RemoteOrchestration.Types
         {
             stringBuilder.Append("{\"ipAddresses\":[");
             var ipAddresses = GetLocalIPSv4();
-            for (var i = ipAddresses.Length; i >= 0; i--)
+            for (var i = ipAddresses.Length-1; i >= 0; i--)
             {
                 StringJsonConverter.WriteToStringBuilder(stringBuilder, ipAddresses[i]);
                 if (i > 0)

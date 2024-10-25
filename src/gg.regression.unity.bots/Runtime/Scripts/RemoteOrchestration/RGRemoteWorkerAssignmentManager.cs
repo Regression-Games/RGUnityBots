@@ -98,7 +98,9 @@ namespace RegressionGames.RemoteOrchestration
 
         private List<AvailableBotSequence> _availableBotSequences = null;
 
-        public volatile WorkAssignment ActiveWorkAssignment = null;
+        private volatile WorkAssignment ActiveWorkAssignment = null;
+
+        public bool HasActiveWorkAssignment => ActiveWorkAssignment != null;
 
 
         private void Update()
@@ -144,7 +146,7 @@ namespace RegressionGames.RemoteOrchestration
                 // check to send heartbeat if past the interval
                 if (_lastHeartbeatTime + HeartbeatInterval < now)
                 {
-                    SendHeartbeatForCurrentState(null);
+                    SendHeartbeatForCurrentState(ActiveWorkAssignment);
                 }
             }
 
@@ -302,65 +304,33 @@ namespace RegressionGames.RemoteOrchestration
             var controller = FindObjectOfType<BotSegmentsPlaybackController>();
             if (controller != null && controller.GetState() != PlayState.NotLoaded)
             {
-                // a group of segments is playing.. let's see if we can figure out more details or not
-                if (BotSequence.ActiveBotSequence != null)
+                if (controller.GetState() == PlayState.Playing || controller.GetState() == PlayState.Starting || (controller.GetState() == PlayState.Stopped && controller.ReplayCompletedSuccessfully() == null && controller.GetLastSegmentPlaybackWarning() == null))
                 {
-                    // this is a bot sequence, give them the name and path
+                    // a group of segments is playing.. let's see if we can figure out more details or not
+                    if (BotSequence.ActiveBotSequence != null)
+                    {
+                        // this is a bot sequence, give them the name and path
+                        return new ActiveSequence()
+                        {
+                            name = BotSequence.ActiveBotSequence.name,
+                            description = BotSequence.ActiveBotSequence.description,
+                            resourcePath = BotSequence.ActiveBotSequence.resourcePath,
+                            sequence = BotSequence.ActiveBotSequence
+                        };
+                    }
+
+                    // else - a zip file or other bot segments are running outside of a sequence
                     return new ActiveSequence()
                     {
-                        name = BotSequence.ActiveBotSequence.name,
-                        description = BotSequence.ActiveBotSequence.description,
-                        resourcePath = BotSequence.ActiveBotSequence.resourcePath,
-                        sequence = BotSequence.ActiveBotSequence
+                        name = "BotSegments are active outside of a BotSequence",
+                        description = "BotSegment(s) are active outside of a BotSequence.  This happens when a user is testing individual BotSegments or BotSegmentLists from the overlay, or when a replay is running from a .zip file.",
+                        resourcePath = "",
+                        sequence = null
                     };
                 }
-                // else - a zip file or other bot segments are running outside of a sequence
-                return new ActiveSequence()
-                {
-                    name = "BotSegments are active outside of a BotSequence",
-                    description = "BotSegment(s) are active outside of a BotSequence.  This happens when a user is testing individual BotSegments or BotSegmentLists from the overlay, or when a replay is running from a .zip file.",
-                    resourcePath = "",
-                    sequence = null
-                };
             }
 
             return null;
         }
-
-        /// <summary>
-        /// Plays back a bot sequence, and then returns the save location of the recording.
-        /// </summary>
-        /// <param name="botSequenceInfo">(filePath,resourcePath,BotSequence) tuple of the bot sequence</param>
-        /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
-        /// <param name="timeout">How long in seconds to wait for this sequence to complete, less than or == 0 means wait forever (default=0)</param>
-        internal static IEnumerator StartBotSequence((string,string, BotSequence) botSequenceInfo, Action<PlaybackResult> setPlaybackResult, int timeout = 0)
-        {
-            var startTime = Time.unscaledTime;
-
-            botSequenceInfo.Item3.Play();
-
-            var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
-
-            yield return null; // Allow the recording to start playing
-            var didTimeout = false;
-            while (playbackController.GetState() == PlayState.Playing || playbackController.GetState() == PlayState.Paused)
-            {
-                if (timeout > 0 && Time.unscaledTime > startTime + timeout )
-                {
-                    didTimeout = true;
-                    break;
-                }
-                yield return null;
-            }
-            yield return null;
-            var result = new PlaybackResult
-            {
-                saveLocation = playbackController.SaveLocation() + ".zip",
-                success = !didTimeout
-            };
-            setPlaybackResult(result);
-        }
-
-
     }
 }
