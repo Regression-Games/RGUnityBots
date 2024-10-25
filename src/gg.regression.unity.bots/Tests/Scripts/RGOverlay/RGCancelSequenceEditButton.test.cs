@@ -1,5 +1,9 @@
+using System.Collections;
 using NUnit.Framework;
+using RegressionGames.TestFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.Tests.RGOverlay
@@ -11,18 +15,40 @@ namespace RegressionGames.Tests.RGOverlay
 
         private RGCancelSequenceEditButton button;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             // create the button we want to test
             _uat = new GameObject();
             button = _uat.AddComponent<RGCancelSequenceEditButton>();
-            button.transform.SetParent(_uat.transform, false);
 
             // create the sequence manager the button references
-            var overlay = new GameObject();
+            var overlay = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
             var sequenceManager = overlay.gameObject.AddComponent<RGSequenceManager>();
-            sequenceManager.sequenceEditor = new GameObject();
+            sequenceManager.sequenceEditor = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
 
             button.overlayContainer = overlay;
         }

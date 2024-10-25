@@ -16,6 +16,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames.Tests.ActionManager
 {
@@ -32,9 +33,13 @@ namespace RegressionGames.Tests.ActionManager
             Assert.IsTrue(rng.RangeEquals(parsedRange));
         }
 
-        [Test]
-        public void TestValueRanges()
+        [UnityTest]
+        public IEnumerator TestValueRanges()
         {
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
             {
                 RGBoolRange rng = new RGBoolRange(false, true);
                 TestRangeSerialization(rng);
@@ -184,7 +189,10 @@ namespace RegressionGames.Tests.ActionManager
 
         private void ResetInputSystem()
         {
-            InputSystem.ResetDevice(Keyboard.current, true);
+            if (Keyboard.current != null)
+            {
+                InputSystem.ResetDevice(Keyboard.current, true);
+            }
             MouseEventSender.Reset();
             if (Mouse.current != null)
             {
@@ -207,9 +215,21 @@ namespace RegressionGames.Tests.ActionManager
         private bool _inputUpdateCompleted = false;
 
         [SetUp]
-        public void SetupActionManagerTests()
+        public void SetUp()
         {
             InputSystem.onAfterUpdate += OnAfterInputSystemUpdate;
+            MouseEventSender.Reset();
+        }
+
+        [TearDown]
+        public override void TearDown()
+        {
+            RGActionManager.StopSession();
+            ResetInputSystem();
+
+            base.TearDown();
+
+            InputSystem.onAfterUpdate -= OnAfterInputSystemUpdate;
         }
 
         private void OnAfterInputSystemUpdate()
@@ -238,6 +258,15 @@ namespace RegressionGames.Tests.ActionManager
                 InputSystem.AddDevice<Keyboard>();
             }
 
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
             SceneManager.LoadSceneAsync("ActionManagerTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("ActionManagerTestScene");
 

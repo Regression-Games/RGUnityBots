@@ -1,9 +1,12 @@
+using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames.TestFramework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -18,20 +21,32 @@ namespace RegressionGames.Tests.RGOverlay
 
         private readonly PointerEventData genericDragEvent = new(EventSystem.current);
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             // create the card we want to test
             _uat = new GameObject();
             card = _uat.AddComponent<RGDraggableCard>();
-            card.transform.SetParent(_uat.transform, false);
             card.gameObject.AddComponent<RectTransform>();
             card.payload = new Dictionary<string, string>();
             card.draggableCardName = "Card Name";
             card.draggableCardDescription = "Card Description";
 
             // add placeholder text fields to the card
-            var text = RGTestUtils.CreateTMProPlaceholder();
+            var text = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
             card.namePrefab = text;
             card.descriptionPrefab = text;
             card.resourcePathPrefab = text;
@@ -59,8 +74,8 @@ namespace RegressionGames.Tests.RGOverlay
                 }
             };
             draggedCard.iconPrefab.AddComponent<Image>();
-            draggedCard.nameComponent = RGTestUtils.CreateTMProPlaceholder();
-            draggedCard.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder();
+            draggedCard.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            draggedCard.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
             card.icon = RGTestUtils.CreateSpritePlaceholder();
             card.iconPrefab = new GameObject(){
                 transform =

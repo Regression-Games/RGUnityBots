@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 
 using NUnit.Framework;
+using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.Types;
 using RegressionGames.TestFramework;
 using RegressionGames.Types;
 #if UNITY_EDITOR
@@ -9,13 +11,15 @@ using UnityEditor;
 using System.Reflection;
 #endif
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
-
-namespace RegressionGames.Tests.GameScene
+using Object = UnityEngine.Object;
+// ReSharper disable CheckNamespace
+// ReSharper disable InconsistentNaming
+namespace RegressionGames.Tests.a_RunMeFirst_GameScene
 {
     [TestFixture]
+
     public class GameSceneTests
     {
         private int oldIndex = -1;
@@ -29,6 +33,34 @@ namespace RegressionGames.Tests.GameScene
 
             // set to full HD (1920x1080)
             SetEditorAspectRatio(3);
+
+            MouseEventSender.InitializeVirtualMouse();
+        }
+
+        [UnitySetUp]
+        public IEnumerator SetUp()
+        {
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("GameObjectTestScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("GameObjectTestScene");
+
+            botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // make sure the overlay has RGExcludeFromState removed
+                var component = botManager.gameObject.GetComponent<RGExcludeFromState>();
+                if (component != null)
+                {
+                    Object.Destroy(component);
+                }
+            }
         }
 
         [UnityTest]
@@ -37,13 +69,9 @@ namespace RegressionGames.Tests.GameScene
             // Define which bot sequence to use
             string sequencePath = "BotSequences/GameScenePlaybackTest.json";
 
-            // Wait for the scene
-            SceneManager.LoadSceneAsync("GameObjectTestScene", LoadSceneMode.Single);
-            yield return RGTestUtils.WaitForScene("GameObjectTestScene");
-
             // Start the sequence
             PlaybackResult sequenceResult = null;
-            yield return RGTestUtils.StartBotSequence(sequencePath, result => sequenceResult = result, timeout: 30);
+            yield return RGTestUtils.StartBotSequence(sequencePath, result => sequenceResult = result, timeout: 20);
 
             if (!sequenceResult.success)
             {
@@ -56,6 +84,19 @@ namespace RegressionGames.Tests.GameScene
             RGDebug.LogInfo("Played back the bot sequence - saved to " + sequenceResult.saveLocation);
             Assert.IsNotNull(sequenceResult.saveLocation);
 
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+
+            // just get some component on the top level RGOverlayCanvas
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // remove our altered overlay
+                Object.Destroy(botManager.gameObject);
+            }
         }
 
         [OneTimeTearDown]
@@ -72,8 +113,8 @@ namespace RegressionGames.Tests.GameScene
 #if UNITY_EDITOR
                 Type gameView = typeof(Editor).Assembly.GetType("UnityEditor.GameView");
                 EditorWindow window = EditorWindow.GetWindow(gameView);
-                PropertyInfo selectedSizeIndex = gameView.GetProperty("selectedSizeIndex", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                selectedSizeIndex.SetValue(window, index, null);
+                MethodInfo selectSize = gameView.GetMethod("SizeSelectionCallback", BindingFlags.Instance | BindingFlags.Public);
+                selectSize.Invoke(window, new object[]{index, null});
 #endif
         }
 

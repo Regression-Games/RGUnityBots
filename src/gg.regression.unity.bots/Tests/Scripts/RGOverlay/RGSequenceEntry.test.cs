@@ -1,8 +1,10 @@
+using System.Collections;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using RegressionGames.TestFramework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 
@@ -19,9 +21,22 @@ namespace RegressionGames.Tests.RGOverlay
 
         private RGSequenceEditor editor;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             // create the entry we want to test
             _uat = new GameObject();
             entry = _uat.AddComponent<RGSequenceEntry>();
@@ -45,8 +60,8 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform
                 }
             }.AddComponent<Button>();
-            entry.nameComponent = RGTestUtils.CreateTMProPlaceholder();
-            entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder();
+            entry.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
 
             // mocks for the Sequence Editor + Manager
             manager = _uat.AddComponent<RGSequenceManager>();
@@ -84,7 +99,7 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform
                 }
             };
-            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder();
+            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
             var ni = new GameObject
             {
                 transform =
