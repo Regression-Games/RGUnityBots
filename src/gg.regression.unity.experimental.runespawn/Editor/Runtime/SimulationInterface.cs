@@ -50,22 +50,19 @@ public static class SimulationInterface
     /// Example 1: Simulate a right-click on a game object:
     /// <code>
     /// Transform gameObjectTransform = someGameObject.transform;
-    /// MouseEventSender.SendMouseEvent(gameObjectTransform, rightButton: true);
+    /// SimulationInterface.SendMouseEvent(gameObjectTransform, rightButton: true);
+    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
+    /// SimulationInterface.SendMouseEvent(gameObjectTransform, rightButton: false);
     /// </code>
-    /// Example 2: Simulate a middle-click on an object with scroll input:
+    /// Example 2: Simulate a mouse click, drag and release:
     /// <code>
-    /// Transform objectTransform = someObject.transform;
-    /// MouseEventSender.SendMouseEvent(objectTransform, middleButton: true, forwardButton: true);
+    /// SimulationInterface.SendMouseEvent(startTransform, leftButton: true);
+    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
+    /// SimulationInterface.SendMouseEvent(endTransform, leftButton: true);
+    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
+    /// SimulationInterface.SendMouseEvent(endTransform, leftButton: false);
     /// </code>
     /// </example>
-    /// Example 3: Simulate a mouse click, drag and release:
-    /// <code>
-    /// MouseEventSender.SendMouseEvent(startTransform, leftButton: true);
-    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
-    /// MouseEventSender.SendMouseEvent(endTransform, leftButton: true);
-    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
-    /// MouseEventSender.SendMouseEvent(endTransform, leftButton: false);
-    /// </code>
     public static void SendMouseEvent(Transform mouseTarget,
                                       bool leftButton=false,
                                       bool middleButton=false,
@@ -98,6 +95,25 @@ public static class SimulationInterface
     /// <param name="forwardButton">Simulates forward mouse button press if true.</param>
     /// <param name="backButton">Simulates back mouse button press if true.</param>
     /// <param name="scroll">Simulates mouse scroll wheel movement.</param>
+    /// <example>
+    /// Example 1: Simulate a left-click at screen position (100, 100):
+    /// <code>
+    /// Vector2 clickPosition = new Vector2(100f, 100f);
+    /// SimulationInterface.SendMouseEvent(clickPosition, leftButton: true);
+    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
+    /// SimulationInterface.SendMouseEvent(clickPosition, leftButton: false);
+    /// </code>
+    /// Example 2: Simulate a drag operation from one screen position to another:
+    /// <code>
+    /// Vector2 startPos = new Vector2(200f, 200f);
+    /// Vector2 endPos = new Vector2(400f, 400f);
+    /// SimulationInterface.SendMouseEvent(startPos, leftButton: true);
+    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
+    /// SimulationInterface.SendMouseEvent(endPos, leftButton: true);
+    /// yield return new WaitForSeconds(0.1f); // Wait for a few frames
+    /// SimulationInterface.SendMouseEvent(endPos, leftButton: false);
+    /// </code>
+    /// </example>
     public static void SendMouseEvent(Vector2 mouseScreenPosition,
                                       bool leftButton=false,
                                       bool middleButton=false,
@@ -117,16 +133,16 @@ public static class SimulationInterface
     /// <example>
     /// Example 1: Simulate pressing and releasing the 'W' key:
     /// <code>
-    /// SendKeyEvent(Key.W, true);
+    /// SimulationInterface.SendKeyEvent(Key.W, true);
     /// </code>
     /// 
     /// Example 2: Simulate holding 'Shift' and pressing 'A' in an async method:
     /// <code>
-    /// SendKeyEvent(Key.LeftShift, true);
-    /// SendKeyEvent(Key.A, true);
+    /// SimulationInterface.SendKeyEvent(Key.LeftShift, true);
+    /// SimulationInterface.SendKeyEvent(Key.A, true);
     /// yield return new WaitForSeconds(0.1f);
-    /// SendKeyEvent(Key.A, false);
-    /// SendKeyEvent(Key.LeftShift, false);
+    /// SimulationInterface.SendKeyEvent(Key.A, false);
+    /// SimulationInterface.SendKeyEvent(Key.LeftShift, false);
     /// </code>
     /// </example>
     public static void SendKeyEvent(Key key, bool isDown)
