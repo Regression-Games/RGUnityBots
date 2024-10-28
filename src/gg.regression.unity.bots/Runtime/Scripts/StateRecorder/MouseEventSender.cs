@@ -377,7 +377,7 @@ namespace RegressionGames.StateRecorder
         }
 
 #if ENABLE_LEGACY_INPUT_MANAGER
-        public static void SendMouseEventLegacy(Vector2 position, Vector2 delta, Vector2 scroll,
+        private static void SendMouseEventLegacy(Vector2 position, Vector2 delta, Vector2 scroll,
             bool leftButton, bool middleButton, bool rightButton, bool forwardButton, bool backButton)
         {
             if (RGLegacyInputWrapper.IsPassthrough)
