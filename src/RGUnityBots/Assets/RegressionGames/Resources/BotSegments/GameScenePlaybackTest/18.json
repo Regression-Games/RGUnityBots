@@ -1,0 +1,39 @@
+{
+"name":null,
+"description":null,
+"sessionId":"6e268c2d4638480c83f9dad6ef0319b8",
+"apiVersion":15,
+"endCriteria":[
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/RGLogo/Sparkle","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/RGLogo","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/Stop Replay","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Reset Button/Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/Pause Replay","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Start Button/Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Stop Button/Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Reset Button","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/File Load Progress Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/VirtualMouse/MouseDot","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Start Button","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/VirtualMouse/VirtualMouseCursor","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/Upload Progress Text","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"Canvas/Stop Button","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"RGOverlayCanvas/Recording Toolbar/VirtualMouse/VirtualMouseClickHighlight","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"FloorPlanes/FloorSegment","apiVersion":22,"count":2,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"SceneObjects/Sphere","apiVersion":22,"count":1,"countRule":"NonZero"}},
+{"type":"NormalizedPath","apiVersion":7,"transient":true,"data":{"path":"SceneObjects/Cylinder","apiVersion":22,"count":1,"countRule":"GreaterThanEqual"}}
+],
+"botAction":{"type":"InputPlayback","apiVersion":1,"data":{
+"apiVersion":1,
+"startTime":75.7042815,
+"inputData":{
+"apiVersion":1,
+"keyboard":[
+
+],
+"mouse":[
+{"apiVersion":1,"startTime":76.0501931,"screenSize":{"x":1920,"y":1080},"position":{"x":169,"y":1049},"worldPosition":null,"leftButton":false,"middleButton":false,"rightButton":false,"forwardButton":false,"backButton":false,"scroll":{"x":0,"y":0},"clickedObjectNormalizedPaths":[]}
+]
+}
+}}}

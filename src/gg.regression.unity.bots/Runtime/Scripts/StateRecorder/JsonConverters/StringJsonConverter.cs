@@ -8,7 +8,7 @@ using Object = System.Object;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class StringJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<String>
+    public class StringJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<String>
     {
 
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(5_000));
@@ -44,12 +44,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
         // supports up to 1m char length escaped strings
         private static readonly ThreadLocal<char[]> _bufferArray = new (() => new char[1_000_000]);
 
-        void ITypedStringBuilderWriteable<string>.WriteToStringBuilder(StringBuilder stringBuilder, string val)
+        void ITypedStringBuilderConverter<string>.WriteToStringBuilder(StringBuilder stringBuilder, string val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<string>.ToJsonString(string val)
+        string ITypedStringBuilderConverter<string>.ToJsonString(string val)
         {
             return ToJsonString(val);
         }

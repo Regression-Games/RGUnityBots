@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.Types;
@@ -23,6 +25,7 @@ namespace RegressionGames
         internal static readonly int Rc_SequenceTimeoutNeedsPath = 5;
         internal static readonly int Rc_SequenceTimeoutMissing = 6;
         internal static readonly int Rc_SequenceTimeoutNotInt = 7;
+        internal static readonly int Rc_SequencePathNotRelative = 8;
 
         internal static readonly string SequencePathArgument = "-rgsequencepath";
         internal static readonly string SequenceTimeoutArgument = "-rgsequencetimeout";
@@ -51,7 +54,7 @@ namespace RegressionGames
                 playbackController.gameObject.AddComponent<RGHeadlessSequenceRunnerBehaviour>();
 
                 //ensure a keyboard exists for the input playback
-                if (IsBatchMode())
+                if (Application.isBatchMode)
                 {
                     var currentKeyboard = Keyboard.current;
                     // this should always be null as -batchmode has no keyboard.. but if a game already has their own virtual keyboard for some reason, we don't need to make another
@@ -97,22 +100,6 @@ namespace RegressionGames
             }
         }
 
-        internal static bool IsBatchMode()
-        {
-            var args = Environment.GetCommandLineArgs();
-            var argsLength = args.Length;
-            for (var i = 0; i < argsLength; i++)
-            {
-                var arg = args[i];
-                if (arg == "-batchmode")
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         internal static string ParsePathArgument()
         {
             var args = Environment.GetCommandLineArgs();
@@ -124,7 +111,19 @@ namespace RegressionGames
                 {
                     if (i + 1 < argsLength)
                     {
-                        return args[i + 1];
+
+                        var path = args[i + 1];
+
+                        // Sequences that are run via -rgsequencepath must be relative, as we only allows sequences
+                        // included in the Resource or persistent path directories.
+                        if (Path.IsPathRooted(path))
+                        {
+                            RGDebug.LogError($"{SequencePathArgument} command line argument requires a relative path");
+                            Application.Quit(Rc_SequencePathNotRelative);
+                            return null;
+                        }
+
+                        return path;
                     }
                     // else
                     RGDebug.LogError($"{SequencePathArgument} command line argument requires a path value to be passed after it");
@@ -186,6 +185,12 @@ namespace RegressionGames
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
+            var replayToolbar = Object.FindObjectOfType<ReplayToolbarManager>();
+            if (replayToolbar != null)
+            {
+                replayToolbar.SetInUseButtonStates();
+            }
+
             yield return null; // Allow the recording to start playing
             var didTimeout = false;
             while (playbackController.GetState() == PlayState.Playing || playbackController.GetState() == PlayState.Paused)
@@ -204,6 +209,7 @@ namespace RegressionGames
                 success = !didTimeout
             };
             setPlaybackResult(result);
+            botSequenceInfo.Item3.Stop();
         }
     }
 

@@ -4,6 +4,7 @@ using System;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using UnityEditor.Compilation;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames;
 
 
@@ -12,7 +13,10 @@ public static class PlayModeController
     private static bool originalRunInBackground = Application.runInBackground;
 
     private static List<string> _logs = new List<string>();
+    private static List<string> _warnings = new List<string>();
     private static List<string> _errors = new List<string>();
+
+    private static BotSequence _botSequence;
 
     /// <summary>
     /// Static constructor for PlayModeController.
@@ -51,20 +55,28 @@ public static class PlayModeController
         {
             // Clear logs and errors when manually entering play mode as well. 
             _logs.Clear();
+            _warnings.Clear();
             _errors.Clear();
         }
     }
 
     /// <summary>
-    /// Starts Play mode and sends a response to the client.
+    /// Starts Play mode and optionally runs a bot sequence.
     /// </summary>
     /// <param name="client">TcpClient object.</param>
-    public static void StartPlayMode(TcpClient client)
+    /// <param name="botSequencePath">Optional path to the bot sequence file.</param>
+    public static void StartPlayMode(TcpClient client, string botSequencePath = null)
     {
         try
         {
-            CompilationPipeline.RequestScriptCompilation();
+            // Ensure the previous bot sequence is cleared.
+            BotSequence.ActiveBotSequence = null;
 
+            // Reset the previous bot sequence when a new request is received.
+            _botSequence = null;
+            SetupBotSequence(client, botSequencePath);
+
+            CompilationPipeline.RequestScriptCompilation();
             EditorApplication.delayCall += () =>
             {
                 Application.runInBackground = true;
@@ -75,6 +87,7 @@ public static class PlayModeController
 
             // Clear the previous logs and errors when entering play mode.
             _logs.Clear();
+            _warnings.Clear();
             _errors.Clear();
            
             // Send success response
@@ -88,6 +101,51 @@ public static class PlayModeController
         finally
         {
             client.Close();
+        }
+    }
+
+    /// <summary>
+    /// Handles the loading and setup of a bot sequence.
+    /// </summary>
+    /// <param name="client">The TcpClient to send responses to.</param>
+    /// <param name="botSequencePath">The path to the bot sequence file.</param>
+    private static void SetupBotSequence(TcpClient client, string botSequencePath)
+    {
+        // If no bot sequence path is provided, return early.
+        if (string.IsNullOrEmpty(botSequencePath))
+            return;
+
+        // Load the bot sequence.
+        _botSequence = BotSequence.LoadSequenceJsonFromPath(botSequencePath).Item3;
+
+        // If the bot sequence is invalid, log an error, send an error response, and return.
+        if (_botSequence == null)
+        {
+            // Ensure we don't have any duplicate subscriptions.
+            EditorApplication.playModeStateChanged -= PlayBotSequenceOnPlayModeEnter;
+            Debug.LogError($"Bot sequence file not found at path: {botSequencePath}");
+            Utilities.SendJsonResponse(
+                client.GetStream(),
+                new { status = "Error", message = $"Bot sequence file not found at path: {botSequencePath}" }
+            );
+            return;
+        }
+
+        // If the bot sequence is valid, set up the play mode state change handler.
+        EditorApplication.playModeStateChanged += PlayBotSequenceOnPlayModeEnter;
+    }
+
+    /// <summary>
+    /// Handles the execution of a bot sequence when Unity enters Play Mode.
+    /// </summary>
+    /// <param name="state">The current state of the Play Mode transition.</param>
+    private static void PlayBotSequenceOnPlayModeEnter(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredPlayMode)
+        {
+            // Unsubscribe to prevent multiple executions
+            EditorApplication.playModeStateChanged -= PlayBotSequenceOnPlayModeEnter;
+            _botSequence.Play();
         }
     }
 
@@ -130,10 +188,12 @@ public static class PlayModeController
         try
         {
             string logs_string = string.Join("\n", _logs);
+            string warnings_string = string.Join("\n", _warnings);
             string errors_string = string.Join("\n", _errors);
             Utilities.SendJsonResponse(client.GetStream(), new {
                 status = "Success",
                 logs = logs_string,
+                warnings = warnings_string,
                 errors = errors_string
             });
         }
@@ -159,7 +219,11 @@ public static class PlayModeController
     {
         if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
         {
-            _errors.Add($"[{type}] {logString}\n{stackTrace}");
+            _errors.Add($"[{type}] {logString}\n{stackTrace}\n");
+        }
+        else if (type == LogType.Warning)
+        {
+            _warnings.Add($"[{type}] {logString}\n{stackTrace}\n");
         }
         else if (type == LogType.Log)
         {

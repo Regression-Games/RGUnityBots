@@ -406,7 +406,8 @@ namespace RegressionGames.StateRecorder
                 for (var i = 0; i < rendererListLength; i++)
                 {
                     var nextRenderer = RendererQueryList[i];
-                    if (nextRenderer.transform.GetComponentInParent<RGExcludeFromState>() == null)
+                    // exclude objects outside the view frustrum of ANY camera... this can be a problem in the editor scene view though as that counts as a camera
+                    if (nextRenderer.isVisible && nextRenderer.transform.GetComponentInParent<RGExcludeFromState>() == null)
                     {
                         var theBounds = nextRenderer.bounds;
 

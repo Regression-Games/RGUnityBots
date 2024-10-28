@@ -1,9 +1,12 @@
+using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames.TestFramework;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -18,27 +21,59 @@ namespace RegressionGames.Tests.RGOverlay
 
         private IList<BotSequenceEntry> segments;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             // create the editor we want to test
             _uat = new GameObject();
             editor = _uat.AddComponent<RGSequenceEditor>();
-            editor.transform.SetParent(_uat.transform, false);
 
             var dropZone = RGOverlayUtils.CreateNewDropZone(_uat);
 
             // create the required public fields the editor needs
-            var textObject = new GameObject();
+            var textObject = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             var text = textObject.AddComponent<TMP_InputField>();
             editor.NameInput = text;
             editor.DescriptionInput = text;
             editor.SearchInput = text;
-            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder();
-            editor.AvailableSegmentsList = new GameObject();
-            editor.CreateSequenceButton = new GameObject();
+            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            editor.AvailableSegmentsList = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
+            editor.CreateSequenceButton = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             editor.CreateSequenceButton.AddComponent<Button>();
-            editor.SegmentCardPrefab = new GameObject();
+            editor.SegmentCardPrefab = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             editor.DropZonePrefab = dropZone;
             editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
             editor.SegmentIcon = RGTestUtils.CreateSpritePlaceholder();

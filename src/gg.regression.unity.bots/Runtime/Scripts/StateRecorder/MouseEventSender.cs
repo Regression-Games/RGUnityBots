@@ -32,7 +32,6 @@ namespace RegressionGames.StateRecorder
 
         public static void Reset()
         {
-            MoveMouseOffScreen();
             try
             {
                 _virtualMouseEventHandler?.Dispose();
@@ -54,9 +53,16 @@ namespace RegressionGames.StateRecorder
             _virtualMouseEventHandler = null;
             _realMouseEventHandler = null;
 
+            _virtualMouse = InputSystem.GetDevice("RGVirtualMouse");
             if (_virtualMouse != null)
             {
-                InputSystem.RemoveDevice(_virtualMouse);
+                MoveMouseOffScreen();
+
+                if (_realMouse != null)
+                {
+                    _realMouse = InputSystem.GetDevice(_realMouse.name);
+                }
+
                 if (_realMouse is { enabled: false })
                 {
                     RGDebug.LogDebug("reset - Enabling the real mouse device for mouse event");
@@ -67,6 +73,7 @@ namespace RegressionGames.StateRecorder
                 {
                     _realMouse.MakeCurrent();
                 }
+
             }
 
             _virtualMouse = null;
@@ -90,6 +97,8 @@ namespace RegressionGames.StateRecorder
                 {
                     InputSystem.EnableDevice(_virtualMouse);
                 }
+
+                _virtualMouse.MakeCurrent();
 
                 if (!_virtualMouse.canRunInBackground)
                 {
@@ -187,7 +196,7 @@ namespace RegressionGames.StateRecorder
 
         public static void SendRawPositionMouseEvent(int replaySegment, Vector2 normalizedPosition, bool leftButton, bool middleButton, bool rightButton, bool forwardButton, bool backButton, Vector2 scroll)
         {
-            if (_virtualMouse != null)
+            if (_virtualMouse is { enabled: true })
             {
                 using (StateEvent.From(_virtualMouse, out var eventPtr))
                 {

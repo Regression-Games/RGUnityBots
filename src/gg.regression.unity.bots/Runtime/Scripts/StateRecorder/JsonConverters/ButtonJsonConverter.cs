@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder.JsonConverters
 {
-    public class ButtonJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderWriteable<Button>, IBehaviourStringBuilderWritable
+    public class ButtonJsonConverter : Newtonsoft.Json.JsonConverter, ITypedStringBuilderConverter<Button>, IBehaviourStringBuilderWritable
     {
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(100));
@@ -17,12 +17,12 @@ namespace RegressionGames.StateRecorder.JsonConverters
             WriteToStringBuilder(stringBuilder, (Button)behaviour);
         }
 
-        void ITypedStringBuilderWriteable<Button>.WriteToStringBuilder(StringBuilder stringBuilder, Button val)
+        void ITypedStringBuilderConverter<Button>.WriteToStringBuilder(StringBuilder stringBuilder, Button val)
         {
             WriteToStringBuilder(stringBuilder, val);
         }
 
-        string ITypedStringBuilderWriteable<Button>.ToJsonString(Button val)
+        string ITypedStringBuilderConverter<Button>.ToJsonString(Button val)
         {
             return ToJsonString(val);
         }

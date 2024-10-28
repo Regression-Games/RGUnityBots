@@ -4,7 +4,7 @@ using System.Text;
 
 namespace RegressionGames.StateRecorder
 {
-    public interface ITypedStringBuilderWriteable<in T> : IStringBuilderWriteable
+    public interface ITypedStringBuilderConverter<in T> : IStringBuilderConverter
     {
         public void WriteToStringBuilderNullable(StringBuilder stringBuilder, T? val)
         {
@@ -32,7 +32,7 @@ namespace RegressionGames.StateRecorder
 
         public string ToJsonString(T val);
 
-        void IStringBuilderWriteable.WriteToStringBuilder(StringBuilder stringBuilder, object val)
+        void IStringBuilderConverter.WriteToStringBuilder(StringBuilder stringBuilder, object val)
         {
             if (val is T val1)
             {
@@ -44,7 +44,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        string IStringBuilderWriteable.ToJsonString(object val)
+        string IStringBuilderConverter.ToJsonString(object val)
         {
             if (val is T val1)
             {

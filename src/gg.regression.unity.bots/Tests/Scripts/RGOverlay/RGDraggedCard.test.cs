@@ -1,7 +1,10 @@
+using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames.TestFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.Tests.RGOverlay
@@ -13,26 +16,42 @@ namespace RegressionGames.Tests.RGOverlay
 
         private RGDraggedCard card;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             // create the card we want to test
             _uat = new GameObject();
             card = _uat.AddComponent<RGDraggedCard>();
-            card.transform.SetParent(_uat.transform, false);
             card.draggedCardName = "Dragged Card";
             card.draggedCardResourcePath = "my/resource/path";
             card.payload = new Dictionary<string, string>();
-            card.iconPrefab = new GameObject();
-            card.nameComponent = RGTestUtils.CreateTMProPlaceholder();
-            card.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder();
+            card.iconPrefab = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
+            card.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            card.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
             card.Start();
         }
 
         [TearDown]
         public void TearDown()
         {
-            Object.Destroy(card);
             Object.Destroy(_uat);
         }
 

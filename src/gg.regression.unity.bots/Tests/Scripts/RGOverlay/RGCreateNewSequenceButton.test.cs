@@ -1,7 +1,10 @@
+using System.Collections;
 using NUnit.Framework;
 using RegressionGames.TestFramework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.Tests.RGOverlay
@@ -13,13 +16,24 @@ namespace RegressionGames.Tests.RGOverlay
 
         private RGCreateNewSequenceButton button;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
             // create the button we want to test
             _uat = new GameObject();
             button = _uat.AddComponent<RGCreateNewSequenceButton>();
-            button.transform.SetParent(_uat.transform, false);
 
             // create the sequence manager the button references
             var overlay = new GameObject
@@ -70,7 +84,7 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = sequenceManager.transform
                 }
             };
-            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder();
+            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
             var ni = new GameObject
             {
                 transform =

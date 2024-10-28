@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
     [Serializable]
     public class BotSequenceEntry
     {
-        public int apiVersion = SdkApiVersion.VERSION_20;
+        public int apiVersion = SdkApiVersion.VERSION_24;
         // filePath (if not null) OR resourcePath
         public string path;
 

@@ -32,12 +32,14 @@ namespace RegressionGames.StateRecorder.BotSegments
         private BotSegmentsPlaybackContainer _dataPlaybackContainer;
 
         //tracks in playback is in progress or paused or starting or stopped
-        private PlayState _isPlaying = PlayState.NotLoaded;
+        private PlayState _playState = PlayState.NotLoaded;
 
         // 0 or greater == isLooping true
         private int _loopCount = -1;
 
         private Action<int> _loopCountCallback;
+
+        private string _lastSegmentPlaybackWarning = null;
 
         // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
         // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
@@ -73,7 +75,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         void OnSceneLoad(Scene s, LoadSceneMode m)
         {
-            if (_isPlaying != PlayState.NotLoaded)
+            if (_playState != PlayState.NotLoaded)
             {
                 // since this is a don't destroy on load, we need to 'fix' the event systems in each new scene that loads
                 RGUtils.SetupOverrideEventSystem(s);
@@ -82,7 +84,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         void OnSceneUnload(Scene s)
         {
-            if (_isPlaying != PlayState.NotLoaded)
+            if (_playState != PlayState.NotLoaded)
             {
                 RGUtils.TeardownOverrideEventSystem(s);
             }
@@ -118,17 +120,18 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             Stop();
             _replaySuccessful = null;
+            _lastSegmentPlaybackWarning = null;
 
             MouseEventSender.Reset();
 
             _dataPlaybackContainer = dataPlaybackContainer;
             if (_dataPlaybackContainer != null)
             {
-                _isPlaying = PlayState.Stopped;
+                _playState = PlayState.Stopped;
             }
             else
             {
-                _isPlaying = PlayState.NotLoaded;
+                _playState = PlayState.NotLoaded;
             }
             LogHotkeyInformation();
         }
@@ -158,9 +161,9 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             if (_dataPlaybackContainer != null)
             {
-                if (_isPlaying == PlayState.Playing)
+                if (_playState == PlayState.Playing)
                 {
-                    _isPlaying = PlayState.Paused;
+                    _playState = PlayState.Paused;
 
                     foreach (var nextBotSegment in _nextBotSegments)
                     {
@@ -174,17 +177,17 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             if (_dataPlaybackContainer != null)
             {
-                if (_isPlaying == PlayState.Stopped)
+                if (_playState == PlayState.Stopped)
                 {
                     _replaySuccessful = null;
-                    _isPlaying = PlayState.Starting;
+                    _playState = PlayState.Starting;
                     _loopCount = -1;
                     _lastTimeLoggedKeyFrameConditions = Time.unscaledTime;
                 }
-                else if (_isPlaying == PlayState.Paused)
+                else if (_playState == PlayState.Paused)
                 {
                     // resume
-                    _isPlaying = PlayState.Playing;
+                    _playState = PlayState.Playing;
 
                     foreach (var nextBotSegment in _nextBotSegments)
                     {
@@ -198,10 +201,10 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             if (_dataPlaybackContainer != null)
             {
-                if (_isPlaying == PlayState.Stopped)
+                if (_playState == PlayState.Stopped)
                 {
                     _replaySuccessful = null;
-                    _isPlaying = PlayState.Starting;
+                    _playState = PlayState.Starting;
                     _loopCount = 1;
                     _loopCountCallback = loopCountCallback;
                     _loopCountCallback.Invoke(_loopCount);
@@ -221,7 +224,8 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
 
             _nextBotSegments.Clear();
-            _isPlaying = PlayState.NotLoaded;
+            _playState = PlayState.NotLoaded;
+            BotSequence.ActiveBotSequence = null;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
@@ -250,10 +254,11 @@ namespace RegressionGames.StateRecorder.BotSegments
         public void Reset()
         {
             _nextBotSegments.Clear();
-            _isPlaying = PlayState.Stopped;
+            _playState = PlayState.Stopped;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
+            _lastSegmentPlaybackWarning = null;
 
             _screenRecorder.StopRecording();
             #if ENABLE_LEGACY_INPUT_MANAGER
@@ -280,10 +285,11 @@ namespace RegressionGames.StateRecorder.BotSegments
         public void ResetForLooping()
         {
             _nextBotSegments.Clear();
-            _isPlaying = PlayState.Starting;
+            _playState = PlayState.Starting;
             // don't change _loopCount
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
+            _lastSegmentPlaybackWarning = null;
 
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
@@ -308,14 +314,19 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public PlayState GetState()
         {
-            return _isPlaying;
+            return _playState;
+        }
+
+        public string GetLastSegmentPlaybackWarning()
+        {
+            return _lastSegmentPlaybackWarning;
         }
 
         public void Update()
         {
             if (_dataPlaybackContainer != null)
             {
-                if (_isPlaying == PlayState.Starting)
+                if (_playState == PlayState.Starting)
                 {
                     // initialize the virtual mouse
                     MouseEventSender.InitializeVirtualMouse();
@@ -328,7 +339,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     RGLegacyInputWrapper.StartSimulation(this);
                     #endif
                     RGUtils.ConfigureInputSettings();
-                    _isPlaying = PlayState.Playing;
+                    _playState = PlayState.Playing;
                     _nextBotSegments.Add(_dataPlaybackContainer.DequeueBotSegment());
                     // if starting to play, or on loop 1.. start recording
                     if (_loopCount < 2)
@@ -341,7 +352,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         _screenRecorder.StartRecording(_dataPlaybackContainer.SessionId);
                     }
                 }
-                if (_isPlaying == PlayState.Playing)
+                if (_playState == PlayState.Playing)
                 {
                     RGUtils.ForceApplicationFocus();
                 }
@@ -357,6 +368,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             var now = Time.unscaledTime;
             _lastTimeLoggedKeyFrameConditions = now;
             RGDebug.LogWarning(loggedMessage);
+            _lastSegmentPlaybackWarning = loggedMessage;
             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
             if (pauseEditorOnPlaybackWarning)
             {
@@ -393,49 +405,49 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                 }
 
-                // ProcessAction will occur up to 2 times in this method
-                // once after checking if new inputs need to be processed, and one last time after checking if we need to get the next bot segment
-                // the goal being to always play the inputs as quickly as possible
-                BotSegment firstActionSegment = null;
-                if (_nextBotSegments.Count > 0)
-                {
-                    firstActionSegment = _nextBotSegments[0];
-                    try
-                    {
-                        var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-                        // only log this if we're really stuck on it
-                        if (error == null && didAction)
-                        {
-                            // for every non error action, reset the timer
-                            _lastTimeLoggedKeyFrameConditions = now;
-                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                        }
-
-                        if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
-                        {
-                            var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
-                            LogPlaybackWarning(loggedMessage);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
-                        LogPlaybackWarning(loggedMessage);
-                        // uncaught exception... stop the segment
-                        Stop();
-                        throw;
-                    }
-                }
-
+                // track if any segment matched this update
                 var matchedThisUpdate = false;
 
-                // check count each loop because we remove from it during the loop
-                for (var i = 0; i < _nextBotSegments.Count; /* do not increment here*/)
+                // track if we have a new segment to evaluate... so long as we do, keep looping here before releasing from this Update call
+                // thus we process each new segment as soon as possible and don't have any artificial one frame delays before processing
+                var nextBotSegmentIndex = 0;
+                while (nextBotSegmentIndex < _nextBotSegments.Count)
                 {
-                    var nextBotSegment = _nextBotSegments[i];
+                    // if we're working on the first entry in the list is the only time we do actions
+                    if (nextBotSegmentIndex == 0)
+                    {
+                        BotSegment firstActionSegment = _nextBotSegments[0];
+                        try
+                        {
+                            var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
+                            // only log this if we're really stuck on it
+                            if (error == null && didAction)
+                            {
+                                // for every non error action, reset the timer
+                                _lastTimeLoggedKeyFrameConditions = now;
+                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                            }
+
+                            if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                            {
+                                var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
+                                LogPlaybackWarning(loggedMessage);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
+                            LogPlaybackWarning(loggedMessage);
+                            // uncaught exception... stop the segment
+                            Stop();
+                            throw;
+                        }
+                    }
+
+                    var nextBotSegment = _nextBotSegments[nextBotSegmentIndex];
 
                     var matched = nextBotSegment.Replay_Matched || nextBotSegment.endCriteria == null || nextBotSegment.endCriteria.Count == 0 || KeyFrameEvaluator.Evaluator.Matched(
-                        i == 0,
+                        nextBotSegmentIndex == 0,
                         nextBotSegment.Replay_SegmentNumber,
                         nextBotSegment.Replay_ActionCompleted,
                         nextBotSegment.endCriteria
@@ -444,7 +456,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     if (matched)
                     {
                         // only update the time when the first index matches, but keeps us from logging this while waiting for actions to complete
-                        if (i == 0)
+                        if (nextBotSegmentIndex == 0)
                         {
                             if (!nextBotSegment.Replay_Matched)
                             {
@@ -478,17 +490,18 @@ namespace RegressionGames.StateRecorder.BotSegments
                             _lastTimeLoggedKeyFrameConditions = now;
                             RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Criteria Matched && Action Completed - {nextBotSegment.name ?? nextBotSegment.resourcePath} - {nextBotSegment.description}");
                             //Process the inputs from that bot segment if necessary
-                            _nextBotSegments.RemoveAt(i);
+                            _nextBotSegments.RemoveAt(nextBotSegmentIndex);
+                            // don't update the index since we shortened the list
                         }
                         else
                         {
-                            ++i;
+                            ++nextBotSegmentIndex;
                         }
                     }
                     else
                     {
                         // only log this every 10 seconds for the first key frame being evaluated after its actions complete
-                        if (i == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                        if (nextBotSegmentIndex == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
                         {
                             var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
                             if (warningText != null)
@@ -497,8 +510,43 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 LogPlaybackWarning(loggedMessage);
                             }
                         }
+                        ++nextBotSegmentIndex;
+                    }
 
-                        ++i;
+                    // we possibly removed from the list above.. need this check
+                    if (_nextBotSegments.Count > 0)
+                    {
+                        // see if the last entry has transient matches.. if so.. dequeue another up to a limit of 2 total segments being evaluated... we may need to come back to this.. but without this look ahead, loading screens like bossroom fail due to background loading
+                        // but if you go too far.. you can match segments in the replay that you won't see for another 50 segments when you go back to the menu again.. which is obviously wrong
+                        var lastSegment = _nextBotSegments[^1];
+                        if (lastSegment.Replay_TransientMatched)
+                        {
+                            if (_nextBotSegments.Count < 2)
+                            {
+                                var next = _dataPlaybackContainer.DequeueBotSegment();
+                                if (next != null)
+                                {
+                                    _lastTimeLoggedKeyFrameConditions = now;
+                                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                                    RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment - {next.name ?? next.resourcePath} - {next.description}");
+                                    _nextBotSegments.Add(next);
+                                    //next while loop iteration will get this guy
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // segment list empty.. dequeue another
+                        var next = _dataPlaybackContainer.DequeueBotSegment();
+                        if (next != null)
+                        {
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                            RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation - {next.name ?? next.resourcePath} - {next.description}");
+                            _nextBotSegments.Add(next);
+                            //next while loop iteration will get this guy
+                        }
                     }
                 }
 
@@ -506,75 +554,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     // only do this when a segment passed this update after all segments have been considered for this update
                     KeyFrameEvaluator.Evaluator.PersistPriorFrameStatus();
-                }
-
-                if (_nextBotSegments.Count > 0)
-                {
-                    // see if the last entry has transient matches.. if so.. dequeue another up to a limit of 2 total segments being evaluated... we may need to come back to this.. but without this look ahead, loading screens like bossroom fail due to background loading
-                    // but if you go too far.. you can match segments in the replay that you won't see for another 50 segments when you go back to the menu again.. which is obviously wrong
-                    var lastSegment = _nextBotSegments[^1];
-                    if (lastSegment.Replay_TransientMatched)
-                    {
-                        if (_nextBotSegments.Count < 2)
-                        {
-                            var next = _dataPlaybackContainer.DequeueBotSegment();
-                            if (next != null)
-                            {
-                                _lastTimeLoggedKeyFrameConditions = now;
-                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                                RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment - {next.name ?? next.resourcePath} - {next.description}");
-                                _nextBotSegments.Add(next);
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // segment list empty.. dequeue another
-                    var next = _dataPlaybackContainer.DequeueBotSegment();
-                    if (next != null)
-                    {
-                        _lastTimeLoggedKeyFrameConditions = now;
-                        FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                        RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation - {next.name ?? next.resourcePath} - {next.description}");
-                        _nextBotSegments.Add(next);
-                    }
-                }
-
-                // if we moved to a new first segment in this frame, process its actions
-                // if we didnt' move to a new frame, then the time hasn't changed within the same frame so no need to call this again
-                if (_nextBotSegments.Count > 0)
-                {
-                    var nextSegment = _nextBotSegments[0];
-                    if (nextSegment != firstActionSegment)
-                    {
-                        try
-                        {
-                            var didAction = nextSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-                            // only log this if we're really stuck on it
-                            if (error == null && didAction)
-                            {
-                                // for every non error action, reset the timer
-                                _lastTimeLoggedKeyFrameConditions = now;
-                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                            }
-
-                            // only log this if we're really stuck on it for a while
-                            if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
-                            {
-                                var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
-                                LogPlaybackWarning(loggedMessage);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            var loggedMessage = $"({nextSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
-                            LogPlaybackWarning(loggedMessage);
-                            // uncaught exception... stop the segment
-                            Stop();
-                            throw;
-                        }
-                    }
                 }
             }
             catch (Exception ex)
@@ -589,7 +568,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void LateUpdate()
         {
-            if (_isPlaying == PlayState.Playing)
+            if (_playState == PlayState.Playing)
             {
                 if (_dataPlaybackContainer != null)
                 {
@@ -617,7 +596,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void OnGUI()
         {
-            if (_isPlaying != PlayState.Stopped)
+            if (_playState == PlayState.Playing || _playState == PlayState.Paused)
             {
                 // render any GUI things for the first segment action
                 if (_nextBotSegments.Count > 0)

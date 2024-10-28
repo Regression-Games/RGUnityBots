@@ -36,6 +36,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public string description;
 
         /**
+         * Not persisted or written to json, populated on load
+         */
+        public string resourcePath;
+
+        public static BotSequence ActiveBotSequence = null;
+
+        /**
          * <summary>Loads a Json sequence file from a json path.  This API expects a relative path</summary>
          * <returns>(filePath(null if resource / not-writeable), resourcePath, BotSequence)</returns>
          */
@@ -44,11 +51,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             if (string.IsNullOrEmpty(path))
             {
                 return (null, null, null);
-            }
-
-            if (path.StartsWith('/') || path.StartsWith('\\'))
-            {
-                throw new Exception("Invalid path.  Path must be relative, not absolute in order to support editor vs production runtimes interchangeably.");
             }
 
             path = path.Replace('\\', '/');
@@ -70,7 +72,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 sequenceJson = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
             }
 
-            return (sequenceJson.Item1, sequenceJson.Item2, JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3, JsonUtils.JsonSerializerSettings));
+            var botSequence = JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3, JsonUtils.JsonSerializerSettings);
+            botSequence.resourcePath = sequenceJson.Item2;
+            return (sequenceJson.Item1, sequenceJson.Item2, botSequence);
         }
 
         /**
@@ -144,10 +148,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public static (string, string, object) LoadBotSegmentOrBotSegmentListFromPath(string path)
         {
-            if (path.StartsWith('/') || path.StartsWith('\\'))
-            {
-                throw new Exception("Invalid path.  Path must be relative, not absolute, in order to support editor vs production runtimes interchangeably.");
-            }
 
             path = path.Replace('\\', '/');
 
@@ -355,7 +355,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public static string ToResourcePath(string path)
         {
-            var resourcePath = path;
+            if (path == null)
+            {
+                return null;
+            }
+            var resourcePath = path.Replace('\\', '/');
             if (resourcePath.Contains("Resources/"))
             {
                 resourcePath = resourcePath.Substring(resourcePath.LastIndexOf("Resources/") + "Resources/".Length);
@@ -442,6 +446,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public void Play()
         {
+            if (ActiveBotSequence != null)
+            {
+                throw new Exception("Cannot start 2 bot sequences simultaneously.  Another bot sequence is already running.");
+            }
+            ActiveBotSequence = this;
+
+            var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
+            if (!(playbackController.GetState() == PlayState.NotLoaded || playbackController.GetState() == PlayState.Stopped))
+            {
+                throw new Exception("Cannot start bot sequence while other bot segments are running.");
+            }
+
             string sessionId = null;
             _segmentsToProcess.Clear();
             foreach (var segmentEntry in segments)
@@ -451,8 +467,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             sessionId ??= Guid.NewGuid().ToString();
-
-            var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
             playbackController.Stop();
             playbackController.Reset();
             playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(_segmentsToProcess.SelectMany(a => a.segments), sessionId));
@@ -461,9 +475,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void Stop()
         {
-            var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
-            playbackController.Stop();
-            playbackController.Reset();
+            // don't let this stop anything but a bot sequence, not other segments
+            if (ActiveBotSequence == this)
+            {
+                var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
+                playbackController.Stop();
+                ActiveBotSequence = null;
+            }
         }
 
         public static BotSequenceEntry CreateBotSequenceEntryForJson(string filePath, string resourcePath, string jsonData)
