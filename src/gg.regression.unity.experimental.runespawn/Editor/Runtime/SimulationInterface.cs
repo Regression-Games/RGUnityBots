@@ -12,17 +12,26 @@ public static class SimulationInterface
     /// Initializes the simulation interface.
     /// </summary>
     /// <param name="monoBehaviour">The MonoBehaviour instance to use for coroutine execution.</param>
-    /// <remarks>
-    /// This method performs the following initializations:
-    /// 1. Starts the RGLegacyInputWrapper simulation.
-    /// 2. Initializes the KeyboardEventSender.
-    /// 3. Initializes the virtual mouse for MouseEventSender.
-    /// </remarks>
     public static void Initialize(MonoBehaviour monoBehaviour)
     {
+        #if ENABLE_LEGACY_INPUT_MANAGER
         RGLegacyInputWrapper.StartSimulation(monoBehaviour);
+        #endif
         KeyboardEventSender.Initialize();
         MouseEventSender.InitializeVirtualMouse();
+    }
+
+    /// <summary>
+    /// Tears down the simulation interface.
+    /// </summary>
+    public static void TearDown(){
+        KeyboardEventSender.TearDown();
+        MouseEventSender.Reset();
+        #if ENABLE_LEGACY_INPUT_MANAGER
+        RGLegacyInputWrapper.StopSimulation();
+        #endif
+        RGUtils.TeardownOverrideEventSystem();
+        RGUtils.RestoreInputSettings();
     }
 
     /// <summary>
@@ -97,11 +106,7 @@ public static class SimulationInterface
                                       bool backButton=false,
                                       Vector2 scroll = default)
     {
-        #if ENABLE_LEGACY_INPUT_MANAGER
-        MouseEventSender.SendMouseEventLegacy(mouseScreenPosition, Vector2.zero, scroll, leftButton, middleButton, rightButton, forwardButton, backButton);
-        #else
         MouseEventSender.SendRawPositionMouseEvent(0, mouseScreenPosition, leftButton, middleButton, rightButton, forwardButton, backButton, scroll);
-        #endif
     }
 
     /// <summary>
