@@ -127,6 +127,8 @@ public static class SimulationInterface
 
     /// <summary>
     /// Simulates a key press or release event.
+    /// 
+    /// DO NOT SEND MULTIPLE KEY EVENTS FOR THE SAME KEY IN A SINGLE FRAME.
     /// </summary>
     /// <param name="key">The key to simulate. Use values from the UnityEngine.InputSystem.Key enum.</param>
     /// <param name="isDown">True to simulate a key press, false to simulate a key release.</param>
@@ -134,6 +136,8 @@ public static class SimulationInterface
     /// Example 1: Simulate pressing and releasing the 'W' key:
     /// <code>
     /// SimulationInterface.SendKeyEvent(Key.W, true);
+    /// yield return new WaitForSeconds(0.1f);
+    /// SimulationInterface.SendKeyEvent(Key.W, false);
     /// </code>
     /// 
     /// Example 2: Simulate holding 'Shift' and pressing 'A' in an async method:
