@@ -209,6 +209,7 @@ namespace RegressionGames
                 success = !didTimeout
             };
             setPlaybackResult(result);
+            botSequenceInfo.Item3.Stop();
         }
     }
 

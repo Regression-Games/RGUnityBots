@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using NUnit.Framework;
 using RegressionGames.TestFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -14,15 +17,37 @@ namespace RegressionGames.Tests.RGOverlay
 
         private RGDeleteSequence deleter;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
             // create the delete script we want to test
             _uat = new GameObject();
             deleter = _uat.AddComponent<RGDeleteSequence>();
-            deleter.sequenceNamePrefab = RGTestUtils.CreateTMProPlaceholder();
-            deleter.confirmButton = new GameObject().AddComponent<Button>();
-            deleter.cancelButton = new GameObject().AddComponent<Button>();
+            deleter.sequenceNamePrefab = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            deleter.confirmButton = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            }.AddComponent<Button>();
+            deleter.cancelButton = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            }.AddComponent<Button>();
             deleter.Start();
         }
 
@@ -42,7 +67,12 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void Initialize()
         {
-            var entry = new GameObject().AddComponent<RGSequenceEntry>();
+            var entry = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            }.AddComponent<RGSequenceEntry>();
             entry.sequenceName = "Great Sequence";
             entry.resourcePath = "/sequence/path";
             entry.filePath = "/sequence/path-to-delete";

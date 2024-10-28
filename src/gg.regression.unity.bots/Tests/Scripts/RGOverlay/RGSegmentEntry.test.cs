@@ -1,7 +1,10 @@
-﻿using NUnit.Framework;
+﻿using System.Collections;
+using NUnit.Framework;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.TestFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -14,19 +17,32 @@ namespace RegressionGames.Tests.RGOverlay
 
         private RGSegmentEntry entry;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             _uat = new GameObject();
             entry = _uat.AddComponent<RGSegmentEntry>();
             entry.segmentName = "TestSegment";
             entry.description = "TestDescription";
             entry.filePath = "test/path";
             entry.type = BotSequenceEntryType.Segment;
-            entry.nameComponent = RGTestUtils.CreateTMProPlaceholder();
-            entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder();
+            entry.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
             entry.playButton = _uat.AddComponent<Button>();
-            
+
             // create tooltip child
             var tooltip = new GameObject() {
                 transform =
@@ -35,7 +51,6 @@ namespace RegressionGames.Tests.RGOverlay
                 },
             };
             tooltip.AddComponent<RGTooltip>();
-            tooltip.transform.SetParent(entry.transform);
 
             // create segment list indicator w/Image
             var segmentListIndicator = new GameObject() {
@@ -58,19 +73,19 @@ namespace RegressionGames.Tests.RGOverlay
         public void Start()
         {
             entry.Start();
-            
+
             Assert.AreEqual(entry.filePath, "test/path");
             Assert.AreEqual(entry.nameComponent.text, entry.segmentName);
             Assert.AreEqual(entry.descriptionComponent.text, entry.description);
             Assert.IsFalse(entry.segmentListIndicatorComponent.activeSelf);
         }
-        
+
         [Test]
         public void Start_SegmentList()
         {
             entry.type = BotSequenceEntryType.SegmentList;
             entry.Start();
-            
+
             Assert.IsTrue(entry.segmentListIndicatorComponent.activeSelf);
         }
     }

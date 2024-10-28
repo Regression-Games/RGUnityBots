@@ -47,6 +47,12 @@ namespace RegressionGames.Tests.LegacyInput
         [UnitySetUp]
         public IEnumerator SetUp()
         {
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
             SceneManager.LoadSceneAsync("LegacyInputTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("LegacyInputTestScene");
             RGUtils.SetupOverrideEventSystem();
@@ -216,6 +222,8 @@ namespace RegressionGames.Tests.LegacyInput
         public IEnumerator TearDown()
         {
             RGLegacyInputWrapper.StopSimulation();
+            RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.AUTOMATIC;
+            RGUtils.TeardownOverrideEventSystem();
             yield break;
         }
 

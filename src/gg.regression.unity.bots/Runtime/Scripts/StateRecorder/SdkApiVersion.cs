@@ -101,8 +101,12 @@
          * <summary> More detailed camera clipping plane information in state</summary>
          */
         public const int VERSION_23 = 23;
+        /**
+         * <summary> View frustrum object inclusion changes</summary>
+         */
+        public const int VERSION_24 = 24;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_23;
+        public const int CURRENT_VERSION = VERSION_24;
     }
 }

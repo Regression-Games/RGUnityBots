@@ -1,9 +1,13 @@
+using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames;
+using RegressionGames.TestFramework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
@@ -18,28 +22,76 @@ namespace RegressionGames.Tests.RGOverlay
 
         private readonly PointerEventData genericPointerEvent = new(EventSystem.current);
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             // create the drop zone we want to test
             _uat = new GameObject();
             dropZone = _uat.AddComponent<RGDropZone>();
-            dropZone.transform.SetParent(_uat.transform, false);
-            dropZone.droppables = new List<GameObject> { new() };
+            dropZone.droppables = new List<GameObject> { new()
+            {
+                transform =
+                {
+                    parent = dropZone.transform
+                }
+            } };
 
-            dropZone.Content = new GameObject();
+            dropZone.Content = new GameObject()
+            {
+                transform =
+                {
+                    parent = dropZone.transform
+                }
+            };
             dropZone.Content.AddComponent<RectTransform>();
-            dropZone.ScrollView = new GameObject();
+            dropZone.ScrollView = new GameObject()
+            {
+                transform =
+                {
+                    parent = dropZone.transform
+                }
+            };
             dropZone.ScrollView.AddComponent<ScrollRect>();
 
             // create the sequence editor this drop zone requires, and any other required public fields
-            var sequenceEditor = new GameObject();
+            var sequenceEditor = new GameObject()
+            {
+                transform =
+                {
+                    parent = dropZone.transform
+                }
+            };
             var sequenceEditorScript = sequenceEditor.AddComponent<RGSequenceEditor>();
             var input = sequenceEditorScript.gameObject.AddComponent<TMP_InputField>();
             sequenceEditorScript.NameInput = input;
             dropZone.SequenceEditor = sequenceEditor;
-            dropZone.potentialDropSpotPrefab = new GameObject();
-            dropZone.emptyStatePrefab = new GameObject();
+            dropZone.potentialDropSpotPrefab = new GameObject()
+            {
+                transform =
+                {
+                    parent = dropZone.transform
+                }
+            };
+            dropZone.emptyStatePrefab = new GameObject()
+            {
+                transform =
+                {
+                    parent = dropZone.transform
+                }
+            };
 
             dropZone.Start();
         }
@@ -99,6 +151,7 @@ namespace RegressionGames.Tests.RGOverlay
 
             // ensure that the drop zone does not provide false positives for knowing its children
             Assert.IsFalse(dropZone.Contains(childThatIsNeverAdded));
+            Object.Destroy(childThatIsNeverAdded);
         }
 
         [Test]
@@ -166,6 +219,9 @@ namespace RegressionGames.Tests.RGOverlay
             }
 
             Assert.AreEqual(numChildren, dropZoneChildren.Count);
+
+            //cleanup
+            dropZone.ClearChildren();
         }
 
         [Test]
@@ -184,7 +240,12 @@ namespace RegressionGames.Tests.RGOverlay
         public void OnPointerEnter_ValidDroppable()
         {
             PointerEventData pEvent = new(EventSystem.current);
-            pEvent.pointerDrag = new GameObject();
+            pEvent.pointerDrag = new GameObject(){
+                transform =
+                {
+                    parent = dropZone.transform,
+                },
+            };
 
             dropZone.OnPointerEnter(pEvent);
 
@@ -221,6 +282,10 @@ namespace RegressionGames.Tests.RGOverlay
             // if it has valid droppable objects within its bounds
             Assert.IsFalse(draggableScript.IsOverDropZone());
             Assert.IsFalse(dropZone.HasValidDroppable());
+
+            Object.Destroy(dragged);
         }
+
+
     }
 }

@@ -1,11 +1,7 @@
 using System.Collections.Generic;
-using NUnit.Framework;
-using RegressionGames.TestFramework;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.Tests.RGOverlay
 {
@@ -35,7 +31,6 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = sequenceEditor.transform
                 }
             };
-            dropZone.transform.SetParent(root.transform, false);
             dropZone.gameObject.AddComponent<RectTransform>();
             var dzScript = dropZone.AddComponent<RGDropZone>();
             dzScript.Content = new GameObject("Mock_DropZoneContent"){

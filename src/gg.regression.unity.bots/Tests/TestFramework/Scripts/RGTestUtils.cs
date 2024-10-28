@@ -152,6 +152,7 @@ namespace RegressionGames.TestFramework
                 success = !didTimeout
             };
             setPlaybackResult(result);
+            botSequenceInfo.Item3.Stop();
         }
 
         // <summary>
@@ -170,9 +171,14 @@ namespace RegressionGames.TestFramework
         // <summary>
         // Creates a placeholder for an instance of TMP_Text. This can be used to mock TMPro inputs
         // </summary>
-        public static TMP_Text CreateTMProPlaceholder()
+        public static TMP_Text CreateTMProPlaceholder(Transform _parent)
         {
-            var textObject = new GameObject();
+            var textObject = new GameObject(){
+                transform =
+                {
+                    parent = _parent.transform
+                }
+            };
             var placeholder = textObject.AddComponent<TextPlaceholder>();
             return placeholder;
         }

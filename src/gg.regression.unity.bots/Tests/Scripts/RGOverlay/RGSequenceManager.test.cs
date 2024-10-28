@@ -1,7 +1,11 @@
+using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.TestFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
 
 namespace RegressionGames.Tests.RGOverlay
 {
@@ -12,9 +16,22 @@ namespace RegressionGames.Tests.RGOverlay
 
         private RGSequenceManager manager;
 
-        [SetUp]
-        public void SetUp()
+        [UnitySetUp]
+        public IEnumerator SetUp()
         {
+            // get a clean scene
+            var botManager = Object.FindObjectOfType<RGBotManager>();
+            if (botManager != null)
+            {
+                // destroy any existing overlay before loading new test scene
+                Object.Destroy(botManager.gameObject);
+            }
+
+            // Wait for the scene
+            SceneManager.LoadSceneAsync("EmptyScene", LoadSceneMode.Single);
+            yield return RGTestUtils.WaitForScene("EmptyScene");
+
+
             // create the manager we want to test
             _uat = new GameObject();
             manager = _uat.AddComponent<RGSequenceManager>();
@@ -36,7 +53,7 @@ namespace RegressionGames.Tests.RGOverlay
         public void Start()
         {
             manager.Start();
-            
+
             Assert.IsNotNull(manager.sequencesPanel);
             Assert.IsNotNull(manager.segmentsPanel);
             Assert.IsTrue(manager.sequencesPanel.activeSelf);

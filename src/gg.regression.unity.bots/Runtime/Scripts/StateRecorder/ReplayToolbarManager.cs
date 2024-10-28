@@ -41,7 +41,7 @@ namespace RegressionGames.StateRecorder
         private bool IsLeftShiftPressed = false;
         private bool IsRightShiftPressed = false;
 
-        private bool _recording;
+        private bool _isRecording;
 
         // Start is called before the first frame update
         void Start()
@@ -307,8 +307,8 @@ namespace RegressionGames.StateRecorder
 
         public void ToggleRecording()
         {
-            _recording = !_recording;
-            if (!_recording)
+            _isRecording = !_isRecording;
+            if (!_isRecording)
             {
                 recordingPulse.Stop();
                 ScreenRecorder.GetInstance()?.StopRecording(true);
@@ -326,9 +326,9 @@ namespace RegressionGames.StateRecorder
 
         private void LateUpdate()
         {
+            var state = replayDataController.GetState();
             if (replayDataController.ReplayCompletedSuccessfully() != null)
             {
-                var state = replayDataController.GetState();
                 if (state == PlayState.Stopped)
                 {
                     replayDataController.Reset();
@@ -340,6 +340,24 @@ namespace RegressionGames.StateRecorder
                     loopButton.SetActive(true);
                     stopButton.SetActive(true);
                     recordButton.SetActive(false);
+                }
+            }
+            else
+            {
+                // keep the button states up to date so that we can handle work assignments/segments/sequences without tightly wiring this into all those classes like spaghetti
+                if (state == PlayState.Paused)
+                {
+                    chooseReplayButton.SetActive(false);
+                    successIcon.SetActive(false);
+                    playButton.SetActive(true);
+                    pauseButton.SetActive(false);
+                    loopButton.SetActive(false);
+                    stopButton.SetActive(true);
+                    recordButton.SetActive(false);
+                }
+                else if (state == PlayState.Playing)
+                {
+                    SetInUseButtonStates();
                 }
             }
         }
