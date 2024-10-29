@@ -61,6 +61,12 @@ namespace RegressionGames.StateRecorder
         [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
         public string stateRecordingsDirectory = "";
 
+        [Tooltip("Minimize the amount of criteria in bot segment recordings.  This limits the endCriteria in recorded bot segments to only include objects with count deltas and objects that were under click locations.")]
+        public bool minimizeRecordingCriteria = true;
+
+        [Tooltip("RG-INTERNAL/EXPERIMENTAL: Minimize the amount of mouse movement data capture in bot segment recordings.  This currently breaks replay on any game where camera movement is locked to the mouse, like First Person Shooters.")]
+        public bool minimizeRecordingMouseMovements = false;
+
         private double _lastCvFrameTime = -1;
 
         private int _frameCountSinceLastTick;
@@ -810,7 +816,36 @@ namespace RegressionGames.StateRecorder
                             }
 
                             var keyboardInputData = KeyboardInputActionObserver.GetInstance()?.FlushInputDataBuffer();
-                            var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton);
+                            var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton, minimizeOutput: minimizeRecordingMouseMovements);
+
+                            if (minimizeRecordingCriteria)
+                            {
+                                // minimize the keyFrameCriteria
+                                keyFrameCriteria = keyFrameCriteria.Select(a =>
+                                {
+                                    if (a.type == KeyFrameCriteriaType.NormalizedPath)
+                                    {
+                                        var data = a.data as PathKeyFrameCriteriaData;
+                                        if (data != null)
+                                        {
+                                            // include deltas
+                                            if (data is { countRule: CountRule.GreaterThanEqual or CountRule.LessThanEqual })
+                                            {
+                                                a.transient = false;
+                                                return a;
+                                            }
+
+                                            // also include any clicked on objects
+                                            if (mouseInputData.FirstOrDefault(md => md.clickedObjectNormalizedPaths.Contains(data.path)) != null)
+                                            {
+                                                a.transient = false;
+                                                return a;
+                                            }
+                                        }
+                                    }
+                                    return null;
+                                }).Where(a=>a!=null).ToList();
+                            }
 
                             // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                             // update the frame time to be latest of 'now' or the last device event in it
