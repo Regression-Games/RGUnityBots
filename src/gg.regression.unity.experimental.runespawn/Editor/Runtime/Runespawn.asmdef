@@ -2,7 +2,8 @@
     "name": "RegressionGames.Runespawn",
     "rootNamespace": "",
     "references": [
-        "RegressionGames"
+        "RegressionGames",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -31,6 +31,18 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        /**
+         * <summary>Cleans up the KeyboardEventSender by removing event handlers and resetting state</summary>
+         */
+        public static void TearDown(){
+            if (_isInitialized)
+            {
+                InputSystem.onAfterUpdate -= OnAfterInputSystemUpdate;
+                _isInitialized = false;
+            }
+            Reset();
+        }
+
         private static void OnAfterInputSystemUpdate()
         {
             _keyStates.Clear();

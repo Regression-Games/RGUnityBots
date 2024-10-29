@@ -337,7 +337,6 @@ namespace RegressionGames.StateRecorder
         public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<long, ObjectStatus> priorTransforms, Dictionary<long, ObjectStatus> priorEntities, Dictionary<long, ObjectStatus> transforms, Dictionary<long, ObjectStatus> entities)
         {
             var clickObjectResult = FindBestClickObject(Camera.main, mouseInput, priorTransforms, priorEntities, transforms, entities);
-
             var bestObject = clickObjectResult.Item1;
             var normalizedPosition = clickObjectResult.Item3;
 
@@ -375,7 +374,6 @@ namespace RegressionGames.StateRecorder
             }
 
             SendRawPositionMouseEvent(replaySegment, normalizedPosition, mouseInput.leftButton, mouseInput.middleButton, mouseInput.rightButton, mouseInput.forwardButton, mouseInput.backButton, mouseInput.scroll);
-
         }
 
 #if ENABLE_LEGACY_INPUT_MANAGER
