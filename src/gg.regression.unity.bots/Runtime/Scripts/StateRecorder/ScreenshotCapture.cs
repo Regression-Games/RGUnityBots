@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -268,6 +270,9 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+        // 100k pixels wide is wider than the widest known screen format, 8k in a 4x4 panel wall display would only be 32,768, 16k (doesn't exist yet) in a 4x4 wall display would only be 65,536
+        private static readonly ThreadLocal<Color32[]> _copyBuffer = new (() => new Color32[100_000]);
+
         private IEnumerator UpdateGPUData(int frame, Action<(byte[], int, int)?> onCompletion)
         {
             lock (SyncLock)
@@ -323,10 +328,8 @@ namespace RegressionGames.StateRecorder
                     {
                         if (!request.hasError)
                         {
-                            var data = request.GetData<Color32>();
-                            var pixels = new Color32[data.Length];
-                            var copyBuffer = new Color32[screenWidth];
-                            data.CopyTo(pixels);
+                            var pixels = request.GetData<Color32>();
+                            var copyBuffer = _copyBuffer.Value; // uses a threadlocal to avoid re-allocating this on every readback
                             if (SystemInfo.graphicsUVStartsAtTop)
                             {
                                 // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
@@ -335,18 +338,18 @@ namespace RegressionGames.StateRecorder
                                 {
                                     // swap rows
                                     // bottom row to buffer
-                                    Array.Copy(pixels, i * screenWidth, copyBuffer, 0, screenWidth);
+                                    NativeArray<Color32>.Copy(pixels, i * screenWidth, copyBuffer, 0, screenWidth);
                                     // top row to bottom
-                                    Array.Copy(pixels, (screenHeight - i - 1) * screenWidth, pixels, i * screenWidth, screenWidth);
+                                    NativeArray<Color32>.Copy(pixels, (screenHeight - i - 1) * screenWidth, pixels, i * screenWidth, screenWidth);
                                     // buffer to top row
-                                    Array.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
+                                    NativeArray<Color32>.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
                                 }
                             } //else.. we're fine
 
-                            var imageOutput = ImageConversion.EncodeArrayToJPG(pixels, theGraphicsFormat, (uint)screenWidth, (uint)screenHeight);
+                            var imageOutput = ImageConversion.EncodeNativeArrayToJPG(pixels, theGraphicsFormat, (uint)screenWidth, (uint)screenHeight);
 
                             RGDebug.LogDebug($"ScreenshotCapture - Captured screenshot for frame # {frame}");
-                            AddFrame(frame, (imageOutput, screenWidth, screenHeight));
+                            AddFrame(frame, (imageOutput.ToArray(), screenWidth, screenHeight));
                         }
                         else
                         {

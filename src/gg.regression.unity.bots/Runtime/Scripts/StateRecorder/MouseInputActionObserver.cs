@@ -172,13 +172,32 @@ namespace RegressionGames.StateRecorder
             _mouseInputActions.Clear();
         }
 
-        public List<MouseInputActionData> FlushInputDataBuffer(bool ignoreLastClick)
+        /**
+         * <summary>Flush the latest captured mouse movements</summary>
+         * <param name="ignoreLastClick">Ignore the last click.. useful for recordings to avoid capturing the click of the stop recording button</param>
+         * <param name="minimizeOutput">Flag to leave out everything except the key movements around clicks.</param>
+         */
+        public List<MouseInputActionData> FlushInputDataBuffer(bool ignoreLastClick, bool minimizeOutput)
         {
             List<MouseInputActionData> result = new();
+            MouseInputActionData lastAction = null;
             while (_mouseInputActions.TryPeek(out var action))
             {
                 _mouseInputActions.TryDequeue(out _);
-                result.Add(action);
+
+                // when minimizing output, only capture the inputs 1 before 1 after and during mouse clicks or holds... the normalized paths is populated for both clicks and unclicks so is useful for determining the unclick data
+
+                if (lastAction != null && (!minimizeOutput || action.IsButtonClicked || action.clickedObjectNormalizedPaths.Length > 0 || lastAction?.IsButtonClicked == true|| lastAction?.clickedObjectNormalizedPaths.Length > 0))
+                {
+                    result.Add(lastAction);
+                }
+
+                lastAction = action;
+            }
+
+            if (lastAction != null)
+            {
+                result.Add(lastAction);
             }
 
             if (result.Count == 0 && _priorMouseState != null)

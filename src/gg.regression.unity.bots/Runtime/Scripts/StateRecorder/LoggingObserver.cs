@@ -78,7 +78,7 @@ namespace RegressionGames.StateRecorder
             var builder = new StringBuilder();
             foreach (var line in logsThisTick)
             {
-                builder.AppendLine(JsonConvert.SerializeObject(line));
+                builder.AppendLine(line.ToJsonString());
             }
 
             // Combine the JSON strings with newline characters
