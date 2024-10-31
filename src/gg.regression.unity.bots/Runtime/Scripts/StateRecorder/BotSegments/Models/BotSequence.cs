@@ -40,7 +40,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public string resourcePath;
 
-        public static BotSequence ActiveBotSequence = null;
+        public static volatile BotSequence ActiveBotSequence = null;
 
         /**
          * <summary>Loads a Json sequence file from a json path.  This API expects a relative path</summary>
@@ -450,7 +450,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 throw new Exception("Cannot start 2 bot sequences simultaneously.  Another bot sequence is already running.");
             }
-            ActiveBotSequence = this;
 
             var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
             if (!(playbackController.GetState() == PlayState.NotLoaded || playbackController.GetState() == PlayState.Stopped))
@@ -467,9 +466,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             sessionId ??= Guid.NewGuid().ToString();
-            playbackController.Stop();
-            playbackController.Reset();
             playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(_segmentsToProcess.SelectMany(a => a.segments), sessionId));
+            ActiveBotSequence = this; // SetDataContainer clears this, so set it here before starting
             playbackController.Play();
         }
 
@@ -479,7 +477,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             if (ActiveBotSequence == this)
             {
                 var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
-                playbackController.Stop();
+                playbackController.UnloadSegmentsAndReset();
                 ActiveBotSequence = null;
             }
         }
