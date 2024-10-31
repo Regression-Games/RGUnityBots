@@ -302,7 +302,7 @@ namespace RegressionGames.StateRecorder
         {
             SetDefaultButtonStates();
             // stop and clear the old replay data
-            replayDataController.Stop();
+            replayDataController.UnloadSegmentsAndReset();
         }
 
         public void ToggleRecording()
@@ -327,11 +327,13 @@ namespace RegressionGames.StateRecorder
         private void LateUpdate()
         {
             var state = replayDataController.GetState();
-            if (replayDataController.ReplayCompletedSuccessfully() != null)
+            // keep the button states up to date so that we can handle work assignments/segments/sequences without tightly wiring this into all those classes like spaghetti
+            if (state == PlayState.Stopped)
             {
-                if (state == PlayState.Stopped)
+                if (replayDataController.ReplayCompletedSuccessfully() != null)
                 {
-                    replayDataController.Reset();
+                    // stopped, but ready to play again
+                    replayDataController.Stop();
                     // playback complete
                     chooseReplayButton.SetActive(false);
                     successIcon.SetActive(true);
@@ -342,23 +344,24 @@ namespace RegressionGames.StateRecorder
                     recordButton.SetActive(false);
                 }
             }
-            else
+            else if (state == PlayState.Paused)
             {
-                // keep the button states up to date so that we can handle work assignments/segments/sequences without tightly wiring this into all those classes like spaghetti
-                if (state == PlayState.Paused)
-                {
-                    chooseReplayButton.SetActive(false);
-                    successIcon.SetActive(false);
-                    playButton.SetActive(true);
-                    pauseButton.SetActive(false);
-                    loopButton.SetActive(false);
-                    stopButton.SetActive(true);
-                    recordButton.SetActive(false);
-                }
-                else if (state == PlayState.Playing)
-                {
-                    SetInUseButtonStates();
-                }
+                chooseReplayButton.SetActive(false);
+                successIcon.SetActive(false);
+                playButton.SetActive(true);
+                pauseButton.SetActive(false);
+                loopButton.SetActive(false);
+                stopButton.SetActive(true);
+                recordButton.SetActive(false);
+            }
+            else if (state == PlayState.Playing)
+            {
+                SetInUseButtonStates();
+            }
+            else if (state == PlayState.NotLoaded && !ScreenRecorder.GetInstance().IsRecording)
+            {
+                // stop ready to play again
+                SetDefaultButtonStates();
             }
         }
 

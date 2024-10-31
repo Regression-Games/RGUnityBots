@@ -25,22 +25,22 @@ public class RGSegmentEntry : MonoBehaviour
     public string resourcePath;
 
     public BotSequenceEntryType type;
-    
+
     /**
      * UI component fields
      */
     [SerializeField]
     public Button playButton;
-    
+
     [SerializeField]
     public TMP_Text nameComponent;
-    
+
     [SerializeField]
     public TMP_Text resourcePathComponent;
 
     [SerializeField]
     public TMP_Text descriptionComponent;
-    
+
     [SerializeField]
     public GameObject segmentListIndicatorComponent;
 
@@ -75,7 +75,7 @@ public class RGSegmentEntry : MonoBehaviour
                 resourcePathComponent.gameObject.SetActive(false);
             }
         }
-        
+
         // assign values to the UI components
         descriptionComponent.text = description;
         playButton.onClick.AddListener(OnPlay);
@@ -112,7 +112,7 @@ public class RGSegmentEntry : MonoBehaviour
             return;
         }
         toolbarManager.selectedReplayFilePath = null;
-        
+
         // set the recording toolbar's state for playing this segment
         var botManager = RGBotManager.GetInstance();
         botManager.OnBeginPlaying();
@@ -120,17 +120,15 @@ public class RGSegmentEntry : MonoBehaviour
         // create the list of segments to play. This list will either contain an individual segment, or a segment list
         var segmentList = BotSequence.CreateBotSegmentListForPath(filePath ?? resourcePath, out var sessId);
         var sessionId = sessId ?? Guid.NewGuid().ToString();
-        
+
         var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
         if (playbackController == null)
         {
             Debug.LogError("RGSegmentEntry cannot find the BotSegmentsPlaybackController in its OnPlay function");
             return;
         }
-        
+
         // play the segment
-        playbackController.Stop();
-        playbackController.Reset();
         playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.segments, sessionId));
         playbackController.Play();
     }
