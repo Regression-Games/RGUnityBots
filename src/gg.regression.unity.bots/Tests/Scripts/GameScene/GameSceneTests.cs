@@ -1,8 +1,9 @@
 using System;
 using System.Collections;
-
+using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Types;
 using RegressionGames.TestFramework;
 using RegressionGames.Types;
@@ -86,6 +87,30 @@ namespace RegressionGames.Tests.Z_RunMeLast_GameScene
             Assert.IsNotNull(sequenceResult.saveLocation);
 
         }
+
+        public void GeneratedBotSequenceTest_LoadAndSave()
+        {
+
+            // issue this all happens on the main thread, but we need to be able to do multiple sets of actions/criteria in a single update call :/
+
+            // await do actions - this needs to be able to evaluate every update call while we wait
+            //                    this also needs to be interleaved with the checks for end criteria
+
+            // what does an action look like in code ?
+
+
+            // await end criteria - this needs to be able to evaluate every update call while we wait
+
+
+            /// -- repeat N times for number of ticks
+
+        }
+
+        private BotSegment botSeg = new BotSegment()
+        {
+            endCriteria = new List<KeyFrameCriteria>(),
+            botAction = null
+        };
 
         [TearDown]
         public void TearDown()

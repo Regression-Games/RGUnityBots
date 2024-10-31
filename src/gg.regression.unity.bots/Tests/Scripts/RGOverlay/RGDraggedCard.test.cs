@@ -44,8 +44,8 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform
                 }
             };
-            card.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
-            card.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            card.nameComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
+            card.resourcePathComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             card.Start();
         }
 

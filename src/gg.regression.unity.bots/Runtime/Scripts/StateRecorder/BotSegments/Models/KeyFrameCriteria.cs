@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Text;
+using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
+// ReSharper disable InconsistentNaming
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class KeyFrameCriteria
+    public class KeyFrameCriteria : IStringBuilderWriteable
     {
         // api version of this top level schema, update if we add/change fields
         public int apiVersion = SdkApiVersion.VERSION_7;
@@ -15,7 +17,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public IKeyFrameCriteriaData data;
 
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? SdkApiVersion.CURRENT_VERSION);
-
 
         // Replay only - used to track if transient has ever matched during replay
         [NonSerialized]
@@ -42,7 +43,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public override string ToString()
         {
-            return "{type:" + type + ",transient:" + transient + ",data:" + data.ToString() + "}";
+            return ((IStringBuilderWriteable) this).ToJsonString();
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

@@ -2,10 +2,8 @@
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
-    public interface IKeyFrameCriteriaData
+    public interface IKeyFrameCriteriaData : IStringBuilderWriteable
     {
-        public void WriteToStringBuilder(StringBuilder stringBuilder);
-
         public int EffectiveApiVersion();
     }
 }

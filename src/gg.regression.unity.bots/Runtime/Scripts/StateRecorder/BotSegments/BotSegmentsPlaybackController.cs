@@ -390,8 +390,8 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                 var objectFinders = FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
 
-                var transformStatuses = new Dictionary<long, ObjectStatus>();
-                var entityStatuses = new Dictionary<long, ObjectStatus>();
+                Dictionary<long, ObjectStatus> transformStatuses = null;
+                Dictionary<long, ObjectStatus> entityStatuses = null;
 
                 foreach (var objectFinder in objectFinders)
                 {
@@ -404,6 +404,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                         entityStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
                     }
                 }
+
+                transformStatuses ??= new Dictionary<long, ObjectStatus>();
+                entityStatuses ??= new Dictionary<long, ObjectStatus>();
 
                 // track if any segment matched this update
                 var matchedThisUpdate = false;
