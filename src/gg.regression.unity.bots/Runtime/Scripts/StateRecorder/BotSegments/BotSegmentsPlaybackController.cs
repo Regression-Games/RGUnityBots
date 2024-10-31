@@ -118,7 +118,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void SetDataContainer(BotSegmentsPlaybackContainer dataPlaybackContainer)
         {
-            Stop();
+            UnloadSegmentsAndReset();
             _replaySuccessful = null;
             _lastSegmentPlaybackWarning = null;
 
@@ -212,7 +212,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
-        public void Stop()
+        public void UnloadSegmentsAndReset()
         {
             if (_nextBotSegments.Count > 0)
             {
@@ -251,7 +251,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         }
 
-        public void Reset()
+        public void Stop()
         {
             _nextBotSegments.Clear();
             _playState = PlayState.Stopped;
@@ -282,7 +282,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
-        public void ResetForLooping()
+        public void PrepareForNextLoop()
         {
             _nextBotSegments.Clear();
             _playState = PlayState.Starting;
@@ -438,8 +438,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                         {
                             var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
                             LogPlaybackWarning(loggedMessage);
-                            // uncaught exception... stop the segment
-                            Stop();
+                            // uncaught exception... stop and unload the segment
+                            UnloadSegmentsAndReset();
                             throw;
                         }
                     }
@@ -561,7 +561,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 var loggedMessage = $"(?) - Bot Segment - Exception processing BotSegments\r\n" + ex.Message;
                 LogPlaybackWarning(loggedMessage);
                 // uncaught exception... stop the segment
-                Stop();
+                UnloadSegmentsAndReset();
                 throw;
             }
         }
@@ -582,12 +582,13 @@ namespace RegressionGames.StateRecorder.BotSegments
                     // we hit the end of the replay
                     if (_loopCount > -1)
                     {
-                        ResetForLooping();
+                        PrepareForNextLoop();
                         _loopCountCallback.Invoke(++_loopCount);
                     }
                     else
                     {
-                        Reset();
+                        // stop ready to play again
+                        Stop();
                         _replaySuccessful = true;
                     }
                 }
