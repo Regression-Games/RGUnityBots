@@ -7,7 +7,6 @@ using RegressionGames.StateRecorder.Models;
 using RegressionGames.TestFramework;
 using RegressionGames.Types;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
@@ -15,7 +14,7 @@ using Object = UnityEngine.Object;
 namespace RegressionGames.Tests.BotSegments
 {
     [TestFixture]
-    public class BotSegmentsTests : InputTestFixture
+    public class BotSegmentsTests
     {
 
          [UnitySetUp]
@@ -97,13 +96,29 @@ namespace RegressionGames.Tests.BotSegments
                             new MouseInputActionData()
                             {
                                 startTime = 0.1f,
-                                leftButton = true,
+                                leftButton = false,
                                 position = new Vector2Int(700, 630),
                                 screenSize = new Vector2Int(1920,1080)
                             },
                             new MouseInputActionData()
                             {
                                 startTime = 0.2f,
+                                leftButton = true,
+                                position = new Vector2Int(700, 630),
+                                screenSize = new Vector2Int(1920,1080),
+                                clickedObjectNormalizedPaths = new []{"Canvas/LegacyButton (Button)"}
+                            },
+                            new MouseInputActionData()
+                            {
+                                startTime = 0.3f,
+                                leftButton = false,
+                                position = new Vector2Int(700, 630),
+                                screenSize = new Vector2Int(1920,1080),
+                                clickedObjectNormalizedPaths = new []{"Canvas/LegacyButton (Button)"}
+                            },
+                            new MouseInputActionData()
+                            {
+                                startTime = 0.4f,
                                 leftButton = false,
                                 position = new Vector2Int(700, 630),
                                 screenSize = new Vector2Int(1920,1080)
@@ -127,7 +142,7 @@ namespace RegressionGames.Tests.BotSegments
             {
                 new ()
                 {
-                    type = KeyFrameCriteriaType.NormalizedPath,
+                    type = KeyFrameCriteriaType.PartialNormalizedPath,
                     data = new PathKeyFrameCriteriaData()
                     {
                         count = 1,
