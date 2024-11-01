@@ -54,7 +54,7 @@ namespace RegressionGames.Tests.BotSegments
             {
                 new ()
                 {
-                    type = KeyFrameCriteriaType.NormalizedPath,
+                    type = KeyFrameCriteriaType.PartialNormalizedPath,
                     data = new PathKeyFrameCriteriaData()
                     {
                         count = 0,
@@ -76,7 +76,7 @@ namespace RegressionGames.Tests.BotSegments
             {
                 new ()
                 {
-                    type = KeyFrameCriteriaType.NormalizedPath,
+                    type = KeyFrameCriteriaType.PartialNormalizedPath,
                     data = new PathKeyFrameCriteriaData()
                     {
                         count = 1,
