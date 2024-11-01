@@ -1,12 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using NUnit.Framework;
+using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using RegressionGames.TestFramework;
 using RegressionGames.Types;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
@@ -32,6 +34,14 @@ namespace RegressionGames.Tests.BotSegments
             yield return RGTestUtils.WaitForScene("UniRxTestScene");
 
             MouseEventSender.InitializeVirtualMouse();
+
+
+            RGUtils.SetupOverrideEventSystem();
+
+            GameObject eventSystem = GameObject.Find("EventSystem");
+            var eventSys = eventSystem.GetComponent<EventSystem>();
+            RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.AUTOMATIC;
+            RGLegacyInputWrapper.StartSimulation(eventSys);
         }
 
         [UnityTest]
@@ -173,6 +183,10 @@ namespace RegressionGames.Tests.BotSegments
 
             SceneManager.UnloadSceneAsync("UniRxTestScene");
             MouseEventSender.Reset();
+
+            RGLegacyInputWrapper.StopSimulation();
+
+            RGUtils.TeardownOverrideEventSystem();
         }
 
     }
