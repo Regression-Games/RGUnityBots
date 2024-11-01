@@ -60,8 +60,8 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform
                 }
             }.AddComponent<Button>();
-            entry.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
-            entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            entry.nameComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
+            entry.descriptionComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
 
             // mocks for the Sequence Editor + Manager
             manager = _uat.AddComponent<RGSequenceManager>();
@@ -99,7 +99,7 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform
                 }
             };
-            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            editor.titleComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             var ni = new GameObject
             {
                 transform =

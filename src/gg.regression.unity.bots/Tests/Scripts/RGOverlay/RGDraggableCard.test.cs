@@ -46,7 +46,7 @@ namespace RegressionGames.Tests.RGOverlay
             card.draggableCardDescription = "Card Description";
 
             // add placeholder text fields to the card
-            var text = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            var text = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             card.namePrefab = text;
             card.descriptionPrefab = text;
             card.resourcePathPrefab = text;
@@ -74,9 +74,9 @@ namespace RegressionGames.Tests.RGOverlay
                 }
             };
             draggedCard.iconPrefab.AddComponent<Image>();
-            draggedCard.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
-            draggedCard.resourcePathComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
-            card.icon = RGTestUtils.CreateSpritePlaceholder();
+            draggedCard.nameComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
+            draggedCard.resourcePathComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
+            card.icon = TestHelpers.CreateSpritePlaceholder();
             card.iconPrefab = new GameObject(){
                 transform =
                 {

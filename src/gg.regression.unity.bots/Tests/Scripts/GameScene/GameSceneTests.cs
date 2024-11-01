@@ -1,8 +1,9 @@
 using System;
 using System.Collections;
-
+using System.Collections.Generic;
 using NUnit.Framework;
 using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Types;
 using RegressionGames.TestFramework;
 using RegressionGames.Types;
@@ -109,6 +110,7 @@ namespace RegressionGames.Tests.Z_RunMeLast_GameScene
             {
                 SetEditorAspectRatio(oldIndex);
             }
+            MouseEventSender.Reset();
         }
 
         private void SetEditorAspectRatio(int index)

@@ -39,8 +39,8 @@ namespace RegressionGames.Tests.RGOverlay
             entry.description = "TestDescription";
             entry.filePath = "test/path";
             entry.type = BotSequenceEntryType.Segment;
-            entry.nameComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
-            entry.descriptionComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            entry.nameComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
+            entry.descriptionComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             entry.playButton = _uat.AddComponent<Button>();
 
             // create tooltip child

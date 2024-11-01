@@ -35,7 +35,7 @@ namespace RegressionGames.Tests.RGOverlay
             // create the delete script we want to test
             _uat = new GameObject();
             deleter = _uat.AddComponent<RGDeleteSequence>();
-            deleter.sequenceNamePrefab = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            deleter.sequenceNamePrefab = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             deleter.confirmButton = new GameObject(){
                 transform =
                 {

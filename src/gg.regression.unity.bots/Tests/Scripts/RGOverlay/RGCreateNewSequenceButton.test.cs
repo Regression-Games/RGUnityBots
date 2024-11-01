@@ -84,7 +84,7 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = sequenceManager.transform
                 }
             };
-            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            editor.titleComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             var ni = new GameObject
             {
                 transform =

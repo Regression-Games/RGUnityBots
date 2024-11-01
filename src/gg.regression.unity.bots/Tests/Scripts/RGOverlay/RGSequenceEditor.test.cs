@@ -54,7 +54,7 @@ namespace RegressionGames.Tests.RGOverlay
             editor.NameInput = text;
             editor.DescriptionInput = text;
             editor.SearchInput = text;
-            editor.titleComponent = RGTestUtils.CreateTMProPlaceholder(_uat.transform);
+            editor.titleComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             editor.AvailableSegmentsList = new GameObject(){
                 transform =
                 {
@@ -75,9 +75,9 @@ namespace RegressionGames.Tests.RGOverlay
                 },
             };
             editor.DropZonePrefab = dropZone;
-            editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
-            editor.SegmentIcon = RGTestUtils.CreateSpritePlaceholder();
-            editor.SegmentListIcon = RGTestUtils.CreateSpritePlaceholder();
+            editor.SegmentListIcon = TestHelpers.CreateSpritePlaceholder();
+            editor.SegmentIcon = TestHelpers.CreateSpritePlaceholder();
+            editor.SegmentListIcon = TestHelpers.CreateSpritePlaceholder();
 
             // mock segment entries for the editor to utilize
             segments = new List<BotSequenceEntry>()
