@@ -17,11 +17,6 @@ namespace RegressionGames.Tests.BotSegments
     [TestFixture]
     public class BotSegmentsTests : InputTestFixture
     {
-        [OneTimeSetUp]
-        public void OneTimeSetUp()
-        {
-            MouseEventSender.InitializeVirtualMouse();
-        }
 
          [UnitySetUp]
         public IEnumerator SetUp()
@@ -37,6 +32,7 @@ namespace RegressionGames.Tests.BotSegments
             SceneManager.LoadSceneAsync("UniRxTestScene", LoadSceneMode.Single);
             yield return RGTestUtils.WaitForScene("UniRxTestScene");
 
+            MouseEventSender.InitializeVirtualMouse();
         }
 
         [UnityTest]
@@ -161,12 +157,8 @@ namespace RegressionGames.Tests.BotSegments
             }
 
             SceneManager.UnloadSceneAsync("UniRxTestScene");
-        }
-
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
             MouseEventSender.Reset();
         }
+
     }
 }
