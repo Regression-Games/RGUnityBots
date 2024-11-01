@@ -88,30 +88,6 @@ namespace RegressionGames.Tests.Z_RunMeLast_GameScene
 
         }
 
-        public void GeneratedBotSequenceTest_LoadAndSave()
-        {
-
-            // issue this all happens on the main thread, but we need to be able to do multiple sets of actions/criteria in a single update call :/
-
-            // await do actions - this needs to be able to evaluate every update call while we wait
-            //                    this also needs to be interleaved with the checks for end criteria
-
-            // what does an action look like in code ?
-
-
-            // await end criteria - this needs to be able to evaluate every update call while we wait
-
-
-            /// -- repeat N times for number of ticks
-
-        }
-
-        private BotSegment botSeg = new BotSegment()
-        {
-            endCriteria = new List<KeyFrameCriteria>(),
-            botAction = null
-        };
-
         [TearDown]
         public void TearDown()
         {
@@ -134,6 +110,7 @@ namespace RegressionGames.Tests.Z_RunMeLast_GameScene
             {
                 SetEditorAspectRatio(oldIndex);
             }
+            MouseEventSender.Reset();
         }
 
         private void SetEditorAspectRatio(int index)

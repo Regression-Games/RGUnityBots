@@ -29,43 +29,49 @@ namespace RegressionGames.StateRecorder.Models
             {
                 allInputsSorted = new();
 
-                // add all the keyboard data, and then we will interleave the mouse data into it
-                allInputsSorted.AddRange(keyboard);
-
-                foreach (var mouseInputActionData in mouse)
+                if (keyboard != null)
                 {
-                    var allInputsSortedCount = allInputsSorted.Count;
-                    var didAdd = false;
-                    for (var i = 0; i < allInputsSortedCount; i++)
-                    {
-                        var input = allInputsSorted[i];
-                        if (input is KeyboardInputActionData keyboardData)
-                        {
-                            // if a keyboard entry time is after the new mouse time.. insert the mouse before this one
-                            if ((keyboardData.startTime.HasValue && keyboardData.startTime.Value > mouseInputActionData.startTime) ||
-                                (keyboardData.endTime.HasValue && keyboardData.endTime.Value > mouseInputActionData.startTime))
-                            {
-                                allInputsSorted.Insert(i, mouseInputActionData);
-                                didAdd = true;
-                                break;
-                            }
-                        }
-                        else if (input is MouseInputActionData mouseData)
-                        {
-                            // if an existing mouse time is after the new mouse time.. insert the new mouse before this one
-                            if (mouseData.startTime > mouseInputActionData.startTime)
-                            {
-                                allInputsSorted.Insert(i, mouseInputActionData);
-                                didAdd = true;
-                                break;
-                            }
-                        }
-                    }
+                    // add all the keyboard data, and then we will interleave the mouse data into it
+                    allInputsSorted.AddRange(keyboard);
+                }
 
-                    if (!didAdd)
+                if (mouse != null)
+                {
+                    foreach (var mouseInputActionData in mouse)
                     {
-                        // didn't find something to put it before, stick it on the end
-                        allInputsSorted.Add(mouseInputActionData);
+                        var allInputsSortedCount = allInputsSorted.Count;
+                        var didAdd = false;
+                        for (var i = 0; i < allInputsSortedCount; i++)
+                        {
+                            var input = allInputsSorted[i];
+                            if (input is KeyboardInputActionData keyboardData)
+                            {
+                                // if a keyboard entry time is after the new mouse time.. insert the mouse before this one
+                                if ((keyboardData.startTime.HasValue && keyboardData.startTime.Value > mouseInputActionData.startTime) ||
+                                    (keyboardData.endTime.HasValue && keyboardData.endTime.Value > mouseInputActionData.startTime))
+                                {
+                                    allInputsSorted.Insert(i, mouseInputActionData);
+                                    didAdd = true;
+                                    break;
+                                }
+                            }
+                            else if (input is MouseInputActionData mouseData)
+                            {
+                                // if an existing mouse time is after the new mouse time.. insert the new mouse before this one
+                                if (mouseData.startTime > mouseInputActionData.startTime)
+                                {
+                                    allInputsSorted.Insert(i, mouseInputActionData);
+                                    didAdd = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!didAdd)
+                        {
+                            // didn't find something to put it before, stick it on the end
+                            allInputsSorted.Add(mouseInputActionData);
+                        }
                     }
                 }
             }
@@ -76,22 +82,31 @@ namespace RegressionGames.StateRecorder.Models
 
         public void MarkSent()
         {
-            foreach (var keyboardInputActionData in keyboard)
+            if (keyboard != null)
             {
-                keyboardInputActionData.HasBeenSent = true;
+                foreach (var keyboardInputActionData in keyboard)
+                {
+                    keyboardInputActionData.HasBeenSent = true;
+                }
             }
         }
 
         public void ReplayReset()
         {
-            foreach (var keyboardInputActionData in keyboard)
+            if (keyboard != null)
             {
-                keyboardInputActionData.ReplayReset();
+                foreach (var keyboardInputActionData in keyboard)
+                {
+                    keyboardInputActionData.ReplayReset();
+                }
             }
 
-            foreach (var mouseInputActionData in mouse)
+            if (mouse != null)
             {
-                mouseInputActionData.ReplayReset();
+                foreach (var mouseInputActionData in mouse)
+                {
+                    mouseInputActionData.ReplayReset();
+                }
             }
         }
 
@@ -100,23 +115,30 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append("{\n\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\n\"keyboard\":[\n");
-            var keyboardCount = keyboard.Count;
-            for (var i = 0; i < keyboardCount; i++)
+            if (keyboard != null)
             {
-                keyboard[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < keyboardCount)
+                var keyboardCount = keyboard.Count;
+                for (var i = 0; i < keyboardCount; i++)
                 {
-                    stringBuilder.Append(",\n");
+                    keyboard[i].WriteToStringBuilder(stringBuilder);
+                    if (i + 1 < keyboardCount)
+                    {
+                        stringBuilder.Append(",\n");
+                    }
                 }
             }
+
             stringBuilder.Append("\n],\n\"mouse\":[\n");
-            var mouseCount = mouse.Count;
-            for (var i = 0; i < mouseCount; i++)
+            if (mouse != null)
             {
-                mouse[i].WriteToStringBuilder(stringBuilder);
-                if (i + 1 < mouseCount)
+                var mouseCount = mouse.Count;
+                for (var i = 0; i < mouseCount; i++)
                 {
-                    stringBuilder.Append(",\n");
+                    mouse[i].WriteToStringBuilder(stringBuilder);
+                    if (i + 1 < mouseCount)
+                    {
+                        stringBuilder.Append(",\n");
+                    }
                 }
             }
             stringBuilder.Append("\n]\n}");

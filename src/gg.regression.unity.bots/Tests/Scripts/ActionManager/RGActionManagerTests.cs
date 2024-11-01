@@ -1,10 +1,8 @@
-using System;
 using System.Collections;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using RegressionGames;
 using RegressionGames.ActionManager;
 using RegressionGames.ActionManager.Actions;
 using RegressionGames.RGLegacyInputUtility;
@@ -15,7 +13,6 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
-using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace RegressionGames.Tests.ActionManager
@@ -228,6 +225,7 @@ namespace RegressionGames.Tests.ActionManager
             InputSystem.onAfterUpdate -= OnAfterInputSystemUpdate;
 
             RGLegacyInputWrapper.UpdateMode = RGLegacyInputUpdateMode.AUTOMATIC;
+            MouseEventSender.Reset();
         }
 
         private void OnAfterInputSystemUpdate()

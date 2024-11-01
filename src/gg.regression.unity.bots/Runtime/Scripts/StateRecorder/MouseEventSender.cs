@@ -5,6 +5,7 @@ using System.Reflection;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
@@ -58,22 +59,19 @@ namespace RegressionGames.StateRecorder
             {
                 MoveMouseOffScreen();
 
+                InputSystem.RemoveDevice(_virtualMouse);
+
                 if (_realMouse != null)
                 {
                     _realMouse = InputSystem.GetDevice(_realMouse.name);
                 }
 
-                if (_realMouse is { enabled: false })
+                if (_realMouse != null)
                 {
                     RGDebug.LogDebug("reset - Enabling the real mouse device for mouse event");
                     InputSystem.EnableDevice(_realMouse);
-                }
-
-                if (_realMouse != null)
-                {
                     _realMouse.MakeCurrent();
                 }
-
             }
 
             _virtualMouse = null;
@@ -82,6 +80,8 @@ namespace RegressionGames.StateRecorder
 
         public static InputDevice InitializeVirtualMouse()
         {
+            Reset();
+
             _realMouse ??= InputSystem.devices.FirstOrDefault(a => a.name == "Mouse");
 
             _virtualMouse ??= InputSystem.devices.FirstOrDefault(a => a.name == "RGVirtualMouse");
@@ -93,11 +93,7 @@ namespace RegressionGames.StateRecorder
 
             if (_virtualMouse != null)
             {
-                if (!_virtualMouse.enabled)
-                {
-                    InputSystem.EnableDevice(_virtualMouse);
-                }
-
+                InputSystem.EnableDevice(_virtualMouse);
                 _virtualMouse.MakeCurrent();
 
                 if (!_virtualMouse.canRunInBackground)
@@ -198,140 +194,149 @@ namespace RegressionGames.StateRecorder
         {
             if (_virtualMouse is { enabled: true })
             {
-                using (StateEvent.From(_virtualMouse, out var eventPtr))
+                var mouseEventString = "";
+                try
                 {
-                    eventPtr.time = InputState.currentTime;
-
-                    var mouseControls = _virtualMouse.allControls;
-                    var mouseEventString = "";
-
-                    // 1f == true == clicked state
-                    // 0f == false == un-clicked state
-                    foreach (var mouseControl in mouseControls)
+                    using (StateEvent.From(_virtualMouse, out var eventPtr))
                     {
-                        switch (mouseControl.name)
+                        eventPtr.time = InputState.currentTime;
+
+                        var mouseControls = _virtualMouse.allControls;
+
+                        // 1f == true == clicked state
+                        // 0f == false == un-clicked state
+                        foreach (var mouseControl in mouseControls)
                         {
-                            case "delta":
-                                if (_lastMousePosition != null)
-                                {
-                                    var delta = normalizedPosition - _lastMousePosition.Value;
+                            switch (mouseControl.name)
+                            {
+                                case "delta":
+                                    if (_lastMousePosition != null)
+                                    {
+                                        var delta = normalizedPosition - _lastMousePosition.Value;
+                                        if (RGDebug.IsDebugEnabled)
+                                        {
+                                            mouseEventString += $"delta: {delta.x},{delta.y}  ";
+                                        }
+
+                                        ((Vector2Control)mouseControl).WriteValueIntoEvent(delta, eventPtr);
+                                    }
+
+                                    break;
+                                case "position":
                                     if (RGDebug.IsDebugEnabled)
                                     {
-                                        mouseEventString += $"delta: {delta.x},{delta.y}  ";
+                                        mouseEventString += $"position: {normalizedPosition.x},{normalizedPosition.y}  ";
                                     }
 
-                                    ((Vector2Control)mouseControl).WriteValueIntoEvent(delta, eventPtr);
-                                }
-
-                                break;
-                            case "position":
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    mouseEventString += $"position: {normalizedPosition.x},{normalizedPosition.y}  ";
-                                }
-
-                                ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
-                                break;
-                            case "scroll":
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    if (scroll.x < -0.1f || scroll.x > 0.1f || scroll.y < -0.1f || scroll.y > 0.1f)
+                                    ((Vector2Control)mouseControl).WriteValueIntoEvent(normalizedPosition, eventPtr);
+                                    break;
+                                case "scroll":
+                                    if (RGDebug.IsDebugEnabled)
                                     {
-                                        mouseEventString += $"scroll: {scroll.x},{scroll.y}  ";
+                                        if (scroll.x < -0.1f || scroll.x > 0.1f || scroll.y < -0.1f || scroll.y > 0.1f)
+                                        {
+                                            mouseEventString += $"scroll: {scroll.x},{scroll.y}  ";
+                                        }
                                     }
-                                }
 
-                                ((DeltaControl)mouseControl).WriteValueIntoEvent(scroll, eventPtr);
-                                break;
-                            case "leftButton":
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    if (leftButton)
+                                    ((DeltaControl)mouseControl).WriteValueIntoEvent(scroll, eventPtr);
+                                    break;
+                                case "leftButton":
+                                    if (RGDebug.IsDebugEnabled)
                                     {
-                                        mouseEventString += $"leftButton  ";
+                                        if (leftButton)
+                                        {
+                                            mouseEventString += $"leftButton  ";
+                                        }
                                     }
-                                }
 
-                                ((ButtonControl)mouseControl).WriteValueIntoEvent(leftButton ? 1f : 0f, eventPtr);
-                                break;
-                            case "middleButton":
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    if (middleButton)
+                                    ((ButtonControl)mouseControl).WriteValueIntoEvent(leftButton ? 1f : 0f, eventPtr);
+                                    break;
+                                case "middleButton":
+                                    if (RGDebug.IsDebugEnabled)
                                     {
-                                        mouseEventString += $"middleButton  ";
+                                        if (middleButton)
+                                        {
+                                            mouseEventString += $"middleButton  ";
+                                        }
                                     }
-                                }
 
-                                ((ButtonControl)mouseControl).WriteValueIntoEvent(middleButton ? 1f : 0f, eventPtr);
-                                break;
-                            case "rightButton":
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    if (rightButton)
+                                    ((ButtonControl)mouseControl).WriteValueIntoEvent(middleButton ? 1f : 0f, eventPtr);
+                                    break;
+                                case "rightButton":
+                                    if (RGDebug.IsDebugEnabled)
                                     {
-                                        mouseEventString += $"rightButton  ";
+                                        if (rightButton)
+                                        {
+                                            mouseEventString += $"rightButton  ";
+                                        }
                                     }
-                                }
 
-                                ((ButtonControl)mouseControl).WriteValueIntoEvent(rightButton ? 1f : 0f, eventPtr);
-                                break;
-                            case "forwardButton":
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    if (forwardButton)
+                                    ((ButtonControl)mouseControl).WriteValueIntoEvent(rightButton ? 1f : 0f, eventPtr);
+                                    break;
+                                case "forwardButton":
+                                    if (RGDebug.IsDebugEnabled)
                                     {
-                                        mouseEventString += $"forwardButton  ";
+                                        if (forwardButton)
+                                        {
+                                            mouseEventString += $"forwardButton  ";
+                                        }
                                     }
-                                }
 
-                                ((ButtonControl)mouseControl).WriteValueIntoEvent(forwardButton ? 1f : 0f, eventPtr);
-                                break;
-                            case "backButton":
-                                if (RGDebug.IsDebugEnabled)
-                                {
-                                    if (backButton)
+                                    ((ButtonControl)mouseControl).WriteValueIntoEvent(forwardButton ? 1f : 0f, eventPtr);
+                                    break;
+                                case "backButton":
+                                    if (RGDebug.IsDebugEnabled)
                                     {
-                                        mouseEventString += $"backButton  ";
+                                        if (backButton)
+                                        {
+                                            mouseEventString += $"backButton  ";
+                                        }
                                     }
-                                }
 
-                                ((ButtonControl)mouseControl).WriteValueIntoEvent(backButton ? 1f : 0f, eventPtr);
-                                break;
+                                    ((ButtonControl)mouseControl).WriteValueIntoEvent(backButton ? 1f : 0f, eventPtr);
+                                    break;
+                            }
                         }
-                    }
+
 
 #if ENABLE_LEGACY_INPUT_MANAGER
-                    {
-                        Vector2 delta = _lastMousePosition.HasValue ? (normalizedPosition - _lastMousePosition.Value) : Vector2.zero;
-                        SendMouseEventLegacy(position: normalizedPosition, delta: delta, scroll: scroll,
-                            leftButton: leftButton, middleButton: middleButton, rightButton: rightButton,
-                            forwardButton: forwardButton, backButton: backButton);
-                    }
+                        {
+                            Vector2 delta = _lastMousePosition.HasValue ? (normalizedPosition - _lastMousePosition.Value) : Vector2.zero;
+                            SendMouseEventLegacy(position: normalizedPosition, delta: delta, scroll: scroll,
+                                leftButton: leftButton, middleButton: middleButton, rightButton: rightButton,
+                                forwardButton: forwardButton, backButton: backButton);
+                        }
 #endif
 
-                    _lastMousePosition = normalizedPosition;
+                        _lastMousePosition = normalizedPosition;
 
-                    // Disable the Real mouse whenever we have a click about to happen, until we un-click
-                    // This is a bit scary, but it provides stability to avoid any single or partial pixel twitches of the real mouse ruining click events or positions to the UI system
-                    if (leftButton || middleButton || rightButton || forwardButton || backButton)
-                    {
-                        if (_realMouse is { enabled: true })
+                        // Disable the Real mouse whenever we have a click about to happen, until we un-click
+                        // This is a bit scary, but it provides stability to avoid any single or partial pixel twitches of the real mouse ruining click events or positions to the UI system
+                        if (leftButton || middleButton || rightButton || forwardButton || backButton)
                         {
-                            RGDebug.LogDebug("Disabling the real mouse device before virtual click mouse event");
-                            InputSystem.DisableDevice(_realMouse);
+                            if (_realMouse is { enabled: true })
+                            {
+                                RGDebug.LogDebug("Disabling the real mouse device before virtual click mouse event");
+                                InputSystem.DisableDevice(_realMouse);
+                            }
                         }
+
+                        if (RGDebug.IsDebugEnabled)
+                        {
+                            RGDebug.LogDebug($"({replaySegment}) [frame: {Time.frameCount}] - Sending Virtual Mouse Event - {mouseEventString}");
+                        }
+
+                        InputSystem.QueueEvent(eventPtr);
                     }
-
-
-                    if (RGDebug.IsDebugEnabled)
-                    {
-                        RGDebug.LogDebug($"({replaySegment}) [frame: {Time.frameCount}] - Sending Virtual Mouse Event - {mouseEventString}");
-                    }
-
-                    InputSystem.QueueEvent(eventPtr);
+                }
+                catch (Exception e)
+                {
+                    RGDebug.LogException(e, $"Error in InputSystem while sending Virtual Mouse Event - {mouseEventString}");
+                    throw;
                 }
             }
+
         }
 
         public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<long, ObjectStatus> priorTransforms, Dictionary<long, ObjectStatus> priorEntities, Dictionary<long, ObjectStatus> transforms, Dictionary<long, ObjectStatus> entities)

@@ -35,14 +35,20 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 var now = Time.unscaledTime;
                 var currentInputTimePoint = now - startTime;
 
-                foreach (var keyboardInputActionData in inputData.keyboard)
+                if (inputData.keyboard != null)
                 {
-                    keyboardInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                    foreach (var keyboardInputActionData in inputData.keyboard)
+                    {
+                        keyboardInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                    }
                 }
 
-                foreach (var mouseInputActionData in inputData.mouse)
+                if (inputData.mouse != null)
                 {
-                    mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                    foreach (var mouseInputActionData in inputData.mouse)
+                    {
+                        mouseInputActionData.Replay_OffsetTime = currentInputTimePoint;
+                    }
                 }
             }
         }
@@ -60,19 +66,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 var now = Time.unscaledTime;
                 var delta = now - pauseTime;
 
-                foreach (var keyboardInputActionData in inputData.keyboard)
+                if (inputData.keyboard != null)
                 {
-                    if (!keyboardInputActionData.Replay_IsDone)
+                    foreach (var keyboardInputActionData in inputData.keyboard)
                     {
-                        keyboardInputActionData.Replay_OffsetTime += delta;
+                        if (!keyboardInputActionData.Replay_IsDone)
+                        {
+                            keyboardInputActionData.Replay_OffsetTime += delta;
+                        }
                     }
                 }
 
-                foreach (var mouseInputActionData in inputData.mouse)
+                if (inputData.mouse != null)
                 {
-                    if (!mouseInputActionData.Replay_IsDone)
+                    foreach (var mouseInputActionData in inputData.mouse)
                     {
-                        mouseInputActionData.Replay_OffsetTime += delta;
+                        if (!mouseInputActionData.Replay_IsDone)
+                        {
+                            mouseInputActionData.Replay_OffsetTime += delta;
+                        }
                     }
                 }
             }
@@ -168,19 +180,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             if (!_isStopped)
             {
-                foreach (var keyboardInputActionData in inputData.keyboard)
+                if (inputData.keyboard != null)
                 {
-                    if (!keyboardInputActionData.Replay_IsDone)
+                    foreach (var keyboardInputActionData in inputData.keyboard)
                     {
-                        return false;
+                        if (!keyboardInputActionData.Replay_IsDone)
+                        {
+                            return false;
+                        }
                     }
                 }
 
-                foreach (var mouseInputActionData in inputData.mouse)
+                if (inputData.mouse != null)
                 {
-                    if (!mouseInputActionData.Replay_IsDone)
+                    foreach (var mouseInputActionData in inputData.mouse)
                     {
-                        return false;
+                        if (!mouseInputActionData.Replay_IsDone)
+                        {
+                            return false;
+                        }
                     }
                 }
             }
