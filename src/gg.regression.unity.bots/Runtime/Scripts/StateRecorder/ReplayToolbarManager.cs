@@ -339,8 +339,6 @@ namespace RegressionGames.StateRecorder
             {
                 if (replayDataController.ReplayCompletedSuccessfully() != null)
                 {
-                    // stopped, but ready to play again
-                    replayDataController.Stop();
                     // playback complete
                     chooseReplayButton.SetActive(false);
                     successIcon.SetActive(true);
