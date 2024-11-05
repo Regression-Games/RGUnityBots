@@ -120,16 +120,8 @@ namespace RegressionGames.StateRecorder
             return _currentGameplaySessionDataDirectoryPrefix;
         }
 
-        private void OnDestroy()
-        {
-            _tokenSource?.Cancel();
-            _tokenSource?.Dispose();
-            _tokenSource = null;
-        }
-
         public void Awake()
         {
-            _tokenSource = new CancellationTokenSource();
             // only allow 1 of these to be alive
             if (_this != null && _this.gameObject != gameObject)
             {
@@ -311,6 +303,8 @@ namespace RegressionGames.StateRecorder
             await uploadTask;
 
             _tokenSource?.Cancel();
+            _tokenSource?.Dispose();
+            _tokenSource = null;
         }
 
         private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
@@ -548,6 +542,7 @@ namespace RegressionGames.StateRecorder
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _tickQueue = new BlockingCollection<(TickDataToWriteToDisk, Action)>(new ConcurrentQueue<(TickDataToWriteToDisk, Action)>());
+                _tokenSource = new CancellationTokenSource();
 
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
@@ -577,8 +572,8 @@ namespace RegressionGames.StateRecorder
                 Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
                 Directory.CreateDirectory(_currentGameplaySessionLogsDirectoryPrefix);
 
-                // run the tick processor in the background
-                Task.Run(ProcessTicks, _tokenSource.Token);
+                // run the tick processor in the background, but don't hook it to the token source.. we'll manage cancelling this on our own so we don't miss processing ticks
+                Task.Run(ProcessTicks);
                 RGDebug.LogInfo($"Recording replay screenshots and data to directories inside {_currentGameplaySessionDirectoryPrefix}");
             }
         }
@@ -654,16 +649,17 @@ namespace RegressionGames.StateRecorder
                 {
                     _loggingObserver.StopCapturingLogs();
                 }
-            }
 
-            ScreenshotCapture.GetInstance()?.WaitForCompletion();
+                ScreenshotCapture.GetInstance()?.WaitForCompletion();
 
-            _tickQueue?.CompleteAdding();
+                _tickQueue?.CompleteAdding();
 
-            // wait for all the tick writes to be queued up
-            while (_tickQueue != null && _tickQueue.Count() != 0)
-            {
-                Thread.Sleep(5);
+                // wait for all the tick writes to be queued up.. this is an explicit check for null to avoid race condition between the last take marking completed and the file write tasks being created
+                while (_tickQueue != null)
+                {
+                    // something short, but not so short that the cpu spikes
+                    Thread.Sleep(5);
+                }
             }
 
             _fileWriteTasks.RemoveAll(a => a.Item2.IsCompleted);
@@ -698,6 +694,8 @@ namespace RegressionGames.StateRecorder
             else
             {
                 _tokenSource?.Cancel();
+                _tokenSource?.Dispose();
+                _tokenSource = null;
             }
 
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
@@ -749,7 +747,7 @@ namespace RegressionGames.StateRecorder
 
         private IEnumerator RecordFrame(bool endRecording = false, bool endRecordingFromToolbarButton = false)
         {
-            if (!_tickQueue.IsCompleted)
+            if (_tickQueue is { IsAddingCompleted: false })
             {
                 // wait for end of frame before capturing, otherwise .isVisible on game objects is wrong and GPU data won't be accurate for screenshot
                 // also impacts ordering for clearing the pixel hash
@@ -1122,16 +1120,32 @@ namespace RegressionGames.StateRecorder
 
         private void ProcessTicks()
         {
-            while (!_tickQueue.IsCompleted && _tokenSource is { IsCancellationRequested: false })
+            while (_tickQueue is {IsCompleted: false})
             {
                 try
                 {
-                    var tuple = _tickQueue.Take(_tokenSource.Token);
-                    var tickData = tuple.Item1;
-                    ProcessTick(tickData);
+                    bool canWrite;
+                    (TickDataToWriteToDisk, Action) tuple;
+                    // we may or may not have data.. make this a cancellable take
+                    if (_tokenSource is { IsCancellationRequested: false })
+                    {
+                        tuple = _tickQueue.Take(_tokenSource.Token);
+                        canWrite = true;
+                    }
+                    else
+                    {
+                        // _tokenSource was cancelled.. do this without blocking
+                        canWrite = _tickQueue.TryTake(out tuple);
+                    }
 
-                    // invoke the cleanup callback function
-                    tuple.Item2();
+                    if (canWrite)
+                    {
+                        var tickData = tuple.Item1;
+                        ProcessTick(tickData);
+
+                        // invoke the cleanup callback function
+                        tuple.Item2();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -1141,6 +1155,9 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
+            // once we've got everything queued up.. nullify this so the end recording loop knows to continue
+            _tickQueue?.Dispose();
+            _tickQueue = null;
         }
 
         private void ProcessTick(TickDataToWriteToDisk tickData)
