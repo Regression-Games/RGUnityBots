@@ -257,7 +257,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 }
             }
             stringBuilder.Append("\n],\n\"botAction\":");
-            botAction.WriteToStringBuilder(stringBuilder);
+            if (botAction != null)
+            {
+                botAction.WriteToStringBuilder(stringBuilder);
+            }
+            else
+            {
+                stringBuilder.Append("null");
+            }
             stringBuilder.Append("}");
         }
 
