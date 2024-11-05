@@ -39,6 +39,8 @@ namespace RegressionGames
 
         public TMP_Text titleComponent;
 
+        public GameObject overrideIndicator;
+        
         public RGDropZone _dropZone;
 
         private IList<BotSequenceEntry> _segmentEntries;
@@ -66,6 +68,10 @@ namespace RegressionGames
             NameInput.onValueChanged.AddListener(OnNameInputChange);
             DescriptionInput.onValueChanged.AddListener(OnDescriptionInputChange);
             _dropZone = DropZonePrefab.GetComponent<RGDropZone>();
+
+            // set indicator that this sequence is being overriden by a local file within a build 
+            var showOverride = !Application.isEditor && !string.IsNullOrEmpty(existingFilePath);
+            overrideIndicator.gameObject.SetActive(showOverride);
 
             _makingACopy = makingACopy;
 
