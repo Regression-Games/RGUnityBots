@@ -181,8 +181,15 @@ namespace RegressionGames.StateRecorder
             {
                 // FileBrowser.Result is null, if FileBrowser.Success is false
                 // Get the file path of the first selected file
-                selectedReplayFilePath = FileBrowser.Result[0];
-                RefreshSelectedFile();
+                if (FileBrowser.Result.Length > 0)
+                {
+                    selectedReplayFilePath = FileBrowser.Result[0];
+                    RefreshSelectedFile();
+                }
+                else
+                {
+                    selectedReplayFilePath = null;
+                }
             }
         }
 
@@ -246,7 +253,7 @@ namespace RegressionGames.StateRecorder
 
         public void PlayReplay()
         {
-            if (selectedReplayFilePath == null)
+            if (string.IsNullOrEmpty(selectedReplayFilePath))
             {
                 // this happens when the user plays a bot sequence from the overlay
                 // (no zip file to load)

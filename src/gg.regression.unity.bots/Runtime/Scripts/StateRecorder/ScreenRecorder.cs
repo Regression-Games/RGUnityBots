@@ -120,8 +120,16 @@ namespace RegressionGames.StateRecorder
             return _currentGameplaySessionDataDirectoryPrefix;
         }
 
+        private void OnDestroy()
+        {
+            _tokenSource?.Cancel();
+            _tokenSource?.Dispose();
+            _tokenSource = null;
+        }
+
         public void Awake()
         {
+            _tokenSource = new CancellationTokenSource();
             // only allow 1 of these to be alive
             if (_this != null && _this.gameObject != gameObject)
             {
@@ -241,8 +249,11 @@ namespace RegressionGames.StateRecorder
 
             // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
             var screenshotFiles = Directory.GetFiles(screenshotsDirectoryPrefix);
-            var middleFile = screenshotFiles[screenshotFiles.Length / 2]; // this gets floored automatically
-            File.Copy(middleFile, thumbnailPath);
+            if (screenshotFiles.Length > 0)
+            {
+                var middleFile = screenshotFiles[screenshotFiles.Length / 2];
+                File.Copy(middleFile, thumbnailPath);
+            }
 
             // wait for the metadata tasks to finish
             if (codeCovMetadataTask != null)
@@ -535,7 +546,6 @@ namespace RegressionGames.StateRecorder
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
                 _tickQueue = new BlockingCollection<(TickDataToWriteToDisk, Action)>(new ConcurrentQueue<(TickDataToWriteToDisk, Action)>());
-                _tokenSource = new CancellationTokenSource();
 
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
@@ -667,7 +677,7 @@ namespace RegressionGames.StateRecorder
 
             if (wasRecording)
             {
-                _ = HandleEndRecording(
+                Task.WaitAll(HandleEndRecording(
                     _tickNumber,
                     _startTime,
                     DateTime.Now,
@@ -681,12 +691,12 @@ namespace RegressionGames.StateRecorder
                     _currentGameplaySessionThumbnailPath,
                     _currentGameplaySessionLogsDirectoryPrefix,
                     _currentGameplaySessionGameMetadataPath,
-                    true);
+                    true));
             }
 
+
             _tokenSource?.Cancel();
-            _tokenSource?.Dispose();
-            _tokenSource = null;
+
 
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetFeatureCodeCoverage())
