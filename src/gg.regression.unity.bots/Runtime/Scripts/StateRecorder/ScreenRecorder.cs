@@ -309,6 +309,8 @@ namespace RegressionGames.StateRecorder
             }
 
             await uploadTask;
+
+            _tokenSource?.Cancel();
         }
 
         private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
@@ -677,7 +679,7 @@ namespace RegressionGames.StateRecorder
 
             if (wasRecording)
             {
-                Task.WaitAll(HandleEndRecording(
+                _ = HandleEndRecording(
                     _tickNumber,
                     _startTime,
                     DateTime.Now,
@@ -691,12 +693,12 @@ namespace RegressionGames.StateRecorder
                     _currentGameplaySessionThumbnailPath,
                     _currentGameplaySessionLogsDirectoryPrefix,
                     _currentGameplaySessionGameMetadataPath,
-                    true));
+                    true);
             }
-
-
-            _tokenSource?.Cancel();
-
+            else
+            {
+                _tokenSource?.Cancel();
+            }
 
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetFeatureCodeCoverage())
