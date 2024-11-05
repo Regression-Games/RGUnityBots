@@ -28,7 +28,10 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             {
                 botSegment.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             }
-            botSegment.botAction = jObject.GetValue("botAction")?.ToObject<BotAction>(serializer);
+            if (jObject.ContainsKey("botAction"))
+            {
+                botSegment.botAction = jObject.GetValue("botAction").ToObject<BotAction>(serializer);
+            }
             if (jObject.ContainsKey("keyFrameCriteria"))
             {
                 // backwards compatibility before we renamed keyFrameCriteria to endCriteria
