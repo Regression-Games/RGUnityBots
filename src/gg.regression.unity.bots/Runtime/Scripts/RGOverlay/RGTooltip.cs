@@ -61,6 +61,8 @@ namespace RegressionGames
             // the tooltip is hidden by default
             contentPrefab.CrossFadeAlpha(0, 0, false);
             backgroundPrefab.CrossFadeAlpha(0, 0, false);
+            
+            Debug.Log("SHOW THE TIP");
         }
 
         /**
