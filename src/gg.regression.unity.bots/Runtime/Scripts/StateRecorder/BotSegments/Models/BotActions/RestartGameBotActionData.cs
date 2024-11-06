@@ -89,10 +89,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
             if (!_isStopped)
             {
                 _isStopped = true;
-                //TODO: Write a status to persistent path so that we can resume this sequence/segment on game restart
-                //TODO: If this is NOT the last segment, block the upload from happening yet as we aren't 'done' recording the replay
-
-                //TODO: (Somewhere else... Read recovery status from persistent path so that we can resume this sequence/segment on game restart)
+                //TODO (REG-2170): Write a status to persistent path so that we can resume this sequence/segment on game restart
+                //TODO (REG-2170): (in code somewhere else ...) If this is NOT the last segment, block the upload from happening yet as we aren't 'done' recording the replay
+                //TODO (REG-2170): (in code somewhere else ...) Read recovery status from persistent path so that we can resume this sequence/segment on game restart
 #if UNITY_EDITOR
 
                 RGDebug.LogInfo($"Restarting the game in the editor...");
