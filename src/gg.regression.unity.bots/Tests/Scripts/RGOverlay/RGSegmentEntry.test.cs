@@ -42,6 +42,15 @@ namespace RegressionGames.Tests.RGOverlay
             entry.nameComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             entry.descriptionComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
             entry.playButton = _uat.AddComponent<Button>();
+            
+            // create override indicator
+            entry.isOverride = false;
+            entry.overrideIndicator = new GameObject() {
+                transform =
+                {
+                    parent = entry.transform,
+                },
+            };
 
             // create tooltip child
             var tooltip = new GameObject() {
@@ -78,6 +87,17 @@ namespace RegressionGames.Tests.RGOverlay
             Assert.AreEqual(entry.nameComponent.text, entry.segmentName);
             Assert.AreEqual(entry.descriptionComponent.text, entry.description);
             Assert.IsFalse(entry.segmentListIndicatorComponent.activeSelf);
+            Assert.IsFalse(entry.overrideIndicator.activeSelf);
+        }
+        
+        [Test]
+        public void StartWithOverride()
+        {
+            entry.isOverride = true;
+            entry.Start();
+
+            // ensure that the override indicator is activated
+            Assert.IsTrue(entry.overrideIndicator.activeSelf);
         }
 
         [Test]

@@ -64,6 +64,12 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = sequenceManager.transform
                 }
             };
+            editor.overrideIndicator = new GameObject(){
+                transform =
+                {
+                    parent = sequenceManager.transform,
+                },
+            };
             editor.DropZonePrefab = new GameObject(){
                 transform =
                 {

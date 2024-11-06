@@ -40,6 +40,7 @@ namespace RegressionGames.Tests.RGOverlay
             // create the entry we want to test
             _uat = new GameObject();
             entry = _uat.AddComponent<RGSequenceEntry>();
+            entry.isOverride = false;
             entry.sequenceName = "Sequence Entry Name";
             entry.description = "Sequence Entry Description";
             entry.playButton = new GameObject(){
@@ -54,14 +55,33 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform
                 }
             }.AddComponent<Button>();
+            entry.copyButton = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            }.AddComponent<Button>();
             entry.deleteButton = new GameObject(){
                 transform =
                 {
                     parent = _uat.transform
                 }
             }.AddComponent<Button>();
+            entry.overrideIndicator = new GameObject()
+            {
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
+            entry.recordingDot = new GameObject()
+            {
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
             entry.nameComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
-            entry.descriptionComponent = TestHelpers.CreateTMProPlaceholder(_uat.transform);
 
             // mocks for the Sequence Editor + Manager
             manager = _uat.AddComponent<RGSequenceManager>();
@@ -80,6 +100,12 @@ namespace RegressionGames.Tests.RGOverlay
                 }
             };
             editor.DropZonePrefab = new GameObject(){
+                transform =
+                {
+                    parent = _uat.transform
+                }
+            };
+            editor.overrideIndicator = new GameObject(){
                 transform =
                 {
                     parent = _uat.transform
@@ -148,7 +174,17 @@ namespace RegressionGames.Tests.RGOverlay
 
             // ensure that the entry consumes its public fields properly
             Assert.AreEqual(entry.sequenceName, entry.nameComponent.text);
-            Assert.AreEqual(entry.description, entry.descriptionComponent.text);
+            Assert.IsFalse(entry.overrideIndicator.activeSelf);
+        }
+        
+        [Test]
+        public void StartWithOverride()
+        {
+            entry.isOverride = true;
+            entry.Start();
+            
+            // ensure that the override indicator is activated
+            Assert.IsTrue(entry.overrideIndicator.activeSelf);
         }
 
         [Test]
@@ -187,6 +223,16 @@ namespace RegressionGames.Tests.RGOverlay
             // ensure it says edit
             // TODO: This requires a ton more setup for a future time where it needs to really successfully load an existing sequence
             //Assert.IsTrue(editor.titleComponent.text.Contains("Edit Sequence"));
+        }
+        
+        [Test]
+        public void OnEditWithOverride()
+        {
+            entry.isOverride = true;
+            entry.OnEdit();
+            
+            // ensure that the override indicator is activated
+            Assert.IsTrue(editor.overrideIndicator.activeSelf);
         }
 
         [Test]
