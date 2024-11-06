@@ -44,7 +44,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * Not persisted or written to json, populated on load
          */
         public bool isOverride;
-        
+
         public static volatile BotSequence ActiveBotSequence = null;
 
         /**
@@ -129,7 +129,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 }
 
                 segmentList.resourcePath = resourcePath;
-
                 segmentList.FixupNames();
                 return segmentList;
 
@@ -390,7 +389,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         /**
          * <summary>Load the json resource at the specified path.  If .json is not on this path it will be auto appended.</summary>
-         * <returns>A (FilePath [null - if loaded as resource], resourcePath, contentString) tuple</returns>
+         * <returns>A (FilePath [null - if loaded as resource], resourcePath, contentString, isOverride) tuple</returns>
          */
         public static (string, string, string, bool) LoadJsonResource(string path)
         {
@@ -409,8 +408,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             using var sr = new StreamReader(File.OpenRead(editorFilePath));
             result = (editorFilePath, resourcePath, sr.ReadToEnd(), false);
-
 #else
+
             // #if runtime .. load files from either resources, OR .. persistentDataPath.. preferring persistentDataPath as an 'override' to resources
             var runtimePath = resourcePath;
 

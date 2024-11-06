@@ -294,8 +294,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             segments = LoadSegmentsInDirectory(segmentPath);
-
 #else
+
 
             // 1. check the persistentDataPath for segments
             var persistentDataPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments";

@@ -1088,7 +1088,7 @@ RectTransform:
   m_Children:
   - {fileID: 3687363723740831427}
   - {fileID: 8737356546176888317}
-  - {fileID: 8182252269510672842}
+  - {fileID: 3544931062919119488}
   m_Father: {fileID: 4162107705649557168}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -7105,7 +7105,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2753814926951463455, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 405
+      value: 403.6
       objectReference: {fileID: 0}
     - target: {fileID: 2753814926951463455, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
       propertyPath: m_LocalPosition.y
@@ -7171,6 +7171,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6900760972595920481, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -6.700012
+      objectReference: {fileID: 0}
     - target: {fileID: 7058838329612739333, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0
@@ -7179,6 +7183,34 @@ PrefabInstance:
       propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_RootOrder
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -68
+      objectReference: {fileID: 0}
+    - target: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -41.9
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
 --- !u!1 &3010624845490513605 stripped
@@ -7186,11 +7218,36 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 9114533971015769360, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
   m_PrefabInstance: {fileID: 6321566252641647573}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &8182252269510672842 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2753814926951463455, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+--- !u!224 &3544931062919119488 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 7388321243248179541, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
   m_PrefabInstance: {fileID: 6321566252641647573}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7287426902985037394 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3645825715137490311, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+  m_PrefabInstance: {fileID: 6321566252641647573}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5089927412892847591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7287426902985037394}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IgnoreLayout: 1
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1001 &7189010868726519681
 PrefabInstance:
   m_ObjectHideFlags: 0
