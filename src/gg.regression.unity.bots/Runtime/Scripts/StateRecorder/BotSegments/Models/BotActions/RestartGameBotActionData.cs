@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Text;
-using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments.Models;
+// ReSharper disable once RedundantUsingDirective - used in #else.. don't remove
 using UnityEngine.SceneManagement;
-
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
     [Serializable]
@@ -31,6 +32,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
             {
                 if (_action == null)
                 {
+#if UNITY_EDITOR
+                    // no-op
+#else
+
                     // load the type on another thread to avoid 'hitching' the game
                     new Thread(() =>
                     {
@@ -44,7 +49,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                             {
                                 if (typeof(IRGRestartGameAction).IsAssignableFrom(type))
                                 {
-                                    RGDebug.LogInfo($"Using the '{type.FullName}' implementation of IRGRestartGameAction to process Bot Restart Game Actions.  If this is not the type you expected to handle this action, you may accidentally have more than one implementation of the IRGRestartGameAction in your runtime.");
+                                    RGDebug.LogInfo($"Using the '{type.FullName}' implementation of IRGRestartGameAction to process Bot Restart Game Actions.  If this is not the type you expected to handle this action, you may accidentally have more than one implementation of the IRGRestartGameAction interface in your runtime.");
                                     _action = (IRGRestartGameAction)Activator.CreateInstance(type);
                                 }
                                 break;
@@ -61,20 +66,49 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                             _error = null;
                         }
                     }).Start();
+#endif
                 }
             }
         }
+
+#if UNITY_EDITOR
+        private void PlayGameInEditor(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.EnteredEditMode)
+            {
+                // un-register our listener
+                EditorApplication.playModeStateChanged -= PlayGameInEditor;
+                // just finished playing ... start it back up
+                EditorApplication.isPlaying = true;
+            }
+        }
+#endif
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             if (!_isStopped)
             {
                 _isStopped = true;
-                // find the restart interface impl in the runtime.. if it doesn't exist... use our default action
+                //TODO: Write a status to persistent path so that we can resume this sequence/segment on game restart
+                //TODO: If this is NOT the last segment, block the upload from happening yet as we aren't 'done' recording the replay
+
+                //TODO: (Somewhere else... Read recovery status from persistent path so that we can resume this sequence/segment on game restart)
+#if UNITY_EDITOR
+
+                RGDebug.LogInfo($"Restarting the game in the editor...");
+                _error = null;
+                error = _error;
+                // register our hook so that the game will start right back up
+                EditorApplication.playModeStateChanged += PlayGameInEditor;
+                // stop the game in the editor
+                EditorApplication.isPlaying = false;
+                return true;
+#else
+                // use the restart interface impl in the runtime.. if it doesn't exist... use our default action
                 // run the restart action
                 if (_action != null)
                 {
-                    RGDebug.LogInfo($"Restarting the game using the '{_action.GetType().FullName}' implementation of IRGRestartGameAction.  If this is not the type you expected to handle this action, you may accidentally have more than one implementation of the IRGRestartGameAction in your runtime.");
+                    RGDebug.LogInfo($"Restarting the game using the '{_action.GetType().FullName}' implementation of IRGRestartGameAction.  If this is not the type you expected to handle this action, you may accidentally have more than one implementation of the IRGRestartGameAction interface in your runtime.");
                     try
                     {
                         _action.RestartGame();
@@ -91,14 +125,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                 }
 
                 // else
-                RGDebug.LogInfo($"Restarting the game using the default action of SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single)");
                 // no restart impl, load scene 0 instead...
                 // BEWARE.. This DOES NOT... cleanup background threads, destroy DontDestroyOnLoad objects, or cleanup many other non-game object associated things in the engine
+                RGDebug.LogInfo($"Restarting the game using the default action of SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single)");
                 SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single);
                 _error = null;
                 error = _error;
                 return true;
 
+#endif
             }
 
             error = _error;
