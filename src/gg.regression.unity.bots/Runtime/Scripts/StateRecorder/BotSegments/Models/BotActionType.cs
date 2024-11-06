@@ -11,6 +11,7 @@
         Mouse_CVImage,
         Mouse_CVText,
         Mouse_ObjectDetection,
+        RestartGame
 
         //POSSIBLE_FUTURE_ACTIONS
         //Timer,
