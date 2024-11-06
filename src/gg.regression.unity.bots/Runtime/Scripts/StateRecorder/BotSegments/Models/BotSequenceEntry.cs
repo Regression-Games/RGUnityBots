@@ -26,6 +26,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public string name;
         // NOT WRITTEN TO JSON - Populated from the BotSegment/BotSegmentList at file load time
         public string description;
+        // NOT WRITTEN TO JSON - Populated at file load time
+        public bool isOverride;
 
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new (()=>new(100));
 

@@ -40,6 +40,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public string resourcePath;
 
+        /**
+         * Not persisted or written to json, populated on load
+         */
+        public bool isOverride;
+
         public static volatile BotSequence ActiveBotSequence = null;
 
         /**
@@ -74,6 +79,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             var botSequence = JsonConvert.DeserializeObject<BotSequence>(sequenceJson.Item3, JsonUtils.JsonSerializerSettings);
             botSequence.resourcePath = sequenceJson.Item2;
+            botSequence.isOverride = sequenceJson.Item4;
             return (sequenceJson.Item1, sequenceJson.Item2, botSequence, sequenceJson.Item4);
         }
 
@@ -123,7 +129,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 }
 
                 segmentList.resourcePath = resourcePath;
-
                 segmentList.FixupNames();
                 return segmentList;
 
@@ -144,9 +149,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         /**
          *
-         * <returns>A (FilePath [null - if loaded as resource], resourcePath, object [BotSegment or BotSegmentList], isOverride) tuple</returns>
+         * <returns>A (FilePath [null - if loaded as resource], resourcePath, object [BotSegment or BotSegmentList]) tuple</returns>
          */
-        public static (string, string, object, bool) LoadBotSegmentOrBotSegmentListFromPath(string path)
+        public static (string, string, object) LoadBotSegmentOrBotSegmentListFromPath(string path)
         {
 
             path = path.Replace('\\', '/');
@@ -171,7 +176,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                     jsonFile = LoadJsonResource("Assets/RegressionGames/Resources/" + path);
                 }
 
-                return (jsonFile.Item1, jsonFile.Item2, ParseSegmentOrListJson(jsonFile.Item2, jsonFile.Item3), jsonFile.Item4);
+                var result = (jsonFile.Item1, jsonFile.Item2, ParseSegmentOrListJson(jsonFile.Item2, jsonFile.Item3));
+
+                if (result.Item3 is BotSegment botSegment)
+                {
+                    botSegment.isOverride = jsonFile.Item4;
+                }
+                else if (result.Item3 is BotSegmentList botSegmentList)
+                {
+                    botSegmentList.isOverride = jsonFile.Item4;
+                }
+                return result;
             }
             catch (Exception e)
             {
@@ -254,7 +269,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public void CopySequenceSegmentsToNewPath()
         {
-            var segmentDataList = new List<((string, string, object, bool), BotSequenceEntry)>();
+            var segmentDataList = new List<((string, string, object), BotSequenceEntry)>();
             // load them all into ram first so we can delete the directory safely.. this is in case the source and destination happen to be the same for some segments
             foreach (var botSequenceEntry in segments)
             {
@@ -395,8 +410,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             using var sr = new StreamReader(File.OpenRead(editorFilePath));
             result = (editorFilePath, resourcePath, sr.ReadToEnd(), false);
-
 #else
+
             // #if runtime .. load files from either resources, OR .. persistentDataPath.. preferring persistentDataPath as an 'override' to resources
             var runtimePath = resourcePath;
 
@@ -410,7 +425,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 if (File.Exists(Application.persistentDataPath + "/RegressionGames/Resources/" + runtimePath))
                 {
                     using var fr = new StreamReader(File.OpenRead(Application.persistentDataPath + "/RegressionGames/Resources/" + runtimePath));
-                    result = (Application.persistentDataPath + "/RegressionGames/Resources/" + runtimePath, resourcePath, fr.ReadToEnd(), true);
+                    result = (Application.persistentDataPath + "/RegressionGames/Resources/" + runtimePath, resourcePath, fr.ReadToEnd(), false);
                 }
             }
             catch (Exception e)
@@ -420,11 +435,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             try
             {
+                // load from resources asset in the build
+                var json = Resources.Load<TextAsset>(resourcePath);
                 if (!result.HasValue)
                 {
-                    // load from resources asset in the build
-                    var json = Resources.Load<TextAsset>(resourcePath);
-                    result = (null, resourcePath, json.text, false);
+                    if (json != null)
+                    {
+                        result = (null, resourcePath, json.text, false);
+                    }
+                }
+                else
+                {
+                    //mark that this was an override
+                    result = (result.Value.Item1, result.Value.Item2, result.Value.Item3, true);
                 }
             }
             catch (Exception e)
