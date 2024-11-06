@@ -174,10 +174,10 @@ namespace RegressionGames
         /// <summary>
         /// Plays back a bot sequence, and then returns the save location of the recording.
         /// </summary>
-        /// <param name="botSequenceInfo">(filePath,resourcePath,BotSequence) tuple of the bot sequence</param>
+        /// <param name="botSequenceInfo">(filePath,resourcePath,BotSequence,isOverride) tuple of the bot sequence</param>
         /// <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
         /// <param name="timeout">How long in seconds to wait for this sequence to complete, less than or == 0 means wait forever (default=0)</param>
-        internal static IEnumerator StartBotSequence((string,string, BotSequence) botSequenceInfo, Action<PlaybackResult> setPlaybackResult, int timeout = 0)
+        internal static IEnumerator StartBotSequence((string,string, BotSequence, bool) botSequenceInfo, Action<PlaybackResult> setPlaybackResult, int timeout = 0)
         {
             var startTime = Time.unscaledTime;
 
