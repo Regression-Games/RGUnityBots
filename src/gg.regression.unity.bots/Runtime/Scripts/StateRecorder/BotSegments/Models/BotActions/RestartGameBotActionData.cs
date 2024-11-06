@@ -54,8 +54,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                                 {
                                     RGDebug.LogInfo($"Using the '{type.FullName}' implementation of IRGRestartGameAction to process Bot Restart Game Actions.  If this is not the type you expected to handle this action, you may accidentally have more than one implementation of the IRGRestartGameAction interface in your runtime.");
                                     _action = (IRGRestartGameAction)Activator.CreateInstance(type);
+                                    break;
                                 }
-                                break;
                             }
                         }
 
