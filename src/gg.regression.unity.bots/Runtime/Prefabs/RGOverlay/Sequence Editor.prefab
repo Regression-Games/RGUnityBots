@@ -7211,6 +7211,13 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: -41.9
       objectReference: {fileID: 0}
+    - target: {fileID: 7647697588610464655, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
+      propertyPath: m_text
+      value: 'This Sequence is overriden by a local file. Any
+
+        changes made
+        to this Sequence will be persisted'
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 016a5275af164844ca5f1c948e33f7c5, type: 3}
 --- !u!1 &3010624845490513605 stripped
