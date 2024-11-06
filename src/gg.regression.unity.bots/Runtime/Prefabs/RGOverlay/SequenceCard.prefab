@@ -696,6 +696,7 @@ MonoBehaviour:
   description: 
   filePath: 
   resourcePath: 
+  isLocalOverride: 0
   playButton: {fileID: 2445726624697383442}
   editButton: {fileID: 552020959801161968}
   copyButton: {fileID: 7216834355123044211}
@@ -1327,7 +1328,12 @@ PrefabInstance:
       objectReference: {fileID: 7819799790123342142}
     - target: {fileID: 8240398802560070304, guid: e49ee355d192d4b3baa7709272c0cd36, type: 3}
       propertyPath: content
-      value: This Sequence is overriden by a local file
+      value: 'This Sequence is being overriden by a local
+
+        file. If you delete
+        this Sequence, the original
+
+        version will take its place'
       objectReference: {fileID: 0}
     - target: {fileID: 8240398802560070304, guid: e49ee355d192d4b3baa7709272c0cd36, type: 3}
       propertyPath: backgroundPrefab

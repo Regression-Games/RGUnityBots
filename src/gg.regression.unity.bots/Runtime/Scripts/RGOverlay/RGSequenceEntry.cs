@@ -23,6 +23,11 @@ public class RGSequenceEntry : MonoBehaviour
 
     public Action playAction;
 
+    /**
+     * <summary>Indicates whether the sequence is overridden by a local file.</summary>
+     */
+    public bool isOverride;
+    
     [SerializeField]
     public Button playButton;
 
@@ -85,9 +90,8 @@ public class RGSequenceEntry : MonoBehaviour
             RGSequenceEditor.SetButtonEnabled(false, deleteButton);
         }
         
-        // set indicator that this sequence is being overriden by a local file within a build 
-        var showOverride = !Application.isEditor && !string.IsNullOrEmpty(filePath);
-        overrideIndicator.gameObject.SetActive(showOverride);
+        // set indicator that this sequence is being overriden by a local file, within a build 
+        overrideIndicator.gameObject.SetActive(isOverride);
 
         // set indicator that this is a recording
         if (RGSequenceEditor.IsRecordingSequencePath(resourcePath))
@@ -126,7 +130,7 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(false, resourcePath, filePath);
+            sequenceManager.ShowEditSequenceDialog(false, resourcePath, filePath, isOverride);
         }
     }
 
@@ -135,7 +139,7 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(true, resourcePath, filePath);
+            sequenceManager.ShowEditSequenceDialog(true, resourcePath, filePath, isOverride);
         }
     }
 

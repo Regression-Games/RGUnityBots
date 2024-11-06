@@ -61,17 +61,17 @@ namespace RegressionGames
          * <param name="makingACopy">bool true if copying to a new file, or false if editing in place</param>
          * <param name="existingResourcePath">The resource path for an existing Sequence for editing</param>
          * <param name="existingFilePath">The path of the sequence that is being edited (optional)</param>
+         * <param name="isLocalOverride">Is loaded Sequence a locally overriden file within the persistent data path (optional)</param>
          */
-        public void Initialize(bool makingACopy, string existingResourcePath, string existingFilePath = null)
+        public void Initialize(bool makingACopy, string existingResourcePath, string existingFilePath = null, bool isLocalOverride = false)
         {
             SearchInput.onValueChanged.AddListener(OnSearchInputChange);
             NameInput.onValueChanged.AddListener(OnNameInputChange);
             DescriptionInput.onValueChanged.AddListener(OnDescriptionInputChange);
             _dropZone = DropZonePrefab.GetComponent<RGDropZone>();
 
-            // set indicator that this sequence is being overriden by a local file within a build 
-            var showOverride = !Application.isEditor && !string.IsNullOrEmpty(existingFilePath);
-            overrideIndicator.gameObject.SetActive(showOverride);
+            // set indicator that this sequence is being overriden by a local file, within a build 
+            overrideIndicator.gameObject.SetActive(isLocalOverride);
 
             _makingACopy = makingACopy;
 

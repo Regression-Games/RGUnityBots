@@ -37,6 +37,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // NOT WRITTEN TO JSON - The resource path for this botSegment... normally populated during load of saved segments
         public string resourcePath;
 
+        // NOT WRITTEN TO JSON - Populated at load time
+        public bool isOverride;
+        
         /**
          * <summary>Description for this bot segment. Used for naming on the UI.</summary>
          */
@@ -309,7 +312,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 try
                 {
-                    if (!segments.ContainsKey(resourceFilename))
+                    if (!segments.TryGetValue(resourceFilename, out var segment))
                     {
                         var sequenceInfo = Resources.Load<TextAsset>(resourceFilename);
                         var sequenceEntry = BotSequence.CreateBotSequenceEntryForJson(null, resourceFilename, sequenceInfo.text ?? "");
@@ -317,6 +320,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                         // add the new sequence if its filename doesn't already exist
                         // add the new sequence with a null filePath
                         segments.Add(sequenceEntry.resourcePath, (null, sequenceEntry));
+                    }
+                    else
+                    {
+                        segment.Item2.isOverride = true;
                     }
                 }
                 catch (Exception e)
