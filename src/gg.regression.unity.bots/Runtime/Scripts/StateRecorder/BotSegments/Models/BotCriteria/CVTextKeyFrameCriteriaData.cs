@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotCriteria
 {
     [Serializable]
     public class CVTextKeyFrameCriteriaData : IKeyFrameCriteriaData

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
+
+
 // ReSharper disable InconsistentNaming
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotCriteria
 {
     [Serializable]
     public class KeyFrameCriteria : IStringBuilderWriteable
