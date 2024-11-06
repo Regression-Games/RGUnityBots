@@ -142,7 +142,7 @@ public class RGSequenceManager : MonoBehaviour
      * <param name="makingACopy">bool true if copying to a new file, or false if editing in place</param>
      * <param name="existingResourcePath">The resource path for an existing Sequence for editing</param>
      * <param name="existingFilePath">The file path for an existing Sequence for editing (optional)</param>
-     * <param name="isOverride">If the Sequence being edited is a local file, overriding the packaged resource</param>
+     * <param name="isOverride">If the Sequence being edited is a local file, overriding the packaged resource (optional)</param>
      */
     public void ShowEditSequenceDialog(bool makingACopy, string existingResourcePath, string existingFilePath = null, bool isOverride = false)
     {
@@ -320,6 +320,7 @@ public class RGSequenceManager : MonoBehaviour
                 prefabComponent.filePath = filePath;
                 prefabComponent.resourcePath = resourcePath;
                 prefabComponent.type = segment.type;
+                prefabComponent.isOverride = segment.isOverride;
             }
 
             yield return null;
