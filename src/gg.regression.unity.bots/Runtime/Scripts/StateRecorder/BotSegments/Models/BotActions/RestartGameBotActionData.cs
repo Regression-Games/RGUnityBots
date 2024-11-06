@@ -11,6 +11,9 @@ using UnityEditor;
 #endif
 namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
+    /**
+     * <summary>An action to restart the game.  This should only be used as the 'last' segment in your sequence or segment list until REG-2170.</summary>
+     */
     [Serializable]
     public class RestartGameBotActionData : IBotActionData
     {

@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Text;
-using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
-using StateRecorder.BotSegments.Models;
-using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
+
+    /**
+     * <summary>An action to quite the game.  This should only be used as the 'last' segment in your sequence or segment list.</summary>
+     */
     [Serializable]
     public class QuitGameBotActionData : IBotActionData
     {
