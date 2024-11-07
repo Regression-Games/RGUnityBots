@@ -148,7 +148,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void InitializeUpdate()
         {
-            editor.Initialize(false, '/existing/resource/path', null, false);
+            editor.Initialize(false, "/existing/resource/path", null, false);
 
             // ensure that the editor consumes its public fields properly
             Assert.NotNull(editor.NameInput.onValueChanged);
