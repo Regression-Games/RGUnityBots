@@ -82,6 +82,12 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform,
                 },
             };
+            editor.updateOverrideInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             editor.DropZonePrefab = new GameObject(){
                 transform =
                 {

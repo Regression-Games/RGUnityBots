@@ -92,6 +92,12 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform,
                 },
             };
+            editor.updateOverrideInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             editor.DropZonePrefab = dropZone;
             editor.SegmentListIcon = TestHelpers.CreateSpritePlaceholder();
             editor.SegmentIcon = TestHelpers.CreateSpritePlaceholder();
@@ -129,9 +135,9 @@ namespace RegressionGames.Tests.RGOverlay
         {
             Object.Destroy(_uat);
         }
-
+        
         [Test]
-        public void InitializeCreate()
+        public void Initialize()
         {
             editor.Initialize(false, null, null, false);
 
@@ -139,25 +145,28 @@ namespace RegressionGames.Tests.RGOverlay
             Assert.NotNull(editor.NameInput.onValueChanged);
             Assert.NotNull(editor.SearchInput.onValueChanged);
             Assert.IsFalse(editor.overrideIndicator.activeSelf);
-            
+        }
+
+        [Test]
+        public void InitializeCreate()
+        {
+            editor.Initialize(false, null, null, false);
+
             // ensure that the instruction text is correct
             Assert.IsTrue(editor.createInstructionText.activeSelf);
             Assert.IsFalse(editor.updateInstructionText.activeSelf);
+            Assert.IsFalse(editor.updateOverrideInstructionText.activeSelf);
         }
         
         [Test]
-        public void InitializeUpdate()
+        public void InitializeEdit()
         {
             editor.Initialize(true, null, null, false);
 
-            // ensure that the editor consumes its public fields properly
-            Assert.NotNull(editor.NameInput.onValueChanged);
-            Assert.NotNull(editor.SearchInput.onValueChanged);
-            Assert.IsFalse(editor.overrideIndicator.activeSelf);
-            
             // ensure that the instruction text is correct
-            Assert.IsTrue(editor.updateInstructionText.activeSelf);
-            Assert.IsFalse(editor.createInstructionText.activeSelf);
+            Assert.IsFalse(editor.updateInstructionText.activeSelf);
+            Assert.IsTrue(editor.createInstructionText.activeSelf);
+            Assert.IsFalse(editor.updateOverrideInstructionText.activeSelf);
         }
         
         [Test]
@@ -165,8 +174,10 @@ namespace RegressionGames.Tests.RGOverlay
         {
             editor.Initialize(false, null, null, true);
 
-            // ensure that the override indicator is activated
-            Assert.IsTrue(editor.overrideIndicator.activeSelf);
+            // ensure that the instruction text is correct
+            Assert.IsFalse(editor.updateInstructionText.activeSelf);
+            Assert.IsFalse(editor.createInstructionText.activeSelf);
+            Assert.IsTrue(editor.updateOverrideInstructionText.activeSelf);
         }
 
         [Test]

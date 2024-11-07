@@ -47,6 +47,9 @@ namespace RegressionGames
         // shown when updating an existing Sequence
         public GameObject updateInstructionText;
         
+        // shown when updating an existing Sequence in a build
+        public GameObject updateOverrideInstructionText;
+        
         public RGDropZone _dropZone;
 
         private IList<BotSequenceEntry> _segmentEntries;
@@ -112,23 +115,37 @@ namespace RegressionGames
                 // populate the segment list from the contents of the loaded sequence
                 CurrentSequence = SetEditingState(_existingSequencePath);
                 titleComponent.text = "Copy Sequence";
-                createInstructionText.SetActive(false);
-                updateInstructionText.SetActive(true);
             }
             else if (isBeingEdited)
             {
                 // populate the segment list from the contents of the loaded sequence
                 CurrentSequence = SetEditingState(_existingSequencePath);
                 titleComponent.text = "Edit Sequence";
-                createInstructionText.SetActive(false);
-                updateInstructionText.SetActive(true);
             }
             else
             {
                 CurrentSequence = new BotSequence();
                 titleComponent.text = "Create Sequence";
+            }
+            
+            // set the instruction text
+            if (isOverride)
+            {
+                createInstructionText.SetActive(false);
+                updateInstructionText.SetActive(false);
+                updateOverrideInstructionText.SetActive(true);
+            }
+            else if (isBeingEdited)
+            {
+                createInstructionText.SetActive(false);
+                updateInstructionText.SetActive(true);
+                updateOverrideInstructionText.SetActive(false);
+            }
+            else // creating a new Sequence
+            {
                 createInstructionText.SetActive(true);
                 updateInstructionText.SetActive(false);
+                updateOverrideInstructionText.SetActive(false);
             }
 
             // ensure that the create/update button is in the correct default state:
