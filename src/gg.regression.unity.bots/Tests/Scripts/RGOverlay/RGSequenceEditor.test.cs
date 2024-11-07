@@ -164,8 +164,8 @@ namespace RegressionGames.Tests.RGOverlay
             editor.Initialize(true, null, null, false);
 
             // ensure that the instruction text is correct
-            Assert.IsFalse(editor.updateInstructionText.activeSelf);
-            Assert.IsTrue(editor.createInstructionText.activeSelf);
+            Assert.IsFalse(editor.createInstructionText.activeSelf);
+            Assert.IsTrue(editor.updateInstructionText.activeSelf);
             Assert.IsFalse(editor.updateOverrideInstructionText.activeSelf);
         }
         
@@ -175,8 +175,8 @@ namespace RegressionGames.Tests.RGOverlay
             editor.Initialize(false, null, null, true);
 
             // ensure that the instruction text is correct
-            Assert.IsFalse(editor.updateInstructionText.activeSelf);
             Assert.IsFalse(editor.createInstructionText.activeSelf);
+            Assert.IsTrue(editor.updateInstructionText.activeSelf);
             Assert.IsTrue(editor.updateOverrideInstructionText.activeSelf);
         }
 

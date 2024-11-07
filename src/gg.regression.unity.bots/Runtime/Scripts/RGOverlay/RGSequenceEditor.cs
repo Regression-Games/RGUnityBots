@@ -133,7 +133,7 @@ namespace RegressionGames
             {
                 // override
                 createInstructionText.SetActive(false);
-                updateInstructionText.SetActive(false);
+                updateInstructionText.SetActive(true);
                 updateOverrideInstructionText.SetActive(true);
             }
             else if (isBeingEdited)
