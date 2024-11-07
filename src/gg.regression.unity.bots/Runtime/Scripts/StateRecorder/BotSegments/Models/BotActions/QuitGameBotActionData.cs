@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+// ReSharper disable once RedundantUsingDirective - used in #else, do not remove
+using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {

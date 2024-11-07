@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+// ReSharper disable once RedundantUsingDirective - used in #else.. don't remove
+using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments.Models;
+using UnityEngine;
 // ReSharper disable once RedundantUsingDirective - used in #else.. don't remove
 using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
 using UnityEditor;
+// ReSharper disable InconsistentNaming
 #endif
 namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
@@ -24,8 +28,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 
         public int apiVersion = SdkApiVersion.VERSION_25;
 
+        private static readonly string _restartWarningText = "the default restart action of destroying DontDestroyOnLoad objects and then running SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single).  Please note that this should stop all co-routines, but this will NOT stop any background threads, tasks, timers, Unity Jobs, etc.  This will also NOT cleanup any data in ECS.";
+
         [NonSerialized]
         private bool _isStopped;
+
+        private volatile bool _readyToProcess;
 
         private string _error;
 
@@ -33,10 +41,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
         {
             if (!_isStopped)
             {
-                if (_action == null)
+                if (!_readyToProcess && _action == null)
                 {
 #if UNITY_EDITOR
                     // no-op
+                    _readyToProcess = true;
 #else
 
                     // load the type on another thread to avoid 'hitching' the game
@@ -50,7 +59,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                             var a = allAssemblies[i];
                             foreach (var type in a.GetTypes())
                             {
-                                if (typeof(IRGRestartGameAction).IsAssignableFrom(type))
+                                if (typeof(IRGRestartGameAction).IsAssignableFrom(type) && !type.IsInterface)
                                 {
                                     RGDebug.LogInfo($"Using the '{type.FullName}' implementation of IRGRestartGameAction to process Bot Restart Game Actions.  If this is not the type you expected to handle this action, you may accidentally have more than one implementation of the IRGRestartGameAction interface in your runtime.");
                                     _action = (IRGRestartGameAction)Activator.CreateInstance(type);
@@ -61,13 +70,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 
                         if (_action == null)
                         {
-                            _error = $"Regression Games could not find an IRGRestartGameAction implementation. The system will use the default restart action of SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single)";
-                            RGDebug.LogWarning(_error);
+                            RGDebug.LogWarning("Regression Games could not find an IRGRestartGameAction implementation. The system will use " + _restartWarningText);
                         }
-                        else
-                        {
-                            _error = null;
-                        }
+                        _error = null;
+                        _readyToProcess = true;
                     }).Start();
 #endif
                 }
@@ -85,18 +91,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                 EditorApplication.isPlaying = true;
             }
         }
+
 #endif
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            if (!_isStopped)
+            if (!_isStopped && _readyToProcess)
             {
-                _isStopped = true;
                 //TODO (REG-2170): Write a status to persistent path so that we can resume this sequence/segment on game restart
                 //TODO (REG-2170): (in code somewhere else ...) If this is NOT the last segment, block the upload from happening yet as we aren't 'done' recording the replay
                 //TODO (REG-2170): (in code somewhere else ...) Read recovery status from persistent path so that we can resume this sequence/segment on game restart
 #if UNITY_EDITOR
-
+                _isStopped = true;
                 RGDebug.LogInfo($"Restarting the game in the editor...");
                 _error = null;
                 error = _error;
@@ -113,6 +119,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                     RGDebug.LogInfo($"Restarting the game using the '{_action.GetType().FullName}' implementation of IRGRestartGameAction.  If this is not the type you expected to handle this action, you may accidentally have more than one implementation of the IRGRestartGameAction interface in your runtime.");
                     try
                     {
+                        _isStopped = true;
                         _action.RestartGame();
                         _error = null;
                         error = _error;
@@ -128,18 +135,53 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 
                 // else
                 // no restart impl, load scene 0 instead...
-                // BEWARE.. This DOES NOT... cleanup background threads, destroy DontDestroyOnLoad objects, or cleanup many other non-game object associated things in the engine
-                RGDebug.LogInfo($"Restarting the game using the default action of SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single)");
+                // BEWARE.. This DOES NOT... cleanup background threads or cleanup many other non-game object associated things in the engine
+                _isStopped = true;
+                RGDebug.LogInfo($"Restarting the game using " + _restartWarningText);
+                DestroyAllDontDestroyOnLoadObjects();
                 SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single);
                 _error = null;
                 error = _error;
                 return true;
-
 #endif
             }
 
             error = _error;
             return false;
+        }
+
+        private void DestroyAllDontDestroyOnLoadObjects()
+        {
+
+            GameObject temp = null;
+            try
+            {
+                temp = new GameObject();
+                UnityEngine.Object.DontDestroyOnLoad( temp );
+                UnityEngine.SceneManagement.Scene dontDestroyOnLoad = temp.scene;
+
+                // gets all don't destroy on load object
+                var ddolgos = dontDestroyOnLoad.GetRootGameObjects();
+                foreach (var gameObject in ddolgos)
+                {
+                    // make sure we only destroy temp once and leave the RG overlay
+                    if (gameObject != temp && !gameObject.transform.name.StartsWith("RGOverlayCanvas"))
+                    {
+                        UnityEngine.Object.Destroy(gameObject);
+                    }
+                }
+
+                UnityEngine.Object.Destroy( temp );
+                temp = null;
+            }
+            finally
+            {
+                if (temp != null)
+                {
+                    UnityEngine.Object.Destroy( temp );
+                }
+            }
+
         }
 
         public void AbortAction(int segmentNumber)
