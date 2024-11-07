@@ -111,6 +111,18 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform
                 }
             };
+            editor.createInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
+            editor.updateInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             var dropZonePrefab = editor.DropZonePrefab.AddComponent<RGDropZone>();
 
             dropZonePrefab.Content = new GameObject(){
