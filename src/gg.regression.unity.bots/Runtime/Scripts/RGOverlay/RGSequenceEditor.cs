@@ -129,20 +129,23 @@ namespace RegressionGames
             }
             
             // set the instruction text
-            if (isOverride)
+            if (isOverride || (!Application.isEditor && isBeingEdited))
             {
+                // override
                 createInstructionText.SetActive(false);
                 updateInstructionText.SetActive(false);
                 updateOverrideInstructionText.SetActive(true);
             }
             else if (isBeingEdited)
             {
+                // update
                 createInstructionText.SetActive(false);
                 updateInstructionText.SetActive(true);
                 updateOverrideInstructionText.SetActive(false);
             }
-            else // creating a new Sequence
+            else
             {
+                // create
                 createInstructionText.SetActive(true);
                 updateInstructionText.SetActive(false);
                 updateOverrideInstructionText.SetActive(false);
