@@ -80,6 +80,18 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform,
                 },
             };
+            editor.createInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
+            editor.updateInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             editor.DropZonePrefab = dropZone;
             editor.SegmentListIcon = TestHelpers.CreateSpritePlaceholder();
             editor.SegmentIcon = TestHelpers.CreateSpritePlaceholder();
@@ -119,7 +131,7 @@ namespace RegressionGames.Tests.RGOverlay
         }
 
         [Test]
-        public void Initialize()
+        public void InitializeCreate()
         {
             editor.Initialize(false, null, null, false);
 
@@ -127,6 +139,25 @@ namespace RegressionGames.Tests.RGOverlay
             Assert.NotNull(editor.NameInput.onValueChanged);
             Assert.NotNull(editor.SearchInput.onValueChanged);
             Assert.IsFalse(editor.overrideIndicator.activeSelf);
+            
+            // ensure that the instruction text is correct
+            Assert.IsTrue(editor.createInstructionText.activeSelf);
+            Assert.IsFalse(editor.updateInstructionText.activeSelf);
+        }
+        
+        [Test]
+        public void InitializeUpdate()
+        {
+            editor.Initialize(false, '/existing/resource/path', null, false);
+
+            // ensure that the editor consumes its public fields properly
+            Assert.NotNull(editor.NameInput.onValueChanged);
+            Assert.NotNull(editor.SearchInput.onValueChanged);
+            Assert.IsFalse(editor.overrideIndicator.activeSelf);
+            
+            // ensure that the instruction text is correct
+            Assert.IsTrue(editor.updateInstructionText.activeSelf);
+            Assert.IsFalse(editor.createInstructionText.activeSelf);
         }
         
         [Test]

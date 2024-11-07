@@ -40,6 +40,12 @@ namespace RegressionGames
         public TMP_Text titleComponent;
 
         public GameObject overrideIndicator;
+
+        // shown when creating a new Sequence
+        public GameObject createInstructionText;
+        
+        // shown when updating an existing Sequence
+        public GameObject updateInstructionText;
         
         public RGDropZone _dropZone;
 
@@ -72,7 +78,7 @@ namespace RegressionGames
 
             // set indicator that this sequence is being overriden by a local file, within a build 
             overrideIndicator.gameObject.SetActive(isOverride);
-
+            
             _makingACopy = makingACopy;
 
             // if the Available Segment List cannot be found, we will try to find it somewhere in the scene
@@ -106,17 +112,23 @@ namespace RegressionGames
                 // populate the segment list from the contents of the loaded sequence
                 CurrentSequence = SetEditingState(_existingSequencePath);
                 titleComponent.text = "Copy Sequence";
+                createInstructionText.SetActive(false);
+                updateInstructionText.SetActive(true);
             }
             else if (isBeingEdited)
             {
                 // populate the segment list from the contents of the loaded sequence
                 CurrentSequence = SetEditingState(_existingSequencePath);
                 titleComponent.text = "Edit Sequence";
+                createInstructionText.SetActive(false);
+                updateInstructionText.SetActive(true);
             }
             else
             {
                 CurrentSequence = new BotSequence();
                 titleComponent.text = "Create Sequence";
+                createInstructionText.SetActive(true);
+                updateInstructionText.SetActive(false);
             }
 
             // ensure that the create/update button is in the correct default state:
