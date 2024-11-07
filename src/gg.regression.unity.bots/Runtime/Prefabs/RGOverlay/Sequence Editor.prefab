@@ -1043,8 +1043,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Updating a Bot Sequence, while in a build, will create a copy of this
-    Sequence in a local file. This copy will override the original Sequence. '
+  m_text: 'Updating a Bot Sequence, while in a build, will save this Sequence in
+    a local file. This copy will override the original Sequence. '
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
   m_sharedMaterial: {fileID: 8592267718606122159, guid: 7fc1e1edc788747d3b207177e40103d6, type: 2}
