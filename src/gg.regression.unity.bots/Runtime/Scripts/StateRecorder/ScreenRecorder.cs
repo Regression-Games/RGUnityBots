@@ -210,8 +210,15 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogInfo($"Saving action coverage metadata to file: {actionCoverageMetadataPath}");
                 using (StreamWriter sw = new StreamWriter(actionCoverageMetadataPath))
                 {
-                    string actionCoverageMetadataJson = JsonConvert.SerializeObject(actionUsageSummary, Formatting.Indented);
-                    actionCoverageMetadataTask = sw.WriteAsync(actionCoverageMetadataJson);
+                    try
+                    {
+                        string actionCoverageMetadataJson = JsonConvert.SerializeObject(actionUsageSummary, Formatting.Indented);
+                        actionCoverageMetadataTask = sw.WriteAsync(actionCoverageMetadataJson);
+                    }
+                    catch (Exception e)
+                    {
+                        RGDebug.LogException(e, "Exception writing action coverage metadata");
+                    }
                 }
             }
 

@@ -46,8 +46,9 @@ namespace RegressionGames.GenericBots
         /// <summary>
         /// Perform an update step of the monkey bot.
         /// </summary>
+        /// <param name="segmentNumber">The bot sequence segment number</param>
         /// <returns>Whether any action was performed (inputs simulated).</returns>
-        public bool Update()
+        public bool Update(int segmentNumber)
         {
             bool didAnyAction = false;
             if (GameObject.Find("Selection Panel") != null)
@@ -62,12 +63,17 @@ namespace RegressionGames.GenericBots
                 // if not deciding on a new action, then repeat inputs sent on the last frame
                 foreach (var act in _actionsBuf.Where(act => act.Performed))
                 {
-                    foreach (var inp in act.Inputs)
+                    // since we are repeating here.. the object target could no longer exist (was destroyed since last frame) due to the action taken.. this is common for choosing spell actions or other temporary object targets
+                    if (act.ActionInstance.TargetObject != null)
                     {
-                        inp.Perform();
-                        didAnyAction = true;
+                        // record before doing because often times once we do, that action longer exists as a game object
+                        RGActionRuntimeCoverageAnalysis.RecordActionUsage(act.ActionInstance.BaseAction, act.ActionInstance.TargetObject);
+                        foreach (var inp in act.Inputs)
+                        {
+                            inp.Perform(segmentNumber);
+                            didAnyAction = true;
+                        }
                     }
-                    RGActionRuntimeCoverageAnalysis.RecordActionUsage(act.ActionInstance.BaseAction, act.ActionInstance.TargetObject);
                 }
                 return didAnyAction;
             }
@@ -88,12 +94,13 @@ namespace RegressionGames.GenericBots
                         var inst = action.GetInstance(targetObject);
                         if (inst.IsValidParameter(false))
                         {
+                            // record before doing because often times once we do, that action longer exists as a game object
+                            RGActionRuntimeCoverageAnalysis.RecordActionUsage(inst.BaseAction, inst.TargetObject);
                             foreach (var inp in inst.GetInputs(false))
                             {
-                                inp.Perform();
+                                inp.Perform(segmentNumber);
                                 didAnyAction = true;
                             }
-                            RGActionRuntimeCoverageAnalysis.RecordActionUsage(inst.BaseAction, inst.TargetObject);
                         }
                         didHeuristic = true;
                     }
@@ -137,7 +144,7 @@ namespace RegressionGames.GenericBots
                     {
                         foreach (var btn in _mouseBtnsBuf)
                         {
-                            new MouseButtonInput(btn, false).Perform();
+                            new MouseButtonInput(btn, false).Perform(segmentNumber);
                             didAnyAction = true;
                         }
                         didHeuristic = true;
@@ -198,12 +205,13 @@ namespace RegressionGames.GenericBots
                 if (_remainingActionsBuf.Count > 0)
                 {
                     var action = _remainingActionsBuf[Random.Range(0, _remainingActionsBuf.Count)];
+                    // record before doing because often times once we do, that action longer exists as a game object
+                    RGActionRuntimeCoverageAnalysis.RecordActionUsage(action.ActionInstance.BaseAction, action.ActionInstance.TargetObject);
                     foreach (var inp in action.Inputs)
                     {
-                        inp.Perform();
+                        inp.Perform(segmentNumber);
                         didAnyAction = true;
                     }
-                    RGActionRuntimeCoverageAnalysis.RecordActionUsage(action.ActionInstance.BaseAction, action.ActionInstance.TargetObject);
                     action.Performed = true;
                 }
             } while (_remainingActionsBuf.Count > 0);

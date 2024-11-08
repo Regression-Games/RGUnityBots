@@ -14,11 +14,12 @@ namespace RegressionGames.ActionManager
         /// <summary>
         /// Simulate the input onto the game.
         /// </summary>
-        public abstract void Perform();
+        /// <param name="segmentNumber">The bot segmentNumber</param>
+        public abstract void Perform(int segmentNumber);
 
         /// <summary>
         /// Returns whether this input affects the same part of the device as another.
-        /// 
+        ///
         /// This is used to decide whether two actions can be performed simultaneously:
         /// if two actions affect the same part of the input device then they should NOT be performed together.
         /// </summary>
@@ -50,16 +51,16 @@ namespace RegressionGames.ActionManager
     {
         public readonly KeyCode KeyCode;
         public readonly bool IsPressed;
-        
+
         public LegacyKeyInput(KeyCode keyCode, bool isPressed)
         {
             KeyCode = keyCode;
             IsPressed = isPressed;
         }
-        
-        public override void Perform()
+
+        public override void Perform(int segmentNumber)
         {
-            RGActionManager.SimulateKeyState(KeyCode, IsPressed);
+            RGActionManager.SimulateKeyState(segmentNumber, KeyCode, IsPressed);
         }
 
         public override bool Overlaps(RGActionInput other)
@@ -97,17 +98,17 @@ namespace RegressionGames.ActionManager
             Key = key;
             IsPressed = isPressed;
         }
-        
-        public override void Perform()
+
+        public override void Perform(int segmentNumber)
         {
-            RGActionManager.SimulateKeyState(Key, IsPressed);
+            RGActionManager.SimulateKeyState(segmentNumber, Key, IsPressed);
         }
 
         public override bool Overlaps(RGActionInput other)
         {
             if (other is LegacyKeyInput keyInput)
             {
-                return !(keyInput.KeyCode >= KeyCode.Mouse0 && keyInput.KeyCode <= KeyCode.Mouse6) 
+                return !(keyInput.KeyCode >= KeyCode.Mouse0 && keyInput.KeyCode <= KeyCode.Mouse6)
                        && Key == RGLegacyInputUtils.KeyCodeToInputSystemKey(keyInput.KeyCode);
             } else if (other is InputSystemKeyInput inputSysKeyInput)
             {
@@ -133,10 +134,10 @@ namespace RegressionGames.ActionManager
         {
             MousePosition = mousePosition;
         }
-        
-        public override void Perform()
+
+        public override void Perform(int segmentNumber)
         {
-            RGActionManager.SimulateMouseMovement(MousePosition);
+            RGActionManager.SimulateMouseMovement(segmentNumber, MousePosition);
         }
 
         public override bool Overlaps(RGActionInput other)
@@ -158,10 +159,10 @@ namespace RegressionGames.ActionManager
         {
             MousePositionDelta = mousePositionDelta;
         }
-        
-        public override void Perform()
+
+        public override void Perform(int segmentNumber)
         {
-            RGActionManager.SimulateMouseMovementDelta(MousePositionDelta);
+            RGActionManager.SimulateMouseMovementDelta(segmentNumber, MousePositionDelta);
         }
 
         public override bool Overlaps(RGActionInput other)
@@ -183,10 +184,10 @@ namespace RegressionGames.ActionManager
         {
             MouseScroll = mouseScroll;
         }
-        
-        public override void Perform()
+
+        public override void Perform(int segmentNumber)
         {
-            RGActionManager.SimulateMouseScroll(MouseScroll);
+            RGActionManager.SimulateMouseScroll(segmentNumber, MouseScroll);
         }
 
         public override bool Overlaps(RGActionInput other)
@@ -207,7 +208,7 @@ namespace RegressionGames.ActionManager
         public const int MIDDLE_MOUSE_BUTTON = 2;
         public const int FORWARD_MOUSE_BUTTON = 3;
         public const int BACK_MOUSE_BUTTON = 4;
-        
+
         public readonly int MouseButton;
         public readonly bool IsPressed;
 
@@ -216,10 +217,10 @@ namespace RegressionGames.ActionManager
             MouseButton = mouseButton;
             IsPressed = isPressed;
         }
-        
-        public override void Perform()
+
+        public override void Perform(int segmentNumber)
         {
-            RGActionManager.SimulateMouseButton(MouseButton, IsPressed);
+            RGActionManager.SimulateMouseButton(segmentNumber, MouseButton, IsPressed);
         }
 
         public override bool Overlaps(RGActionInput other)

@@ -7,7 +7,7 @@ namespace RegressionGames.GenericBots
     {
         public float actionInterval = 0.05f; // unscaled time
         private RGMonkeyBotLogic monkey;
-    
+
         void Start()
         {
             if (!RGActionManager.IsAvailable)
@@ -16,16 +16,16 @@ namespace RegressionGames.GenericBots
                 Destroy(this);
                 return;
             }
-            RGActionManager.StartSession(this);
+            RGActionManager.StartSession(0, this);
 
             monkey = new RGMonkeyBotLogic();
             DontDestroyOnLoad(this);
         }
-    
+
         void Update()
         {
             monkey.ActionInterval = actionInterval;
-            monkey.Update();
+            monkey.Update(0);
         }
 
         void OnDestroy()

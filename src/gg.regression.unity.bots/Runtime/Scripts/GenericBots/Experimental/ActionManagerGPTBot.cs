@@ -22,27 +22,27 @@ namespace RegressionGames.GenericBots.Experimental
         /// Context to provide to the agent about the game.
         /// </summary>
         public string Context = "You are playtesting a video game.";
-        
+
         /// <summary>
         /// Description of the task to perform.
         /// </summary>
         public string Task = "Conduct exploratory testing like a quality assurance tester.";
-        
+
         /// <summary>
         /// Number of discrete actions to generate.
         /// </summary>
         public int NumActions = 50;
-        
+
         /// <summary>
         /// Rate at which to evaluate the generated actions.
         /// </summary>
         public float ActionInterval = 0.5f;
-        
+
         /// <summary>
         /// Name of the GPT model available from the OpenAI API ("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo", etc.)
         /// </summary>
-        public string GPTModel = "gpt-4o-mini"; 
-        
+        public string GPTModel = "gpt-4o-mini";
+
         /// <summary>
         /// OpenAI API key (must be provided by the user and kept secret)
         /// </summary>
@@ -62,14 +62,14 @@ namespace RegressionGames.GenericBots.Experimental
                 Destroy(this);
                 return;
             }
-            
+
             DontDestroyOnLoad(this);
-            
-            RGActionManager.StartSession(this);
+
+            RGActionManager.StartSession(0,this);
 
             StartCoroutine("LLMAgent");
         }
-        
+
         IEnumerator LLMAgent()
         {
             string systemPrompt = GenerateSystemPrompt();
@@ -92,10 +92,10 @@ namespace RegressionGames.GenericBots.Experimental
                 }
             });
             RGDebug.LogInfo("ActionManagerGPTBot - Sending prompt to GPT:\n" + systemPrompt + "\n\n" + userPrompt);
-            
+
             float prevTimeScale = Time.timeScale;
             Time.timeScale = 0.0f; // pause the game while waiting for a response
-            
+
             using (var webRequest = new UnityWebRequest("https://api.openai.com/v1/chat/completions", "POST"))
             {
                 webRequest.SetRequestHeader("Content-Type", "application/json");
@@ -103,7 +103,7 @@ namespace RegressionGames.GenericBots.Experimental
                 webRequest.uploadHandler = new UploadHandlerRaw(new UTF8Encoding().GetBytes(requestBody));
                 webRequest.downloadHandler = new DownloadHandlerBuffer();
                 yield return webRequest.SendWebRequest();
-                
+
                 Time.timeScale = prevTimeScale;
 
                 UnityWebRequest.Result res = webRequest.result;
@@ -157,7 +157,7 @@ namespace RegressionGames.GenericBots.Experimental
                     }
                 }
                 string actionResponseNormalized = line.Substring(actionNameStartIndex).ToLower().Trim();
-                
+
                 IRGGameActionInstance matchedActionInst = null;
                 object matchedParam = null;
 
@@ -188,14 +188,14 @@ namespace RegressionGames.GenericBots.Experimental
                         RGDebug.Log($"ActionManagerGPTBot - Matched response \"{line}\" to action: " + matchedActionInst.BaseAction.DisplayName + " (" + matchedParam + ")");
                         foreach (var inp in matchedActionInst.GetInputs(matchedParam))
                         {
-                            inp.Perform();
+                            inp.Perform(0);
                         }
                     }
                     else
                     {
                         RGDebug.LogWarning("ActionManagerGPTBot - GPT response did not match any valid actions (skipping): " + line);
                     }
-                    ++lineIndex; 
+                    ++lineIndex;
                 }
 
                 yield return new WaitForSeconds(ActionInterval);
@@ -226,14 +226,14 @@ namespace RegressionGames.GenericBots.Experimental
                 }
             }
         }
-        
+
         private string GenerateSystemPrompt()
         {
             StringBuilder promptBuilder = new StringBuilder();
             promptBuilder.AppendLine(Context);
             promptBuilder.AppendLine();
             promptBuilder.AppendLine("You have the following set of discrete actions:");
-            
+
             int counter = 1;
             foreach (var action in RGActionManager.Actions)
             {
@@ -250,17 +250,17 @@ namespace RegressionGames.GenericBots.Experimental
         private string GenerateUserPrompt()
         {
             StringBuilder promptBuilder = new StringBuilder();
-            
+
             promptBuilder.AppendLine("Your task is the following:");
             promptBuilder.AppendLine(Task);
 
             promptBuilder.AppendLine();
-            
+
             promptBuilder.AppendLine("Generate a list of " + (NumActions+2) +
                                      " actions to perform at each step of the game in order to accomplish this task, choosing from the list given above. " +
                                      "At each step, pick a single action only. Only indicate the full name of the action as listed above." +
                                      "The first item of the list should be \"!!START!!\" and the last item should be \"!!END!!\".");
-            
+
             return promptBuilder.ToString();
         }
     }
