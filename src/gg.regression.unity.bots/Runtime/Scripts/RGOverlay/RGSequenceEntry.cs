@@ -23,6 +23,11 @@ public class RGSequenceEntry : MonoBehaviour
 
     public Action playAction;
 
+    /**
+     * <summary>Indicates whether the sequence is overridden by a local file.</summary>
+     */
+    public bool isOverride;
+    
     [SerializeField]
     public Button playButton;
 
@@ -38,85 +43,64 @@ public class RGSequenceEntry : MonoBehaviour
     [SerializeField]
     public GameObject recordingDot;
 
+    [SerializeField]
+    public GameObject overrideIndicator;
+    
     /**
      * UI component fields
      */
     [SerializeField]
     public TMP_Text nameComponent;
 
-    [SerializeField]
-    public TMP_Text descriptionComponent;
-
     public void Start()
     {
-        if (nameComponent != null)
-        {
-            nameComponent.text = sequenceName;
-        }
+        nameComponent.text = sequenceName;
+        
+        playButton.onClick.AddListener(OnPlay);
+        copyButton.onClick.AddListener(OnCopy);
 
-        if (descriptionComponent != null)
+        // Recordings cannot be edited.. only copied
+        if (RGSequenceEditor.IsRecordingSequencePath(resourcePath))
         {
-            descriptionComponent.text = description;
+            RGSequenceEditor.SetButtonEnabled(false, editButton);
         }
-
-        if (playButton != null)
+        else
         {
-            playButton.onClick.AddListener(OnPlay);
+            editButton.onClick.AddListener(OnEdit);
         }
-
-        if (editButton != null)
+        
+        /*
+         * Sequences cannot be deleted in runtime builds, as we cannot delete resources
+         * that have been loaded using Resources.Load()
+         */
+        if (filePath != null)
         {
-            // Recordings cannot be edited.. only copied
-            if (RGSequenceEditor.IsRecordingSequencePath(resourcePath))
+            deleteButton.onClick.AddListener(OnDelete);
+
+            // hide the delete button tooltip. We CAN delete
+            // Sequences while playing in the editor
+            var tooltip = GetComponentInChildren<RGTooltip>();
+            if (tooltip != null)
             {
-                RGSequenceEditor.SetButtonEnabled(false, editButton);
-            }
-            else
-            {
-                editButton.onClick.AddListener(OnEdit);
-            }
-        }
-
-        if (copyButton != null)
-        {
-            copyButton.onClick.AddListener(OnCopy);
-        }
-
-        if (deleteButton != null)
-        {
-            /*
-             * Sequences cannot be deleted in runtime builds, as we cannot delete resources
-             * that have been loaded using Resources.Load()
-             */
-            if (filePath != null)
-            {
-                deleteButton.onClick.AddListener(OnDelete);
-
-                // hide the delete button tooltip. We CAN delete
-                // Sequences while playing in the editor
-                var tooltip = GetComponentInChildren<RGTooltip>();
-                if (tooltip != null)
-                {
-                    tooltip.SetEnabled(false);
-                }
-            }
-            else
-            {
-                RGSequenceEditor.SetButtonEnabled(false, deleteButton);
+                tooltip.SetEnabled(false);
             }
         }
+        else
+        {
+            RGSequenceEditor.SetButtonEnabled(false, deleteButton);
+        }
+        
+        // set indicator that this sequence is being overriden by a local file, within a build 
+        overrideIndicator.gameObject.SetActive(isOverride);
 
         // set indicator that this is a recording
-        if (recordingDot != null)
+        if (RGSequenceEditor.IsRecordingSequencePath(resourcePath))
         {
-            if (RGSequenceEditor.IsRecordingSequencePath(resourcePath))
-            {
-                recordingDot.SetActive(true);
-            }
-            else
-            {
-                recordingDot.SetActive(false);
-            }
+            recordingDot.SetActive(true);
+        }
+        else
+        {
+            recordingDot.SetActive(false);
         }
     }
 
@@ -146,7 +130,7 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(false, resourcePath, filePath);
+            sequenceManager.ShowEditSequenceDialog(false, resourcePath, filePath, isOverride);
         }
     }
 
@@ -155,7 +139,7 @@ public class RGSequenceEntry : MonoBehaviour
         var sequenceManager = RGSequenceManager.GetInstance();
         if (sequenceManager != null)
         {
-            sequenceManager.ShowEditSequenceDialog(true, resourcePath, filePath);
+            sequenceManager.ShowEditSequenceDialog(true, resourcePath, filePath, isOverride);
         }
     }
 

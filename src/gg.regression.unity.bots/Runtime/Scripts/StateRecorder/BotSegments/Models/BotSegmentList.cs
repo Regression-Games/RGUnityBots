@@ -27,7 +27,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // NOT WRITTEN TO JSON - The resource path for this botSegmentList... normally populated during load of saved lists
         public string resourcePath;
-
+        
         // NOT WRITTEN TO JSON - Populated at load time
         public bool isOverride;
 

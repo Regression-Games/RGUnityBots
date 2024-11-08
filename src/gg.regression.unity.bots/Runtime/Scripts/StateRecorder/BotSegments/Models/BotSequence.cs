@@ -158,7 +158,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             try
             {
-
                 (string, string, string, bool) jsonFile;
                 try
                 {
@@ -177,7 +176,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 }
 
                 var result = (jsonFile.Item1, jsonFile.Item2, ParseSegmentOrListJson(jsonFile.Item2, jsonFile.Item3));
-
                 if (result.Item3 is BotSegment botSegment)
                 {
                     botSegment.isOverride = jsonFile.Item4;
