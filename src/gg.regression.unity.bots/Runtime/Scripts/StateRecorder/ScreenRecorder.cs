@@ -80,6 +80,7 @@ namespace RegressionGames.StateRecorder
         private string _currentGameplaySessionDirectoryPrefix;
         private string _currentGameplaySessionScreenshotsDirectoryPrefix;
         private string _currentGameplaySessionBotSegmentsDirectoryPrefix;
+        private string _currentGameplaySessionMetadataDirectoryPrefix;
         private string _currentGameplaySessionDataDirectoryPrefix;
         private string _currentGameplaySessionCodeCoverageMetadataPath;
         private string _currentGameplaySessionActionCoverageMetadataPath;
@@ -157,10 +158,11 @@ namespace RegressionGames.StateRecorder
 
         private void Start()
         {
+            // nice code to keep around for debugging future graphics issues, but now that we fixed the Mac screenshot bug, we don't really need this... changed this to debug level logging
             var read_formats = Enum.GetValues( typeof( GraphicsFormat ) ).Cast<GraphicsFormat>()
                 .Where( f => SystemInfo.IsFormatSupported( f, FormatUsage.ReadPixels ) )
                 .ToArray();
-            RGDebug.LogInfo( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
+            RGDebug.LogDebug( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
         }
 
         private async Task HandleEndRecording(long tickCount,
@@ -278,8 +280,7 @@ namespace RegressionGames.StateRecorder
             _needToRefreshAssets = true;
 #endif
 
-            //TODO (REG-2181): Add upload logic for action analysis metadata
-
+            //TODO (REG-2181): Add upload logic for metadata like action analysis, code coverage, etc - we probably also want consider if we redo the game metadata upload here and roll these into a single zip file of metadata ?
             var uploadTask = CreateAndUploadGameplaySession(
                 tickCount,
                 startTime,
@@ -572,18 +573,27 @@ namespace RegressionGames.StateRecorder
                         $"{stateRecordingsDirectory}/{Application.productName}/{prefix}_{dateTimeString}_{postfix}";
                 } while (Directory.Exists(_currentGameplaySessionDirectoryPrefix));
 
+                Directory.CreateDirectory(_currentGameplaySessionDirectoryPrefix);
+
                 _currentGameplaySessionDataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/data";
-                _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
-                _currentGameplaySessionBotSegmentsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/bot_segments";
-                _currentGameplaySessionCodeCoverageMetadataPath = _currentGameplaySessionDirectoryPrefix + "/code_coverage_metadata.json";
-                _currentGameplaySessionActionCoverageMetadataPath = _currentGameplaySessionDirectoryPrefix + "/action_coverage_metadata.json";
-                _currentGameplaySessionGameMetadataPath = _currentGameplaySessionDirectoryPrefix + "/game_metadata.json";
-                _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
-                _currentGameplaySessionLogsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/logs";
                 Directory.CreateDirectory(_currentGameplaySessionDataDirectoryPrefix);
-                Directory.CreateDirectory(_currentGameplaySessionBotSegmentsDirectoryPrefix);
+
+                _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
                 Directory.CreateDirectory(_currentGameplaySessionScreenshotsDirectoryPrefix);
+
+                _currentGameplaySessionBotSegmentsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/bot_segments";
+                Directory.CreateDirectory(_currentGameplaySessionBotSegmentsDirectoryPrefix);
+
+                _currentGameplaySessionLogsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/logs";
                 Directory.CreateDirectory(_currentGameplaySessionLogsDirectoryPrefix);
+
+                _currentGameplaySessionMetadataDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/metadata";
+                _currentGameplaySessionCodeCoverageMetadataPath = _currentGameplaySessionMetadataDirectoryPrefix + "/code_coverage_metadata.json";
+                _currentGameplaySessionActionCoverageMetadataPath = _currentGameplaySessionMetadataDirectoryPrefix + "/action_coverage_metadata.json";
+                _currentGameplaySessionGameMetadataPath = _currentGameplaySessionMetadataDirectoryPrefix + "/game_metadata.json";
+                Directory.CreateDirectory(_currentGameplaySessionMetadataDirectoryPrefix);
+
+                _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
 
                 // run the tick processor in the background, but don't hook it to the token source.. we'll manage cancelling this on our own so we don't miss processing ticks
                 Task.Run(ProcessTicks);
