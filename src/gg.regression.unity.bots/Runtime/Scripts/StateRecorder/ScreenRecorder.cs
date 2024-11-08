@@ -276,7 +276,7 @@ namespace RegressionGames.StateRecorder
             _needToRefreshAssets = true;
 #endif
 
-            //TODO (ZMD): Add upload logic for new analysis metadata pieces
+            //TODO (REG-2181): Add upload logic for action analysis metadata
 
             var uploadTask = CreateAndUploadGameplaySession(
                 tickCount,
