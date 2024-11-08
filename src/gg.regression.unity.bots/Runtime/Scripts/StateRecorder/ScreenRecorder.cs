@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
+using RegressionGames.ActionManager;
 using RegressionGames.CodeCoverage;
 using RegressionGames.RemoteOrchestration;
 using RegressionGames.StateRecorder.BotSegments.Models;
@@ -79,6 +80,7 @@ namespace RegressionGames.StateRecorder
         private string _currentGameplaySessionBotSegmentsDirectoryPrefix;
         private string _currentGameplaySessionDataDirectoryPrefix;
         private string _currentGameplaySessionCodeCoverageMetadataPath;
+        private string _currentGameplaySessionActionCoverageMetadataPath;
         private string _currentGameplaySessionGameMetadataPath;
         private string _currentGameplaySessionThumbnailPath;
         private string _currentGameplaySessionLogsDirectoryPrefix;
@@ -168,7 +170,8 @@ namespace RegressionGames.StateRecorder
             string dataDirectoryPrefix,
             string botSegmentsDirectoryPrefix,
             string screenshotsDirectoryPrefix,
-            string codeCovMetadataPath,
+            string codeCoverageMetadataPath,
+            string actionCoverageMetadataPath,
             string thumbnailPath,
             string logsDirectoryPrefix,
             string gameMetadataPath,
@@ -179,8 +182,10 @@ namespace RegressionGames.StateRecorder
                 StartCoroutine(ShowUploadingIndicator(true));
             }
 
-            Task codeCovMetadataTask = null;
+            Task codeCoverageMetadataTask = null;
+            Task actionCoverageMetadataTask = null;
             Task gameMetadataTask = null;
+
 
             // Save code coverage metadata if code coverage is enabled
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
@@ -189,12 +194,24 @@ namespace RegressionGames.StateRecorder
                 var metadata = RGCodeCoverage.GetMetadata();
                 if (metadata != null)
                 {
-                    RGDebug.LogInfo($"Saving code coverage metadata to file: {codeCovMetadataPath}");
-                    using (StreamWriter sw = new StreamWriter(codeCovMetadataPath))
+                    RGDebug.LogInfo($"Saving code coverage metadata to file: {codeCoverageMetadataPath}");
+                    using (StreamWriter sw = new StreamWriter(codeCoverageMetadataPath))
                     {
-                        string codeCovMetadataJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
-                        codeCovMetadataTask = sw.WriteAsync(codeCovMetadataJson);
+                        string codeCoverageMetadataJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
+                        codeCoverageMetadataTask = sw.WriteAsync(codeCoverageMetadataJson);
                     }
+                }
+            }
+
+            // Save action coverage metadata if action analysis was done
+            var actionUsageSummary = RGActionRuntimeCoverageAnalysis.BuildSummary();
+            if (actionUsageSummary != null)
+            {
+                RGDebug.LogInfo($"Saving action coverage metadata to file: {actionCoverageMetadataPath}");
+                using (StreamWriter sw = new StreamWriter(actionCoverageMetadataPath))
+                {
+                    string actionCoverageMetadataJson = JsonConvert.SerializeObject(actionUsageSummary, Formatting.Indented);
+                    actionCoverageMetadataTask = sw.WriteAsync(actionCoverageMetadataJson);
                 }
             }
 
@@ -248,11 +265,18 @@ namespace RegressionGames.StateRecorder
             }
 
             // wait for the metadata tasks to finish
-            if (codeCovMetadataTask != null)
+            if (codeCoverageMetadataTask != null)
             {
-                Task.WaitAll(codeCovMetadataTask);
+                Task.WaitAll(codeCoverageMetadataTask);
+            }
+            if (actionCoverageMetadataTask != null)
+            {
+                Task.WaitAll(actionCoverageMetadataTask);
             }
             Task.WaitAll(gameMetadataTask);
+
+            // reset the action analysis now that we're done with it
+            RGActionRuntimeCoverageAnalysis.Reset();
 
             // wait for the zip tasks to finish
             Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4);
@@ -267,6 +291,8 @@ namespace RegressionGames.StateRecorder
 #if UNITY_EDITOR
             _needToRefreshAssets = true;
 #endif
+
+            //TODO (ZMD): Add upload logic for new analysis metadata pieces
 
             var uploadTask = CreateAndUploadGameplaySession(
                 tickCount,
@@ -564,6 +590,7 @@ namespace RegressionGames.StateRecorder
                 _currentGameplaySessionScreenshotsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/screenshots";
                 _currentGameplaySessionBotSegmentsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/bot_segments";
                 _currentGameplaySessionCodeCoverageMetadataPath = _currentGameplaySessionDirectoryPrefix + "/code_coverage_metadata.json";
+                _currentGameplaySessionActionCoverageMetadataPath = _currentGameplaySessionDirectoryPrefix + "/action_coverage_metadata.json";
                 _currentGameplaySessionGameMetadataPath = _currentGameplaySessionDirectoryPrefix + "/game_metadata.json";
                 _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
                 _currentGameplaySessionLogsDirectoryPrefix = _currentGameplaySessionDirectoryPrefix + "/logs";
@@ -585,6 +612,9 @@ namespace RegressionGames.StateRecorder
             {
                 gameFacePixelHashObserver.SetActive(true);
             }
+
+            // start/stop recording for this is called withing the monkey bot action itself; we just need to tell it to clear data and be ready for the next one
+            RGActionRuntimeCoverageAnalysis.Reset();
 
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetFeatureCodeCoverage())
@@ -686,6 +716,7 @@ namespace RegressionGames.StateRecorder
                     _currentGameplaySessionBotSegmentsDirectoryPrefix,
                     _currentGameplaySessionScreenshotsDirectoryPrefix,
                     _currentGameplaySessionCodeCoverageMetadataPath,
+                    _currentGameplaySessionActionCoverageMetadataPath,
                     _currentGameplaySessionThumbnailPath,
                     _currentGameplaySessionLogsDirectoryPrefix,
                     _currentGameplaySessionGameMetadataPath,

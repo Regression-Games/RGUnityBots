@@ -30,6 +30,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 var controller = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
                 RGActionManager.StartSession(controller, actionSettings);
+                RGActionRuntimeCoverageAnalysis.StartRecording(segmentNumber);
                 _monkey = new RGMonkeyBotLogic();
                 _monkey.ActionInterval = actionInterval;
             }
@@ -39,6 +40,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             if (!_isStopped)
             {
+                RGActionRuntimeCoverageAnalysis.SetCurrentSegmentNumber(segmentNumber);
                 bool didAnyAction = _monkey.Update();
                 error = null;
                 return didAnyAction;
@@ -50,6 +52,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void AbortAction(int segmentNumber)
         {
+            RGActionRuntimeCoverageAnalysis.StopRecording();
             RGActionManager.StopSession();
             _isStopped = true;
         }

@@ -13,7 +13,7 @@ namespace RegressionGames.GenericBots
         public bool Performed;
         public IList<RGActionInput> Inputs;
     }
-    
+
     public class RGMonkeyBotLogic
     {
         public float ActionInterval { get; set; } = 0.05f;
@@ -35,7 +35,7 @@ namespace RegressionGames.GenericBots
             _remainingActionsBuf = new List<MonkeyBotActionEntry>();
             _mouseBtnsBuf = new HashSet<int>();
         }
-        
+
         private void ResetState()
         {
             _actionsBuf.Clear();
@@ -55,7 +55,7 @@ namespace RegressionGames.GenericBots
                 // Pause sending events while the overlay panel is open
                 return didAnyAction;
             }
-         
+
             float currentTimeUnscaled = Time.unscaledTime;
             if (currentTimeUnscaled - _lastActionTime < ActionInterval)
             {
@@ -67,13 +67,14 @@ namespace RegressionGames.GenericBots
                         inp.Perform();
                         didAnyAction = true;
                     }
+                    RGActionRuntimeCoverageAnalysis.RecordActionUsage(act.ActionInstance.BaseAction, act.ActionInstance.TargetObject);
                 }
                 return didAnyAction;
             }
             _lastActionTime = currentTimeUnscaled;
-                     
+
             bool didHeuristic = false;
-                     
+
             // Heuristic: If the last action was a mouse down on a Unity UI button, always release the mouse button on this frame over
             // the same mouse coordinate to trigger the click event
             foreach (var performedAction in _actionsBuf.Where(act => act.Performed))
@@ -92,6 +93,7 @@ namespace RegressionGames.GenericBots
                                 inp.Perform();
                                 didAnyAction = true;
                             }
+                            RGActionRuntimeCoverageAnalysis.RecordActionUsage(inst.BaseAction, inst.TargetObject);
                         }
                         didHeuristic = true;
                     }
@@ -102,8 +104,8 @@ namespace RegressionGames.GenericBots
                 ResetState();
                 return didAnyAction;
             }
-                     
-            // Heuristic: If the last set of inputs was a mouse position movement + a set of mouse button presses, 
+
+            // Heuristic: If the last set of inputs was a mouse position movement + a set of mouse button presses,
             // then have some random chance of releasing those buttons over the same mouse position to complete a potential click event.
             // Otherwise, in general it is very unlikely that a mouse button press and release would occur over the same position.
             {
@@ -128,7 +130,7 @@ namespace RegressionGames.GenericBots
                         }
                     }
                 }
-         
+
                 if (haveMousePos && _mouseBtnsBuf.Count > 0)
                 {
                     if (Random.Range(0, 2) == 1) // 50% chance of attempting a click event
@@ -147,9 +149,9 @@ namespace RegressionGames.GenericBots
                 ResetState();
                 return didAnyAction;
             }
-                     
+
             ResetState();
-         
+
             // Compute the set of valid actions
             foreach (var actionInstance in RGActionManager.GetValidActions())
             {
@@ -163,7 +165,7 @@ namespace RegressionGames.GenericBots
                 }
                 if (!isParamValid)
                     continue;
-                         
+
                 // store the action inputs
                 var entry = new MonkeyBotActionEntry()
                 {
@@ -177,8 +179,8 @@ namespace RegressionGames.GenericBots
                     _actionsBuf.Add(entry);
                 }
             }
-         
-            // Randomly perform actions from the list 
+
+            // Randomly perform actions from the list
             // This repeatedly selects actions whose inputs do not overlap
             // with the inputs that have already been performed.
             do
@@ -192,7 +194,7 @@ namespace RegressionGames.GenericBots
                         _remainingActionsBuf.Add(action);
                     }
                 }
-         
+
                 if (_remainingActionsBuf.Count > 0)
                 {
                     var action = _remainingActionsBuf[Random.Range(0, _remainingActionsBuf.Count)];
@@ -201,7 +203,7 @@ namespace RegressionGames.GenericBots
                         inp.Perform();
                         didAnyAction = true;
                     }
-         
+                    RGActionRuntimeCoverageAnalysis.RecordActionUsage(action.ActionInstance.BaseAction, action.ActionInstance.TargetObject);
                     action.Performed = true;
                 }
             } while (_remainingActionsBuf.Count > 0);

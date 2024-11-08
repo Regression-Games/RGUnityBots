@@ -228,12 +228,12 @@ namespace RegressionGames.ActionManager
 
                 foreach (var obj in objects)
                 {
-                    if (obj is Component c && !c.gameObject.activeInHierarchy)
+                    if (obj is Component { gameObject: { activeInHierarchy: false } })
                     {
                         // skip components that are on inactive game objects
                         continue;
                     }
-                    if (obj is Behaviour b && !b.isActiveAndEnabled)
+                    if (obj is Behaviour { isActiveAndEnabled: false })
                     {
                         // skip disabled behaviours
                         continue;
