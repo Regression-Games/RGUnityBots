@@ -182,11 +182,6 @@ namespace RegressionGames.StateRecorder
                 StartCoroutine(ShowUploadingIndicator(true));
             }
 
-            Task codeCoverageMetadataTask = null;
-            Task actionCoverageMetadataTask = null;
-            Task gameMetadataTask = null;
-
-
             // Save code coverage metadata if code coverage is enabled
             RGSettings rgSettings = RGSettings.GetOrCreateSettings();
             if (rgSettings.GetFeatureCodeCoverage())
@@ -195,11 +190,11 @@ namespace RegressionGames.StateRecorder
                 if (metadata != null)
                 {
                     RGDebug.LogInfo($"Saving code coverage metadata to file: {codeCoverageMetadataPath}");
-                    using (StreamWriter sw = new StreamWriter(codeCoverageMetadataPath))
-                    {
-                        string codeCoverageMetadataJson = JsonConvert.SerializeObject(metadata, Formatting.Indented);
-                        codeCoverageMetadataTask = sw.WriteAsync(codeCoverageMetadataJson);
-                    }
+                    string codeCoverageMetadataJson = ((IStringBuilderWriteable)metadata).ToJsonString();
+                    // ReSharper disable once UseAwaitUsing
+                    using StreamWriter swc = new StreamWriter(codeCoverageMetadataPath);
+                    // ReSharper disable once MethodHasAsyncOverload
+                    swc.Write(codeCoverageMetadataJson);
                 }
             }
 
@@ -208,28 +203,21 @@ namespace RegressionGames.StateRecorder
             if (actionUsageSummary != null)
             {
                 RGDebug.LogInfo($"Saving action coverage metadata to file: {actionCoverageMetadataPath}");
-                using (StreamWriter sw = new StreamWriter(actionCoverageMetadataPath))
-                {
-                    try
-                    {
-                        string actionCoverageMetadataJson = JsonConvert.SerializeObject(actionUsageSummary, Formatting.Indented);
-                        actionCoverageMetadataTask = sw.WriteAsync(actionCoverageMetadataJson);
-                    }
-                    catch (Exception e)
-                    {
-                        RGDebug.LogException(e, "Exception writing action coverage metadata");
-                    }
-                }
+                string actionCoverageMetadataJson = ((IStringBuilderWriteable)actionUsageSummary).ToJsonString();
+                // ReSharper disable once UseAwaitUsing
+                using StreamWriter swa = new StreamWriter(actionCoverageMetadataPath);
+                // ReSharper disable once MethodHasAsyncOverload
+                swa.Write(actionCoverageMetadataJson);
             }
 
             // Save game metadata
             var gameMetadata = RGGameMetadata.GetMetadata();
             RGDebug.LogInfo($"Saving game metadata to file: {gameMetadataPath}");
-            using (StreamWriter sw = new StreamWriter(gameMetadataPath))
-            {
-                string gameMetadataJson = JsonConvert.SerializeObject(gameMetadata, Formatting.Indented);
-                gameMetadataTask = sw.WriteAsync(gameMetadataJson);
-            }
+            string gameMetadataJson = ((IStringBuilderWriteable)gameMetadata).ToJsonString();
+            // ReSharper disable once UseAwaitUsing
+            using StreamWriter swg = new StreamWriter(gameMetadataPath);
+            // ReSharper disable once MethodHasAsyncOverload
+            swg.Write(gameMetadataJson);
 
             var zipTask1 = Task.Run(() =>
             {
@@ -270,17 +258,6 @@ namespace RegressionGames.StateRecorder
                 var middleFile = screenshotFiles[screenshotFiles.Length / 2];
                 File.Copy(middleFile, thumbnailPath);
             }
-
-            // wait for the metadata tasks to finish
-            if (codeCoverageMetadataTask != null)
-            {
-                Task.WaitAll(codeCoverageMetadataTask);
-            }
-            if (actionCoverageMetadataTask != null)
-            {
-                Task.WaitAll(actionCoverageMetadataTask);
-            }
-            Task.WaitAll(gameMetadataTask);
 
             // reset the action analysis now that we're done with it
             RGActionRuntimeCoverageAnalysis.Reset();

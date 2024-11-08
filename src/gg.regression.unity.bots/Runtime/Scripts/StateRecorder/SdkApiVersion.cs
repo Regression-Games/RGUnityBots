@@ -106,7 +106,13 @@
          */
         public const int VERSION_24 = 24;
 
+
+        /**
+         * <summary> Action analysis results</summary>
+         */
+        public const int VERSION_26 = 26;
+
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_24;
+        public const int CURRENT_VERSION = VERSION_26;
     }
 }

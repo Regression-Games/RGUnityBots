@@ -88,7 +88,7 @@ namespace RegressionGames.ActionManager
             if (targetObject is Component component)
             {
                 // everything else attached to a game object (including the transform) - this is Intentionally a // instead of / so we can differentiate components vs transforms in the path easily
-                return TransformStatus.GetOrCreateTransformStatus(component.transform).Path + "//" + targetObject.name;
+                return TransformStatus.GetOrCreateTransformStatus(component.transform).Path + "//" + targetObject.GetType().Name;
             }
 
             return targetObject.ToString();
@@ -143,13 +143,18 @@ namespace RegressionGames.ActionManager
     [Serializable]
     public class RGActionUsageMetrics : IStringBuilderWriteable
     {
+
+        public int apiVersion = SdkApiVersion.VERSION_26;
+
         public long invocations = 0;
         public readonly HashSet<string> objectsActedOn = new();
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"invocations\":");
+            stringBuilder.Append("{\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\n\"invocations\":");
             LongJsonConverter.WriteToStringBuilder(stringBuilder, invocations);
-            stringBuilder.Append(",\"objectsActedOn\":[");
+            stringBuilder.Append(",\n\"objectsActedOn\":[");
             var objectsActedOnCount = objectsActedOn.Count;
             var counter = 1;
             foreach (var objectName in objectsActedOn)
@@ -160,19 +165,24 @@ namespace RegressionGames.ActionManager
                     stringBuilder.Append(",");
                 }
             }
-            stringBuilder.Append("]}");
+            stringBuilder.Append("]\n}");
         }
     }
 
     [Serializable]
     public class RGActionUsageSummary : IStringBuilderWriteable
     {
+
+        public int apiVersion = SdkApiVersion.VERSION_26;
+
         public readonly HashSet<RGGameAction> unusedActions = new();
 
         public readonly Dictionary<RGGameAction, RGActionUsageMetrics> usedActionMetrics = new();
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\n\"unusedActions\":[\n");
+            stringBuilder.Append("{\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\n\"unusedActions\":[\n");
             var unusedActionsCount = unusedActions.Count;
             var counter = 1;
             foreach (var rgGameAction in unusedActions)
@@ -188,20 +198,20 @@ namespace RegressionGames.ActionManager
             var usedActionMetricsCount = usedActionMetrics.Count;
             counter = 1;
             // sort by number of invocations descending
-            var sortedUsedActionMetrics = usedActionMetrics.ToList().OrderBy(kvp => -1 * kvp.Value.invocations);
+            var sortedUsedActionMetrics = usedActionMetrics.ToList().OrderBy(kvp => -1 * kvp.Value.invocations).ToList();
             foreach (var (action, metrics) in sortedUsedActionMetrics)
             {
-                stringBuilder.Append("{\"metrics\":");
+                stringBuilder.Append("{\n\"metrics\":");
                 metrics.WriteToStringBuilder(stringBuilder);
-                stringBuilder.Append(",\"action\":");
+                stringBuilder.Append("\n,\"action\":");
                 action.WriteToStringBuilder(stringBuilder);
-                stringBuilder.Append("}");
+                stringBuilder.Append("\n}");
                 if (counter++ < usedActionMetricsCount) // we start the counter at 1 (not 0) so this is a post increment as we want to compare the value this pass before incrementing
                 {
                     stringBuilder.Append(",\n");
                 }
             }
-            stringBuilder.Append("]}");
+            stringBuilder.Append("]\n}");
         }
     }
 }
