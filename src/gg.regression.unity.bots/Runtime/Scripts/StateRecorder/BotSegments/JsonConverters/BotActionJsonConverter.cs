@@ -55,9 +55,6 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                     case BotActionType.QuitGame:
                         data = jObject["data"].ToObject<QuitGameBotActionData>(serializer);
                         break;
-                    case BotActionType.ResetForNextTest:
-                        data = jObject["data"].ToObject<ResetForNextTestBotActionData>(serializer);
-                        break;
                     default:
                         throw new JsonSerializationException($"Unsupported BotAction type: '{action.type}'");
                 }

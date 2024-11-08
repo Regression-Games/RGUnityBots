@@ -12,8 +12,7 @@
         Mouse_CVText,
         Mouse_ObjectDetection,
         RestartGame,
-        QuitGame,
-        ResetForNextTest
+        QuitGame
 
         //POSSIBLE_FUTURE_ACTIONS
         //Timer,

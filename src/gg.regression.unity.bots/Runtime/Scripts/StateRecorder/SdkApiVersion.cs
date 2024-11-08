@@ -106,7 +106,7 @@
          */
         public const int VERSION_24 = 24;
         /**
-         * <summary> Add restart game, quit game, and reset for next test bot actions</summary>
+         * <summary> Add restart game, quit game actions</summary>
          */
         public const int VERSION_25 = 25;
 
