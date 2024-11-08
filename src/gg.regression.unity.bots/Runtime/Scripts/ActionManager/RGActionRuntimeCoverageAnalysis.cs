@@ -194,7 +194,7 @@ namespace RegressionGames.ActionManager
                 }
             }
             stringBuilder.Append("],\n");
-            stringBuilder.Append("\"usedActionMetrics\":[\n");
+            stringBuilder.Append("\"usedActions\":[\n");
             var usedActionMetricsCount = usedActionMetrics.Count;
             counter = 1;
             // sort by number of invocations descending
