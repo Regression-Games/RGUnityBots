@@ -39,6 +39,17 @@ namespace RegressionGames
 
         public TMP_Text titleComponent;
 
+        public GameObject overrideIndicator;
+
+        // shown when creating a new Sequence
+        public GameObject createInstructionText;
+        
+        // shown when updating an existing Sequence
+        public GameObject updateInstructionText;
+        
+        // shown when updating an existing Sequence in a build
+        public GameObject updateOverrideInstructionText;
+        
         public RGDropZone _dropZone;
 
         private IList<BotSequenceEntry> _segmentEntries;
@@ -59,14 +70,18 @@ namespace RegressionGames
          * <param name="makingACopy">bool true if copying to a new file, or false if editing in place</param>
          * <param name="existingResourcePath">The resource path for an existing Sequence for editing</param>
          * <param name="existingFilePath">The path of the sequence that is being edited (optional)</param>
+         * <param name="isOverride">If the Sequence being edited is a local file, overriding the packaged resource (optional)</param>
          */
-        public void Initialize(bool makingACopy, string existingResourcePath, string existingFilePath = null)
+        public void Initialize(bool makingACopy, string existingResourcePath, string existingFilePath = null, bool isOverride = false)
         {
             SearchInput.onValueChanged.AddListener(OnSearchInputChange);
             NameInput.onValueChanged.AddListener(OnNameInputChange);
             DescriptionInput.onValueChanged.AddListener(OnDescriptionInputChange);
             _dropZone = DropZonePrefab.GetComponent<RGDropZone>();
 
+            // set indicator that this sequence is being overriden by a local file, within a build 
+            overrideIndicator.gameObject.SetActive(isOverride);
+            
             _makingACopy = makingACopy;
 
             // if the Available Segment List cannot be found, we will try to find it somewhere in the scene
@@ -111,6 +126,29 @@ namespace RegressionGames
             {
                 CurrentSequence = new BotSequence();
                 titleComponent.text = "Create Sequence";
+            }
+            
+            // set the instruction text
+            if (isOverride || (!Application.isEditor && isBeingEdited))
+            {
+                // override
+                createInstructionText.SetActive(false);
+                updateInstructionText.SetActive(true);
+                updateOverrideInstructionText.SetActive(true);
+            }
+            else if (isBeingEdited)
+            {
+                // update
+                createInstructionText.SetActive(false);
+                updateInstructionText.SetActive(true);
+                updateOverrideInstructionText.SetActive(false);
+            }
+            else
+            {
+                // create
+                createInstructionText.SetActive(true);
+                updateInstructionText.SetActive(false);
+                updateOverrideInstructionText.SetActive(false);
             }
 
             // ensure that the create/update button is in the correct default state:

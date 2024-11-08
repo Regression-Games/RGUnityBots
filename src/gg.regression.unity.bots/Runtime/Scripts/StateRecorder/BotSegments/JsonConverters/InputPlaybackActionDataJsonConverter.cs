@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
 using RegressionGames.StateRecorder.Models;
-using UnityEngine;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {

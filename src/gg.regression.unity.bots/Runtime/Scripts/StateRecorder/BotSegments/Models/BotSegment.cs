@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine.Serialization;
@@ -39,7 +40,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // NOT WRITTEN TO JSON - Populated at load time
         public bool isOverride;
-
+        
         /**
          * <summary>Description for this bot segment. Used for naming on the UI.</summary>
          */

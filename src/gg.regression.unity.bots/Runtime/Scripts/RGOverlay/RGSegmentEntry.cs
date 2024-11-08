@@ -27,6 +27,11 @@ public class RGSegmentEntry : MonoBehaviour
     public BotSequenceEntryType type;
 
     /**
+     * <summary>Indicates whether the Segment or Segment List is overridden by a local file.</summary>
+     */
+    public bool isOverride;
+    
+    /**
      * UI component fields
      */
     [SerializeField]
@@ -43,6 +48,9 @@ public class RGSegmentEntry : MonoBehaviour
 
     [SerializeField]
     public GameObject segmentListIndicatorComponent;
+    
+    [SerializeField]
+    public GameObject overrideIndicator;
 
     /**
      * <summary>
@@ -75,6 +83,9 @@ public class RGSegmentEntry : MonoBehaviour
                 resourcePathComponent.gameObject.SetActive(false);
             }
         }
+        
+        // set indicator that this Segment is being overriden by a local file, within a build 
+        overrideIndicator.gameObject.SetActive(isOverride);
 
         // assign values to the UI components
         descriptionComponent.text = description;

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 

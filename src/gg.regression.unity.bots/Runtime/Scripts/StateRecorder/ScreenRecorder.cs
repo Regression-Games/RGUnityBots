@@ -14,6 +14,8 @@ using RegressionGames.ActionManager;
 using RegressionGames.CodeCoverage;
 using RegressionGames.RemoteOrchestration;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
+using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments;
 #if UNITY_EDITOR

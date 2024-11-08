@@ -9,7 +9,7 @@ using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
     /**
      * <summary>Data for clicking on or moving the mouse to a CV Object Detection location in the scene</summary>

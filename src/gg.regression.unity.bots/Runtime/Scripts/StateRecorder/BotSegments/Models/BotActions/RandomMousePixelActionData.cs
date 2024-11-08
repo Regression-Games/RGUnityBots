@@ -6,7 +6,7 @@ using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
     /**
      * <summary>Data for clicking on a random pixel in the frame</summary>

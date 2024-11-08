@@ -9,7 +9,7 @@ using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
     /**
      * <summary>Data for clicking on or moving the mouse to a CV Text location in the scene.

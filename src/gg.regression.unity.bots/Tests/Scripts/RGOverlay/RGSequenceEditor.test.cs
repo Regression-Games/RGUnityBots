@@ -74,6 +74,30 @@ namespace RegressionGames.Tests.RGOverlay
                     parent = _uat.transform,
                 },
             };
+            editor.overrideIndicator = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
+            editor.createInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
+            editor.updateInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
+            editor.updateOverrideInstructionText = new GameObject() {
+                transform =
+                {
+                    parent = _uat.transform,
+                },
+            };
             editor.DropZonePrefab = dropZone;
             editor.SegmentListIcon = TestHelpers.CreateSpritePlaceholder();
             editor.SegmentIcon = TestHelpers.CreateSpritePlaceholder();
@@ -111,15 +135,57 @@ namespace RegressionGames.Tests.RGOverlay
         {
             Object.Destroy(_uat);
         }
-
+        
         [Test]
         public void Initialize()
         {
-            editor.Initialize(false, null,null);
+            editor.Initialize(false, null, null, false);
 
             // ensure that the editor consumes its public fields properly
             Assert.NotNull(editor.NameInput.onValueChanged);
             Assert.NotNull(editor.SearchInput.onValueChanged);
+            Assert.IsFalse(editor.overrideIndicator.activeSelf);
+        }
+
+        [Test]
+        public void InitializeCreate()
+        {
+            editor.Initialize(false, null, null, false);
+
+            // ensure that the instruction text is correct
+            Assert.IsTrue(editor.createInstructionText.activeSelf);
+            Assert.IsFalse(editor.updateInstructionText.activeSelf);
+            Assert.IsFalse(editor.updateOverrideInstructionText.activeSelf);
+        }
+        
+        [Test]
+        public void InitializeEdit()
+        {
+            var resourcePath = "mock/resource/path/sequence.json";
+            try
+            {
+                editor.Initialize(false, resourcePath, null, false);
+            }
+            catch { }
+            
+            // TODO: use a mocking library to mock file access. This test cannot be performed until we can mock
+            // BotSequence.LoadSequenceJsonFromPath. The Sequence Editor's SetEditingState depends on it
+            
+            // ensure that the instruction text is correct
+            // Assert.IsFalse(editor.createInstructionText.activeSelf);
+            // Assert.IsTrue(editor.updateInstructionText.activeSelf);
+            // Assert.IsFalse(editor.updateOverrideInstructionText.activeSelf);
+        }
+        
+        [Test]
+        public void InitializeWithOverride()
+        {
+            editor.Initialize(false, null, null, true);
+
+            // ensure that the instruction text is correct
+            Assert.IsFalse(editor.createInstructionText.activeSelf);
+            Assert.IsTrue(editor.updateInstructionText.activeSelf);
+            Assert.IsTrue(editor.updateOverrideInstructionText.activeSelf);
         }
 
         [Test]
@@ -144,7 +210,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void SaveSequence()
         {
-            editor.Initialize(false, null,null);
+            editor.Initialize(false, null, null, false);
 
             // set the name and description values to save
             editor.NameInput.text = "Sequence Editor Name";
@@ -160,7 +226,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void ResetEditor()
         {
-            editor.Initialize(false, null,null);
+            editor.Initialize(false, null, null, false);
 
             // set the name and description values we want to reset
             editor.NameInput.text = "Sequence Editor Name";
@@ -182,7 +248,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void ReloadAvailableSegments()
         {
-            editor.Initialize(false, null,null);
+            editor.Initialize(false, null, null, false);
 
             editor.ReloadAvailableSegments();
 
@@ -192,7 +258,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void SetCreateSequenceButtonEnabled_Enabled()
         {
-            editor.Initialize(false, null,null);
+            editor.Initialize(false, null, null, false);
 
             editor.SetCreateSequenceButtonEnabled(true);
 
@@ -204,7 +270,7 @@ namespace RegressionGames.Tests.RGOverlay
         [Test]
         public void SetCreateSequenceButtonEnabled_Disabled()
         {
-            editor.Initialize(false, null,null);
+            editor.Initialize(false, null, null, false);
 
             editor.SetCreateSequenceButtonEnabled(false);
 

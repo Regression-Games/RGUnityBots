@@ -105,8 +105,10 @@
          * <summary> View frustrum object inclusion changes</summary>
          */
         public const int VERSION_24 = 24;
-
-
+        /**
+         * <summary> Add restart game, quit game actions</summary>
+         */
+        public const int VERSION_25 = 25;
         /**
          * <summary> Action analysis results</summary>
          */
@@ -114,5 +116,6 @@
 
         // Update this when new features are used in the SDK
         public const int CURRENT_VERSION = VERSION_26;
+
     }
 }

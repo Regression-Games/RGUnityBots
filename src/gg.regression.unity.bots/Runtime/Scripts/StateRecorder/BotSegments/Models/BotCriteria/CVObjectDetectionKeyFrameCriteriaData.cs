@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotCriteria
 {
     [Serializable]
     public class CVObjectDetectionKeyFrameCriteriaData : IKeyFrameCriteriaData
@@ -26,7 +26,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /// </summary>
         [CanBeNull]
         public string imageQuery;
-   
+
         [CanBeNull]
         public CVWithinRect withinRect;
 
@@ -44,7 +44,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /// <param name="threshold">Optional threshold to accept a returned match from the object detection model. Returned matches with a confidence score less than this threshold are ignored.</param>
         public CVObjectDetectionKeyFrameCriteriaData(string textQuery = null, string imageQuery = null, CVWithinRect withinRect = null, float? threshold = null)
         {
-            
+
             if (textQuery != null && imageQuery != null)
             {
                 RGDebug.LogError("Both textQuery and imageQuery cannot be provided simultaneously. Use only one.");

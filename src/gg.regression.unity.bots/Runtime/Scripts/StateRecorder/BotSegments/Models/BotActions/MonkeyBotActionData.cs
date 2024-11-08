@@ -6,7 +6,7 @@ using RegressionGames.GenericBots;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
     [Serializable]
     public class MonkeyBotActionData : IBotActionData
