@@ -2,7 +2,7 @@
 using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotCriteria
 {
     [Serializable]
     public class UIPixelHashKeyFrameCriteriaData : IKeyFrameCriteriaData

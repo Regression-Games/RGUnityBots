@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.ActionManager;
-using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {

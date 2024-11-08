@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace RegressionGames.StateRecorder.BotSegments.Models
+﻿namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     public interface IKeyFrameCriteriaData : IStringBuilderWriteable
     {

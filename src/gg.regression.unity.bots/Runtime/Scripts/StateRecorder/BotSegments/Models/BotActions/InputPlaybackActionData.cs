@@ -6,7 +6,7 @@ using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
     [Serializable]
     public class InputPlaybackActionData : IBotActionData

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Text;
+using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
+
+
 // ReSharper disable InconsistentNaming
 
 namespace RegressionGames.StateRecorder.BotSegments.Models

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 

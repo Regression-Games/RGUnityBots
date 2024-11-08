@@ -8,6 +8,8 @@ using RegressionGames.RemoteOrchestration.Models;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.AIService;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
+using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using TMPro;

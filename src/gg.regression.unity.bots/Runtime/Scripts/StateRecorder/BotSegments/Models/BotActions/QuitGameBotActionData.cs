@@ -1,47 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using RegressionGames.ActionManager;
-using RegressionGames.GenericBots;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+// ReSharper disable once RedundantUsingDirective - used in #else, do not remove
+using UnityEngine;
 
-namespace RegressionGames.StateRecorder.BotSegments.Models
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 {
+
+    /**
+     * <summary>An action to quite the game.  This should only be used as the 'last' segment in your sequence or segment list.</summary>
+     */
     [Serializable]
-    public class MonkeyBotActionData : IBotActionData
+    public class QuitGameBotActionData : IBotActionData
     {
         [NonSerialized]
-        public static readonly BotActionType Type = BotActionType.MonkeyBot;
+        public static readonly BotActionType Type = BotActionType.QuitGame;
 
-        public int apiVersion = SdkApiVersion.VERSION_6;
-        public float actionInterval = 0.05f;
-        public RGActionManagerSettings actionSettings;
+        public int apiVersion = SdkApiVersion.VERSION_25;
 
         [NonSerialized]
         private bool _isStopped;
 
-        [NonSerialized]
-        private RGMonkeyBotLogic _monkey;
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            if (!_isStopped)
-            {
-                var controller = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
-                RGActionManager.StartSession(controller, actionSettings);
-                _monkey = new RGMonkeyBotLogic();
-                _monkey.ActionInterval = actionInterval;
-            }
+            //no-op
         }
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             if (!_isStopped)
             {
-                bool didAnyAction = _monkey.Update();
+                _isStopped = true;
                 error = null;
-                return didAnyAction;
+
+#if UNITY_EDITOR
+                RGDebug.LogInfo($"Stopping the game in the editor...  If your active bot sequence or segment list had more segments defined after this.  They will NOT run.");
+                UnityEditor.EditorApplication.isPlaying = false;
+#else
+                RGDebug.LogInfo($"Stopping the game process.  If your active bot sequence or segment list had more segments defined after this.  They will NOT run.");
+                Application.Quit();
+#endif
+                return true;
             }
 
             error = null;
@@ -50,7 +52,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void AbortAction(int segmentNumber)
         {
-            RGActionManager.StopSession();
             _isStopped = true;
         }
 
@@ -58,17 +59,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"actionInterval\":");
-            FloatJsonConverter.WriteToStringBuilder(stringBuilder, actionInterval);
-            stringBuilder.Append(",\"actionSettings\":");
-            actionSettings.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
         }
 
         public void ReplayReset()
         {
             _isStopped = false;
-            _monkey = null;
         }
 
         public bool IsCompleted()

@@ -4,6 +4,8 @@ using NUnit.Framework;
 using RegressionGames.RGLegacyInputUtility;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
+using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.Models;
 using RegressionGames.TestFramework;
 using RegressionGames.Types;
