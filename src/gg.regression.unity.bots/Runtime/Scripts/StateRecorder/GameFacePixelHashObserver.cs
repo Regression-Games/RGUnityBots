@@ -107,7 +107,11 @@ namespace RegressionGames.StateRecorder
                 if (cohtmlViewTexture != null)
                 {
                     var wasActive = Interlocked.CompareExchange(ref _requestInProgress, string.Empty, null);
-                    if (wasActive == null)
+                    
+                    // If we are running in -nographics mode, the async task below fails, causing an exception inside
+                    // the AsyncGPUReadback.Request that is difficult to catch. This ensures that the image data
+                    // is only read when we have graphics
+                    if (wasActive == null && SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
                     {
                         var frame = Time.frameCount;
                         AsyncGPUReadback.Request(cohtmlViewTexture, 0, request =>
