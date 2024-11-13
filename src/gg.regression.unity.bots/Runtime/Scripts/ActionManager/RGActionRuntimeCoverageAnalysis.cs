@@ -21,6 +21,7 @@ namespace RegressionGames.ActionManager
 
         private static int _currentSegment = -1;
 
+
         public static void Reset()
         {
             _allActions.Clear();
@@ -32,21 +33,19 @@ namespace RegressionGames.ActionManager
         {
             if (!_inProgress)
             {
-                // do not Reset here as they could record multiple times in a single bot sequence
-
-                if (_allActions.Count == 0)
-                {
-                    var allActions = RGActionManager.Actions;
-                    foreach (var rgGameAction in allActions)
-                    {
-                        _allActions.Add(rgGameAction);
-                    }
-                }
-
                 _inProgress = true;
-
-                SetCurrentSegmentNumber(segmentNumber);
             }
+
+            if (_allActions.Count == 0)
+            {
+                var allActions = RGActionManager.Actions;
+                foreach (var rgGameAction in allActions)
+                {
+                    _allActions.Add(rgGameAction);
+                }
+            }
+
+            SetCurrentSegmentNumber(segmentNumber);
 
         }
 
@@ -99,11 +98,48 @@ namespace RegressionGames.ActionManager
             _inProgress = false;
         }
 
-        public static RGActionUsageSummary BuildSummary()
+        public static RGActionUsageSummary GetActionUsageSummaryForSegment(int segmentNumber)
         {
+            RGActionUsageSummary summary = new();
+            if (_analysisData.TryGetValue(segmentNumber, out var data))
+            {
+                {
+                    foreach (var (action, metrics) in data)
+                    {
+                        if (!summary.usedActionMetrics.TryGetValue(action, out var existingMetric))
+                        {
+                            existingMetric = new RGActionUsageMetrics();
+                            summary.usedActionMetrics[action] = existingMetric;
+                        }
+
+                        existingMetric.invocations += metrics.invocations;
+                        foreach (var s in metrics.objectsActedOn)
+                        {
+                            existingMetric.objectsActedOn.Add(s);
+                        }
+                    }
+                }
+
+                foreach (var rgGameAction in _allActions)
+                {
+                    if (!summary.usedActionMetrics.ContainsKey(rgGameAction))
+                    {
+                        summary.unusedActions.Add(rgGameAction);
+                    }
+                }
+
+                return summary;
+            }
+
+            // we didn't actually record anything yet
+            return null;
+        }
+
+        public static RGActionUsageSummary GetActionUsageSummary()
+        {
+            RGActionUsageSummary summary = new();
             if (_currentSegment >= 0)
             {
-                var summary = new RGActionUsageSummary();
                 foreach (var (_, data) in _analysisData)
                 {
                     foreach (var (action, metrics) in data)
@@ -119,7 +155,6 @@ namespace RegressionGames.ActionManager
                         {
                             existingMetric.objectsActedOn.Add(s);
                         }
-
                     }
                 }
 
@@ -134,7 +169,7 @@ namespace RegressionGames.ActionManager
                 return summary;
             }
 
-            // we didn't actually record anything
+            // we didn't actually record anything yet
             return null;
         }
 

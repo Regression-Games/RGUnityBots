@@ -16,6 +16,8 @@ namespace RegressionGames.GenericBots
                 Destroy(this);
                 return;
             }
+            RGActionRuntimeCoverageAnalysis.Reset();
+
             RGActionManager.StartSession(0, this);
 
             monkey = new RGMonkeyBotLogic();

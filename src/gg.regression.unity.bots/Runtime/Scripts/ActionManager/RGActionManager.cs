@@ -177,6 +177,8 @@ namespace RegressionGames.ActionManager
             }
 
             InitInputState(segmentNumber);
+
+            RGActionRuntimeCoverageAnalysis.StartRecording(segmentNumber);
         }
 
         /// <summary>
@@ -198,6 +200,8 @@ namespace RegressionGames.ActionManager
                 }
                 _context = null;
                 _settings = LoadSettings(); // restore settings back to the saved configuration
+
+                RGActionRuntimeCoverageAnalysis.StopRecording();
             }
         }
 

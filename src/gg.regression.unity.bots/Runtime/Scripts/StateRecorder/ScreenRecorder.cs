@@ -203,7 +203,7 @@ namespace RegressionGames.StateRecorder
             }
 
             // Save action coverage metadata if action analysis was done
-            var actionUsageSummary = RGActionRuntimeCoverageAnalysis.BuildSummary();
+            var actionUsageSummary = RGActionRuntimeCoverageAnalysis.GetActionUsageSummary();
             if (actionUsageSummary != null)
             {
                 RGDebug.LogInfo($"Saving action coverage metadata to file: {actionCoverageMetadataPath}");

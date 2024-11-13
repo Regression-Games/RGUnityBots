@@ -302,6 +302,8 @@ namespace RegressionGames.GenericBots.Experimental
             }
             DontDestroyOnLoad(this);
 
+            RGActionRuntimeCoverageAnalysis.Reset();
+
             _validActions = new List<QAction>();
             _lastInputs = new List<RGActionInput>();
             _mouseBtnsBuf = new HashSet<int>();
