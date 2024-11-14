@@ -38,7 +38,7 @@ namespace RegressionGames
 
         /**
          * <summary>
-         * Will oscillate the sourceImage's alpha value up and down, between the minOpacity and maxOpacity fields
+         * Will oscillate the sourceImage's alpha value up and down, between the minAlpha and maxAlpha fields
          * </summary>
          */
         private IEnumerator Pulse()
