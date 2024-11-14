@@ -105,8 +105,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   period: 0.75
-  maxOpacity: 0.5
-  minOpacity: 0
+  maxAlpha: 1
+  minAlpha: 0
   sourceImage: {fileID: 429859648952173490}
 --- !u!1 &1016618572727220561
 GameObject:
