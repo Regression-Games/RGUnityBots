@@ -5,26 +5,27 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.ActionManager.JsonConverters;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ActionManager
 {
     [JsonConverter(typeof(RGGameActionJsonConverter))]
-    public abstract class RGGameAction : ICloneable
+    public abstract class RGGameAction : ICloneable, IStringBuilderWriteable
     {
-        
+
         /// The path of the action, typically derived from
         /// the location where the associated input handling logic takes place.
         /// An action may have multiple paths if multiple code locations were inferred to
         /// have equivalent actions by IsEquivalentTo and were grouped together.
         public List<string[]> Paths { get; set; }
-        
+
         /// The type of object that the action is associated with.
         /// The object must be derived from UnityEngine.Object, and
         /// all instances of the object should be retrievable via
         /// UnityEngine.Object.FindObjectsOfType(ObjectType).
         public Type ObjectType { get; set; }
-        
+
         /// The range of parameter values accepted by this action's
         /// Perform() method.
         [RGActionProperty("Parameter Range", true)]
@@ -64,6 +65,16 @@ namespace RegressionGames.ActionManager
             ParameterRange = serializedAction["parameterRange"].ToObject<IRGValueRange>();
         }
 
+        public override int GetHashCode()
+        {
+            return DisplayName.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return GetHashCode() == obj?.GetHashCode();
+        }
+
         /// <summary>
         /// Determines whether this action is valid for the object.
         /// </summary>
@@ -73,7 +84,7 @@ namespace RegressionGames.ActionManager
         /// </param>
         /// <returns>Whether the action is valid for the object.</returns>
         public abstract bool IsValidForObject(UnityEngine.Object obj);
-        
+
         /// <summary>
         /// Obtain an instance of this action for the target object.
         /// This method is only called if IsValidForObject is true for the given object.
@@ -178,7 +189,7 @@ namespace RegressionGames.ActionManager
         /// <returns>The set of inputs needed to perform the action in the current state.</returns>
         public IEnumerable<RGActionInput> GetInputs(object param);
     }
-    
+
     public abstract class RGGameActionInstance<TAction, TParam> : IRGGameActionInstance where TAction : RGGameAction
     {
         /// <summary>
@@ -189,7 +200,7 @@ namespace RegressionGames.ActionManager
 
         /// <inheritdoc cref="IRGGameActionInstance.BaseAction"/>
         public RGGameAction BaseAction => Action;
-        
+
         /// <inheritdoc cref="IRGGameActionInstance.TargetObject"/>
         public UnityEngine.Object TargetObject { get; private set; }
 
@@ -216,7 +227,7 @@ namespace RegressionGames.ActionManager
         /// This already has the parameter casted to the appropriate type.
         /// </summary>
         protected abstract bool IsValidActionParameter(TParam param);
-        
+
         /// <summary>
         /// Derived classes implement this method to implement GetInputs().
         /// This already has the parameter casted to the appropriate type.

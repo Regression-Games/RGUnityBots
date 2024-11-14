@@ -21,34 +21,34 @@ namespace RegressionGames.GenericBots.Experimental
     {
         public RGGameAction Action;
         public object ParamValue;
-    
+
         public List<IRGGameActionInstance> CurrentInstances;
-        
+
         private string identifier;
-    
+
         public string Identifier => identifier;
-        
+
         public QAction(RGGameAction action, object paramValue)
         {
             Action = action;
             ParamValue = paramValue;
-    
+
             StringBuilder identifierStringBuilder = new StringBuilder();
             Action.WriteToStringBuilder(identifierStringBuilder);
             identifierStringBuilder.Append(ParamValue);
-    
+
             identifier = identifierStringBuilder.ToString();
-    
+
             CurrentInstances = new List<IRGGameActionInstance>();
         }
-    
+
         public bool Equals(QAction other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
             return identifier == other.identifier;
         }
-    
+
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj)) return false;
@@ -56,17 +56,17 @@ namespace RegressionGames.GenericBots.Experimental
             if (obj.GetType() != this.GetType()) return false;
             return Equals((QAction)obj);
         }
-    
+
         public override int GetHashCode()
         {
             return (identifier != null ? identifier.GetHashCode() : 0);
         }
-    
+
         public static bool operator ==(QAction left, QAction right)
         {
             return Equals(left, right);
         }
-    
+
         public static bool operator !=(QAction left, QAction right)
         {
             return !Equals(left, right);
@@ -88,7 +88,7 @@ namespace RegressionGames.GenericBots.Experimental
             NextState = nextState;
         }
     }
-    
+
     /// <summary>
     /// This bot implements the Q-learning reinforcement learning algorithm.
     /// It uses the Action Manager to automatically compute a discrete action space for the game,
@@ -125,8 +125,8 @@ namespace RegressionGames.GenericBots.Experimental
         public float Gamma = 0.6f; // Discount factor
         public int ExperienceBufferSize = 64; // Size of the experience buffer (size of fixed-length queue of the last N experiences)
         public string ModelFilePath = "qbot_model.json"; // Path where to save the trained model (Q-table)
-        public float TrainingTimeScale = 3.0f; // the Time.timeScale value to use while training 
-            
+        public float TrainingTimeScale = 3.0f; // the Time.timeScale value to use while training
+
         private List<QAction> _actionSpace;
         private Dictionary<string, Dictionary<string, float>> _qTable;
         private List<QAction> _validActions;
@@ -134,7 +134,7 @@ namespace RegressionGames.GenericBots.Experimental
         private float _epStartTime;
         private float _epRew;
         private Queue<QExperience> _experienceBuf;
-    
+
         private string _lastState;
         private string _lastActionKey;
         private List<RGActionInput> _lastInputs;
@@ -142,8 +142,8 @@ namespace RegressionGames.GenericBots.Experimental
         private float _epsilon;
         private ISet<int> _mouseBtnsBuf;
         private IRewardModule _rewardModule;
-        private GameSpeedup _speedup; // only active if training 
-        
+        private GameSpeedup _speedup; // only active if training
+
         /// <summary>
         /// Obtain an abstract string representation of the current game state.
         /// The default implementation concatenates all the active component type names
@@ -156,7 +156,7 @@ namespace RegressionGames.GenericBots.Experimental
                 .Select(c => c.GetType()).Distinct()
                 .Select(type => type.FullName));
             names.Sort();
-    
+
             // include the current keyboard/mouse button input state as well, since this affects the behavior of the action
             List<string> inputs = new List<string>();
             foreach (var control in Keyboard.current.allControls)
@@ -179,7 +179,7 @@ namespace RegressionGames.GenericBots.Experimental
                 inputs.Add("mouseForwardButton");
             if (Mouse.current.backButton.isPressed)
                 inputs.Add("mouseBackButton");
-            
+
             inputs.Sort();
             return string.Join(",", names) + ":" + string.Join(",", inputs);
         }
@@ -201,7 +201,7 @@ namespace RegressionGames.GenericBots.Experimental
         {
             SceneManager.LoadScene(_initialSceneName);
         }
-        
+
         /// <summary>
         /// Obtains a set of discrete parameter values for the given action.
         /// If the action is already discrete, returns each parameter value.
@@ -226,7 +226,7 @@ namespace RegressionGames.GenericBots.Experimental
                 }
             }
         }
-    
+
         /// <summary>
         /// Generates a discrete action space for the game.
         /// </summary>
@@ -250,7 +250,7 @@ namespace RegressionGames.GenericBots.Experimental
         {
             return false;
         }
-    
+
         private void SaveModel()
         {
             JObject result = new JObject();
@@ -268,7 +268,7 @@ namespace RegressionGames.GenericBots.Experimental
             result["qtable"] = qtable;
             File.WriteAllText(ModelFilePath, result.ToString());
         }
-    
+
         private bool LoadModel()
         {
             if (!File.Exists(ModelFilePath))
@@ -301,14 +301,16 @@ namespace RegressionGames.GenericBots.Experimental
                 return;
             }
             DontDestroyOnLoad(this);
-    
+
+            RGActionRuntimeCoverageAnalysis.Reset();
+
             _validActions = new List<QAction>();
             _lastInputs = new List<RGActionInput>();
             _mouseBtnsBuf = new HashSet<int>();
             _initialSceneName = SceneManager.GetActiveScene().name;
             _rewardModule = CreateRewardModule();
             _experienceBuf = new Queue<QExperience>();
-            
+
             if (LoadModel())
             {
                 RGDebug.Log("Loaded existing model with epsilon " + _epsilon);
@@ -323,15 +325,15 @@ namespace RegressionGames.GenericBots.Experimental
                 _qTable = new Dictionary<string, Dictionary<string, float>>();
                 _epsilon = 1.0f;
             }
-            
+
             if (Training)
             {
                 _speedup = new GameSpeedup(TrainingTimeScale);
             }
-            
+
             OnEpisodeStart();
         }
-    
+
         /// <summary>
         /// Calls RGActionManager.GetValidActions() to get the set of valid actions, then transforms
         /// this result into the discrete action space representation used by the Q learning bot.
@@ -350,7 +352,7 @@ namespace RegressionGames.GenericBots.Experimental
                 }
                 instances.Add(actionInst);
             }
-    
+
             _validActions.Clear();
             foreach (var qact in _actionSpace)
             {
@@ -372,7 +374,7 @@ namespace RegressionGames.GenericBots.Experimental
                 }
             }
         }
-    
+
         public void OnDestroy()
         {
             if (Training)
@@ -383,10 +385,10 @@ namespace RegressionGames.GenericBots.Experimental
             _rewardModule.Dispose();
             RGActionManager.StopSession();
         }
-        
+
         private void OnEpisodeStart()
         {
-            RGActionManager.StartSession(this);
+            RGActionManager.StartSession(0,this);
             _actionSpace = GenerateActionSpace();
             _epStartTime = Time.time;
             _epRew = 0.0f;
@@ -396,7 +398,7 @@ namespace RegressionGames.GenericBots.Experimental
             _rewardModule.Reset();
             _experienceBuf.Clear();
         }
-    
+
         private void OnEpisodeEnd()
         {
             RGDebug.Log($"Episode reward: {_epRew}, State count: {_qTable.Count}, Epsilon: {_epsilon}");
@@ -408,12 +410,12 @@ namespace RegressionGames.GenericBots.Experimental
             RGActionManager.StopSession();
             SaveModel();
         }
-    
+
         private static string ActionKey(QAction action, IRGGameActionInstance actionInst)
         {
             return action.Identifier + ":" + actionInst.TargetObject.name;
         }
-    
+
         private float ReadQTable(string stateKey, string actionKey)
         {
             if (_qTable.TryGetValue(stateKey, out var actionVals))
@@ -432,7 +434,7 @@ namespace RegressionGames.GenericBots.Experimental
                 return 0.0f;
             }
         }
-    
+
         private float GetStateQValue(string stateKey)
         {
             if (_qTable.TryGetValue(stateKey, out var actionVals))
@@ -452,7 +454,7 @@ namespace RegressionGames.GenericBots.Experimental
         private bool PerformHeuristics()
         {
             bool didHeuristic = false;
-            
+
             // If the last set of inputs was a mouse position movement + mouse button press,
             // then release the mouse button over the same location.
             {
@@ -477,23 +479,23 @@ namespace RegressionGames.GenericBots.Experimental
                         }
                     }
                 }
-             
+
                 if (haveMousePos && _mouseBtnsBuf.Count > 0)
                 {
                     _lastInputs.Clear();
                     foreach (var btn in _mouseBtnsBuf)
                     {
                         var inp = new MouseButtonInput(btn, false);
-                        inp.Perform();
+                        inp.Perform(0);
                         _lastInputs.Add(inp);
                     }
                     didHeuristic = true;
                 }
             }
-            
+
             return didHeuristic;
         }
-        
+
         public void Update()
         {
             var now = Time.time;
@@ -503,34 +505,34 @@ namespace RegressionGames.GenericBots.Experimental
                 RestartGame();
                 OnEpisodeStart();
             }
-    
+
             if (_lastActionTime.HasValue && now - _lastActionTime < ActionInterval)
             {
                 // Repeat the previous inputs
                 foreach (var inp in _lastInputs)
                 {
-                    inp.Perform();
+                    inp.Perform(0);
                 }
                 return;
             }
-            
+
             if (PerformHeuristics())
             {
                 _lastActionTime = Time.time;
                 return;
             }
-            
+
             string state = GetCurrentState();
-            
+
             if (Training)
             {
                 _speedup.Update();
-                
+
                 if (!_qTable.TryGetValue(state, out _))
                 {
                     _qTable.Add(state, new Dictionary<string, float>());
                 }
-                
+
                 // Record latest experience
                 if (_lastState != null)
                 {
@@ -540,7 +542,7 @@ namespace RegressionGames.GenericBots.Experimental
                         _experienceBuf.Dequeue();
                     _epRew += rew;
                 }
-            
+
                 // Update Q-table with experience
                 foreach (var exp in _experienceBuf)
                 {
@@ -554,18 +556,18 @@ namespace RegressionGames.GenericBots.Experimental
             {
                 _epRew += _rewardModule.GetRewardForLastAction();
             }
-            
+
             _lastState = null;
             _lastActionKey = null;
-            
+
             ComputeValidActions();
-            
+
             if (_validActions.Count == 0)
             {
                 // nothing to do
                 return;
             }
-    
+
             // Select the action to take
             QAction action;
             IRGGameActionInstance actionInst;
@@ -597,7 +599,7 @@ namespace RegressionGames.GenericBots.Experimental
                 action = maxAction;
                 actionInst = maxActionInst;
             }
-    
+
             // Perform the chosen action
             _lastInputs.Clear();
             if (actionInst != null)
@@ -605,7 +607,7 @@ namespace RegressionGames.GenericBots.Experimental
                 foreach (var inp in actionInst.GetInputs(action.ParamValue))
                 {
                     _lastInputs.Add(inp);
-                    inp.Perform();
+                    inp.Perform(0);
                 }
                 _lastState = state;
                 _lastActionKey = ActionKey(action, actionInst);
@@ -615,7 +617,7 @@ namespace RegressionGames.GenericBots.Experimental
                 _lastState = null;
                 _lastActionKey = null;
             }
-    
+
             _lastActionTime = now;
         }
     }

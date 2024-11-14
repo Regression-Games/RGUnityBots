@@ -13,7 +13,7 @@ namespace RegressionGames.GenericBots
         public bool Performed;
         public IList<RGActionInput> Inputs;
     }
-    
+
     public class RGMonkeyBotLogic
     {
         public float ActionInterval { get; set; } = 0.05f;
@@ -35,7 +35,7 @@ namespace RegressionGames.GenericBots
             _remainingActionsBuf = new List<MonkeyBotActionEntry>();
             _mouseBtnsBuf = new HashSet<int>();
         }
-        
+
         private void ResetState()
         {
             _actionsBuf.Clear();
@@ -46,8 +46,9 @@ namespace RegressionGames.GenericBots
         /// <summary>
         /// Perform an update step of the monkey bot.
         /// </summary>
+        /// <param name="segmentNumber">The bot sequence segment number</param>
         /// <returns>Whether any action was performed (inputs simulated).</returns>
-        public bool Update()
+        public bool Update(int segmentNumber)
         {
             bool didAnyAction = false;
             if (GameObject.Find("Selection Panel") != null)
@@ -55,25 +56,31 @@ namespace RegressionGames.GenericBots
                 // Pause sending events while the overlay panel is open
                 return didAnyAction;
             }
-         
+
             float currentTimeUnscaled = Time.unscaledTime;
             if (currentTimeUnscaled - _lastActionTime < ActionInterval)
             {
                 // if not deciding on a new action, then repeat inputs sent on the last frame
                 foreach (var act in _actionsBuf.Where(act => act.Performed))
                 {
-                    foreach (var inp in act.Inputs)
+                    // since we are repeating here.. the object target could no longer exist (was destroyed since last frame) due to the action taken.. this is common for choosing spell actions or other temporary object targets
+                    if (act.ActionInstance.TargetObject != null)
                     {
-                        inp.Perform();
-                        didAnyAction = true;
+                        // record before doing because often times once we do, that action longer exists as a game object
+                        RGActionRuntimeCoverageAnalysis.RecordActionUsage(act.ActionInstance.BaseAction, act.ActionInstance.TargetObject);
+                        foreach (var inp in act.Inputs)
+                        {
+                            inp.Perform(segmentNumber);
+                            didAnyAction = true;
+                        }
                     }
                 }
                 return didAnyAction;
             }
             _lastActionTime = currentTimeUnscaled;
-                     
+
             bool didHeuristic = false;
-                     
+
             // Heuristic: If the last action was a mouse down on a Unity UI button, always release the mouse button on this frame over
             // the same mouse coordinate to trigger the click event
             foreach (var performedAction in _actionsBuf.Where(act => act.Performed))
@@ -87,9 +94,11 @@ namespace RegressionGames.GenericBots
                         var inst = action.GetInstance(targetObject);
                         if (inst.IsValidParameter(false))
                         {
+                            // record before doing because often times once we do, that action longer exists as a game object
+                            RGActionRuntimeCoverageAnalysis.RecordActionUsage(inst.BaseAction, inst.TargetObject);
                             foreach (var inp in inst.GetInputs(false))
                             {
-                                inp.Perform();
+                                inp.Perform(segmentNumber);
                                 didAnyAction = true;
                             }
                         }
@@ -102,8 +111,8 @@ namespace RegressionGames.GenericBots
                 ResetState();
                 return didAnyAction;
             }
-                     
-            // Heuristic: If the last set of inputs was a mouse position movement + a set of mouse button presses, 
+
+            // Heuristic: If the last set of inputs was a mouse position movement + a set of mouse button presses,
             // then have some random chance of releasing those buttons over the same mouse position to complete a potential click event.
             // Otherwise, in general it is very unlikely that a mouse button press and release would occur over the same position.
             {
@@ -128,14 +137,14 @@ namespace RegressionGames.GenericBots
                         }
                     }
                 }
-         
+
                 if (haveMousePos && _mouseBtnsBuf.Count > 0)
                 {
                     if (Random.Range(0, 2) == 1) // 50% chance of attempting a click event
                     {
                         foreach (var btn in _mouseBtnsBuf)
                         {
-                            new MouseButtonInput(btn, false).Perform();
+                            new MouseButtonInput(btn, false).Perform(segmentNumber);
                             didAnyAction = true;
                         }
                         didHeuristic = true;
@@ -147,9 +156,9 @@ namespace RegressionGames.GenericBots
                 ResetState();
                 return didAnyAction;
             }
-                     
+
             ResetState();
-         
+
             // Compute the set of valid actions
             foreach (var actionInstance in RGActionManager.GetValidActions())
             {
@@ -163,7 +172,7 @@ namespace RegressionGames.GenericBots
                 }
                 if (!isParamValid)
                     continue;
-                         
+
                 // store the action inputs
                 var entry = new MonkeyBotActionEntry()
                 {
@@ -177,8 +186,8 @@ namespace RegressionGames.GenericBots
                     _actionsBuf.Add(entry);
                 }
             }
-         
-            // Randomly perform actions from the list 
+
+            // Randomly perform actions from the list
             // This repeatedly selects actions whose inputs do not overlap
             // with the inputs that have already been performed.
             do
@@ -192,16 +201,17 @@ namespace RegressionGames.GenericBots
                         _remainingActionsBuf.Add(action);
                     }
                 }
-         
+
                 if (_remainingActionsBuf.Count > 0)
                 {
                     var action = _remainingActionsBuf[Random.Range(0, _remainingActionsBuf.Count)];
+                    // record before doing because often times once we do, that action longer exists as a game object
+                    RGActionRuntimeCoverageAnalysis.RecordActionUsage(action.ActionInstance.BaseAction, action.ActionInstance.TargetObject);
                     foreach (var inp in action.Inputs)
                     {
-                        inp.Perform();
+                        inp.Perform(segmentNumber);
                         didAnyAction = true;
                     }
-         
                     action.Performed = true;
                 }
             } while (_remainingActionsBuf.Count > 0);
