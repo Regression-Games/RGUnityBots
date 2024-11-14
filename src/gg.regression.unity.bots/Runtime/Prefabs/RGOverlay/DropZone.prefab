@@ -121,8 +121,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2031557554620554188}
   m_HandleRect: {fileID: 4082959041852423044}
   m_Direction: 2
-  m_Value: 1
-  m_Size: 0.85714287
+  m_Value: 0
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -481,6 +481,7 @@ GameObject:
   - component: {fileID: 830144214850282554}
   - component: {fileID: 3433937173072970009}
   - component: {fileID: 5885648710797810612}
+  - component: {fileID: 7306972776784719631}
   - component: {fileID: 2710983432495149343}
   m_Layer: 0
   m_Name: Scroll View
@@ -508,8 +509,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 175, y: -239}
-  m_SizeDelta: {x: 350, y: 480}
+  m_AnchoredPosition: {x: 175, y: -280}
+  m_SizeDelta: {x: 350, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3433937173072970009
 CanvasRenderer:
@@ -549,6 +550,26 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7306972776784719631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8917493409664866256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IgnoreLayout: 0
+  m_MinWidth: -1
+  m_MinHeight: 560
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: 1
+  m_LayoutPriority: 1
 --- !u!114 &2710983432495149343
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -562,7 +583,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_HorizontalFit: 0
-  m_VerticalFit: 0
+  m_VerticalFit: 2
 --- !u!1 &9082236185601480090
 GameObject:
   m_ObjectHideFlags: 0
