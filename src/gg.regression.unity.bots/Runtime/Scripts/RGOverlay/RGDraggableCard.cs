@@ -50,9 +50,9 @@ namespace RegressionGames
         // the card's alpha value when another card is being manipulated
         private const float MUTED_ALPHA = 0.2f;
 
-        private const int EXPANDED_HEIGHT = 80;
+        private const int EXPANDED_HEIGHT = 105;
 
-        private float originalHeight = 40;
+        private float originalHeight = 60;
 
         public void Start()
         {
