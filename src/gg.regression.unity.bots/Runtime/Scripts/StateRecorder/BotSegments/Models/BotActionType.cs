@@ -12,7 +12,8 @@
         Mouse_CVText,
         Mouse_ObjectDetection,
         RestartGame,
-        QuitGame
+        QuitGame,
+        QLearning
 
         //POSSIBLE_FUTURE_ACTIONS
         //Timer,

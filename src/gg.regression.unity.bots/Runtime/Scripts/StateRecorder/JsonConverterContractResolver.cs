@@ -74,6 +74,7 @@ namespace RegressionGames.StateRecorder
             { typeof(CVWithinRect), new CVWithinRectJsonConverter() },
             { typeof(KeyFrameCriteria), new KeyFrameCriteriaJsonConverter() },
             { typeof(MonkeyBotActionData), new MonkeyBotActionDataJsonConverter() },
+            { typeof(QLearningBotActionData), new QLearningActionDataJsonConverter() },
             { typeof(RandomMouseObjectActionData), new RandomMouseObjectActionDataJsonConverter() },
             { typeof(RandomMousePixelActionData), new RandomMousePixelActionDataJsonConverter() },
 
