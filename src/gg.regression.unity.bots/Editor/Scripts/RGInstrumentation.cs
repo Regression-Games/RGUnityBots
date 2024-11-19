@@ -14,9 +14,10 @@ using UnityEditor.Build.Reporting;
 using UnityEditor.Compilation;
 using Assembly = UnityEditor.Compilation.Assembly;
 
+using RegressionGames.StateRecorder.BotSegments;
+
 #if ENABLE_LEGACY_INPUT_MANAGER
 using RegressionGames.RGLegacyInputUtility;
-using RegressionGames.StateRecorder.BotSegments;
 #endif
 
 namespace RegressionGames.Editor
