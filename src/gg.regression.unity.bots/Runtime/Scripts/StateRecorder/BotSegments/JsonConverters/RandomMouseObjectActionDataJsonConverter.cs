@@ -21,14 +21,14 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             data.screenSize = jObject.GetValue("screenSize").ToObject<Vector2Int>(serializer);
             if (jObject.ContainsKey("apiVersion"))
             {
-                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>();
+                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             }
 
-            data.allowDrag = jObject.GetValue("allowDrag").ToObject<bool>();
-            data.timeBetweenClicks = jObject.GetValue("timeBetweenClicks").ToObject<float>();
-            data.excludedAreas = jObject.GetValue("excludedAreas").ToObject<List<RectInt>>();
-            data.excludedNormalizedPaths = jObject.GetValue("excludedNormalizedPaths").ToObject<List<string>>();
-            data.preconditionNormalizedPaths = jObject.GetValue("preconditionNormalizedPaths").ToObject<List<string>>();
+            data.allowDrag = jObject.GetValue("allowDrag").ToObject<bool>(serializer);
+            data.timeBetweenClicks = jObject.GetValue("timeBetweenClicks").ToObject<float>(serializer);
+            data.excludedAreas = jObject.GetValue("excludedAreas").ToObject<List<RectInt>>(serializer);
+            data.excludedNormalizedPaths = jObject.GetValue("excludedNormalizedPaths").ToObject<List<string>>(serializer);
+            data.preconditionNormalizedPaths = jObject.GetValue("preconditionNormalizedPaths").ToObject<List<string>>(serializer);
             return data;
         }
 

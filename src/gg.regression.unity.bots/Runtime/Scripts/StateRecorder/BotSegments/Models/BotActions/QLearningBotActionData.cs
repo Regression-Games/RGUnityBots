@@ -6,6 +6,7 @@ using RegressionGames.GenericBots.Experimental;
 using RegressionGames.GenericBots.Experimental.Rewards;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
@@ -37,8 +38,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
         public RGActionManagerSettings actionSettings;
         public Dictionary<RewardType, int> rewardTypeRatios;
 
+        public float? maxRuntimeSeconds;
+
+        private float _startTime = -1f;
+
         // training options
-        // TODO: Should we add an option that causes a 'game restart' AND restarts the sequence from the beginning when 'learning = true' ?
         public bool training;
         public float trainingTimeScale = 1.0f;
 
@@ -108,6 +112,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                     TrainingTimeScale = trainingTimeScale,
                 };
 
+                _startTime = Time.unscaledTime;
                 _qLearningBot.Start();
                 _qLearningBot.OnEpisodeStart(segmentNumber, null);
             }
@@ -115,6 +120,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
+            var time = Time.unscaledTime;
+
+            if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
+            {
+                // stop the bot, it has run the specified time
+                AbortAction(segmentNumber);
+            }
+
             if (!_isStopped)
             {
                 RGActionRuntimeCoverageAnalysis.SetCurrentSegmentNumber(segmentNumber);
@@ -141,6 +154,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
             FloatJsonConverter.WriteToStringBuilder(stringBuilder, actionInterval);
             stringBuilder.Append(",\"modelFilePath\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, modelFilePath);
+            stringBuilder.Append(",\"maxRuntimeSeconds\":");
+            FloatJsonConverter.WriteToStringBuilderNullable(stringBuilder, maxRuntimeSeconds);
             stringBuilder.Append(",\"training\":");
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder, training);
             stringBuilder.Append(",\"trainingTimeScale\":");
@@ -165,6 +180,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
 
         public void ReplayReset()
         {
+            _startTime = -1f;
             _isStopped = false;
             _qLearningBot = null;
         }

@@ -12,6 +12,7 @@ using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
 using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
@@ -88,6 +89,7 @@ namespace RegressionGames.StateRecorder
             { typeof(BotSegment), new BotSegmentJsonConverter() },
             { typeof(BotSegmentList), new BotSegmentListJsonConverter() },
             { typeof(BotSequenceEntry), new BotSequenceEntryJsonConverter() },
+            { typeof(SequenceRestartCheckpoint), new SequenceRestartCheckpointJsonConverter() },
 
             { typeof(WorkAssignment), new WorkAssignmentJsonConverter() }
 

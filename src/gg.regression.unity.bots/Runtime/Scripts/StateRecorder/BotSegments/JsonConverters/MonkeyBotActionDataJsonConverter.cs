@@ -14,11 +14,11 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             MonkeyBotActionData data = new MonkeyBotActionData();
             if (jObject.ContainsKey("apiVersion"))
             {
-                data.apiVersion = jObject["apiVersion"].ToObject<int>();
+                data.apiVersion = jObject["apiVersion"].ToObject<int>(serializer);
             }
 
-            data.actionInterval = jObject["actionInterval"].ToObject<float>();
-            data.actionSettings = jObject["actionSettings"].ToObject<RGActionManagerSettings>();
+            data.actionInterval = jObject["actionInterval"].ToObject<float>(serializer);
+            data.actionSettings = jObject["actionSettings"].ToObject<RGActionManagerSettings>(serializer);
             return data;
         }
 

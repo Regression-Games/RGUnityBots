@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 // ReSharper disable once RedundantUsingDirective - used in #else.. don't remove
 using System.Threading;
@@ -7,6 +8,7 @@ using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments.Models;
 using UnityEngine;
+using Object = UnityEngine.Object;
 // ReSharper disable once RedundantUsingDirective - used in #else.. don't remove
 using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
@@ -29,6 +31,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
         public int apiVersion = SdkApiVersion.VERSION_25;
 
         private static readonly string _restartWarningText = "the default restart action of destroying DontDestroyOnLoad objects and then running SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single).  Please note that this should stop all co-routines, but this will NOT stop any background threads, tasks, timers, Unity Jobs, etc.  This will also NOT cleanup any data in ECS.";
+
+        /**
+         * Whether to restart the current botSequence after restart
+         */
+        public bool restartSequenceAfterRestart;
 
         [NonSerialized]
         private bool _isStopped;
@@ -91,9 +98,32 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
         {
             if (!_isStopped && _readyToProcess)
             {
-                //TODO (REG-2170): Write a status to persistent path so that we can resume this sequence/segment on game restart
-                //TODO (REG-2170): (in code somewhere else ...) If this is NOT the last segment, block the upload from happening yet as we aren't 'done' recording the replay
-                //TODO (REG-2170): (in code somewhere else ...) Read recovery status from persistent path so that we can resume this sequence/segment on game restart
+
+                var checkpointPath = Application.temporaryCachePath + "/RegressionGames/SequenceRestart.json";
+                Directory.CreateDirectory(Application.temporaryCachePath + "/RegressionGames");
+
+                // This can 'restart' a sequence as a new run after restart (effectively making a loop), but cannot resume at a given segment index
+                if (restartSequenceAfterRestart)
+                {
+                    var activeBotSequence = BotSequence.ActiveBotSequence;
+                    if (activeBotSequence != null)
+                    {
+                        // write out the sequence path as a checkpoint to resume from
+                        if (File.Exists(checkpointPath))
+                        {
+                            File.Delete(checkpointPath);
+                        }
+
+                        //TODO (REG-2170): Optionally support restarting from the next segment after restart...
+                        //TODO (REG-2170): (in code somewhere else ...) If this is NOT the last segment, block the upload from happening yet as we aren't 'done' recording the replay
+                        var checkpoint = new SequenceRestartCheckpoint()
+                        {
+                            resourcePath = activeBotSequence.resourcePath
+                        };
+
+                        File.WriteAllBytes(checkpointPath, Encoding.UTF8.GetBytes(((IStringBuilderWriteable)checkpoint).ToJsonString()));
+                    }
+                }
 
                 // use the restart interface impl in the runtime.. if it doesn't exist... use our default action
                 // run the restart action
@@ -137,6 +167,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                 SceneManager.LoadScene(sceneBuildIndex: 0, mode: LoadSceneMode.Single);
                 _error = null;
                 error = _error;
+
+                // stop and restart the bot sequence
+                Object.FindObjectOfType<BotSegmentsPlaybackController>().Stop();
+                // delete checkpoint file we didn't need
+                if (File.Exists(checkpointPath))
+                {
+                    File.Delete(checkpointPath);
+                }
+                Object.FindObjectOfType<BotSegmentsPlaybackController>().Play();
+
                 return true;
 #endif
             }
@@ -188,6 +228,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
         {
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"restartSequenceAfterRestart\":");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder, restartSequenceAfterRestart);
             stringBuilder.Append("}");
         }
 

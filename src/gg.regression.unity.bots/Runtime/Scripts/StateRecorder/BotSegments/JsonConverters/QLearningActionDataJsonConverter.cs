@@ -22,15 +22,20 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             QLearningBotActionData data = new();
             if (jObject.ContainsKey("apiVersion"))
             {
-                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>();
+                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             }
             data.actionInterval = jObject.GetValue("actionInterval").ToObject<float>(serializer);
             data.modelFilePath = jObject.GetValue("modelFilePath").ToObject<string>(serializer);
             data.actionSettings = jObject.GetValue("actionSettings").ToObject<RGActionManagerSettings>(serializer);
-            data.rewardTypeRatios = jObject.GetValue("rewardTypeRatios").ToObject<Dictionary<RewardType, int>>();
+            data.rewardTypeRatios = jObject.GetValue("rewardTypeRatios").ToObject<Dictionary<RewardType, int>>(serializer);
             if (data.rewardTypeRatios.Count == 0)
             {
                 throw new Exception("QLearningBotActionData.rewardTypeRatios MUST contain at least one RewardType");
+            }
+
+            if (jObject.ContainsKey("maxRuntimeSeconds"))
+            {
+                data.maxRuntimeSeconds = jObject.GetValue("maxRuntimeSeconds").ToObject<float>(serializer);
             }
 
             // training options

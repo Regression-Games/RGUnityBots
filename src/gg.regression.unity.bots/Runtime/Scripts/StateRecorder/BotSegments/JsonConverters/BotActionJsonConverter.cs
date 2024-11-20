@@ -22,7 +22,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             {
                 BotAction action = new();
                 IBotActionData data = null;
-                action.type = jObject["type"].ToObject<BotActionType>();
+                action.type = jObject["type"].ToObject<BotActionType>(serializer);
                 switch (action.type)
                 {
                     case BotActionType.InputPlayback:
