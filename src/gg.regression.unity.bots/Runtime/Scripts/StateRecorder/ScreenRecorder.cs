@@ -136,7 +136,7 @@ namespace RegressionGames.StateRecorder
 
             if (string.IsNullOrEmpty(stateRecordingsDirectory))
             {
-                stateRecordingsDirectory = Application.temporaryCachePath+ "/RegressionGames/recordings";
+                stateRecordingsDirectory = Application.persistentDataPath + "/RegressionGames/recordings";
                 Directory.CreateDirectory(stateRecordingsDirectory);
             }
 
