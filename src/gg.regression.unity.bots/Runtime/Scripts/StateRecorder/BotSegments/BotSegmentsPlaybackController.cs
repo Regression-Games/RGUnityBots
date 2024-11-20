@@ -83,6 +83,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         //TODO (REG-2170): Optionally support restarting from the next segment after restart instead of from the beginning...
                         var sequenceData = BotSequence.LoadSequenceJsonFromPath(checkpoint.resourcePath);
                         // remove the checkpoint so we don't resume from it again in the future
+                        sr.Close();
                         File.Delete(checkpointFilePath);
                         RGDebug.LogInfo("Restarting a BotSequence from SequenceRestartCheckpoint file with resourcePath: " + checkpoint.resourcePath);
                         sequenceData.Item3.Play();
