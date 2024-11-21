@@ -87,6 +87,8 @@ namespace RegressionGames.ActionManager
 
         private readonly bool _displayProgressBar;
 
+        private bool _changed = false;
+
         public RGActionAnalysis(bool displayProgressBar = false)
         {
             _displayProgressBar = displayProgressBar;
@@ -1046,6 +1048,7 @@ namespace RegressionGames.ActionManager
                             _rawActionsByNode.Add(sourceNode, nodeActions);
                         }
                         nodeActions.Add(action);
+                        _changed = true;
                     }
                 }
             }
@@ -1070,7 +1073,10 @@ namespace RegressionGames.ActionManager
                     _unboundActions.Add(methodSig, methodUnboundActions);
                 }
                 var path = string.Join("/", action.Paths[0]);
-                methodUnboundActions.TryAdd(path, action);
+                if (methodUnboundActions.TryAdd(path, action))
+                {
+                    _changed = true;
+                }
             }
         }
 
@@ -1465,8 +1471,16 @@ namespace RegressionGames.ActionManager
                 var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
                 var analysisAssemblies = targetAssemblies.Select(a => (a, GetCompilationForAssembly(a))).ToList();
 
-                // The original code did this N times until we got a pass with no changes to the actions found, but that ALWAYS resulted in this running exactly 2 times
-                // took that looping out so we don't do the expensive analysis of the code 2x for nothing :/
+                {
+                    int passNum = 1;
+                    do
+                    {
+                        _changed = false;
+                        RunCodeAnalysis(passNum, analysisAssemblies);
+                        ++passNum;
+                    } while (_changed);
+                }
+
                 RunCodeAnalysis(1, analysisAssemblies);
 
                 RunResourceAnalysis();
