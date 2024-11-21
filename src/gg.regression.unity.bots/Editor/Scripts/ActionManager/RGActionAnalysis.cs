@@ -1493,8 +1493,6 @@ namespace RegressionGames.ActionManager
                 // wait for code analysis to complete
                 NotifyProgress("Waiting for code analysis to complete", 0.95f);
 
-                Thread.Sleep(1000);
-
                 Task.WaitAll(codeTask);
 
                 NotifyProgress("Saving analysis results", 0.98f);
