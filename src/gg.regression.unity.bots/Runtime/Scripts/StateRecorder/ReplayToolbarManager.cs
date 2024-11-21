@@ -171,7 +171,7 @@ namespace RegressionGames.StateRecorder
             yield return FileBrowser.WaitForLoadDialog(
                 FileBrowser.PickMode.Files,
                 false,
-                null,
+                ScreenRecorder.stateRecordingsDirectory,
                 "bot_segments.zip",
                 "Select Replay Zip File",
                 "Load Replay"

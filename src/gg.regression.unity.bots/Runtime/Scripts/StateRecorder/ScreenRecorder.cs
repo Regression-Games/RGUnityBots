@@ -61,8 +61,8 @@ namespace RegressionGames.StateRecorder
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
         public int recordingMinFPS;
 
-        [Tooltip("Directory to save state recordings in.  This directory will be created if it does not exist.  If not specific, this will default to 'unity_videos' in your user profile path for your operating system.")]
-        public string stateRecordingsDirectory = "";
+        [NonSerialized] // not changeable in the editor anymore
+        public static string stateRecordingsDirectory;
 
         [Tooltip("Minimize the amount of criteria in bot segment recordings.  This limits the endCriteria in recorded bot segments to only include objects with count deltas and objects that were under click locations.")]
         public bool minimizeRecordingCriteria = true;
@@ -136,7 +136,8 @@ namespace RegressionGames.StateRecorder
 
             if (string.IsNullOrEmpty(stateRecordingsDirectory))
             {
-                stateRecordingsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "/unity_videos";
+                stateRecordingsDirectory = Application.persistentDataPath + "/RegressionGames/recordings";
+                Directory.CreateDirectory(stateRecordingsDirectory);
             }
 
             // keep this thing alive across scenes
@@ -564,13 +565,13 @@ namespace RegressionGames.StateRecorder
                 var prefix = _isReplay ? "replay" : "recording";
                 var pf = _currentSessionId.Substring(Math.Max(0, _currentSessionId.Length - 6));
                 var postfix = referenceSessionId != null ? pf + "_" + referenceSessionId.Substring(Math.Max(0, referenceSessionId.Length - 6)) : pf;
-                var dateTimeString =  DateTime.Now.ToString("MM-dd-yyyy_HH.mm");
+                var dateTimeString =  DateTime.Now.ToString("MM-dd-yyyy_HH.mm.ss");
 
                 // find the first index number we haven't used yet
                 do
                 {
                     _currentGameplaySessionDirectoryPrefix =
-                        $"{stateRecordingsDirectory}/{Application.productName}/{prefix}_{dateTimeString}_{postfix}";
+                        $"{stateRecordingsDirectory}/{prefix}_{dateTimeString}_{postfix}";
                 } while (Directory.Exists(_currentGameplaySessionDirectoryPrefix));
 
                 Directory.CreateDirectory(_currentGameplaySessionDirectoryPrefix);
