@@ -76,10 +76,10 @@ namespace RegressionGames.ActionManager
         // Mapping that associates syntax nodes with the actions that were identified at those points.
         private readonly ConcurrentDictionary<SyntaxNode, List<RGGameAction>> _rawActionsByNode = new();
 
-        private SemanticModel _currentModel;
-        private SyntaxTree _currentTree;
-        private readonly Dictionary<AssignmentExpressionSyntax, DataFlowAnalysis> _assignmentExprs = new();
-        private readonly Dictionary<LocalDeclarationStatementSyntax, DataFlowAnalysis> _localDeclarationStmts = new();
+        private readonly ThreadLocal<SemanticModel> _currentModel = new();
+        private readonly ThreadLocal<SyntaxTree> _currentTree= new();
+        private readonly ThreadLocal<Dictionary<AssignmentExpressionSyntax, DataFlowAnalysis>> _assignmentExprs = new(() => new());
+        private readonly ThreadLocal<Dictionary<LocalDeclarationStatementSyntax, DataFlowAnalysis>> _localDeclarationStmts = new(() => new());
 
         private readonly ISet<RGGameAction> _actions = new HashSet<RGGameAction>();
         private readonly List<RGActionAnalysisWarning> _warnings = new();
@@ -225,22 +225,22 @@ namespace RegressionGames.ActionManager
         /// </summary>
         private IEnumerable<ExpressionSyntax> FindCandidateValuesForLocalVariable(ILocalSymbol localSym)
         {
-            if (_localDeclarationStmts.Count == 0)
+            if (_localDeclarationStmts.Value.Count == 0)
             {
-                var root = _currentTree.GetRoot();
-                _assignmentExprs.Clear();
+                var root = _currentTree.Value.GetRoot();
+                _assignmentExprs.Value.Clear();
                 foreach (var assignExpr in root.DescendantNodes().OfType<AssignmentExpressionSyntax>())
                 {
-                    _assignmentExprs.Add(assignExpr, _currentModel.AnalyzeDataFlow(assignExpr));
+                    _assignmentExprs.Value.Add(assignExpr, _currentModel.Value.AnalyzeDataFlow(assignExpr));
                 }
 
-                _localDeclarationStmts.Clear();
+                _localDeclarationStmts.Value.Clear();
                 foreach (var declExpr in root.DescendantNodes().OfType<LocalDeclarationStatementSyntax>())
                 {
-                    _localDeclarationStmts.Add(declExpr, _currentModel.AnalyzeDataFlow(declExpr));
+                    _localDeclarationStmts.Value.Add(declExpr, _currentModel.Value.AnalyzeDataFlow(declExpr));
                 }
             }
-            foreach (var entry in _assignmentExprs)
+            foreach (var entry in _assignmentExprs.Value)
             {
                 if (entry.Value.WrittenInside.Any(v => v.Equals(localSym)))
                 {
@@ -249,7 +249,7 @@ namespace RegressionGames.ActionManager
                 }
             }
 
-            foreach (var entry in _localDeclarationStmts)
+            foreach (var entry in _localDeclarationStmts.Value)
             {
                 if (entry.Value.WrittenInside.Any(v => v.Equals(localSym)))
                 {
@@ -286,7 +286,7 @@ namespace RegressionGames.ActionManager
             {
                 if (depth <= maxDepth && visited.Add(node))
                 {
-                    var sym = _currentModel.GetSymbolInfo(node).Symbol;
+                    var sym = _currentModel.Value.GetSymbolInfo(node).Symbol;
                     if (sym != null)
                     {
                         if (sym is ILocalSymbol localSym)
@@ -350,7 +350,7 @@ namespace RegressionGames.ActionManager
             var currentExpr = memberAccessExpr;
             for (;;)
             {
-                var symbol = _currentModel.GetSymbolInfo(currentExpr).Symbol;
+                var symbol = _currentModel.Value.GetSymbolInfo(currentExpr).Symbol;
                 if (symbol != null)
                 {
                     MemberInfo member = null;
@@ -422,7 +422,7 @@ namespace RegressionGames.ActionManager
         {
             bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<object> keyFunc)
             {
-                var symbol = _currentModel.GetSymbolInfo(expr).Symbol;
+                var symbol = _currentModel.Value.GetSymbolInfo(expr).Symbol;
                 if (symbol != null)
                 {
                     if (symbol is IFieldSymbol fieldSym)
@@ -467,7 +467,7 @@ namespace RegressionGames.ActionManager
             }
 
             var matched = false;
-            var keySym = _currentModel.GetSymbolInfo(keyExpr).Symbol;
+            var keySym = _currentModel.Value.GetSymbolInfo(keyExpr).Symbol;
             if (keySym != null)
             {
                 if (keySym is ILocalSymbol localSym)
@@ -514,7 +514,7 @@ namespace RegressionGames.ActionManager
         {
             bool TryMatch(ExpressionSyntax expr, out RGActionParamFunc<Key> keyFunc)
             {
-                var sym = _currentModel.GetSymbolInfo(expr).Symbol;
+                var sym = _currentModel.Value.GetSymbolInfo(expr).Symbol;
                 if (sym != null)
                 {
                     if (sym is IFieldSymbol fieldSym)
@@ -549,7 +549,7 @@ namespace RegressionGames.ActionManager
             }
 
             var matched = false;
-            var keySym = _currentModel.GetSymbolInfo(keyExpr).Symbol;
+            var keySym = _currentModel.Value.GetSymbolInfo(keyExpr).Symbol;
             if (keySym is ILocalSymbol localSym)
             {
                 // key expression is local variable, check all assignments to the local
@@ -582,7 +582,7 @@ namespace RegressionGames.ActionManager
         {
             bool TryMatch(ExpressionSyntax matchExpr, out RGActionParamFunc<T> func)
             {
-                var sym = _currentModel.GetSymbolInfo(matchExpr).Symbol;
+                var sym = _currentModel.Value.GetSymbolInfo(matchExpr).Symbol;
                 if (sym != null)
                 {
                     if (sym is IFieldSymbol or IPropertySymbol)
@@ -622,7 +622,7 @@ namespace RegressionGames.ActionManager
             }
 
             var matched = false;
-            var sym = _currentModel.GetSymbolInfo(expr).Symbol;
+            var sym = _currentModel.Value.GetSymbolInfo(expr).Symbol;
             if (sym is ILocalSymbol localSym)
             {
                 foreach (var valueExpr in FindCandidateValuesForLocalVariable(localSym))
@@ -649,7 +649,7 @@ namespace RegressionGames.ActionManager
         {
             base.VisitInvocationExpression(node);
 
-            var nodeSymInfo = _currentModel.GetSymbolInfo(node.Expression);
+            var nodeSymInfo = _currentModel.Value.GetSymbolInfo(node.Expression);
             if (nodeSymInfo.Symbol is IMethodSymbol methodSymbol)
             {
                 var containingType = FindType(methodSymbol.ContainingType);
@@ -793,14 +793,14 @@ namespace RegressionGames.ActionManager
 
             if (node.Parent is ElementAccessExpressionSyntax expr && node.Arguments.Count == 1)
             {
-                var symInfo = _currentModel.GetSymbolInfo(expr);
+                var symInfo = _currentModel.Value.GetSymbolInfo(expr);
                 if (symInfo.Symbol is IPropertySymbol propSym)
                 {
                     var containingType = FindType(propSym.ContainingType);
                     if (containingType == typeof(Keyboard))
                     {
                         var arg = node.Arguments[0].Expression;
-                        if (FindType(_currentModel.GetTypeInfo(arg).Type) == typeof(Key))
+                        if (FindType(_currentModel.Value.GetTypeInfo(arg).Type) == typeof(Key))
                         {
                             // Bracketed key notation Keyboard.current[<key>]
                             foreach (var keyFunc in FindCandidateInputSysKeyFuncs(arg))
@@ -818,7 +818,7 @@ namespace RegressionGames.ActionManager
         {
             base.VisitMemberAccessExpression(node);
 
-            var sym = _currentModel.GetSymbolInfo(node).Symbol;
+            var sym = _currentModel.Value.GetSymbolInfo(node).Symbol;
 
             if (sym is IPropertySymbol propSym)
             {
@@ -857,7 +857,7 @@ namespace RegressionGames.ActionManager
                 }
                 else if (type == typeof(Keyboard))
                 {
-                    var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
+                    var exprType = FindType(_currentModel.Value.GetTypeInfo(node).Type);
                     if (exprType != null && typeof(ButtonControl).IsAssignableFrom(exprType))
                     {
                         // Keyboard.current.<property>
@@ -879,7 +879,7 @@ namespace RegressionGames.ActionManager
                 }
                 else if (type == typeof(Mouse))
                 {
-                    var exprType = FindType(_currentModel.GetTypeInfo(node).Type);
+                    var exprType = FindType(_currentModel.Value.GetTypeInfo(node).Type);
                     if (exprType != null)
                     {
                         if (typeof(ButtonControl).IsAssignableFrom(exprType))
@@ -943,10 +943,10 @@ namespace RegressionGames.ActionManager
 
             var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
             if (classDecl == null) return;
-            var objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+            var objectType = FindType(_currentModel.Value.GetDeclaredSymbol(classDecl));
             if (typeof(MonoBehaviour).IsAssignableFrom(objectType))
             {
-                var declSym = _currentModel.GetDeclaredSymbol(node);
+                var declSym = _currentModel.Value.GetDeclaredSymbol(node);
                 if (declSym.Parameters.Length == 0)
                 {
                     #if ENABLE_LEGACY_INPUT_MANAGER
@@ -989,7 +989,7 @@ namespace RegressionGames.ActionManager
             var classDecl = node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
             if (classDecl != null)
             {
-                var typeSymbol = _currentModel.GetDeclaredSymbol(classDecl);
+                var typeSymbol = _currentModel.Value.GetDeclaredSymbol(classDecl);
                 typeName = typeSymbol.ToString();
             }
             else
@@ -997,7 +997,7 @@ namespace RegressionGames.ActionManager
                 typeName = "<global>";
             }
 
-            var filePath = _currentTree.FilePath;
+            var filePath = _currentTree.Value.FilePath;
 
             var pathLen = 3;
             if (pathSuffix != null)
@@ -1031,7 +1031,7 @@ namespace RegressionGames.ActionManager
             {
                 var classDecl = sourceNode.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
                 if (classDecl == null) return;
-                var objectType = FindType(_currentModel.GetDeclaredSymbol(classDecl));
+                var objectType = FindType(_currentModel.Value.GetDeclaredSymbol(classDecl));
                 if (typeof(MonoBehaviour).IsAssignableFrom(objectType))
                 {
                     action.ObjectType = objectType;
@@ -1062,7 +1062,7 @@ namespace RegressionGames.ActionManager
                     AddAnalysisWarning("Actions used outside of MonoBehaviour that are not contained in a method are not supported", sourceNode);
                     return;
                 }
-                var methodSym = _currentModel.GetDeclaredSymbol(methodDecl);
+                var methodSym = _currentModel.Value.GetDeclaredSymbol(methodDecl);
                 var methodSig = methodSym.ToString();
 
                 var methodUnboundActions = _unboundActions.GetOrAdd(methodSig, new ConcurrentDictionary<string, RGGameAction>());
@@ -1114,43 +1114,34 @@ namespace RegressionGames.ActionManager
 
         private async Task RunCodeAnalysis(int passNum, List<(Assembly,Compilation)> targetAssemblies)
         {
-            // some await to make this async
+            // some await to make this async on another thread right away
             await Task.CompletedTask;
-            // we 'assume' that code analysis will take up to 3 passes and scale our progress accordingly
-            // this is based on a fairly complex customer project... (most simple projects only take 1 or 2)
 
-            const float codeAnalysisStartProgress = 0.5f;
-            const float codeAnalysisEndProgress = 0.95f;
-            const float progressPerPass = (codeAnalysisEndProgress - codeAnalysisStartProgress) / 3.0f;
-            // compute start/end but limit to the max end value in case we get 4 passes or more
-            var startProgress = Mathf.Min(codeAnalysisStartProgress + progressPerPass * (passNum - 1), codeAnalysisEndProgress);
-            var endProgress = Mathf.Min(codeAnalysisStartProgress + progressPerPass * passNum, codeAnalysisEndProgress);
-            // not on main thread ... NotifyProgress($"Performing code analysis (pass {passNum})", codeAnalysisStartProgress);
+            List<Task> tasks = new();
+            // ReSharper disable once LoopCanBeConvertedToQuery - task thread indexing
             for (var i = 0; i < targetAssemblies.Count; ++i)
             {
-                var asmStartProgress = Mathf.Lerp(startProgress, endProgress,
-                    i / (float)targetAssemblies.Count);
-                var asmEndProgress = Mathf.Lerp(startProgress, endProgress,
-                    (i + 1) / (float)targetAssemblies.Count);
-
-                var asm = targetAssemblies[i].Item1;
-                var numSyntaxTrees = asm.sourceFiles.Length;
-
-                var compilation = targetAssemblies[i].Item2;
-                var syntaxTreeIndex = 0;
-                foreach (var syntaxTree in compilation.SyntaxTrees)
+                var myIndex = i;
+                tasks.Add(Task.Run(async () =>
                 {
-                    var progress = Mathf.Lerp(asmStartProgress, asmEndProgress, syntaxTreeIndex / (float)numSyntaxTrees);
-                    // not on main thread ... NotifyProgress($"Performing code analysis (pass {passNum}) - Assembly: {asm.name} ", progress);
-                    _currentModel = compilation.GetSemanticModel(syntaxTree);
-                    _currentTree = syntaxTree;
-                    _assignmentExprs.Clear();
-                    _localDeclarationStmts.Clear();
-                    var root = syntaxTree.GetCompilationUnitRoot();
-                    Visit(root);
-                    ++syntaxTreeIndex;
-                }
+                    // some await to make this async on another thread
+                    await Task.CompletedTask;
+
+                    var compilation = targetAssemblies[myIndex].Item2;
+                    foreach (var syntaxTree in compilation.SyntaxTrees)
+                    {
+
+                        _currentModel.Value = compilation.GetSemanticModel(syntaxTree);
+                        _currentTree.Value = syntaxTree;
+                        _assignmentExprs.Value.Clear();
+                        _localDeclarationStmts.Value.Clear();
+                        var root = syntaxTree.GetCompilationUnitRoot();
+                        Visit(root);
+                    }
+                }));
             }
+
+            await Task.WhenAll(tasks.ToArray());
         }
 
         /// <summary>
@@ -1247,8 +1238,6 @@ namespace RegressionGames.ActionManager
                     AddAction(new UISliderPressAction(pathPress, typeof(Scrollbar), normName), null);
                     AddAction(new UISliderReleaseAction(pathRelease, typeof(Scrollbar), normName), null);
                 }
-
-                //TODO: [ZMD] - Can we cache the type -> fields / properties so that we don't call that so many times?
 
                 // search for embedded InputActions
                 foreach (var c in gameObject.GetComponents<Component>())
@@ -1350,7 +1339,7 @@ namespace RegressionGames.ActionManager
             _propertyInfoCache.Clear();
 
             const float resourceAnalysisStartProgress = 0.0f;
-            const float resourceAnalysisEndProgress = 0.5f;
+            const float resourceAnalysisEndProgress = 0.8f;
 
             NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
 
@@ -1468,8 +1457,8 @@ namespace RegressionGames.ActionManager
                 _warnings.Clear();
                 _propertyInfoCache.Clear();
                 _fieldInfoCache.Clear();
-                _assignmentExprs.Clear();
-                _localDeclarationStmts.Clear();
+                _assignmentExprs.Value.Clear();
+                _localDeclarationStmts.Value.Clear();
 
                 // do these expensive operations 1 time, but they have to be on the main thread
                 var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
@@ -1503,6 +1492,8 @@ namespace RegressionGames.ActionManager
 
                 // wait for code analysis to complete
                 NotifyProgress("Waiting for code analysis to complete", 0.95f);
+
+                Thread.Sleep(1000);
 
                 Task.WaitAll(codeTask);
 
