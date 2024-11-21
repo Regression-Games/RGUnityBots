@@ -1119,14 +1119,21 @@ namespace RegressionGames.ActionManager
 
         private void RunCodeAnalysis(int passNum, List<(Assembly,Compilation)> targetAssemblies)
         {
-            const float codeAnalysisStartProgress = 0.0f;
-            const float codeAnalysisEndProgress = 0.6f;
+            // we 'assume' that code analysis will take up to 3 passes and scale our progress accordingly
+            // this is based on a fairly complex customer project... (most simple projects only take 1 or 2)
+
+            const float codeAnalysisStartProgress = 0.5f;
+            const float codeAnalysisEndProgress = 0.95f;
+            const float progressPerPass = (codeAnalysisEndProgress - codeAnalysisStartProgress) / 3.0f;
+            // compute start/end but limit to the max end value in case we get 4 passes or more
+            var startProgress = Mathf.Min(codeAnalysisStartProgress + progressPerPass * (passNum - 1), codeAnalysisEndProgress);
+            var endProgress = Mathf.Min(codeAnalysisStartProgress + progressPerPass * passNum, codeAnalysisEndProgress);
             NotifyProgress($"Performing code analysis (pass {passNum})", codeAnalysisStartProgress);
             for (var i = 0; i < targetAssemblies.Count; ++i)
             {
-                var asmStartProgress = Mathf.Lerp(codeAnalysisStartProgress, codeAnalysisEndProgress,
+                var asmStartProgress = Mathf.Lerp(startProgress, endProgress,
                     i / (float)targetAssemblies.Count);
-                var asmEndProgress = Mathf.Lerp(codeAnalysisStartProgress, codeAnalysisEndProgress,
+                var asmEndProgress = Mathf.Lerp(startProgress, endProgress,
                     (i + 1) / (float)targetAssemblies.Count);
 
                 var asm = targetAssemblies[i].Item1;
@@ -1137,7 +1144,7 @@ namespace RegressionGames.ActionManager
                 foreach (var syntaxTree in compilation.SyntaxTrees)
                 {
                     var progress = Mathf.Lerp(asmStartProgress, asmEndProgress, syntaxTreeIndex / (float)numSyntaxTrees);
-                    NotifyProgress($"Analyzing {asm.name} (pass {passNum})", progress);
+                    NotifyProgress($"Performing code analysis (pass {passNum}) - Assembly: {asm.name} ", progress);
                     _currentModel = compilation.GetSemanticModel(syntaxTree);
                     _currentTree = syntaxTree;
                     _assignmentExprs.Clear();
@@ -1345,8 +1352,8 @@ namespace RegressionGames.ActionManager
             _fieldInfoCache.Clear();
             _propertyInfoCache.Clear();
 
-            const float resourceAnalysisStartProgress = 0.6f;
-            const float resourceAnalysisEndProgress = 0.9f;
+            const float resourceAnalysisStartProgress = 0.0f;
+            const float resourceAnalysisEndProgress = 0.5f;
 
             NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
 
@@ -1368,7 +1375,7 @@ namespace RegressionGames.ActionManager
                     {
                         continue;
                     }
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
+                    NotifyProgress($"Performing resource analysis - Scene: {Path.GetFileNameWithoutExtension(scenePath)}", progress);
 
                     var scene = OpenPreviewScene(scenePath);
                     try
@@ -1402,7 +1409,7 @@ namespace RegressionGames.ActionManager
                     {
                         continue;
                     }
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
+                    NotifyProgress($"Performing resource analysis - Prefab: {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
                     var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
                     foreach (var gameObject in IterateGameObjects(prefabContents))
                     {
@@ -1430,7 +1437,7 @@ namespace RegressionGames.ActionManager
                         continue;
                     }
 
-                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
+                    NotifyProgress($"Performing resource analysis - InputActionAsset: {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
                     var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
                     foreach (var actionMap in inputAsset.actionMaps)
                     {
@@ -1467,6 +1474,8 @@ namespace RegressionGames.ActionManager
                 _assignmentExprs.Clear();
                 _localDeclarationStmts.Clear();
 
+                RunResourceAnalysis();
+
                 // do these expensive operations 1 time
                 var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
                 var analysisAssemblies = targetAssemblies.Select(a => (a, GetCompilationForAssembly(a))).ToList();
@@ -1484,9 +1493,7 @@ namespace RegressionGames.ActionManager
                     ++passNum;
                 } while (_unboundActionsNeedResolution);
 
-                RunResourceAnalysis();
-
-                NotifyProgress("Saving analysis results", 0.9f);
+                NotifyProgress("Saving analysis results", 0.95f);
 
                 // Heuristic: If a syntax node is associated with multiple MousePositionAction, remove the imprecise one that is initially added (NON_UI)
                 foreach (var entry in _rawActionsByNode)
