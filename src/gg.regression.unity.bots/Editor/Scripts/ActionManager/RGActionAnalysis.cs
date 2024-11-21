@@ -1099,11 +1099,10 @@ namespace RegressionGames.ActionManager
 
         private static bool IsRGOverlayObject(GameObject gameObject)
         {
-            var t = gameObject.transform;
+            Transform t = gameObject.transform;
             while (t != null)
             {
-                // the RGOverlay has the ScreenRecorder behaviour on it.. faster than checking string comparisons
-                if (t.GetComponent<ScreenRecorder>() != null)
+                if (t.gameObject.name.Contains("RGOverlayCanvas"))
                 {
                     return true;
                 }
@@ -1321,6 +1320,20 @@ namespace RegressionGames.ActionManager
             AddAction(result, null);
         }
 
+        /**
+         * In Unity 6, EditorSceneManager.OpenPreviewScene is public, but before that you have to access the internal method with reflection
+         */
+        private static Scene OpenPreviewScene(string path)
+        {
+#if UNITY_6000_0_OR_NEWER
+            return EditorSceneManager.OpenPreviewScene(path);
+#else
+            var openMethod = typeof(EditorSceneManager).GetMethod("OpenPreviewScene", BindingFlags.Static | BindingFlags.NonPublic, null, new [] {typeof(string)}, null);
+            Scene result = (Scene) openMethod.Invoke(null, new object[] { path });
+            return result;
+#endif
+        }
+
         private void RunResourceAnalysis()
         {
             _fieldInfoCache.Clear();
@@ -1328,111 +1341,105 @@ namespace RegressionGames.ActionManager
 
             const float resourceAnalysisStartProgress = 0.6f;
             const float resourceAnalysisEndProgress = 0.9f;
-            var origScenePath = SceneManager.GetActiveScene().path;
+
             NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
-            try
+
+            var sceneGuids = AssetDatabase.FindAssets("t:Scene");
+            var prefabGuids = AssetDatabase.FindAssets("t:Prefab");
+            var inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
+            var analyzedResourceCount = 0;
+            var totalResourceCount = sceneGuids.Length + prefabGuids.Length + inputActionAssetGuids.Length;
+
+            // Examine the game objects in all scenes in the project
+            foreach (var sceneGuid in sceneGuids)
             {
-                var sceneGuids = AssetDatabase.FindAssets("t:Scene");
-                var prefabGuids = AssetDatabase.FindAssets("t:Prefab");
-                var inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
-                var analyzedResourceCount = 0;
-                var totalResourceCount = sceneGuids.Length + prefabGuids.Length + inputActionAssetGuids.Length;
-
-                // Examine the game objects in all scenes in the project
-                foreach (var sceneGuid in sceneGuids)
+                var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                    analyzedResourceCount / (float)totalResourceCount);
+                try
                 {
-                    var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                        analyzedResourceCount / (float)totalResourceCount);
+                    var scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
+                    if (scenePath.StartsWith("Packages/"))
+                    {
+                        continue;
+                    }
+                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
+
+                    var scene = OpenPreviewScene(scenePath);
                     try
                     {
-                        var scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
-                        if (scenePath.StartsWith("Packages/"))
-                        {
-                            continue;
-                        }
-                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(scenePath)}", progress);
-                        EditorSceneManager.OpenScene(scenePath);
-                        for (int i = 0, n = SceneManager.sceneCount; i < n; ++i)
-                        {
-                            var scene = SceneManager.GetSceneAt(i);
-                            foreach (var gameObject in IterateGameObjects(scene))
-                            {
-                                AnalyzeGameObject(gameObject);
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        RGDebug.LogWarning("Exception when opening scene: " + e.Message + "\n" + e.StackTrace);
-                    }
-                    ++analyzedResourceCount;
-                }
-
-                // Examine all the prefabs in the project
-                foreach (var prefabGuid in prefabGuids)
-                {
-                    var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                        analyzedResourceCount / (float)totalResourceCount);
-                    try
-                    {
-                        var prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
-                        if (prefabPath.StartsWith("Packages/"))
-                        {
-                            continue;
-                        }
-                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
-                        var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
-                        foreach (var gameObject in IterateGameObjects(prefabContents))
+                        foreach (var gameObject in IterateGameObjects(scene))
                         {
                             AnalyzeGameObject(gameObject);
                         }
-                        EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                     }
-                    catch (Exception e)
+                    finally
                     {
-                        RGDebug.LogWarning("Exception when opening prefab: " + e.Message + "\n" + e.StackTrace);
+                        EditorSceneManager.ClosePreviewScene(scene);
                     }
-                    ++analyzedResourceCount;
                 }
-
-                // Examine all the InputActionAssets in the project
-                foreach (var inputAssetGuid in inputActionAssetGuids)
+                catch (Exception e)
                 {
-                    try
-                    {
-                        var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                            analyzedResourceCount / (float)totalResourceCount);
-                        var inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
-                        if (inputAssetPath.StartsWith("Packages/"))
-                        {
-                            continue;
-                        }
-
-                        NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
-                        var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
-                        foreach (var actionMap in inputAsset.actionMaps)
-                        {
-                            foreach (var act in actionMap.actions)
-                            {
-                                // ReSharper disable once RedundantArgumentDefaultValue
-                                AnalyzeInputAction(act, null);
-                            }
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        RGDebug.LogWarning("Exception when opening input asset: " + e.Message + "\n" + e.StackTrace);
-                    }
-                    ++analyzedResourceCount;
+                    RGDebug.LogWarning("Exception when opening scene: " + e.Message + "\n" + e.StackTrace);
                 }
+                ++analyzedResourceCount;
             }
-            finally
+
+            // Examine all the prefabs in the project
+            foreach (var prefabGuid in prefabGuids)
             {
-                // restore the scene that was originally opened
-                if (!string.IsNullOrEmpty(origScenePath))
+                var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                    analyzedResourceCount / (float)totalResourceCount);
+                try
                 {
-                    EditorSceneManager.OpenScene(origScenePath);
+                    var prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+                    if (prefabPath.StartsWith("Packages/"))
+                    {
+                        continue;
+                    }
+                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
+                    var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
+                    foreach (var gameObject in IterateGameObjects(prefabContents))
+                    {
+                        AnalyzeGameObject(gameObject);
+                    }
+                    EditorSceneManager.ClosePreviewScene(prefabContents.scene);
                 }
+                catch (Exception e)
+                {
+                    RGDebug.LogWarning("Exception when opening prefab: " + e.Message + "\n" + e.StackTrace);
+                }
+                ++analyzedResourceCount;
+            }
+
+            // Examine all the InputActionAssets in the project
+            foreach (var inputAssetGuid in inputActionAssetGuids)
+            {
+                try
+                {
+                    var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                        analyzedResourceCount / (float)totalResourceCount);
+                    var inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
+                    if (inputAssetPath.StartsWith("Packages/"))
+                    {
+                        continue;
+                    }
+
+                    NotifyProgress($"Analyzing {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
+                    var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
+                    foreach (var actionMap in inputAsset.actionMaps)
+                    {
+                        foreach (var act in actionMap.actions)
+                        {
+                            // ReSharper disable once RedundantArgumentDefaultValue
+                            AnalyzeInputAction(act, null);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    RGDebug.LogWarning("Exception when opening input asset: " + e.Message + "\n" + e.StackTrace);
+                }
+                ++analyzedResourceCount;
             }
         }
 
@@ -1447,7 +1454,12 @@ namespace RegressionGames.ActionManager
                 _rawActions.Clear();
                 _rawActionsByNode.Clear();
                 _unboundActions.Clear();
+                _actions.Clear();
                 _warnings.Clear();
+                _propertyInfoCache.Clear();
+                _fieldInfoCache.Clear();
+                _assignmentExprs.Clear();
+                _localDeclarationStmts.Clear();
 
                 // do these expensive operations 1 time
                 var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
