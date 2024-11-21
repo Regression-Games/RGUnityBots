@@ -140,6 +140,20 @@ namespace RegressionGames.ActionManager
             return _context is not BotSegmentsPlaybackController ;
         }
 
+        public static bool TryStartSession(int segmentNumber, MonoBehaviour context, RGActionManagerSettings actionSettings = null)
+        {
+            try
+            {
+                StartSession(segmentNumber, context, actionSettings);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                RGDebug.LogWarning("Unable to start RGActionManager Session - " + ex);
+                return false;
+            }
+        }
+
         /// <summary>
         /// Start an action manager session. This should be called prior to any calls to GetValidActions().
         /// </summary>

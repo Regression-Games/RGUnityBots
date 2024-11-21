@@ -24,6 +24,7 @@ namespace RegressionGames.ActionManager
 
         public static void Reset()
         {
+            _inProgress = false;
             _allActions.Clear();
             _analysisData.Clear();
             _currentSegment = -1;

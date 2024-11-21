@@ -21,11 +21,11 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             data.screenSize = jObject.GetValue("screenSize").ToObject<Vector2Int>(serializer);
             if (jObject.ContainsKey("apiVersion"))
             {
-                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>();
+                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             }
 
-            data.timeBetweenClicks = jObject.GetValue("timeBetweenClicks").ToObject<float>();
-            data.excludedAreas = jObject.GetValue("excludedAreas").ToObject<List<RectInt>>();
+            data.timeBetweenClicks = jObject.GetValue("timeBetweenClicks").ToObject<float>(serializer);
+            data.excludedAreas = jObject.GetValue("excludedAreas").ToObject<List<RectInt>>(serializer);
             return data;
         }
 

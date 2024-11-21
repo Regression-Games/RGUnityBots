@@ -1,28 +1,28 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
+using StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {
-    public sealed class BehaviourActionDataJsonConverter : JsonConverter
+    public class SequenceRestartCheckpointJsonConverter: JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
-            return typeof(BehaviourActionData).IsAssignableFrom(objectType);
+            return typeof(SequenceRestartCheckpoint).IsAssignableFrom(objectType);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             JObject jObject = JObject.Load(reader);
             // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug lines without this
-            BehaviourActionData data = new();
-            data.behaviourFullName = jObject.GetValue("behaviourFullName").ToObject<string>(serializer);
+            SequenceRestartCheckpoint data = new();
             if (jObject.ContainsKey("apiVersion"))
             {
                 data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             }
-            data.maxRuntimeSeconds = jObject.GetValue("maxRuntimeSeconds").ToObject<float>(serializer);
+
+            data.resourcePath = jObject.GetValue("resourcePath").ToObject<string>(serializer);
             return data;
         }
 
@@ -33,5 +33,4 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             throw new NotImplementedException();
         }
     }
-
 }

@@ -113,9 +113,13 @@
          * <summary> Action analysis results</summary>
          */
         public const int VERSION_26 = 26;
+        /**
+         * <summary> Add QLearning exploration bot</summary>
+         */
+        public const int VERSION_27 = 27;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_26;
+        public const int CURRENT_VERSION = VERSION_27;
 
     }
 }

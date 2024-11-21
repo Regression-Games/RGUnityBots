@@ -17,13 +17,13 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
         {
             JObject jObject = JObject.Load(reader);
             KeyFrameCriteria criteria = new();
-            criteria.transient = jObject["transient"].ToObject<bool>();
+            criteria.transient = jObject["transient"].ToObject<bool>(serializer);
             if (jObject.ContainsKey("apiVersion"))
             {
-                criteria.apiVersion = jObject["apiVersion"].ToObject<int>();
+                criteria.apiVersion = jObject["apiVersion"].ToObject<int>(serializer);
             }
 
-            criteria.type = jObject["type"].ToObject<KeyFrameCriteriaType>();
+            criteria.type = jObject["type"].ToObject<KeyFrameCriteriaType>(serializer);
             IKeyFrameCriteriaData data = null;
             switch (criteria.type)
             {
