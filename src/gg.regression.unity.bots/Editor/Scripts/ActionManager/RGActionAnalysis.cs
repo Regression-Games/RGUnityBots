@@ -1,11 +1,13 @@
 ﻿#if UNITY_EDITOR
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
@@ -18,7 +20,6 @@ using UnityEngine.InputSystem.Controls;
 using Assembly = UnityEditor.Compilation.Assembly;
 using Button = UnityEngine.UI.Button;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
 using TMPro;
 using UnityEditor.SceneManagement;
@@ -65,15 +66,15 @@ namespace RegressionGames.ActionManager
     public class RGActionAnalysis : CSharpSyntaxWalker
     {
         // actions that were identified in a method outside of a MonoBehaviour (mapping from method name -> action path -> action)
-        private readonly Dictionary<string, Dictionary<string, RGGameAction>> _unboundActions = new();
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, RGGameAction>> _unboundActions = new();
 
         // Mapping from action path to action. Populated as the analysis proceeds.
         // This is considered a "raw" set of actions, in that it is possible that redundant/equivalent
         // actions are generated. The final output of the analysis combines any equivalent actions.
-        private readonly Dictionary<string, RGGameAction> _rawActions = new();
+        private readonly ConcurrentDictionary<string, RGGameAction> _rawActions = new();
 
         // Mapping that associates syntax nodes with the actions that were identified at those points.
-        private readonly Dictionary<SyntaxNode, List<RGGameAction>> _rawActionsByNode = new();
+        private readonly ConcurrentDictionary<SyntaxNode, List<RGGameAction>> _rawActionsByNode = new();
 
         private SemanticModel _currentModel;
         private SyntaxTree _currentTree;
@@ -1043,11 +1044,7 @@ namespace RegressionGames.ActionManager
                 {
                     if (sourceNode != null)
                     {
-                        if (!_rawActionsByNode.TryGetValue(sourceNode, out var nodeActions))
-                        {
-                            nodeActions = new List<RGGameAction>();
-                            _rawActionsByNode.Add(sourceNode, nodeActions);
-                        }
+                        var nodeActions = _rawActionsByNode.GetOrAdd(sourceNode, new List<RGGameAction>());
                         nodeActions.Add(action);
                     }
                 }
@@ -1067,11 +1064,9 @@ namespace RegressionGames.ActionManager
                 }
                 var methodSym = _currentModel.GetDeclaredSymbol(methodDecl);
                 var methodSig = methodSym.ToString();
-                if (!_unboundActions.TryGetValue(methodSig, out var methodUnboundActions))
-                {
-                    methodUnboundActions = new Dictionary<string, RGGameAction>();
-                    _unboundActions.Add(methodSig, methodUnboundActions);
-                }
+
+                var methodUnboundActions = _unboundActions.GetOrAdd(methodSig, new ConcurrentDictionary<string, RGGameAction>());
+
                 var path = string.Join("/", action.Paths[0]);
                 if (methodUnboundActions.TryAdd(path, action))
                 {
@@ -1117,8 +1112,10 @@ namespace RegressionGames.ActionManager
             return false;
         }
 
-        private void RunCodeAnalysis(int passNum, List<(Assembly,Compilation)> targetAssemblies)
+        private async Task RunCodeAnalysis(int passNum, List<(Assembly,Compilation)> targetAssemblies)
         {
+            // some await to make this async
+            await Task.CompletedTask;
             // we 'assume' that code analysis will take up to 3 passes and scale our progress accordingly
             // this is based on a fairly complex customer project... (most simple projects only take 1 or 2)
 
@@ -1128,7 +1125,7 @@ namespace RegressionGames.ActionManager
             // compute start/end but limit to the max end value in case we get 4 passes or more
             var startProgress = Mathf.Min(codeAnalysisStartProgress + progressPerPass * (passNum - 1), codeAnalysisEndProgress);
             var endProgress = Mathf.Min(codeAnalysisStartProgress + progressPerPass * passNum, codeAnalysisEndProgress);
-            NotifyProgress($"Performing code analysis (pass {passNum})", codeAnalysisStartProgress);
+            // not on main thread ... NotifyProgress($"Performing code analysis (pass {passNum})", codeAnalysisStartProgress);
             for (var i = 0; i < targetAssemblies.Count; ++i)
             {
                 var asmStartProgress = Mathf.Lerp(startProgress, endProgress,
@@ -1144,7 +1141,7 @@ namespace RegressionGames.ActionManager
                 foreach (var syntaxTree in compilation.SyntaxTrees)
                 {
                     var progress = Mathf.Lerp(asmStartProgress, asmEndProgress, syntaxTreeIndex / (float)numSyntaxTrees);
-                    NotifyProgress($"Performing code analysis (pass {passNum}) - Assembly: {asm.name} ", progress);
+                    // not on main thread ... NotifyProgress($"Performing code analysis (pass {passNum}) - Assembly: {asm.name} ", progress);
                     _currentModel = compilation.GetSemanticModel(syntaxTree);
                     _currentTree = syntaxTree;
                     _assignmentExprs.Clear();
@@ -1474,26 +1471,42 @@ namespace RegressionGames.ActionManager
                 _assignmentExprs.Clear();
                 _localDeclarationStmts.Clear();
 
+                // do these expensive operations 1 time, but they have to be on the main thread
+                var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
+
+                NotifyProgress("Starting async code analysis", 0.00f);
+
+                // start code analysis in background
+                var codeTask = Task.Run(async () =>
+                {
+                    // put an await here so this actually goes on a separate thread
+                    await Task.CompletedTask;
+                    // do this expensive thing only once
+                    var analysisAssemblies = targetAssemblies.Select(a => (a, GetCompilationForAssembly(a))).ToList();
+
+                    /*
+                     * REG-1829 added this loop support.
+                     * It expands the range of games supported by updating RGActionAnalysis to support identifying actions even if the input-handling code resides outside of a MonoBehaviour (for example, in a helper method).
+                     * This is done by iteratively propagating identified actions through the method calls until the analysis results no longer change (this unfortunately means the code analysis often requires >1 passes).
+                     */
+                    int passNum = 1;
+                    do
+                    {
+                        _unboundActionsNeedResolution = false;
+                        await RunCodeAnalysis(passNum, analysisAssemblies);
+                        ++passNum;
+                    } while (_unboundActionsNeedResolution);
+                });
+
+                // do the resource analysis in the foreground
                 RunResourceAnalysis();
 
-                // do these expensive operations 1 time
-                var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
-                var analysisAssemblies = targetAssemblies.Select(a => (a, GetCompilationForAssembly(a))).ToList();
+                // wait for code analysis to complete
+                NotifyProgress("Waiting for code analysis to complete", 0.95f);
 
-                /*
-                 * REG-1829 added this loop support.
-                 * It expands the range of games supported by updating RGActionAnalysis to support identifying actions even if the input-handling code resides outside of a MonoBehaviour (for example, in a helper method).
-                 * This is done by iteratively propagating identified actions through the method calls until the analysis results no longer change (this unfortunately means the code analysis often requires >1 passes).
-                 */
-                int passNum = 1;
-                do
-                {
-                    _unboundActionsNeedResolution = false;
-                    RunCodeAnalysis(passNum, analysisAssemblies);
-                    ++passNum;
-                } while (_unboundActionsNeedResolution);
+                Task.WaitAll(codeTask);
 
-                NotifyProgress("Saving analysis results", 0.95f);
+                NotifyProgress("Saving analysis results", 0.98f);
 
                 // Heuristic: If a syntax node is associated with multiple MousePositionAction, remove the imprecise one that is initially added (NON_UI)
                 foreach (var entry in _rawActionsByNode)
@@ -1507,14 +1520,13 @@ namespace RegressionGames.ActionManager
                             if (act is MousePositionAction { PositionType: MousePositionType.NON_UI } mpAct)
                             {
                                 var path = string.Join("/", mpAct.Paths[0]);
-                                _rawActions.Remove(path);
+                                _rawActions.TryRemove(path, out _);
                             }
                         }
                     }
                 }
 
                 // Compute the set of unique actions
-                _actions.Clear();
                 foreach (var rawAction in _rawActions.Values)
                 {
                     var action = _actions.FirstOrDefault(a => a.IsEquivalentTo(rawAction));
@@ -1564,7 +1576,6 @@ namespace RegressionGames.ActionManager
             sw.Close();
         }
 
-        // Returns true if the analysis was requested to be cancelled
         private void NotifyProgress(string message, float progress)
         {
             if (_displayProgressBar)
