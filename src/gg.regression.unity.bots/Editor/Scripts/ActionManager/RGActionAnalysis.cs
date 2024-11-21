@@ -1491,11 +1491,12 @@ namespace RegressionGames.ActionManager
                 RunResourceAnalysis();
 
                 // wait for code analysis to complete
-                NotifyProgress("Waiting for code analysis to complete", 0.95f);
+                NotifyProgress("Waiting for code analysis to complete", 0.92f);
 
                 Task.WaitAll(codeTask);
 
-                NotifyProgress("Saving analysis results", 0.98f);
+                NotifyProgress("Computing the unique action set", 0.95f);
+
 
                 // Heuristic: If a syntax node is associated with multiple MousePositionAction, remove the imprecise one that is initially added (NON_UI)
                 foreach (var entry in _rawActionsByNode)
@@ -1528,6 +1529,8 @@ namespace RegressionGames.ActionManager
                         _actions.Add(rawAction);
                     }
                 }
+
+                NotifyProgress("Saving analysis results", 0.98f);
 
                 SaveAnalysisResult();
 
