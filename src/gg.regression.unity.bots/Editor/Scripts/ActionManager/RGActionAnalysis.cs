@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using UnityEditor.Compilation;
 using UnityEngine;
 using Microsoft.CodeAnalysis;
@@ -87,7 +88,7 @@ namespace RegressionGames.ActionManager
 
         private readonly bool _displayProgressBar;
 
-        private bool _changed = false;
+        private bool _unboundActionsNeedResolution;
 
         public RGActionAnalysis(bool displayProgressBar = false)
         {
@@ -1048,7 +1049,6 @@ namespace RegressionGames.ActionManager
                             _rawActionsByNode.Add(sourceNode, nodeActions);
                         }
                         nodeActions.Add(action);
-                        _changed = true;
                     }
                 }
             }
@@ -1075,7 +1075,7 @@ namespace RegressionGames.ActionManager
                 var path = string.Join("/", action.Paths[0]);
                 if (methodUnboundActions.TryAdd(path, action))
                 {
-                    _changed = true;
+                    _unboundActionsNeedResolution = true;
                 }
             }
         }
@@ -1471,17 +1471,18 @@ namespace RegressionGames.ActionManager
                 var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
                 var analysisAssemblies = targetAssemblies.Select(a => (a, GetCompilationForAssembly(a))).ToList();
 
+                /*
+                 * REG-1829 added this loop support.
+                 * It expands the range of games supported by updating RGActionAnalysis to support identifying actions even if the input-handling code resides outside of a MonoBehaviour (for example, in a helper method).
+                 * This is done by iteratively propagating identified actions through the method calls until the analysis results no longer change (this unfortunately means the code analysis often requires >1 passes).
+                 */
+                int passNum = 1;
+                do
                 {
-                    int passNum = 1;
-                    do
-                    {
-                        _changed = false;
-                        RunCodeAnalysis(passNum, analysisAssemblies);
-                        ++passNum;
-                    } while (_changed);
-                }
-
-                RunCodeAnalysis(1, analysisAssemblies);
+                    _unboundActionsNeedResolution = false;
+                    RunCodeAnalysis(passNum, analysisAssemblies);
+                    ++passNum;
+                } while (_unboundActionsNeedResolution);
 
                 RunResourceAnalysis();
 
