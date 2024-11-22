@@ -1126,7 +1126,7 @@ namespace RegressionGames.ActionManager
             UpdateCodeProgress($"Code analysis (pass {passNum}) - start", startProgress);
 
             List<Task> tasks = new();
-            var completedCount = 0;
+            var completedCount = 0L;
             // ReSharper disable once LoopCanBeConvertedToQuery - task thread indexing
             for (int i = 0, targetAssembliesCount = targetAssemblies.Count; i < targetAssembliesCount; ++i)
             {
@@ -1139,7 +1139,6 @@ namespace RegressionGames.ActionManager
                     var compilation = targetAssemblies[myIndex].Item2;
                     foreach (var syntaxTree in compilation.SyntaxTrees)
                     {
-
                         _currentModel.Value = compilation.GetSemanticModel(syntaxTree);
                         _currentTree.Value = syntaxTree;
                         _assignmentExprs.Value.Clear();
@@ -1148,8 +1147,7 @@ namespace RegressionGames.ActionManager
                         Visit(root);
                     }
 
-                    ++completedCount;
-                    float progress = Mathf.Lerp(startProgress, endProgress, completedCount / (float)targetAssembliesCount);
+                    var progress = Mathf.Lerp(startProgress, endProgress, Interlocked.Increment(ref completedCount) / (float)targetAssembliesCount);
                     UpdateCodeProgress($"Code analysis (pass {passNum}) - Analyzed {targetAssemblies[myIndex].Item1.name}", progress);
                 }));
             }
