@@ -25,6 +25,7 @@ using TMPro;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager
 {
@@ -1117,9 +1118,18 @@ namespace RegressionGames.ActionManager
             // some await to make this async on another thread right away
             await Task.CompletedTask;
 
+            // assumes 3 passes max as a large customer game proved that out
+            const int maxPasses = 3;
+
+            var endProgress = codeAnalysisEndProgress / maxPasses * passNum;
+            var startProgress = codeAnalysisEndProgress / maxPasses * (passNum - 1);
+
+            UpdateCodeProgress($"Code analysis (pass {passNum}) - start", startProgress);
+
             List<Task> tasks = new();
+            var completedCount = 0;
             // ReSharper disable once LoopCanBeConvertedToQuery - task thread indexing
-            for (var i = 0; i < targetAssemblies.Count; ++i)
+            for (int i = 0, targetAssembliesCount = targetAssemblies.Count; i < targetAssembliesCount; ++i)
             {
                 var myIndex = i;
                 tasks.Add(Task.Run(async () =>
@@ -1138,10 +1148,16 @@ namespace RegressionGames.ActionManager
                         var root = syntaxTree.GetCompilationUnitRoot();
                         Visit(root);
                     }
+
+                    ++completedCount;
+                    float progress = Mathf.Lerp(startProgress, endProgress, completedCount / (float)targetAssembliesCount);
+                    UpdateCodeProgress($"Code analysis (pass {passNum}) - Analyzed {targetAssemblies[myIndex].Item1.name}", progress);
                 }));
             }
 
             await Task.WhenAll(tasks.ToArray());
+
+            UpdateCodeProgress($"Code analysis (pass {passNum}) - complete", endProgress);
         }
 
         /// <summary>
@@ -1338,31 +1354,30 @@ namespace RegressionGames.ActionManager
             _fieldInfoCache.Clear();
             _propertyInfoCache.Clear();
 
-            const float resourceAnalysisStartProgress = 0.0f;
-            const float resourceAnalysisEndProgress = 0.8f;
-
-            NotifyProgress("Performing resource analysis", resourceAnalysisStartProgress);
+            UpdateResourceProgress("Resource analysis - start", resourceAnalysisStartProgress);
 
             var sceneGuids = AssetDatabase.FindAssets("t:Scene");
             var prefabGuids = AssetDatabase.FindAssets("t:Prefab");
             var inputActionAssetGuids = AssetDatabase.FindAssets("t:InputActionAsset");
-            var analyzedResourceCount = 0;
+            var analyzedResourceCount = 0L;
             var totalResourceCount = sceneGuids.Length + prefabGuids.Length + inputActionAssetGuids.Length;
+
 
             // Examine the game objects in all scenes in the project
             foreach (var sceneGuid in sceneGuids)
             {
+                var scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
                 var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                    analyzedResourceCount / (float)totalResourceCount);
+                    Interlocked.Increment(ref analyzedResourceCount) / (float)totalResourceCount);
+                UpdateResourceProgress($"Resource analysis - Scene: {Path.GetFileNameWithoutExtension(scenePath)}", progress);
+
+                if (scenePath.StartsWith("Packages/"))
+                {
+                    continue;
+                }
+
                 try
                 {
-                    var scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
-                    if (scenePath.StartsWith("Packages/"))
-                    {
-                        continue;
-                    }
-                    NotifyProgress($"Performing resource analysis - Scene: {Path.GetFileNameWithoutExtension(scenePath)}", progress);
-
                     var scene = OpenPreviewScene(scenePath);
                     try
                     {
@@ -1380,50 +1395,60 @@ namespace RegressionGames.ActionManager
                 {
                     RGDebug.LogWarning("Exception when opening scene: " + e.Message + "\n" + e.StackTrace);
                 }
-                ++analyzedResourceCount;
+
             }
 
             // Examine all the prefabs in the project
             foreach (var prefabGuid in prefabGuids)
             {
+                var prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
+
                 var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                    analyzedResourceCount / (float)totalResourceCount);
+                    Interlocked.Increment(ref analyzedResourceCount) / (float)totalResourceCount);
+                UpdateResourceProgress($"Resource analysis - Prefab: {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
+
+                if (prefabPath.StartsWith("Packages/"))
+                {
+                    continue;
+                }
+
                 try
                 {
-                    var prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
-                    if (prefabPath.StartsWith("Packages/"))
-                    {
-                        continue;
-                    }
-                    NotifyProgress($"Performing resource analysis - Prefab: {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
                     var prefabContents = PrefabUtility.LoadPrefabContents(prefabPath);
-                    foreach (var gameObject in IterateGameObjects(prefabContents))
+                    try
                     {
-                        AnalyzeGameObject(gameObject);
+                        foreach (var gameObject in IterateGameObjects(prefabContents))
+                        {
+                            AnalyzeGameObject(gameObject);
+                        }
                     }
-                    EditorSceneManager.ClosePreviewScene(prefabContents.scene);
+                    finally
+                    {
+                        EditorSceneManager.ClosePreviewScene(prefabContents.scene);
+                    }
                 }
                 catch (Exception e)
                 {
                     RGDebug.LogWarning("Exception when opening prefab: " + e.Message + "\n" + e.StackTrace);
                 }
-                ++analyzedResourceCount;
             }
 
             // Examine all the InputActionAssets in the project
             foreach (var inputAssetGuid in inputActionAssetGuids)
             {
+                var inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
+
+                var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                    Interlocked.Increment(ref analyzedResourceCount) / (float)totalResourceCount);
+                UpdateResourceProgress($"Resource analysis - InputActionAsset: {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
+
+                if (inputAssetPath.StartsWith("Packages/"))
+                {
+                    continue;
+                }
+
                 try
                 {
-                    var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
-                        analyzedResourceCount / (float)totalResourceCount);
-                    var inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
-                    if (inputAssetPath.StartsWith("Packages/"))
-                    {
-                        continue;
-                    }
-
-                    NotifyProgress($"Performing resource analysis - InputActionAsset: {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
                     var inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(inputAssetPath);
                     foreach (var actionMap in inputAsset.actionMaps)
                     {
@@ -1433,14 +1458,27 @@ namespace RegressionGames.ActionManager
                             AnalyzeInputAction(act, null);
                         }
                     }
+                    UnityEngine.Object.Destroy(inputAsset);
                 }
                 catch (Exception e)
                 {
                     RGDebug.LogWarning("Exception when opening input asset: " + e.Message + "\n" + e.StackTrace);
                 }
-                ++analyzedResourceCount;
+
             }
+
+            UpdateResourceProgress("Resource analysis - complete", resourceAnalysisEndProgress);
         }
+
+        private volatile string _lastestAnalysisStatus = "";
+        private volatile float _latestResourceProgress = 0.0f;
+        private volatile float _latestCodeProgress = 0.0f;
+
+        const float resourceAnalysisStartProgress = 0.0f;
+        const float resourceAnalysisEndProgress = 0.45f;
+
+        const float codeAnalysisStartProgress = 0.0f;
+        const float codeAnalysisEndProgress = 0.45f;
 
         /// <summary>
         /// Conduct the action analysis and save the result to a file used by RGActionProvider.
@@ -1450,6 +1488,10 @@ namespace RegressionGames.ActionManager
         {
             try
             {
+                _lastestAnalysisStatus = "";
+                _latestResourceProgress = 0.0f;
+                _latestCodeProgress = 0.0f;
+
                 _rawActions.Clear();
                 _rawActionsByNode.Clear();
                 _unboundActions.Clear();
@@ -1463,13 +1505,16 @@ namespace RegressionGames.ActionManager
                 // do these expensive operations 1 time, but they have to be on the main thread
                 var targetAssemblies = new List<Assembly>(GetTargetAssemblies());
 
-                NotifyProgress("Starting async code analysis", 0.00f);
+                NotifyProgress("Starting analysis", 0.00f);
 
                 // start code analysis in background
                 var codeTask = Task.Run(async () =>
                 {
                     // put an await here so this actually goes on a separate thread
                     await Task.CompletedTask;
+
+                    UpdateCodeProgress($"Code analysis - start", codeAnalysisStartProgress);
+
                     // do this expensive thing only once
                     var analysisAssemblies = targetAssemblies.Select(a => (a, GetCompilationForAssembly(a))).ToList();
 
@@ -1485,18 +1530,21 @@ namespace RegressionGames.ActionManager
                         await RunCodeAnalysis(passNum, analysisAssemblies);
                         ++passNum;
                     } while (_unboundActionsNeedResolution);
+
+                    UpdateCodeProgress($"Performing code analysis - complete", codeAnalysisEndProgress);
                 });
 
                 // do the resource analysis in the foreground
                 RunResourceAnalysis();
 
-                // wait for code analysis to complete
-                NotifyProgress("Waiting for code analysis to complete", 0.92f);
+                var tasksToWait = new[] { codeTask };
 
-                Task.WaitAll(codeTask);
+                while (!Task.WaitAll(tasksToWait, 100))
+                {
+                    NotifyProgress(_lastestAnalysisStatus, _latestResourceProgress + _latestCodeProgress);
+                }
 
-                NotifyProgress("Computing the unique action set", 0.95f);
-
+                NotifyProgress("Computing the unique set of actions available", 0.94f);
 
                 // Heuristic: If a syntax node is associated with multiple MousePositionAction, remove the imprecise one that is initially added (NON_UI)
                 foreach (var entry in _rawActionsByNode)
@@ -1568,6 +1616,19 @@ namespace RegressionGames.ActionManager
             sw.Close();
         }
 
+        private void UpdateResourceProgress(string message, float progress)
+        {
+            _lastestAnalysisStatus = message;
+            _latestResourceProgress = progress;
+            NotifyProgress(message, progress + _latestCodeProgress);
+        }
+
+        private void UpdateCodeProgress(string message, float progress)
+        {
+            _lastestAnalysisStatus = message;
+            _latestCodeProgress = progress;
+        }
+
         private void NotifyProgress(string message, float progress)
         {
             if (_displayProgressBar)
@@ -1577,6 +1638,7 @@ namespace RegressionGames.ActionManager
                     throw new OperationCanceledException("Analysis cancelled by user");
                 }
             }
+
         }
 
         private void ClearProgress()
