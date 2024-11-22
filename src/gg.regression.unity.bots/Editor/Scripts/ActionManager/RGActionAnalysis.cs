@@ -25,7 +25,6 @@ using TMPro;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.ActionManager
 {
@@ -1121,8 +1120,8 @@ namespace RegressionGames.ActionManager
             // assumes 3 passes max as a large customer game proved that out
             const int maxPasses = 3;
 
-            var endProgress = codeAnalysisEndProgress / maxPasses * passNum;
-            var startProgress = codeAnalysisEndProgress / maxPasses * (passNum - 1);
+            var endProgress = CodeAnalysisEndProgress / maxPasses * passNum;
+            var startProgress = CodeAnalysisEndProgress / maxPasses * (passNum - 1);
 
             UpdateCodeProgress($"Code analysis (pass {passNum}) - start", startProgress);
 
@@ -1354,7 +1353,7 @@ namespace RegressionGames.ActionManager
             _fieldInfoCache.Clear();
             _propertyInfoCache.Clear();
 
-            UpdateResourceProgress("Resource analysis - start", resourceAnalysisStartProgress);
+            UpdateResourceProgress("Resource analysis - start", ResourceAnalysisStartProgress);
 
             var sceneGuids = AssetDatabase.FindAssets("t:Scene");
             var prefabGuids = AssetDatabase.FindAssets("t:Prefab");
@@ -1367,7 +1366,7 @@ namespace RegressionGames.ActionManager
             foreach (var sceneGuid in sceneGuids)
             {
                 var scenePath = AssetDatabase.GUIDToAssetPath(sceneGuid);
-                var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                var progress = Mathf.Lerp(ResourceAnalysisStartProgress, ResourceAnalysisEndProgress,
                     Interlocked.Increment(ref analyzedResourceCount) / (float)totalResourceCount);
                 UpdateResourceProgress($"Resource analysis - Scene: {Path.GetFileNameWithoutExtension(scenePath)}", progress);
 
@@ -1403,7 +1402,7 @@ namespace RegressionGames.ActionManager
             {
                 var prefabPath = AssetDatabase.GUIDToAssetPath(prefabGuid);
 
-                var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                var progress = Mathf.Lerp(ResourceAnalysisStartProgress, ResourceAnalysisEndProgress,
                     Interlocked.Increment(ref analyzedResourceCount) / (float)totalResourceCount);
                 UpdateResourceProgress($"Resource analysis - Prefab: {Path.GetFileNameWithoutExtension(prefabPath)}", progress);
 
@@ -1438,7 +1437,7 @@ namespace RegressionGames.ActionManager
             {
                 var inputAssetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid);
 
-                var progress = Mathf.Lerp(resourceAnalysisStartProgress, resourceAnalysisEndProgress,
+                var progress = Mathf.Lerp(ResourceAnalysisStartProgress, ResourceAnalysisEndProgress,
                     Interlocked.Increment(ref analyzedResourceCount) / (float)totalResourceCount);
                 UpdateResourceProgress($"Resource analysis - InputActionAsset: {Path.GetFileNameWithoutExtension(inputAssetPath)}", progress);
 
@@ -1467,18 +1466,18 @@ namespace RegressionGames.ActionManager
 
             }
 
-            UpdateResourceProgress("Resource analysis - complete", resourceAnalysisEndProgress);
+            UpdateResourceProgress("Resource analysis - complete", ResourceAnalysisEndProgress);
         }
 
-        private volatile string _lastestAnalysisStatus = "";
-        private volatile float _latestResourceProgress = 0.0f;
-        private volatile float _latestCodeProgress = 0.0f;
+        private volatile string _latestAnalysisStatus = "";
+        private volatile float _latestResourceProgress;
+        private volatile float _latestCodeProgress;
 
-        const float resourceAnalysisStartProgress = 0.0f;
-        const float resourceAnalysisEndProgress = 0.45f;
+        private const float ResourceAnalysisStartProgress = 0.0f;
+        private const float ResourceAnalysisEndProgress = 0.45f;
 
-        const float codeAnalysisStartProgress = 0.0f;
-        const float codeAnalysisEndProgress = 0.45f;
+        private const float CodeAnalysisStartProgress = 0.0f;
+        private const float CodeAnalysisEndProgress = 0.45f;
 
         /// <summary>
         /// Conduct the action analysis and save the result to a file used by RGActionProvider.
@@ -1488,7 +1487,7 @@ namespace RegressionGames.ActionManager
         {
             try
             {
-                _lastestAnalysisStatus = "";
+                _latestAnalysisStatus = "";
                 _latestResourceProgress = 0.0f;
                 _latestCodeProgress = 0.0f;
 
@@ -1513,7 +1512,7 @@ namespace RegressionGames.ActionManager
                     // put an await here so this actually goes on a separate thread
                     await Task.CompletedTask;
 
-                    UpdateCodeProgress($"Code analysis - start", codeAnalysisStartProgress);
+                    UpdateCodeProgress($"Code analysis - start", CodeAnalysisStartProgress);
 
                     // do this expensive thing only once
                     var analysisAssemblies = targetAssemblies.Select(a => (a, GetCompilationForAssembly(a))).ToList();
@@ -1531,7 +1530,7 @@ namespace RegressionGames.ActionManager
                         ++passNum;
                     } while (_unboundActionsNeedResolution);
 
-                    UpdateCodeProgress($"Performing code analysis - complete", codeAnalysisEndProgress);
+                    UpdateCodeProgress($"Performing code analysis - complete", CodeAnalysisEndProgress);
                 });
 
                 // do the resource analysis in the foreground
@@ -1541,7 +1540,7 @@ namespace RegressionGames.ActionManager
 
                 while (!Task.WaitAll(tasksToWait, 100))
                 {
-                    NotifyProgress(_lastestAnalysisStatus, _latestResourceProgress + _latestCodeProgress);
+                    NotifyProgress(_latestAnalysisStatus, _latestResourceProgress + _latestCodeProgress);
                 }
 
                 NotifyProgress("Computing the unique set of actions available", 0.94f);
@@ -1618,14 +1617,15 @@ namespace RegressionGames.ActionManager
 
         private void UpdateResourceProgress(string message, float progress)
         {
-            _lastestAnalysisStatus = message;
+            _latestAnalysisStatus = message;
             _latestResourceProgress = progress;
-            NotifyProgress(message, progress + _latestCodeProgress);
+            // since resources run non-async, this is what gives us most of our updates early in the analysis run
+            NotifyProgress(_latestAnalysisStatus, _latestResourceProgress + _latestCodeProgress);
         }
 
         private void UpdateCodeProgress(string message, float progress)
         {
-            _lastestAnalysisStatus = message;
+            _latestAnalysisStatus = message;
             _latestCodeProgress = progress;
         }
 
