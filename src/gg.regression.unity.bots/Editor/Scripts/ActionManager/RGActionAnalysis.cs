@@ -1528,7 +1528,7 @@ namespace RegressionGames.ActionManager
                         ++passNum;
                     } while (_unboundActionsNeedResolution);
 
-                    UpdateCodeProgress($"Performing code analysis - complete", CodeAnalysisEndProgress);
+                    UpdateCodeProgress($"Code analysis - complete", CodeAnalysisEndProgress);
                 });
 
                 // do the resource analysis in the foreground
