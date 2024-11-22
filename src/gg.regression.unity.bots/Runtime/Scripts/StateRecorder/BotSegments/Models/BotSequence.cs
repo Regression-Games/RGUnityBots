@@ -188,7 +188,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             catch (Exception e)
             {
-                throw new Exception($"Exception while parsing BotSegment or BotSegmentList from resource path: {path}", e);
+                throw new Exception($"Exception while reading BotSegment or BotSegmentList from resource path: {path}", e);
             }
         }
 

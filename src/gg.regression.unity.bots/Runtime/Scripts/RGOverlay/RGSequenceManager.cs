@@ -455,7 +455,7 @@ public class RGSequenceManager : MonoBehaviour
             }
             catch (Exception exception)
             {
-                Debug.Log($"Error reading Bot Sequence {fileName}: {exception}");
+                RGDebug.LogWarning($"Error reading Bot Sequence {fileName}: {exception}");
             }
         }
 
