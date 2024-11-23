@@ -12,6 +12,7 @@ using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
 using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AI;
@@ -74,6 +75,7 @@ namespace RegressionGames.StateRecorder
             { typeof(CVWithinRect), new CVWithinRectJsonConverter() },
             { typeof(KeyFrameCriteria), new KeyFrameCriteriaJsonConverter() },
             { typeof(MonkeyBotActionData), new MonkeyBotActionDataJsonConverter() },
+            { typeof(QLearningBotActionData), new QLearningActionDataJsonConverter() },
             { typeof(RandomMouseObjectActionData), new RandomMouseObjectActionDataJsonConverter() },
             { typeof(RandomMousePixelActionData), new RandomMousePixelActionDataJsonConverter() },
 
@@ -87,6 +89,7 @@ namespace RegressionGames.StateRecorder
             { typeof(BotSegment), new BotSegmentJsonConverter() },
             { typeof(BotSegmentList), new BotSegmentListJsonConverter() },
             { typeof(BotSequenceEntry), new BotSequenceEntryJsonConverter() },
+            { typeof(SequenceRestartCheckpoint), new SequenceRestartCheckpointJsonConverter() },
 
             { typeof(WorkAssignment), new WorkAssignmentJsonConverter() }
 

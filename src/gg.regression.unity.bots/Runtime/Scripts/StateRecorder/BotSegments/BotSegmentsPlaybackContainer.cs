@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments

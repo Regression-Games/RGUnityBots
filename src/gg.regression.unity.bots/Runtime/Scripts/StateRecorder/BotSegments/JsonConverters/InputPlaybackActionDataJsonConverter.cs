@@ -19,7 +19,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             InputPlaybackActionData data = new();
             if (jObject.ContainsKey("apiVersion"))
             {
-                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>();
+                data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             }
             data.startTime = jObject.GetValue("startTime").ToObject<float>(serializer);
             data.inputData = jObject.GetValue("inputData").ToObject<InputData>(serializer);

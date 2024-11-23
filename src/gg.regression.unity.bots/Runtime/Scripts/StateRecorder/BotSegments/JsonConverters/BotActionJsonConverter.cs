@@ -22,7 +22,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             {
                 BotAction action = new();
                 IBotActionData data = null;
-                action.type = jObject["type"].ToObject<BotActionType>();
+                action.type = jObject["type"].ToObject<BotActionType>(serializer);
                 switch (action.type)
                 {
                     case BotActionType.InputPlayback:
@@ -39,6 +39,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                         break;
                     case BotActionType.MonkeyBot:
                         data = jObject["data"].ToObject<MonkeyBotActionData>(serializer);
+                        break;
+                    case BotActionType.QLearning:
+                        data = jObject["data"].ToObject<QLearningBotActionData>(serializer);
                         break;
                     case BotActionType.Mouse_CVImage:
                         data = jObject["data"].ToObject<CVImageMouseActionData>(serializer);

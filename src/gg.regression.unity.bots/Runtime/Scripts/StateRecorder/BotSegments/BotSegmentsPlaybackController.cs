@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments.Models;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -61,6 +64,36 @@ namespace RegressionGames.StateRecorder.BotSegments
 #if UNITY_EDITOR
             EditorApplication.pauseStateChanged += ResetErrorTimer;
 #endif
+
+            // if we have a checkpoint file, restart that sequence
+            var checkpointFilePath = Application.temporaryCachePath + "/RegressionGames/SequenceRestart.json";
+            if (File.Exists(checkpointFilePath))
+            {
+                using var sr = new StreamReader(File.OpenRead(checkpointFilePath));
+                var checkpointDataString = sr.ReadToEnd();
+                var checkpoint = JsonConvert.DeserializeObject<SequenceRestartCheckpoint>(checkpointDataString, JsonUtils.JsonSerializerSettings);
+                if (checkpoint.apiVersion > SdkApiVersion.CURRENT_VERSION)
+                {
+                    RGDebug.LogWarning($"SequenceRestartCheckpoint file requires SDK version {checkpoint.apiVersion}, but the currently installed SDK version is {SdkApiVersion.CURRENT_VERSION}.  NOT resuming BotSequence from checkpoint data.");
+                }
+                else
+                {
+                    try
+                    {
+                        //TODO (REG-2170): Optionally support restarting from the next segment after restart instead of from the beginning...
+                        var sequenceData = BotSequence.LoadSequenceJsonFromPath(checkpoint.resourcePath);
+                        // remove the checkpoint so we don't resume from it again in the future
+                        sr.Close();
+                        File.Delete(checkpointFilePath);
+                        RGDebug.LogInfo("Restarting a BotSequence from SequenceRestartCheckpoint file with resourcePath: " + checkpoint.resourcePath);
+                        sequenceData.Item3.Play();
+                    }
+                    catch (Exception ex)
+                    {
+                        RGDebug.LogWarning($"Error loading or starting BotSequence specified in SequenceRestartCheckpoint file.  NOT resuming BotSequence from checkpoint data. - " + ex);
+                    }
+                }
+            }
         }
 
         private void OnDestroy()
@@ -267,7 +300,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             RGUtils.TeardownOverrideEventSystem();
             RGUtils.RestoreInputSettings();
 
-            // similar to Stop, but assumes will play again
+            // similar to UnloadSegmentsAndReset, but assumes will play again
             _dataPlaybackContainer?.Reset();
             KeyboardEventSender.Reset();
             MouseEventSender.Reset();

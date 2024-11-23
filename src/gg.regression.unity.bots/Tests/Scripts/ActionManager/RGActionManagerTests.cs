@@ -180,7 +180,7 @@ namespace RegressionGames.Tests.ActionManager
             Debug.Assert(actionInst != null, $"Action {name} is missing");
             foreach (var inp in actionInst.GetInputs(param))
             {
-                inp.Perform();
+                inp.Perform(0);
             }
         }
 
@@ -272,7 +272,7 @@ namespace RegressionGames.Tests.ActionManager
             ResetInputSystem();
 
             // Test Input System Keyboard
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject inputSysKeyListener = FindGameObject("InputSysKeyListener");
             inputSysKeyListener.SetActive(true);
             try
@@ -306,7 +306,7 @@ namespace RegressionGames.Tests.ActionManager
 
             #if ENABLE_LEGACY_INPUT_MANAGER
             // Test Legacy Input Manager Axis
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject legacyAxisListener = FindGameObject("LegacyAxisListener");
             legacyAxisListener.SetActive(true);
             try
@@ -332,7 +332,7 @@ namespace RegressionGames.Tests.ActionManager
             }
 
             // Test Legacy Input Manager Button
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject legacyButtonListener = FindGameObject("LegacyButtonListener");
             legacyButtonListener.SetActive(true);
             try
@@ -359,7 +359,7 @@ namespace RegressionGames.Tests.ActionManager
             }
 
             // Test Legacy Input Manager Key
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject legacyKeyListener = FindGameObject("LegacyKeyListener");
             legacyKeyListener.SetActive(true);
             try
@@ -400,7 +400,7 @@ namespace RegressionGames.Tests.ActionManager
             #endif
 
             // Test Mouse Button
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject mouseBtnListener = FindGameObject("MouseBtnListener");
             mouseBtnListener.SetActive(true);
             try
@@ -437,7 +437,7 @@ namespace RegressionGames.Tests.ActionManager
             }
 
             // Test Mouse Movement
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject mouseMovementListener = FindGameObject("MouseMovementListener");
             mouseMovementListener.SetActive(true);
             try
@@ -467,7 +467,7 @@ namespace RegressionGames.Tests.ActionManager
 
             #if ENABLE_LEGACY_INPUT_MANAGER
             // Test Mouse Handlers
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject mouseHandlerListener = FindGameObject("MouseHandlerListener");
             mouseHandlerListener.SetActive(true);
             try
@@ -504,7 +504,7 @@ namespace RegressionGames.Tests.ActionManager
             #endif
 
             // Test Mouse Raycast 2D
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject mouseRaycast2DListener = FindGameObject("MouseRaycast2DListener");
             GameObject theSquare = FindGameObject("The_Square");
             mouseRaycast2DListener.SetActive(true);
@@ -533,7 +533,7 @@ namespace RegressionGames.Tests.ActionManager
                 Debug.Assert(hitCoord.HasValue);
                 foreach (var inp in actionInst.GetInputs(hitCoord.Value))
                 {
-                    inp.Perform();
+                    inp.Perform(0);
                 }
 
                 yield return WaitForInputUpdate();
@@ -549,7 +549,7 @@ namespace RegressionGames.Tests.ActionManager
             }
 
             // Test Mouse Raycast 3D
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject mouseRaycast3DListener = FindGameObject("MouseRaycast3DListener");
             GameObject theCube = FindGameObject("The_Cube");
             mouseRaycast3DListener.SetActive(true);
@@ -578,7 +578,7 @@ namespace RegressionGames.Tests.ActionManager
                 Debug.Assert(hitCoord.HasValue);
                 foreach (var inp in actionInst.GetInputs(hitCoord.Value))
                 {
-                    inp.Perform();
+                    inp.Perform(0);
                 }
 
                 yield return WaitForInputUpdate();
@@ -602,7 +602,7 @@ namespace RegressionGames.Tests.ActionManager
                 "Dropdown", "TMP_Dropdown", "InputField", "TMP_InputField"
             };
 
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             foreach (var uiObjectName in uiObjects)
             {
                 GameObject uiObject = FindGameObject(uiObjectName);
@@ -768,7 +768,7 @@ namespace RegressionGames.Tests.ActionManager
             }
 
             // Test interprocedural analysis
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject interprocObj = FindGameObject("InterprocListener");
             interprocObj.SetActive(true);
             try
@@ -786,7 +786,7 @@ namespace RegressionGames.Tests.ActionManager
 
             // Test triggering inputs handled via InputActionAsset and embedded InputAction
             ResetInputSystem();
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject inputActionListener = FindGameObject("InputActionListener");
             inputActionListener.SetActive(true);
             try
@@ -820,7 +820,7 @@ namespace RegressionGames.Tests.ActionManager
             }
 
             // Test triggering inputs handled via InputActionAsset C# wrapper
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject csWrapperListener = FindGameObject("CsWrapperInputListener");
             csWrapperListener.SetActive(true);
             try
@@ -847,7 +847,7 @@ namespace RegressionGames.Tests.ActionManager
             }
 
             // Test triggering inputs handled via PlayerInput
-            RGActionManager.StartSession(eventSys);
+            RGActionManager.StartSession(0, eventSys);
             GameObject playerInputListener = FindGameObject("PlayerInputListener");
             playerInputListener.SetActive(true);
             try

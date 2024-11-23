@@ -72,10 +72,10 @@ namespace RegressionGames.StateRecorder.JsonConverters
             JObject jObject = JObject.Load(reader);
             // ReSharper disable once UseObjectOrCollectionInitializer - easier to debug without using this
             RectInt rect = new();
-            rect.x = jObject["x"].ToObject<int>();
-            rect.y = jObject["y"].ToObject<int>();
-            rect.width = jObject["width"].ToObject<int>();
-            rect.height = jObject["height"].ToObject<int>();
+            rect.x = jObject["x"].ToObject<int>(serializer);
+            rect.y = jObject["y"].ToObject<int>(serializer);
+            rect.width = jObject["width"].ToObject<int>(serializer);
+            rect.height = jObject["height"].ToObject<int>(serializer);
             return rect;
         }
 

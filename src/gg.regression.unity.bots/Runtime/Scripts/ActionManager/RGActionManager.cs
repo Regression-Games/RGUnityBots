@@ -140,12 +140,27 @@ namespace RegressionGames.ActionManager
             return _context is not BotSegmentsPlaybackController ;
         }
 
+        public static bool TryStartSession(int segmentNumber, MonoBehaviour context, RGActionManagerSettings actionSettings = null)
+        {
+            try
+            {
+                StartSession(segmentNumber, context, actionSettings);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                RGDebug.LogWarning("Unable to start RGActionManager Session - " + ex);
+                return false;
+            }
+        }
+
         /// <summary>
         /// Start an action manager session. This should be called prior to any calls to GetValidActions().
         /// </summary>
+        /// <param name="segmentNumber">The bot sequence segment number</param>
         /// <param name="context">The MonoBehaviour context under which actions will be simulated.</param>
         /// <param name="actionSettings">Session-specific action settings (optional - if null will use saved configuration)</param>
-        public static void StartSession(MonoBehaviour context, RGActionManagerSettings actionSettings = null)
+        public static void StartSession(int segmentNumber, MonoBehaviour context, RGActionManagerSettings actionSettings = null)
         {
             if (_context != null)
             {
@@ -175,7 +190,9 @@ namespace RegressionGames.ActionManager
                 RGUtils.ConfigureInputSettings();
             }
 
-            InitInputState();
+            InitInputState(segmentNumber);
+
+            RGActionRuntimeCoverageAnalysis.StartRecording(segmentNumber);
         }
 
         /// <summary>
@@ -197,6 +214,8 @@ namespace RegressionGames.ActionManager
                 }
                 _context = null;
                 _settings = LoadSettings(); // restore settings back to the saved configuration
+
+                RGActionRuntimeCoverageAnalysis.StopRecording();
             }
         }
 
@@ -228,12 +247,12 @@ namespace RegressionGames.ActionManager
 
                 foreach (var obj in objects)
                 {
-                    if (obj is Component c && !c.gameObject.activeInHierarchy)
+                    if (obj is Component { gameObject: { activeInHierarchy: false } })
                     {
                         // skip components that are on inactive game objects
                         continue;
                     }
-                    if (obj is Behaviour b && !b.isActiveAndEnabled)
+                    if (obj is Behaviour { isActiveAndEnabled: false })
                     {
                         // skip disabled behaviours
                         continue;
@@ -288,10 +307,10 @@ namespace RegressionGames.ActionManager
         public static Dictionary<long, ObjectStatus> CurrentTransforms { get; private set; }
         public static List<EventSystem> CurrentEventSystems { get; private set; }
 
-        private static void InitInputState()
+        private static void InitInputState(int segmentNumber)
         {
             // move mouse off screen
-            _mousePosition = MouseEventSender.MoveMouseOffScreen();
+            _mousePosition = MouseEventSender.MoveMouseOffScreen(segmentNumber);
 
             #if ENABLE_LEGACY_INPUT_MANAGER
             _mouseScroll = RGLegacyInputWrapper.mouseScrollDelta;
@@ -312,7 +331,7 @@ namespace RegressionGames.ActionManager
             CurrentEventSystems = new List<EventSystem>();
         }
 
-        public static void SimulateKeyState(KeyCode keyCode, bool isPressed)
+        public static void SimulateKeyState(int segmentNumber, KeyCode keyCode, bool isPressed)
         {
             if (keyCode >= KeyCode.Mouse0 && keyCode <= KeyCode.Mouse6)
             {
@@ -323,7 +342,7 @@ namespace RegressionGames.ActionManager
                     keyCode == KeyCode.Mouse3 ? isPressed : _forwardMouseButton;
                 bool backButton =
                     keyCode == KeyCode.Mouse4 ? isPressed : _backMouseButton;
-                MouseEventSender.SendRawPositionMouseEvent(0,
+                MouseEventSender.SendRawPositionMouseEvent(segmentNumber,
                     _mousePosition,
                     leftButton: leftButton, middleButton: middleButton, rightButton: rightButton,
                     forwardButton: forwardButton, backButton: backButton, scroll: _mouseScroll);
@@ -336,43 +355,43 @@ namespace RegressionGames.ActionManager
             else
             {
                 Key key = RGLegacyInputUtils.KeyCodeToInputSystemKey(keyCode);
-                SimulateKeyState(key, isPressed);
+                SimulateKeyState(segmentNumber, key, isPressed);
             }
         }
 
-        public static void SimulateKeyState(Key key, bool isPressed)
+        public static void SimulateKeyState(int segmentNumber, Key key, bool isPressed)
         {
             if (key != Key.None)
             {
-                KeyboardEventSender.SendKeyEvent(0, key, isPressed ? KeyState.Down : KeyState.Up);
+                KeyboardEventSender.SendKeyEvent(segmentNumber, key, isPressed ? KeyState.Down : KeyState.Up);
             }
         }
 
-        public static void SimulateMouseMovement(Vector2 mousePosition)
+        public static void SimulateMouseMovement(int segmentNumber, Vector2 mousePosition)
         {
-            MouseEventSender.SendRawPositionMouseEvent(0, mousePosition, leftButton: _leftMouseButton, middleButton: _middleMouseButton,
+            MouseEventSender.SendRawPositionMouseEvent(segmentNumber, mousePosition, leftButton: _leftMouseButton, middleButton: _middleMouseButton,
                 rightButton: _rightMouseButton, forwardButton: _forwardMouseButton, backButton: _backMouseButton, scroll: _mouseScroll);
             _mousePosition = mousePosition;
         }
 
-        public static void SimulateMouseMovementDelta(Vector2 mousePositionDelta)
+        public static void SimulateMouseMovementDelta(int segmentNumber, Vector2 mousePositionDelta)
         {
             Vector3 delta = mousePositionDelta;
-            SimulateMouseMovement(_mousePosition + delta);
+            SimulateMouseMovement(segmentNumber, _mousePosition + delta);
         }
 
-        public static void SimulateMouseScroll(Vector2 mouseScroll)
+        public static void SimulateMouseScroll(int segmentNumber, Vector2 mouseScroll)
         {
-            MouseEventSender.SendRawPositionMouseEvent(0, _mousePosition, leftButton: _leftMouseButton,
+            MouseEventSender.SendRawPositionMouseEvent(segmentNumber, _mousePosition, leftButton: _leftMouseButton,
                 middleButton: _middleMouseButton,
                 rightButton: _rightMouseButton, forwardButton: _forwardMouseButton, backButton: _backMouseButton,
                 scroll: mouseScroll);
             _mouseScroll = mouseScroll;
         }
 
-        public static void SimulateMouseButton(int mouseButton, bool isPressed)
+        public static void SimulateMouseButton(int segmentNumber, int mouseButton, bool isPressed)
         {
-            SimulateKeyState(KeyCode.Mouse0 + mouseButton, isPressed);
+            SimulateKeyState(segmentNumber, KeyCode.Mouse0 + mouseButton, isPressed);
         }
     }
 }

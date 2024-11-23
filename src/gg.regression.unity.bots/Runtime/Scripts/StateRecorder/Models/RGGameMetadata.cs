@@ -2,12 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
 
@@ -15,7 +12,7 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [JsonConverter(typeof(RGGameMetadataJsonConverter))]
-    public class RGGameMetadata
+    public class RGGameMetadata : IStringBuilderWriteable
     {
         public int apiVersion = SdkApiVersion.VERSION_21;
 
