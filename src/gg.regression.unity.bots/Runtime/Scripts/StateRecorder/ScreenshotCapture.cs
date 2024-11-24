@@ -255,13 +255,27 @@ namespace RegressionGames.StateRecorder
         }
 
         /**
-         * <summary>Calls the onSuccess callback when the readback request finishes or if data is already available</summary>
+         * <summary>
+         * Calls the onSuccess callback when the readback request finishes or if data is already available.
+         * If the system is running in a no graphics mode, this will instead just immediately complete the
+         * action.
+         * </summary>
          */
         public void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
         {
             var frame = UnityEngine.Time.frameCount;
             lock (SyncLock)
             {
+
+                // When we don't have graphics available, we immediate invoke the callback with a null value. With how
+                // we use this function now, this needs to happen so the tick data writing task correctly saves the
+                // resulting data.
+                if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null && onCompletion != null)
+                {
+                    onCompletion.Invoke(null);
+                    return;
+                }
+                
                 var frameData = GetDataForFrame(frame);
                 if (frameData == null)
                 {
@@ -293,7 +307,9 @@ namespace RegressionGames.StateRecorder
             
             // If we are running in -nographics mode, the async task fails, causing an exception inside
             // the AsyncGPUReadback.Request that is difficult to catch. This ensures that the screenshot
-            // is only taken when we have graphics
+            // is only taken when we have graphics enabled.
+            // NOTE: Based on how we currently use this ScreenCapture.cs file, we expect this to be true by this
+            // point in the code. However, I am leaving this is a safety check.
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
             {
 
