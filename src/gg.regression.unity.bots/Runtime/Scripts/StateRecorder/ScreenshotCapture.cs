@@ -380,7 +380,6 @@ namespace RegressionGames.StateRecorder
                 {
                     RGDebug.LogWarning($"ScreenshotCapture - Exception starting to capture screenshot for frame # {frame} - {e.Message}");
                 }
-
             }
         }
 
