@@ -263,19 +263,19 @@ namespace RegressionGames.StateRecorder
          */
         public void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
         {
+            
+            // When we don't have graphics available, we immediate invoke the callback with a null value. With how
+            // we use this function now, this needs to happen so the tick data writing task correctly saves the
+            // resulting data.
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null && onCompletion != null)
+            {
+                onCompletion.Invoke(null);
+                return;
+            }
+            
             var frame = UnityEngine.Time.frameCount;
             lock (SyncLock)
             {
-
-                // When we don't have graphics available, we immediate invoke the callback with a null value. With how
-                // we use this function now, this needs to happen so the tick data writing task correctly saves the
-                // resulting data.
-                if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null && onCompletion != null)
-                {
-                    onCompletion.Invoke(null);
-                    return;
-                }
-                
                 var frameData = GetDataForFrame(frame);
                 if (frameData == null)
                 {
@@ -304,104 +304,95 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
-            
-            // If we are running in -nographics mode, the async task fails, causing an exception inside
-            // the AsyncGPUReadback.Request that is difficult to catch. This ensures that the screenshot
-            // is only taken when we have graphics enabled.
-            // NOTE: Based on how we currently use this ScreenCapture.cs file, we expect this to be true by this
-            // point in the code. However, I am leaving this is a safety check.
-            if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
+
+            // wait for end of frame or graphics data will be incorrect
+            yield return new WaitForEndOfFrame();
+
+            // get this in there so we don't get duplicate requests out for the same frame
+            if (GPUReadbackRequests.TryAdd(frame, null))
             {
+                var screenWidth = Screen.width;
+                var screenHeight = Screen.height;
 
-                // wait for end of frame or graphics data will be incorrect
-                yield return new WaitForEndOfFrame();
-
-                // get this in there so we don't get duplicate requests out for the same frame
-                if (GPUReadbackRequests.TryAdd(frame, null))
+                if (_screenShotTexture == null || _screenShotTexture.width != screenWidth ||
+                    _screenShotTexture.height != screenHeight)
                 {
-                    var screenWidth = Screen.width;
-                    var screenHeight = Screen.height;
-
-                    if (_screenShotTexture == null || _screenShotTexture.width != screenWidth ||
-                        _screenShotTexture.height != screenHeight)
+                    if (_screenShotTexture != null)
                     {
-                        if (_screenShotTexture != null)
-                        {
-                            Object.Destroy(_screenShotTexture);
-                        }
-
-                        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
-                        {
-                            // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows..
-                            //  this setting stops it from spamming log errors
-                            _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0,
-                                GraphicsFormat.R8G8B8A8_SRGB);
-                        }
-                        else
-                        {
-                            _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
-                        }
+                        Object.Destroy(_screenShotTexture);
                     }
 
-                    var theGraphicsFormat = _screenShotTexture.graphicsFormat;
-
-                    try
+                    if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal)
                     {
-                        ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
-                        var readbackRequest = AsyncGPUReadback.Request(_screenShotTexture, 0,
-                            GraphicsFormat.R8G8B8A8_SRGB, request =>
+                        // why Metal defaults to B8G8R8A8_SRGB and thus flips the colors.. who knows..
+                        //  this setting stops it from spamming log errors
+                        _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0,
+                            GraphicsFormat.R8G8B8A8_SRGB);
+                    }
+                    else
+                    {
+                        _screenShotTexture = new RenderTexture(screenWidth, screenHeight, 0);
+                    }
+                }
+
+                var theGraphicsFormat = _screenShotTexture.graphicsFormat;
+
+                try
+                {
+                    ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
+                    var readbackRequest = AsyncGPUReadback.Request(_screenShotTexture, 0,
+                        GraphicsFormat.R8G8B8A8_SRGB, request =>
+                        {
+                            if (!request.hasError)
                             {
-                                if (!request.hasError)
+                                var pixels = request.GetData<Color32>();
+                                var copyBuffer =
+                                    _copyBuffer
+                                        .Value; // uses a threadlocal to avoid re-allocating this on every readback
+                                if (SystemInfo.graphicsUVStartsAtTop)
                                 {
-                                    var pixels = request.GetData<Color32>();
-                                    var copyBuffer =
-                                        _copyBuffer
-                                            .Value; // uses a threadlocal to avoid re-allocating this on every readback
-                                    if (SystemInfo.graphicsUVStartsAtTop)
+                                    // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
+                                    var halfHeight = screenHeight / 2;
+                                    for (var i = 0; i <= halfHeight; i++)
                                     {
-                                        // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
-                                        var halfHeight = screenHeight / 2;
-                                        for (var i = 0; i <= halfHeight; i++)
-                                        {
-                                            // swap rows
-                                            // bottom row to buffer
-                                            NativeArray<Color32>.Copy(pixels, i * screenWidth, copyBuffer, 0,
-                                                screenWidth);
-                                            // top row to bottom
-                                            NativeArray<Color32>.Copy(pixels, (screenHeight - i - 1) * screenWidth,
-                                                pixels, i * screenWidth, screenWidth);
-                                            // buffer to top row
-                                            NativeArray<Color32>.Copy(copyBuffer, 0, pixels,
-                                                (screenHeight - i - 1) * screenWidth, screenWidth);
-                                        }
-                                    } //else.. we're fine
+                                        // swap rows
+                                        // bottom row to buffer
+                                        NativeArray<Color32>.Copy(pixels, i * screenWidth, copyBuffer, 0,
+                                            screenWidth);
+                                        // top row to bottom
+                                        NativeArray<Color32>.Copy(pixels, (screenHeight - i - 1) * screenWidth,
+                                            pixels, i * screenWidth, screenWidth);
+                                        // buffer to top row
+                                        NativeArray<Color32>.Copy(copyBuffer, 0, pixels,
+                                            (screenHeight - i - 1) * screenWidth, screenWidth);
+                                    }
+                                } //else.. we're fine
 
-                                    var imageOutput = ImageConversion.EncodeNativeArrayToJPG(pixels, theGraphicsFormat,
-                                        (uint)screenWidth, (uint)screenHeight);
+                                var imageOutput = ImageConversion.EncodeNativeArrayToJPG(pixels, theGraphicsFormat,
+                                    (uint)screenWidth, (uint)screenHeight);
 
-                                    RGDebug.LogDebug($"ScreenshotCapture - Captured screenshot for frame # {frame}");
-                                    AddFrame(frame, (imageOutput.ToArray(), screenWidth, screenHeight));
-                                }
-                                else
-                                {
-                                    RGDebug.LogWarning(
-                                        $"ScreenshotCapture - Error capturing screenshot for frame # {frame}");
-                                    AddFrame(frame, null);
-                                }
+                                RGDebug.LogDebug($"ScreenshotCapture - Captured screenshot for frame # {frame}");
+                                AddFrame(frame, (imageOutput.ToArray(), screenWidth, screenHeight));
+                            }
+                            else
+                            {
+                                RGDebug.LogWarning(
+                                    $"ScreenshotCapture - Error capturing screenshot for frame # {frame}");
+                                AddFrame(frame, null);
+                            }
 
-                                HandleCompletedActionCallbacks();
-                            });
-                        // update from null to the real request
-                        GPUReadbackRequests[frame] = readbackRequest;
-
-                    }
-                    catch (Exception e)
-                    {
-                        RGDebug.LogWarning(
-                            $"ScreenshotCapture - Exception starting to capture screenshot for frame # {frame} - {e.Message}");
-                    }
+                            HandleCompletedActionCallbacks();
+                        });
+                    // update from null to the real request
+                    GPUReadbackRequests[frame] = readbackRequest;
 
                 }
+                catch (Exception e)
+                {
+                    RGDebug.LogWarning(
+                        $"ScreenshotCapture - Exception starting to capture screenshot for frame # {frame} - {e.Message}");
+                }
+
             }
         }
 
