@@ -98,6 +98,10 @@ public class RGSequenceManager : MonoBehaviour
         {
             SetMobileView();
         }
+        else if (RGUtils.IsPortraitView())
+        {
+            SetPortraitView();
+        }
         
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
 
@@ -155,6 +159,22 @@ public class RGSequenceManager : MonoBehaviour
     {
         GetComponent<CanvasScaler>().referenceResolution = new Vector2(800, 600);
         reloadButton.gameObject.SetActive(false);
+        
+        // the create sequence button is always the first child in the sequences panel
+        var createSequenceButton = sequencesPanel.transform.GetChild(0);
+        createSequenceButton.gameObject.SetActive(false);
+    }
+
+    /**
+     * <summary>
+     * When the screen is in a portrait orientation:
+     * - Scale the entire canvas so that all components are larger
+     * - Hide the create Sequence button
+     * </summary>
+     */
+    public void SetPortraitView()
+    {
+        GetComponent<CanvasScaler>().referenceResolution = new Vector2(800, 600);
         
         // the create sequence button is always the first child in the sequences panel
         var createSequenceButton = sequencesPanel.transform.GetChild(0);
