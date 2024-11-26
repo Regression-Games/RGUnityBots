@@ -175,10 +175,6 @@ public class RGSequenceManager : MonoBehaviour
     public void SetPortraitView()
     {
         GetComponent<CanvasScaler>().referenceResolution = new Vector2(800, 600);
-        
-        // the create sequence button is always the first child in the sequences panel
-        var createSequenceButton = sequencesPanel.transform.GetChild(0);
-        createSequenceButton.gameObject.SetActive(false);
     }
 
     /**
