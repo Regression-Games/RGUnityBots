@@ -15,6 +15,14 @@ namespace RegressionGames
 {
     public static class RGUtils
     {
+        // <summary>
+        // Determines if the game is currently running on an Android or Apple mobile device
+        // </summary>
+        public static bool IsMobile()
+        {
+            return Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer;
+        }
+        
         public static bool IsCSharpPrimitive(string typeName)
         {
             HashSet<string> primitiveTypes = new HashSet<string>
