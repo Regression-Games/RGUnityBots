@@ -169,7 +169,6 @@ public class RGSequenceManager : MonoBehaviour
      * <summary>
      * When the screen is in a portrait orientation:
      * - Scale the entire canvas so that all components are larger
-     * - Hide the create Sequence button
      * </summary>
      */
     public void SetPortraitView()
