@@ -69,6 +69,7 @@ namespace RegressionGames.Editor
 #endif
         }
         
+#if UNITY_EDITOR
         /// <summary>
         /// Opens the recordings folder containing data collected by Regression Games
         /// </summary>
@@ -80,6 +81,7 @@ namespace RegressionGames.Editor
             // Strangely, this is not documented in the Unity API. Forum posts say this works in Windows and Mac.
             EditorUtility.RevealInFinder(stateRecordingsDirectory);
         }
+#endif
         
     }
 }
