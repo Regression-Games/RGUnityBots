@@ -10,8 +10,6 @@ namespace RegressionGames.Editor.Validation
     public class RGValidationPane : EditorWindow
     {
         private ScrollView _mainScrollPane;
-
-        [CanBeNull] public static RGValidationPane Instance = null;
         
         [MenuItem("Regression Games/Validation Results")]
         public static void ShowMyEditor()
@@ -19,11 +17,7 @@ namespace RegressionGames.Editor.Validation
             // This method is called when the user selects the menu item in the Editor
             EditorWindow wnd = GetWindow<RGValidationPane>();
             wnd.titleContent = new GUIContent("RG Validation Results");
-        }
-        
-        private void OnEnable()
-        {
-            Instance = this;
+            wnd.Focus();
         }
         
         void CreateGUI()

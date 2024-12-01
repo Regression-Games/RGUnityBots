@@ -17,7 +17,7 @@ namespace RegressionGames.Validation
             public System.Exception ThrownException { get; set; }
         }
 
-        public List<ValidatorData> Validators;
+        public List<ValidatorData> Validators = new ();
         
         /**
          * Called when any validation here changes
@@ -159,13 +159,13 @@ namespace RegressionGames.Validation
             {
                 if (validator.Condition == RGCondition.ALWAYS_TRUE && validator.Result == RGValidatorResult.NOT_SET)
                 {
-                    Debug.LogError($"Validation method {validator.Method.Name} should always pass, but it never did.");
+                    //Debug.LogError($"Validation method {validator.Method.Name} should always pass, but it never did.");
                     validator.Result = RGValidatorResult.FAILED;
                     OnValidationsUpdated?.Invoke();
                 }
                 else if (validator.Condition == RGCondition.NEVER_TRUE && validator.Result == RGValidatorResult.NOT_SET)
                 {
-                    Debug.LogError($"Validation method {validator.Method.Name} should never pass, and it never did!");
+                    //Debug.LogError($"Validation method {validator.Method.Name} should never pass, and it never did!");
                     validator.Result = RGValidatorResult.PASSED;
                     OnValidationsUpdated?.Invoke();
                 }
