@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using RegressionGames.StateRecorder;
+using UnityEngine;
 
 #if UNITY_EDITOR
 using RegressionGames.StateRecorder.BotSegments;
@@ -67,5 +68,18 @@ namespace RegressionGames.Editor
             }
 #endif
         }
+        
+        /// <summary>
+        /// Opens the recordings folder containing data collected by Regression Games
+        /// </summary>
+        [MenuItem("Regression Games/Open Recordings Folder")]
+        public static void OpenRecordingFolder()
+        {
+            var stateRecordingsDirectory = Application.persistentDataPath + "/RegressionGames/recordings";
+            Directory.CreateDirectory(stateRecordingsDirectory);
+            // Strangely, this is not documented in the Unity API. Forum posts say this works in Windows and Mac.
+            EditorUtility.RevealInFinder(stateRecordingsDirectory);
+        }
+        
     }
 }
