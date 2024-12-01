@@ -1,4 +1,5 @@
 ﻿using System;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace RegressionGames.Validation
@@ -13,6 +14,7 @@ namespace RegressionGames.Validation
      * always be true, never be true, or be true at least once. 
      */
     [AttributeUsage(AttributeTargets.Method)]
+    [MeansImplicitUse]
     public class RGValidate: Attribute {
         
         public int Frequency { get; private set; }

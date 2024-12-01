@@ -22,6 +22,12 @@
          * This condition should be true at least once during the
          * test.
          */
-        EVENTUALLY_TRUE
+        EVENTUALLY_TRUE,
+        
+        /**
+         * Once there is a frame that the given condition turns true, it must always
+         * be marked as true.
+         */
+        ONCE_TRUE_ALWAYS_TRUE
     }
 }
