@@ -102,6 +102,25 @@ public class RGSequenceEntry : MonoBehaviour
         {
             recordingDot.SetActive(false);
         }
+
+        if (RGUtils.IsMobile())
+        {
+            SetMobileView();
+        }
+    }
+
+    /**
+     * <summary>
+     * When this component is viewed on a mobile device:
+     * - Allow playing the Sequence
+     * - Disable editing, copying, or deleting the Sequence
+     * </summary>
+     */
+    public void SetMobileView()
+    {
+        RGSequenceEditor.SetButtonEnabled(false, editButton);
+        RGSequenceEditor.SetButtonEnabled(false, copyButton);
+        RGSequenceEditor.SetButtonEnabled(false, deleteButton);
     }
 
     /**
