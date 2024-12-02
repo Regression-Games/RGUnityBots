@@ -172,7 +172,9 @@ public class RGSequenceManager : MonoBehaviour
      */
     public void UpscaleUI()
     {
-        GetComponent<CanvasScaler>().referenceResolution = new Vector2(800, 600);
+        var scaler = GetComponent<CanvasScaler>();
+        var currentResolution = scaler.referenceResolution;
+        scaler.referenceResolution = new Vector2(currentResolution.x * 0.6f, currentResolution.y * 0.6f);
     }
 
     /**
