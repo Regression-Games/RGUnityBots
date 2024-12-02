@@ -23,7 +23,7 @@ namespace RegressionGames
             return Application.platform == RuntimePlatform.Android
                    || Application.platform == RuntimePlatform.IPhonePlayer
 #if UNITY_EDITOR
-                   || !UnityEngine.Device.Application.isEditor
+                   || !UnityEngine.Device.Application.isEditor // game is running in Unity Device Simulator
 #endif
             ;
         }
