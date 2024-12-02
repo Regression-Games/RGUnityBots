@@ -41,8 +41,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             //TestCode(); //- useful for testing
         }
 
-        // supports up to 1m char length escaped strings
-        private static readonly ThreadLocal<char[]> _bufferArray = new (() => new char[1_000_000]);
+        // supports up to 30m char length escaped strings .. this seems absolutely excessive, but when unity logs dumps out the listing of every class in every assembly as a single log message, 1m was overflowed.. even for match3 it was 6.45m
+        private static readonly ThreadLocal<char[]> _bufferArray = new (() => new char[30_000_000]);
 
         void ITypedStringBuilderConverter<string>.WriteToStringBuilder(StringBuilder stringBuilder, string val)
         {

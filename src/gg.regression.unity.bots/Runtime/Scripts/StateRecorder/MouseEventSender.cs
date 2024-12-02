@@ -469,7 +469,7 @@ namespace RegressionGames.StateRecorder
             }
 
             // still have some objects we didnt' find in the current state, check previous state
-            // this is used primarly for mouse up event processing
+            // this is used primarily for mouse up event processing
             if (pathsToFind.Count > 0)
             {
                 if (priorTransforms != null)
