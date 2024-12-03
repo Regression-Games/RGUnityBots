@@ -133,8 +133,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 return segmentList;
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                if (ex is JsonSerializationException)
+                {
+                    throw new Exception($"Exception parsing resourcePath: {resourcePath} as BotSegmentList", ex);
+                }
                 // This wasn't a segment list, so it must be a normal segment
                 var segment = JsonConvert.DeserializeObject<BotSegment>(fileData, JsonUtils.JsonSerializerSettings);
                 if (segment.EffectiveApiVersion > SdkApiVersion.CURRENT_VERSION)

@@ -5,6 +5,7 @@ using System.Linq;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder
 {
@@ -231,14 +232,33 @@ namespace RegressionGames.StateRecorder
                 {
                     if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position))
                     {
-                        if (recordedGameObjectState.worldSpaceBounds != null)
+                        // filter out to only world space objects or interactable UI objects
+                        var isInteractable = true;
+
+                        if (recordedGameObjectState is TransformStatus tStatus)
                         {
-                            if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                            var theTransform = tStatus.Transform;
+                            if (theTransform is RectTransform)
                             {
-                                maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                                // ui object
+                                var selectables = theTransform.GetComponents<Selectable>();
+                                // make sure 1 is interactable
+                                isInteractable = selectables.Any(a => a.interactable);
                             }
                         }
-                        result.Add(recordedGameObjectState);
+
+                        if (isInteractable)
+                        {
+                            if (recordedGameObjectState.worldSpaceBounds != null)
+                            {
+                                if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                                {
+                                    maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                                }
+                            }
+
+                            result.Add(recordedGameObjectState);
+                        }
                     }
                 }
             }

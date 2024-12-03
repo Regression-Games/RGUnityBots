@@ -117,9 +117,13 @@
          * <summary> Add QLearning exploration bot</summary>
          */
         public const int VERSION_27 = 27;
+        /**
+         * <summary> Add initial framework for key moment bot segments</summary>
+         */
+        public const int VERSION_28 = 28;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_27;
+        public const int CURRENT_VERSION = VERSION_28;
 
     }
 }
