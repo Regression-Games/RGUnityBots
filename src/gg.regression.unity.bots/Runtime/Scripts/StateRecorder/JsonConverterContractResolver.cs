@@ -91,7 +91,9 @@ namespace RegressionGames.StateRecorder
             { typeof(BotSequenceEntry), new BotSequenceEntryJsonConverter() },
             { typeof(SequenceRestartCheckpoint), new SequenceRestartCheckpointJsonConverter() },
 
-            { typeof(WorkAssignment), new WorkAssignmentJsonConverter() }
+            { typeof(WorkAssignment), new WorkAssignmentJsonConverter() },
+            
+            { typeof(TcpMessage), new TcpMessageDataJsonConverter() }
 
         };
 

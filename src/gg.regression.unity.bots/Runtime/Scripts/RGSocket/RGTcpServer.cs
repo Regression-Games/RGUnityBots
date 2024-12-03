@@ -7,8 +7,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using JetBrains.Annotations;
+using Newtonsoft.Json;
 using RegressionGames.RemoteOrchestration.Models;
+using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using UnityEditor;
@@ -19,58 +20,22 @@ namespace RegressionGames
 {
     public class RGTcpServer : MonoBehaviour
     {
-        private String _assetsDirectory;
+        private string _assetsDirectory;
 
         private TcpListener _server;
         private Thread _listenerThread;
         private bool _isRunning;
         
         // client + any queued message to send to that client
-        private ConcurrentDictionary<TcpClient, ConcurrentQueue<String>> _connectedClients = new ConcurrentDictionary<TcpClient, ConcurrentQueue<string>>();
-
+        private readonly ConcurrentDictionary<TcpClient, ConcurrentQueue<TcpMessage>> _connectedClients = new ConcurrentDictionary<TcpClient, ConcurrentQueue<TcpMessage>>();
+        
         // the last active sequence that was sent to the client
         private BotSegmentsPlaybackController _botSegmentsPlaybackController;
         private ActiveSequence _activeSequence;
-        
-        
-        [Serializable]
-        private class IncomingMessage
-        {
-            // public SocketRequestType type;
-            [CanBeNull] public String payload; // JSON string
-        }
-        
-        /// <summary>
-        /// Starts a new TCP server on a background thread
-        /// </summary>
-        private void Start()
-        {
-            _assetsDirectory = Path.GetFullPath("Assets/RegressionGames");
-            _botSegmentsPlaybackController = FindObjectOfType<BotSegmentsPlaybackController>();
-            
-            _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 8085);
-            _server.Start();
-            _isRunning = true;
-            
-            _listenerThread = new Thread(ListenForClients);
-            _listenerThread.IsBackground = true;
-            _listenerThread.Start();
-        }
 
-        private void Update()
-        {
-            var activeSequence = GetActiveBotSequence();
-            if (activeSequence?.resourcePath != _activeSequence?.resourcePath)
-            {
-                _activeSequence = activeSequence;
-                var message = "{\"type\":\"ACTIVE_SEQUENCE\",\"body\":{\"sequence\":" + JsonUtility.ToJson(_activeSequence) + "}}";
-                foreach (var messageQueue in _connectedClients.Values)
-                {
-                    messageQueue.Enqueue(message);
-                }
-            }
-        }
-        
+        /// <summary>
+        /// Open the client dashboard, which will connect to this server
+        /// </summary>
         [MenuItem("Regression Games/Open Dashboard")]
         public static void OpenRGDashboard()
         {
@@ -86,7 +51,52 @@ namespace RegressionGames
         }
         
         /// <summary>
-        /// Listens for client connections and handles them on separate threads
+        /// Starts a TCP listener and starts a background thread to listen for client connections
+        /// </summary>
+        private void Start()
+        {
+            _assetsDirectory = Path.GetFullPath("Assets/RegressionGames");
+            _botSegmentsPlaybackController = FindObjectOfType<BotSegmentsPlaybackController>();
+            
+            _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 8085);
+            _server.Start();
+            _isRunning = true;
+            
+            _listenerThread = new Thread(ListenForClients);
+            _listenerThread.IsBackground = true;
+            _listenerThread.Start();
+        }
+
+        /// <summary>
+        /// Watch server-side resources to see if there are any updates we need to send to connected clients
+        /// </summary>
+        private void Update()
+        {
+            // check if the active sequence has changed
+            var activeSequence = GetActiveBotSequence();
+            if (activeSequence?.resourcePath != _activeSequence?.resourcePath)
+            {
+                _activeSequence = activeSequence;
+                var message = new TcpMessage
+                {
+                    type = TcpMessageType.ACTIVE_SEQUENCE,
+                    payload = new ActiveSequenceTcpMessageData
+                    {
+                        activeSequence = _activeSequence
+                    }
+                };
+                
+                foreach (var messageQueue in _connectedClients.Values)
+                {
+                    messageQueue.Enqueue(message);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Listens for client connections and handles them on separate threads.
+        /// We typically only expect one client to connect at a time,
+        /// but this will handle reconnects
         /// </summary>
         private void ListenForClients()
         {
@@ -97,10 +107,10 @@ namespace RegressionGames
                     // assume only one client connection at a time
                     // but need to listen for new connections in case the client disconnects
                     TcpClient client = _server.AcceptTcpClient();
-                    _connectedClients.TryAdd(client, new ConcurrentQueue<string>());
+                    _connectedClients.TryAdd(client, new ConcurrentQueue<TcpMessage>());
                     Debug.Log("Client connected");
                     
-                    Thread clientThread = new Thread(() => HandleClient(client));
+                    Thread clientThread = new Thread(() => HandleClientCommunication(client));
                     clientThread.IsBackground = true;
                     clientThread.Start();
                 }
@@ -108,31 +118,11 @@ namespace RegressionGames
                 Thread.Sleep(10); // Prevents tight loop
             }
         }
-        
-        private int GetAvailablePort()
-        {
-            TcpListener listener = null;
-            try
-            {
-                listener = new TcpListener(IPAddress.Loopback, 0);
-                listener.Start();
-                return ((IPEndPoint)listener.LocalEndpoint).Port;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error finding an available port: {ex.Message}");
-                return 0;
-            }
-            finally
-            {
-                listener?.Stop();
-            }
-        }
 
         /// <summary>
-        /// 
+        /// Handles all communication between the client and server including handshake
         /// </summary>
-        private void HandleClient(TcpClient client)
+        private void HandleClientCommunication(TcpClient client)
         {
             try
             {
@@ -142,111 +132,44 @@ namespace RegressionGames
                 // enter to an infinite cycle to be able to handle every change in stream
                 while (_isRunning)
                 {
-                    if (handshakeReceived)
+                    if (!handshakeReceived)
                     {
-                        // send any pending messages to the client
-                        if (_connectedClients.TryGetValue(client, out var messages))
+                        handshakeReceived = TryPerformHandshake(client);
+                        if (handshakeReceived)
                         {
-                            while (messages.TryDequeue(out var message))
+                            // immediately send the active sequence to the client
+                            var message = new TcpMessage
                             {
-                                SendPayload(stream, message);
-                            }
+                                type = TcpMessageType.ACTIVE_SEQUENCE,
+                                payload = new ActiveSequenceTcpMessageData
+                                {
+                                    activeSequence = _activeSequence
+                                }
+                            };
+                            SendMessage(client, message);
                         }
+                        continue;
                     }
 
-                    if (!stream.DataAvailable && client.Available < 3)
+                    SendQueuedMessages(client);
+
+                    if (!stream.DataAvailable)
                     {
                         continue;
                     }
-                    
-                    byte[] bytes = new byte[client.Available];
-                    stream.Read(bytes, 0, bytes.Length);
-                    string s = Encoding.UTF8.GetString(bytes);
 
-                    if (Regex.IsMatch(s, "^GET", RegexOptions.IgnoreCase))
+                    var received = DecodeReceivedMessage(client);
+                    if (received != null)
                     {
-                        Debug.Log($"=====Handshaking from client=====\n{s}");
-
-                        // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
-                        // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
-                        // 3. Compute SHA-1 and Base64 hash of the new value
-                        // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
-                        string swk = Regex.Match(s, "Sec-WebSocket-Key: (.*)").Groups[1].Value.Trim();
-                        string swkAndSalt = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                        byte[] swkAndSaltSha1 = System.Security.Cryptography.SHA1.Create()
-                            .ComputeHash(Encoding.UTF8.GetBytes(swkAndSalt));
-                        string swkAndSaltSha1Base64 = Convert.ToBase64String(swkAndSaltSha1);
-
-                        // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
-                        byte[] response = Encoding.UTF8.GetBytes(
-                            "HTTP/1.1 101 Switching Protocols\r\n" +
-                            "Connection: Upgrade\r\n" +
-                            "Upgrade: websocket\r\n" +
-                            "Sec-WebSocket-Accept: " + swkAndSaltSha1Base64 + "\r\n\r\n");
-
-                        stream.Write(response, 0, response.Length);
-                        handshakeReceived = true;
-                    }
-                    else
-                    {
-                        bool fin = (bytes[0] & 0b10000000) !=
-                                   0; // whether the full message has been sent from the client
-                        bool mask = (bytes[1] & 0b10000000) !=
-                                    0; // must be true, "All messages from the client to the server have this bit set"
-                        int opcode = bytes[0] & 0b00001111; // expecting 1 - text message
-                        ulong offset = 2;
-                        ulong msglen = bytes[1] & (ulong)0b01111111;
-
-                        if (msglen == 126)
+                        var messageData = JsonConvert.DeserializeObject<TcpMessage>(received, JsonUtils.JsonSerializerSettings);
+                        // Process the payload
+                        switch (messageData.type)
                         {
-                            // bytes are reversed because websocket will print them in Big-Endian, whereas
-                            // BitConverter will want them arranged in little-endian on windows
-                            msglen = BitConverter.ToUInt16(new byte[] { bytes[3], bytes[2] }, 0);
-                            offset = 4;
-                        }
-                        else if (msglen == 127)
-                        {
-                            // To test the below code, we need to manually buffer larger messages — since the NIC's autobuffering
-                            // may be too latency-friendly for this code to run (that is, we may have only some of the bytes in this
-                            // websocket frame available through client.Available).
-                            msglen = BitConverter.ToUInt64(
-                                new byte[]
-                                {
-                                    bytes[9], bytes[8], bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2]
-                                }, 0);
-                            offset = 10;
-                        }
-
-                        if (msglen == 0)
-                        {
-                            Debug.Log("msglen == 0");
-                        }
-                        else if (mask)
-                        {
-                            byte[] decoded = new byte[msglen];
-                            byte[] masks = new byte[4]
-                                { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
-                            offset += 4;
-
-                            for (ulong i = 0; i < msglen; ++i)
+                            case TcpMessageType.PING:
                             {
-                                decoded[i] = (byte)(bytes[offset + i] ^ masks[i % 4]);
+                                SendMessage(client, new TcpMessage { type = TcpMessageType.PONG }); break;
                             }
-
-                            string message = Encoding.UTF8.GetString(decoded);
-                            Debug.Log($"Received: {message}");
-
-                            // Process the payload
-                            var jsonObject = JsonUtility.FromJson<IncomingMessage>(message);
-                            // switch (jsonObject.type)
-                            // {
-                            //     case SocketRequestType.PING: SendPayload(stream, "{\"type\":\"PONG\"}"); break;
-                            //     case SocketRequestType.PING.ECHO: SendPayload(stream, "{\"type\":\"ECHO\",\"body\":\"" + jsonObject.body + "\"}"); break;
-                            // }
-                        }
-                        else
-                        {
-                            Debug.Log("mask bit not set");
+                            // case TcpMessageType.ECHO: SendPayload(stream, "{\"type\":\"ECHO\",\"body\":\"" + jsonObject.body + "\"}"); break;
                         }
                     }
                 }
@@ -261,14 +184,73 @@ namespace RegressionGames
             Debug.Log("Client disconnected");
         }
 
-        private void SendPayload(NetworkStream stream, string payload)
+        /// <summary>
+        /// Waits for http upgrade request from client to establish websocket connection
+        /// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server#handshaking
+        /// </summary>
+        private bool TryPerformHandshake(TcpClient client)
+        {
+            var stream = client.GetStream();
+            
+            if (!stream.DataAvailable || client.Available < 3)
+            {
+                return false;
+            }
+                    
+            byte[] bytes = new byte[client.Available];
+            stream.Read(bytes, 0, bytes.Length);
+            string s = Encoding.UTF8.GetString(bytes);
+
+            if (Regex.IsMatch(s, "^GET", RegexOptions.IgnoreCase))
+            {
+                // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+                // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+                // 3. Compute SHA-1 and Base64 hash of the new value
+                // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+                string swk = Regex.Match(s, "Sec-WebSocket-Key: (.*)").Groups[1].Value.Trim();
+                string swkAndSalt = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+                byte[] swkAndSaltSha1 = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swkAndSalt));
+                string swkAndSaltSha1Base64 = Convert.ToBase64String(swkAndSaltSha1);
+
+                // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
+                byte[] response = Encoding.UTF8.GetBytes(
+                    "HTTP/1.1 101 Switching Protocols\r\n" +
+                    "Connection: Upgrade\r\n" +
+                    "Upgrade: websocket\r\n" +
+                    "Sec-WebSocket-Accept: " + swkAndSaltSha1Base64 + "\r\n\r\n");
+
+                stream.Write(response, 0, response.Length);
+                return true;
+            }
+
+            return false;
+        }
+        
+        /// <summary>
+        /// Send any queued messages to connected clients
+        /// </summary>
+        private void SendQueuedMessages(TcpClient client)
+        {
+            // send any pending messages to the client
+            if (_connectedClients.TryGetValue(client, out var messages))
+            {
+                while (messages.TryDequeue(out var message))
+                {
+                    SendMessage(client, message);
+                }
+            }
+        }
+
+        private void SendMessage(TcpClient client, TcpMessage message)
         {
             try
             {
-                byte[] responseBytes = EncodeMessageToSend(payload);
+                var stream = client.GetStream();
+                var stringifiedMessage = message.ToString();
+                byte[] responseBytes = EncodeMessageToSend(stringifiedMessage);
                 stream.Write(responseBytes, 0, responseBytes.Length);
                 stream.Flush();
-                Debug.Log($"Sent: {payload}");
+                Debug.Log($"Sent: {stringifiedMessage}");
             }
             catch (Exception ex)
             {
@@ -277,9 +259,77 @@ namespace RegressionGames
         }
         
         /// <summary>
-        /// Encode message from server -> client
+        /// Decode message from client so we can process it
+        /// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server#decoding_messages
         /// </summary>
-        private byte[] EncodeMessageToSend(String message)
+        private string DecodeReceivedMessage(TcpClient client)
+        {
+            byte[] bytes = new byte[client.Available];
+            client.GetStream().Read(bytes, 0, bytes.Length);
+            string s = Encoding.UTF8.GetString(bytes);
+            
+            // whether the full message has been sent from the client
+            bool fin = (bytes[0] & 0b10000000) != 0; 
+            // must be true, "All messages from the client to the server have this bit set"
+            bool mask = (bytes[1] & 0b10000000) != 0;
+            // expecting 1 - text message
+            int opcode = bytes[0] & 0b00001111; 
+            ulong offset = 2;
+            ulong msglen = bytes[1] & (ulong)0b01111111;
+
+            if (msglen == 126)
+            {
+                // bytes are reversed because websocket will print them in Big-Endian, whereas
+                // BitConverter will want them arranged in little-endian on windows
+                msglen = BitConverter.ToUInt16(new byte[] { bytes[3], bytes[2] }, 0);
+                offset = 4;
+            }
+            else if (msglen == 127)
+            {
+                // To test the below code, we need to manually buffer larger messages — since the NIC's autobuffering
+                // may be too latency-friendly for this code to run (that is, we may have only some of the bytes in this
+                // websocket frame available through client.Available).
+                msglen = BitConverter.ToUInt64(
+                    new byte[]
+                    {
+                        bytes[9], bytes[8], bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2]
+                    }, 0);
+                offset = 10;
+            }
+
+            if (msglen == 0)
+            {
+                Debug.Log("msglen == 0");
+            }
+            else if (mask)
+            {
+                byte[] decoded = new byte[msglen];
+                byte[] masks = new byte[4]
+                    { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
+                offset += 4;
+
+                for (ulong i = 0; i < msglen; ++i)
+                {
+                    decoded[i] = (byte)(bytes[offset + i] ^ masks[i % 4]);
+                }
+
+                string decodedMessage = Encoding.UTF8.GetString(decoded);
+                // Debug.Log($"Received: {decodedMessage}");
+                return decodedMessage;
+            }
+            else
+            {
+                Debug.Log("mask bit not set");
+            }
+
+            return null;
+        }
+        
+        /// <summary>
+        /// Encode message from server -> client
+        /// https://stackoverflow.com/questions/8125507/how-can-i-send-and-receive-websocket-messages-on-the-server-side/27442080#27442080
+        /// </summary>
+        private byte[] EncodeMessageToSend(string message)
         {
             byte[] response;
             byte[] bytesRaw = Encoding.UTF8.GetBytes(message);
@@ -337,7 +387,7 @@ namespace RegressionGames
             return response;
         }
         
-        public ActiveSequence GetActiveBotSequence()
+        private ActiveSequence GetActiveBotSequence()
         {
             if (_botSegmentsPlaybackController != null && _botSegmentsPlaybackController.GetState() != PlayState.NotLoaded)
             {
@@ -370,6 +420,15 @@ namespace RegressionGames
         
         private void OnApplicationQuit()
         {
+            // send application quit messages to all connected clients
+            // then close any open connections
+            foreach (var client in _connectedClients.Keys)
+            {
+                var message = new TcpMessage { type = TcpMessageType.APPLICATION_QUIT };
+                SendMessage(client, message);
+                client.Close();
+            }
+            
             _isRunning = false;
             _server?.Stop();
             _listenerThread?.Join();
