@@ -78,6 +78,8 @@ namespace RegressionGames.StateRecorder
             _realMouse = null;
         }
 
+        private static volatile bool _wasButtonsClicked = false;
+
         public static InputDevice InitializeVirtualMouse()
         {
             Reset();
@@ -125,17 +127,19 @@ namespace RegressionGames.StateRecorder
                     var buttonsClicked = _virtualMouse.allControls.FirstOrDefault(a =>
                         a is ButtonControl abc && abc.ReadValueFromEvent(e) > 0.1f
                     ) != null;
-                    RGDebug.LogDebug("Virtual mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
+                    RGDebug.LogDebug("(Frame: " + Time.frameCount + ") Virtual mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
 
                     // need to use the static accessor here as this anonymous function's parent gameObject instance could get destroyed
                     var virtualMouseCursors = Object.FindObjectsOfType<VirtualMouseCursor>();
                     virtualMouseCursors.FirstOrDefault()?.SetPosition(position, buttonsClicked);
 
-                    if (!buttonsClicked && _realMouse is { enabled: false })
+                    if (_wasButtonsClicked && !buttonsClicked && _realMouse is { enabled: false })
                     {
-                        RGDebug.LogDebug("Enabling the real mouse device after virtual click mouse event");
+                        RGDebug.LogDebug("(Frame: " + Time.frameCount + ") Enabling the real mouse device after virtual un-click mouse event");
                         InputSystem.EnableDevice(_realMouse);
                     }
+
+                    _wasButtonsClicked = buttonsClicked;
                 });
             }
 
@@ -156,11 +160,11 @@ namespace RegressionGames.StateRecorder
                             if (_realMouse is { enabled: false })
                             {
                                 //shouldn't happen.. we disabled it
-                                RGDebug.LogWarning("Real mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
+                                RGDebug.LogWarning("(Frame: " + Time.frameCount + ") Real mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
                             }
                             else
                             {
-                                RGDebug.LogVerbose("Real mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
+                                RGDebug.LogVerbose("(Frame: " + Time.frameCount + ") Real mouse event at: " + position.x + "," + position.y + "  buttonsClicked: " + buttonsClicked);
                             }
                         }
                     });
