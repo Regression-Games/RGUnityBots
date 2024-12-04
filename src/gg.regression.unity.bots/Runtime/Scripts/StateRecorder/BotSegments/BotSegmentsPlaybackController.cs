@@ -394,7 +394,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private float _lastTimeLoggedKeyFrameConditions = 0;
 
-        private const int LOG_ERROR_INTERVAL = 10;
+        private const int LOG_ERROR_INTERVAL = 3;
 
         private void LogPlaybackWarning(string loggedMessage)
         {

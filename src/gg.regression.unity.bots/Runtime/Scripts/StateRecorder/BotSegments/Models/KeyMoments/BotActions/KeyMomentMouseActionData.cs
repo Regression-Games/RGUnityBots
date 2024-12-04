@@ -292,11 +292,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                         }
                     }
 
-                    // now that we have all the precondition matches mapped out, let's see if we have the leftmost object
+                    // now that we have all the precondition matches mapped out, let's see if we have the leftmost object..
+
+                    // if the leftmost object is a UI object, then it should already be the smallest / most precise UI thing to click as we solve this by sorting
+                    // the UI elements in mouseinputactionobserver.FindObjectsAtPosition based on the smallest screenspace bounds
                     if (preconditionMatches[0].Item1 != null)
                     {
                         // yay.. we found something.. first let's make sure it's ready to be clicked
-                        // visible (already true by the time we get here)/active-enabled(we already know that from a canvas perspective this is visible, but need to check UI component info)/ and maybe consider some raycast checks in the future ?
+                        // visible (already true by the time we get here)/active-enabled(we already know that from a canvas perspective this is visible, but need to check UI component info)
 
                         var oStatus = preconditionMatches[0].Item1;
 

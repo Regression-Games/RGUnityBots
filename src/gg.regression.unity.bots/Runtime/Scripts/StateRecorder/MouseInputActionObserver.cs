@@ -56,7 +56,7 @@ namespace RegressionGames.StateRecorder
 
                         if (mouseRayHits > 0)
                         {
-                            // order by distance from camera
+                            // order raycast hits by distance from camera
                             Array.Sort(_cachedRaycastHits, 0, mouseRayHits, _mouseHitComparer);
                         }
 
@@ -70,7 +70,7 @@ namespace RegressionGames.StateRecorder
                                 _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
                                 if (clickedTransformStatus.worldSpaceBounds != null)
                                 {
-                                    // compare to any raycast hits and pick the one closest to the camera
+                                    // compare to any raycast hits and pick the one closest to the camera to set the world position
                                     if (bestIndex > 0)
                                     {
                                         for (var i = 0; i < mouseRayHits; i++)
@@ -266,8 +266,41 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
-            // sort to 2 decimals with lower z-offsets first so we have UI things on top of game object things
-            result.Sort((a, b) => (int)((a.screenSpaceZOffset - b.screenSpaceZOffset)*100));
+            // sort with lower z-offsets first so we have UI things on top of game object things
+            // if both elements are from the UI.. then sort by smallest bounding area
+            result.Sort((a, b) =>
+            {
+                if (a.worldSpaceBounds == null && b.worldSpaceBounds == null)
+                {
+                    // 2 UI objects, sort by smallest render bounds
+                    var aExtents = a.screenSpaceBounds.Value.extents;
+                    var bExtents = b.screenSpaceBounds.Value.extents;
+
+                    var aAreaComparison = aExtents.x * aExtents.y;
+                    var bAreaComparison = bExtents.x * bExtents.y;
+
+                    if (aAreaComparison < bAreaComparison)
+                    {
+                        return -1;
+                    }
+
+                    // if a isn't smaller then we don't much care between == vs > as in floating point land.. == is so unlikely as for us to not worry about 'stable' sort for this case
+                    return 1;
+
+                }
+
+                if (a.screenSpaceZOffset < b.screenSpaceZOffset)
+                {
+                    return -1;
+                }
+
+                if (a.screenSpaceZOffset > b.screenSpaceZOffset)
+                {
+                    return 1;
+                }
+
+                return 0;
+            });
             return result;
         }
     }
