@@ -13,16 +13,8 @@
         Mouse_ObjectDetection,
         RestartGame,
         QuitGame,
-        QLearning
-
-        //POSSIBLE_FUTURE_ACTIONS
-        //Timer,
-        //FrameCount,
-        //AgentBuilder,
-        //OrchestratedInput,
-        //RandomKeyboard_Key,
-        //RandomKeyboard_ActionableKey,
-        //RandomJoystick_Axis1|Axis2|Axis3,Key
+        QLearning,
+        KeyMoment_MouseAction
 
     }
 }

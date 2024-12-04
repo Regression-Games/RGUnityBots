@@ -5,11 +5,14 @@ using System.Linq;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder
 {
     public class MouseInputActionObserver : MonoBehaviour
     {
+        private Type URPType = Type.GetType("UnityEngine.Rendering.Universal.UniversalAdditionalCameraData", false);
+
         private MouseInputActionData _priorMouseState;
 
         // limit this to 5 hits... any hit should be good enough to guess the proper screen x,y based on precise world x,y,z .. but sometimes
@@ -53,7 +56,7 @@ namespace RegressionGames.StateRecorder
 
                         if (mouseRayHits > 0)
                         {
-                            // order by distance from camera
+                            // order raycast hits by distance from camera
                             Array.Sort(_cachedRaycastHits, 0, mouseRayHits, _mouseHitComparer);
                         }
 
@@ -67,7 +70,7 @@ namespace RegressionGames.StateRecorder
                                 _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
                                 if (clickedTransformStatus.worldSpaceBounds != null)
                                 {
-                                    // compare to any raycast hits and pick the one closest to the camera
+                                    // compare to any raycast hits and pick the one closest to the camera to set the world position
                                     if (bestIndex > 0)
                                     {
                                         for (var i = 0; i < mouseRayHits; i++)
@@ -75,11 +78,11 @@ namespace RegressionGames.StateRecorder
                                             var rayHit = _cachedRaycastHits[i];
                                             try
                                             {
-                                                if (_cachedRaycastHits[i].transform.GetInstanceID() == clickedTransformStatus.Id)
+                                                if (rayHit.transform.GetInstanceID() == clickedTransformStatus.Id)
                                                 {
                                                     if (i < bestIndex)
                                                     {
-                                                        worldPosition = _cachedRaycastHits[i].point;
+                                                        worldPosition = rayHit.point;
                                                         bestIndex = i;
                                                     }
 
@@ -219,7 +222,7 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        private IEnumerable<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects, out float maxZDepth)
+        private List<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects, out float maxZDepth)
         {
             // make sure screen space position Z is around 0
             var vec3Position = new Vector3(position.x, position.y, 0);
@@ -231,17 +234,73 @@ namespace RegressionGames.StateRecorder
                 {
                     if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position))
                     {
-                        if (recordedGameObjectState.worldSpaceBounds != null)
+
+                        // filter out to only world space objects or interactable UI objects
+                        var isInteractable = true;
+
+                        if (recordedGameObjectState is TransformStatus tStatus)
                         {
-                            if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                            var theTransform = tStatus.Transform;
+                            if (theTransform is RectTransform)
                             {
-                                maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                                // ui object
+                                var selectables = theTransform.GetComponents<Selectable>();
+                                // make sure 1 is interactable
+                                isInteractable = selectables.Any(a => a.interactable);
                             }
                         }
-                        result.Add(recordedGameObjectState);
+
+                        if (isInteractable)
+                        {
+                            if (recordedGameObjectState.worldSpaceBounds != null)
+                            {
+                                if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                                {
+                                    maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                                }
+                            }
+                            result.Add(recordedGameObjectState);
+                        }
+
                     }
                 }
             }
+
+            // sort with lower z-offsets first so we have UI things on top of game object things
+            // if both elements are from the UI.. then sort by smallest bounding area
+            result.Sort((a, b) =>
+            {
+                if (a.worldSpaceBounds == null && b.worldSpaceBounds == null)
+                {
+                    // 2 UI objects, sort by smallest render bounds
+                    var aExtents = a.screenSpaceBounds.Value.extents;
+                    var bExtents = b.screenSpaceBounds.Value.extents;
+
+                    var aAreaComparison = aExtents.x * aExtents.y;
+                    var bAreaComparison = bExtents.x * bExtents.y;
+
+                    if (aAreaComparison < bAreaComparison)
+                    {
+                        return -1;
+                    }
+
+                    // if a isn't smaller then we don't much care between == vs > as in floating point land.. == is so unlikely as for us to not worry about 'stable' sort for this case
+                    return 1;
+
+                }
+
+                if (a.screenSpaceZOffset < b.screenSpaceZOffset)
+                {
+                    return -1;
+                }
+
+                if (a.screenSpaceZOffset > b.screenSpaceZOffset)
+                {
+                    return 1;
+                }
+
+                return 0;
+            });
             return result;
         }
     }

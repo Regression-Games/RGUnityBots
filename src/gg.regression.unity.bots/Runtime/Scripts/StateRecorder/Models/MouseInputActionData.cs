@@ -53,16 +53,33 @@ namespace RegressionGames.StateRecorder.Models
         {
             if (obj is MouseInputActionData previous)
             {
-                return previous.leftButton == this.leftButton
-                       && previous.middleButton == this.middleButton
-                       && previous.rightButton == this.rightButton
-                       && previous.forwardButton == this.forwardButton
-                       && previous.backButton == this.backButton
-                       && Math.Abs(previous.scroll.y - this.scroll.y) < 0.1f
-                       && Math.Abs(previous.scroll.x - this.scroll.x) < 0.1f;
+                return previous.leftButton == leftButton
+                       && previous.middleButton == middleButton
+                       && previous.rightButton == rightButton
+                       && previous.forwardButton == forwardButton
+                       && previous.backButton == backButton
+                       && Math.Abs(previous.scroll.y - scroll.y) < 0.1f
+                       && Math.Abs(previous.scroll.x - scroll.x) < 0.1f;
             }
 
             return false;
+        }
+
+        public bool IsButtonUnClick(MouseInputActionData priorState)
+        {
+            if (priorState == null)
+            {
+                return false;
+            }
+
+            return (!leftButton && priorState.leftButton)
+                   || (!middleButton && priorState.middleButton)
+                   || (!rightButton && priorState.rightButton)
+                   || (!forwardButton && priorState.forwardButton)
+                   || (!backButton && priorState.backButton)
+                   // for scroll, we just go with, 'did change'
+                   || Math.Abs(priorState.scroll.y - scroll.y) >= 0.1f
+                   || Math.Abs(priorState.scroll.x - scroll.x) >= 0.1f;
         }
 
         public void ReplayReset()

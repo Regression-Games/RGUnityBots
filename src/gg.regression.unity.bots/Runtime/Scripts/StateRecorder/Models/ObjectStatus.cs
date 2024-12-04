@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RegressionGames.StateRecorder.Models
@@ -22,6 +24,12 @@ namespace RegressionGames.StateRecorder.Models
          * <summary>Has things like ' (1)' and ' (Clone)' stripped off of object names.</summary>
          */
         public string NormalizedPath;
+
+        /**
+         * Used by key moments evaluation to cache path tokenization for performance
+         */
+        [NonSerialized]
+        public List<string[]> TokenizedObjectPath = null;
 
         public Bounds? screenSpaceBounds;
         /**

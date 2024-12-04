@@ -43,6 +43,7 @@ namespace RegressionGames.StateRecorder
 
         private bool _isRecording;
 
+        private bool _isKeyMomentRecording;
         // Start is called before the first frame update
         void Start()
         {
