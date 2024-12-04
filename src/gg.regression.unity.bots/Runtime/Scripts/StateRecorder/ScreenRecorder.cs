@@ -643,7 +643,7 @@ namespace RegressionGames.StateRecorder
             {
 
                 List<MouseInputActionData> inputsToProcess = new();
-                // only take from the buffer up to the last 'unclicked' state
+                // only take from the buffer up to the last 'un-clicked' state
                 // this is 'hard'... we want to encapsulate click down/up as a single action together
                 // but in cases like FPS where I might 'hold' right click to ADS then repeatedly click/release the left mouse button to fire.. i don't want that ALL as one action
                 // each shot of the weapon would be an 'action', AND .. ads was an action.. so we break this up by any button release
@@ -660,24 +660,36 @@ namespace RegressionGames.StateRecorder
                 else if (meaningfulInputs.Count > 1)
                 {
                     var priorData = _previousKeyMomentMouseInputState;
-                    var foundUnclick = false;
+                    var foundUnClick = false;
                     // go through all the inputs until we find an un-click
                     // we speculatively update the list as we go, but if we never hit an un-click we wipe it back out before moving on
                     foreach (var meaningfulInput in meaningfulInputs)
                     {
+                        if (meaningfulInput.i - 1 >= 0)
+                        {
+                            var previousInput = _keyMomentMouseDataBuffer[meaningfulInput.i - 1];
+
+                            // this may seem odd, but we use this API backwards so that we see if the previous mouse spot before the click had a different click state than the current one.. it 'should' ,but better to be safe
+                            // ultimately.. we're trying to add the mouse position event before the click so that the mouse is 'in position' before clicking down to avoid any snafu's with the input system
+                            if (previousInput.IsButtonUnClick(meaningfulInput.data))
+                            {
+                                inputsToProcess.Add(previousInput);
+                            }
+                        }
+
                         inputsToProcess.Add(meaningfulInput.data);
                         if (meaningfulInput.data.IsButtonUnClick(priorData))
                         {
                             // clean out all the entries up to here
                             _keyMomentMouseDataBuffer.RemoveRange(0, meaningfulInput.i+1);
-                            foundUnclick = true;
+                            foundUnClick = true;
                             break;
                         }
 
                         priorData = meaningfulInput.data;
                     }
 
-                    if (!foundUnclick)
+                    if (!foundUnClick)
                     {
                         // never found an un-click.. don't process the list so far
                         inputsToProcess.Clear();

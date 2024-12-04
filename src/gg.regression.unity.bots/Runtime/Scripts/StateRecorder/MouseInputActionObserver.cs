@@ -11,6 +11,8 @@ namespace RegressionGames.StateRecorder
 {
     public class MouseInputActionObserver : MonoBehaviour
     {
+        private Type URPType = Type.GetType("UnityEngine.Rendering.Universal.UniversalAdditionalCameraData", false);
+
         private MouseInputActionData _priorMouseState;
 
         // limit this to 5 hits... any hit should be good enough to guess the proper screen x,y based on precise world x,y,z .. but sometimes
@@ -76,11 +78,11 @@ namespace RegressionGames.StateRecorder
                                             var rayHit = _cachedRaycastHits[i];
                                             try
                                             {
-                                                if (_cachedRaycastHits[i].transform.GetInstanceID() == clickedTransformStatus.Id)
+                                                if (rayHit.transform.GetInstanceID() == clickedTransformStatus.Id)
                                                 {
                                                     if (i < bestIndex)
                                                     {
-                                                        worldPosition = _cachedRaycastHits[i].point;
+                                                        worldPosition = rayHit.point;
                                                         bestIndex = i;
                                                     }
 
@@ -220,7 +222,7 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        private IEnumerable<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects, out float maxZDepth)
+        private List<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects, out float maxZDepth)
         {
             // make sure screen space position Z is around 0
             var vec3Position = new Vector3(position.x, position.y, 0);
@@ -263,6 +265,9 @@ namespace RegressionGames.StateRecorder
                     }
                 }
             }
+
+            // sort to 2 decimals with lower z-offsets first so we have UI things on top of game object things
+            result.Sort((a, b) => (int)((a.screenSpaceZOffset - b.screenSpaceZOffset)*100));
             return result;
         }
     }

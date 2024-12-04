@@ -239,17 +239,24 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             {
                 var mouseActionsCount = mouseActions.Count;
 
+                MouseInputActionData pendingAction = null;
+
                 for (var m = 0; m < mouseActionsCount; m++)
                 {
                     var mouseAction = mouseActions[m];
                     var preConditionNormalizedPaths = _preconditionNormalizedPaths[m];
 
+                    if (preConditionNormalizedPaths.Count == 0)
+                    {
+                        pendingAction = mouseAction;
+                        continue; // the for - basically.. this is a mouse positional update, but we need the next click to know which position to put it in
+                    }
 
-                    List<ObjectStatus> possibleTransformsToClick = currentTransforms.Values.Where(a => a.screenSpaceBounds.HasValue).ToList();
+                    var possibleTransformsToClick = currentTransforms.Values.Where(a => a.screenSpaceBounds.HasValue).ToList();
 
                     var preconditionsLength = preConditionNormalizedPaths.Count;
 
-                    (ObjectStatus, (int[],int[]))[] preconditionMatches = new (ObjectStatus, (int[],int[]))[preconditionsLength];
+                    var preconditionMatches = new (ObjectStatus, (int[],int[]))[preconditionsLength];
                     for (var i = 0; i < preconditionsLength; i++)
                     {
                         preconditionMatches[i] = (null, (null,null));
@@ -322,7 +329,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                 var preconditionMatch = preconditionMatches[i];
                                 if (preconditionMatch.Item1 != null)
                                 {
-
                                     //  not the same logic as MouseEventSender.FindBestClickObject.. this version narrows in on the smallest bounding area
 
                                     // ReSharper disable once PossibleInvalidOperationException - already filtered at the top of the method to only have entries with valid visible bounds
@@ -355,6 +361,19 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                             }
 
                             var position = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
+
+                            if (pendingAction != null)
+                            {
+                                var myPendingAction = pendingAction;
+                                _mouseActionsToDo.Add(() =>
+                                {
+                                    RGDebug.LogInfo($"KeyMoment - Mouse Pending Action applied at position: ({(int)position.x}, {(int)position.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
+
+                                    // perform the mouse action at the center of our new smallest bounds
+                                    MouseEventSender.SendRawPositionMouseEvent(segmentNumber, position, myPendingAction.leftButton, myPendingAction.middleButton, myPendingAction.rightButton, myPendingAction.forwardButton, myPendingAction.backButton, myPendingAction.scroll);
+                                });
+                            }
+
                             _mouseActionsToDo.Add(() =>
                             {
                                 RGDebug.LogInfo($"KeyMoment - Mouse Action at position: ({(int)position.x}, {(int)position.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
@@ -362,6 +381,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                 // perform the mouse action at the center of our new smallest bounds
                                 MouseEventSender.SendRawPositionMouseEvent(segmentNumber, position, mouseAction.leftButton, mouseAction.middleButton, mouseAction.rightButton, mouseAction.forwardButton, mouseAction.backButton, mouseAction.scroll);
                             });
+                            pendingAction = null;
                         }
                         else
                         {
@@ -369,6 +389,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                             error = $"No valid mouse action object found for paths:\n{string.Join("\n", preConditionNormalizedPaths.Select(a => a.path))}\n Exploring to find a match ...";
                             return false;
                         }
+                    }
+                    else
+                    {
+                        // didn't find it.. this is where 'exploration' is going to start happening based on our result
+                        error = $"No valid mouse action object found for path:\n{preConditionNormalizedPaths[0].path}\n Exploring to find a match ...";
+                        return false;
                     }
                 }
             }
