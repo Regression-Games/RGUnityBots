@@ -225,38 +225,23 @@ namespace RegressionGames.StateRecorder
             var vec3Position = new Vector3(position.x, position.y, 0);
             List<ObjectStatus> result = new();
             maxZDepth = 0f;
-            var hitUIElement = false;
             foreach (var recordedGameObjectState in statefulObjects)
             {
                 if (recordedGameObjectState.screenSpaceBounds.HasValue)
                 {
                     if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position))
                     {
-                        if (!hitUIElement && recordedGameObjectState.worldSpaceBounds != null)
+                        if (recordedGameObjectState.worldSpaceBounds != null)
                         {
                             if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
                             {
                                 maxZDepth = recordedGameObjectState.screenSpaceZOffset;
                             }
-
-                            result.Add(recordedGameObjectState);
                         }
-                        else
-                        {
-                            maxZDepth = 0f;
-                            hitUIElement = true;
-                            result.Add(recordedGameObjectState);
-                        }
+                        result.Add(recordedGameObjectState);
                     }
                 }
             }
-
-            if (hitUIElement)
-            {
-                // if we hit a UI element, ignore the in game elements
-                result.RemoveAll(a => a.worldSpaceBounds != null);
-            }
-
             return result;
         }
     }

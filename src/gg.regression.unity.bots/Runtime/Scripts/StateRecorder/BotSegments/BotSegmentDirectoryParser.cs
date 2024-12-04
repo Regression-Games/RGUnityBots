@@ -68,13 +68,13 @@ namespace StateRecorder.BotSegments
         /**
          * <summary>Sort json files FROM THE SAME DIRECTORY numerically if possible, otherwise Lexicographically</summary>
          */
-        public static IOrderedEnumerable<string> OrderJsonFiles(IEnumerable<string> jsonFiles)
+        public static List<string> OrderJsonFiles(IEnumerable<string> jsonFiles)
         {
             RGDebug.LogInfo($"OrderJsonFiles - Input File List - {string.Join("\n", jsonFiles)}");
             Exception lambdaException = null;
             // sort by numeric value of entries (not string comparison of filenames) .. normalize to front slashes
             jsonFiles = jsonFiles.Where(e=>e.EndsWith(".json")).Select(e =>e = e.Replace('\\', '/'));
-            IOrderedEnumerable<string> entries;
+            List<string> entries;
             try
             {
                 // try to order the files as numbered file names
@@ -103,7 +103,7 @@ namespace StateRecorder.BotSegments
                         lambdaException = le;
                     }
                     return 0;
-                });
+                }).ToList();
                 if (lambdaException != null)
                 {
                     throw lambdaException;
@@ -112,10 +112,10 @@ namespace StateRecorder.BotSegments
             catch (Exception)
             {
                 // if filenames aren't all numbers, order lexicographically
-                entries = jsonFiles.OrderBy(e => e.Substring(0, e.IndexOf('.')));
+                entries = jsonFiles.OrderBy(e => e.Substring(0, e.IndexOf('.'))).ToList();
             }
 
-            RGDebug.LogInfo($"OrderJsonFiles - Output File List - {string.Join("\n", entries)}");
+            RGDebug.LogInfo($"OrderJsonFiles - Output File List [{entries.Count}] - {string.Join(", ", entries)}");
             return entries;
         }
 
@@ -131,7 +131,7 @@ namespace StateRecorder.BotSegments
             {
                 var filesInDirectory = Directory.GetFiles(directoryPath, "*.json", SearchOption.TopDirectoryOnly);
 
-                IOrderedEnumerable<string> entries = OrderJsonFiles(filesInDirectory);
+                var entries = OrderJsonFiles(filesInDirectory);
 
                 foreach (var entry in entries)
                 {
