@@ -15,6 +15,27 @@ namespace RegressionGames
 {
     public static class RGUtils
     {
+        // <summary>
+        // Determines if the game is currently running on a mobile device, or is running in the Unity Device Simulator
+        // </summary>
+        public static bool IsMobile()
+        {
+            return Application.platform == RuntimePlatform.Android
+                   || Application.platform == RuntimePlatform.IPhonePlayer
+#if UNITY_EDITOR
+                   || !UnityEngine.Device.Application.isEditor // game is running in Unity Device Simulator
+#endif
+            ;
+        }
+        
+        // <summary>
+        // Determines if the game's viewport is in a 'portrait' orientation. (ie: height > width)
+        // </summary>
+        public static bool IsPortraitView()
+        {
+            return Screen.height > Screen.width;
+        }
+        
         public static bool IsCSharpPrimitive(string typeName)
         {
             HashSet<string> primitiveTypes = new HashSet<string>

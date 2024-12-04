@@ -232,6 +232,7 @@ namespace RegressionGames.StateRecorder
                 {
                     if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position))
                     {
+
                         // filter out to only world space objects or interactable UI objects
                         var isInteractable = true;
 
@@ -256,9 +257,9 @@ namespace RegressionGames.StateRecorder
                                     maxZDepth = recordedGameObjectState.screenSpaceZOffset;
                                 }
                             }
-
                             result.Add(recordedGameObjectState);
                         }
+
                     }
                 }
             }
