@@ -54,7 +54,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
      * <summary>Data for clicking on a key moment object in the frame</summary>
      */
     [Serializable]
-    public class KeyMomentMouseActionData : IBotActionData
+    public class KeyMomentMouseActionData : IBotActionData, IKeyMomentExploration
     {
         // api version for this object, update if object format changes
         public int apiVersion = SdkApiVersion.VERSION_28;
@@ -82,6 +82,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
         {
             _isStopped = false;
             _isDoneWaitOneFrame = false;
+        }
+
+        public void ActivateExploration()
+        {
+            // start the exploration process
         }
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
@@ -389,14 +394,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                         else
                         {
                             // didn't find it.. this is where 'exploration' is going to start happening based on our result
-                            error = $"No valid mouse action object found for paths:\n{string.Join("\n", preConditionNormalizedPaths.Select(a => a.path))}\n Exploring to find a match ...";
+                            error = $"No valid mouse action object found for paths:\n{string.Join("\n", preConditionNormalizedPaths.Select(a => a.path))}";
                             return false;
                         }
                     }
                     else
                     {
                         // didn't find it.. this is where 'exploration' is going to start happening based on our result
-                        error = $"No valid mouse action object found for path:\n{preConditionNormalizedPaths[0].path}\n Exploring to find a match ...";
+                        error = $"No valid mouse action object found for path:\n{preConditionNormalizedPaths[0].path}";
                         return false;
                     }
                 }
