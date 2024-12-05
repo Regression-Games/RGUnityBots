@@ -17,6 +17,7 @@ namespace StateRecorder.BotSegments
         private readonly List<List<IBotActionData>> _previousActions = new(3);
 
         private int _previousActionIndex = 0;
+        private int _previousActionSubIndex = 0;
 
         public bool IsExploring { get; private set;}
 
@@ -42,6 +43,7 @@ namespace StateRecorder.BotSegments
             {
                 _previousActions.Clear();
                 _previousActionIndex = 0;
+                _previousActionSubIndex = 0;
                 List<IBotActionData> priorList = null;
                 foreach (var previouslyCompletedAction in PreviouslyCompletedActions)
                 {
@@ -77,25 +79,36 @@ namespace StateRecorder.BotSegments
             if (_previousActionIndex < _previousActions.Count)
             {
                 var previousActions = _previousActions[_previousActionIndex];
-                ++_previousActionIndex;
-                // process all N actions in the list
-                if (previousActions != null)
+                if (_previousActionSubIndex >= previousActions.Count)
                 {
-                    foreach (var botActionData in previousActions)
+                    // move to the next list
+                    _previousActionSubIndex = 0;
+                    ++_previousActionIndex;
+                    if (_previousActionIndex >= _previousActions.Count)
                     {
-                        RGDebug.LogInfo($"ActionExplorationDriver - Performing Exploratory Action of Type: {botActionData.GetType().Name}");
-                        try
-                        {
-                            botActionData.ReplayReset();
-                            botActionData.StartAction(segmentNumber, currentTransforms, currentEntities);
-                            botActionData.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
-                            botActionData.AbortAction(segmentNumber);
-                        }
-                        catch (Exception)
-                        {
-                            // no op
-                        }
+                        _previousActionIndex = 0;
                     }
+                    previousActions = _previousActions[_previousActionIndex];
+                }
+
+                var nextAction = previousActions[_previousActionSubIndex];
+                ++_previousActionSubIndex;
+                // process next action in the list
+                if (nextAction != null)
+                {
+                    RGDebug.LogInfo($"ActionExplorationDriver - Performing Exploratory Action of Type: {nextAction.GetType().Name}");
+                    try
+                    {
+                        nextAction.ReplayReset();
+                        nextAction.StartAction(segmentNumber, currentTransforms, currentEntities);
+                        nextAction.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
+                        nextAction.AbortAction(segmentNumber);
+                    }
+                    catch (Exception)
+                    {
+                        // no op
+                    }
+
                 }
             }
 
