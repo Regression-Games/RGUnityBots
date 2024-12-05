@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using RegressionGames;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
@@ -8,17 +10,54 @@ namespace StateRecorder.BotSegments
     public class ActionExplorationDriver : MonoBehaviour
     {
 
-        // normally the first thing we do is retry the previous action
-        private IBotActionData _previouslyCompletedAction = null;
+        // normally the first thing we do is retry the previous actions
+        // these are sorted newest to oldest
+        private readonly List<IBotActionData> PreviouslyCompletedActions = new(3);
+
+        private readonly List<List<IBotActionData>> _previousActions = new(3);
+
+        private int _previousActionIndex = 0;
 
         public bool IsExploring { get; private set;}
 
-        private IBotActionData _activeAction = null;
-
-        public void StartExploring(IBotActionData previousAction)
+        public void ReportPreviouslyCompletedAction(IBotActionData action)
         {
-            _previouslyCompletedAction = previousAction;
-            IsExploring = true;
+            // limit to 3 prior actions
+            while (PreviouslyCompletedActions.Count > 2)
+            {
+                // remove at front
+                PreviouslyCompletedActions.RemoveAt(0);
+            }
+
+            if (!PreviouslyCompletedActions.Contains(action))
+            {
+                // insert at end
+                PreviouslyCompletedActions.Add(action);
+            }
+        }
+
+        public void StartExploring()
+        {
+            if (!IsExploring)
+            {
+                _previousActions.Clear();
+                _previousActionIndex = 0;
+                List<IBotActionData> priorList = null;
+                foreach (var previouslyCompletedAction in PreviouslyCompletedActions)
+                {
+                    // populate these lists so that we have a pattern of 0, 10, 210 where 0 is the newest and 2 is the oldest and we try them in patterns as listed
+                    var actionList = new List <IBotActionData>(3);
+                    actionList.Add(previouslyCompletedAction);
+                    if (priorList != null)
+                    {
+                        actionList.AddRange(priorList);
+                    }
+                    priorList = actionList;
+                    _previousActions.Add(actionList);
+                }
+                RGDebug.LogInfo("ActionExplorationDriver - Starting Exploratory Actions");
+                IsExploring = true;
+            }
         }
 
         public void PerformExploratoryAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
@@ -29,31 +68,38 @@ namespace StateRecorder.BotSegments
                 return;
             }
 
-            if (_previouslyCompletedAction != null)
+            if (_previousActionIndex >= _previousActions.Count)
             {
-                _previouslyCompletedAction.ReplayReset();
-
-                _activeAction = _previouslyCompletedAction;
-                _previouslyCompletedAction = null;
+                _previousActionIndex = 0;
             }
 
-            if (_activeAction == null)
+            // retry prior actions in pattern .. 0, 10, 210 where 2 is the oldest and 0 is the most recent
+            if (_previousActionIndex < _previousActions.Count)
             {
-                // TODO: Implement hooks to exploration algorithms here
-            }
-
-            if (_activeAction != null)
-            {
-                if (!_activeAction.IsCompleted())
+                var previousActions = _previousActions[_previousActionIndex];
+                ++_previousActionIndex;
+                // process all N actions in the list
+                if (previousActions != null)
                 {
-                    _activeAction.StartAction(segmentNumber, currentTransforms, currentEntities);
-                    _activeAction.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
-                }
-                else
-                {
-                    _activeAction = null;
+                    foreach (var botActionData in previousActions)
+                    {
+                        RGDebug.LogInfo($"ActionExplorationDriver - Performing Exploratory Action of Type: {botActionData.GetType().Name}");
+                        try
+                        {
+                            botActionData.ReplayReset();
+                            botActionData.StartAction(segmentNumber, currentTransforms, currentEntities);
+                            botActionData.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
+                            botActionData.AbortAction(segmentNumber);
+                        }
+                        catch (Exception)
+                        {
+                            // no op
+                        }
+                    }
                 }
             }
+
+            // TODO: Implement hooks to other exploration algorithms
 
         }
 
@@ -61,11 +107,7 @@ namespace StateRecorder.BotSegments
         {
             IsExploring = false;
 
-            if (_activeAction != null)
-            {
-                _activeAction.AbortAction(segmentNumber);
-                _activeAction = null;
-            }
+            RGDebug.LogInfo("ActionExplorationDriver - Stopped Exploratory Actions");
         }
     }
 }

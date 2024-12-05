@@ -464,7 +464,10 @@ namespace RegressionGames.StateRecorder.BotSegments
                         {
                             // allow the main action to retry between every exploratory action
                             var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-                            // only log this if we're really stuck on it
+                            if (firstActionSegment.Replay_ActionCompleted)
+                            {
+                                _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
+                            }
                             if (error == null && didAction)
                             {
                                 _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
@@ -481,7 +484,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     {
                                         var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error + "\r\nStarting exploratory actions...";
                                         LogPlaybackWarning(loggedMessage);
-                                        _explorationDriver.StartExploring(_lastSuccessfulAction);
+                                        _explorationDriver.StartExploring();
                                     }
                                     else
                                     {
