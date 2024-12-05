@@ -57,7 +57,8 @@ namespace RegressionGames.StateRecorder
 
     public class ScreenRecorder : MonoBehaviour
     {
-        public static readonly string RecordingPathName = "Latest_Recording";
+        public static readonly string LatestRecordingPathName = "Latest_Recording";
+        public static readonly string LatestRecordingKeyMomentsPathName = LatestRecordingPathName + "_KeyMoments";
 
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
         public int recordingMinFPS;
@@ -178,6 +179,7 @@ namespace RegressionGames.StateRecorder
             long loggedErrors,
             string dataDirectoryPrefix,
             string botSegmentsDirectoryPrefix,
+            string keyMomentsDirectoryPrefix,
             string screenshotsDirectoryPrefix,
             string codeCoverageMetadataPath,
             string actionCoverageMetadataPath,
@@ -260,6 +262,14 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogInfo($"Finished zipping replay to file: {logsDirectoryPrefix}.zip");
             });
 
+            var zipTask5 = Task.Run(() =>
+            {
+                // Then save the key moments separately
+                RGDebug.LogInfo($"Zipping key_moments recording replay to file: {keyMomentsDirectoryPrefix}.zip");
+                ZipFile.CreateFromDirectory(keyMomentsDirectoryPrefix, keyMomentsDirectoryPrefix + ".zip");
+                RGDebug.LogInfo($"Finished zipping replay to file: {keyMomentsDirectoryPrefix}.zip");
+            });
+
             // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
             var screenshotFiles = Directory.GetFiles(screenshotsDirectoryPrefix);
             if (screenshotFiles.Length > 0)
@@ -272,13 +282,14 @@ namespace RegressionGames.StateRecorder
             RGActionRuntimeCoverageAnalysis.Reset();
 
             // wait for the zip tasks to finish
-            Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4);
+            Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4, zipTask5);
 
             if (!wasReplay)
             {
-                // Copy the most recent recording into the user's project if running in the editor , or their persistent data path if running in production runtime
+                // Copy the most recent recording into the user's project if running in the editor, or their persistent data path if running in production runtime
                 // do NOT copy if this was a replay
-                await MoveSegmentsToProject(botSegmentsDirectoryPrefix);
+                await MoveSegmentsToProject(botSegmentsDirectoryPrefix, LatestRecordingPathName);
+                await MoveSegmentsToProject(keyMomentsDirectoryPrefix, LatestRecordingKeyMomentsPathName);
             }
 
 #if UNITY_EDITOR
@@ -309,6 +320,10 @@ namespace RegressionGames.StateRecorder
             {
                 Directory.Delete(botSegmentsDirectoryPrefix, true);
             }
+            if (Directory.Exists(keyMomentsDirectoryPrefix))
+            {
+                Directory.Delete(keyMomentsDirectoryPrefix, true);
+            }
             if (Directory.Exists(screenshotsDirectoryPrefix))
             {
                 Directory.Delete(screenshotsDirectoryPrefix, true);
@@ -325,28 +340,30 @@ namespace RegressionGames.StateRecorder
             _tokenSource = null;
         }
 
-        private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
+        private async Task MoveSegmentsToProject(string sourceDirectoryPrefix, string recordingPathName)
         {
             // Get all the file paths normalized to /
             // Note: Ensure that these files aren't loaded lazily (don't use Directory.EnumerateFiles)
             // as the folder gets moved later down this function and lazy loading will not find the files.
-            var segmentFiles = Directory.GetFiles(botSegmentsDirectoryPrefix)
+            var segmentFiles = Directory.GetFiles(sourceDirectoryPrefix)
                 .Where(a=>a.EndsWith(".json"))
                 .Select(a=>a.Replace('\\','/'))
                 .Select(a=>a.Substring(a.LastIndexOf('/')+1));
 
             // Order numerically instead of alphanumerically to ensure 2.json is before 10.json.
-            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles);
+            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles.ToArray());
 
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
+
+
 #if UNITY_EDITOR
-            segmentResourceDirectory = "Assets/RegressionGames/Resources/BotSegments/" + RecordingPathName;
-            sequenceJsonPath = "Assets/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
+            segmentResourceDirectory = "Assets/RegressionGames/Resources/BotSegments/" + recordingPathName;
+            sequenceJsonPath = "Assets/RegressionGames/Resources/BotSequences/" + recordingPathName + ".json";
 #else
             // Production runtime should write to persistent data path
-            segmentResourceDirectory = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + RecordingPathName;
-            sequenceJsonPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
+            segmentResourceDirectory = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + recordingPathName;
+            sequenceJsonPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences/" + recordingPathName + ".json";
 #endif
             try
             {
@@ -371,17 +388,17 @@ namespace RegressionGames.StateRecorder
                     // ReSharper disable once PossibleMultipleEnumeration
                     foreach (var segmentFile in segmentFiles)
                     {
-                        var sourcePath = botSegmentsDirectoryPrefix + "/" + segmentFile;
+                        var sourcePath = sourceDirectoryPrefix + "/" + segmentFile;
                         var destinationPath = segmentResourceDirectory + "/" + segmentFile;
                         File.Copy(sourcePath, destinationPath);
                     }
                     // Then delete the original directory
-                    Directory.Delete(botSegmentsDirectoryPrefix, true);
+                    Directory.Delete(sourceDirectoryPrefix, true);
                 }
                 else
                 {
                     // move the directory (this also deletes the source directory)
-                    Directory.Move(botSegmentsDirectoryPrefix, segmentResourceDirectory);
+                    Directory.Move(sourceDirectoryPrefix, segmentResourceDirectory);
                 }
 
             }
@@ -406,7 +423,7 @@ namespace RegressionGames.StateRecorder
 
             var botSequence = new BotSequence()
             {
-                name = "Latest Recording",
+                name = recordingPathName.Replace('_', ' ').Replace('-', ' '),
                 description = "Note: This sequence was generated when recording a gameplay session and should not be modified.  Creating a new recording will overwrite this sequence.",
                 segments = sequenceEntries
             };
@@ -818,6 +835,7 @@ namespace RegressionGames.StateRecorder
                     loggedErrors,
                     _currentGameplaySessionDataDirectoryPrefix,
                     _currentGameplaySessionBotSegmentsDirectoryPrefix,
+                    _currentGameplaySessionKeyMomentsDirectoryPrefix,
                     _currentGameplaySessionScreenshotsDirectoryPrefix,
                     _currentGameplaySessionCodeCoverageMetadataPath,
                     _currentGameplaySessionActionCoverageMetadataPath,
