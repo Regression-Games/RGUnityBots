@@ -743,7 +743,7 @@ namespace RegressionGames.StateRecorder
                     };
 
                     // write out the botSegmentList
-                    var jsonData = Encoding.UTF8.GetBytes(botSegment.ToJsonString());
+                    var jsonData = Encoding.UTF8.GetBytes(botSegment.ToKeyMomentJsonString());
 
                     RecordKeyMoment(_currentGameplaySessionKeyMomentsDirectoryPrefix, _keyMomentNumber, jsonData);
                 }

@@ -17,7 +17,7 @@ using UnityEngine;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class BotSegment
+    public class BotSegment : IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
 
         // re-usable and large enough to fit all sizes
@@ -40,7 +40,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // NOT WRITTEN TO JSON - Populated at load time
         public bool isOverride;
-        
+
         /**
          * <summary>Description for this bot segment. Used for naming on the UI.</summary>
          */
@@ -230,6 +230,46 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 }
             }
             return false;
+        }
+
+        public string ToKeyMomentJsonString()
+        {
+            _stringBuilder.Value.Clear();
+            WriteKeyMomentToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
+        }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\n\"name\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, name );
+            stringBuilder.Append(",\n\"description\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, description );
+            stringBuilder.Append(",\n\"sessionId\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\n\"endCriteria\":[\n");
+            var endCriteriaLength = endCriteria.Count;
+            for (var i = 0; i < endCriteriaLength; i++)
+            {
+                var criteria = endCriteria[i];
+                criteria.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < endCriteriaLength)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n],\n\"botAction\":");
+            if (botAction != null)
+            {
+                botAction.WriteKeyMomentToStringBuilder(stringBuilder);
+            }
+            else
+            {
+                stringBuilder.Append("null");
+            }
+            stringBuilder.Append("}");
         }
 
         public string ToJsonString()

@@ -54,7 +54,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
      * <summary>Data for clicking on a key moment object in the frame</summary>
      */
     [Serializable]
-    public class KeyMomentMouseActionData : IBotActionData, IKeyMomentExploration
+    public class KeyMomentMouseActionData : IBotActionData, IKeyMomentExploration, IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
         // api version for this object, update if object format changes
         public int apiVersion = SdkApiVersion.VERSION_28;
@@ -462,6 +462,24 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             {
                 var mouseAction = mouseActions[i];
                 mouseAction.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < mouseActionsCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]}");
+        }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"mouseActions\":[\n");
+            var mouseActionsCount = mouseActions.Count;
+            for (var i = 0; i < mouseActionsCount; i++)
+            {
+                var mouseAction = mouseActions[i];
+                mouseAction.WriteKeyMomentToStringBuilder(stringBuilder);
                 if (i + 1 < mouseActionsCount)
                 {
                     stringBuilder.Append(",\n");
