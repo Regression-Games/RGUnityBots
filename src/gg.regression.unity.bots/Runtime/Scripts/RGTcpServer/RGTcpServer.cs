@@ -1,114 +1,135 @@
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Newtonsoft.Json;
-using RegressionGames.RemoteOrchestration.Models;
 using RegressionGames.StateRecorder;
-using RegressionGames.StateRecorder.BotSegments;
-using RegressionGames.StateRecorder.BotSegments.Models;
-using UnityEditor;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
 
 namespace RegressionGames
 {
-    public class RGTcpServer : MonoBehaviour
+    // ReSharper disable InconsistentNaming
+    public class RGTcpServer
     {
-        private string _assetsDirectory;
+        private static RGTcpServer _this;
 
-        private TcpListener _server;
-        private Thread _listenerThread;
-        private bool _isRunning;
+        private readonly int m_port;
+        public int Port => m_port;
+        
+        private readonly TcpListener m_server;
+        private readonly Thread m_listenerThread;
+        
+        private bool m_isRunning;
+        public bool IsRunning => m_isRunning;
         
         // client + any queued message to send to that client
-        private readonly ConcurrentDictionary<TcpClient, ConcurrentQueue<TcpMessage>> _connectedClients = new ConcurrentDictionary<TcpClient, ConcurrentQueue<TcpMessage>>();
+        private readonly ConcurrentDictionary<TcpClient, ConcurrentQueue<TcpMessage>> m_connectedClients = new ();
         
-        // the last active sequence that was sent to the client
-        private BotSegmentsPlaybackController _botSegmentsPlaybackController;
-        private ActiveSequence _activeSequence;
-
         /// <summary>
-        /// Open the client dashboard, which will connect to this server
+        /// Create a TCPListener and begin listening for client connections on a separate thread
         /// </summary>
-        [MenuItem("Regression Games/Open Dashboard")]
-        public static void OpenRGDashboard()
+        private RGTcpServer()
         {
-            // Configure the process
-            ProcessStartInfo startInfo = new ProcessStartInfo
+            m_port = 8085; // TODO: choose next available port
+            m_server = new TcpListener(IPAddress.Parse("127.0.0.1"), m_port);
+            m_server.Start();
+            m_isRunning = true;
+            
+            m_listenerThread = new Thread(ListenForClients);
+            m_listenerThread.IsBackground = true;
+            m_listenerThread.Start();
+        }
+        
+        #region Public Methods
+
+        public static RGTcpServer GetInstance()
+        {
+            if (_this == null)
             {
-                FileName = Path.GetFullPath("Packages/gg.regression.unity.bots/Runtime/Resources/RegressionGames.exe"),
-                Arguments = "Extra args to pass to the program",
-                UseShellExecute = false, 
-                CreateNoWindow = false
-            };
-            Process.Start(startInfo);
+                _this = new RGTcpServer();
+            }
+            return _this;
         }
         
         /// <summary>
-        /// Starts a TCP listener and starts a background thread to listen for client connections
+        /// Queue a message to be sent to all connected clients
         /// </summary>
-        private void Start()
+        public void QueueMessage(TcpMessage message)
         {
-            _assetsDirectory = Path.GetFullPath("Assets/RegressionGames");
-            _botSegmentsPlaybackController = FindObjectOfType<BotSegmentsPlaybackController>();
-            
-            _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 8085);
-            _server.Start();
-            _isRunning = true;
-            
-            _listenerThread = new Thread(ListenForClients);
-            _listenerThread.IsBackground = true;
-            _listenerThread.Start();
+            foreach (var clientQueue in m_connectedClients.Values)
+            {
+                clientQueue.Enqueue(message);
+            }
         }
 
         /// <summary>
-        /// Watch server-side resources to see if there are any updates we need to send to connected clients
+        /// Queue a message to be sent to a specific connected client
         /// </summary>
-        private void Update()
+        public void QueueMessage(TcpClient client, TcpMessage message)
         {
-            // check if the active sequence has changed
-            var activeSequence = GetActiveBotSequence();
-            if (activeSequence?.resourcePath != _activeSequence?.resourcePath)
+            if (m_connectedClients.TryGetValue(client, out var messages))
             {
-                _activeSequence = activeSequence;
-                var message = new TcpMessage
-                {
-                    type = TcpMessageType.ACTIVE_SEQUENCE,
-                    payload = new ActiveSequenceTcpMessageData
-                    {
-                        activeSequence = _activeSequence
-                    }
-                };
-                
-                foreach (var messageQueue in _connectedClients.Values)
-                {
-                    messageQueue.Enqueue(message);
-                }
+                messages.Enqueue(message);
             }
         }
         
         /// <summary>
-        /// Listens for client connections and handles them on separate threads.
-        /// We typically only expect one client to connect at a time,
-        /// but this will handle reconnects
+        /// Stop the TCP server and close all client connections
+        /// </summary>
+        public void Stop()
+        {
+            // send application quit messages to all connected clients then close them
+            foreach (var client in m_connectedClients.Keys)
+            {
+                if (!client.Connected) continue;
+                var message = new TcpMessage { type = TcpMessageType.APPLICATION_QUIT };
+                SendMessage(client, message);
+                client.Close();
+            }
+            m_connectedClients.Clear();
+            
+            // then stop server
+            m_isRunning = false;
+            m_server.Stop();
+            m_listenerThread?.Join();
+        }
+        
+        #endregion
+        
+        #region Overridable Callbacks
+        
+        /// <summary>
+        /// Called when a client successfully completes the handshake
+        /// </summary>
+        public delegate void OnClientHandshakeHandler(TcpClient client);
+
+        public static event OnClientHandshakeHandler OnClientHandshake;
+        
+        public delegate void ProcessClientMessageHandler(TcpClient client, TcpMessage message);
+
+        public static event ProcessClientMessageHandler ProcessClientMessage;
+        
+        #endregion
+        
+        #region Connection Management
+        
+        /// <summary>
+        /// Listens for client connections and handles them on separate threads
         /// </summary>
         private void ListenForClients()
         {
-            while (_isRunning)
+            while (m_isRunning)
             {
-                if (_server.Pending())
+                if (m_server.Pending())
                 {
-                    // assume only one client connection at a time
-                    // but need to listen for new connections in case the client disconnects
-                    TcpClient client = _server.AcceptTcpClient();
-                    _connectedClients.TryAdd(client, new ConcurrentQueue<TcpMessage>());
-                    Debug.Log("Client connected");
+                    // we only really expect one client connection at a time,
+                    // but need to continue listening for new connections in case
+                    // our client disconnects and attempts to reconnect
+                    TcpClient client = m_server.AcceptTcpClient();
+                    m_connectedClients.TryAdd(client, new ConcurrentQueue<TcpMessage>());
                     
                     Thread clientThread = new Thread(() => HandleClientCommunication(client));
                     clientThread.IsBackground = true;
@@ -118,7 +139,7 @@ namespace RegressionGames
                 Thread.Sleep(10); // Prevents tight loop
             }
         }
-
+        
         /// <summary>
         /// Handles all communication between the client and server including handshake
         /// </summary>
@@ -130,27 +151,19 @@ namespace RegressionGames
                 bool handshakeReceived = false;
                 
                 // enter to an infinite cycle to be able to handle every change in stream
-                while (_isRunning)
+                while (m_isRunning)
                 {
                     if (!handshakeReceived)
                     {
                         handshakeReceived = TryPerformHandshake(client);
                         if (handshakeReceived)
                         {
-                            // immediately send the active sequence to the client
-                            var message = new TcpMessage
-                            {
-                                type = TcpMessageType.ACTIVE_SEQUENCE,
-                                payload = new ActiveSequenceTcpMessageData
-                                {
-                                    activeSequence = _activeSequence
-                                }
-                            };
-                            SendMessage(client, message);
+                            OnClientHandshake?.Invoke(client);
                         }
                         continue;
                     }
 
+                    // send any queued messages before handling new messages
                     SendQueuedMessages(client);
 
                     if (!stream.DataAvailable)
@@ -161,16 +174,8 @@ namespace RegressionGames
                     var received = DecodeReceivedMessage(client);
                     if (received != null)
                     {
-                        var messageData = JsonConvert.DeserializeObject<TcpMessage>(received, JsonUtils.JsonSerializerSettings);
-                        // Process the payload
-                        switch (messageData.type)
-                        {
-                            case TcpMessageType.PING:
-                            {
-                                SendMessage(client, new TcpMessage { type = TcpMessageType.PONG }); break;
-                            }
-                            // case TcpMessageType.ECHO: SendPayload(stream, "{\"type\":\"ECHO\",\"body\":\"" + jsonObject.body + "\"}"); break;
-                        }
+                        var deserializedMessage = JsonConvert.DeserializeObject<TcpMessage>(received, JsonUtils.JsonSerializerSettings);
+                        ProcessClientMessage?.Invoke(client, deserializedMessage);
                     }
                 }
             }
@@ -180,10 +185,13 @@ namespace RegressionGames
             }
             
             client.Close();
-            _connectedClients.TryRemove(client, out _);
-            Debug.Log("Client disconnected");
+            m_connectedClients.TryRemove(client, out _);
         }
+        
+        #endregion
 
+        #region Messaging Helpers
+        
         /// <summary>
         /// Waits for http upgrade request from client to establish websocket connection
         /// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server#handshaking
@@ -232,7 +240,7 @@ namespace RegressionGames
         private void SendQueuedMessages(TcpClient client)
         {
             // send any pending messages to the client
-            if (_connectedClients.TryGetValue(client, out var messages))
+            if (m_connectedClients.TryGetValue(client, out var messages))
             {
                 while (messages.TryDequeue(out var message))
                 {
@@ -240,7 +248,10 @@ namespace RegressionGames
                 }
             }
         }
-
+        
+        /// <summary>
+        /// Send a single message to a client
+        /// </summary>
         private void SendMessage(TcpClient client, TcpMessage message)
         {
             try
@@ -289,9 +300,7 @@ namespace RegressionGames
                 // To test the below code, we need to manually buffer larger messages — since the NIC's autobuffering
                 // may be too latency-friendly for this code to run (that is, we may have only some of the bytes in this
                 // websocket frame available through client.Available).
-                msglen = BitConverter.ToUInt64(
-                    new byte[]
-                    {
+                msglen = BitConverter.ToUInt64(new byte[] {
                         bytes[9], bytes[8], bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2]
                     }, 0);
                 offset = 10;
@@ -304,8 +313,7 @@ namespace RegressionGames
             else if (mask)
             {
                 byte[] decoded = new byte[msglen];
-                byte[] masks = new byte[4]
-                    { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
+                byte[] masks = new byte[4] { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
                 offset += 4;
 
                 for (ulong i = 0; i < msglen; ++i)
@@ -368,72 +376,25 @@ namespace RegressionGames
 
             response = new byte[indexStartRawData + length];
 
-            Int32 i, reponseIdx = 0;
+            Int32 i, responseIdx = 0;
 
-            //Add the frame bytes to the response
+            // Add the frame bytes to the response
             for (i = 0; i < indexStartRawData; i++)
             {
-                response[reponseIdx] = frame[i];
-                reponseIdx++;
+                response[responseIdx] = frame[i];
+                responseIdx++;
             }
 
-            //Add the data bytes to the response
+            // Add the data bytes to the response
             for (i = 0; i < length; i++)
             {
-                response[reponseIdx] = bytesRaw[i];
-                reponseIdx++;
+                response[responseIdx] = bytesRaw[i];
+                responseIdx++;
             }
 
             return response;
         }
-        
-        private ActiveSequence GetActiveBotSequence()
-        {
-            if (_botSegmentsPlaybackController != null && _botSegmentsPlaybackController.GetState() != PlayState.NotLoaded)
-            {
-                if (_botSegmentsPlaybackController.GetState() == PlayState.Playing || _botSegmentsPlaybackController.GetState() == PlayState.Starting || (_botSegmentsPlaybackController.GetState() == PlayState.Stopped && _botSegmentsPlaybackController.ReplayCompletedSuccessfully() == null && _botSegmentsPlaybackController.GetLastSegmentPlaybackWarning() == null))
-                {
-                    // a group of segments is playing.. let's see if we can figure out more details or not
-                    if (BotSequence.ActiveBotSequence != null)
-                    {
-                        // this is a bot sequence, give them the name and path
-                        return new ActiveSequence()
-                        {
-                            name = BotSequence.ActiveBotSequence.name,
-                            description = BotSequence.ActiveBotSequence.description,
-                            resourcePath = BotSequence.ActiveBotSequence.resourcePath,
-                        };
-                    }
 
-                    // else - a zip file or other bot segments are running outside of a sequence
-                    return new ActiveSequence()
-                    {
-                        name = "BotSegments are active outside of a BotSequence",
-                        description = "BotSegment(s) are active outside of a BotSequence.  This happens when a user is testing individual BotSegments or BotSegmentLists from the overlay, or when a replay is running from a .zip file.",
-                        resourcePath = "",
-                    };
-                }
-            }
-
-            return null;
-        }
-        
-        private void OnApplicationQuit()
-        {
-            // send application quit messages to all connected clients
-            // then close any open connections
-            foreach (var client in _connectedClients.Keys)
-            {
-                var message = new TcpMessage { type = TcpMessageType.APPLICATION_QUIT };
-                SendMessage(client, message);
-                client.Close();
-            }
-            
-            _isRunning = false;
-            _server?.Stop();
-            _listenerThread?.Join();
-            Debug.Log("Server stopped");
-        }
+        #endregion
     }
 }
-

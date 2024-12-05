@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using JetBrains.Annotations;
 using RegressionGames.RemoteOrchestration.Models;
+using RegressionGames.RemoteOrchestration.Types;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.JsonConverters;
 
@@ -15,12 +17,17 @@ namespace RegressionGames
         
         PING,
         
+        // client requests to play a sequence with the given resourcePath
+        PLAY_SEQUENCE,
         
         // =====================
         // server -> client
         // =====================
         
         PONG,
+        
+        // info about the available sequences for this game instance
+        AVAILABLE_SEQUENCES,
         
         // info about the currently-running sequence (or segment)
         ACTIVE_SEQUENCE,
@@ -70,22 +77,6 @@ namespace RegressionGames
             stringBuilder.Append("}");
         }
     }
-
-    // [Serializable]
-    // public class EmptyTcpMessageData : ITcpMessageData
-    // {
-    //     public void WriteToStringBuilder(StringBuilder stringBuilder)
-    //     {
-    //         stringBuilder.Append("{}");
-    //     }
-    //     
-    //     public override string ToString()
-    //     {
-    //         StringBuilder sb = new StringBuilder(1000);
-    //         WriteToStringBuilder(sb);
-    //         return sb.ToString();
-    //     }
-    // }
     
     [Serializable]
     public class ActiveSequenceTcpMessageData : ITcpMessageData
@@ -113,4 +104,54 @@ namespace RegressionGames
             return sb.ToString();
         }
     }
+    
+    [Serializable]
+    public class AvailableSequencesTcpMessageData : ITcpMessageData
+    {
+        public List<AvailableBotSequence> availableSequences;
+        
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"availableSequences\":[");
+            var availableSequencesCount = availableSequences.Count;
+            for (var i = 0; i < availableSequencesCount; i++)
+            {
+                availableSequences[i].WriteToStringBuilder(stringBuilder);
+                if (i + 1 < availableSequencesCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("]}");
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(1000);
+            WriteToStringBuilder(sb);
+            return sb.ToString();
+        }
+    }
+    
+    [Serializable]
+    public class PlaySequenceTcpMessageData : ITcpMessageData
+    {
+        public string resourcePath;
+        
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"resourcePath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, resourcePath);
+            stringBuilder.Append("}");
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(1000);
+            WriteToStringBuilder(sb);
+            return sb.ToString();
+        }
+    }
+
+
 }

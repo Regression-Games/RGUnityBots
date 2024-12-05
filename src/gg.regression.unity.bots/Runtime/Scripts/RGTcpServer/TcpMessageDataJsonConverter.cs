@@ -31,18 +31,12 @@ namespace RegressionGames
                 case TcpMessageType.ACTIVE_SEQUENCE:
                     payload = jObject["payload"].ToObject<ActiveSequenceTcpMessageData>(serializer);
                     break;
-                // case KeyFrameCriteriaType.CVText:
-                //     data = jObject["data"].ToObject<CVTextKeyFrameCriteriaData>(serializer);
-                //     break;
-                // case KeyFrameCriteriaType.CVImage:
-                //     data = jObject["data"].ToObject<CVImageKeyFrameCriteriaData>(serializer);
-                //     break;
-                // case KeyFrameCriteriaType.ActionComplete:
-                //     data = jObject["data"].ToObject<ActionCompleteKeyFrameCriteriaData>(serializer);
-                //     break;
-                // case KeyFrameCriteriaType.CVObjectDetection:
-                //     data = jObject["data"].ToObject<CVObjectDetectionKeyFrameCriteriaData>(serializer);
-                //     break;
+                case TcpMessageType.AVAILABLE_SEQUENCES:
+                    payload = jObject["payload"].ToObject<AvailableSequencesTcpMessageData>(serializer);
+                    break;
+                case TcpMessageType.PLAY_SEQUENCE:
+                    payload = jObject["payload"].ToObject<PlaySequenceTcpMessageData>(serializer);
+                    break;
                 default:
                     throw new JsonSerializationException($"Unsupported TcpMessage type: '{message.type}'");
             }
