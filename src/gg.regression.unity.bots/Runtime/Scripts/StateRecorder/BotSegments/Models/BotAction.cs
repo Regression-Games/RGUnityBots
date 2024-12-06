@@ -7,7 +7,7 @@ using RegressionGames.StateRecorder.Models;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class BotAction
+    public class BotAction : IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
         // api version for this top level schema, update if we add/remove/change fields here
         public int apiVersion = SdkApiVersion.VERSION_1;
@@ -82,5 +82,24 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             data.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
         }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"type\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, type.ToString());
+            stringBuilder.Append(",\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"data\":");
+            if (data is IKeyMomentStringBuilderWriteable keyMomentStringBuilderWriteable)
+            {
+                keyMomentStringBuilderWriteable.WriteKeyMomentToStringBuilder(stringBuilder);
+            }
+            else
+            {
+                data.WriteToStringBuilder(stringBuilder);
+            }
+            stringBuilder.Append("}");
+        }
+
     }
 }

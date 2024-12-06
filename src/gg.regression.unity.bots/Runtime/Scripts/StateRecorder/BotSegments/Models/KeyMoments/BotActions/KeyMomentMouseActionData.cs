@@ -5,7 +5,9 @@ using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 // ReSharper disable InconsistentNaming
 
@@ -14,13 +16,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
     [Serializable]
     public class PreconditionNormalizedPathData
     {
-        public readonly string path;
+        public readonly string normalizedPath;
         public readonly List<string[]> tokenData;
 
-        public PreconditionNormalizedPathData(string path)
+        public PreconditionNormalizedPathData(string normalizedPath)
         {
-            this.path = path;
-            this.tokenData = TokenizeObjectPath(path);
+            this.normalizedPath = normalizedPath;
+            this.tokenData = TokenizeObjectPath(normalizedPath);
         }
 
         public static List<string[]> TokenizeObjectPath(string path)
@@ -54,7 +56,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
      * <summary>Data for clicking on a key moment object in the frame</summary>
      */
     [Serializable]
-    public class KeyMomentMouseActionData : IBotActionData
+    public class KeyMomentMouseActionData : IBotActionData, IKeyMomentExploration, IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
         // api version for this object, update if object format changes
         public int apiVersion = SdkApiVersion.VERSION_28;
@@ -82,6 +84,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
         {
             _isStopped = false;
             _isDoneWaitOneFrame = false;
+        }
+
+        public void ActivateExploration()
+        {
+            // start the exploration process
         }
 
         public void StartAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
@@ -224,6 +231,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             return result;
         }
 
+        // we queue up all the actions to do before doing them in case we can't do one based on paths.. we don't want a partial operation
         private readonly List<Action> _mouseActionsToDo = new();
 
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
@@ -240,6 +248,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                 var mouseActionsCount = mouseActions.Count;
 
                 MouseInputActionData pendingAction = null;
+
+                Vector2? lastClickPosition = null;
+
+                (ObjectStatus, (int[],int[]))[] previousPreconditionMatches = null;
 
                 for (var m = 0; m < mouseActionsCount; m++)
                 {
@@ -266,36 +278,62 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                     {
                         possibleTransformToClick.TokenizedObjectPath ??= PreconditionNormalizedPathData.TokenizeObjectPath(possibleTransformToClick.NormalizedPath);
 
+                        var breakoutCount = 0;// optimization for when we've found exact matches for all preconditions
                         // this should nearly always be smaller than the # of possibleTransformToClick
                         for (var j = 0; j < preconditionsLength; j++)
                         {
-                            var precondition = preConditionNormalizedPaths[j];
-                            var tokenMatches = EvaluateTokenMatches(precondition.tokenData, possibleTransformToClick.TokenizedObjectPath);
-                            if (tokenMatches.Item1 != null)
+                            // optimization - only keep processing this precondition when we didn't have an exact match for it already
+                            if (preconditionMatches[j].Item1 == null || preconditionMatches[j].Item2.Item1 != null)
                             {
-                                // got something of the same path length with some token matches in each part
-                                if (preconditionMatches[j].Item1 != null)
+                                var precondition = preConditionNormalizedPaths[j];
+
+                                // prefer exact path match (which we don't have available here... yet), then normalized path match, then tokenized path matching logic
+                                if (precondition.normalizedPath == possibleTransformToClick.NormalizedPath)
                                 {
-                                    // compare
-                                    if (IsNewTokenMatchesBetter(preconditionMatches[j].Item2, tokenMatches))
+                                    // normalized matching logic
+                                    preconditionMatches[j] = (possibleTransformToClick, (null, null));
+                                    break; // the for
+                                }
+                                // else
+                                {
+                                    // tokenized matching logic
+                                    var tokenMatches = EvaluateTokenMatches(precondition.tokenData, possibleTransformToClick.TokenizedObjectPath);
+                                    if (tokenMatches.Item1 != null)
                                     {
-                                        preconditionMatches[j] = (possibleTransformToClick, tokenMatches);
+                                        // got something of the same path length with some token matches in each part
+                                        if (preconditionMatches[j].Item1 != null)
+                                        {
+                                            // compare
+                                            if (IsNewTokenMatchesBetter(preconditionMatches[j].Item2, tokenMatches))
+                                            {
+                                                preconditionMatches[j] = (possibleTransformToClick, tokenMatches);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            //set
+                                            preconditionMatches[j] = (possibleTransformToClick, tokenMatches);
+                                        }
+
+                                        break; // the for
                                     }
                                 }
-                                else
-                                {
-                                    //set
-                                    preconditionMatches[j] = (possibleTransformToClick, tokenMatches);
-                                }
-                                break; // the for
+                            } else
+                            {
+                                ++breakoutCount;
                             }
+                        }
+
+                        if (breakoutCount == preconditionsLength)
+                        {
+                            break; // the foreach - we found exact matches for everything
                         }
                     }
 
                     // now that we have all the precondition matches mapped out, let's see if we have the leftmost object..
 
                     // if the leftmost object is a UI object, then it should already be the smallest / most precise UI thing to click as we solve this by sorting
-                    // the UI elements in mouseinputactionobserver.FindObjectsAtPosition based on the smallest screenspace bounds
+                    // the UI elements in mouseinputactionobserver.FindObjectsAtPosition based on the smallest screen-space bounds
                     if (preconditionMatches[0].Item1 != null)
                     {
                         // yay.. we found something.. first let's make sure it's ready to be clicked
@@ -319,6 +357,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
 
                         if (isInteractable)
                         {
+                            Vector2? clickPosition = null;
 
                             // ReSharper disable once PossibleInvalidOperationException - already filtered at the top of the method to only have entries with valid visible bounds
                             var smallestBounds = preconditionMatches[0].Item1.screenSpaceBounds.Value;
@@ -326,77 +365,214 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                             var minY = smallestBounds.min.y;
                             var maxX = smallestBounds.max.x;
                             var maxY = smallestBounds.max.y;
-                            // now let's narrow down the screen space bounds more precisely based on all our preconditions
-                            for (var i = 1; i < preconditionMatches.Length; i++)
+
+                            if (lastClickPosition.HasValue)
                             {
-                                var preconditionMatch = preconditionMatches[i];
-                                if (preconditionMatch.Item1 != null)
+                                if (lastClickPosition.Value.x >= minX
+                                    && lastClickPosition.Value.x <= maxX
+                                    && lastClickPosition.Value.y >= minY
+                                    && lastClickPosition.Value.y <= maxY)
                                 {
-                                    //  not the same logic as MouseEventSender.FindBestClickObject.. this version narrows in on the smallest bounding area
-
-                                    // ReSharper disable once PossibleInvalidOperationException - already filtered at the top of the method to only have entries with valid visible bounds
-                                    var newBounds = preconditionMatch.Item1.screenSpaceBounds.Value;
-                                    var newMinX = newBounds.min.x;
-                                    var newMinY = newBounds.min.y;
-                                    var newMaxX = newBounds.max.x;
-                                    var newMaxY = newBounds.max.y;
-
-                                    if (newMinX > minX && newMinX < maxX)
+                                    RGDebug.LogDebug($"Leaving mouse action index {m} at previous action position based on bounds overlaps to original path: {preconditionMatches[0].Item1.NormalizedPath}");
+                                    // if the click position was within the bounds of the un-click object, just use that same one... this is critical for cases where the
+                                    // clicked button is no longer present in the normalizedPaths list for the un-click... which happens based on how observation of the un-click occurs on a future frame
+                                    clickPosition = lastClickPosition.Value;
+                                }
+                                else if (previousPreconditionMatches != null)
+                                {
+                                    // an even more special case... even though the bounds don't align.. the resolution could have changed (this happens a lot for bossroom menus when you resize and the 3d game objects scale differently than the UI)
+                                    // but on un-click.. the ui element isn't in the path list anymore so it tries to un-click on the door or some other background game object instead and misses the button
+                                    // so if we had this same object listed in the conditions for the prior click calculation.. then the original click already considered this and the scaling factor of the screen
+                                    // isn't important.. we want to un-click exactly where we clicked
+                                    if (previousPreconditionMatches.Any(a => a.Item1 == preconditionMatches[0].Item1))
                                     {
-                                        minX = newMinX;
-                                    }
-
-                                    if (newMaxX > minX && newMaxX < maxX)
-                                    {
-                                        maxX = newMaxX;
-                                    }
-
-                                    if (newMinY > minY && newMinY < maxY)
-                                    {
-                                        minY = newMinY;
-                                    }
-
-                                    if (newMaxY > minY && newMaxY < maxY)
-                                    {
-                                        maxY = newMaxY;
+                                        RGDebug.LogDebug($"Leaving mouse action index {m} at previous action position based on object path existing at time of click: {preconditionMatches[0].Item1.NormalizedPath}");
+                                        clickPosition = lastClickPosition.Value;
                                     }
                                 }
                             }
+                            if (!clickPosition.HasValue)
+                            {
+                                RGDebug.LogDebug($"Starting with bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} , target object: {preconditionMatches[0].Item1.NormalizedPath}");
+                                // now let's narrow down the screen space bounds more precisely based on all our preconditions
+                                for (var i = 1; i < preconditionMatches.Length; i++)
+                                {
+                                    var preconditionMatch = preconditionMatches[i];
+                                    if (preconditionMatch.Item1 != null)
+                                    {
+                                        //  not the same logic as MouseEventSender.FindBestClickObject.. this version narrows in on the smallest bounding area
 
-                            var position = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
+                                        // ReSharper disable once PossibleInvalidOperationException - already filtered at the top of the method to only have entries with valid visible bounds
+                                        var newBounds = preconditionMatch.Item1.screenSpaceBounds.Value;
+                                        var newMinX = newBounds.min.x;
+                                        var newMinY = newBounds.min.y;
+                                        var newMaxX = newBounds.max.x;
+                                        var newMaxY = newBounds.max.y;
+
+                                        if (newMinX > minX && newMinX < maxX)
+                                        {
+                                            minX = newMinX;
+                                        }
+
+                                        if (newMaxX > minX && newMaxX < maxX)
+                                        {
+                                            maxX = newMaxX;
+                                        }
+
+                                        if (newMinY > minY && newMinY < maxY)
+                                        {
+                                            minY = newMinY;
+                                        }
+
+                                        if (newMaxY > minY && newMaxY < maxY)
+                                        {
+                                            maxY = newMaxY;
+                                        }
+                                        RGDebug.LogDebug($"Narrowed bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} for overlap with object path: {preconditionMatch.Item1.NormalizedPath}");
+                                    }
+                                }
+
+                                // we started with clicking the center.. but this was limiting
+                                //clickPosition = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
+                                // instead... make the click-position a random position within the bounds
+                                // 1. for more variability in testing
+                                // 2. to get around cases where we were say clicking on a floor tile, but there is something on that floor tile and we wanted to click on the open space of the floor tile
+                                //     on the next attempt, it picks a new position to try thus giving us a better chance of passing
+                                // TODO: Future: Can we capture the relativistic offset click position where we hit a world space object so that we can try to re-click on that same offset given its new world position ???
+                                // This would allow us to know that we clicked about X far into this floor tile and replicate that positioning regardless of the actual worldspace positioning in the replay...
+                                clickPosition = new Vector2(Random.Range(minX+0.00001f, maxX-0.00001f), Random.Range(minY+0.00001f, maxY-0.00001f));
+                            }
+
+                            var myClickPosition = clickPosition.Value; // we fill 'clickPosition' in for all code paths.. if you get a null here, something above has bad logic as this should be filled in always here
+                            lastClickPosition = myClickPosition;
 
                             if (pendingAction != null)
                             {
+                                // we are on the 2nd action, which is the 'click'
+
+                                // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
+                                // our intended click item (iow.. it's there/ready, but obstructed) ... we only sort by zDepth(not UI bounds) here so we can find proper obstructions
+
+                                if (oStatus is TransformStatus transformStatus)
+                                {
+
+                                    if (transformStatus.worldSpaceBounds == null)
+                                    {
+                                        // UI element.. make sure it is the highest UI thing hit
+
+                                        var eventSystemHits = new List<RaycastResult>();
+                                        // ray-cast into the scene and see if this object is the first thing hit
+                                        var pointerEventData = new PointerEventData(EventSystem.current)
+                                        {
+                                            button = PointerEventData.InputButton.Left,
+                                            position = myClickPosition
+                                        };
+                                        EventSystem.current.RaycastAll(pointerEventData, eventSystemHits);
+
+                                        if (eventSystemHits.Count > 0)
+                                        {
+                                            eventSystemHits.Sort((a,b) =>
+                                            {
+                                                if (a.distance < b.distance)
+                                                {
+                                                    return -1;
+                                                }
+
+                                                if (a.distance > b.distance)
+                                                {
+                                                    return 1;
+                                                }
+
+                                                // higher depth == closer to camera.. don't even get me started
+                                                return b.depth - a.depth;
+                                            });
+                                        }
+                                        if (eventSystemHits.Count <= 0)
+                                        {
+                                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\nno selectable UI objects detected at point";
+                                            _mouseActionsToDo.Clear();
+                                            return false;
+                                        }
+                                        else
+                                        {
+                                            var hitNormalizedPath = TransformStatus.GetOrCreateTransformStatus(eventSystemHits[0].gameObject.transform).NormalizedPath;
+                                            if (!hitNormalizedPath.StartsWith(mouseAction.clickedObjectNormalizedPaths[0]))
+                                            {
+                                                // if this isn't the exact object or a child object (like a button text of the button we're clicking).. then error out
+                                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{hitNormalizedPath}";
+                                                _mouseActionsToDo.Clear();
+                                                return false;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Handle world space obstructions... this is easier, since any overlay UI element will be in the path list over world objects, we just need to make sure our
+                                        // object is at the front of the list and thus at the closest Z depth at that point
+
+                                        // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
+                                        // our intended click item (iow.. it's there/ready, but obstructed) ...
+                                        // we have to be careful though, because the 'zDepth' computed for the object may NOT be the zDepth at this exact click point on said object...
+                                        //var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
+
+                                        var mainCamera = Camera.main;
+                                        if (mainCamera != null)
+                                        {
+                                            var ray = mainCamera.ScreenPointToRay(myClickPosition);
+
+                                            var didHit = Physics.Raycast(ray, out var raycastHit);
+
+                                            if (!didHit)
+                                            {
+                                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\nno objects at position";
+                                                _mouseActionsToDo.Clear();
+                                                return false;
+                                            }
+
+                                            var normalizedHitPath = TransformStatus.GetOrCreateTransformStatus(raycastHit.transform).NormalizedPath;
+
+                                            // this handles cases like in bossroom where the collider is on EntranceStaticNetworkObjects/BreakablePot , but the renderer is on EntranceStaticNetworkObjects/BreakablePot/pot
+                                            if (!mouseAction.clickedObjectNormalizedPaths[0].StartsWith(normalizedHitPath))
+                                            {
+                                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{normalizedHitPath}";
+                                                _mouseActionsToDo.Clear();
+                                                return false;
+                                            }
+                                        }
+                                    }
+
+                                }
+
                                 var myPendingAction = pendingAction;
                                 _mouseActionsToDo.Add(() =>
                                 {
-                                    RGDebug.LogInfo($"KeyMoment - Mouse Pending Action applied at position: ({(int)position.x}, {(int)position.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
-
+                                    RGDebug.LogInfo($"KeyMoment - Mouse Pending Action applied at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
                                     // perform the mouse action at the center of our new smallest bounds
-                                    MouseEventSender.SendRawPositionMouseEvent(segmentNumber, position, myPendingAction.leftButton, myPendingAction.middleButton, myPendingAction.rightButton, myPendingAction.forwardButton, myPendingAction.backButton, myPendingAction.scroll);
+                                    MouseEventSender.SendRawPositionMouseEvent(segmentNumber, myClickPosition, myPendingAction.leftButton, myPendingAction.middleButton, myPendingAction.rightButton, myPendingAction.forwardButton, myPendingAction.backButton, myPendingAction.scroll);
                                 });
                             }
 
                             _mouseActionsToDo.Add(() =>
                             {
-                                RGDebug.LogInfo($"KeyMoment - Mouse Action at position: ({(int)position.x}, {(int)position.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
-
+                                RGDebug.LogInfo($"KeyMoment - Mouse Action at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
                                 // perform the mouse action at the center of our new smallest bounds
-                                MouseEventSender.SendRawPositionMouseEvent(segmentNumber, position, mouseAction.leftButton, mouseAction.middleButton, mouseAction.rightButton, mouseAction.forwardButton, mouseAction.backButton, mouseAction.scroll);
+                                MouseEventSender.SendRawPositionMouseEvent(segmentNumber, myClickPosition, mouseAction.leftButton, mouseAction.middleButton, mouseAction.rightButton, mouseAction.forwardButton, mouseAction.backButton, mouseAction.scroll);
                             });
                             pendingAction = null;
                         }
                         else
                         {
+                            _mouseActionsToDo.Clear();
                             // didn't find it.. this is where 'exploration' is going to start happening based on our result
-                            error = $"No valid mouse action object found for paths:\n{string.Join("\n", preConditionNormalizedPaths.Select(a => a.path))}\n Exploring to find a match ...";
+                            error = $"No valid mouse action object found for paths:\n{string.Join("\n", preConditionNormalizedPaths.Select(a => a.normalizedPath))}";
                             return false;
                         }
                     }
                     else
                     {
+                        _mouseActionsToDo.Clear();
                         // didn't find it.. this is where 'exploration' is going to start happening based on our result
-                        error = $"No valid mouse action object found for path:\n{preConditionNormalizedPaths[0].path}\n Exploring to find a match ...";
+                        error = $"No valid mouse action object found for path:\n{preConditionNormalizedPaths[0].normalizedPath}";
                         return false;
                     }
                 }
@@ -419,6 +595,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
 
         private bool IsNewTokenMatchesBetter((int[], int[]) oldMatches, (int[], int[]) newMatches)
         {
+            if (oldMatches.Item1 == null)
+            {
+                // we already had an exact match report
+                return false;
+            }
             // all 4 lengths are the same at this point
             var length = oldMatches.Item2.Length;
             for (int i = 0; i < length; i++)
@@ -457,6 +638,24 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             {
                 var mouseAction = mouseActions[i];
                 mouseAction.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < mouseActionsCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]}");
+        }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"mouseActions\":[\n");
+            var mouseActionsCount = mouseActions.Count;
+            for (var i = 0; i < mouseActionsCount; i++)
+            {
+                var mouseAction = mouseActions[i];
+                mouseAction.WriteKeyMomentToStringBuilder(stringBuilder);
                 if (i + 1 < mouseActionsCount)
                 {
                     stringBuilder.Append(",\n");

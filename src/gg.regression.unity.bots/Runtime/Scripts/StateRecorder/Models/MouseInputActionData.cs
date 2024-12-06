@@ -10,16 +10,16 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class MouseInputActionData
+    public class MouseInputActionData : IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
         // version of this schema, update this if fields change
         public int apiVersion = SdkApiVersion.VERSION_1;
 
         public double startTime;
 
-        public Vector2Int screenSize;
+        public Vector2Int screenSize = Vector2Int.zero;
 
-        public Vector2Int position;
+        public Vector2Int position = Vector2Int.zero;
 
         public Vector3? worldPosition;
 
@@ -128,10 +128,46 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append("]}");
         }
 
-        internal string ToJsonString()
+        public string ToJsonString()
         {
             _stringBuilder.Value.Clear();
             WriteToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
+        }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"leftButton\":");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
+            stringBuilder.Append(",\"middleButton\":");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,middleButton);
+            stringBuilder.Append(",\"rightButton\":");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,rightButton);
+            stringBuilder.Append(",\"forwardButton\":");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,forwardButton);
+            stringBuilder.Append(",\"backButton\":");
+            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
+            stringBuilder.Append(",\"scroll\":");
+            Vector2JsonConverter.WriteToStringBuilder(stringBuilder, scroll);
+            stringBuilder.Append(",\"clickedObjectNormalizedPaths\":[");
+            var clickedObjectPathsLength = clickedObjectNormalizedPaths.Length;
+            for (var i = 0; i < clickedObjectPathsLength; i++)
+            {
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, clickedObjectNormalizedPaths[i]);
+                if (i + 1 < clickedObjectPathsLength)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("]}");
+        }
+
+        public string ToKeyMomentJsonString()
+        {
+            _stringBuilder.Value.Clear();
+            WriteKeyMomentToStringBuilder(_stringBuilder.Value);
             return _stringBuilder.Value.ToString();
         }
 
@@ -157,20 +193,5 @@ namespace RegressionGames.StateRecorder.Models
         // Replay only
         public double Replay_StartTime => startTime + Replay_OffsetTime;
 
-    }
-
-    public class MouseInputActionDataJsonConverter : JsonConverter<MouseInputActionData>
-    {
-        public override void WriteJson(JsonWriter writer, MouseInputActionData value, JsonSerializer serializer)
-        {
-            writer.WriteRawValue(value.ToJsonString());
-        }
-
-        public override bool CanRead => false;
-
-        public override MouseInputActionData ReadJson(JsonReader reader, Type objectType, MouseInputActionData existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
