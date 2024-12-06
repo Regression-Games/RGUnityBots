@@ -511,21 +511,33 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                         // object is at the front of the list and thus at the closest Z depth at that point
 
                                         // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
-                                        // our intended click item (iow.. it's there/ready, but obstructed) ... we only sort by zDepth(not UI bounds) here so we can find proper obstructions
-                                        var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
+                                        // our intended click item (iow.. it's there/ready, but obstructed) ...
+                                        // we have to be careful though, because the 'zDepth' computed for the object may NOT be the zDepth at this exact click point on said object...
+                                        //var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
 
-                                        if (objectsAtClickPosition.Count < 1)
+                                        var mainCamera = Camera.main;
+                                        if (mainCamera != null)
                                         {
-                                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\nno objects at position";
-                                            _mouseActionsToDo.Clear();
-                                            return false;
-                                        }
+                                            var ray = mainCamera.ScreenPointToRay(myClickPosition);
 
-                                        if (objectsAtClickPosition[0].NormalizedPath != mouseAction.clickedObjectNormalizedPaths[0])
-                                        {
-                                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{objectsAtClickPosition[0].NormalizedPath}";
-                                            _mouseActionsToDo.Clear();
-                                            return false;
+                                            var didHit = Physics.Raycast(ray, out var raycastHit);
+
+                                            if (!didHit)
+                                            {
+                                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\nno objects at position";
+                                                _mouseActionsToDo.Clear();
+                                                return false;
+                                            }
+
+                                            var normalizedHitPath = TransformStatus.GetOrCreateTransformStatus(raycastHit.transform).NormalizedPath;
+
+                                            // this handles cases like in bossroom where the collider is on EntranceStaticNetworkObjects/BreakablePot , but the renderer is on EntranceStaticNetworkObjects/BreakablePot/pot
+                                            if (!mouseAction.clickedObjectNormalizedPaths[0].StartsWith(normalizedHitPath))
+                                            {
+                                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{normalizedHitPath}";
+                                                _mouseActionsToDo.Clear();
+                                                return false;
+                                            }
                                         }
                                     }
 

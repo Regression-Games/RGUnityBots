@@ -381,9 +381,9 @@ namespace RegressionGames.StateRecorder
                                         zOffset = Math.Max(min.z, max.z);
                                     }
                                     // don't let world space objects be <= 0.0f as they would appear on top of true ui overlay objects in our processing
-                                    if (zOffset < 0.00001f)
+                                    if (zOffset <= 0f)
                                     {
-                                        zOffset = 0.0001f;
+                                        zOffset = 0.0001f; // Logic with these numbers is also in MouseInputActionObserver.. this value needs to be further from the camera than the one in MouseInputActionObserver
                                     }
 
 
@@ -584,9 +584,9 @@ namespace RegressionGames.StateRecorder
                             zOffset = Math.Max(minZ, maxZ);
                         }
                         // don't let world space objects be <= 0.0f as they would appear on top of true ui overlay objects in our processing
-                        if (zOffset < 0.00001f)
+                        if (zOffset <= 0f)
                         {
-                            zOffset = 0.0001f;
+                            zOffset = 0.0001f; // Logic with these numbers is also in MouseInputActionObserver.. this value needs to be further from the camera than the one in MouseInputActionObserver
                         }
 
                         // get the screen point values for the world max / min and find the screen space z offset closest the camera

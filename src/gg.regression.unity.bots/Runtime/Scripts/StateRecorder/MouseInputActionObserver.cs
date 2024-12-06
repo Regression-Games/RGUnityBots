@@ -11,22 +11,15 @@ namespace RegressionGames.StateRecorder
 {
     public class MouseInputActionObserver : MonoBehaviour
     {
-        private Type URPType = Type.GetType("UnityEngine.Rendering.Universal.UniversalAdditionalCameraData", false);
-
         private MouseInputActionData _priorMouseState;
 
-        // limit this to 5 hits... any hit should be good enough to guess the proper screen x,y based on precise world x,y,z .. but sometimes
-        // we get slight positional variances in games from run to run and need to account for edge cases where objects get hidden by other objects
-        // based on a few pixel shift in relative camera position
-        private readonly RaycastHit[] _cachedRaycastHits = new RaycastHit[5];
-
-        private readonly HashSet<string> _clickedObjectNormalizedPaths = new(100);
+        private readonly Dictionary<string, float> _clickedObjectNormalizedPaths = new(100);
 
         private readonly Comparer<RaycastHit> _mouseHitComparer = Comparer<RaycastHit>.Create(
             (x1, x2) =>
             {
                 var d = x1.distance - x2.distance;
-                return (d > 0) ? 1 : (d < 0) ? -1 : 0;
+                return (d > 0f) ? 1 : (d < 0f) ? -1 : 0;
             } );
 
         public void ObserveMouse(IEnumerable<ObjectStatus> statefulObjects)
@@ -43,57 +36,59 @@ namespace RegressionGames.StateRecorder
                         Vector3? worldPosition = null;
                         var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);
 
-                        var mouseRayHits = 0;
+                        var didMouseRayHit = false;
+
+                        RaycastHit hitInfo = default;
 
                         var mainCamera = Camera.main;
                         if (mainCamera != null)
                         {
                             var ray = mainCamera.ScreenPointToRay(mousePosition);
-                            mouseRayHits = Physics.RaycastNonAlloc(ray,
-                                _cachedRaycastHits,
-                                maxZDepth * 2f + 1f); // make sure we go deep enough to hit the collider on that object.. we hope
-                        }
-
-                        if (mouseRayHits > 0)
-                        {
-                            // order raycast hits by distance from camera
-                            Array.Sort(_cachedRaycastHits, 0, mouseRayHits, _mouseHitComparer);
+                            didMouseRayHit = Physics.Raycast(ray, out hitInfo); // make sure we go deep enough to hit the collider on that object.. we hope
                         }
 
                         _clickedObjectNormalizedPaths.Clear();
 
-                        var bestIndex = int.MaxValue;
-                        if (mouseRayHits > 0)
+                        if (didMouseRayHit)
                         {
+                            // we hit a collider and can compute the world position clicked
+                            // we can also then sort the results based on said collision hit so that the best objects are in the front
                             foreach (var clickedTransformStatus in clickedOnObjects)
                             {
-                                _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
+                                var zDepth = clickedTransformStatus.screenSpaceZOffset;
                                 if (clickedTransformStatus.worldSpaceBounds != null)
                                 {
-                                    // compare to any raycast hits and pick the one closest to the camera to set the world position
-                                    if (bestIndex > 0)
+                                    var rayHit = hitInfo;
+                                    try
                                     {
-                                        for (var i = 0; i < mouseRayHits; i++)
+                                        var rayHitObjectStatus = TransformStatus.GetOrCreateTransformStatus(rayHit.transform);
+                                        // this handles cases like in bossroom where the collider is on EntranceStaticNetworkObjects/BreakablePot , but the renderer is on EntranceStaticNetworkObjects/BreakablePot/pot
+                                        if (clickedTransformStatus.NormalizedPath.StartsWith(rayHitObjectStatus.NormalizedPath))
                                         {
-                                            var rayHit = _cachedRaycastHits[i];
-                                            try
-                                            {
-                                                if (rayHit.transform.GetInstanceID() == clickedTransformStatus.Id)
-                                                {
-                                                    if (i < bestIndex)
-                                                    {
-                                                        worldPosition = rayHit.point;
-                                                        bestIndex = i;
-                                                    }
-
-                                                    break;
-                                                }
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                RGDebug.LogException(e, "Exception handling raycast hits for in game object click");
-                                            }
+                                            worldPosition = rayHit.point;
+                                            // we do some fuzzy math here... we know for sure we hit this object first, but ... if we just use its hit distance that may not sort
+                                            // correctly with the zDepth of other 3d objects.. there could be a giant box and we're clicking on something just on the back top edge of it
+                                            // but the front of the box is wayy closer to us... but.. isn't obstructing that click... so for this optimization
+                                            // we know ui overlay things are at depth 0f... so we put this just behind that, but should be in front of anything else
+                                            zDepth = 0.00001f; // Logic with these numbers is also in TransformObjectFinder.. this value needs to be CLOSER from the camera than the one in TransformObjectFinder
                                         }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        RGDebug.LogException(e, "Exception handling raycast hits for in game object click");
+                                    }
+                                }
+
+                                // track the shortest z depth
+                                if (!_clickedObjectNormalizedPaths.TryGetValue(clickedTransformStatus.NormalizedPath, out var depth))
+                                {
+                                    _clickedObjectNormalizedPaths[clickedTransformStatus.NormalizedPath] = zDepth;
+                                }
+                                else
+                                {
+                                    if (zDepth < depth)
+                                    {
+                                        _clickedObjectNormalizedPaths[clickedTransformStatus.NormalizedPath] = zDepth;
                                     }
                                 }
                             }
@@ -103,12 +98,24 @@ namespace RegressionGames.StateRecorder
                             // without a collider hit, we can't set a worldPosition
                             foreach (var recordedGameObjectState in clickedOnObjects)
                             {
-                                _clickedObjectNormalizedPaths.Add(recordedGameObjectState.NormalizedPath);
+                                // track the shortest z depth
+                                if (!_clickedObjectNormalizedPaths.TryGetValue(recordedGameObjectState.NormalizedPath, out var depth))
+                                {
+                                    _clickedObjectNormalizedPaths[recordedGameObjectState.NormalizedPath] = recordedGameObjectState.screenSpaceZOffset;
+                                }
+                                else
+                                {
+                                    if (recordedGameObjectState.screenSpaceZOffset < depth)
+                                    {
+                                        _clickedObjectNormalizedPaths[recordedGameObjectState.NormalizedPath] = recordedGameObjectState.screenSpaceZOffset;
+                                    }
+                                }
                             }
                         }
 
                         newMouseState.worldPosition = worldPosition;
-                        newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.ToArray();
+                        // order by zDepth - this should keep UI elements that were already sorted in the same relative positions as they have exactly 0f zDepths
+                        newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.OrderBy(kvp => kvp.Value).Select(a => a.Key).ToArray();
                         _mouseInputActions.Enqueue(newMouseState);
                     }
                     else if (_priorMouseState?.PositionsEqual(newMouseState) != true)
@@ -233,7 +240,7 @@ namespace RegressionGames.StateRecorder
                 if (recordedGameObjectState.screenSpaceBounds.HasValue)
                 {
                     // make sure the z offset is actually in front of the camera
-                    if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position) && recordedGameObjectState.screenSpaceZOffset >-0.00001f)
+                    if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position) && recordedGameObjectState.screenSpaceZOffset >= 0f)
                     {
 
                         // filter out to only world space objects or interactable UI objects
