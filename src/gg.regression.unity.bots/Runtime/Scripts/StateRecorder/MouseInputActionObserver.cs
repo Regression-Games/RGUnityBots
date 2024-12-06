@@ -232,7 +232,8 @@ namespace RegressionGames.StateRecorder
             {
                 if (recordedGameObjectState.screenSpaceBounds.HasValue)
                 {
-                    if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position))
+                    // make sure the z offset is actually in front of the camera
+                    if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position) && recordedGameObjectState.screenSpaceZOffset >-0.00001f)
                     {
 
                         // filter out to only world space objects or interactable UI objects

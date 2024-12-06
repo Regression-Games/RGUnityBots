@@ -372,8 +372,24 @@ namespace RegressionGames.StateRecorder
                                     var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
                                     var worldCenter = new Vector3(minWorldX + worldSize.x, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
 
+
+                                    var zOffset = Math.Min(min.z, max.z);
+                                    // if the zOffset is negative, our camera is inside the bounding volume for this object, choose the farthest z instead.. this happens for particle effects like fx_ImpSpawner in bossroom
+                                    // we still need to track down why this thing has HUGE screenspace bounds compared to what is shown in the editor
+                                    if (zOffset < 0.0f)
+                                    {
+                                        zOffset = Math.Max(min.z, max.z);
+                                    }
+                                    // don't let world space objects be <= 0.0f as they would appear on top of true ui overlay objects in our processing
+                                    if (zOffset < 0.00001f)
+                                    {
+                                        zOffset = 0.0001f;
+                                    }
+
+
                                     // get the screen point values for the world max / min and find the screen space z offset closest the camera
-                                    return (ssBounds, Math.Min(min.z, max.z), new Bounds(worldCenter, worldSize));
+                                    return (ssBounds, zOffset, new Bounds(worldCenter, worldSize));
+
                                 }
 
                                 return (ssBounds, 0f, null);
@@ -558,7 +574,22 @@ namespace RegressionGames.StateRecorder
                         var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
                         var worldCenter = new Vector3(minWorldX + worldSize.x / 2, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
 
-                        return (new Bounds(center, size), Math.Min(minZ, maxZ), new Bounds(worldCenter, worldSize));
+
+                        var zOffset = Math.Min(minZ, maxZ);
+                        // if the zOffset is negative, our camera is inside the bounding volume for this object, choose the farthest z instead.. this happens for particle effects like fx_ImpSpawner in bossroom
+                        // we still need to track down why this thing has HUGE screenspace bounds compared to what is shown in the editor
+                        if (zOffset < 0.0f)
+                        {
+                            zOffset = Math.Max(minZ, maxZ);
+                        }
+                        // don't let world space objects be <= 0.0f as they would appear on top of true ui overlay objects in our processing
+                        if (zOffset < 0.00001f)
+                        {
+                            zOffset = 0.0001f;
+                        }
+
+                        // get the screen point values for the world max / min and find the screen space z offset closest the camera
+                        return (new Bounds(center, size), zOffset, new Bounds(worldCenter, worldSize));
                     }
                 }
             }

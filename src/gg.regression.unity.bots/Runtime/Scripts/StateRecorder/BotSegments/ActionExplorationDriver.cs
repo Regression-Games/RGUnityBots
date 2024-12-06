@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using RegressionGames;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 
@@ -32,6 +33,12 @@ namespace StateRecorder.BotSegments
 
             if (!PreviouslyCompletedActions.Contains(action))
             {
+                var extraLog = "";
+                if (action is KeyMomentMouseActionData keyMomentMouseActionData)
+                {
+                    extraLog += " with first object path: " + keyMomentMouseActionData.mouseActions[1].clickedObjectNormalizedPaths[0];
+                }
+                RGDebug.LogInfo($"ActionExplorationDriver - Adding previously completed action of Type: {action.GetType().Name}" + extraLog);
                 // insert at end
                 PreviouslyCompletedActions.Add(action);
             }
@@ -70,6 +77,8 @@ namespace StateRecorder.BotSegments
                 return;
             }
 
+            IBotActionData nextAction = null;
+
             if (_previousActionIndex >= _previousActions.Count)
             {
                 _previousActionIndex = 0;
@@ -91,36 +100,49 @@ namespace StateRecorder.BotSegments
                     previousActions = _previousActions[_previousActionIndex];
                 }
 
-                var nextAction = previousActions[_previousActionSubIndex];
+                nextAction = previousActions[_previousActionSubIndex];
                 ++_previousActionSubIndex;
                 // process next action in the list
-                if (nextAction != null)
-                {
-                    RGDebug.LogInfo($"ActionExplorationDriver - Performing Exploratory Action of Type: {nextAction.GetType().Name}");
-                    try
-                    {
-                        nextAction.ReplayReset();
-                        nextAction.StartAction(segmentNumber, currentTransforms, currentEntities);
-                        nextAction.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
-                        nextAction.AbortAction(segmentNumber);
-                    }
-                    catch (Exception)
-                    {
-                        // no op
-                    }
-
-                }
             }
 
-            // TODO: Implement hooks to other exploration algorithms
+            if (nextAction != null)
+            {
+                var extraLog = "";
+                if (nextAction is KeyMomentMouseActionData keyMomentMouseActionData)
+                {
+                    extraLog += " with first object path: " + keyMomentMouseActionData.mouseActions[1].clickedObjectNormalizedPaths[0];
+                }
+                RGDebug.LogInfo($"ActionExplorationDriver - Performing Exploratory Action of Type: {nextAction.GetType().Name}" + extraLog);
+                try
+                {
+                    nextAction.ReplayReset();
+                    nextAction.StartAction(segmentNumber, currentTransforms, currentEntities);
+                    nextAction.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
+                    nextAction.AbortAction(segmentNumber);
+                }
+                catch (Exception)
+                {
+                    // no op
+                }
+
+            }
+            else
+            {
+                // this is temporary until we have other exploration algorithms, but eventually this does have to give up...
+                error = "No more available exploratory actions... Bot is stuck...";
+
+                // TODO: Implement hooks to other exploration algorithms
+            }
 
         }
 
         public void StopExploring(int segmentNumber)
         {
+            if (IsExploring)
+            {
+                RGDebug.LogInfo("ActionExplorationDriver - Stopped Exploratory Actions");
+            }
             IsExploring = false;
-
-            RGDebug.LogInfo("ActionExplorationDriver - Stopped Exploratory Actions");
         }
     }
 }

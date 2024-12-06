@@ -464,16 +464,22 @@ namespace RegressionGames.StateRecorder.BotSegments
                         {
                             // allow the main action to retry between every exploratory action
                             var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-                            if (firstActionSegment.Replay_ActionCompleted)
+                            if (error == null)
                             {
-                                _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
-                            }
-                            if (error == null && didAction)
-                            {
-                                _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
-                                // for every non error action, reset the timer
-                                _lastTimeLoggedKeyFrameConditions = now;
-                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                                if (didAction)
+                                {
+                                    _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
+                                    // for every non error action, reset the timer
+                                    _lastTimeLoggedKeyFrameConditions = now;
+                                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                                }
+                                if (firstActionSegment.botAction?.data is IKeyMomentExploration)
+                                {
+                                    if (firstActionSegment.botAction.data.IsCompleted())
+                                    {
+                                        _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
+                                    }
+                                }
                             }
 
                             if (error != null)
@@ -492,7 +498,17 @@ namespace RegressionGames.StateRecorder.BotSegments
                                         LogPlaybackWarning(loggedMessage);
                                     }
                                 }
+
                                 _explorationDriver.PerformExploratoryAction(firstActionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out var explorationError);
+                                if (explorationError != null)
+                                {
+                                    // only log this if we've gone 2x the interval without a success
+                                    if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL*2)
+                                    {
+                                        var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing exploratory BotAction\r\n" + explorationError;
+                                        LogPlaybackWarning(loggedMessage);
+                                    }
+                                }
                             }
                         }
                         catch (Exception ex)
