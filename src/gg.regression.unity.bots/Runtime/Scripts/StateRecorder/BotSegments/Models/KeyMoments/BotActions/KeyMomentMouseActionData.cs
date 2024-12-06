@@ -432,15 +432,28 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                 clickPosition = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
                             }
 
-                            var myClickPosition = clickPosition.Value; // we fill this in for all code paths.. if you get a null here, something above has bad logic as this should be filled in always here
+                            var myClickPosition = clickPosition.Value; // we fill 'clickPosition' in for all code paths.. if you get a null here, something above has bad logic as this should be filled in always here
                             lastClickPosition = myClickPosition;
+
                             if (pendingAction != null)
                             {
+                                // we are on the 2nd action, which is the 'click'
+
+                                // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
+                                // our intended click item (iow.. it's there/ready, but obstructed)
+                                var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
+
+                                if (objectsAtClickPosition.Count < 1 || objectsAtClickPosition[0].NormalizedPath != mouseAction.clickedObjectNormalizedPaths[0])
+                                {
+                                    error = $"Unable to perform Key Moment Mouse Action at at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path: {mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path: {objectsAtClickPosition[0].NormalizedPath}";
+                                    _mouseActionsToDo.Clear();
+                                    return false;
+                                }
+
                                 var myPendingAction = pendingAction;
                                 _mouseActionsToDo.Add(() =>
                                 {
                                     RGDebug.LogInfo($"KeyMoment - Mouse Pending Action applied at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
-
                                     // perform the mouse action at the center of our new smallest bounds
                                     MouseEventSender.SendRawPositionMouseEvent(segmentNumber, myClickPosition, myPendingAction.leftButton, myPendingAction.middleButton, myPendingAction.rightButton, myPendingAction.forwardButton, myPendingAction.backButton, myPendingAction.scroll);
                                 });
@@ -449,7 +462,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                             _mouseActionsToDo.Add(() =>
                             {
                                 RGDebug.LogInfo($"KeyMoment - Mouse Action at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y}) on object path: {mouseAction.clickedObjectNormalizedPaths[0]}");
-
                                 // perform the mouse action at the center of our new smallest bounds
                                 MouseEventSender.SendRawPositionMouseEvent(segmentNumber, myClickPosition, mouseAction.leftButton, mouseAction.middleButton, mouseAction.rightButton, mouseAction.forwardButton, mouseAction.backButton, mouseAction.scroll);
                             });
