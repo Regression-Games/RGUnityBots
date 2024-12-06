@@ -5,7 +5,9 @@ using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 // ReSharper disable InconsistentNaming
 
@@ -429,7 +431,16 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                         RGDebug.LogDebug($"Narrowed bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} for overlap with object path: {preconditionMatch.Item1.NormalizedPath}");
                                     }
                                 }
-                                clickPosition = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
+
+                                // we started with clicking the center.. but this was limiting
+                                //clickPosition = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
+                                // instead... make the click-position a random position within the bounds
+                                // 1. for more variability in testing
+                                // 2. to get around cases where we were say clicking on a floor tile, but there is something on that floor tile and we wanted to click on the open space of the floor tile
+                                //     on the next attempt, it picks a new position to try thus giving us a better chance of passing
+                                // TODO: Future: Can we capture the relativistic offset click position where we hit a world space object so that we can try to re-click on that same offset given its new world position ???
+                                // This would allow us to know that we clicked about X far into this floor tile and replicate that positioning regardless of the actual worldspace positioning in the replay...
+                                clickPosition = new Vector2(Random.Range(minX+0.00001f, maxX-0.00001f), Random.Range(minY+0.00001f, maxY-0.00001f));
                             }
 
                             var myClickPosition = clickPosition.Value; // we fill 'clickPosition' in for all code paths.. if you get a null here, something above has bad logic as this should be filled in always here
@@ -440,14 +451,84 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                 // we are on the 2nd action, which is the 'click'
 
                                 // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
-                                // our intended click item (iow.. it's there/ready, but obstructed)
-                                var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
+                                // our intended click item (iow.. it's there/ready, but obstructed) ... we only sort by zDepth(not UI bounds) here so we can find proper obstructions
 
-                                if (objectsAtClickPosition.Count < 1 || objectsAtClickPosition[0].NormalizedPath != mouseAction.clickedObjectNormalizedPaths[0])
+                                if (oStatus is TransformStatus transformStatus)
                                 {
-                                    error = $"Unable to perform Key Moment Mouse Action at at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path: {mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path: {objectsAtClickPosition[0].NormalizedPath}";
-                                    _mouseActionsToDo.Clear();
-                                    return false;
+
+                                    if (transformStatus.worldSpaceBounds == null)
+                                    {
+                                        // UI element.. make sure it is the highest UI thing hit
+
+                                        var eventSystemHits = new List<RaycastResult>();
+                                        // ray-cast into the scene and see if this object is the first thing hit
+                                        var pointerEventData = new PointerEventData(EventSystem.current)
+                                        {
+                                            button = PointerEventData.InputButton.Left,
+                                            position = myClickPosition
+                                        };
+                                        EventSystem.current.RaycastAll(pointerEventData, eventSystemHits);
+
+                                        if (eventSystemHits.Count > 0)
+                                        {
+                                            eventSystemHits.Sort((a,b) =>
+                                            {
+                                                if (a.distance < b.distance)
+                                                {
+                                                    return -1;
+                                                }
+
+                                                if (a.distance > b.distance)
+                                                {
+                                                    return 1;
+                                                }
+
+                                                // higher depth == closer to camera.. don't even get me started
+                                                return b.depth - a.depth;
+                                            });
+                                        }
+                                        if (eventSystemHits.Count <= 0)
+                                        {
+                                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\nno selectable UI objects detected at point";
+                                            _mouseActionsToDo.Clear();
+                                            return false;
+                                        }
+                                        else
+                                        {
+                                            var hitNormalizedPath = TransformStatus.GetOrCreateTransformStatus(eventSystemHits[0].gameObject.transform).NormalizedPath;
+                                            if (!hitNormalizedPath.StartsWith(mouseAction.clickedObjectNormalizedPaths[0]))
+                                            {
+                                                // if this isn't the exact object or a child object (like a button text of the button we're clicking).. then error out
+                                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{hitNormalizedPath}";
+                                                _mouseActionsToDo.Clear();
+                                                return false;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // Handle world space obstructions... this is easier, since any overlay UI element will be in the path list over world objects, we just need to make sure our
+                                        // object is at the front of the list and thus at the closest Z depth at that point
+
+                                        // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
+                                        // our intended click item (iow.. it's there/ready, but obstructed) ... we only sort by zDepth(not UI bounds) here so we can find proper obstructions
+                                        var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
+
+                                        if (objectsAtClickPosition.Count < 1)
+                                        {
+                                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\nno objects at position";
+                                            _mouseActionsToDo.Clear();
+                                            return false;
+                                        }
+
+                                        if (objectsAtClickPosition[0].NormalizedPath != mouseAction.clickedObjectNormalizedPaths[0])
+                                        {
+                                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{objectsAtClickPosition[0].NormalizedPath}";
+                                            _mouseActionsToDo.Clear();
+                                            return false;
+                                        }
+                                    }
+
                                 }
 
                                 var myPendingAction = pendingAction;

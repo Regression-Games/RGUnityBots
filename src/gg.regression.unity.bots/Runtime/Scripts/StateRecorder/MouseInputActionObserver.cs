@@ -287,7 +287,6 @@ namespace RegressionGames.StateRecorder
 
                     // if a isn't smaller then we don't much care between == vs > as in floating point land.. == is so unlikely as for us to not worry about 'stable' sort for this case
                     return 1;
-
                 }
 
                 if (a.screenSpaceZOffset < b.screenSpaceZOffset)

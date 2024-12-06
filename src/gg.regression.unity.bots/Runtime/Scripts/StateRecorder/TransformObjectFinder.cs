@@ -406,6 +406,7 @@ namespace RegressionGames.StateRecorder
                 // find the full bounds of the statefulGameObject
                 var statefulGameObjectTransform = theTransform.transform;
 
+                var transformName = ""+statefulGameObjectTransform.name; // used for debugging object bounds and easily seeing the name in the debugger.. don't remove
                 RendererQueryList.Clear();
                 statefulGameObjectTransform.GetComponentsInChildren(RendererQueryList);
 
