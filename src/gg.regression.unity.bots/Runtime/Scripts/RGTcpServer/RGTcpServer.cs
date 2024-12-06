@@ -26,7 +26,13 @@ namespace RegressionGames
         public bool IsRunning => m_isRunning;
         
         // client + any queued message to send to that client
-        private readonly ConcurrentDictionary<TcpClient, ConcurrentQueue<TcpMessage>> m_connectedClients = new ();
+        private readonly ConcurrentDictionary<TcpClient, ClientActions> m_connectedClients = new ();
+        
+        private class ClientActions
+        {
+            public readonly ConcurrentQueue<TcpMessage> QueuedMessages = new ();
+            public bool ShouldClose = false;
+        }
         
         /// <summary>
         /// Create a TCPListener and begin listening for client connections on a separate thread
@@ -59,9 +65,9 @@ namespace RegressionGames
         /// </summary>
         public void QueueMessage(TcpMessage message)
         {
-            foreach (var clientQueue in m_connectedClients.Values)
+            foreach (var clientActions in m_connectedClients.Values)
             {
-                clientQueue.Enqueue(message);
+                clientActions.QueuedMessages.Enqueue(message);
             }
         }
 
@@ -70,9 +76,9 @@ namespace RegressionGames
         /// </summary>
         public void QueueMessage(TcpClient client, TcpMessage message)
         {
-            if (m_connectedClients.TryGetValue(client, out var messages))
+            if (m_connectedClients.TryGetValue(client, out var clientActions))
             {
-                messages.Enqueue(message);
+                clientActions.QueuedMessages.Enqueue(message);
             }
         }
         
@@ -129,7 +135,7 @@ namespace RegressionGames
                     // but need to continue listening for new connections in case
                     // our client disconnects and attempts to reconnect
                     TcpClient client = m_server.AcceptTcpClient();
-                    m_connectedClients.TryAdd(client, new ConcurrentQueue<TcpMessage>());
+                    m_connectedClients.TryAdd(client, new ClientActions());
                     
                     Thread clientThread = new Thread(() => HandleClientCommunication(client));
                     clientThread.IsBackground = true;
@@ -153,6 +159,12 @@ namespace RegressionGames
                 // enter to an infinite cycle to be able to handle every change in stream
                 while (m_isRunning)
                 {
+                    // check if we need to close the client connection
+                    if (m_connectedClients.TryGetValue(client, out var clientActions) && clientActions.ShouldClose)
+                    {
+                        break;
+                    }
+                    
                     if (!handshakeReceived)
                     {
                         handshakeReceived = TryPerformHandshake(client);
@@ -240,9 +252,9 @@ namespace RegressionGames
         private void SendQueuedMessages(TcpClient client)
         {
             // send any pending messages to the client
-            if (m_connectedClients.TryGetValue(client, out var messages))
+            if (m_connectedClients.TryGetValue(client, out var clientActions))
             {
-                while (messages.TryDequeue(out var message))
+                while (clientActions.QueuedMessages.TryDequeue(out var message))
                 {
                     SendMessage(client, message);
                 }
@@ -280,11 +292,29 @@ namespace RegressionGames
             string s = Encoding.UTF8.GetString(bytes);
             
             // whether the full message has been sent from the client
+            // TODO: may need to use this if we accept large messages from client
             bool fin = (bytes[0] & 0b10000000) != 0; 
             // must be true, "All messages from the client to the server have this bit set"
             bool mask = (bytes[1] & 0b10000000) != 0;
-            // expecting 1 - text message
-            int opcode = bytes[0] & 0b00001111; 
+            int opcode = bytes[0] & 0b00001111;
+
+            if (opcode == 8)
+            {
+                // this is a close frame
+                if (m_connectedClients.TryGetValue(client, out var clientActions))
+                {
+                    clientActions.ShouldClose = true;
+                }
+
+                return null;
+            }
+            
+            if (opcode != 1)
+            {
+                // not a text message
+                return null;
+            }
+            
             ulong offset = 2;
             ulong msglen = bytes[1] & (ulong)0b01111111;
 

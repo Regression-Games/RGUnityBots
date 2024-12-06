@@ -34,17 +34,7 @@ namespace RegressionGames
         
         // sent prior to closing Unity windows.
         // this tells any running client windows to also close.
-        APPLICATION_QUIT,
-        
-        
-        // =====================
-        // both directions
-        // =====================
-        
-        // from server: forcefully close the client connection due to an exception. client can reconnect.
-        // from client: gracefully close the connection on page refresh or closing the tab. this prevents errors on the Unity side.
-        CLOSE
-        
+        APPLICATION_QUIT
     }
 
     public interface ITcpMessageData : IStringBuilderWriteable { }

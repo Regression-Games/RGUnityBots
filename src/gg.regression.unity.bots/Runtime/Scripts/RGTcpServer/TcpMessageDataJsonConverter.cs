@@ -1,8 +1,6 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 
 namespace RegressionGames
 {
@@ -24,7 +22,6 @@ namespace RegressionGames
             {
                 case TcpMessageType.PING:
                 case TcpMessageType.PONG:
-                case TcpMessageType.CLOSE:
                 case TcpMessageType.APPLICATION_QUIT:
                     // these messages have no payload
                     break;

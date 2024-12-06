@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,7 +10,6 @@ using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using UnityEditor;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
 
 namespace RegressionGames
 {
@@ -58,7 +56,6 @@ namespace RegressionGames
             // this could be through the client or from reloading resources...
             StartCoroutine(RGSequenceManager.ResolveSequenceFiles(ProcessResolvedSequences));
         }
-        
         
         private void ProcessResolvedSequences(IDictionary<string, (string, BotSequence)> sequences)
         {
