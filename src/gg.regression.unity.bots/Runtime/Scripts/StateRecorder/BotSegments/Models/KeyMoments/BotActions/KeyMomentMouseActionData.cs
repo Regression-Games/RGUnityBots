@@ -241,7 +241,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
         {
             if (_isDoneWaitOneFrame)
             {
+                _isDoneWaitOneFrame = false;
                 _isStopped = true;
+                // need to return true so the bot doesn't start exploring.. it needs to think this action is processing as intended since that wait was intended
+                error = null;
+                return true;
             }
 
             if (_mouseActionsToDo.Count > 0)
@@ -259,7 +263,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                 else
                 {
                     error = null;
-                    return false;
+                    // need to return true so the bot doesn't start exploring.. it needs to think this action is processing as intended while we wait
+                    return true;
                 }
             }
 
