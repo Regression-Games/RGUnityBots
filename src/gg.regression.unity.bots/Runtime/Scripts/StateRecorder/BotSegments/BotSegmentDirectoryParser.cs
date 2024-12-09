@@ -68,17 +68,16 @@ namespace StateRecorder.BotSegments
         /**
          * <summary>Sort json files FROM THE SAME DIRECTORY numerically if possible, otherwise Lexicographically</summary>
          */
-        public static List<string> OrderJsonFiles(IEnumerable<string> jsonFiles)
+        public static List<string> OrderJsonFiles(string[] jsonFiles)
         {
-            RGDebug.LogInfo($"OrderJsonFiles - Input File List - {string.Join("\n", jsonFiles)}");
+            RGDebug.LogDebug($"OrderJsonFiles - Input File List [{jsonFiles.Length}] - {string.Join(", ", jsonFiles)}");
             Exception lambdaException = null;
             // sort by numeric value of entries (not string comparison of filenames) .. normalize to front slashes
-            jsonFiles = jsonFiles.Where(e=>e.EndsWith(".json")).Select(e =>e = e.Replace('\\', '/'));
-            List<string> entries;
+            var entries = jsonFiles.Where(e=>e.EndsWith(".json")).Select(e =>e = e.Replace('\\', '/')).ToList();
             try
             {
                 // try to order the files as numbered file names
-                entries = jsonFiles.OrderBy(e =>
+                entries = entries.OrderBy(e =>
                 {
                     if (lambdaException != null)
                     {
@@ -115,7 +114,7 @@ namespace StateRecorder.BotSegments
                 entries = jsonFiles.OrderBy(e => e.Substring(0, e.IndexOf('.'))).ToList();
             }
 
-            RGDebug.LogInfo($"OrderJsonFiles - Output File List [{entries.Count}] - {string.Join(", ", entries)}");
+            RGDebug.LogDebug($"OrderJsonFiles - Output File List [{entries.Count}] - {string.Join(", ", entries)}");
             return entries;
         }
 

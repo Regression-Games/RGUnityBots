@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using RegressionGames.StateRecorder.BotSegments.Models.KeyMoments;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments;
 using StateRecorder.BotSegments.Models;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -56,8 +58,11 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private ScreenRecorder _screenRecorder;
 
+        private ActionExplorationDriver _explorationDriver;
+
         private void Start()
         {
+            _explorationDriver = GetComponent<ActionExplorationDriver>();
             KeyboardEventSender.Initialize();
             SceneManager.sceneLoaded += OnSceneLoad;
             SceneManager.sceneUnloaded += OnSceneUnload;
@@ -394,13 +399,20 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private float _lastTimeLoggedKeyFrameConditions = 0;
 
-        private const int LOG_ERROR_INTERVAL = 3;
+        private const int ACTION_WARNING_INTERVAL = 3; // seconds
 
-        private void LogPlaybackWarning(string loggedMessage)
+        private void LogPlaybackWarning(string loggedMessage, Exception ex = null)
         {
             var now = Time.unscaledTime;
             _lastTimeLoggedKeyFrameConditions = now;
-            RGDebug.LogWarning(loggedMessage);
+            if (ex != null)
+            {
+                RGDebug.LogException(ex, loggedMessage);
+            }
+            else
+            {
+                RGDebug.LogWarning(loggedMessage);
+            }
             _lastSegmentPlaybackWarning = loggedMessage;
             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
             if (pauseEditorOnPlaybackWarning)
@@ -408,6 +420,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                 Debug.Break();
             }
         }
+
+        private IBotActionData _lastSuccessfulAction = null;
 
         private void EvaluateBotSegments()
         {
@@ -455,25 +469,59 @@ namespace RegressionGames.StateRecorder.BotSegments
                         BotSegment firstActionSegment = _nextBotSegments[0];
                         try
                         {
+                            // allow the main action to retry between every exploratory action
                             var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-                            // only log this if we're really stuck on it
-                            if (error == null && didAction)
+                            if (error == null)
                             {
-                                // for every non error action, reset the timer
-                                _lastTimeLoggedKeyFrameConditions = now;
-                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                                if (didAction)
+                                {
+                                    _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
+                                    // for every non error action, reset the timer
+                                    _lastTimeLoggedKeyFrameConditions = now;
+                                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                                }
+                                if (firstActionSegment.botAction?.data is IKeyMomentExploration)
+                                {
+                                    if (firstActionSegment.botAction.data.IsCompleted())
+                                    {
+                                        _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
+                                    }
+                                }
                             }
 
-                            if (error != null && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                            if (error != null)
                             {
-                                var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
-                                LogPlaybackWarning(loggedMessage);
+                                if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
+                                {
+                                    if (firstActionSegment.botAction?.data is IKeyMomentExploration)
+                                    {
+                                        var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error + "\r\nStarting exploratory actions...";
+                                        LogPlaybackWarning(loggedMessage);
+                                        _explorationDriver.StartExploring();
+                                    }
+                                    else
+                                    {
+                                        var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\r\n" + error;
+                                        LogPlaybackWarning(loggedMessage);
+                                    }
+                                }
+
+                                _explorationDriver.PerformExploratoryAction(firstActionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out var explorationError);
+                                if (explorationError != null)
+                                {
+                                    // only log this if we've gone 2x the interval without a success
+                                    if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL*2)
+                                    {
+                                        var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing exploratory BotAction\r\n" + explorationError;
+                                        LogPlaybackWarning(loggedMessage);
+                                    }
+                                }
                             }
                         }
                         catch (Exception ex)
                         {
                             var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
-                            LogPlaybackWarning(loggedMessage);
+                            LogPlaybackWarning(loggedMessage, ex);
                             // uncaught exception... stop and unload the segment
                             UnloadSegmentsAndReset();
                             throw;
@@ -511,8 +559,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 matchedThisUpdate = true;
                             }
 
-                            // wait 10 seconds between logging this as some actions take quite a while
-                            if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                            // wait ACTION_WARNING_INTERVAL seconds between logging this as some actions take quite a while
+                            if (nextBotSegment.Replay_ActionStarted && !nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
                             {
                                 _lastTimeLoggedKeyFrameConditions = now;
                                 var loggedMessage = $"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - Waiting for actions to complete";
@@ -523,6 +571,8 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                         if (nextBotSegment.Replay_Matched && nextBotSegment.Replay_ActionStarted && nextBotSegment.Replay_ActionCompleted)
                         {
+                            _lastSuccessfulAction = nextBotSegment.botAction?.data;
+
                             _lastTimeLoggedKeyFrameConditions = now;
                             RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Criteria Matched && Action Completed - {nextBotSegment.name ?? nextBotSegment.resourcePath} - {nextBotSegment.description}");
                             //Process the inputs from that bot segment if necessary
@@ -536,8 +586,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                     else
                     {
-                        // only log this every 10 seconds for the first key frame being evaluated after its actions complete
-                        if (nextBotSegmentIndex == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - LOG_ERROR_INTERVAL)
+                        // only log this every ACTION_WARNING_INTERVAL seconds for the first key frame being evaluated after its actions complete
+                        if (nextBotSegmentIndex == 0 && nextBotSegment.Replay_ActionCompleted && _lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
                         {
                             var warningText = KeyFrameEvaluator.Evaluator.GetUnmatchedCriteria();
                             if (warningText != null)
@@ -595,7 +645,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             catch (Exception ex)
             {
                 var loggedMessage = $"(?) - Bot Segment - Exception processing BotSegments\r\n" + ex.Message;
-                LogPlaybackWarning(loggedMessage);
+                LogPlaybackWarning(loggedMessage, ex);
                 // uncaught exception... stop the segment
                 UnloadSegmentsAndReset();
                 throw;

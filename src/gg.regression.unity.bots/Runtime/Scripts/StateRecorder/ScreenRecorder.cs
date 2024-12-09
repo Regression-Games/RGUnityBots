@@ -57,7 +57,8 @@ namespace RegressionGames.StateRecorder
 
     public class ScreenRecorder : MonoBehaviour
     {
-        public static readonly string RecordingPathName = "Latest_Recording";
+        public static readonly string LatestRecordingPathName = "Latest_Recording";
+        public static readonly string LatestRecordingKeyMomentsPathName = LatestRecordingPathName + "_KeyMoments";
 
         [Tooltip("Minimum FPS at which to capture frames if you desire more granularity in recordings.  Key frames may still be recorded more frequently than this. <= 0 will only record key frames")]
         public int recordingMinFPS;
@@ -101,7 +102,6 @@ namespace RegressionGames.StateRecorder
         private readonly ConcurrentQueue<Texture2D> _texture2Ds = new();
 
         private long _tickNumber;
-        private long _keyMomentNumber;
 
         private DateTime _startTime;
 
@@ -114,6 +114,8 @@ namespace RegressionGames.StateRecorder
         private MouseInputActionObserver _mouseObserver;
         private ProfilerObserver _profilerObserver;
         private LoggingObserver _loggingObserver;
+
+        private KeyMomentEvaluator _keyMomentEvaluator = new();
 
 #if UNITY_EDITOR
         private bool _needToRefreshAssets;
@@ -178,6 +180,7 @@ namespace RegressionGames.StateRecorder
             long loggedErrors,
             string dataDirectoryPrefix,
             string botSegmentsDirectoryPrefix,
+            string keyMomentsDirectoryPrefix,
             string screenshotsDirectoryPrefix,
             string codeCoverageMetadataPath,
             string actionCoverageMetadataPath,
@@ -260,6 +263,14 @@ namespace RegressionGames.StateRecorder
                 RGDebug.LogInfo($"Finished zipping replay to file: {logsDirectoryPrefix}.zip");
             });
 
+            var zipTask5 = Task.Run(() =>
+            {
+                // Then save the key moments separately
+                RGDebug.LogInfo($"Zipping key_moments recording replay to file: {keyMomentsDirectoryPrefix}.zip");
+                ZipFile.CreateFromDirectory(keyMomentsDirectoryPrefix, keyMomentsDirectoryPrefix + ".zip");
+                RGDebug.LogInfo($"Finished zipping replay to file: {keyMomentsDirectoryPrefix}.zip");
+            });
+
             // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
             var screenshotFiles = Directory.GetFiles(screenshotsDirectoryPrefix);
             if (screenshotFiles.Length > 0)
@@ -272,13 +283,14 @@ namespace RegressionGames.StateRecorder
             RGActionRuntimeCoverageAnalysis.Reset();
 
             // wait for the zip tasks to finish
-            Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4);
+            Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4, zipTask5);
 
             if (!wasReplay)
             {
-                // Copy the most recent recording into the user's project if running in the editor , or their persistent data path if running in production runtime
+                // Copy the most recent recording into the user's project if running in the editor, or their persistent data path if running in production runtime
                 // do NOT copy if this was a replay
-                await MoveSegmentsToProject(botSegmentsDirectoryPrefix);
+                await MoveSegmentsToProject(botSegmentsDirectoryPrefix, LatestRecordingPathName);
+                await MoveSegmentsToProject(keyMomentsDirectoryPrefix, LatestRecordingKeyMomentsPathName);
             }
 
 #if UNITY_EDITOR
@@ -309,6 +321,10 @@ namespace RegressionGames.StateRecorder
             {
                 Directory.Delete(botSegmentsDirectoryPrefix, true);
             }
+            if (Directory.Exists(keyMomentsDirectoryPrefix))
+            {
+                Directory.Delete(keyMomentsDirectoryPrefix, true);
+            }
             if (Directory.Exists(screenshotsDirectoryPrefix))
             {
                 Directory.Delete(screenshotsDirectoryPrefix, true);
@@ -325,28 +341,30 @@ namespace RegressionGames.StateRecorder
             _tokenSource = null;
         }
 
-        private async Task MoveSegmentsToProject(string botSegmentsDirectoryPrefix)
+        private async Task MoveSegmentsToProject(string sourceDirectoryPrefix, string recordingPathName)
         {
             // Get all the file paths normalized to /
             // Note: Ensure that these files aren't loaded lazily (don't use Directory.EnumerateFiles)
             // as the folder gets moved later down this function and lazy loading will not find the files.
-            var segmentFiles = Directory.GetFiles(botSegmentsDirectoryPrefix)
+            var segmentFiles = Directory.GetFiles(sourceDirectoryPrefix)
                 .Where(a=>a.EndsWith(".json"))
                 .Select(a=>a.Replace('\\','/'))
                 .Select(a=>a.Substring(a.LastIndexOf('/')+1));
 
             // Order numerically instead of alphanumerically to ensure 2.json is before 10.json.
-            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles);
+            segmentFiles = BotSegmentDirectoryParser.OrderJsonFiles(segmentFiles.ToArray());
 
             string segmentResourceDirectory = null;
             string sequenceJsonPath = null;
+
+
 #if UNITY_EDITOR
-            segmentResourceDirectory = "Assets/RegressionGames/Resources/BotSegments/" + RecordingPathName;
-            sequenceJsonPath = "Assets/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
+            segmentResourceDirectory = "Assets/RegressionGames/Resources/BotSegments/" + recordingPathName;
+            sequenceJsonPath = "Assets/RegressionGames/Resources/BotSequences/" + recordingPathName + ".json";
 #else
             // Production runtime should write to persistent data path
-            segmentResourceDirectory = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + RecordingPathName;
-            sequenceJsonPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences/" + RecordingPathName + ".json";
+            segmentResourceDirectory = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/" + recordingPathName;
+            sequenceJsonPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSequences/" + recordingPathName + ".json";
 #endif
             try
             {
@@ -371,17 +389,17 @@ namespace RegressionGames.StateRecorder
                     // ReSharper disable once PossibleMultipleEnumeration
                     foreach (var segmentFile in segmentFiles)
                     {
-                        var sourcePath = botSegmentsDirectoryPrefix + "/" + segmentFile;
+                        var sourcePath = sourceDirectoryPrefix + "/" + segmentFile;
                         var destinationPath = segmentResourceDirectory + "/" + segmentFile;
                         File.Copy(sourcePath, destinationPath);
                     }
                     // Then delete the original directory
-                    Directory.Delete(botSegmentsDirectoryPrefix, true);
+                    Directory.Delete(sourceDirectoryPrefix, true);
                 }
                 else
                 {
                     // move the directory (this also deletes the source directory)
-                    Directory.Move(botSegmentsDirectoryPrefix, segmentResourceDirectory);
+                    Directory.Move(sourceDirectoryPrefix, segmentResourceDirectory);
                 }
 
             }
@@ -406,7 +424,7 @@ namespace RegressionGames.StateRecorder
 
             var botSequence = new BotSequence()
             {
-                name = "Latest Recording",
+                name = recordingPathName.Replace('_', ' ').Replace('-', ' '),
                 description = "Note: This sequence was generated when recording a gameplay session and should not be modified.  Creating a new recording will overwrite this sequence.",
                 segments = sequenceEntries
             };
@@ -556,7 +574,7 @@ namespace RegressionGames.StateRecorder
                 }
                 IsRecording = true;
                 _tickNumber = 0;
-                _keyMomentNumber = 0;
+                _keyMomentEvaluator.Reset();
                 _currentSessionId = Guid.NewGuid().ToString("n");
                 _referenceSessionId = referenceSessionId;
                 _startTime = DateTime.Now;
@@ -633,105 +651,6 @@ namespace RegressionGames.StateRecorder
 
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
-
-        private MouseInputActionData _previousKeyMomentMouseInputState = null;
-
-        private void EvaluateKeyMoments()
-        {
-            var meaningfulInputs = _keyMomentMouseDataBuffer.Select((data, i) => (i,data)).Where(tuple => tuple.data.clickedObjectNormalizedPaths.Length > 0).ToList();
-            if (meaningfulInputs.Count > 0)
-            {
-
-                List<MouseInputActionData> inputsToProcess = new();
-                // only take from the buffer up to the last 'un-clicked' state
-                // this is 'hard'... we want to encapsulate click down/up as a single action together
-                // but in cases like FPS where I might 'hold' right click to ADS then repeatedly click/release the left mouse button to fire.. i don't want that ALL as one action
-                // each shot of the weapon would be an 'action', AND .. ads was an action.. so we break this up by any button release
-
-                // find the index range we want
-                var firstInput = meaningfulInputs[0];
-
-                if (firstInput.data.IsButtonUnClick(_previousKeyMomentMouseInputState))
-                {
-                    inputsToProcess.Add(firstInput.data);
-                    // clean out all the entries up to here
-                    _keyMomentMouseDataBuffer.RemoveRange(0, firstInput.i+1);
-                }
-                else if (meaningfulInputs.Count > 1)
-                {
-                    var priorData = _previousKeyMomentMouseInputState;
-                    var foundUnClick = false;
-                    // go through all the inputs until we find an un-click
-                    // we speculatively update the list as we go, but if we never hit an un-click we wipe it back out before moving on
-                    foreach (var meaningfulInput in meaningfulInputs)
-                    {
-                        if (meaningfulInput.i - 1 >= 0)
-                        {
-                            var previousInput = _keyMomentMouseDataBuffer[meaningfulInput.i - 1];
-
-                            // this may seem odd, but we use this API backwards so that we see if the previous mouse spot before the click had a different click state than the current one.. it 'should' ,but better to be safe
-                            // ultimately.. we're trying to add the mouse position event before the click so that the mouse is 'in position' before clicking down to avoid any snafu's with the input system
-                            if (previousInput.IsButtonUnClick(meaningfulInput.data))
-                            {
-                                inputsToProcess.Add(previousInput);
-                            }
-                        }
-
-                        inputsToProcess.Add(meaningfulInput.data);
-                        if (meaningfulInput.data.IsButtonUnClick(priorData))
-                        {
-                            // clean out all the entries up to here
-                            _keyMomentMouseDataBuffer.RemoveRange(0, meaningfulInput.i+1);
-                            foundUnClick = true;
-                            break;
-                        }
-
-                        priorData = meaningfulInput.data;
-                    }
-
-                    if (!foundUnClick)
-                    {
-                        // never found an un-click.. don't process the list so far
-                        inputsToProcess.Clear();
-                    }
-                }
-
-                if (inputsToProcess.Count > 0)
-                {
-                    // update the last state based on the end entry in our list
-                    _previousKeyMomentMouseInputState = inputsToProcess[^1];
-
-                    ++_keyMomentNumber;
-
-                    var botSegment = new BotSegment
-                    {
-                        name = $"KeyMoment: {_keyMomentNumber}, Tick: {_tickNumber} - Mouse Action Segment",
-
-                        endCriteria = new List<KeyFrameCriteria>
-                        {
-                            new()
-                            {
-                                type = KeyFrameCriteriaType.ActionComplete,
-                                data = new ActionCompleteKeyFrameCriteriaData()
-                            }
-                        },
-                        botAction = new BotAction
-                        {
-                            type = BotActionType.KeyMoment_MouseAction,
-                            data = new KeyMomentMouseActionData
-                            {
-                                mouseActions = inputsToProcess
-                            }
-                        }
-                    };
-
-                    // write out the botSegmentList
-                    var jsonData = Encoding.UTF8.GetBytes(botSegment.ToJsonString());
-
-                    RecordKeyMoment(_currentGameplaySessionKeyMomentsDirectoryPrefix, _keyMomentNumber, jsonData);
-                }
-            }
-        }
 
         private void GetKeyFrameType(bool firstFrame, bool hasDeltas, bool pixelHashChanged, bool endRecording)
         {
@@ -818,6 +737,7 @@ namespace RegressionGames.StateRecorder
                     loggedErrors,
                     _currentGameplaySessionDataDirectoryPrefix,
                     _currentGameplaySessionBotSegmentsDirectoryPrefix,
+                    _currentGameplaySessionKeyMomentsDirectoryPrefix,
                     _currentGameplaySessionScreenshotsDirectoryPrefix,
                     _currentGameplaySessionCodeCoverageMetadataPath,
                     _currentGameplaySessionActionCoverageMetadataPath,
@@ -882,8 +802,6 @@ namespace RegressionGames.StateRecorder
 
         private readonly List<MouseInputActionData> _segmentMouseDataBuffer = new();
 
-        private readonly List<MouseInputActionData> _keyMomentMouseDataBuffer = new();
-
         private IEnumerator RecordFrame(bool endRecording = false, bool endRecordingFromToolbarButton = false)
         {
             if (_tickQueue is { IsAddingCompleted: false })
@@ -946,11 +864,16 @@ namespace RegressionGames.StateRecorder
 
                     var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton, minimizeOutput: minimizeRecordingMouseMovements);
                     _segmentMouseDataBuffer.AddRange(mouseInputData);
-                    _keyMomentMouseDataBuffer.AddRange(mouseInputData);
+                    _keyMomentEvaluator.MouseDataBuffer.AddRange(mouseInputData);
 
                     // Compute key moment criteria / action
-                    EvaluateKeyMoments();
-
+                    var keyMomentBotSegment = _keyMomentEvaluator.EvaluateKeyMoment(_tickNumber, out var keyMomentNumber);
+                    if (keyMomentBotSegment != null)
+                    {
+                        // write out the botSegment
+                        var jsonData = Encoding.UTF8.GetBytes(keyMomentBotSegment.ToKeyMomentJsonString());
+                        RecordKeyMoment(_currentGameplaySessionKeyMomentsDirectoryPrefix, keyMomentNumber, jsonData);
+                    }
 
                     // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
                     if (_keyFrameTypeList.Count > 0

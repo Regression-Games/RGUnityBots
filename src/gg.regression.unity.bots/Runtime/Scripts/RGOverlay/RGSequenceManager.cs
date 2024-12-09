@@ -34,9 +34,9 @@ public class RGSequenceManager : MonoBehaviour
     public GameObject sequenceEditor;
 
     public GameObject deleteSequenceDialog;
-    
+
     public Button reloadButton;
-    
+
     private static RGSequenceManager _this;
 
     private ReplayToolbarManager _replayToolbarManager;
@@ -102,7 +102,7 @@ public class RGSequenceManager : MonoBehaviour
         {
             UpscaleUI();
         }
-        
+
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
 
         // load our assets and show the Sequences tab content
@@ -159,7 +159,7 @@ public class RGSequenceManager : MonoBehaviour
     {
         UpscaleUI();
         reloadButton.gameObject.SetActive(false);
-        
+
         // the create sequence button is always the first child in the sequences panel
         var createSequenceButton = sequencesPanel.transform.GetChild(0);
         createSequenceButton.gameObject.SetActive(false);
@@ -307,10 +307,11 @@ public class RGSequenceManager : MonoBehaviour
             // ensure we aren't appending new sequences on to the previous ones
             ClearExistingSequences();
 
-            var latestRecording = sequences.FirstOrDefault(a => a.Key!= null && a.Key.EndsWith("/" + ScreenRecorder.RecordingPathName));
-
             // make the latest recording the first child
-            if (latestRecording.Key != null)
+            var latestRecordings = sequences.Where(a => a.Key!= null && a.Key.Contains("/" + ScreenRecorder.LatestRecordingPathName)).ToList();
+            // sort so that latest recording is before latest key moment recording
+            latestRecordings = latestRecordings.OrderBy(a => a.Key.Length).ToList();
+            foreach (var latestRecording in latestRecordings)
             {
                 var resourcePath = latestRecording.Key;
                 var sequenceInfo = latestRecording.Value;
@@ -321,7 +322,7 @@ public class RGSequenceManager : MonoBehaviour
             foreach (var sequenceKVPair in sequences)
             {
                 var resourcePath = sequenceKVPair.Key;
-                if (!resourcePath.EndsWith("/" + ScreenRecorder.RecordingPathName))
+                if (!resourcePath.Contains("/" + ScreenRecorder.LatestRecordingPathName))
                 {
                     var sequenceInfo = sequenceKVPair.Value;
                     InstantiateSequence(resourcePath, sequenceInfo);

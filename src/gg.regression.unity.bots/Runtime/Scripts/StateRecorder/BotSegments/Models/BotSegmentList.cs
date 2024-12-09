@@ -8,7 +8,7 @@ using RegressionGames.StateRecorder.JsonConverters;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class BotSegmentList
+    public class BotSegmentList : IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
         // re-usable and large enough to fit all sizes
         private static readonly ThreadLocal<StringBuilder> _stringBuilder = new(() => new(10_000));
@@ -27,7 +27,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // NOT WRITTEN TO JSON - The resource path for this botSegmentList... normally populated during load of saved lists
         public string resourcePath;
-        
+
         // NOT WRITTEN TO JSON - Populated at load time
         public bool isOverride;
 
@@ -62,7 +62,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             FixupNames();
         }
 
-
         public string ToJsonString()
         {
             _stringBuilder.Value.Clear();
@@ -84,6 +83,35 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 var segment = segments[i];
                 segment.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < segmentsCount)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]}");
+        }
+
+        public string ToKeyMomentJsonString()
+        {
+            _stringBuilder.Value.Clear();
+            WriteKeyMomentToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
+        }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\n\"name\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, name );
+            stringBuilder.Append(",\n\"description\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, description );
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\n\"segments\":[\n");
+            var segmentsCount = segments.Count;
+            for (var i = 0; i < segmentsCount; i++)
+            {
+                var segment = segments[i];
+                segment.WriteKeyMomentToStringBuilder(stringBuilder);
                 if (i + 1 < segmentsCount)
                 {
                     stringBuilder.Append(",\n");
