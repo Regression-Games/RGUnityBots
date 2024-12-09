@@ -401,11 +401,18 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private const int ACTION_WARNING_INTERVAL = 3; // seconds
 
-        private void LogPlaybackWarning(string loggedMessage)
+        private void LogPlaybackWarning(string loggedMessage, Exception ex = null)
         {
             var now = Time.unscaledTime;
             _lastTimeLoggedKeyFrameConditions = now;
-            RGDebug.LogWarning(loggedMessage);
+            if (ex != null)
+            {
+                RGDebug.LogException(ex, loggedMessage);
+            }
+            else
+            {
+                RGDebug.LogWarning(loggedMessage);
+            }
             _lastSegmentPlaybackWarning = loggedMessage;
             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
             if (pauseEditorOnPlaybackWarning)
@@ -514,7 +521,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         catch (Exception ex)
                         {
                             var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\r\n" + ex.Message;
-                            LogPlaybackWarning(loggedMessage);
+                            LogPlaybackWarning(loggedMessage, ex);
                             // uncaught exception... stop and unload the segment
                             UnloadSegmentsAndReset();
                             throw;
@@ -638,7 +645,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             catch (Exception ex)
             {
                 var loggedMessage = $"(?) - Bot Segment - Exception processing BotSegments\r\n" + ex.Message;
-                LogPlaybackWarning(loggedMessage);
+                LogPlaybackWarning(loggedMessage, ex);
                 // uncaught exception... stop the segment
                 UnloadSegmentsAndReset();
                 throw;

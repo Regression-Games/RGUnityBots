@@ -69,6 +69,8 @@ namespace StateRecorder.BotSegments
             }
         }
 
+        private IBotActionData _inProgressAction = null;
+
         public void PerformExploratoryAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             error = null;
@@ -77,32 +79,36 @@ namespace StateRecorder.BotSegments
                 return;
             }
 
-            IBotActionData nextAction = null;
+            IBotActionData nextAction = _inProgressAction;
 
-            if (_previousActionIndex >= _previousActions.Count)
+            if (nextAction == null)
             {
-                _previousActionIndex = 0;
-            }
-
-            // retry prior actions in pattern .. 0, 10, 210 where 2 is the oldest and 0 is the most recent
-            if (_previousActionIndex < _previousActions.Count)
-            {
-                var previousActions = _previousActions[_previousActionIndex];
-                if (_previousActionSubIndex >= previousActions.Count)
+                if (_previousActionIndex >= _previousActions.Count)
                 {
-                    // move to the next list
-                    _previousActionSubIndex = 0;
-                    ++_previousActionIndex;
-                    if (_previousActionIndex >= _previousActions.Count)
-                    {
-                        _previousActionIndex = 0;
-                    }
-                    previousActions = _previousActions[_previousActionIndex];
+                    _previousActionIndex = 0;
                 }
 
-                nextAction = previousActions[_previousActionSubIndex];
-                ++_previousActionSubIndex;
-                // process next action in the list
+                // retry prior actions in pattern .. 0, 10, 210 where 2 is the oldest and 0 is the most recent
+                if (_previousActionIndex < _previousActions.Count)
+                {
+                    var previousActions = _previousActions[_previousActionIndex];
+                    if (_previousActionSubIndex >= previousActions.Count)
+                    {
+                        // move to the next list
+                        _previousActionSubIndex = 0;
+                        ++_previousActionIndex;
+                        if (_previousActionIndex >= _previousActions.Count)
+                        {
+                            _previousActionIndex = 0;
+                        }
+
+                        previousActions = _previousActions[_previousActionIndex];
+                    }
+
+                    nextAction = previousActions[_previousActionSubIndex];
+                    ++_previousActionSubIndex;
+                    // process next action in the list
+                }
             }
 
             if (nextAction != null)
@@ -115,10 +121,22 @@ namespace StateRecorder.BotSegments
                 RGDebug.LogInfo($"ActionExplorationDriver - Performing Exploratory Action of Type: {nextAction.GetType().Name}" + extraLog);
                 try
                 {
-                    nextAction.ReplayReset();
-                    nextAction.StartAction(segmentNumber, currentTransforms, currentEntities);
-                    nextAction.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
-                    nextAction.AbortAction(segmentNumber);
+                    // this handles actions that can take more than 1 update pass to process their action
+                    // this could get weird for exploratory actions that have things like multi update waits for mouse holds or other things...
+                    // but hopefully not.. hopefully if the real action interrupts us.. then it was truly ready to go
+                    _inProgressAction = nextAction;
+                    if (_inProgressAction.IsCompleted())
+                    {
+                        _inProgressAction.ReplayReset();
+                        _inProgressAction.StartAction(segmentNumber, currentTransforms, currentEntities);
+                    }
+
+                    _inProgressAction.ProcessAction(segmentNumber, currentTransforms, currentEntities, out error);
+
+                    if (_inProgressAction.IsCompleted())
+                    {
+                        _inProgressAction = null;
+                    }
                 }
                 catch (Exception)
                 {
@@ -138,6 +156,11 @@ namespace StateRecorder.BotSegments
 
         public void StopExploring(int segmentNumber)
         {
+            if (_inProgressAction != null)
+            {
+                _inProgressAction.AbortAction(segmentNumber);
+                _inProgressAction = null;
+            }
             if (IsExploring)
             {
                 RGDebug.LogInfo("ActionExplorationDriver - Stopped Exploratory Actions");

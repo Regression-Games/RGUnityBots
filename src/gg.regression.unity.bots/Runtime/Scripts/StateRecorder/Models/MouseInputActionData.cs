@@ -139,6 +139,8 @@ namespace RegressionGames.StateRecorder.Models
         {
             stringBuilder.Append("{\"apiVersion\":");
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\"startTime\":");
+            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
             stringBuilder.Append(",\"leftButton\":");
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
             stringBuilder.Append(",\"middleButton\":");
