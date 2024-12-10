@@ -7,7 +7,7 @@ using RegressionGames.RemoteOrchestration.Types;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.JsonConverters;
 
-namespace RegressionGames
+namespace RegressionGames.ClientDashboard
 {
     public enum TcpMessageType
     {
@@ -15,26 +15,26 @@ namespace RegressionGames
         // client -> server
         // =====================
         
-        PING,
+        Ping,
         
         // client requests to play a sequence with the given resourcePath
-        PLAY_SEQUENCE,
+        PlaySequence,
         
         // =====================
         // server -> client
         // =====================
         
-        PONG,
+        Pong,
         
         // info about the available sequences for this game instance
-        AVAILABLE_SEQUENCES,
+        AvailableSequences,
         
         // info about the currently-running sequence (or segment)
-        ACTIVE_SEQUENCE,
+        ActiveSequence,
         
         // sent prior to closing Unity windows.
         // this tells any running client windows to also close.
-        APPLICATION_QUIT
+        CloseConnection
     }
 
     public interface ITcpMessageData : IStringBuilderWriteable { }
@@ -142,6 +142,4 @@ namespace RegressionGames
             return sb.ToString();
         }
     }
-
-
 }

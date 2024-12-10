@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace RegressionGames
+namespace RegressionGames.ClientDashboard
 {
     public sealed class TcpMessageDataJsonConverter : JsonConverter
     {
@@ -20,18 +20,18 @@ namespace RegressionGames
             ITcpMessageData payload = null;
             switch (message.type)
             {
-                case TcpMessageType.PING:
-                case TcpMessageType.PONG:
-                case TcpMessageType.APPLICATION_QUIT:
+                case TcpMessageType.Ping:
+                case TcpMessageType.Pong:
+                case TcpMessageType.CloseConnection:
                     // these messages have no payload
                     break;
-                case TcpMessageType.ACTIVE_SEQUENCE:
+                case TcpMessageType.ActiveSequence:
                     payload = jObject["payload"].ToObject<ActiveSequenceTcpMessageData>(serializer);
                     break;
-                case TcpMessageType.AVAILABLE_SEQUENCES:
+                case TcpMessageType.AvailableSequences:
                     payload = jObject["payload"].ToObject<AvailableSequencesTcpMessageData>(serializer);
                     break;
-                case TcpMessageType.PLAY_SEQUENCE:
+                case TcpMessageType.PlaySequence:
                     payload = jObject["payload"].ToObject<PlaySequenceTcpMessageData>(serializer);
                     break;
                 default:

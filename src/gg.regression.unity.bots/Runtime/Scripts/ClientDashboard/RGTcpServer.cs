@@ -5,28 +5,28 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder;
-using UnityEngine;
 
-namespace RegressionGames
+namespace RegressionGames.ClientDashboard
 {
     // ReSharper disable InconsistentNaming
     [Serializable]
     public class RGTcpServer
     {
-        private static RGTcpServer _this;
+        public static bool IsRunning => m_isRunning;
 
         private static TcpListener m_server;
         private static Thread m_listenerThread;
         private static CancellationTokenSource m_cancellationTokenSource;
-        
         private static bool m_isRunning;
-        public static bool IsRunning => m_isRunning;
-        
-        // client + any queued message to send to that client
         private static readonly ConcurrentDictionary<TcpClient, ClientActions> m_connectedClients = new ();
         
+        /// <summary>
+        /// Contains queued messages for a connected client,
+        /// and whether this server needs to close the client connection
+        /// </summary>
         private class ClientActions
         {
             public readonly ConcurrentQueue<TcpMessage> QueuedMessages = new ();
@@ -40,47 +40,42 @@ namespace RegressionGames
         /// </summary>
         public static void Start()
         {
-            if (m_server == null || !m_isRunning)
+            if (m_isRunning)
             {
-                Debug.Log("Starting Server");
-                
-                m_server = new TcpListener(IPAddress.Parse("127.0.0.1"), 8085);
-                m_server.Start();
-                m_isRunning = true;
-            
-                m_cancellationTokenSource = new CancellationTokenSource();
-                m_listenerThread = new Thread(() =>
-                {
-                    ListenForClientConnections(m_cancellationTokenSource.Token);
-                });
-                m_listenerThread.IsBackground = true;
-                m_listenerThread.Start();
+                return;
             }
-            else
+        
+            m_server = new TcpListener(IPAddress.Parse("127.0.0.1"), 8085);
+            m_server.Start();
+            m_isRunning = true;
+        
+            m_cancellationTokenSource = new CancellationTokenSource();
+            m_listenerThread = new Thread(() =>
             {
-                Debug.Log("Server already running");
-            }
+                ListenForClientConnections(m_cancellationTokenSource.Token);
+            });
+            m_listenerThread.IsBackground = true;
+            m_listenerThread.Start();
         }
         
         /// <summary>
-        /// Queue a message to be sent to all connected clients
+        /// Queue a message to send to a specific client, or all connected clients if no client is defined.
         /// </summary>
-        public static void QueueMessage(TcpMessage message)
+        public static void QueueMessage(TcpMessage message, [CanBeNull] TcpClient client = null)
         {
-            foreach (var clientActions in m_connectedClients.Values)
+            if (client == null)
             {
-                clientActions.QueuedMessages.Enqueue(message);
+                foreach (var clientActions in m_connectedClients.Values)
+                {
+                    clientActions.QueuedMessages.Enqueue(message);
+                }
             }
-        }
-
-        /// <summary>
-        /// Queue a message to be sent to a specific connected client
-        /// </summary>
-        public static void QueueMessage(TcpClient client, TcpMessage message)
-        {
-            if (m_connectedClients.TryGetValue(client, out var clientActions))
+            else
             {
-                clientActions.QueuedMessages.Enqueue(message);
+                if (m_connectedClients.TryGetValue(client, out var clientActions))
+                {
+                    clientActions.QueuedMessages.Enqueue(message);
+                }
             }
         }
         
@@ -89,8 +84,6 @@ namespace RegressionGames
         /// </summary>
         public static void Stop()
         {
-            Debug.Log("Stopping Server");
-
             if (!m_isRunning)
             {
                 return;
@@ -100,7 +93,7 @@ namespace RegressionGames
             foreach (var client in m_connectedClients.Keys)
             {
                 if (!client.Connected) continue;
-                var message = new TcpMessage { type = TcpMessageType.APPLICATION_QUIT };
+                var message = new TcpMessage { type = TcpMessageType.CloseConnection };
                 SendMessage(client, message);
                 client.Close();
             }
@@ -118,7 +111,7 @@ namespace RegressionGames
         #region Overridable Callbacks
         
         /// <summary>
-        /// Called when a client successfully completes the handshake
+        /// Called when the client handshake is completed successfully
         /// </summary>
         public static event OnClientHandshakeHandler OnClientHandshake;
         public delegate void OnClientHandshakeHandler(TcpClient client);
@@ -138,13 +131,13 @@ namespace RegressionGames
         /// </summary>
         private static void ListenForClientConnections(CancellationToken token)
         {
-            while (m_isRunning && !token.IsCancellationRequested)
+            try
             {
-                try
+                while (!token.IsCancellationRequested)
                 {
                     TcpClient client = m_server.AcceptTcpClient();
                     
-                    if (!m_isRunning || token.IsCancellationRequested)
+                    if (token.IsCancellationRequested)
                     {
                         return;
                     }
@@ -155,19 +148,17 @@ namespace RegressionGames
                     clientThread.IsBackground = true;
                     clientThread.Start();
                 }
-                catch (SocketException e)
+            }
+            catch (SocketException e)
+            {
+                if (!m_isRunning || token.IsCancellationRequested)
                 {
-                    if (!m_isRunning || token.IsCancellationRequested)
-                    {
-                        // we probably just closed the socket, so eat this exception
-                    }
-                    else
-                    {
-                        RGDebug.LogError($"SocketException: {e.Message}");
-                    }
+                    // we just closed the socket, so eat this exception
                 }
-
-                
+                else
+                {
+                    RGDebug.LogError($"Error communicating with dashboard: {e.Message}");
+                }
             }
         }
         
@@ -182,15 +173,10 @@ namespace RegressionGames
                 bool handshakeReceived = false;
                 
                 // enter to an infinite cycle to be able to handle every change in stream
-                while (m_isRunning && !token.IsCancellationRequested)
+                while (!token.IsCancellationRequested)
                 {
                     // check if we need to close the client connection
                     if (m_connectedClients.TryGetValue(client, out var clientActions) && clientActions.ShouldClose)
-                    {
-                        break;
-                    }
-                    
-                    if (token.IsCancellationRequested)
                     {
                         break;
                     }
@@ -217,6 +203,7 @@ namespace RegressionGames
                     {
                         break;
                     }
+                    
                     if (!stream.DataAvailable)
                     {
                         Thread.Sleep(10);
@@ -233,7 +220,7 @@ namespace RegressionGames
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error handling client: {ex.Message}");
+                RGDebug.LogError($"Error handling message from dashboard: {ex.Message}");
             }
             
             client.Close();
@@ -242,7 +229,7 @@ namespace RegressionGames
         
         #endregion
 
-        #region Messaging Helpers
+        #region Processing and Sending Messages
         
         /// <summary>
         /// Waits for http upgrade request from client to establish websocket connection
@@ -251,7 +238,6 @@ namespace RegressionGames
         private static bool TryPerformHandshake(TcpClient client)
         {
             var stream = client.GetStream();
-            
             if (!stream.DataAvailable || client.Available < 3)
             {
                 return false;
@@ -259,31 +245,31 @@ namespace RegressionGames
                     
             byte[] bytes = new byte[client.Available];
             stream.Read(bytes, 0, bytes.Length);
-            string s = Encoding.UTF8.GetString(bytes);
+            string message = Encoding.UTF8.GetString(bytes);
 
-            if (Regex.IsMatch(s, "^GET", RegexOptions.IgnoreCase))
+            if (!Regex.IsMatch(message, "^GET", RegexOptions.IgnoreCase))
             {
-                // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
-                // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
-                // 3. Compute SHA-1 and Base64 hash of the new value
-                // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
-                string swk = Regex.Match(s, "Sec-WebSocket-Key: (.*)").Groups[1].Value.Trim();
-                string swkAndSalt = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                byte[] swkAndSaltSha1 = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swkAndSalt));
-                string swkAndSaltSha1Base64 = Convert.ToBase64String(swkAndSaltSha1);
-
-                // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
-                byte[] response = Encoding.UTF8.GetBytes(
-                    "HTTP/1.1 101 Switching Protocols\r\n" +
-                    "Connection: Upgrade\r\n" +
-                    "Upgrade: websocket\r\n" +
-                    "Sec-WebSocket-Accept: " + swkAndSaltSha1Base64 + "\r\n\r\n");
-
-                stream.Write(response, 0, response.Length);
-                return true;
+                return false;
             }
 
-            return false;
+            // 1. Obtain the value of the "Sec-WebSocket-Key" request header without any leading or trailing whitespace
+            // 2. Concatenate it with "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" (a special GUID specified by RFC 6455)
+            // 3. Compute SHA-1 and Base64 hash of the new value
+            // 4. Write the hash back as the value of "Sec-WebSocket-Accept" response header in an HTTP response
+            string swk = Regex.Match(message, "Sec-WebSocket-Key: (.*)").Groups[1].Value.Trim();
+            string swkAndSalt = swk + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+            byte[] swkAndSaltSha1 = System.Security.Cryptography.SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(swkAndSalt));
+            string swkAndSaltSha1Base64 = Convert.ToBase64String(swkAndSaltSha1);
+
+            // HTTP/1.1 defines the sequence CR LF as the end-of-line marker
+            byte[] response = Encoding.UTF8.GetBytes(
+                "HTTP/1.1 101 Switching Protocols\r\n" +
+                "Connection: Upgrade\r\n" +
+                "Upgrade: websocket\r\n" +
+                "Sec-WebSocket-Accept: " + swkAndSaltSha1Base64 + "\r\n\r\n");
+
+            stream.Write(response, 0, response.Length);
+            return true;
         }
         
         /// <summary>
@@ -309,15 +295,14 @@ namespace RegressionGames
             try
             {
                 var stream = client.GetStream();
-                var stringifiedMessage = message.ToString();
-                byte[] responseBytes = EncodeMessageToSend(stringifiedMessage);
+                var jsonMessage = message.ToString();
+                var responseBytes = EncodeMessageToSend(jsonMessage);
                 stream.Write(responseBytes, 0, responseBytes.Length);
                 stream.Flush();
-                Debug.Log($"Sent: {stringifiedMessage}");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error sending payload: {ex.Message}");
+                RGDebug.LogError($"Error sending message to dashboard: {ex.Message}");
             }
         }
         
@@ -329,11 +314,12 @@ namespace RegressionGames
         {
             byte[] bytes = new byte[client.Available];
             client.GetStream().Read(bytes, 0, bytes.Length);
-            string s = Encoding.UTF8.GetString(bytes);
             
             // whether the full message has been sent from the client
-            // TODO: may need to use this if we accept large messages from client
+            // currently not used here, but may need to consider partial frames
+            // if we end up accepting large messages from client
             bool fin = (bytes[0] & 0b10000000) != 0; 
+            
             // must be true, "All messages from the client to the server have this bit set"
             bool mask = (bytes[1] & 0b10000000) != 0;
             int opcode = bytes[0] & 0b00001111;
@@ -345,7 +331,6 @@ namespace RegressionGames
                 {
                     clientActions.ShouldClose = true;
                 }
-
                 return null;
             }
             
@@ -376,11 +361,7 @@ namespace RegressionGames
                 offset = 10;
             }
 
-            if (msglen == 0)
-            {
-                Debug.Log("msglen == 0");
-            }
-            else if (mask)
+            if (msglen > 0 && mask)
             {
                 byte[] decoded = new byte[msglen];
                 byte[] masks = new byte[4] { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
@@ -392,12 +373,7 @@ namespace RegressionGames
                 }
 
                 string decodedMessage = Encoding.UTF8.GetString(decoded);
-                // Debug.Log($"Received: {decodedMessage}");
                 return decodedMessage;
-            }
-            else
-            {
-                Debug.Log("mask bit not set");
             }
 
             return null;
@@ -409,24 +385,23 @@ namespace RegressionGames
         /// </summary>
         private static byte[] EncodeMessageToSend(string message)
         {
-            byte[] response;
             byte[] bytesRaw = Encoding.UTF8.GetBytes(message);
             byte[] frame = new byte[10];
 
-            Int32 indexStartRawData = -1;
-            Int32 length = bytesRaw.Length;
+            int indexStartRawData = -1;
+            int length = bytesRaw.Length;
 
             frame[0] = 129;
             if (length <= 125)
             {
-                frame[1] = (Byte)length;
+                frame[1] = (byte)length;
                 indexStartRawData = 2;
             }
             else if (length >= 126 && length <= 65535)
             {
-                frame[1] = (Byte)126;
-                frame[2] = (Byte)((length >> 8) & 255);
-                frame[3] = (Byte)(length & 255);
+                frame[1] = (byte)126;
+                frame[2] = (byte)((length >> 8) & 255);
+                frame[3] = (byte)(length & 255);
                 indexStartRawData = 4;
             }
             else
@@ -440,13 +415,11 @@ namespace RegressionGames
                 frame[7] = (byte)((length >> 16) & 255);
                 frame[8] = (byte)((length >> 8) & 255);
                 frame[9] = (byte)(length & 255);
-
                 indexStartRawData = 10;
             }
 
-            response = new byte[indexStartRawData + length];
-
-            Int32 i, responseIdx = 0;
+            byte[] response = new byte[indexStartRawData + length];
+            int i, responseIdx = 0;
 
             // Add the frame bytes to the response
             for (i = 0; i < indexStartRawData; i++)
