@@ -89,32 +89,7 @@ namespace StateRecorder.BotSegments
 
             if (nextAction == null)
             {
-                if (_previousActionIndex >= _previousActions.Count)
-                {
-                    _previousActionIndex = 0;
-                }
-
-                // retry prior actions in pattern .. 0, 10, 210 where 2 is the oldest and 0 is the most recent
-                if (_previousActionIndex < _previousActions.Count)
-                {
-                    var previousActions = _previousActions[_previousActionIndex];
-                    if (_previousActionSubIndex >= previousActions.Count)
-                    {
-                        // move to the next list
-                        _previousActionSubIndex = 0;
-                        ++_previousActionIndex;
-                        if (_previousActionIndex >= _previousActions.Count)
-                        {
-                            _previousActionIndex = 0;
-                        }
-
-                        previousActions = _previousActions[_previousActionIndex];
-                    }
-
-                    nextAction = previousActions[_previousActionSubIndex];
-                    ++_previousActionSubIndex;
-                    // process next action in the list
-                }
+                nextAction = GetPriorActionToDo();
             }
 
             if (nextAction != null)
@@ -158,6 +133,39 @@ namespace StateRecorder.BotSegments
                 // TODO: Implement hooks to other exploration algorithms
             }
 
+        }
+
+        private IBotActionData GetPriorActionToDo()
+        {
+            if (_previousActionIndex >= _previousActions.Count)
+            {
+                // reset both so we don't skip one in the list below
+                _previousActionSubIndex = 0;
+                _previousActionIndex = 0;
+            }
+
+            // retry prior actions in pattern .. 0, 10, 210 where 2 is the oldest and 0 is the most recent
+            if (_previousActionIndex < _previousActions.Count)
+            {
+                var previousActions = _previousActions[_previousActionIndex];
+                if (_previousActionSubIndex >= previousActions.Count)
+                {
+                    // move to the next list
+                    _previousActionSubIndex = 0;
+                    ++_previousActionIndex;
+                    if (_previousActionIndex >= _previousActions.Count)
+                    {
+                        _previousActionIndex = 0;
+                    }
+
+                    previousActions = _previousActions[_previousActionIndex];
+                }
+
+                return previousActions[_previousActionSubIndex++];
+                // process next action in the list
+            }
+
+            return null;
         }
 
         public void StopExploring(int segmentNumber)
