@@ -39,6 +39,19 @@ namespace RegressionGames.StateRecorder.Models
 
         public Bounds? worldSpaceBounds;
 
+        /**
+         * Used only as a temporary tracking when finding object at point during playback evaluation.. used for sorting object depths correctly in that point evaluation pass
+         * default : -1 so it would be behind the camera and ignored if not found
+         */
+        [NonSerialized]
+        public float zOffsetForMousePoint = -1f;
+
+        /**
+         * Used only as a temporary tracking when finding object at point during playback evaluation.. used for computing world space click location accurately
+         * default : null
+         */
+        public Vector3? worldSpaceCoordinatesForMousePoint = null;
+
         public abstract bool PositionHitsCollider(Vector3 position);
 
     }

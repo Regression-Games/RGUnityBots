@@ -31,7 +31,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         /**
          * Called at least once per frame
          * returns true if an action was performed
-         * Returns null or an error message string
+         * Returns null or a error string
          */
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error);
 

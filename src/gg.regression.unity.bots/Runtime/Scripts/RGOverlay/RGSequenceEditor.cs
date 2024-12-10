@@ -43,13 +43,13 @@ namespace RegressionGames
 
         // shown when creating a new Sequence
         public GameObject createInstructionText;
-        
+
         // shown when updating an existing Sequence
         public GameObject updateInstructionText;
-        
+
         // shown when updating an existing Sequence in a build
         public GameObject updateOverrideInstructionText;
-        
+
         public RGDropZone _dropZone;
 
         private IList<BotSequenceEntry> _segmentEntries;
@@ -79,9 +79,9 @@ namespace RegressionGames
             DescriptionInput.onValueChanged.AddListener(OnDescriptionInputChange);
             _dropZone = DropZonePrefab.GetComponent<RGDropZone>();
 
-            // set indicator that this sequence is being overriden by a local file, within a build 
+            // set indicator that this sequence is being overriden by a local file, within a build
             overrideIndicator.gameObject.SetActive(isOverride);
-            
+
             _makingACopy = makingACopy;
 
             // if the Available Segment List cannot be found, we will try to find it somewhere in the scene
@@ -127,7 +127,7 @@ namespace RegressionGames
                 CurrentSequence = new BotSequence();
                 titleComponent.text = "Create Sequence";
             }
-            
+
             // set the instruction text
             if (isOverride || (!Application.isEditor && isBeingEdited))
             {
@@ -177,7 +177,7 @@ namespace RegressionGames
             {
                 return false;
             }
-            return sequencePath.EndsWith("/"+ScreenRecorder.RecordingPathName);
+            return sequencePath.Contains("/"+ScreenRecorder.LatestRecordingPathName);
         }
 
         /**

@@ -10,7 +10,7 @@ namespace RegressionGames.StateRecorder.Models
         private TransformStatus()
         {}
 
-        public Transform Transform;
+        public readonly Transform Transform;
 
         // re-use these objects
         private static readonly StringBuilder PathBuilder = new (500);
@@ -19,6 +19,18 @@ namespace RegressionGames.StateRecorder.Models
 
         // right now this resets on awake from InGameObjectFinder, but we may have to deal with dynamically re-parented transforms better at some point...
         private static readonly Dictionary<int, TransformStatus> TransformsIveSeen = new(1000);
+
+        private TransformStatus(Transform transform)
+        {
+            this.Transform = transform;
+            this.Id = transform.GetInstanceID();
+        }
+
+        private TransformStatus(Transform transform, long id)
+        {
+            this.Transform = transform;
+            this.Id = id;
+        }
 
         public static void Reset()
         {
@@ -81,11 +93,9 @@ namespace RegressionGames.StateRecorder.Models
 
                 if (status == null)
                 {
-                    status = new TransformStatus
+                    status = new TransformStatus(theTransform, id)
                     {
-                        Id = id,
                         ParentId = theTransform.parent != null ? theTransform.parent.GetInstanceID() : null,
-                        Transform = theTransform,
                         LayerName = LayerMask.LayerToName(theGameObject.layer),
                         Scene = theGameObject.scene.name,
                         Tag = theTransform.tag
