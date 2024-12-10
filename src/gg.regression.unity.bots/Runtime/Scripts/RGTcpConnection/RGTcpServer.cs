@@ -12,21 +12,20 @@ using UnityEngine;
 namespace RegressionGames
 {
     // ReSharper disable InconsistentNaming
+    [Serializable]
     public class RGTcpServer
     {
         private static RGTcpServer _this;
 
-        private readonly int m_port;
-        public int Port => m_port;
+        private static TcpListener m_server;
+        private static Thread m_listenerThread;
+        private static CancellationTokenSource m_cancellationTokenSource;
         
-        private readonly TcpListener m_server;
-        private readonly Thread m_listenerThread;
-        
-        private bool m_isRunning;
-        public bool IsRunning => m_isRunning;
+        private static bool m_isRunning;
+        public static bool IsRunning => m_isRunning;
         
         // client + any queued message to send to that client
-        private readonly ConcurrentDictionary<TcpClient, ClientActions> m_connectedClients = new ();
+        private static readonly ConcurrentDictionary<TcpClient, ClientActions> m_connectedClients = new ();
         
         private class ClientActions
         {
@@ -34,36 +33,39 @@ namespace RegressionGames
             public bool ShouldClose = false;
         }
         
+        #region Public Methods
+        
         /// <summary>
         /// Create a TCPListener and begin listening for client connections on a separate thread
         /// </summary>
-        private RGTcpServer()
+        public static void Start()
         {
-            m_port = 8085; // TODO: choose next available port
-            m_server = new TcpListener(IPAddress.Parse("127.0.0.1"), m_port);
-            m_server.Start();
-            m_isRunning = true;
-            
-            m_listenerThread = new Thread(ListenForClients);
-            m_listenerThread.IsBackground = true;
-            m_listenerThread.Start();
-        }
-        
-        #region Public Methods
-
-        public static RGTcpServer GetInstance()
-        {
-            if (_this == null)
+            if (m_server == null || !m_isRunning)
             {
-                _this = new RGTcpServer();
+                Debug.Log("Starting Server");
+                
+                m_server = new TcpListener(IPAddress.Parse("127.0.0.1"), 8085);
+                m_server.Start();
+                m_isRunning = true;
+            
+                m_cancellationTokenSource = new CancellationTokenSource();
+                m_listenerThread = new Thread(() =>
+                {
+                    ListenForClientConnections(m_cancellationTokenSource.Token);
+                });
+                m_listenerThread.IsBackground = true;
+                m_listenerThread.Start();
             }
-            return _this;
+            else
+            {
+                Debug.Log("Server already running");
+            }
         }
         
         /// <summary>
         /// Queue a message to be sent to all connected clients
         /// </summary>
-        public void QueueMessage(TcpMessage message)
+        public static void QueueMessage(TcpMessage message)
         {
             foreach (var clientActions in m_connectedClients.Values)
             {
@@ -74,7 +76,7 @@ namespace RegressionGames
         /// <summary>
         /// Queue a message to be sent to a specific connected client
         /// </summary>
-        public void QueueMessage(TcpClient client, TcpMessage message)
+        public static void QueueMessage(TcpClient client, TcpMessage message)
         {
             if (m_connectedClients.TryGetValue(client, out var clientActions))
             {
@@ -85,8 +87,15 @@ namespace RegressionGames
         /// <summary>
         /// Stop the TCP server and close all client connections
         /// </summary>
-        public void Stop()
+        public static void Stop()
         {
+            Debug.Log("Stopping Server");
+
+            if (!m_isRunning)
+            {
+                return;
+            }
+            
             // send application quit messages to all connected clients then close them
             foreach (var client in m_connectedClients.Keys)
             {
@@ -99,7 +108,8 @@ namespace RegressionGames
             
             // then stop server
             m_isRunning = false;
-            m_server.Stop();
+            m_server?.Stop();
+            m_cancellationTokenSource?.Cancel();
             m_listenerThread?.Join();
         }
         
@@ -110,13 +120,14 @@ namespace RegressionGames
         /// <summary>
         /// Called when a client successfully completes the handshake
         /// </summary>
-        public delegate void OnClientHandshakeHandler(TcpClient client);
-
         public static event OnClientHandshakeHandler OnClientHandshake;
+        public delegate void OnClientHandshakeHandler(TcpClient client);
         
-        public delegate void ProcessClientMessageHandler(TcpClient client, TcpMessage message);
-
+        /// <summary>
+        /// Called when a message is received from a client
+        /// </summary>
         public static event ProcessClientMessageHandler ProcessClientMessage;
+        public delegate void ProcessClientMessageHandler(TcpClient client, TcpMessage message);
         
         #endregion
         
@@ -125,31 +136,45 @@ namespace RegressionGames
         /// <summary>
         /// Listens for client connections and handles them on separate threads
         /// </summary>
-        private void ListenForClients()
+        private static void ListenForClientConnections(CancellationToken token)
         {
-            while (m_isRunning)
+            while (m_isRunning && !token.IsCancellationRequested)
             {
-                if (m_server.Pending())
+                try
                 {
-                    // we only really expect one client connection at a time,
-                    // but need to continue listening for new connections in case
-                    // our client disconnects and attempts to reconnect
                     TcpClient client = m_server.AcceptTcpClient();
-                    m_connectedClients.TryAdd(client, new ClientActions());
                     
-                    Thread clientThread = new Thread(() => HandleClientCommunication(client));
+                    if (!m_isRunning || token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    m_connectedClients.TryAdd(client, new ClientActions());
+
+                    Thread clientThread = new Thread(() => HandleClientCommunication(client, token));
                     clientThread.IsBackground = true;
                     clientThread.Start();
                 }
+                catch (SocketException e)
+                {
+                    if (!m_isRunning || token.IsCancellationRequested)
+                    {
+                        // we probably just closed the socket, so eat this exception
+                    }
+                    else
+                    {
+                        RGDebug.LogError($"SocketException: {e.Message}");
+                    }
+                }
 
-                Thread.Sleep(10); // Prevents tight loop
+                
             }
         }
         
         /// <summary>
         /// Handles all communication between the client and server including handshake
         /// </summary>
-        private void HandleClientCommunication(TcpClient client)
+        private static void HandleClientCommunication(TcpClient client, CancellationToken token)
         {
             try
             {
@@ -157,10 +182,15 @@ namespace RegressionGames
                 bool handshakeReceived = false;
                 
                 // enter to an infinite cycle to be able to handle every change in stream
-                while (m_isRunning)
+                while (m_isRunning && !token.IsCancellationRequested)
                 {
                     // check if we need to close the client connection
                     if (m_connectedClients.TryGetValue(client, out var clientActions) && clientActions.ShouldClose)
+                    {
+                        break;
+                    }
+                    
+                    if (token.IsCancellationRequested)
                     {
                         break;
                     }
@@ -174,12 +204,22 @@ namespace RegressionGames
                         }
                         continue;
                     }
+                    
+                    if (token.IsCancellationRequested)
+                    {
+                        break;
+                    }
 
                     // send any queued messages before handling new messages
                     SendQueuedMessages(client);
 
+                    if (token.IsCancellationRequested)
+                    {
+                        break;
+                    }
                     if (!stream.DataAvailable)
                     {
+                        Thread.Sleep(10);
                         continue;
                     }
 
@@ -208,7 +248,7 @@ namespace RegressionGames
         /// Waits for http upgrade request from client to establish websocket connection
         /// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server#handshaking
         /// </summary>
-        private bool TryPerformHandshake(TcpClient client)
+        private static bool TryPerformHandshake(TcpClient client)
         {
             var stream = client.GetStream();
             
@@ -249,7 +289,7 @@ namespace RegressionGames
         /// <summary>
         /// Send any queued messages to connected clients
         /// </summary>
-        private void SendQueuedMessages(TcpClient client)
+        private static void SendQueuedMessages(TcpClient client)
         {
             // send any pending messages to the client
             if (m_connectedClients.TryGetValue(client, out var clientActions))
@@ -264,7 +304,7 @@ namespace RegressionGames
         /// <summary>
         /// Send a single message to a client
         /// </summary>
-        private void SendMessage(TcpClient client, TcpMessage message)
+        private static void SendMessage(TcpClient client, TcpMessage message)
         {
             try
             {
@@ -285,7 +325,7 @@ namespace RegressionGames
         /// Decode message from client so we can process it
         /// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server#decoding_messages
         /// </summary>
-        private string DecodeReceivedMessage(TcpClient client)
+        private static string DecodeReceivedMessage(TcpClient client)
         {
             byte[] bytes = new byte[client.Available];
             client.GetStream().Read(bytes, 0, bytes.Length);
@@ -367,7 +407,7 @@ namespace RegressionGames
         /// Encode message from server -> client
         /// https://stackoverflow.com/questions/8125507/how-can-i-send-and-receive-websocket-messages-on-the-server-side/27442080#27442080
         /// </summary>
-        private byte[] EncodeMessageToSend(string message)
+        private static byte[] EncodeMessageToSend(string message)
         {
             byte[] response;
             byte[] bytesRaw = Encoding.UTF8.GetBytes(message);
