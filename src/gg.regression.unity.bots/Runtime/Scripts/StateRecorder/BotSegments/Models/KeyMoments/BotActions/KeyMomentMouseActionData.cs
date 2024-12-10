@@ -416,7 +416,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                         // 1. for more variability in testing
                         // 2. to get around cases where we were say clicking on a floor tile, but there is something on that floor tile and we wanted to click on the open space of the floor tile
                         //     on the next attempt, it picks a new position to try thus giving us a better chance of passing
-                        // TODO: Future: Can we capture the relativistic offset click position where we hit a world space object so that we can try to re-click on that same offset given its new world position ???
+                        // TODO (REG-2223): Future: Can we capture the relativistic offset click position where we hit a world space object so that we can try to re-click on that same offset given its new world position ???
                         // This would allow us to know that we clicked about X far into this floor tile and replicate that positioning regardless of the actual worldspace positioning in the replay...
                         // +1 because int range is max exclusive.. if these were floats.. remove the +1
                         Vector2 clickPosition = new Vector2(Random.Range(matchResults[0].Item3.Item1, matchResults[0].Item3.Item3+1), Random.Range(matchResults[0].Item3.Item2, matchResults[0].Item3.Item4+1));

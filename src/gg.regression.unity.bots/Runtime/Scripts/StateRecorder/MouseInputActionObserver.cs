@@ -254,8 +254,18 @@ namespace RegressionGames.StateRecorder
 
             var uiHitMapping = eventSystemHits.ToDictionary(a => (long)a.gameObject.transform.GetInstanceID(), a => a);
 
+            var worldSpaceHits = new Dictionary<int, RaycastHit>();
+
+            if (ray.HasValue)
+            {
+                // do a raycast all into the world and see what hits... we want to be able to sort things with colliders above those that don't have one
+                var raycastHits = Physics.RaycastAll(ray.Value);
+                worldSpaceHits = raycastHits.ToDictionary(a => a.transform.GetInstanceID(), a => a);
+            }
+
             // sort with lower z-offsets first so we have UI things on top of game object things
             // if both elements are from the UI.. then sort by the event system ray hits
+            // for world space objects.. sort those with ray cast hits before those without
             result.Sort((a, b) =>
             {
                 if (a.worldSpaceBounds == null && b.worldSpaceBounds == null)
@@ -308,12 +318,63 @@ namespace RegressionGames.StateRecorder
                     return 0;
                 }
 
-                if (a.zOffsetForMousePoint < b.zOffsetForMousePoint)
+                RaycastHit? aWorldHitData = null;
+                if (a is TransformStatus awt)
+                {
+                    aWorldHitData = IsHitOnParent(awt.Transform, worldSpaceHits);
+                }
+                RaycastHit? bWorldHitData = null;
+                if (b is TransformStatus bwt)
+                {
+                    bWorldHitData = IsHitOnParent(bwt.Transform, worldSpaceHits);
+                }
+
+                if (aWorldHitData.HasValue)
+                {
+                    if (bWorldHitData.HasValue)
+                    {
+                        if (aWorldHitData.Value.distance < bWorldHitData.Value.distance)
+                        {
+                            return -1;
+                        }
+
+                        if (aWorldHitData.Value.distance > bWorldHitData.Value.distance)
+                        {
+                            return 1;
+                        }
+
+                        return 0;
+                    }
+
+                    // aWorldHitData.. but not b
+                    if (b.worldSpaceBounds == null)
+                    {
+                        // b is UI overlay, leave it in front
+                        return 1;
+                    }
+                    // else put a in front
+                    return -1;
+                }
+
+                if (bWorldHitData.HasValue)
+                {
+                    //bWorldHitData.. but not a
+                    if (a.worldSpaceBounds == null)
+                    {
+                        // a is UI overlay, leave it in front
+                        return -1;
+                    }
+                    // else put b in front
+                    return 1;
+                }
+
+                // else no collider hit and not UI, so sort by the zOffset of the renderer itself (remember that -1f is used to represent 'behind the camera' so we have to consider that in our comparisons)
+                if (a.zOffsetForMousePoint >= 0f && a.zOffsetForMousePoint < b.zOffsetForMousePoint)
                 {
                     return -1;
                 }
 
-                if (a.zOffsetForMousePoint > b.zOffsetForMousePoint)
+                if (b.zOffsetForMousePoint >= 0f && a.zOffsetForMousePoint > b.zOffsetForMousePoint)
                 {
                     return 1;
                 }
@@ -321,6 +382,27 @@ namespace RegressionGames.StateRecorder
                 return 0;
             });
             return result;
+        }
+
+        private static RaycastHit? IsHitOnParent(Transform transform, Dictionary<int, RaycastHit> worldSpaceHits)
+        {
+            foreach (var worldSpaceHit in worldSpaceHits)
+            {
+                // for each hit, walk up the hierarchy to see if a collider on myself or my parent was hit
+                while (transform != null)
+                {
+                    var id = transform.GetInstanceID();
+                    if (worldSpaceHits.TryGetValue(id, out var hitInfo))
+                    {
+                        return hitInfo;
+                    }
+
+                    transform = transform.parent;
+                }
+
+            }
+
+            return null;
         }
     }
 }
