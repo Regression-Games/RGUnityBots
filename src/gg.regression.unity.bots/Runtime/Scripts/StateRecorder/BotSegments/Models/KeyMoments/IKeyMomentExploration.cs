@@ -2,5 +2,6 @@
 {
     public interface IKeyMomentExploration
     {
+        void KeyMomentExplorationReset();
     }
 }

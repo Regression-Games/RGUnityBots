@@ -106,14 +106,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         BotSegment firstActionSegment = _nextBotSegments[0];
                         try
                         {
-                            if (firstActionSegment.Replay_ActionCompleted)
-                            {
-                                if (firstActionSegment.botAction?.data is IKeyMomentExploration)
-                                {
-                                    _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
-                                }
-                            }
-                            else
+                            if (firstActionSegment.botAction?.IsCompleted == false)
                             {
                                 // allow the main action to retry between every exploratory action
                                 var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
@@ -155,7 +148,13 @@ namespace RegressionGames.StateRecorder.BotSegments
                                         }
                                     }
 
-                                    _explorationDriver.PerformExploratoryAction(firstActionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out var explorationError);
+                                    string explorationError = null;
+                                    if (firstActionSegment.botAction?.data is IKeyMomentExploration keyMomentExploration)
+                                    {
+                                        _explorationDriver.PerformExploratoryAction(firstActionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out explorationError);
+                                        // we just interfered mid action.. reset this thing to try again
+                                        keyMomentExploration.KeyMomentExplorationReset();
+                                    }
 
                                     if (explorationError != null)
                                     {
@@ -168,6 +167,12 @@ namespace RegressionGames.StateRecorder.BotSegments
                                     }
                                 }
                             }
+
+                            if (firstActionSegment.botAction?.IsCompleted == true && firstActionSegment.botAction?.data is IKeyMomentExploration)
+                            {
+                                _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
+                            }
+
                         }
                         catch (Exception ex)
                         {

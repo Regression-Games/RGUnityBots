@@ -28,7 +28,7 @@ namespace RegressionGames.StateRecorder
                     if (_priorMouseState == null && newMouseState.IsButtonClicked || _priorMouseState != null && !_priorMouseState.ButtonStatesEqual(newMouseState))
                     {
                         // get the z depth sorted clicked on objects
-                        var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out _);
+                        var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects);
 
                         _clickedObjectNormalizedPaths.Clear();
 
@@ -157,17 +157,25 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        public static List<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects, out float maxZDepth)
+        public static List<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects)
         {
             // make sure screen space position Z is around 0
             var vec3Position = new Vector3(position.x, position.y, 0);
             List<ObjectStatus> result = new();
-            maxZDepth = 0f;
             var mainCamera = Camera.main;
             Ray? ray = null;
             if (mainCamera != null)
             {
                 ray = mainCamera.ScreenPointToRay(position);
+            }
+
+            var worldSpaceHits = new Dictionary<int, RaycastHit>();
+
+            if (ray.HasValue)
+            {
+                // do a raycast all into the world and see what hits... we want to be able to sort things with colliders above those that don't have one
+                var raycastHits = Physics.RaycastAll(ray.Value);
+                worldSpaceHits = raycastHits.ToDictionary(a => a.transform.GetInstanceID(), a => a);
             }
 
             foreach (var recordedGameObjectState in statefulObjects)
@@ -200,19 +208,33 @@ namespace RegressionGames.StateRecorder
                                 if (ray.HasValue)
                                 {
                                     // compute the zOffset at this point based on the ray
-                                    if (recordedGameObjectState.worldSpaceBounds.Value.IntersectRay(ray.Value, out var zDepthHit))
+                                    var didHit = false;
+                                    if (recordedGameObjectState is TransformStatus transformStatus)
                                     {
-                                        if (zDepthHit >= 0f)
+                                        var collider = transformStatus.Transform.GetComponentInParent<Collider>();
+                                        if (collider != null)
                                         {
-                                            recordedGameObjectState.zOffsetForMousePoint = zDepthHit;
-                                            recordedGameObjectState.worldSpaceCoordinatesForMousePoint = ray.Value.GetPoint(zDepthHit);
-                                            if (zDepthHit > maxZDepth)
+                                            // let's see if it has a collider to hit
+                                            var myHit = worldSpaceHits.Values.Select(a=> a as RaycastHit?).Where(a => a.Value.collider == collider).DefaultIfEmpty(null).FirstOrDefault();
+                                            if (myHit.HasValue)
                                             {
-                                                maxZDepth = zDepthHit;
+                                                var hitDistance = myHit.Value.distance;
+                                                if (hitDistance >= 0f)
+                                                {
+                                                    var hitPoint = ray.Value.GetPoint(hitDistance);
+                                                    // make sure that even though our parent had this collider, that the hit is still within the bounding volume of the object we're checking
+                                                    // we wouldn't want a parent collider to cause ALL of its children to be included as clicked, just the one ray pass of renderers we actually hit
+                                                    if (recordedGameObjectState.worldSpaceBounds.Value.Contains(hitPoint))
+                                                    {
+                                                        didHit = true;
+                                                        recordedGameObjectState.zOffsetForMousePoint = hitDistance;
+                                                        recordedGameObjectState.worldSpaceCoordinatesForMousePoint = hitPoint;
+                                                    }
+                                                }
                                             }
                                         }
                                     }
-                                    else
+                                    if(!didHit)
                                     {
                                         // wasn't in front of the camera
                                         recordedGameObjectState.zOffsetForMousePoint = -1f;
@@ -221,17 +243,16 @@ namespace RegressionGames.StateRecorder
                                 }
                                 else
                                 {
-                                    // go with the zOffset for the bounding box itself instead of at this exact point... this leads to really weird cases in 3d spaces with close objects and should be avoided
+                                    // go with the zOffset for the bounding box itself instead of at this exact point... this leads to really weird cases in world space objects with other nearby objects and should be avoided
                                     // example.. a stone you click sitting on the top back corner of a cube will be 'behind' the cube because the front plane of the cube is closer, just not at that screen point
                                     // leaving this in here for now though as some sorting is still better than no sorting if we get here (have no camera)
-                                    if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
-                                    {
-                                        maxZDepth = recordedGameObjectState.screenSpaceZOffset;
-                                    }
+                                    recordedGameObjectState.zOffsetForMousePoint = recordedGameObjectState.screenSpaceZOffset;
+                                    recordedGameObjectState.worldSpaceCoordinatesForMousePoint = recordedGameObjectState.worldSpaceBounds.Value.center;
                                 }
                             }
                             else if (recordedGameObjectState.screenSpaceZOffset >= 0f)
                             {
+                                // screen space object
                                 recordedGameObjectState.zOffsetForMousePoint = recordedGameObjectState.screenSpaceZOffset;
                                 recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
                             }
@@ -253,15 +274,6 @@ namespace RegressionGames.StateRecorder
             EventSystem.current.RaycastAll(pointerEventData, eventSystemHits);
 
             var uiHitMapping = eventSystemHits.ToDictionary(a => (long)a.gameObject.transform.GetInstanceID(), a => a);
-
-            var worldSpaceHits = new Dictionary<int, RaycastHit>();
-
-            if (ray.HasValue)
-            {
-                // do a raycast all into the world and see what hits... we want to be able to sort things with colliders above those that don't have one
-                var raycastHits = Physics.RaycastAll(ray.Value);
-                worldSpaceHits = raycastHits.ToDictionary(a => a.transform.GetInstanceID(), a => a);
-            }
 
             // sort with lower z-offsets first so we have UI things on top of game object things
             // if both elements are from the UI.. then sort by the event system ray hits
