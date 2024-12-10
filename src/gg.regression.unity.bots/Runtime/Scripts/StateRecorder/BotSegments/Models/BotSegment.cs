@@ -62,8 +62,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int Replay_SegmentNumber;
 
         // Replay only - tracks if we have started the action for this bot segment
-        [NonSerialized]
-        public bool Replay_ActionStarted;
+        public bool Replay_ActionStarted => botAction == null || botAction.IsStarted;
 
         // Replay only - tracks if we have completed the action for this bot segment
         // returns true if botAction.IsCompleted || botAction.IsCompleted==null && Replay_Matched
@@ -80,16 +79,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // Replay only - called at least once per frame
         public bool ProcessAction(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            if (botAction == null)
-            {
-                Replay_ActionStarted = true;
-            }
-            else
+            if (botAction != null)
             {
                 if (!Replay_ActionStarted)
                 {
                     botAction.StartAction(Replay_SegmentNumber, currentTransforms, currentEntities);
-                    Replay_ActionStarted = true;
                 }
                 return botAction.ProcessAction(Replay_SegmentNumber, currentTransforms, currentEntities, out error);
             }
@@ -157,7 +151,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 botAction.ReplayReset();
             }
 
-            Replay_ActionStarted = false;
             Replay_Matched = false;
         }
 

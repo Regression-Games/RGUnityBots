@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -13,14 +14,7 @@ namespace RegressionGames.StateRecorder
     {
         private MouseInputActionData _priorMouseState;
 
-        private readonly Dictionary<string, float> _clickedObjectNormalizedPaths = new(100);
-
-        private readonly Comparer<RaycastHit> _mouseHitComparer = Comparer<RaycastHit>.Create(
-            (x1, x2) =>
-            {
-                var d = x1.distance - x2.distance;
-                return (d > 0f) ? 1 : (d < 0f) ? -1 : 0;
-            } );
+        private readonly List<string> _clickedObjectNormalizedPaths = new(100);
 
         public void ObserveMouse(IEnumerable<ObjectStatus> statefulObjects)
         {
@@ -33,89 +27,23 @@ namespace RegressionGames.StateRecorder
                 {
                     if (_priorMouseState == null && newMouseState.IsButtonClicked || _priorMouseState != null && !_priorMouseState.ButtonStatesEqual(newMouseState))
                     {
-                        Vector3? worldPosition = null;
-                        var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);
-
-                        var didMouseRayHit = false;
-
-                        RaycastHit hitInfo = default;
-
-                        var mainCamera = Camera.main;
-                        if (mainCamera != null)
-                        {
-                            var ray = mainCamera.ScreenPointToRay(mousePosition);
-                            didMouseRayHit = Physics.Raycast(ray, out hitInfo); // make sure we go deep enough to hit the collider on that object.. we hope
-                        }
+                        // get the z depth sorted clicked on objects
+                        var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out _);
 
                         _clickedObjectNormalizedPaths.Clear();
 
-                        if (didMouseRayHit)
+                        // the objects found are already in order, but we do need to see if there was a worldPosition clicked
+                        foreach (var clickedTransformStatus in clickedOnObjects)
                         {
-                            // we hit a collider and can compute the world position clicked
-                            // we can also then sort the results based on said collision hit so that the best objects are in the front
-                            foreach (var clickedTransformStatus in clickedOnObjects)
+                            if (clickedTransformStatus.worldSpaceBounds != null && !newMouseState.worldPosition.HasValue)
                             {
-                                var zDepth = clickedTransformStatus.screenSpaceZOffset;
-                                if (clickedTransformStatus.worldSpaceBounds != null)
-                                {
-                                    var rayHit = hitInfo;
-                                    try
-                                    {
-                                        var rayHitObjectStatus = TransformStatus.GetOrCreateTransformStatus(rayHit.transform);
-                                        // this handles cases like in bossroom where the collider is on EntranceStaticNetworkObjects/BreakablePot , but the renderer is on EntranceStaticNetworkObjects/BreakablePot/pot
-                                        if (clickedTransformStatus.NormalizedPath.StartsWith(rayHitObjectStatus.NormalizedPath))
-                                        {
-                                            worldPosition = rayHit.point;
-                                            // we do some fuzzy math here... we know for sure we hit this object first, but ... if we just use its hit distance that may not sort
-                                            // correctly with the zDepth of other 3d objects.. there could be a giant box and we're clicking on something just on the back top edge of it
-                                            // but the front of the box is wayy closer to us... but.. isn't obstructing that click... so for this optimization
-                                            // we know ui overlay things are at depth 0f... so we put this just behind that, but should be in front of anything else
-                                            zDepth = 0.00001f; // Logic with these numbers is also in TransformObjectFinder.. this value needs to be CLOSER from the camera than the one in TransformObjectFinder
-                                        }
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        RGDebug.LogException(e, "Exception handling raycast hits for in game object click");
-                                    }
-                                }
-
-                                // track the shortest z depth
-                                if (!_clickedObjectNormalizedPaths.TryGetValue(clickedTransformStatus.NormalizedPath, out var depth))
-                                {
-                                    _clickedObjectNormalizedPaths[clickedTransformStatus.NormalizedPath] = zDepth;
-                                }
-                                else
-                                {
-                                    if (zDepth < depth)
-                                    {
-                                        _clickedObjectNormalizedPaths[clickedTransformStatus.NormalizedPath] = zDepth;
-                                    }
-                                }
+                                newMouseState.worldPosition = clickedTransformStatus.worldSpaceCoordinatesForMousePoint;
                             }
-                        }
-                        else
-                        {
-                            // without a collider hit, we can't set a worldPosition
-                            foreach (var recordedGameObjectState in clickedOnObjects)
-                            {
-                                // track the shortest z depth
-                                if (!_clickedObjectNormalizedPaths.TryGetValue(recordedGameObjectState.NormalizedPath, out var depth))
-                                {
-                                    _clickedObjectNormalizedPaths[recordedGameObjectState.NormalizedPath] = recordedGameObjectState.screenSpaceZOffset;
-                                }
-                                else
-                                {
-                                    if (recordedGameObjectState.screenSpaceZOffset < depth)
-                                    {
-                                        _clickedObjectNormalizedPaths[recordedGameObjectState.NormalizedPath] = recordedGameObjectState.screenSpaceZOffset;
-                                    }
-                                }
-                            }
+                            _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
                         }
 
-                        newMouseState.worldPosition = worldPosition;
                         // order by zDepth - this should keep UI elements that were already sorted in the same relative positions as they have exactly 0f zDepths
-                        newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.OrderBy(kvp => kvp.Value).Select(a => a.Key).ToArray();
+                        newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.Distinct().ToArray();
                         _mouseInputActions.Enqueue(newMouseState);
                     }
                     else if (_priorMouseState?.PositionsEqual(newMouseState) != true)
@@ -128,7 +56,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public MouseInputActionData GetCurrentMouseState(Vector2? position = null)
+        private MouseInputActionData GetCurrentMouseState(Vector2? position = null)
         {
             var pointer = Pointer.current;
             if (pointer != null)
@@ -195,9 +123,9 @@ namespace RegressionGames.StateRecorder
             {
                 _mouseInputActions.TryDequeue(out _);
 
-                // when minimizing output, only capture the inputs 1 before 1 after and during mouse clicks or holds... the normalized paths is populated for both clicks and unclicks so is useful for determining the unclick data
+                // when minimizing output, only capture the inputs 1 before 1 after and during mouse clicks or holds... the normalized paths is populated for both clicks and un-clicks so is useful for determining the un-click data
 
-                if (lastAction != null && (!minimizeOutput || action.IsButtonClicked || action.clickedObjectNormalizedPaths.Length > 0 || lastAction?.IsButtonClicked == true|| lastAction?.clickedObjectNormalizedPaths.Length > 0))
+                if (lastAction != null && (!minimizeOutput || action.IsButtonClicked || action.clickedObjectNormalizedPaths.Length > 0 || lastAction.IsButtonClicked || lastAction.clickedObjectNormalizedPaths.Length > 0))
                 {
                     result.Add(lastAction);
                 }
@@ -235,6 +163,13 @@ namespace RegressionGames.StateRecorder
             var vec3Position = new Vector3(position.x, position.y, 0);
             List<ObjectStatus> result = new();
             maxZDepth = 0f;
+            var mainCamera = Camera.main;
+            Ray? ray = null;
+            if (mainCamera != null)
+            {
+                ray = mainCamera.ScreenPointToRay(position);
+            }
+
             foreach (var recordedGameObjectState in statefulObjects)
             {
                 if (recordedGameObjectState.screenSpaceBounds.HasValue)
@@ -260,12 +195,45 @@ namespace RegressionGames.StateRecorder
 
                         if (isInteractable)
                         {
-                            if (recordedGameObjectState.worldSpaceBounds != null)
+                            if (recordedGameObjectState.worldSpaceBounds.HasValue)
                             {
-                                if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                                if (ray.HasValue)
                                 {
-                                    maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                                    // compute the zOffset at this point based on the ray
+                                    if (recordedGameObjectState.worldSpaceBounds.Value.IntersectRay(ray.Value, out var zDepthHit))
+                                    {
+                                        if (zDepthHit >= 0f)
+                                        {
+                                            recordedGameObjectState.zOffsetForMousePoint = zDepthHit;
+                                            recordedGameObjectState.worldSpaceCoordinatesForMousePoint = ray.Value.GetPoint(zDepthHit);
+                                            if (zDepthHit > maxZDepth)
+                                            {
+                                                maxZDepth = zDepthHit;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // wasn't in front of the camera
+                                        recordedGameObjectState.zOffsetForMousePoint = -1f;
+                                        recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
+                                    }
                                 }
+                                else
+                                {
+                                    // go with the zOffset for the bounding box itself instead of at this exact point... this leads to really weird cases in 3d spaces with close objects and should be avoided
+                                    // example.. a stone you click sitting on the top back corner of a cube will be 'behind' the cube because the front plane of the cube is closer, just not at that screen point
+                                    // leaving this in here for now though as some sorting is still better than no sorting if we get here (have no camera)
+                                    if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                                    {
+                                        maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                                    }
+                                }
+                            }
+                            else if (recordedGameObjectState.screenSpaceZOffset >= 0f)
+                            {
+                                recordedGameObjectState.zOffsetForMousePoint = recordedGameObjectState.screenSpaceZOffset;
+                                recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
                             }
                             result.Add(recordedGameObjectState);
                         }
@@ -274,34 +242,78 @@ namespace RegressionGames.StateRecorder
                 }
             }
 
+            // compute the UI event system hits at this point for sorting
+            var eventSystemHits = new List<RaycastResult>();
+            // ray-cast into the scene with the UI event system and see if this object is the first thing hit
+            var pointerEventData = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = position
+            };
+            EventSystem.current.RaycastAll(pointerEventData, eventSystemHits);
+
+            var uiHitMapping = eventSystemHits.ToDictionary(a => (long)a.gameObject.transform.GetInstanceID(), a => a);
+
             // sort with lower z-offsets first so we have UI things on top of game object things
-            // if both elements are from the UI.. then sort by smallest bounding area
+            // if both elements are from the UI.. then sort by the event system ray hits
             result.Sort((a, b) =>
             {
                 if (a.worldSpaceBounds == null && b.worldSpaceBounds == null)
                 {
-                    // 2 UI objects, sort by smallest render bounds
-                    var aExtents = a.screenSpaceBounds.Value.extents;
-                    var bExtents = b.screenSpaceBounds.Value.extents;
-
-                    var aAreaComparison = aExtents.x * aExtents.y;
-                    var bAreaComparison = bExtents.x * bExtents.y;
-
-                    if (aAreaComparison < bAreaComparison)
+                    RaycastResult? aHitData = null;
+                    if (a is TransformStatus at)
                     {
+                        if (uiHitMapping.TryGetValue(at.Id, out var value))
+                        {
+                            aHitData = value;
+                        }
+                    }
+                    RaycastResult? bHitData = null;
+                    if (b is TransformStatus bt)
+                    {
+                        if (uiHitMapping.TryGetValue(bt.Id, out var value))
+                        {
+                            bHitData = value;
+                        }
+                    }
+
+                    if (aHitData.HasValue)
+                    {
+                        if (bHitData.HasValue)
+                        {
+                            if (aHitData.Value.distance < bHitData.Value.distance)
+                            {
+                                return -1;
+                            }
+
+                            if (aHitData.Value.distance > bHitData.Value.distance)
+                            {
+                                return 1;
+                            }
+
+                            // higher depth for ui hits == closer to camera.. don't even get me started
+                            return bHitData.Value.depth - aHitData.Value.depth;
+                        }
+
+                        // aDidHit.. but not b, put a in front
                         return -1;
                     }
 
-                    // if a isn't smaller then we don't much care between == vs > as in floating point land.. == is so unlikely as for us to not worry about 'stable' sort for this case
-                    return 1;
+                    if (bHitData.HasValue)
+                    {
+                        //bDidHit.. but not a, put b in front
+                        return 1;
+                    }
+
+                    return 0;
                 }
 
-                if (a.screenSpaceZOffset < b.screenSpaceZOffset)
+                if (a.zOffsetForMousePoint < b.zOffsetForMousePoint)
                 {
                     return -1;
                 }
 
-                if (a.screenSpaceZOffset > b.screenSpaceZOffset)
+                if (a.zOffsetForMousePoint > b.zOffsetForMousePoint)
                 {
                     return 1;
                 }

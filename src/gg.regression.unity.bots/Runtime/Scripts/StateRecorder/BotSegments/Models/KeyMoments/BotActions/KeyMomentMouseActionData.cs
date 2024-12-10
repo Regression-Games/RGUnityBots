@@ -5,7 +5,6 @@ using System.Text;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -473,7 +472,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                             }
                         }
 
-                        if (!QueueClickForObjectAtPosition(segmentNumber, pendingAction, mouseAction, bestObjectStatus, clickPosition, out error))
+                        if (!QueueClickForObjectAtPosition(segmentNumber, pendingAction, mouseAction, bestObjectStatus, clickPosition, currentTransforms, out error))
                         {
                             _mouseActionsToDo.Clear();
                             return false;
@@ -607,100 +606,34 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             return preconditionMatches;
         }
 
-        private bool QueueClickForObjectAtPosition(int segmentNumber, MouseInputActionData pendingAction, MouseInputActionData mouseAction, ObjectStatus bestObjectStatus, Vector2 myClickPosition, out string error)
+        private bool QueueClickForObjectAtPosition(int segmentNumber, MouseInputActionData pendingAction, MouseInputActionData mouseAction, ObjectStatus bestObjectStatus, Vector2 myClickPosition, Dictionary<long, ObjectStatus> currentTransforms, out string error)
         {
             // we fill 'myClickPosition' in for all code paths.. if you get a null here, something above has bad logic as this should be filled in always here
             if (pendingAction != null)
             {
                 // we are on the 2nd action, which is the 'click'
-
-                // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
-                // our intended click item (iow.. it's there/ready, but obstructed) ... we only sort by zDepth(not UI bounds) here so we can find proper obstructions
-
-                if (bestObjectStatus is TransformStatus transformStatus)
+                if (bestObjectStatus is TransformStatus)
                 {
+                    // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
+                    // our intended click item (iow.. it's there/ready, but obstructed) ...
+                    // make sure our object is at the front of the list and thus at the closest Z depth at that point.. findobjectsatposition handles z depth sorting for us
+                    // or that the item at the front of the list is on the same path tree as us (we might have clicked on the text part of the button instead of the button, but both still click the button)
 
-                    if (transformStatus.worldSpaceBounds == null)
+                    var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
+                    // see if our object is 'first' or obstructed
+                    if (objectsAtClickPosition.Count > 0)
                     {
-                        // UI element.. make sure it is the highest UI thing hit
-
-                        var eventSystemHits = new List<RaycastResult>();
-                        // ray-cast into the scene and see if this object is the first thing hit
-                        var pointerEventData = new PointerEventData(EventSystem.current)
+                        if (!mouseAction.clickedObjectNormalizedPaths[0].StartsWith(objectsAtClickPosition[0].NormalizedPath))
                         {
-                            button = PointerEventData.InputButton.Left,
-                            position = myClickPosition
-                        };
-                        EventSystem.current.RaycastAll(pointerEventData, eventSystemHits);
-
-                        if (eventSystemHits.Count > 0)
-                        {
-                            eventSystemHits.Sort((a,b) =>
-                            {
-                                if (a.distance < b.distance)
-                                {
-                                    return -1;
-                                }
-
-                                if (a.distance > b.distance)
-                                {
-                                    return 1;
-                                }
-
-                                // higher depth == closer to camera.. don't even get me started
-                                return b.depth - a.depth;
-                            });
-                        }
-                        if (eventSystemHits.Count <= 0)
-                        {
-                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\nno selectable UI objects detected at point";
+                            error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\na UI object is obstructing with path:\n{objectsAtClickPosition[0].NormalizedPath}";
                             return false;
-                        }
-                        else
-                        {
-                            var hitNormalizedPath = TransformStatus.GetOrCreateTransformStatus(eventSystemHits[0].gameObject.transform).NormalizedPath;
-                            if (!hitNormalizedPath.StartsWith(mouseAction.clickedObjectNormalizedPaths[0]))
-                            {
-                                // if this isn't the exact object or a child object (like a button text of the button we're clicking).. then error out
-                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{hitNormalizedPath}";
-                                return false;
-                            }
                         }
                     }
                     else
                     {
-                        // Handle world space obstructions... this is easier, since any overlay UI element will be in the path list over world objects, we just need to make sure our
-                        // object is at the front of the list and thus at the closest Z depth at that point
-
-                        // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
-                        // our intended click item (iow.. it's there/ready, but obstructed) ...
-                        // we have to be careful though, because the 'zDepth' computed for the object may NOT be the zDepth at this exact click point on said object...
-                        //var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values, out _);
-
-                        var mainCamera = Camera.main;
-                        if (mainCamera != null)
-                        {
-                            var ray = mainCamera.ScreenPointToRay(myClickPosition);
-
-                            var didHit = Physics.Raycast(ray, out var raycastHit);
-
-                            if (!didHit)
-                            {
-                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\nno objects at position";
-                                return false;
-                            }
-
-                            var normalizedHitPath = TransformStatus.GetOrCreateTransformStatus(raycastHit.transform).NormalizedPath;
-
-                            // this handles cases like in bossroom where the collider is on EntranceStaticNetworkObjects/BreakablePot , but the renderer is on EntranceStaticNetworkObjects/BreakablePot/pot
-                            if (!mouseAction.clickedObjectNormalizedPaths[0].StartsWith(normalizedHitPath))
-                            {
-                                error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\ntarget object is obstructed by path:\n{normalizedHitPath}";
-                                return false;
-                            }
-                        }
+                        error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\non object path:\n{mouseAction.clickedObjectNormalizedPaths[0]}\nno objects at that position";
+                        return false;
                     }
-
                 }
 
                 var myPendingAction = pendingAction;

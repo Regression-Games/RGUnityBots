@@ -44,7 +44,10 @@ namespace StateRecorder.BotSegments
             }
         }
 
-        public void StartExploring()
+        /**
+         * Return true only when we start exploring, false if we were already exploring
+         */
+        public bool StartExploring()
         {
             if (!IsExploring)
             {
@@ -66,7 +69,10 @@ namespace StateRecorder.BotSegments
                 }
                 RGDebug.LogInfo("ActionExplorationDriver - Starting Exploratory Actions");
                 IsExploring = true;
+                return true;
             }
+
+            return false;
         }
 
         private IBotActionData _inProgressAction = null;
