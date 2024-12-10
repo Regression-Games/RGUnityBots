@@ -600,6 +600,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                     }
                                     if (isInteractable)
                                     {
+                                        var pmIDidOverlap = false;
                                         // ReSharper disable once PossibleInvalidOperationException - already filtered in BuildPreconditions to only have entries with valid visible bounds
                                         var newBounds = preconditionMatchI.Item1.screenSpaceBounds.Value;
                                         // adjust in for the min to ensure we don't miss a click
@@ -632,26 +633,27 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
 
                                         if (newMinX >= originalMinX && newMinX <= originalMaxX)
                                         {
-                                            didOverlap = true;
+                                            pmIDidOverlap = true;
                                         }
 
                                         if (newMinY >= originalMinY && newMinY <= originalMaxY)
                                         {
-                                            didOverlap = true;
+                                            pmIDidOverlap = true;
                                         }
 
                                         if (newMaxX >= originalMinX && newMaxX <= originalMaxX)
                                         {
-                                            didOverlap = true;
+                                            pmIDidOverlap = true;
                                         }
 
                                         if (newMaxY >= originalMinY && newMaxY <= originalMaxY)
                                         {
-                                            didOverlap = true;
+                                            pmIDidOverlap = true;
                                         }
 
-                                        if (didOverlap)
+                                        if (pmIDidOverlap)
                                         {
+                                            didOverlap = true;
                                             overlappingObjects.Add(preconditionMatchI.Item1);
                                             RGDebug.LogDebug($"Tightened bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} - overlap with object path [{i}]: {preconditionMatchI.Item1.NormalizedPath}");
                                         }
