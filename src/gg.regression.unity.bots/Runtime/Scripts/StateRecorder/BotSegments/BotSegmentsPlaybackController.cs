@@ -314,15 +314,18 @@ namespace RegressionGames.StateRecorder.BotSegments
                             loggedMessage = $"Error processing BotAction\n\n" + error;
                         }
 
+                        var timeThresholdReached = _lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL;
+
                         // wait the action warning interval before starting to explore actions
-                        if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
+                        if (timeThresholdReached)
                         {
                             // log this before we start exploring so we can see why it started exploring
                             LogPlaybackWarning(logPrefix + loggedMessage);
-                            if (firstActionSegment.botAction?.data is IKeyMomentExploration)
-                            {
-                                _explorationDriver.StartExploring();
-                            }
+                        }
+
+                        if (firstActionSegment.botAction?.data is IKeyMomentExploration && (_explorationDriver.ExplorationState == ExplorationState.PAUSED || timeThresholdReached))
+                        {
+                            _explorationDriver.StartExploring();
                         }
 
                         string explorationError = null;
@@ -339,8 +342,9 @@ namespace RegressionGames.StateRecorder.BotSegments
                             loggedMessage = $"Error processing exploratory BotAction\n\n" + explorationError +"\n\n\nPre-Exploration Error - " + loggedMessage;
                             LogPlaybackWarning(logPrefix + loggedMessage);
                         }
-                        else if (_explorationDriver.ExplorationState != ExplorationState.STOPPED || _lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
+                        else if (_explorationDriver.ExplorationState != ExplorationState.STOPPED || timeThresholdReached)
                         {
+                            // forcefully keep the message up there while exploring so it doesn't clear the screen for long intervals
                             LogPlaybackWarning(logPrefix + loggedMessage);
                         }
                     }
