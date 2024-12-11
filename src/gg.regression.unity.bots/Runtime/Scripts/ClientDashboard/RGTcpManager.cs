@@ -24,9 +24,12 @@ namespace RegressionGames.ClientDashboard
         // the last active sequence that was sent to the client
         private BotSegmentsPlaybackController m_botSegmentsPlaybackController;
         private BotSequence m_startPlayingSequence = null;
+        private BotSegmentList m_startPlayingSegment = null;
+        private bool m_shouldStopReplay = false;
         private ActiveSequence m_activeSequence = null;
         private ReplayToolbarManager m_replayToolbarManager;
         private List<AvailableBotSequence> m_availableBotSequences = new ();
+        private List<BotSequenceEntry> m_availableBotSegments = new();
 
         /// <summary>
         /// Create a menu item to open the client dashboard, which will connect to this server
@@ -62,6 +65,7 @@ namespace RegressionGames.ClientDashboard
             RGTcpServer.ProcessClientMessage -= ProcessClientMessage;
             RGTcpServer.ProcessClientMessage += ProcessClientMessage;
             StartCoroutine(RGSequenceManager.ResolveSequenceFiles(ProcessResolvedSequences));
+            LoadAvailableSegments();
         }
         
         /// <summary>
@@ -119,7 +123,7 @@ namespace RegressionGames.ClientDashboard
                 SendActiveSequence();
             }
         
-            // check if we need to start playing a sequence
+            // check if we need to start playing a sequence or segment
             if (m_startPlayingSequence != null)
             {
                 var botManager = RGBotManager.GetInstance();
@@ -130,6 +134,27 @@ namespace RegressionGames.ClientDashboard
                 m_replayToolbarManager.selectedReplayFilePath = null;
                 m_startPlayingSequence.Play();
                 m_startPlayingSequence = null;
+                m_startPlayingSegment = null;
+                m_shouldStopReplay = false;
+            } 
+            else if (m_startPlayingSegment != null)
+            {
+                var botManager = RGBotManager.GetInstance();
+                if (botManager != null)
+                {
+                    botManager.OnBeginPlaying();
+                }
+                var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
+                playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(m_startPlayingSegment.segments));
+                playbackController.Play();
+                m_startPlayingSequence = null;
+                m_startPlayingSegment = null;
+                m_shouldStopReplay = false;
+            } 
+            else if (m_shouldStopReplay)
+            {
+                m_replayToolbarManager.StopReplay();
+                m_shouldStopReplay = false;
             }
         }
 
@@ -140,6 +165,7 @@ namespace RegressionGames.ClientDashboard
         {
             SendActiveSequence();
             SendAvailableSequences();
+            SendAvailableSegments();
         }
                 
         /// <summary>
@@ -150,6 +176,12 @@ namespace RegressionGames.ClientDashboard
         {
             m_availableBotSequences = sequences.Select(kvp => new AvailableBotSequence(kvp.Key, kvp.Value.Item2)).ToList();
             SendAvailableSequences();
+        }
+
+        private void LoadAvailableSegments()
+        {
+            m_availableBotSegments = BotSegment.LoadAllSegments().Values.Select(seg => seg.Item2).ToList();
+            SendAvailableSegments();
         }
         
         /// <summary>
@@ -165,9 +197,21 @@ namespace RegressionGames.ClientDashboard
                 }
                 case TcpMessageType.PlaySequence:
                 {
-                    var playSequenceData = (PlaySequenceTcpMessageData) message.payload;
+                    var playSequenceData = (PlayResourceTcpMessageData) message.payload;
                     var botSequence = BotSequence.LoadSequenceJsonFromPath(playSequenceData.resourcePath);
                     m_startPlayingSequence = botSequence.Item3;
+                    break;
+                }
+                case TcpMessageType.PlaySegment:
+                {
+                    var playSegmentData = (PlayResourceTcpMessageData) message.payload;
+                    var segmentList = BotSequence.CreateBotSegmentListForPath(playSegmentData.resourcePath, out var sessId);
+                    m_startPlayingSegment = segmentList;
+                    break;
+                }
+                case TcpMessageType.StopReplay:
+                {
+                    m_shouldStopReplay = true;
                     break;
                 }
             }
@@ -210,7 +254,7 @@ namespace RegressionGames.ClientDashboard
 
             return null;
         }
-
+        
         #region Send Messages
 
         private void SendAvailableSequences([CanBeNull] TcpClient client = null)
@@ -221,6 +265,19 @@ namespace RegressionGames.ClientDashboard
                 payload = new AvailableSequencesTcpMessageData
                 {
                     availableSequences = m_availableBotSequences
+                }
+            };
+            RGTcpServer.QueueMessage(message, client);
+        }
+        
+        private void SendAvailableSegments([CanBeNull] TcpClient client = null)
+        {
+            var message = new TcpMessage
+            {
+                type = TcpMessageType.AvailableSegments,
+                payload = new AvailableSegmentsTcpMessageData
+                {
+                    availableSegments = m_availableBotSegments
                 }
             };
             RGTcpServer.QueueMessage(message, client);

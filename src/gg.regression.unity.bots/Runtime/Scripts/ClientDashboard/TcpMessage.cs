@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using RegressionGames.RemoteOrchestration.Models;
 using RegressionGames.RemoteOrchestration.Types;
 using RegressionGames.StateRecorder;
+using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ClientDashboard
@@ -17,8 +18,12 @@ namespace RegressionGames.ClientDashboard
         
         Ping,
         
-        // client requests to play a sequence with the given resourcePath
+        // client requests to play a resource with the given resourcePath
         PlaySequence,
+        PlaySegment,
+        
+        // stops any currently-running sequence/segments
+        StopReplay,
         
         // =====================
         // server -> client
@@ -26,8 +31,9 @@ namespace RegressionGames.ClientDashboard
         
         Pong,
         
-        // info about the available sequences for this game instance
+        // info about the available file-based resources for this game instance
         AvailableSequences,
+        AvailableSegments,
         
         // info about the currently-running sequence (or segment)
         ActiveSequence,
@@ -124,7 +130,53 @@ namespace RegressionGames.ClientDashboard
     }
     
     [Serializable]
-    public class PlaySequenceTcpMessageData : ITcpMessageData
+    public class AvailableSegmentsTcpMessageData : ITcpMessageData
+    {
+        public List<BotSequenceEntry> availableSegments;
+        
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"availableSegments\":[");
+            var availableSegmentsCount = availableSegments.Count;
+            for (var i = 0; i < availableSegmentsCount; i++)
+            {
+                // a lot of the fields on BotSequenceEntry are not written to string builder
+                // so pick what we need for the dashboard here...
+                var currentSegment = availableSegments[i];
+                
+                stringBuilder.Append("{\"apiVersion\":");
+                IntJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.apiVersion);
+                
+                // not normally serialized
+                stringBuilder.Append(",\"resourcePath\":");
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.resourcePath);
+                stringBuilder.Append(",\"type\":");
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.type.ToString());
+                stringBuilder.Append(",\"name\":");
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.name);
+                stringBuilder.Append(",\"description\":");
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.description);
+                
+                stringBuilder.Append("}");
+                
+                if (i + 1 < availableSegmentsCount)
+                {
+                    stringBuilder.Append(",");
+                }
+            }
+            stringBuilder.Append("]}");
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(1000);
+            WriteToStringBuilder(sb);
+            return sb.ToString();
+        }
+    }
+    
+    [Serializable]
+    public class PlayResourceTcpMessageData : ITcpMessageData
     {
         public string resourcePath;
         
@@ -142,4 +194,5 @@ namespace RegressionGames.ClientDashboard
             return sb.ToString();
         }
     }
+    
 }
