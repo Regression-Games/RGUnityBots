@@ -125,7 +125,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                 // should tokenize to something like [HeroesObjects],[Unit,Hero,Gunner],[Spine,Mecanim,GameObject,unit,hero,gunner,RenderTexture]
                 // thus any of the following examples... preference given to the one with the highest tokens matched.. note that tokens will ONLY match when IN ORDER
                 // MATCH[1,3,7] (perfect) - "HeroesObjects/Unit_Hero_Gunner/Spine Mecanim GameObject (unit_hero_gunner) RenderTexture"
-                //  -- but what if there are 2 or more 'perfect' matches.. then we need to narrow down based on the # of other path elements that overlap each of these
+                //  -- but what if there are 2 or more 'perfect' matches.. then we need to narrow down based on the # of other path elements that overlap each of these... AND.. if those all match, then we go by the closest to the original click position in our later evaluations
                 // MATCH[1,3,7] (perfect) - "HeroesObjects/Unit_Hero_Gunner/Spine Mecanim GameObject (unit_hero_gunner) RenderTexture"
                 // MATCH[1,3,7] (perfect) - "HeroesObjects/Unit_Hero_Gunner/Spine Mecanim GameObject (unit_hero_gunner) RenderTexture"
                 //  -- these next two are 'equal' matches.. chooses first one encountered
@@ -389,77 +389,63 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                 {
                     possibleTransformToClick.TokenizedObjectPath ??= PreconditionNormalizedPathData.TokenizeObjectPath(possibleTransformToClick.NormalizedPath);
 
-                    var breakoutCount = 0; // optimization for when we've found exact matches for all preconditions
                     // this should nearly always be smaller than the # of possibleTransformToClick
                     for (var j = 0; j < preconditionsLength; j++)
                     {
-                        // optimization - only keep processing this precondition when we didn't have an exact match for it already
-                        if (preconditionMatches[j].Count == 0 || preconditionMatches[j][0].Item2.Item1 != null)
+                        var precondition = preConditionNormalizedPaths[j];
+
+                        // prefer normalized path match, then tokenized path matching logic
+                        if (precondition.normalizedPath == possibleTransformToClick.NormalizedPath)
                         {
-                            var precondition = preConditionNormalizedPaths[j];
-
-                            // prefer normalized path match, then tokenized path matching logic
-                            if (precondition.normalizedPath == possibleTransformToClick.NormalizedPath)
+                            // normalized matching logic
+                            if (preconditionMatches[j].Count > 0 && preconditionMatches[j][0].Item2.Item1 != null)
                             {
-                                // normalized matching logic
-                                if (preconditionMatches[j].Count > 0 && preconditionMatches[j][0].Item2.Item1 != null)
-                                {
-                                    // wipe out all the tokenized matches if we get an exact
-                                    preconditionMatches[j].Clear();
-                                }
-
-                                preconditionMatches[j].Add((possibleTransformToClick, (null, null)));
-                                break; // the for
+                                // wipe out all the tokenized matches if we get an exact
+                                preconditionMatches[j].Clear();
                             }
-                            else
-                            {
-                                // tokenized matching logic
-                                if (preconditionMatches[j].Count > 0 && preconditionMatches[j][0].Item2.Item1 == null)
-                                {
-                                    // we already have exact matches.. ignore the tokenized ones
-                                    break; // the for
-                                }
 
-                                var tokenMatches = EvaluateTokenMatches(precondition.tokenData, possibleTransformToClick.TokenizedObjectPath);
-                                if (tokenMatches.Item1 != null)
-                                {
-                                    // got something of the same path length with some token matches in each part
-                                    if (preconditionMatches[j].Count > 0)
-                                    {
-                                        var isBetter = AreNewTokenMatchesBetter(preconditionMatches[j][0].Item2, tokenMatches);
-                                        // compare
-                                        if (true == isBetter)
-                                        {
-                                            // better match.. clear the list
-                                            preconditionMatches[j].Clear();
-                                            preconditionMatches[j].Add((possibleTransformToClick, tokenMatches));
-                                        }
-                                        else if (isBetter == null)
-                                        {
-                                            // equal match.. add to the list
-                                            preconditionMatches[j].Add((possibleTransformToClick, tokenMatches));
-                                        }
-                                        // else worse match.. leave it alone
-                                    }
-                                    else
-                                    {
-                                        //set the first match
-                                        preconditionMatches[j].Add((possibleTransformToClick, tokenMatches));
-                                    }
-
-                                    break; // the for
-                                }
-                            }
+                            preconditionMatches[j].Add((possibleTransformToClick, (null, null)));
+                            break; // the for
                         }
                         else
                         {
-                            ++breakoutCount;
-                        }
-                    }
+                            // tokenized matching logic
+                            if (preconditionMatches[j].Count > 0 && preconditionMatches[j][0].Item2.Item1 == null)
+                            {
+                                // we already have exact matches.. ignore the tokenized ones
+                                break; // the for
+                            }
 
-                    if (breakoutCount == preconditionsLength)
-                    {
-                        break; // the foreach - we found exact matches for everything
+                            var tokenMatches = EvaluateTokenMatches(precondition.tokenData, possibleTransformToClick.TokenizedObjectPath);
+                            if (tokenMatches.Item1 != null)
+                            {
+                                // got something of the same path length with some token matches in each part
+                                if (preconditionMatches[j].Count > 0)
+                                {
+                                    var isBetter = AreNewTokenMatchesBetter(preconditionMatches[j][0].Item2, tokenMatches);
+                                    // compare
+                                    if (true == isBetter)
+                                    {
+                                        // better match.. clear the list
+                                        preconditionMatches[j].Clear();
+                                        preconditionMatches[j].Add((possibleTransformToClick, tokenMatches));
+                                    }
+                                    else if (isBetter == null)
+                                    {
+                                        // equal match.. add to the list
+                                        preconditionMatches[j].Add((possibleTransformToClick, tokenMatches));
+                                    }
+                                    // else worse match.. leave it alone
+                                }
+                                else
+                                {
+                                    //set the first match
+                                    preconditionMatches[j].Add((possibleTransformToClick, tokenMatches));
+                                }
+
+                                break; // the for
+                            }
+                        }
                     }
                 }
             }
@@ -711,6 +697,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                     }
                 }
 
+                var widthScale = screenWidth / mouseAction.screenSize.x;
+                var heightScale = screenHeight / mouseAction.screenSize.y;
+
+                var normalizedMouseActionSSPosition = new Vector2(mouseAction.position.x * widthScale, mouseAction.position.y * heightScale);
+
                 matchResults.Sort((a, b) =>
                 {
                     if (a.Item2 < b.Item2)
@@ -725,16 +716,74 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                         return -1;
                     }
 
-                    // else sort by smallest bounds
-                    var aArea = (a.Item3.Item3 - a.Item3.Item1) * (a.Item3.Item4 - a.Item3.Item2);
-                    var bArea = (b.Item3.Item3 - b.Item3.Item1) * (b.Item3.Item4 - b.Item3.Item2);
+                    // else if they were still equal sort by nearest distance to the original click
 
-                    if (aArea < bArea)
+                    // consider if world space first
+                    if (mouseAction.worldPosition.HasValue)
+                    {
+                        if (a.Item1.worldSpaceBounds.HasValue)
+                        {
+                            if (b.Item1.worldSpaceBounds.HasValue)
+                            {
+                                // compare the distances to the original click point
+                                var aClosestPoint = a.Item1.worldSpaceBounds.Value.ClosestPoint(mouseAction.worldPosition.Value);
+                                var bClosestPoint = b.Item1.worldSpaceBounds.Value.ClosestPoint(mouseAction.worldPosition.Value);
+
+                                var aDistance = Vector3.Distance(aClosestPoint, mouseAction.worldPosition.Value);
+                                var bDistance = Vector3.Distance(bClosestPoint, mouseAction.worldPosition.Value);
+
+                                if (aDistance < bDistance)
+                                {
+                                    return -1;
+                                }
+
+                                if (aDistance > bDistance)
+                                {
+                                    return 1;
+                                }
+                                // else - unlikely to be exactly the same.. but let it go anyway
+                            }
+                            else
+                            {
+                                return -1; // a had world bounds.. more important
+                            }
+                        }
+                        else if (b.Item1.worldSpaceBounds.HasValue)
+                        {
+                            return 1; // b had world bounds.. more important
+                        }
+                    }
+
+                    // otherwise consider screen space bounds
+                    // bounds around z=0 (z size 0.5f) ... considering the concise bounds computed from overlaps
+                    var aSSBounds = new Bounds(new Vector3((a.Item3.Item3 - a.Item3.Item1) / 2 + a.Item3.Item1, (a.Item3.Item4 - a.Item3.Item2) / 2 + a.Item3.Item2, 0f), new Vector3(a.Item3.Item3 - a.Item3.Item1, a.Item3.Item4 - a.Item3.Item2, 0.5f));
+                    var bSSBounds = new Bounds(new Vector3((b.Item3.Item3 - b.Item3.Item1) / 2 + b.Item3.Item1, (b.Item3.Item4 - b.Item3.Item2) / 2 + b.Item3.Item2, 0f), new Vector3(b.Item3.Item3 - b.Item3.Item1, b.Item3.Item4 - b.Item3.Item2, 0.5f));
+
+                    var aSSClosestPoint = aSSBounds.ClosestPoint(normalizedMouseActionSSPosition);
+                    var bSSClosestPoint = bSSBounds.ClosestPoint(normalizedMouseActionSSPosition);
+
+                    var aSSDistance = Vector3.Distance(aSSClosestPoint, normalizedMouseActionSSPosition);
+                    var bSSDistance = Vector3.Distance(bSSClosestPoint, normalizedMouseActionSSPosition);
+
+                    if (aSSDistance < bSSDistance)
                     {
                         return -1;
                     }
 
-                    // floating point math.. don't really care about equality in the zillionth of a percent chance that happens here
+                    if (aSSDistance > bSSDistance)
+                    {
+                        return 1;
+                    }
+                    // else - unlikely to be exactly the same.. but let it go anyway
+
+                    // else if still somehow equal sort by smallest bounds area
+                    var aArea = (a.Item3.Item3 - a.Item3.Item1) * (a.Item3.Item4 - a.Item3.Item2);
+                    var bArea = (b.Item3.Item3 - b.Item3.Item1) * (b.Item3.Item4 - b.Item3.Item2);
+                    if (aArea < bArea)
+                    {
+                        return -1;
+                    }
+                    // floating point multiplication math for area... don't really care about equality in the zillionth of a percent chance that happens here
                     return 1;
                 });
 
