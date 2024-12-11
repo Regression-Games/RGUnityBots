@@ -147,6 +147,15 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
+        /**
+         * This finds all objects at the given position that a mouse click would possibly register on and returns them sorted correctly based on how that click would be handled.
+         *
+         * 1. UI objects based on their order from EventSystem.current.RaycastAll
+         *    If a UI object includes components that are `Selectable`, then it will only be returned if one of those has `interactable` == true.  This means disabled buttons/etc won't be included.
+         *
+         * 2. World Space objects with colliders hit based on the distance from Camera.main to their collider hit.
+         *    This properly considers colliders on parent objects in the hierarchy being hit as it is common for a parent to have the collider and child objects to just be renderers.
+         */
         public static List<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects)
         {
             // make sure screen space position Z is around 0
