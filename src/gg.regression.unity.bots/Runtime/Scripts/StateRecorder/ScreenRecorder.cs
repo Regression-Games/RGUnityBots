@@ -69,9 +69,6 @@ namespace RegressionGames.StateRecorder
         [Tooltip("Minimize the amount of criteria in bot segment recordings.  This limits the endCriteria in recorded bot segments to only include objects with count deltas and objects that were under click locations.")]
         public bool minimizeRecordingCriteria = true;
 
-        [Tooltip("RG-INTERNAL/EXPERIMENTAL: Minimize the amount of mouse movement data capture in bot segment recordings.  This currently breaks replay on any game where camera movement is locked to the mouse, like First Person Shooters.")]
-        public bool minimizeRecordingMouseMovements = false;
-
         private double _lastCvFrameTime = -1;
 
         private int _frameCountSinceLastTick;
@@ -862,7 +859,7 @@ namespace RegressionGames.StateRecorder
                     // tell if the new frame is a key frame or the first frame (always a key frame)
                     GetKeyFrameType(_tickNumber == 0, hasDeltas, pixelHashChanged, endRecording);
 
-                    var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton, minimizeOutput: minimizeRecordingMouseMovements);
+                    var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton);
                     _segmentMouseDataBuffer.AddRange(mouseInputData);
                     _keyMomentEvaluator.UpdateMouseInputData(mouseInputData);
 
@@ -915,22 +912,23 @@ namespace RegressionGames.StateRecorder
                                             }
 
                                             // also include any clicked on objects
-                                            if (mouseInputData.FirstOrDefault(md => md.clickedObjectNormalizedPaths.Contains(data.path)) != null)
+                                            if (_segmentMouseDataBuffer.FirstOrDefault(md => md.clickedObjectNormalizedPaths.Contains(data.path)) != null)
                                             {
                                                 a.transient = false;
                                                 return a;
                                             }
                                         }
                                     }
+
                                     return null;
-                                }).Where(a=>a!=null).ToList();
+                                }).Where(a => a != null).ToList();
                             }
 
                             // we often get events in the buffer with input times fractions of a ms after the current frame time for this update, but actually related to causing this update
                             // update the frame time to be latest of 'now' or the last device event in it
                             // otherwise replay gets messed up trying to read the inputs by time
                             var mostRecentKeyboardTime = keyboardInputData == null || keyboardInputData.Count == 0 ? 0.0 : keyboardInputData.Max(a => !a.endTime.HasValue ? a.startTime.Value : Math.Max(a.startTime.Value, a.endTime.Value));
-                            var mostRecentMouseTime = mouseInputData == null || mouseInputData.Count == 0 ? 0.0 : mouseInputData.Max(a => a.startTime);
+                            var mostRecentMouseTime = _segmentMouseDataBuffer == null || _segmentMouseDataBuffer.Count == 0 ? 0.0 : _segmentMouseDataBuffer.Max(a => a.startTime);
                             var mostRecentDeviceEventTime = Math.Max(mostRecentKeyboardTime, mostRecentMouseTime);
                             var frameTime = Math.Max(now, mostRecentDeviceEventTime);
 
@@ -950,7 +948,7 @@ namespace RegressionGames.StateRecorder
                             var inputData = new InputData()
                             {
                                 keyboard = keyboardInputData,
-                                mouse = mouseInputData
+                                mouse = _segmentMouseDataBuffer
                             };
 
                             if (pixelHashChanged)
@@ -973,9 +971,9 @@ namespace RegressionGames.StateRecorder
                             if (inputTime < 0)
                             {
                                 // first frame, get the mouse input time for the first frame if it exists
-                                if (mouseInputData.Count > 0)
+                                if (_segmentMouseDataBuffer.Count > 0)
                                 {
-                                    inputTime = mouseInputData[0].startTime;
+                                    inputTime = _segmentMouseDataBuffer[0].startTime;
                                 }
                             }
 
@@ -1082,7 +1080,7 @@ namespace RegressionGames.StateRecorder
                             {
                                 if (RGDebug.IsDebugEnabled)
                                 {
-                                    RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + mouseInputData?.Count + " mouse inputs - KeyFrame: [" + string.Join(',', frameState.keyFrame) + "]");
+                                    RGDebug.LogDebug("Tick " + _tickNumber + " had " + keyboardInputData?.Count + " keyboard inputs , " + _segmentMouseDataBuffer?.Count + " mouse inputs - KeyFrame: [" + string.Join(',', frameState.keyFrame) + "]");
                                 }
                             }
 
@@ -1102,6 +1100,10 @@ namespace RegressionGames.StateRecorder
                         catch (Exception e)
                         {
                             RGDebug.LogException(e, $"Exception capturing state for tick # {_tickNumber}");
+                        }
+                        finally
+                        {
+                            _segmentMouseDataBuffer.Clear();
                         }
 
 
