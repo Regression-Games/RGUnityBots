@@ -52,7 +52,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
     }
 
     /**
-     * <summary>Data for clicking on a key moment object in the frame</summary>
+     * <summary>Data for clicking on a key moment object in the frame.  This is used to record key moment bot segments based on mouse actions.</summary>
      */
     [Serializable]
     public class KeyMomentMouseActionData : IBotActionData, IKeyMomentExploration, IStringBuilderWriteable, IKeyMomentStringBuilderWriteable

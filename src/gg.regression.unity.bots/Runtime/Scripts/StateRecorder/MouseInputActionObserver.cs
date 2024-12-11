@@ -32,13 +32,17 @@ namespace RegressionGames.StateRecorder
 
                         _clickedObjectNormalizedPaths.Clear();
 
-                        // the objects found are already in order, but we do need to see if there was a worldPosition clicked
+                        // the objects found are already in order, but we do need to see if the topmost thing clicked had a worldPosition
+                        if (clickedOnObjects.Count > 0)
+                        {
+                            if (clickedOnObjects[0].worldSpaceBounds != null && !newMouseState.worldPosition.HasValue)
+                            {
+                                newMouseState.worldPosition = clickedOnObjects[0].worldSpaceCoordinatesForMousePoint;
+                            }
+                        }
+
                         foreach (var clickedTransformStatus in clickedOnObjects)
                         {
-                            if (clickedTransformStatus.worldSpaceBounds != null && !newMouseState.worldPosition.HasValue)
-                            {
-                                newMouseState.worldPosition = clickedTransformStatus.worldSpaceCoordinatesForMousePoint;
-                            }
                             _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
                         }
 

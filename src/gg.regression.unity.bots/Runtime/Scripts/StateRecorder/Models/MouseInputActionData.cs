@@ -97,12 +97,6 @@ namespace RegressionGames.StateRecorder.Models
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"startTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
-            stringBuilder.Append(",\"screenSize\":");
-            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
-            stringBuilder.Append(",\"position\":");
-            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, position);
-            stringBuilder.Append(",\"worldPosition\":");
-            Vector3JsonConverter.WriteToStringBuilderNullable(stringBuilder, worldPosition);
             stringBuilder.Append(",\"leftButton\":");
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
             stringBuilder.Append(",\"middleButton\":");
@@ -115,6 +109,12 @@ namespace RegressionGames.StateRecorder.Models
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
             stringBuilder.Append(",\"scroll\":");
             Vector2JsonConverter.WriteToStringBuilder(stringBuilder, scroll);
+            stringBuilder.Append(",\"screenSize\":");
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            stringBuilder.Append(",\"position\":");
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, position);
+            stringBuilder.Append(",\"worldPosition\":");
+            Vector3JsonConverter.WriteToStringBuilderNullable(stringBuilder, worldPosition);
             stringBuilder.Append(",\"clickedObjectNormalizedPaths\":[");
             var clickedObjectPathsLength = clickedObjectNormalizedPaths.Length;
             for (var i = 0; i < clickedObjectPathsLength; i++)
@@ -137,33 +137,9 @@ namespace RegressionGames.StateRecorder.Models
 
         public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
         {
-            stringBuilder.Append("{\"apiVersion\":");
-            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
-            stringBuilder.Append(",\"startTime\":");
-            DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
-            stringBuilder.Append(",\"leftButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
-            stringBuilder.Append(",\"middleButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,middleButton);
-            stringBuilder.Append(",\"rightButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,rightButton);
-            stringBuilder.Append(",\"forwardButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,forwardButton);
-            stringBuilder.Append(",\"backButton\":");
-            BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
-            stringBuilder.Append(",\"scroll\":");
-            Vector2JsonConverter.WriteToStringBuilder(stringBuilder, scroll);
-            stringBuilder.Append(",\"clickedObjectNormalizedPaths\":[");
-            var clickedObjectPathsLength = clickedObjectNormalizedPaths.Length;
-            for (var i = 0; i < clickedObjectPathsLength; i++)
-            {
-                StringJsonConverter.WriteToStringBuilder(stringBuilder, clickedObjectNormalizedPaths[i]);
-                if (i + 1 < clickedObjectPathsLength)
-                {
-                    stringBuilder.Append(",");
-                }
-            }
-            stringBuilder.Append("]}");
+            // in the first implementations of this, we excluded the position information, but later added it back in so that we could pick the 'best' match to the original for things
+            // like character selection on boss room by picking the 'closest to original' match when multiple otherwise equal possibilities exist
+            WriteToStringBuilder(stringBuilder);
         }
 
         public string ToKeyMomentJsonString()

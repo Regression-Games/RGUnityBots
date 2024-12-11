@@ -864,7 +864,7 @@ namespace RegressionGames.StateRecorder
 
                     var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton, minimizeOutput: minimizeRecordingMouseMovements);
                     _segmentMouseDataBuffer.AddRange(mouseInputData);
-                    _keyMomentEvaluator.MouseDataBuffer.AddRange(mouseInputData);
+                    _keyMomentEvaluator.UpdateMouseInputData(mouseInputData);
 
                     // Compute key moment criteria / action
                     var keyMomentBotSegment = _keyMomentEvaluator.EvaluateKeyMoment(_tickNumber, out var keyMomentNumber);

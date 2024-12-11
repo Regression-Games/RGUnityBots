@@ -60,7 +60,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private ActionExplorationDriver _explorationDriver;
 
-        private void EvaluateBotSegments()
+        private void ProcessBotSegments()
         {
             var now = Time.unscaledTime;
 
@@ -100,100 +100,13 @@ namespace RegressionGames.StateRecorder.BotSegments
                 var nextBotSegmentIndex = 0;
                 while (nextBotSegmentIndex < _nextBotSegments.Count)
                 {
+                    var nextBotSegment = _nextBotSegments[nextBotSegmentIndex];
+
                     // if we're working on the first entry in the list is the only time we do actions
                     if (nextBotSegmentIndex == 0)
                     {
-                        BotSegment firstActionSegment = _nextBotSegments[0];
-                        string logPrefix = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - ";
-                        try
-                        {
-                            if (firstActionSegment.botAction?.IsCompleted == false)
-                            {
-                                // allow the main action to retry between every exploratory action
-                                var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
-
-                                if (error == null)
-                                {
-                                    // we're going to 'pause' exploring, but not reset the exploration state quite yet until this action fully finishes
-                                    _explorationDriver.PauseExploring(firstActionSegment.Replay_SegmentNumber);
-                                    if (didAction && _explorationDriver.ExplorationState == ExplorationState.STOPPED)
-                                    {
-                                        // for every non error action, reset the timer
-                                        _lastTimeLoggedKeyFrameConditions = now;
-                                        FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-                                    }
-                                }
-
-                                if (error != null)
-                                {
-                                    // arranges this to build up a status message with real action + exploratory status
-                                    // TODO: (REG-2213) Update all this to use a status manager to manage reporting
-
-                                    string loggedMessage;
-
-                                    if (firstActionSegment.botAction?.data is IKeyMomentExploration)
-                                    {
-                                        loggedMessage = $"Error processing BotAction\n\n" + error + "\n\n\nRunning exploratory actions...";
-                                    }
-                                    else
-                                    {
-                                        loggedMessage = $"Error processing BotAction\n\n" + error;
-                                    }
-
-                                    // wait the action warning interval before starting to explore actions
-                                    if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
-                                    {
-                                        // log this before we start exploring so we can see why it started exploring
-                                        LogPlaybackWarning(logPrefix + loggedMessage);
-                                        if (firstActionSegment.botAction?.data is IKeyMomentExploration)
-                                        {
-                                            _explorationDriver.StartExploring();
-                                        }
-                                    }
-
-                                    string explorationError = null;
-                                    if (firstActionSegment.botAction?.data is IKeyMomentExploration keyMomentExploration)
-                                    {
-                                        _explorationDriver.PerformExploratoryAction(firstActionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out explorationError);
-                                        // we just interfered mid action.. reset this thing to try again
-                                        keyMomentExploration.KeyMomentExplorationReset();
-                                    }
-
-                                    if (explorationError != null)
-                                    {
-                                        // put this on top to minimize screen flicker
-                                        loggedMessage = $"Error processing exploratory BotAction\n\n" + explorationError +"\n\n\nPre-Exploration Error - " + loggedMessage;
-                                        LogPlaybackWarning(logPrefix + loggedMessage);
-                                    }
-                                    else if (_explorationDriver.ExplorationState != ExplorationState.STOPPED || _lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
-                                    {
-                                        LogPlaybackWarning(logPrefix + loggedMessage);
-                                    }
-                                }
-                            }
-
-                            if (firstActionSegment.botAction?.IsCompleted == true && firstActionSegment.botAction?.data is IKeyMomentExploration)
-                            {
-                                // for every non error action, reset the timer
-                                _lastTimeLoggedKeyFrameConditions = now;
-                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
-
-                                _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
-                                _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
-                            }
-
-                        }
-                        catch (Exception ex)
-                        {
-                            var loggedMessage = "Exception processing BotAction\n\n" + ex.Message;
-                            LogPlaybackWarning(logPrefix + loggedMessage, ex);
-                            // uncaught exception... stop and unload the segment
-                            UnloadSegmentsAndReset();
-                            throw;
-                        }
+                        ProcessBotSegmentAction(nextBotSegment, transformStatuses, entityStatuses);
                     }
-
-                    var nextBotSegment = _nextBotSegments[nextBotSegmentIndex];
 
                     var matched = nextBotSegment.Replay_Matched || nextBotSegment.endCriteria == null || nextBotSegment.endCriteria.Count == 0 || KeyFrameEvaluator.Evaluator.Matched(
                         nextBotSegmentIndex == 0,
@@ -315,13 +228,152 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
+        /**
+         * Handles processing the action for the bot segment if it has one.
+         *
+         * During the processing of the action, if the action returns an error, the system will wait ACTION_WARNING_INTERVAL before reporting the error.
+         * In this error case, if the Bot action data implements IKeyMomentExploration, then it supports 'exploration'.  Exploration is used to try to find a way
+         * past the error using the ActionExplorationDriver.  The actions supporting exploration MUST be implemented such they fully support interleaving and early aborting (sort of like writing a mobile app).
+         * What the ActionExplorationDriver does to explore is documented in ActionExplorationDriver itself.
+         *
+         * The sequence looks something like this ...
+         *  - load an action (action1) and call this method again
+         *  - processAction (action1) - error
+         *    - ... error repeats for over ACTION_WARNING_INTERVAL -> log error and display on screen
+         *  - processAction (action1) - success
+         *    - clear error from screen
+         *  - (action1) is complete
+         *  - load next action (action2 {IKeyMomentExploration}) and call this method again
+         *  - processAction (action2 {IKeyMomentExploration}) - error
+         *    - ... error repeats for over ACTION_WARNING_INTERVAL -> log error and display on screen
+         *    - START exploration
+         *  - Perform exploration action
+         *  - Reset (action2 {IKeyMomentExploration}) -- whenever we do an exploration action, we reset the main action back to its start state to be ready to fully run again
+         *  - exploration action - error
+         *    - log updated error + update error display on screen
+         *  - processAction (action2 {IKeyMomentExploration}) - success
+         *    - PAUSE exploration
+         *    - clear error from screen
+         *  - processAction (action2 {IKeyMomentExploration}) - success -- the action wasn't complete yet... success != complete, success just means that 1 call pass worked cleanly
+         *  - processAction (action2 {IKeyMomentExploration}) - error
+         *    - ... error repeats for over ACTION_WARNING_INTERVAL -> log error and display on screen
+         *    - RESUME exploration
+         *  - Perform exploration action
+         *  - Reset (action2 {IKeyMomentExploration}) -- whenever we do an exploration action, we reset the main action back to its start state to be ready to fully run again
+         *  - exploration action - success
+         *  - processAction (action2 {IKeyMomentExploration}) - success
+         *    - PAUSE exploration
+         *    - clear error from screen
+         *  - processAction (action2 {IKeyMomentExploration}) - success
+         *  - processAction (action2 {IKeyMomentExploration}) - success
+         *  - (action2) is complete
+         *
+         *  (...)
+         * - load next action  and call this method again
+         *  (...)
+         *
+         *   Thus an exploration action can be invoked in between any 2 passes of the main action when an error occurs.  With that concept of update to update interleaving, it should be obvious why actions implementing IKeyMomentExploration must be
+         *   written to expect to be interrupted at any point.
+         */
+        private void ProcessBotSegmentAction(BotSegment firstActionSegment, Dictionary<long, ObjectStatus> transformStatuses, Dictionary<long, ObjectStatus> entityStatuses)
+        {
+            var now = Time.unscaledTime;
+            string logPrefix = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - ";
+            try
+            {
+                if (firstActionSegment.botAction?.IsCompleted == false)
+                {
+                    // allow the main action to retry between every exploratory action
+                    var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
+
+                    if (error == null)
+                    {
+                        // we're going to 'pause' exploring, but not reset the exploration state quite yet until this action fully finishes
+                        _explorationDriver.PauseExploring(firstActionSegment.Replay_SegmentNumber);
+                        if (didAction && _explorationDriver.ExplorationState == ExplorationState.STOPPED)
+                        {
+                            // for every non error action, reset the timer
+                            _lastTimeLoggedKeyFrameConditions = now;
+                            FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+                        }
+                    }
+
+                    if (error != null)
+                    {
+                        // arranges this to build up a status message with real action + exploratory status
+                        // TODO: (REG-2213) Update all this to use a status manager to manage reporting
+
+                        string loggedMessage;
+
+                        if (firstActionSegment.botAction?.data is IKeyMomentExploration)
+                        {
+                            loggedMessage = $"Error processing BotAction\n\n" + error + "\n\n\nRunning exploratory actions...";
+                        }
+                        else
+                        {
+                            loggedMessage = $"Error processing BotAction\n\n" + error;
+                        }
+
+                        // wait the action warning interval before starting to explore actions
+                        if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
+                        {
+                            // log this before we start exploring so we can see why it started exploring
+                            LogPlaybackWarning(logPrefix + loggedMessage);
+                            if (firstActionSegment.botAction?.data is IKeyMomentExploration)
+                            {
+                                _explorationDriver.StartExploring();
+                            }
+                        }
+
+                        string explorationError = null;
+                        if (firstActionSegment.botAction?.data is IKeyMomentExploration keyMomentExploration)
+                        {
+                            _explorationDriver.PerformExploratoryAction(firstActionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out explorationError);
+                            // we just interfered mid action.. reset this thing to try again
+                            keyMomentExploration.KeyMomentExplorationReset();
+                        }
+
+                        if (explorationError != null)
+                        {
+                            // put this on top to minimize screen flicker
+                            loggedMessage = $"Error processing exploratory BotAction\n\n" + explorationError +"\n\n\nPre-Exploration Error - " + loggedMessage;
+                            LogPlaybackWarning(logPrefix + loggedMessage);
+                        }
+                        else if (_explorationDriver.ExplorationState != ExplorationState.STOPPED || _lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
+                        {
+                            LogPlaybackWarning(logPrefix + loggedMessage);
+                        }
+                    }
+                }
+
+                if (firstActionSegment.botAction?.IsCompleted == true && firstActionSegment.botAction?.data is IKeyMomentExploration)
+                {
+                    // for every non error action, reset the timer
+                    _lastTimeLoggedKeyFrameConditions = now;
+                    FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+
+                    _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
+                    _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                var loggedMessage = "Exception processing BotAction\n\n" + ex.Message;
+                LogPlaybackWarning(logPrefix + loggedMessage, ex);
+                // uncaught exception... stop and unload the segment
+                UnloadSegmentsAndReset();
+                throw;
+            }
+        }
+
         public void LateUpdate()
         {
             if (_playState == PlayState.Playing)
             {
                 if (_dataPlaybackContainer != null)
                 {
-                    EvaluateBotSegments();
+                    ProcessBotSegments();
                 }
 
                 if (_nextBotSegments.Count == 0)

@@ -15,6 +15,10 @@ namespace StateRecorder.BotSegments
         PAUSED,
         EXPLORING
     }
+
+    /**
+     * This class controls action exploration during bot runs.  See BotSegmentsPlaybackController.ProcessBotSegmentAction for further information.
+     */
     public class ActionExplorationDriver : MonoBehaviour
     {
         private const int PRIOR_ACTION_LIMIT = 5;
@@ -73,6 +77,11 @@ namespace StateRecorder.BotSegments
 
         private IBotActionData _inProgressAction = null;
 
+        /**
+         * Chooses the next exploratory action to perform.
+         *
+         * The current implementation chooses one of the previous N successful IKeyMomentExploration actions to try on each update pass.
+         */
         public void PerformExploratoryAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             error = null;
