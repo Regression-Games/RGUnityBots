@@ -173,9 +173,9 @@ namespace RegressionGames.StateRecorder
 
             if (ray.HasValue)
             {
-                // do a raycast all into the world and see what hits... we want to be able to sort things with colliders above those that don't have one
-                var raycastHits = Physics.RaycastAll(ray.Value);
-                worldSpaceHits = raycastHits.ToDictionary(a => a.transform.GetInstanceID(), a => a);
+                // do a ray-cast all into the world and see what hits... we want to be able to sort things with colliders above those that don't have one
+                var rayCastHits = Physics.RaycastAll(ray.Value);
+                worldSpaceHits = rayCastHits.ToDictionary(a => a.transform.GetInstanceID(), a => a);
             }
 
             foreach (var recordedGameObjectState in statefulObjects)
@@ -196,8 +196,12 @@ namespace RegressionGames.StateRecorder
                             {
                                 // ui object
                                 var selectables = theTransform.GetComponents<Selectable>();
-                                // make sure 1 is interactable
-                                isInteractable = selectables.Any(a => a.interactable);
+                                if (selectables.Length > 0)
+                                {
+                                    // make sure 1 is interactable
+                                    isInteractable = selectables.Any(a => a.interactable);
+                                }
+                                // else .. wasn't selectable, but certainly still obstructs what we're clicking on so leave isInteractable = true
                             }
                         }
 
@@ -205,10 +209,10 @@ namespace RegressionGames.StateRecorder
                         {
                             if (recordedGameObjectState.worldSpaceBounds.HasValue)
                             {
+                                var didHit = false;
                                 if (ray.HasValue)
                                 {
                                     // compute the zOffset at this point based on the ray
-                                    var didHit = false;
                                     if (recordedGameObjectState is TransformStatus transformStatus)
                                     {
                                         var collider = transformStatus.Transform.GetComponentInParent<Collider>();
@@ -222,43 +226,31 @@ namespace RegressionGames.StateRecorder
                                                 if (hitDistance >= 0f)
                                                 {
                                                     var hitPoint = ray.Value.GetPoint(hitDistance);
-                                                    // make sure that even though our parent had this collider, that the hit is still within the bounding volume of the object we're checking
-                                                    // we wouldn't want a parent collider to cause ALL of its children to be included as clicked, just the one ray pass of renderers we actually hit
-                                                    if (recordedGameObjectState.worldSpaceBounds.Value.Contains(hitPoint))
-                                                    {
-                                                        didHit = true;
-                                                        recordedGameObjectState.zOffsetForMousePoint = hitDistance;
-                                                        recordedGameObjectState.worldSpaceCoordinatesForMousePoint = hitPoint;
-                                                    }
+                                                    didHit = true;
+                                                    recordedGameObjectState.zOffsetForMousePoint = hitDistance;
+                                                    recordedGameObjectState.worldSpaceCoordinatesForMousePoint = hitPoint;
+                                                    result.Add(recordedGameObjectState);
                                                 }
                                             }
                                         }
                                     }
-                                    if(!didHit)
-                                    {
-                                        // wasn't in front of the camera
-                                        recordedGameObjectState.zOffsetForMousePoint = -1f;
-                                        recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
-                                    }
+
                                 }
-                                else
+                                if(!didHit)
                                 {
-                                    // go with the zOffset for the bounding box itself instead of at this exact point... this leads to really weird cases in world space objects with other nearby objects and should be avoided
-                                    // example.. a stone you click sitting on the top back corner of a cube will be 'behind' the cube because the front plane of the cube is closer, just not at that screen point
-                                    // leaving this in here for now though as some sorting is still better than no sorting if we get here (have no camera)
-                                    recordedGameObjectState.zOffsetForMousePoint = recordedGameObjectState.screenSpaceZOffset;
-                                    recordedGameObjectState.worldSpaceCoordinatesForMousePoint = recordedGameObjectState.worldSpaceBounds.Value.center;
+                                    // wasn't in front of the camera
+                                    recordedGameObjectState.zOffsetForMousePoint = -1f;
+                                    recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
                                 }
                             }
                             else if (recordedGameObjectState.screenSpaceZOffset >= 0f)
                             {
                                 // screen space object
-                                recordedGameObjectState.zOffsetForMousePoint = recordedGameObjectState.screenSpaceZOffset;
+                                recordedGameObjectState.zOffsetForMousePoint = 0f;
                                 recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
+                                result.Add(recordedGameObjectState);
                             }
-                            result.Add(recordedGameObjectState);
                         }
-
                     }
                 }
             }
@@ -273,7 +265,8 @@ namespace RegressionGames.StateRecorder
             };
             EventSystem.current.RaycastAll(pointerEventData, eventSystemHits);
 
-            var uiHitMapping = eventSystemHits.ToDictionary(a => (long)a.gameObject.transform.GetInstanceID(), a => a);
+            // store their ordering value.. RaycastAll is already sorted in the correct order for us by Unity.. don't mess with their ordering sort or you will get incorrect obstructions :/
+            var uiHitMapping = eventSystemHits.Select((a,i) => (a,i)).ToDictionary(ai => (long)ai.a.gameObject.transform.GetInstanceID(), ai => ai.i);
 
             // sort with lower z-offsets first so we have UI things on top of game object things
             // if both elements are from the UI.. then sort by the event system ray hits
@@ -282,46 +275,36 @@ namespace RegressionGames.StateRecorder
             {
                 if (a.worldSpaceBounds == null && b.worldSpaceBounds == null)
                 {
-                    RaycastResult? aHitData = null;
+                    int aHitOrder = -1;
                     if (a is TransformStatus at)
                     {
                         if (uiHitMapping.TryGetValue(at.Id, out var value))
                         {
-                            aHitData = value;
+                            aHitOrder = value;
                         }
                     }
-                    RaycastResult? bHitData = null;
+
+                    int bHitOrder = -1;
                     if (b is TransformStatus bt)
                     {
                         if (uiHitMapping.TryGetValue(bt.Id, out var value))
                         {
-                            bHitData = value;
+                            bHitOrder = value;
                         }
                     }
 
-                    if (aHitData.HasValue)
+                    if (aHitOrder >= 0)
                     {
-                        if (bHitData.HasValue)
+                        if (bHitOrder >= 0)
                         {
-                            if (aHitData.Value.distance < bHitData.Value.distance)
-                            {
-                                return -1;
-                            }
-
-                            if (aHitData.Value.distance > bHitData.Value.distance)
-                            {
-                                return 1;
-                            }
-
-                            // higher depth for ui hits == closer to camera.. don't even get me started
-                            return bHitData.Value.depth - aHitData.Value.depth;
+                            return aHitOrder - bHitOrder;
                         }
 
                         // aDidHit.. but not b, put a in front
                         return -1;
                     }
 
-                    if (bHitData.HasValue)
+                    if (bHitOrder >= 0)
                     {
                         //bDidHit.. but not a, put b in front
                         return 1;

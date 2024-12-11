@@ -104,6 +104,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     if (nextBotSegmentIndex == 0)
                     {
                         BotSegment firstActionSegment = _nextBotSegments[0];
+                        string logPrefix = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - ";
                         try
                         {
                             if (firstActionSegment.botAction?.IsCompleted == false)
@@ -113,9 +114,9 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                                 if (error == null)
                                 {
-                                    _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
-
-                                    if (didAction)
+                                    // we're going to 'pause' exploring, but not reset the exploration state quite yet until this action fully finishes
+                                    _explorationDriver.PauseExploring(firstActionSegment.Replay_SegmentNumber);
+                                    if (didAction && _explorationDriver.ExplorationState == ExplorationState.STOPPED)
                                     {
                                         // for every non error action, reset the timer
                                         _lastTimeLoggedKeyFrameConditions = now;
@@ -132,16 +133,18 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                                     if (firstActionSegment.botAction?.data is IKeyMomentExploration)
                                     {
-                                        loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\n" + error + "\nRunning exploratory actions...";
+                                        loggedMessage = $"Error processing BotAction\n\n" + error + "\n\n\nRunning exploratory actions...";
                                     }
                                     else
                                     {
-                                        loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Error processing BotAction\n" + error;
+                                        loggedMessage = $"Error processing BotAction\n\n" + error;
                                     }
 
                                     // wait the action warning interval before starting to explore actions
                                     if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
                                     {
+                                        // log this before we start exploring so we can see why it started exploring
+                                        LogPlaybackWarning(logPrefix + loggedMessage);
                                         if (firstActionSegment.botAction?.data is IKeyMomentExploration)
                                         {
                                             _explorationDriver.StartExploring();
@@ -158,26 +161,32 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                                     if (explorationError != null)
                                     {
-                                        loggedMessage += $"\n\nError processing exploratory BotAction\n" + explorationError;
+                                        // put this on top to minimize screen flicker
+                                        loggedMessage = $"Error processing exploratory BotAction\n\n" + explorationError +"\n\n\nPre-Exploration Error - " + loggedMessage;
+                                        LogPlaybackWarning(logPrefix + loggedMessage);
                                     }
-
-                                    if (_lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
+                                    else if (_explorationDriver.ExplorationState != ExplorationState.STOPPED || _lastTimeLoggedKeyFrameConditions < now - ACTION_WARNING_INTERVAL)
                                     {
-                                        LogPlaybackWarning(loggedMessage);
+                                        LogPlaybackWarning(logPrefix + loggedMessage);
                                     }
                                 }
                             }
 
                             if (firstActionSegment.botAction?.IsCompleted == true && firstActionSegment.botAction?.data is IKeyMomentExploration)
                             {
+                                // for every non error action, reset the timer
+                                _lastTimeLoggedKeyFrameConditions = now;
+                                FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
+
+                                _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
                                 _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
                             }
 
                         }
                         catch (Exception ex)
                         {
-                            var loggedMessage = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - Exception processing BotAction\n" + ex.Message;
-                            LogPlaybackWarning(loggedMessage, ex);
+                            var loggedMessage = "Exception processing BotAction\n\n" + ex.Message;
+                            LogPlaybackWarning(logPrefix + loggedMessage, ex);
                             // uncaught exception... stop and unload the segment
                             UnloadSegmentsAndReset();
                             throw;
@@ -681,15 +690,19 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             var now = Time.unscaledTime;
             _lastTimeLoggedKeyFrameConditions = now;
-            if (ex != null)
+            // avoid spamming the log
+            if (loggedMessage != _lastSegmentPlaybackWarning)
             {
-                RGDebug.LogException(ex, loggedMessage);
+                _lastSegmentPlaybackWarning = loggedMessage;
+                if (ex != null)
+                {
+                    RGDebug.LogException(ex, loggedMessage);
+                }
+                else
+                {
+                    RGDebug.LogWarning(loggedMessage);
+                }
             }
-            else
-            {
-                RGDebug.LogWarning(loggedMessage);
-            }
-            _lastSegmentPlaybackWarning = loggedMessage;
             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
             if (pauseEditorOnPlaybackWarning)
             {

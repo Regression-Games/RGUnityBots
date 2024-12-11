@@ -8,24 +8,30 @@ using UnityEngine;
 
 namespace StateRecorder.BotSegments
 {
+
+    public enum ExplorationState
+    {
+        STOPPED,
+        PAUSED,
+        EXPLORING
+    }
     public class ActionExplorationDriver : MonoBehaviour
     {
+        private const int PRIOR_ACTION_LIMIT = 5;
 
         // normally the first thing we do is retry the previous actions
         // these are sorted newest to oldest
-        private readonly List<IBotActionData> PreviouslyCompletedActions = new(3);
+        private readonly List<IBotActionData> PreviouslyCompletedActions = new(PRIOR_ACTION_LIMIT);
 
-        private readonly List<List<IBotActionData>> _previousActions = new(3);
+        private int _previousActionsNextIndex = 0;
+        private int _previousActionsStartIndex = 0;
 
-        private int _previousActionIndex = 0;
-        private int _previousActionSubIndex = 0;
-
-        public bool IsExploring { get; private set;}
+        public ExplorationState ExplorationState { get; private set; } = ExplorationState.STOPPED;
 
         public void ReportPreviouslyCompletedAction(IBotActionData action)
         {
-            // limit to 3 prior actions
-            while (PreviouslyCompletedActions.Count > 2)
+            // limit to PRIOR_ACTION_LIMIT prior actions
+            while (PreviouslyCompletedActions.Count >= PRIOR_ACTION_LIMIT)
             {
                 // remove at front
                 PreviouslyCompletedActions.RemoveAt(0);
@@ -41,38 +47,28 @@ namespace StateRecorder.BotSegments
                 RGDebug.LogInfo($"ActionExplorationDriver - Adding previously completed action of Type: {action.GetType().Name}" + extraLog);
                 // insert at end
                 PreviouslyCompletedActions.Add(action);
+                _previousActionsNextIndex = PreviouslyCompletedActions.Count-1;
+                _previousActionsStartIndex = PreviouslyCompletedActions.Count-1;
             }
         }
 
-        /**
-         * Return true only when we start exploring, false if we were already exploring
-         */
-        public bool StartExploring()
+        public void StartExploring()
         {
-            if (!IsExploring)
+            switch (ExplorationState)
             {
-                _previousActions.Clear();
-                _previousActionIndex = 0;
-                _previousActionSubIndex = 0;
-                List<IBotActionData> priorList = null;
-                foreach (var previouslyCompletedAction in PreviouslyCompletedActions)
-                {
-                    // populate these lists so that we have a pattern of 0, 10, 210 where 0 is the newest and 2 is the oldest and we try them in patterns as listed
-                    var actionList = new List <IBotActionData>(3);
-                    actionList.Add(previouslyCompletedAction);
-                    if (priorList != null)
-                    {
-                        actionList.AddRange(priorList);
-                    }
-                    priorList = actionList;
-                    _previousActions.Add(actionList);
-                }
-                RGDebug.LogInfo("ActionExplorationDriver - Starting Exploratory Actions");
-                IsExploring = true;
-                return true;
+                case ExplorationState.STOPPED:
+                    _previousActionsNextIndex = PreviouslyCompletedActions.Count-1;
+                    _previousActionsStartIndex = PreviouslyCompletedActions.Count-1;
+                    RGDebug.LogInfo("ActionExplorationDriver - Starting Exploratory Actions");
+                    ExplorationState = ExplorationState.EXPLORING;
+                    break;
+                case ExplorationState.PAUSED:
+                    RGDebug.LogInfo("ActionExplorationDriver - Resuming Exploratory Actions");
+                    ExplorationState = ExplorationState.EXPLORING;
+                    break;
+
             }
 
-            return false;
         }
 
         private IBotActionData _inProgressAction = null;
@@ -80,7 +76,7 @@ namespace StateRecorder.BotSegments
         public void PerformExploratoryAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             error = null;
-            if (!IsExploring)
+            if (ExplorationState.EXPLORING != ExplorationState)
             {
                 return;
             }
@@ -99,7 +95,7 @@ namespace StateRecorder.BotSegments
                 {
                     extraLog += " with first object path: " + keyMomentMouseActionData.mouseActions[1].clickedObjectNormalizedPaths[0];
                 }
-                RGDebug.LogInfo($"ActionExplorationDriver - Performing Exploratory Action of Type: {nextAction.GetType().Name}" + extraLog);
+                RGDebug.LogDebug($"ActionExplorationDriver - Performing Exploratory Action of Type: {nextAction.GetType().Name}" + extraLog);
                 try
                 {
                     // this handles actions that can take more than 1 update pass to process their action
@@ -116,6 +112,11 @@ namespace StateRecorder.BotSegments
 
                     if (_inProgressAction.IsCompleted())
                     {
+                        _inProgressAction = null;
+                    }
+                    else if (error != null)
+                    {
+                        _inProgressAction.AbortAction(segmentNumber);
                         _inProgressAction = null;
                     }
                 }
@@ -137,35 +138,46 @@ namespace StateRecorder.BotSegments
 
         private IBotActionData GetPriorActionToDo()
         {
-            if (_previousActionIndex >= _previousActions.Count)
+            // retry prior actions in pattern .. 0, 10, 210, etc... where 2 is the oldest and 0 is the most recent
+            if (PreviouslyCompletedActions.Count > 0)
             {
-                // reset both so we don't skip one in the list below
-                _previousActionSubIndex = 0;
-                _previousActionIndex = 0;
-            }
-
-            // retry prior actions in pattern .. 0, 10, 210 where 2 is the oldest and 0 is the most recent
-            if (_previousActionIndex < _previousActions.Count)
-            {
-                var previousActions = _previousActions[_previousActionIndex];
-                if (_previousActionSubIndex >= previousActions.Count)
+                if (_previousActionsStartIndex < 0)
                 {
-                    // move to the next list
-                    _previousActionSubIndex = 0;
-                    ++_previousActionIndex;
-                    if (_previousActionIndex >= _previousActions.Count)
-                    {
-                        _previousActionIndex = 0;
-                    }
-
-                    previousActions = _previousActions[_previousActionIndex];
+                    // reset both
+                    _previousActionsNextIndex = PreviouslyCompletedActions.Count - 1;
+                    _previousActionsStartIndex = PreviouslyCompletedActions.Count - 1;
                 }
 
-                return previousActions[_previousActionSubIndex++];
-                // process next action in the list
+                var nextAction = PreviouslyCompletedActions[_previousActionsNextIndex];
+
+                if (--_previousActionsNextIndex < _previousActionsStartIndex)
+                {
+                    // update the startIndex and reset the next index
+                    _previousActionsNextIndex = PreviouslyCompletedActions.Count - 1;
+                    _previousActionsStartIndex--;
+                }
+
+                return nextAction;
             }
 
+            _previousActionsNextIndex = PreviouslyCompletedActions.Count - 1;
+            _previousActionsStartIndex = PreviouslyCompletedActions.Count - 1;
             return null;
+        }
+
+        public void PauseExploring(int segmentNumber)
+        {
+            if (_inProgressAction != null)
+            {
+                _inProgressAction.AbortAction(segmentNumber);
+                _inProgressAction = null;
+            }
+            if (ExplorationState == ExplorationState.EXPLORING)
+            {
+                RGDebug.LogInfo("ActionExplorationDriver - Paused Exploratory Actions");
+            }
+
+            ExplorationState = ExplorationState.PAUSED;
         }
 
         public void StopExploring(int segmentNumber)
@@ -175,11 +187,12 @@ namespace StateRecorder.BotSegments
                 _inProgressAction.AbortAction(segmentNumber);
                 _inProgressAction = null;
             }
-            if (IsExploring)
+            if (ExplorationState == ExplorationState.EXPLORING)
             {
                 RGDebug.LogInfo("ActionExplorationDriver - Stopped Exploratory Actions");
             }
-            IsExploring = false;
+
+            ExplorationState = ExplorationState.STOPPED;
         }
     }
 }
