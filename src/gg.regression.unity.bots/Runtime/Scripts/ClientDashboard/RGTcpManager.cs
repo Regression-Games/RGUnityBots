@@ -82,26 +82,32 @@ namespace RegressionGames.ClientDashboard
             // check if we need to start playing a sequence or segment
             if (m_startPlayingSequence != null)
             {
-                var botManager = RGBotManager.GetInstance();
-                if (botManager != null)
+                if (activeSequence == null)
                 {
-                    botManager.OnBeginPlaying();
+                    var botManager = RGBotManager.GetInstance();
+                    if (botManager != null)
+                    {
+                        botManager.OnBeginPlaying();
+                    }
+                    m_replayToolbarManager.selectedReplayFilePath = null;
+                    m_startPlayingSequence.Play();
                 }
-                m_replayToolbarManager.selectedReplayFilePath = null;
-                m_startPlayingSequence.Play();
                 m_startPlayingSequence = null;
                 m_startPlayingSegment = null;
                 m_shouldStopReplay = false;
             } 
             else if (m_startPlayingSegment != null)
             {
-                var botManager = RGBotManager.GetInstance();
-                if (botManager != null)
+                if (activeSequence == null)
                 {
-                    botManager.OnBeginPlaying();
+                    var botManager = RGBotManager.GetInstance();
+                    if (botManager != null)
+                    {
+                        botManager.OnBeginPlaying();
+                    }
+                    m_botSegmentsPlaybackController.SetDataContainer(new BotSegmentsPlaybackContainer(m_startPlayingSegment.segments));
+                    m_botSegmentsPlaybackController.Play();
                 }
-                m_botSegmentsPlaybackController.SetDataContainer(new BotSegmentsPlaybackContainer(m_startPlayingSegment.segments));
-                m_botSegmentsPlaybackController.Play();
                 m_startPlayingSequence = null;
                 m_startPlayingSegment = null;
                 m_shouldStopReplay = false;
