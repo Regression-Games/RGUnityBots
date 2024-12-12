@@ -566,11 +566,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                     // visible (already true by the time we get here)/active-enabled(we already know that from a canvas perspective this is visible, but need to check UI component info)
                     if (preconditionMatch0.Item1 is TransformStatus preconditionMatch0TransformStatus)
                     {
-                        var theTransform = preconditionMatch0TransformStatus.Transform;
-                        if (theTransform is RectTransform)
+                        var preconditionMatch0Transform = preconditionMatch0TransformStatus.Transform;
+                        if (preconditionMatch0Transform is RectTransform)
                         {
                             // ui object
-                            var selectables = theTransform.GetComponents<Selectable>();
+                            var selectables = preconditionMatch0Transform.GetComponents<Selectable>();
                             if (selectables.Length > 0)
                             {
                                 // make sure 1 is interactable .. otherwise leave isPreconditionMatch0Interactable == true
@@ -583,6 +583,25 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                     {
                         // ReSharper disable once PossibleInvalidOperationException - already filtered in BuildPreconditions to only have entries with valid visible bounds
                         var smallestBounds = preconditionMatch0.Item1.screenSpaceBounds.Value;
+
+                        // for world space object, narrow the bounds to its collider
+                        if (preconditionMatch0.Item1.worldSpaceBounds != null && preconditionMatch0.Item1 is TransformStatus preconditionMatch0Ts)
+                        {
+                            var preconditionMatch0Transform = preconditionMatch0Ts.Transform;
+
+                            // check for a collider
+                            var collider = preconditionMatch0Transform.GetComponentInParent<Collider>();
+                            if (collider != null)
+                            {
+                                // limit the bounds starting with the collider bounds... the renderer we captured could be bigger than the collider, but the click will only work on the collider
+                                var ssBounds = TransformObjectFinder.ConvertWorldSpaceBoundsToScreenSpace(collider.bounds);
+                                if (ssBounds.HasValue)
+                                {
+                                    smallestBounds = ssBounds.Value;
+                                }
+                            }
+                        }
+
                         // we tried doing this with int math.. but pixel fluctuations of objects with fractional render bounds are a thing (think shimmering/flicker along aliased edges in games)
                         // limit to the screen space.. some visible things hang off the screen and we don't want to click off the screen
                         var minX = Mathf.Max(smallestBounds.min.x, 0f);
@@ -629,6 +648,24 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                         var pmIDidOverlap = false;
                                         // ReSharper disable once PossibleInvalidOperationException - already filtered in BuildPreconditions to only have entries with valid visible bounds
                                         var newBounds = preconditionMatchI.Item1.screenSpaceBounds.Value;
+
+                                        if (preconditionMatchI.Item1.worldSpaceBounds != null && preconditionMatchI.Item1 is TransformStatus preconditionMatchITs)
+                                        {
+                                            var preconditionMatchITransform = preconditionMatchITs.Transform;
+
+                                            // check for a collider
+                                            var collider = preconditionMatchITransform.GetComponentInParent<Collider>();
+                                            if (collider != null)
+                                            {
+                                                // limit the bounds starting with the collider bounds... the renderer we captured could be bigger than the collider, but the click will only work on the collider
+                                                var ssBounds = TransformObjectFinder.ConvertWorldSpaceBoundsToScreenSpace(collider.bounds);
+                                                if (ssBounds.HasValue)
+                                                {
+                                                    newBounds = ssBounds.Value;
+                                                }
+                                            }
+                                        }
+
                                         // adjust in for the min to ensure we don't miss a click
                                         var newMinX = newBounds.min.x;
                                         var newMinY = newBounds.min.y;
@@ -809,7 +846,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                 // see if our object is 'first' or obstructed
                 if (objectsAtClickPosition.Count > 0)
                 {
-                    if (!targetObjectPath.StartsWith(objectsAtClickPosition[0].NormalizedPath))
+                    // handle the case where what we need to click is actually a collider on a parent object
+                    if (!(targetObjectPath.StartsWith(objectsAtClickPosition[0].NormalizedPath) || objectsAtClickPosition[0].NormalizedPath.StartsWith(targetObjectPath)))
                     {
                         error = $"Unable to perform Key Moment Mouse Action at position:\n({(int)myClickPosition.x}, {(int)myClickPosition.y})\n\non object path:\n{targetObjectPath}\n\nanother object is obstructing with path:\n{objectsAtClickPosition[0].NormalizedPath}";
                         return false;
