@@ -100,9 +100,8 @@ namespace RegressionGames.ClientDashboard
                 {
                     botManager.OnBeginPlaying();
                 }
-                var playbackController = FindObjectOfType<BotSegmentsPlaybackController>();
-                playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(m_startPlayingSegment.segments));
-                playbackController.Play();
+                m_botSegmentsPlaybackController.SetDataContainer(new BotSegmentsPlaybackContainer(m_startPlayingSegment.segments));
+                m_botSegmentsPlaybackController.Play();
                 m_startPlayingSequence = null;
                 m_startPlayingSegment = null;
                 m_shouldStopReplay = false;
