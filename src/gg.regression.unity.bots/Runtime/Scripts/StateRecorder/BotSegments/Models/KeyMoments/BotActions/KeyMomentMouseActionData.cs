@@ -74,7 +74,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
         // this is important as we don't want the next segment to run on this same frame until the result of the mouse click action has processed in the game engine
         private bool _isDoneWaitOneFrame = false;
 
-
         // These are all used to track the un-click work across multiple Update calls
         private double _unClickTime = 0d;
         private Vector2? _lastClickPosition = null;
@@ -215,34 +214,37 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                 clickPosition = GetClickPositionForMatch(bestUnClickMatchResult.Value);
 
                                 // if our best match path isn't the same as the click path.. do some extra evaluation
-                                if (bestObjectStatus.NormalizedPath != mouseActions[1].clickedObjectNormalizedPaths[0])
+                                // check if this is an un-click of a previous click.. if so we have some special cases to check to make sure we want to move the click position or not
+                                if (_lastClickPosition.HasValue)
                                 {
-                                    // check if this is an un-click of a previous click.. if so we have some special cases to check to make sure we want to move the click position or not
-                                    if (_lastClickPosition.HasValue)
+                                    if (_lastClickPosition.Value.x >= bestUnClickMatchResult.Value.Item2.Item1
+                                        && _lastClickPosition.Value.x <= bestUnClickMatchResult.Value.Item2.Item3
+                                        && _lastClickPosition.Value.y >= bestUnClickMatchResult.Value.Item2.Item2
+                                        && _lastClickPosition.Value.y <= bestUnClickMatchResult.Value.Item2.Item4)
                                     {
-                                        if (_lastClickPosition.Value.x >= bestUnClickMatchResult.Value.Item2.Item1
-                                            && _lastClickPosition.Value.x <= bestUnClickMatchResult.Value.Item2.Item3
-                                            && _lastClickPosition.Value.y >= bestUnClickMatchResult.Value.Item2.Item2
-                                            && _lastClickPosition.Value.y <= bestUnClickMatchResult.Value.Item2.Item4)
+                                        RGDebug.LogDebug($"Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on bounds overlaps to original path: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
+                                        // if the click position was within the bounds of the un-click object, just use that same one... this is critical for cases where the
+                                        // clicked button is no longer present in the normalizedPaths list for the un-click... which happens based on how observation of the un-click occurs on a future frame
+                                        clickPosition = _lastClickPosition.Value;
+                                        if (bestObjectStatus.NormalizedPath != mouseActions[1].clickedObjectNormalizedPaths[0])
                                         {
-                                            RGDebug.LogDebug($"Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on bounds overlaps to original path: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
-                                            // if the click position was within the bounds of the un-click object, just use that same one... this is critical for cases where the
-                                            // clicked button is no longer present in the normalizedPaths list for the un-click... which happens based on how observation of the un-click occurs on a future frame
-                                            clickPosition = _lastClickPosition.Value;
                                             bestObjectStatus = null;
                                         }
-                                        else if (_previousOverlappingObjects.Count > 0)
-                                        {
-                                            // this can handle things where the un-click was recorded 'after' the element dis-appeared, but it is still there in the replay until the un-click happens... this is just a matter of how ui events and when we can observe during recording works
+                                    }
+                                    else if (_previousOverlappingObjects.Count > 0)
+                                    {
+                                        // this can handle things where the un-click was recorded 'after' the element dis-appeared, but it is still there in the replay until the un-click happens... this is just a matter of how ui events and when we can observe during recording works
 
-                                            // an even more special case... even though the bounds don't align.. the resolution could have changed (this happens a lot for bossroom menus when you resize and the 3d game objects scale differently than the UI)
-                                            // but on un-click.. the ui element isn't in the path list anymore so it tries to un-click on the door or some other background game object instead and misses the button
-                                            // so if we had this same object listed in the conditions for the prior click calculation.. then the original click already considered this and the scaling factor of the screen
-                                            // isn't important.. we want to un-click exactly where we clicked
-                                            if (_previousOverlappingObjects.Any(a => a == bestUnClickMatchResult.Value.Item1))
+                                        // an even more special case... even though the bounds don't align.. the resolution could have changed (this happens a lot for bossroom menus when you resize and the 3d game objects scale differently than the UI)
+                                        // but on un-click.. the ui element isn't in the path list anymore so it tries to un-click on the door or some other background game object instead and misses the button
+                                        // so if we had this same object listed in the conditions for the prior click calculation.. then the original click already considered this and the scaling factor of the screen
+                                        // isn't important.. we want to un-click exactly where we clicked
+                                        if (_previousOverlappingObjects.Any(a => a == bestUnClickMatchResult.Value.Item1))
+                                        {
+                                            RGDebug.LogDebug($"Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on object path existing at time of click: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
+                                            clickPosition = _lastClickPosition.Value;
+                                            if (bestObjectStatus.NormalizedPath != mouseActions[1].clickedObjectNormalizedPaths[0])
                                             {
-                                                RGDebug.LogDebug($"Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on object path existing at time of click: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
-                                                clickPosition = _lastClickPosition.Value;
                                                 bestObjectStatus = null;
                                             }
                                         }
