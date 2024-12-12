@@ -12,8 +12,7 @@ using RegressionGames.StateRecorder;
 namespace RegressionGames.ClientDashboard
 {
     // ReSharper disable InconsistentNaming
-    [Serializable]
-    public class RGTcpServer
+    public class RGTcpServer 
     {
         public static bool IsRunning => m_isRunning;
 
@@ -220,7 +219,10 @@ namespace RegressionGames.ClientDashboard
             }
             catch (Exception ex)
             {
-                RGDebug.LogError($"Error handling message from dashboard: {ex.Message}");
+                if (ex is not ThreadAbortException)
+                {
+                    RGDebug.LogError($"Error handling message from dashboard: {ex.Message}");
+                }
             }
             
             client.Close();
