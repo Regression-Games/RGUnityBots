@@ -220,10 +220,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                     // check if this is an un-click of a previous click.. if so we have some special cases to check to make sure we want to move the click position or not
                                     if (_lastClickPosition.HasValue)
                                     {
-                                        if (_lastClickPosition.Value.x >= bestUnClickMatchResult.Value.Item3.Item1
-                                            && _lastClickPosition.Value.x <= bestUnClickMatchResult.Value.Item3.Item3
-                                            && _lastClickPosition.Value.y >= bestUnClickMatchResult.Value.Item3.Item2
-                                            && _lastClickPosition.Value.y <= bestUnClickMatchResult.Value.Item3.Item4)
+                                        if (_lastClickPosition.Value.x >= bestUnClickMatchResult.Value.Item2.Item1
+                                            && _lastClickPosition.Value.x <= bestUnClickMatchResult.Value.Item2.Item3
+                                            && _lastClickPosition.Value.y >= bestUnClickMatchResult.Value.Item2.Item2
+                                            && _lastClickPosition.Value.y <= bestUnClickMatchResult.Value.Item2.Item4)
                                         {
                                             RGDebug.LogDebug($"Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on bounds overlaps to original path: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
                                             // if the click position was within the bounds of the un-click object, just use that same one... this is critical for cases where the
@@ -353,7 +353,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             return false;
         }
 
-        private Vector2 GetClickPositionForMatch((ObjectStatus, int, (float,float,float,float)) bestMatchResult)
+        private Vector2 GetClickPositionForMatch((ObjectStatus, (float,float,float,float)) bestMatchResult)
         {
             // we started with clicking the center.. but this was limiting
             //clickPosition = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
@@ -363,7 +363,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             //     on the next attempt, it picks a new position to try thus giving us a better chance of passing
             // TODO (REG-2223): Future: Can we capture the relativistic offset click position where we hit a world space object so that we can try to re-click on that same offset given its new world position ???
             // This would allow us to know that we clicked about X far into this floor tile and replicate that positioning regardless of the actual worldspace positioning in the replay...
-            Vector2 result = new Vector2(Random.Range(bestMatchResult.Item3.Item1, bestMatchResult.Item3.Item3), Random.Range(bestMatchResult.Item3.Item2, bestMatchResult.Item3.Item4));
+            Vector2 result = new Vector2(Random.Range(bestMatchResult.Item2.Item1, bestMatchResult.Item2.Item3), Random.Range(bestMatchResult.Item2.Item2, bestMatchResult.Item2.Item4));
 
             return result;
         }
@@ -543,7 +543,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             return result;
         }
 
-        private (ObjectStatus, int, (float,float,float,float))? FindBestMatch(MouseInputActionData mouseAction, List<(ObjectStatus, (int[], int[]))>[] preconditionMatches, out List<ObjectStatus> overlappingObjects)
+        private (ObjectStatus, (float,float,float,float))? FindBestMatch(MouseInputActionData mouseAction, List<(ObjectStatus, (int[], int[]))>[] preconditionMatches, out List<ObjectStatus> overlappingObjects)
         {
             overlappingObjects = new List<ObjectStatus>();
 
@@ -552,9 +552,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             {
                 // yay.. we found something(s).. figure out which one of them is the 'best' based on number of overlapping matches
 
-                // for each of the left most preconditionMatches[0] .. go through each of other precondition matches and count how many overlap.. can only count 0 or 1 per each index
-                // we will also compute the 'smallest' click bounds for these overlaps as we go
-                var matchResults = new List<(ObjectStatus, int, (float, float, float, float))>(preconditionMatches[0].Count);
+                // for each of the left most preconditionMatches[0] .. go through each of other precondition matches
+                // we will compute the 'smallest' click bounds for these overlaps as we go
+                var matchResults = new List<(ObjectStatus, (float, float, float, float))>(preconditionMatches[0].Count);
 
                 var screenWidth = Screen.width;
                 var screenHeight = Screen.height;
@@ -616,14 +616,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
 
                         RGDebug.LogDebug($"Starting with bounds: ({minX}, {minY}),({maxX}, {maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} , target object: {preconditionMatch0.Item1.NormalizedPath}");
                         // now let's narrow down the screen space bounds more precisely based on all our preconditions
-                        // count the number of indexes where we had an overlap while doing it
-                        var overlapCount = 0;
                         for (var i = 1; i < preconditionMatches.Length; i++)
                         {
                             var preconditionMatchesI = preconditionMatches[i];
                             if (preconditionMatchesI.Count > 0)
                             {
-                                var didOverlap = false;
                                 foreach (var preconditionMatchI in preconditionMatchesI)
                                 {
                                     var isInteractable = true;
@@ -716,21 +713,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
 
                                         if (pmIDidOverlap)
                                         {
-                                            didOverlap = true;
                                             overlappingObjects.Add(preconditionMatchI.Item1);
                                             RGDebug.LogDebug($"Tightened bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} - overlap with object path [{i}]: {preconditionMatchI.Item1.NormalizedPath}");
                                         }
                                     }
                                 }
 
-                                if (didOverlap)
-                                {
-                                    ++overlapCount;
-                                }
+
                             }
                         }
 
-                        matchResults.Add((preconditionMatch0.Item1, overlapCount, (minX, minY, maxX, maxY)));
+                        matchResults.Add((preconditionMatch0.Item1, (minX, minY, maxX, maxY)));
                     }
                 }
 
@@ -741,19 +734,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
 
                 matchResults.Sort((a, b) =>
                 {
-                    if (a.Item2 < b.Item2)
-                    {
-                        // sort lower match counts to the end
-                        return 1;
-                    }
 
-                    if (a.Item2 > b.Item2)
-                    {
-                        // sort highest match counts to the front
-                        return -1;
-                    }
-
-                    // else if they were still equal sort by nearest distance to the original click
+                    // sort by nearest distance to the original click
 
                     // consider if world space first
                     if (mouseAction.worldPosition.HasValue)
@@ -793,8 +775,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
 
                     // otherwise consider screen space bounds
                     // bounds around z=0 (z size 0.5f) ... considering the concise bounds computed from overlaps
-                    var aSSBounds = new Bounds(new Vector3((a.Item3.Item3 - a.Item3.Item1) / 2 + a.Item3.Item1, (a.Item3.Item4 - a.Item3.Item2) / 2 + a.Item3.Item2, 0f), new Vector3(a.Item3.Item3 - a.Item3.Item1, a.Item3.Item4 - a.Item3.Item2, 0.5f));
-                    var bSSBounds = new Bounds(new Vector3((b.Item3.Item3 - b.Item3.Item1) / 2 + b.Item3.Item1, (b.Item3.Item4 - b.Item3.Item2) / 2 + b.Item3.Item2, 0f), new Vector3(b.Item3.Item3 - b.Item3.Item1, b.Item3.Item4 - b.Item3.Item2, 0.5f));
+                    var aSSBounds = new Bounds(new Vector3((a.Item2.Item3 - a.Item2.Item1) / 2 + a.Item2.Item1, (a.Item2.Item4 - a.Item2.Item2) / 2 + a.Item2.Item2, 0f), new Vector3(a.Item2.Item3 - a.Item2.Item1, a.Item2.Item4 - a.Item2.Item2, 0.5f));
+                    var bSSBounds = new Bounds(new Vector3((b.Item2.Item3 - b.Item2.Item1) / 2 + b.Item2.Item1, (b.Item2.Item4 - b.Item2.Item2) / 2 + b.Item2.Item2, 0f), new Vector3(b.Item2.Item3 - b.Item2.Item1, b.Item2.Item4 - b.Item2.Item2, 0.5f));
 
                     var aSSClosestPoint = aSSBounds.ClosestPoint(normalizedMouseActionSSPosition);
                     var bSSClosestPoint = bSSBounds.ClosestPoint(normalizedMouseActionSSPosition);
@@ -814,8 +796,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                     // else - unlikely to be exactly the same.. but let it go anyway
 
                     // else if still somehow equal sort by smallest bounds area
-                    var aArea = (a.Item3.Item3 - a.Item3.Item1) * (a.Item3.Item4 - a.Item3.Item2);
-                    var bArea = (b.Item3.Item3 - b.Item3.Item1) * (b.Item3.Item4 - b.Item3.Item2);
+                    var aArea = (a.Item2.Item3 - a.Item2.Item1) * (a.Item2.Item4 - a.Item2.Item2);
+                    var bArea = (b.Item2.Item3 - b.Item2.Item1) * (b.Item2.Item4 - b.Item2.Item2);
                     if (aArea < bArea)
                     {
                         return -1;
