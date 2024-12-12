@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -10,8 +9,11 @@ using RegressionGames.RemoteOrchestration.Types;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using UnityEditor;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace RegressionGames.ClientDashboard
 {
@@ -22,35 +24,25 @@ namespace RegressionGames.ClientDashboard
     public class RGTcpManager : MonoBehaviour
     {
         // the last active sequence that was sent to the client
-        private BotSegmentsPlaybackController m_botSegmentsPlaybackController;
-        private BotSequence m_startPlayingSequence = null;
-        private BotSegmentList m_startPlayingSegment = null;
-        private bool m_shouldStopReplay = false;
-        private ActiveSequence m_activeSequence = null;
-        private ReplayToolbarManager m_replayToolbarManager;
-        private List<AvailableBotSequence> m_availableBotSequences = new ();
-        private List<BotSequenceEntry> m_availableBotSegments = new();
+        private static BotSegmentsPlaybackController m_botSegmentsPlaybackController;
+        private static ReplayToolbarManager m_replayToolbarManager;
 
-        /// <summary>
-        /// Create a menu item to open the client dashboard, which will connect to this server
-        /// </summary>
-        [MenuItem("Regression Games/Open Dashboard")]
-        public static void OpenRGDashboard()
-        {
-            // Configure the process
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = Path.GetFullPath("Packages/gg.regression.unity.bots/Runtime/Resources/RegressionGames.exe"),
-                // TODO: Arguments,
-                CreateNoWindow = false
-            };
-            Process.Start(startInfo);
-        }
+        private static List<AvailableBotSequence> m_availableBotSequences = new ();
+        private static List<BotSequenceEntry> m_availableBotSegments = new();
         
+        private static ActiveSequence m_activeSequence = null;
+        private static BotSequence m_startPlayingSequence = null;
+        private static BotSegmentList m_startPlayingSegment = null;
+        private static bool m_shouldStopReplay = false;
+        
+
         public void Start()
         {
+            
+#if UNITY_EDITOR
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+#endif
 
             if (!Application.isPlaying)
             {
@@ -59,54 +51,18 @@ namespace RegressionGames.ClientDashboard
                 m_activeSequence = null;
             }
             
-            RGTcpServer.Start();
             RGTcpServer.OnClientHandshake -= OnClientHandshake;
             RGTcpServer.OnClientHandshake += OnClientHandshake;
             RGTcpServer.ProcessClientMessage -= ProcessClientMessage;
             RGTcpServer.ProcessClientMessage += ProcessClientMessage;
-            StartCoroutine(RGSequenceManager.ResolveSequenceFiles(ProcessResolvedSequences));
-            LoadAvailableSegments();
-        }
-        
-        /// <summary>
-        /// Assign or reset variables when the editor transitions to or from play mode
-        /// </summary>
-        private void OnPlayModeStateChanged(PlayModeStateChange state)
-        {
-            switch (state)
-            {
-                case PlayModeStateChange.ExitingEditMode:
-                {
-                    m_startPlayingSequence = null;
-                    m_activeSequence = null;
-                    RGTcpServer.Stop();
-                    break;  
-                }
-                case PlayModeStateChange.ExitingPlayMode:
-                {
-                    m_botSegmentsPlaybackController = null;
-                    m_replayToolbarManager = null;
-                    m_startPlayingSequence = null;
-                    m_activeSequence = null;
-                    RGTcpServer.Stop();
-                    break;
-                }
-                case PlayModeStateChange.EnteredEditMode:
-                {
-                    RGTcpServer.Stop();
-                    break;
-                }
-                case PlayModeStateChange.EnteredPlayMode:
-                {
-                    m_botSegmentsPlaybackController = FindObjectOfType<BotSegmentsPlaybackController>();
-                    m_replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
-                    break;
-                }
-            }
+            RGTcpServer.Start();
+            StartCoroutine(RGSequenceManager.ResolveSequenceFiles(ProcessAndSendSequences));
+            ProcessAndSendSegments();
         }
 
         /// <summary>
-        /// Watch server-side resources to see if there are any updates we need to send to connected clients
+        /// Watch server-side resources to see if there are any updates we need to send to connected clients.
+        /// Also perform any actions requested by a client which must be executed on the main thread. 
         /// </summary>
         private void Update()
         {
@@ -157,37 +113,98 @@ namespace RegressionGames.ClientDashboard
                 m_shouldStopReplay = false;
             }
         }
+        
+        #region Editor Only  
+        
+#if UNITY_EDITOR
+        /// <summary>
+        /// Create a menu item to open the client dashboard, which will connect to this server
+        /// </summary>
+        [MenuItem("Regression Games/Open Dashboard")]
+        public static void OpenDashboard()
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = Path.GetFullPath("Packages/gg.regression.unity.bots/Runtime/Resources/RegressionGames.exe"),
+                CreateNoWindow = false
+            };
+            Process.Start(startInfo);
+        }
+        
+        /// <summary>
+        /// This and Start are both necessary in editor because:
+        /// * Script reload may occur after Start is called, wiping values like available sequences
+        /// * Script reload may not trigger on events like entering play mode, but Start always will
+        /// </summary>
+        [UnityEditor.Callbacks.DidReloadScripts]
+        private static void DidReloadScripts()
+        {
+            RGTcpServer.OnClientHandshake -= OnClientHandshake;
+            RGTcpServer.OnClientHandshake += OnClientHandshake;
+            RGTcpServer.ProcessClientMessage -= ProcessClientMessage;
+            RGTcpServer.ProcessClientMessage += ProcessClientMessage;
+            RGTcpServer.Start();
+            
+            var it  = RGSequenceManager.ResolveSequenceFiles(ProcessAndSendSequences);
+            while(it.MoveNext()){}
+            ProcessAndSendSegments();
+        }
+
+        /// <summary>
+        /// Assign or reset variables when the editor transitions to or from play mode
+        /// </summary>
+        private void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            switch (state)
+            {
+                case PlayModeStateChange.ExitingEditMode:
+                {
+                    m_startPlayingSequence = null;
+                    m_activeSequence = null;
+                    RGTcpServer.Stop();
+                    break;  
+                }
+                case PlayModeStateChange.ExitingPlayMode:
+                {
+                    m_botSegmentsPlaybackController = null;
+                    m_replayToolbarManager = null;
+                    m_startPlayingSequence = null;
+                    m_activeSequence = null;
+                    RGTcpServer.Stop();
+                    break;
+                }
+                case PlayModeStateChange.EnteredEditMode:
+                {
+                    RGTcpServer.Stop();
+                    break;
+                }
+                case PlayModeStateChange.EnteredPlayMode:
+                {
+                    m_botSegmentsPlaybackController = FindObjectOfType<BotSegmentsPlaybackController>();
+                    m_replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
+                    break;
+                }
+            }
+        }
+#endif
+        #endregion
+        
+        #region TCPServer Callbacks
 
         /// <summary>
         /// Send some information to the client immediately after successful handshake
         /// </summary>
-        private void OnClientHandshake(TcpClient client)
+        private static void OnClientHandshake(TcpClient client)
         {
             SendActiveSequence();
             SendAvailableSequences();
-            SendAvailableSegments();
-        }
-                
-        /// <summary>
-        /// Called after sequence files are resolved
-        /// Updates the dashboard with the available sequences
-        /// </summary>
-        private void ProcessResolvedSequences(IDictionary<string, (string, BotSequence)> sequences)
-        {
-            m_availableBotSequences = sequences.Select(kvp => new AvailableBotSequence(kvp.Key, kvp.Value.Item2)).ToList();
-            SendAvailableSequences();
-        }
-
-        private void LoadAvailableSegments()
-        {
-            m_availableBotSegments = BotSegment.LoadAllSegments().Values.Select(seg => seg.Item2).ToList();
             SendAvailableSegments();
         }
         
         /// <summary>
         /// Handle a new message from a client based on its type
         /// </summary>
-        private void ProcessClientMessage(TcpClient client, TcpMessage message)
+        private static void ProcessClientMessage(TcpClient client, TcpMessage message)
         {
             switch (message.type)
             {
@@ -217,11 +234,30 @@ namespace RegressionGames.ClientDashboard
             }
         }
         
+        #endregion
+        
+        #region Bot Sequences
+                  
         /// <summary>
-        /// Get the active bot sequence, if there is one.
-        /// Update won't call this in edit mode.
+        /// Called after sequence files are resolved
+        /// Updates the dashboard with the available sequences
         /// </summary>
-        private ActiveSequence GetActiveBotSequence()
+        private static void ProcessAndSendSequences(IDictionary<string, (string, BotSequence)> sequences)
+        {
+            m_availableBotSequences = sequences.Select(kvp => new AvailableBotSequence(kvp.Key, kvp.Value.Item2)).ToList();
+            SendAvailableSequences();
+        }
+        
+        private static void ProcessAndSendSegments()
+        {
+            m_availableBotSegments = BotSegment.LoadAllSegments().Values.Select(seg => seg.Item2).ToList();
+            SendAvailableSegments();
+        }
+        
+        /// <summary>
+        /// Returns the active bot sequence, if there is one
+        /// </summary>
+        private static ActiveSequence GetActiveBotSequence()
         {
             if (m_botSegmentsPlaybackController == null || m_botSegmentsPlaybackController.GetState() == PlayState.NotLoaded)
             {
@@ -255,9 +291,11 @@ namespace RegressionGames.ClientDashboard
             return null;
         }
         
+        #endregion
+
         #region Send Messages
 
-        private void SendAvailableSequences([CanBeNull] TcpClient client = null)
+        private static void SendAvailableSequences([CanBeNull] TcpClient client = null)
         {
             var message = new TcpMessage 
             {
@@ -270,7 +308,7 @@ namespace RegressionGames.ClientDashboard
             RGTcpServer.QueueMessage(message, client);
         }
         
-        private void SendAvailableSegments([CanBeNull] TcpClient client = null)
+        private static void SendAvailableSegments([CanBeNull] TcpClient client = null)
         {
             var message = new TcpMessage
             {
@@ -283,7 +321,7 @@ namespace RegressionGames.ClientDashboard
             RGTcpServer.QueueMessage(message, client);
         }
         
-        private void SendActiveSequence([CanBeNull] TcpClient client = null)
+        private static void SendActiveSequence([CanBeNull] TcpClient client = null)
         {
             var message = new TcpMessage
             {
