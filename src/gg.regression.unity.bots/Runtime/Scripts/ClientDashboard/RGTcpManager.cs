@@ -34,7 +34,7 @@ namespace RegressionGames.ClientDashboard
         public void Start()
         {
             
-#if UnityEditor
+#if UNITY_EDITOR
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 #endif
