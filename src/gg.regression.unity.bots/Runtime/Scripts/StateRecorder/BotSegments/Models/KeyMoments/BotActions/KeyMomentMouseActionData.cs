@@ -210,6 +210,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                 clickPosition = _lastClickPosition.Value;
                                 validateObjectMatches = false;
                             }
+
+                        }
+                        // didn't find a way to leave the click alone.. report this
+                        if (validateObjectMatches)
+                        {
+                            RGDebug.LogDebug($"({segmentNumber}) Performing mouse un-click at new position: ({(int)clickPosition.x}, {(int)clickPosition.y}) for object path: {bestUnClickMatchResult.Value.Item1.NormalizedPath} from intended path: {unClickPaths[0].normalizedPath} instead of lastClickPosition: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y})");
                         }
                     }
                 }
@@ -226,6 +232,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                 if (_lastClickPosition.HasValue)
                 {
                     clickPosition = _lastClickPosition.Value;
+                    validateObjectMatches = false;
                 }
                 else
                 {
