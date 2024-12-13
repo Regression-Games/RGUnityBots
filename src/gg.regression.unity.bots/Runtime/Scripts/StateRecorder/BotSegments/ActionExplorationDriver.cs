@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using RegressionGames;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 

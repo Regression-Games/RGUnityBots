@@ -10,7 +10,7 @@ using Random = UnityEngine.Random;
 
 // ReSharper disable InconsistentNaming
 
-namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
+namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
 {
     [Serializable]
     public class PreconditionNormalizedPathData
@@ -642,6 +642,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                             var preconditionMatchesI = preconditionMatches[i];
                             if (preconditionMatchesI.Count > 0)
                             {
+                                // TODO: Currently this narrows the bounds.. but can cause you to actually get further from the original click position... i think we need to consider the 'most' overlapping match with the original for similar objects before choosing to narrow
                                 foreach (var preconditionMatchI in preconditionMatchesI)
                                 {
                                     var isInteractable = true;

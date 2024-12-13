@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.KeyMoments;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments;
 using StateRecorder.BotSegments.Models;
