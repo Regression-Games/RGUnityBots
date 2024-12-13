@@ -164,6 +164,90 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             }
         }
 
+        private bool HandleUnClickAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
+        {
+            // find the best object and un-click on it if possible
+            var unClickPaths = _preconditionNormalizedPaths[2];
+            var unClickPreconditionMatches = BuildPreconditions(segmentNumber, currentTransforms, currentEntities, unClickPaths);
+
+            var validateObjectMatches = true;
+            Vector2 clickPosition;
+            if (unClickPreconditionMatches.Length > 0)
+            {
+                var bestUnClickMatchResult = FindBestMatch(segmentNumber, _unClickAction, unClickPreconditionMatches, out _);
+
+                if (bestUnClickMatchResult.HasValue)
+                {
+
+                    clickPosition = GetClickPositionForMatch(bestUnClickMatchResult.Value);
+
+                    // if our best match path isn't the same as the click path.. do some extra evaluation
+                    // check if this is an un-click of a previous click.. if so we have some special cases to check to make sure we want to move the click position or not
+                    if (_lastClickPosition.HasValue)
+                    {
+                        if (_lastClickPosition.Value.x >= bestUnClickMatchResult.Value.Item2.Item1
+                            && _lastClickPosition.Value.x <= bestUnClickMatchResult.Value.Item2.Item3
+                            && _lastClickPosition.Value.y >= bestUnClickMatchResult.Value.Item2.Item2
+                            && _lastClickPosition.Value.y <= bestUnClickMatchResult.Value.Item2.Item4)
+                        {
+                            RGDebug.LogDebug($"({segmentNumber}) Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on bounds overlaps to original path: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
+                            // if the click position was within the bounds of the un-click object, just use that same one... this is critical for cases where the
+                            // clicked button is no longer present in the normalizedPaths list for the un-click... which happens based on how observation of the un-click occurs on a future frame
+                            clickPosition = _lastClickPosition.Value;
+                            validateObjectMatches = false;
+                        }
+                        else if (_previousOverlappingObjects.Count > 0)
+                        {
+                            // this can handle things where the un-click was recorded 'after' the element dis-appeared, but it is still there in the replay until the un-click happens... this is just a matter of how ui events and when we can observe during recording works
+
+                            // an even more special case... even though the bounds don't align.. the resolution could have changed (this happens a lot for bossroom menus when you resize and the 3d game objects scale differently than the UI)
+                            // but on un-click.. the ui element isn't in the path list anymore so it tries to un-click on the door or some other background game object instead and misses the button
+                            // so if we had this same object listed in the conditions for the prior click calculation.. then the original click already considered this and the scaling factor of the screen
+                            // isn't important.. we want to un-click exactly where we clicked
+                            if (_previousOverlappingObjects.Any(a => a == bestUnClickMatchResult.Value.Item1))
+                            {
+                                RGDebug.LogDebug($"({segmentNumber}) Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on object path existing at time of click: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
+                                clickPosition = _lastClickPosition.Value;
+                                validateObjectMatches = false;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // didn't find it.. this is where 'exploration' is going to start happening based on our result
+                    error = $"No valid mouse un-click action object found for path:\n{unClickPaths[0].normalizedPath}";
+                    return false;
+                }
+            }
+            else
+            {
+                // there were no object paths on the un-click. assume it is at the same position as the click
+                if (_lastClickPosition.HasValue)
+                {
+                    clickPosition = _lastClickPosition.Value;
+                }
+                else
+                {
+                    error = $"No valid mouse un-click position... This is a code bug in Regression Games and should NOT happen";
+                    return false;
+                }
+            }
+
+            var targetObjectPath = _unClickAction.clickedObjectNormalizedPaths.Length > 0 ? _unClickAction.clickedObjectNormalizedPaths[0] : null;
+            if (!DoActionForObjectAtPosition(segmentNumber, validateObjectMatches, _unClickAction, clickPosition, targetObjectPath, currentTransforms, out error))
+            {
+                return false;
+            }
+
+            error = null;
+            return true;
+
+        }
+
+        /**
+         * Handles the mouse inputs to each send their event on a different update loop pass, otherwise the UI event system fails to process correctly as it can't handle 2 mouse input events on the same update
+         */
         public bool ProcessAction(int segmentNumber, Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
             if (_isDoneWaitOneFrame)
@@ -197,94 +281,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                     // wait until the right time, then do the un-click mouse action
                     if (Time.unscaledTimeAsDouble >= _unClickTime)
                     {
-                        // find the best object and un-click on it if possible
-                        var unClickPaths = _preconditionNormalizedPaths[2];
-                        var unClickPreconditionMatches = BuildPreconditions(segmentNumber, currentTransforms, currentEntities, unClickPaths);
-
-                        ObjectStatus bestObjectStatus = null;
-                        Vector2 clickPosition;
-                        if (unClickPreconditionMatches.Length > 0)
+                        var worked = HandleUnClickAction(segmentNumber, currentTransforms, currentEntities, out error);
+                        if (worked)
                         {
-                            var bestUnClickMatchResult = FindBestMatch(_unClickAction, unClickPreconditionMatches, out _);
-
-                            if (bestUnClickMatchResult.HasValue)
-                            {
-                                bestObjectStatus = bestUnClickMatchResult.Value.Item1;
-
-                                clickPosition = GetClickPositionForMatch(bestUnClickMatchResult.Value);
-
-                                // if our best match path isn't the same as the click path.. do some extra evaluation
-                                // check if this is an un-click of a previous click.. if so we have some special cases to check to make sure we want to move the click position or not
-                                if (_lastClickPosition.HasValue)
-                                {
-                                    if (_lastClickPosition.Value.x >= bestUnClickMatchResult.Value.Item2.Item1
-                                        && _lastClickPosition.Value.x <= bestUnClickMatchResult.Value.Item2.Item3
-                                        && _lastClickPosition.Value.y >= bestUnClickMatchResult.Value.Item2.Item2
-                                        && _lastClickPosition.Value.y <= bestUnClickMatchResult.Value.Item2.Item4)
-                                    {
-                                        RGDebug.LogDebug($"Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on bounds overlaps to original path: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
-                                        // if the click position was within the bounds of the un-click object, just use that same one... this is critical for cases where the
-                                        // clicked button is no longer present in the normalizedPaths list for the un-click... which happens based on how observation of the un-click occurs on a future frame
-                                        clickPosition = _lastClickPosition.Value;
-                                        if (bestObjectStatus.NormalizedPath != mouseActions[1].clickedObjectNormalizedPaths[0])
-                                        {
-                                            bestObjectStatus = null;
-                                        }
-                                    }
-                                    else if (_previousOverlappingObjects.Count > 0)
-                                    {
-                                        // this can handle things where the un-click was recorded 'after' the element dis-appeared, but it is still there in the replay until the un-click happens... this is just a matter of how ui events and when we can observe during recording works
-
-                                        // an even more special case... even though the bounds don't align.. the resolution could have changed (this happens a lot for bossroom menus when you resize and the 3d game objects scale differently than the UI)
-                                        // but on un-click.. the ui element isn't in the path list anymore so it tries to un-click on the door or some other background game object instead and misses the button
-                                        // so if we had this same object listed in the conditions for the prior click calculation.. then the original click already considered this and the scaling factor of the screen
-                                        // isn't important.. we want to un-click exactly where we clicked
-                                        if (_previousOverlappingObjects.Any(a => a == bestUnClickMatchResult.Value.Item1))
-                                        {
-                                            RGDebug.LogDebug($"Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on object path existing at time of click: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
-                                            clickPosition = _lastClickPosition.Value;
-                                            if (bestObjectStatus.NormalizedPath != mouseActions[1].clickedObjectNormalizedPaths[0])
-                                            {
-                                                bestObjectStatus = null;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                // didn't find it.. this is where 'exploration' is going to start happening based on our result
-                                error = $"No valid mouse un-click action object found for path:\n{unClickPaths[0].normalizedPath}";
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            // there were no object paths on the un-click. assume it is at the same position as the click
-                            if (_lastClickPosition.HasValue)
-                            {
-                                clickPosition = _lastClickPosition.Value;
-                            }
-                            else
-                            {
-                                error = $"No valid mouse un-click position... This is a code bug in Regression Games and should NOT happen";
-                                return false;
-                            }
+                            _unClickAction = null;
+                            _isDoneWaitOneFrame = true;
                         }
 
-                        // only send the bestObjectStatus for filtering when NOT un-clicking at the original position
-                        var targetObjectPath = _unClickAction.clickedObjectNormalizedPaths.Length > 0 ? _unClickAction.clickedObjectNormalizedPaths[0] : null;
-                        if (!DoActionForObjectAtPosition(segmentNumber, _unClickAction, bestObjectStatus, clickPosition, targetObjectPath, currentTransforms, out error))
-                        {
-                            return false;
-                        }
-
-                        _unClickAction = null;
-                        _isDoneWaitOneFrame = true;
-
-                        error = null;
-                        return true;
-
+                        return worked;
                     }
                     else
                     {
@@ -293,31 +297,49 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                         return false;
                     }
                 }
+                else if (_lastClickPosition.HasValue)
+                {
+                    // handling [1] index.. the click/un-click
+                    if (!DoActionForObjectAtPosition(segmentNumber, true, mouseActions[1], _lastClickPosition.Value, mouseActions[1].clickedObjectNormalizedPaths[0], currentTransforms, out error))
+                    {
+                        return false;
+                    }
+
+                    if (mouseActions.Count > 2)
+                    {
+                        _unClickAction = mouseActions[2];
+                        // save off the time the unClick should happen here so mouse button holds work
+                        var clickGapDelta = _unClickAction.startTime - mouseActions[1].startTime;
+                        _unClickTime = mouseActions[1].startTime == 0d ? 0d : Time.unscaledTimeAsDouble + clickGapDelta;
+                    }
+                    else
+                    {
+                        // this was just a 2 action segment.. we're done
+                        _unClickAction = null;
+                        _unClickTime = 0d;
+                        _isDoneWaitOneFrame = true;
+                    }
+
+                    error = null;
+                    return true;
+                }
                 else
                 {
                     // handling [0] , [1] indexes.. the positioning and the click[length=3] or un-click action[length=2]
                     // these have the same position.. so we can compute it just once
                     // we have to be aware that you can get a segment with only a position and an un-click  (length 2) .. so we have to be careful there
+                    // we use the [1] index to find the paths we need to get the correct position
 
-                    var movementAction = mouseActions[0];
-                    var clickAction = mouseActions[1];
                     var clickPaths = _preconditionNormalizedPaths[1];
 
                     var preconditionMatches = BuildPreconditions(segmentNumber, currentTransforms, currentEntities, clickPaths);
-                    var bestMatchResult = FindBestMatch(clickAction, preconditionMatches, out var overlappingObjects);
+                    var bestMatchResult = FindBestMatch(segmentNumber, mouseActions[1], preconditionMatches, out var overlappingObjects);
                     if (bestMatchResult.HasValue)
                     {
-                        var bestObjectStatus = bestMatchResult.Value.Item1;
 
                         var clickPosition = GetClickPositionForMatch(bestMatchResult.Value);
 
-
-                        if (!DoActionForObjectAtPosition(segmentNumber, movementAction, bestObjectStatus, clickPosition,clickAction.clickedObjectNormalizedPaths[0], currentTransforms, out error))
-                        {
-                            return false;
-                        }
-
-                        if (!DoActionForObjectAtPosition(segmentNumber, clickAction, bestObjectStatus, clickPosition,clickAction.clickedObjectNormalizedPaths[0], currentTransforms, out error))
+                        if (!DoActionForObjectAtPosition(segmentNumber, true, mouseActions[0], clickPosition, mouseActions[1].clickedObjectNormalizedPaths[0], currentTransforms, out error))
                         {
                             return false;
                         }
@@ -325,20 +347,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                         _previousOverlappingObjects = overlappingObjects;
                         // on the 'click'.. save the position
                         _lastClickPosition = clickPosition;
-
-                        if (mouseActions.Count > 2)
-                        {
-                            _unClickAction = mouseActions[2];
-                            // save off the time the unClick should happen here so mouse button holds work
-                            _unClickTime = clickAction.startTime == 0d ? 0d : Time.unscaledTimeAsDouble + _unClickAction.startTime - clickAction.startTime;
-                        }
-                        else
-                        {
-                            // this was just a position and un-click segment.. we're done
-                            _unClickAction = null;
-                            _unClickTime = 0d;
-                            _isDoneWaitOneFrame = true;
-                        }
 
                         error = null;
                         return true;
@@ -359,13 +367,17 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
         {
             // we started with clicking the center.. but this was limiting
             //clickPosition = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
-            // instead... make the click-position a random position within the bounds
+            // instead... make the click-position a random position within the bounds..
             // 1. for more variability in testing
             // 2. to get around cases where we were say clicking on a floor tile, but there is something on that floor tile and we wanted to click on the open space of the floor tile
             //     on the next attempt, it picks a new position to try thus giving us a better chance of passing
             // TODO (REG-2223): Future: Can we capture the relativistic offset click position where we hit a world space object so that we can try to re-click on that same offset given its new world position ???
             // This would allow us to know that we clicked about X far into this floor tile and replicate that positioning regardless of the actual worldspace positioning in the replay...
-            Vector2 result = new Vector2(Random.Range(bestMatchResult.Item2.Item1, bestMatchResult.Item2.Item3), Random.Range(bestMatchResult.Item2.Item2, bestMatchResult.Item2.Item4));
+            // Vector2 result = new Vector2(Random.Range(bestMatchResult.Item2.Item1, bestMatchResult.Item2.Item3), Random.Range(bestMatchResult.Item2.Item2, bestMatchResult.Item2.Item4));
+            //we pick in the central 80% of the height/width of the object to avoid edge misses which were happening on UI buttons in initial testing
+            var rangeWidth10Percent = (bestMatchResult.Item2.Item3 - bestMatchResult.Item2.Item1) / 10;
+            var rangeHeight10Percent = (bestMatchResult.Item2.Item4 - bestMatchResult.Item2.Item2) / 10;
+            Vector2 result = new Vector2(Random.Range(bestMatchResult.Item2.Item1+rangeWidth10Percent, bestMatchResult.Item2.Item3-rangeWidth10Percent), Random.Range(bestMatchResult.Item2.Item2+rangeHeight10Percent, bestMatchResult.Item2.Item4-rangeHeight10Percent));
 
             return result;
         }
@@ -545,7 +557,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             return result;
         }
 
-        private (ObjectStatus, (float,float,float,float))? FindBestMatch(MouseInputActionData mouseAction, List<(ObjectStatus, (int[], int[]))>[] preconditionMatches, out List<ObjectStatus> overlappingObjects)
+        private (ObjectStatus, (float,float,float,float))? FindBestMatch(int segmentNumber, MouseInputActionData mouseAction, List<(ObjectStatus, (int[], int[]))>[] preconditionMatches, out List<ObjectStatus> overlappingObjects)
         {
             overlappingObjects = new List<ObjectStatus>();
 
@@ -616,7 +628,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                         var originalMaxX = maxX;
                         var originalMaxY = maxY;
 
-                        RGDebug.LogDebug($"Starting with bounds: ({minX}, {minY}),({maxX}, {maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} , target object: {preconditionMatch0.Item1.NormalizedPath}");
+                        RGDebug.LogDebug($"({segmentNumber}) Starting with bounds: ({minX}, {minY}),({maxX}, {maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} , target object: {preconditionMatch0.Item1.NormalizedPath}");
                         // now let's narrow down the screen space bounds more precisely based on all our preconditions
                         for (var i = 1; i < preconditionMatches.Length; i++)
                         {
@@ -716,7 +728,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                                         if (pmIDidOverlap)
                                         {
                                             overlappingObjects.Add(preconditionMatchI.Item1);
-                                            RGDebug.LogDebug($"Tightened bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} - overlap with object path [{i}]: {preconditionMatchI.Item1.NormalizedPath}");
+                                            RGDebug.LogDebug($"({segmentNumber}) Tightened bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} - overlap with object path [{i}]: {preconditionMatchI.Item1.NormalizedPath}");
                                         }
                                     }
                                 }
@@ -818,14 +830,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
             return null;
         }
 
-        private bool DoActionForObjectAtPosition(int segmentNumber, MouseInputActionData mouseAction, ObjectStatus bestObjectStatus, Vector2 myClickPosition, string targetObjectPath, Dictionary<long, ObjectStatus> currentTransforms, out string error)
+        private bool DoActionForObjectAtPosition(int segmentNumber, bool validateObjectMatches, MouseInputActionData mouseAction, Vector2 myClickPosition, string targetObjectPath, Dictionary<long, ObjectStatus> currentTransforms, out string error)
         {
-            if (bestObjectStatus is TransformStatus)
+
+            // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
+            // our intended click item (iow.. it's there/ready, but obstructed) ...
+            // make sure our object is at the front of the list and thus at the closest Z depth at that point.. FindObjectsAtPosition handles z depth/etc sorting for us
+            // or that the item at the front of the list is on the same path tree as us (we might have clicked on the text part of the button instead of the button, but both still click the button)
+            if (validateObjectMatches)
             {
-                // cross check that the top level element we want to click is actually on top at the click position.. .this is to handle things like scene transitions with loading screens, or temporary popups on the screen over
-                // our intended click item (iow.. it's there/ready, but obstructed) ...
-                // make sure our object is at the front of the list and thus at the closest Z depth at that point.. FindObjectsAtPosition handles z depth/etc sorting for us
-                // or that the item at the front of the list is on the same path tree as us (we might have clicked on the text part of the button instead of the button, but both still click the button)
                 var objectsAtClickPosition = MouseInputActionObserver.FindObjectsAtPosition(myClickPosition, currentTransforms.Values);
                 // see if our object is 'first' or obstructed
                 if (objectsAtClickPosition.Count > 0)
@@ -844,7 +857,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.KeyMoments.BotActions
                 }
             }
 
-            RGDebug.LogInfo($"KeyMoment - Mouse Action at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y}) on object path: {targetObjectPath}");
+
+            RGDebug.LogInfo($"({segmentNumber}) KeyMoment - Mouse Action at position: ({(int)myClickPosition.x}, {(int)myClickPosition.y}) on object path: {targetObjectPath}");
             // perform the mouse action at the center of our new smallest bounds
             MouseEventSender.SendRawPositionMouseEvent(segmentNumber, myClickPosition, mouseAction.leftButton, mouseAction.middleButton, mouseAction.rightButton, mouseAction.forwardButton, mouseAction.backButton, mouseAction.scroll);
 

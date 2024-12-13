@@ -186,7 +186,10 @@ namespace StateRecorder.BotSegments
                 RGDebug.LogInfo("ActionExplorationDriver - Paused Exploratory Actions");
             }
 
-            ExplorationState = ExplorationState.PAUSED;
+            if (ExplorationState != ExplorationState.STOPPED)
+            {
+                ExplorationState = ExplorationState.PAUSED;
+            }
         }
 
         public void StopExploring(int segmentNumber)
