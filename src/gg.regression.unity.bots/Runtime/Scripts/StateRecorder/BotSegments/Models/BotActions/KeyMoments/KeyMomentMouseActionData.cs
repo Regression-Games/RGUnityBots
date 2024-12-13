@@ -77,7 +77,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
         // These are all used to track the un-click work across multiple Update calls
         private double _unClickTime = 0d;
         private Vector2? _lastClickPosition = null;
-        private List<ObjectStatus> _previousOverlappingObjects = new();
+        private HashSet<ObjectStatus> _previousOverlappingObjects = new();
         private MouseInputActionData _unClickAction = null;
 
         public bool IsCompleted()
@@ -174,7 +174,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
             Vector2 clickPosition;
             if (unClickPreconditionMatches.Length > 0)
             {
-                var bestUnClickMatchResult = FindBestMatch(segmentNumber, _unClickAction, unClickPreconditionMatches, out _);
+                var bestUnClickMatchResult = FindBestMatch(segmentNumber, _unClickAction, unClickPreconditionMatches);
 
                 if (bestUnClickMatchResult.HasValue)
                 {
@@ -206,7 +206,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                             // isn't important.. we want to un-click exactly where we clicked
                             if (_previousOverlappingObjects.Any(a => a == bestUnClickMatchResult.Value.Item1))
                             {
-                                RGDebug.LogDebug($"({segmentNumber}) Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on object path existing at time of click: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
+                                RGDebug.LogDebug($"({segmentNumber}) Leaving mouse un-click action at previous action position: ({(int)_lastClickPosition.Value.x}, {(int)_lastClickPosition.Value.y}) based on object target being at the point of the original click: {bestUnClickMatchResult.Value.Item1.NormalizedPath}");
                                 clickPosition = _lastClickPosition.Value;
                                 validateObjectMatches = false;
                             }
@@ -340,7 +340,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                     var clickPaths = _preconditionNormalizedPaths[1];
 
                     var preconditionMatches = BuildPreconditions(segmentNumber, currentTransforms, currentEntities, clickPaths);
-                    var bestMatchResult = FindBestMatch(segmentNumber, mouseActions[1], preconditionMatches, out var overlappingObjects);
+                    var bestMatchResult = FindBestMatch(segmentNumber, mouseActions[1], preconditionMatches);
                     if (bestMatchResult.HasValue)
                     {
 
@@ -351,7 +351,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                             return false;
                         }
 
-                        _previousOverlappingObjects = overlappingObjects;
+                        _previousOverlappingObjects = bestMatchResult.Value.Item3;
                         // on the 'click'.. save the position
                         _lastClickPosition = clickPosition;
 
@@ -370,7 +370,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
             return false;
         }
 
-        private Vector2 GetClickPositionForMatch((ObjectStatus, (float,float,float,float)) bestMatchResult)
+        private Vector2 GetClickPositionForMatch((ObjectStatus, (float,float,float,float), HashSet<ObjectStatus>) bestMatchResult)
         {
             // we started with clicking the center.. but this was limiting
             //clickPosition = new Vector2(minX + (maxX - minX) / 2, minY + (maxY - minY) / 2);
@@ -410,7 +410,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                 {
                     possibleTransformToClick.TokenizedObjectPath ??= PreconditionNormalizedPathData.TokenizeObjectPath(possibleTransformToClick.NormalizedPath);
 
-                    // this should nearly always be smaller than the # of possibleTransformToClick
+                    // this should nearly always be smaller than the # of possibleTransformToClick as far as optimizing the nested loops goes
                     for (var j = 0; j < preconditionsLength; j++)
                     {
                         var precondition = preConditionNormalizedPaths[j];
@@ -426,15 +426,15 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                             }
 
                             preconditionMatches[j].Add((possibleTransformToClick, (null, null)));
-                            break; // the for
+                            break; // the for - we got an exact match.. stop processing this index
                         }
                         else
                         {
                             // tokenized matching logic
                             if (preconditionMatches[j].Count > 0 && preconditionMatches[j][0].Item2.Item1 == null)
                             {
-                                // we already have exact matches.. ignore the tokenized ones
-                                break; // the for
+                                // we already have exact matches.. ignore the tokenized ones for this index
+                                continue; // the for -  this still might be an exact match for another index
                             }
 
                             var tokenMatches = EvaluateTokenMatches(precondition.tokenData, possibleTransformToClick.TokenizedObjectPath);
@@ -464,7 +464,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                                     preconditionMatches[j].Add((possibleTransformToClick, tokenMatches));
                                 }
 
-                                break; // the for
+                                continue; // the for - might still be an exact match for another index
                             }
                         }
                     }
@@ -564,24 +564,27 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
             return result;
         }
 
-        private (ObjectStatus, (float,float,float,float))? FindBestMatch(int segmentNumber, MouseInputActionData mouseAction, List<(ObjectStatus, (int[], int[]))>[] preconditionMatches, out List<ObjectStatus> overlappingObjects)
+        /**
+         * Finds the best object on which to click given the precondition matches  for the path names + the mouse location.
+         * Returns a tuple of (objectStatus, (minX,minY,maxY,maxY) bounds of that object, HashSet<ObjectStatus> of objects found to be overlapping that object)
+         */
+        private (ObjectStatus, (float,float,float,float), HashSet<ObjectStatus>)? FindBestMatch(int segmentNumber, MouseInputActionData mouseAction, List<(ObjectStatus, (int[], int[]))>[] preconditionMatches)
         {
-            overlappingObjects = new List<ObjectStatus>();
-
             // now that we have all the precondition matches mapped out, let's see if we have the leftmost object..
             if (preconditionMatches.Length > 0 && preconditionMatches[0].Count > 0)
             {
                 // yay.. we found something(s).. figure out which one of them is the 'best' based on number of overlapping matches
 
-                // for each of the left most preconditionMatches[0] .. go through each of other precondition matches
-                // we will compute the 'smallest' click bounds for these overlaps as we go
-                var matchResults = new List<(ObjectStatus, (float, float, float, float))>(preconditionMatches[0].Count);
+                // for each of the objects matching the left most preconditionMatches[0] .. go through each of other precondition matches in the list and evaluate which of them have an overlap
+                // use all of those information to find the best match based on proximity to the original click + bounds area
+                var matchResults = new List<(ObjectStatus, (float, float, float, float), HashSet<ObjectStatus>)>(preconditionMatches[0].Count);
 
                 var screenWidth = Screen.width;
                 var screenHeight = Screen.height;
 
                 foreach (var preconditionMatch0 in preconditionMatches[0])
                 {
+                    var myOverlappingObjects = new HashSet<ObjectStatus>();
                     var isPreconditionMatch0Interactable = true;
                     // now that we have a candidate match ... first let's make sure it's ready to be clicked
                     // visible (already true by the time we get here)/active-enabled(we already know that from a canvas perspective this is visible, but need to check UI component info)
@@ -642,7 +645,14 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                             var preconditionMatchesI = preconditionMatches[i];
                             if (preconditionMatchesI.Count > 0)
                             {
-                                // TODO: Currently this narrows the bounds.. but can cause you to actually get further from the original click position... i think we need to consider the 'most' overlapping match with the original for similar objects before choosing to narrow
+                                // consider the 'most' overlapping match with the original before processing bounds narrowing
+                                // this allows us to prefer shrinking the bounds based on the most overlapping objects with the current object... this keeps us picking the best objects to narrow with in cases where game UIs
+                                // have large degree of canvas or bounds overlaps
+
+                                // list of ObjectStatus, overlap-area, (minX,minY,maxX,maxY)
+                                var sortedOverlappingPreconditionMatchesI = new List<(ObjectStatus, float, (float,float,float,float))>();
+
+                                // sort the objects by those that overlap the most
                                 foreach (var preconditionMatchI in preconditionMatchesI)
                                 {
                                     var isInteractable = true;
@@ -657,17 +667,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                                             var selectables = theTransform.GetComponents<Selectable>();
                                             if (selectables.Length > 0)
                                             {
-                                                // make sure 1 is interactable - if none leave isInteratable == true
+                                                // make sure 1 is interactable - if none leave isInteractable == true
                                                 isInteractable = selectables.Any(a => a.interactable);
                                             }
                                         }
                                     }
+
                                     if (isInteractable)
                                     {
-                                        var pmIDidOverlap = false;
                                         // ReSharper disable once PossibleInvalidOperationException - already filtered in BuildPreconditions to only have entries with valid visible bounds
                                         var newBounds = preconditionMatchI.Item1.screenSpaceBounds.Value;
 
+                                        // for world space object, narrow the bounds to its collider
                                         if (preconditionMatchI.Item1.worldSpaceBounds != null && preconditionMatchI.Item1 is TransformStatus preconditionMatchITs)
                                         {
                                             var preconditionMatchITransform = preconditionMatchITs.Transform;
@@ -685,67 +696,82 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments
                                             }
                                         }
 
-                                        // adjust in for the min to ensure we don't miss a click
-                                        var newMinX = newBounds.min.x;
-                                        var newMinY = newBounds.min.y;
-                                        // adjust in for the max to ensure we don't miss a click
-                                        var newMaxX = newBounds.max.x;
-                                        var newMaxY = newBounds.max.y;
+                                        var areaMinX = Mathf.Max(newBounds.min.x, originalMinX);
+                                        var areaMaxX = Mathf.Min(newBounds.max.x, originalMaxX);
+                                        var areaMinY = Mathf.Max(newBounds.min.y, originalMinY);
+                                        var areaMaxY = Mathf.Min(newBounds.max.y, originalMaxY);
 
-                                        if (newMinX >= minX && newMinX <= maxX)
+                                        var areaOfOverlap = (areaMaxX - areaMinX) * (areaMaxY - areaMinY);
+                                        if (areaOfOverlap > 0)
                                         {
-                                            minX = newMinX;
+                                            sortedOverlappingPreconditionMatchesI.Add((preconditionMatchI.Item1, areaOfOverlap, (areaMinX, areaMinY, areaMaxX, areaMaxY)));
                                         }
-
-                                        if (newMinY >= minY && newMinY <= maxY)
+                                        else
                                         {
-                                            minY = newMinY;
-                                        }
-
-                                        if (newMaxX >= minX && newMaxX <= maxX)
-                                        {
-                                            maxX = newMaxX;
-                                        }
-
-                                        if (newMaxY >= minY && newMaxY <= maxY)
-                                        {
-                                            maxY = newMaxY;
-                                        }
-
-
-                                        if (newMinX >= originalMinX && newMinX <= originalMaxX)
-                                        {
-                                            pmIDidOverlap = true;
-                                        }
-
-                                        if (newMinY >= originalMinY && newMinY <= originalMaxY)
-                                        {
-                                            pmIDidOverlap = true;
-                                        }
-
-                                        if (newMaxX >= originalMinX && newMaxX <= originalMaxX)
-                                        {
-                                            pmIDidOverlap = true;
-                                        }
-
-                                        if (newMaxY >= originalMinY && newMaxY <= originalMaxY)
-                                        {
-                                            pmIDidOverlap = true;
-                                        }
-
-                                        if (pmIDidOverlap)
-                                        {
-                                            overlappingObjects.Add(preconditionMatchI.Item1);
-                                            RGDebug.LogDebug($"({segmentNumber}) Tightened bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} - overlap with object path [{i}]: {preconditionMatchI.Item1.NormalizedPath}");
+                                            RGDebug.LogVerbose($"Excluding object with negative area of overlap");
                                         }
                                     }
                                 }
 
+                                sortedOverlappingPreconditionMatchesI.Sort((a, b) =>
+                                {
+                                    // sort biggest overlap numbers to the front
+                                    if (a.Item2 < b.Item2)
+                                    {
+                                        return 1;
+                                    }
 
+                                    // we're comparing multiplied floats.. don't really need to care about the zillionth of a percent chance they are equal based on what we're doing with the data
+                                    return -1;
+                                });
+
+                                // then process those results narrowing bounds until we miss, then stop
+                                foreach (var sortedOverlappingPreconditionMatch in sortedOverlappingPreconditionMatchesI)
+                                {
+                                    // need to add all the overlaps
+                                    myOverlappingObjects.Add(sortedOverlappingPreconditionMatch.Item1);
+
+                                    var didShrinkBounds = false;
+                                    var newMinX = sortedOverlappingPreconditionMatch.Item3.Item1;
+                                    var newMaxX = sortedOverlappingPreconditionMatch.Item3.Item3;
+
+                                    var newMinY = sortedOverlappingPreconditionMatch.Item3.Item2;
+                                    var newMaxY = sortedOverlappingPreconditionMatch.Item3.Item4;
+
+                                    if (newMinX > minX && newMinX < maxX)
+                                    {
+                                        didShrinkBounds = true;
+                                        minX = newMinX;
+                                    }
+
+                                    if (newMinY > minY && newMinY < maxY)
+                                    {
+                                        didShrinkBounds = true;
+                                        minY = newMinY;
+                                    }
+
+                                    if (newMaxX > minX && newMaxX < maxX)
+                                    {
+                                        didShrinkBounds = true;
+                                        maxX = newMaxX;
+                                    }
+
+                                    if (newMaxY > minY && newMaxY < maxY)
+                                    {
+                                        didShrinkBounds = true;
+                                        maxY = newMaxY;
+                                    }
+
+                                    if (didShrinkBounds)
+                                    {
+                                        RGDebug.LogDebug($"({segmentNumber}) Tightened bounds: ({(int)minX}, {(int)minY}),({(int)maxX}, {(int)maxY}) for object path: {mouseAction.clickedObjectNormalizedPaths[0]} - overlap with object path [{i}]: {sortedOverlappingPreconditionMatch.Item1.NormalizedPath}");
+                                    }
+
+                                }
                             }
                         }
 
-                        matchResults.Add((preconditionMatch0.Item1, (minX, minY, maxX, maxY)));
+                        matchResults.Add((preconditionMatch0.Item1, (minX, minY, maxX, maxY), myOverlappingObjects));
                     }
                 }
 
