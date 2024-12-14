@@ -1,5 +1,6 @@
 ﻿using System;
 using JetBrains.Annotations;
+using StateRecorder.BotSegments.Models.SegmentValidations;
 using UnityEngine;
 
 namespace RegressionGames.Validation
@@ -18,11 +19,11 @@ namespace RegressionGames.Validation
     public class RGValidate: Attribute {
         
         public int Frequency { get; private set; }
-        public RGCondition Condition { get; private set; }
+        public ValidationMode Mode { get; private set; }
 
-        public RGValidate(RGCondition condition, int frequency = 1)
+        public RGValidate(ValidationMode mode, int frequency = 1)
         {
-            Condition = condition;
+            Mode = mode;
             Frequency = Mathf.Max(1, frequency); // Ensure frequency is at least 1
         }
         

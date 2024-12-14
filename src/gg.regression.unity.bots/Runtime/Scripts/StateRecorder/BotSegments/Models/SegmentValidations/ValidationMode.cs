@@ -1,10 +1,11 @@
-﻿namespace RegressionGames.Validation
+namespace StateRecorder.BotSegments.Models.SegmentValidations
 {
-    
     /**
-     * The condition that the test should be evaluated as.
+     * <summary>
+     * The mode in which to apply the validaton
+     * </summary>
      */
-    public enum RGCondition
+    public enum ValidationMode
     {
         /**
          * This condition should be true on every frame that it is

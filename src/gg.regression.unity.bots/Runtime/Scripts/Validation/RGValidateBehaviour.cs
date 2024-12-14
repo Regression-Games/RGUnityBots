@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using StateRecorder.BotSegments.Models.SegmentValidations;
 using UnityEngine;
 
 namespace RegressionGames.Validation
@@ -12,8 +14,11 @@ namespace RegressionGames.Validation
         {
             public MethodInfo Method { get; set; }
             public int Frequency { get; set; }
-            public RGCondition Condition { get; set; }
-            public RGValidatorResult Result { get; set; } = RGValidatorResult.NOT_SET;
+            
+            public ValidationMode Mode { get; set; }
+            
+            public SegmentValidationStatus Status { get; set; } = SegmentValidationStatus.UNKNOWN;
+            
             public System.Exception ThrownException { get; set; }
         }
 
@@ -27,7 +32,7 @@ namespace RegressionGames.Validation
 
         private int frame = 0;
         private ValidatorData currentValidator;
-        private RGValidatorResult currentStatus = RGValidatorResult.NOT_SET;
+        private SegmentValidationStatus currentStatus = SegmentValidationStatus.UNKNOWN;
 
         private void Awake()
         {
@@ -46,7 +51,7 @@ namespace RegressionGames.Validation
                     { 
                         Method = method,
                         Frequency = attribute.Frequency,
-                        Condition = attribute.Condition
+                        Mode = attribute.Mode
                     });
                     Debug.Log("[RGValidator] Activated " + method.Name);
                 } 
@@ -56,12 +61,30 @@ namespace RegressionGames.Validation
 
         public void AssertAsTrue(string message = null)
         {
-            currentStatus = RGValidatorResult.PASSED;
+            currentStatus = SegmentValidationStatus.PASSED;
         }
 
         public void AssertAsFalse(string message = null)
         {
-            currentStatus = RGValidatorResult.FAILED;
+            currentStatus = SegmentValidationStatus.FAILED;
+        }
+
+        /**
+         * <summary>
+         * Returns a collection of all the results for the validations so far.
+         * This does not necessarily mean the final result - it is the result
+         * for this moment in time.
+         * </summary>
+         */
+        public SegmentValidationResultSetContainer GetResults()
+        {
+            var resultSet = new SegmentValidationResultSetContainer();
+            resultSet.name = "SET THE CLASS HERE";
+            resultSet.validationResults = Validators.Select(v =>
+            {
+                return new SegmentValidationResultContainer(v.Method.Name, null, v.Status);
+            }).ToList();
+            return resultSet;
         }
 
         private void Update()
@@ -78,11 +101,11 @@ namespace RegressionGames.Validation
                 }
                 
                 // Skip over validators that are already passed for failed
-                if (validator.Result == RGValidatorResult.FAILED)
+                if (validator.Status == SegmentValidationStatus.FAILED)
                 {
                     continue;
                 }
-                if (validator.Result == RGValidatorResult.PASSED && validator.Condition != RGCondition.ONCE_TRUE_ALWAYS_TRUE)
+                if (validator.Status == SegmentValidationStatus.PASSED && validator.Mode != ValidationMode.ONCE_TRUE_ALWAYS_TRUE)
                 {
                     continue;
                 }
@@ -90,7 +113,7 @@ namespace RegressionGames.Validation
                 // Run the validator
                 try
                 {
-                    currentStatus = RGValidatorResult.NOT_SET;
+                    currentStatus = SegmentValidationStatus.UNKNOWN;
                     currentValidator = validator;
                     validator.Method.Invoke(this, null);
                 } 
@@ -102,52 +125,62 @@ namespace RegressionGames.Validation
                 
                 // After the method is called, we can figure out what to do with the validators that should immediately
                 // fail or pass
-                if (currentValidator.Condition == RGCondition.NEVER_TRUE && currentStatus == RGValidatorResult.PASSED)
+                if (currentValidator.Mode == ValidationMode.NEVER_TRUE && currentStatus == SegmentValidationStatus.PASSED)
                 {
                     // Debug.LogError($"Validation method {validator.Method.Name} should never pass, but it did.");
-                    currentValidator.Result = RGValidatorResult.FAILED;
+                    currentValidator.Status = SegmentValidationStatus.FAILED;
                     OnValidationsUpdated?.Invoke();
                 }
-                else if (currentValidator.Condition == RGCondition.ALWAYS_TRUE && currentStatus is RGValidatorResult.FAILED or RGValidatorResult.NOT_SET)
+                else if (currentValidator.Mode == ValidationMode.ALWAYS_TRUE && currentStatus is SegmentValidationStatus.FAILED or SegmentValidationStatus.UNKNOWN)
                 {
                     // Debug.LogError($"Validation method {validator.Method.Name} should always pass, but it did not.");
-                    currentValidator.Result = RGValidatorResult.FAILED;
+                    currentValidator.Status = SegmentValidationStatus.FAILED;
                     OnValidationsUpdated?.Invoke();
                 } 
-                else if (currentValidator.Condition == RGCondition.EVENTUALLY_TRUE && currentStatus == RGValidatorResult.PASSED)
+                else if (currentValidator.Mode == ValidationMode.EVENTUALLY_TRUE && currentStatus == SegmentValidationStatus.PASSED)
                 {
                     // Debug.LogError($"Validation method {validator.Method.Name} finally passed.");
-                    currentValidator.Result = RGValidatorResult.PASSED;
+                    currentValidator.Status = SegmentValidationStatus.PASSED;
                     OnValidationsUpdated?.Invoke();
                 }
-                else if (currentValidator.Condition == RGCondition.ONCE_TRUE_ALWAYS_TRUE &&
-                         currentValidator.Result == RGValidatorResult.PASSED &&
-                         currentStatus != RGValidatorResult.PASSED)
+                else if (currentValidator.Mode == ValidationMode.ONCE_TRUE_ALWAYS_TRUE &&
+                         currentValidator.Status == SegmentValidationStatus.PASSED &&
+                         currentStatus != SegmentValidationStatus.PASSED)
                 {
                     // Debug.LogError($"Validation method {validator.Method.Name} passed before but is no longer passing.");
-                    currentValidator.Result = RGValidatorResult.FAILED;
+                    currentValidator.Status = SegmentValidationStatus.FAILED;
                     OnValidationsUpdated?.Invoke();
                 }
-                else if (currentValidator.Condition == RGCondition.ONCE_TRUE_ALWAYS_TRUE &&
-                         currentValidator.Result == RGValidatorResult.NOT_SET &&
-                         currentStatus == RGValidatorResult.PASSED)
+                else if (currentValidator.Mode == ValidationMode.ONCE_TRUE_ALWAYS_TRUE &&
+                         currentValidator.Status == SegmentValidationStatus.UNKNOWN &&
+                         currentStatus == SegmentValidationStatus.PASSED)
                 {
                     // Debug.LogError($"Validation method {validator.Method.Name} is now passing.");
-                    currentValidator.Result = RGValidatorResult.PASSED;
+                    currentValidator.Status = SegmentValidationStatus.PASSED;
                     OnValidationsUpdated?.Invoke();
                 } 
-                else if (currentValidator.Condition == RGCondition.ONCE_TRUE_ALWAYS_TRUE &&
-                         currentValidator.Result == RGValidatorResult.NOT_SET &&
-                         currentStatus == RGValidatorResult.FAILED)
+                else if (currentValidator.Mode == ValidationMode.ONCE_TRUE_ALWAYS_TRUE &&
+                         currentValidator.Status == SegmentValidationStatus.UNKNOWN &&
+                         currentStatus == SegmentValidationStatus.FAILED)
                 {
                     // Debug.LogError($"Validation method {validator.Method.Name} has now failed.");
-                    currentValidator.Result = RGValidatorResult.FAILED;
+                    currentValidator.Status = SegmentValidationStatus.FAILED;
                     OnValidationsUpdated?.Invoke();
                 }
 
             }
 
             frame++;
+        }
+
+        public void PauseValidation()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UnPauseValidation()
+        {
+            throw new NotImplementedException();
         }
 
         /**
@@ -157,16 +190,16 @@ namespace RegressionGames.Validation
         {
             foreach (var validator in Validators)
             {
-                if (validator.Condition == RGCondition.ALWAYS_TRUE && validator.Result == RGValidatorResult.NOT_SET)
+                if (validator.Mode == ValidationMode.ALWAYS_TRUE && validator.Status == SegmentValidationStatus.UNKNOWN)
                 {
                     //Debug.LogError($"Validation method {validator.Method.Name} should always pass, but it never did.");
-                    validator.Result = RGValidatorResult.FAILED;
+                    validator.Status = SegmentValidationStatus.FAILED;
                     OnValidationsUpdated?.Invoke();
                 }
-                else if (validator.Condition == RGCondition.NEVER_TRUE && validator.Result == RGValidatorResult.NOT_SET)
+                else if (validator.Mode == ValidationMode.NEVER_TRUE && validator.Status == SegmentValidationStatus.UNKNOWN)
                 {
                     //Debug.LogError($"Validation method {validator.Method.Name} should never pass, and it never did!");
-                    validator.Result = RGValidatorResult.PASSED;
+                    validator.Status = SegmentValidationStatus.PASSED;
                     OnValidationsUpdated?.Invoke();
                 }
             }

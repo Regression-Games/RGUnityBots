@@ -7,6 +7,7 @@ using System.Threading;
 using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments.Models;
 using UnityEngine.Serialization;
 
 
@@ -25,7 +26,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
-        public int apiVersion = SdkApiVersion.VERSION_24;
+        public int apiVersion = SdkApiVersion.VERSION_28;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION), endCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
@@ -52,6 +53,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public List<KeyFrameCriteria> endCriteria = new();
 
         public BotAction botAction;
+
+        public List<SegmentValidation> validations = new();
 
         // Replay only - if this was fully matched (still not done until actions also completed)
         [NonSerialized]
@@ -143,6 +146,38 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
+        public void StartValidations()
+        {
+            foreach (var validation in validations)
+            {
+                validation.data.StartValidation(Replay_SegmentNumber);
+            }
+        }
+
+        public void PauseValidations()
+        {
+            foreach (var validation in validations)
+            {
+                validation.data.PauseValidation(Replay_SegmentNumber);
+            }
+        }
+
+        public void UnPauseValidations()
+        {
+            foreach (var validation in validations)
+            {
+                validation.data.UnPauseValidation(Replay_SegmentNumber);
+            }
+        }
+
+        public void StopValidations()
+        {
+            foreach (var validation in validations)
+            {
+                validation.data.StopValidation(Replay_SegmentNumber);
+            }
+        }
+
         // Replay only
         public void ReplayReset()
         {
@@ -155,6 +190,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             if (botAction != null)
             {
                 botAction.ReplayReset();
+            }
+            
+            var validationsLength = validations.Count;
+            for (var i = 0; i < validationsLength; i++)
+            {
+                validations[i].data.ResetResults();
             }
 
             Replay_ActionStarted = false;
@@ -269,7 +310,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 stringBuilder.Append("null");
             }
-            stringBuilder.Append("}");
+            stringBuilder.Append(",\n\"validations\":[\n");
+            var validationsLength = validations.Count;
+            for (var i = 0; i < validationsLength; i++)
+            {
+                var validation = validations[i];
+                validation.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < validationsLength)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]\n}");
         }
 
         /**
