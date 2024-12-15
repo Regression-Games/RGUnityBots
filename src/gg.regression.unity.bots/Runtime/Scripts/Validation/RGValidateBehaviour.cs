@@ -34,7 +34,7 @@ namespace RegressionGames.Validation
         private ValidatorData currentValidator;
         private SegmentValidationStatus currentStatus = SegmentValidationStatus.UNKNOWN;
 
-        private void Awake()
+        public void Awake()
         {
             // Cache all methods with UpdateMethod attribute
             Validators = new List<ValidatorData>();

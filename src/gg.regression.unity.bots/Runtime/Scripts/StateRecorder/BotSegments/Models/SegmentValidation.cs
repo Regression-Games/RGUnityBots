@@ -13,7 +13,49 @@ namespace StateRecorder.BotSegments.Models
         public int apiVersion = SdkApiVersion.VERSION_28;
 
         public SegmentValidationType type;
-        public ISegmentValidationData data;
+        public IRGSegmentValidationData data;
+        
+        public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? SdkApiVersion.CURRENT_VERSION);
+        
+        // Called before the first call to StartValidation to allow data setup by the validation code
+        public void PrepareValidation(int segmentNumber)
+        {
+            data.PrepareValidation(segmentNumber);
+        }
+        
+        // called once per frame
+        public void ProcessValidation(int segmentNumber)
+        {
+            data.ProcessValidation(segmentNumber);
+        }
+
+        // called when a segment ends to stop any validation processing
+        // Validations should update their final results at this point
+        public void StopValidation(int segmentNumber)
+        {
+            data.StopValidation(segmentNumber);
+        }
+
+        /**
+         * Handles resuming the paused validation if un-paused from the UI
+         */
+        public void UnPauseValidation(int segmentNumber)
+        {
+            data.UnPauseValidation(segmentNumber);
+        }
+
+        /**
+         * Handle pausing the validation if paused from the UI
+         */
+        public void PauseValidation(int segmentNumber)
+        {
+            data.PauseValidation(segmentNumber);
+        }
+
+        public void ReplayReset()
+        {
+            data.ResetResults();
+        }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
         {
@@ -24,6 +66,11 @@ namespace StateRecorder.BotSegments.Models
             stringBuilder.Append(",\"data\":");
             data.WriteToStringBuilder(stringBuilder);
             stringBuilder.Append("}");
+        }
+        
+        public override string ToString()
+        {
+            return ((IStringBuilderWriteable) this).ToJsonString();
         }
 
     }

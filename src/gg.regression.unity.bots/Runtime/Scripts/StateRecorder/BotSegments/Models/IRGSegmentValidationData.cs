@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Text;
+using RegressionGames.StateRecorder;
 using StateRecorder.BotSegments.Models.SegmentValidations;
 
 namespace StateRecorder.BotSegments.Models
 {
-    public interface ISegmentValidationData
+    public interface IRGSegmentValidationData
     {
      
         /**
@@ -16,7 +17,7 @@ namespace StateRecorder.BotSegments.Models
          * Called at least once per frame
          * The validation may choose to evaluate this turn or skip validation
          */
-        public void StartValidation(int segmentNumber, out string error);
+        public void ProcessValidation(int segmentNumber);
 
         /**
          * Handles pausing the validation from the UI

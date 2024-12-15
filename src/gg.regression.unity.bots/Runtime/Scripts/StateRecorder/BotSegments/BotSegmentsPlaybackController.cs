@@ -42,7 +42,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private Action<int> _loopCountCallback;
 
-        private string _lastSegmentPlaybackWarning = null;
+        private string _lastSegmentPlaybackWarning = null;  
 
         // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
         // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
@@ -201,6 +201,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     foreach (var nextBotSegment in _nextBotSegments)
                     {
                         nextBotSegment.PauseAction();
+                        nextBotSegment.PauseValidations();
                     }
                 }
             }
@@ -225,6 +226,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     foreach (var nextBotSegment in _nextBotSegments)
                     {
                         nextBotSegment.UnPauseAction();
+                        nextBotSegment.UnPauseValidations();
                     }
                 }
             }
@@ -253,6 +255,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     // stop any action
                     nextBotSegment.AbortAction();
+                    nextBotSegment.StopValidations();
                 }
             }
 

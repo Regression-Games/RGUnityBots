@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-using JetBrains.Annotations;
-using RegressionGames.Validation;
+﻿using RegressionGames.Validation;
+using StateRecorder.BotSegments.Models.SegmentValidations;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -34,7 +33,7 @@ namespace RegressionGames.Editor.Validation
         {
             
             _mainScrollPane.Clear();
-            UnsubscribeFromValidationEvents();
+            UnsubscribeFromValidationEvents(); // TODO(vontell): Why did I do this here?
             
             var validationScripts = FindObjectsOfType<RGValidateBehaviour>();
             
@@ -56,17 +55,17 @@ namespace RegressionGames.Editor.Validation
                     var testText = "";
                     Color? color = null;
                     
-                    switch (validator.Result)
+                    switch (validator.Status)
                     {
-                        case RGValidatorResult.NOT_SET:
+                        case SegmentValidationStatus.UNKNOWN:
                             testText += "? ";
                             break;
-                        case RGValidatorResult.PASSED:
+                        case SegmentValidationStatus.PASSED:
                             // If pass, show a green checkmark
                             testText += "PASS ";
                             color = Color.green;
                             break;
-                        case RGValidatorResult.FAILED:
+                        case SegmentValidationStatus.FAILED:
                             testText += "FAIL ";
                             color = Color.red;
                             break;

@@ -74,10 +74,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            if (botAction != null)
-            {
-                botAction.OnGUI(currentTransforms, currentEntities);
-            }
+            botAction?.OnGUI(currentTransforms, currentEntities);
         }
 
         // Replay only - called at least once per frame
@@ -106,10 +103,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public void AbortAction()
         {
-            if (botAction != null)
-            {
-                botAction.AbortAction(Replay_SegmentNumber);
-            }
+            botAction?.AbortAction(Replay_SegmentNumber);
         }
 
         /**
@@ -146,11 +140,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
-        public void StartValidations()
+        public void ProcessValidation()
         {
             foreach (var validation in validations)
             {
-                validation.data.StartValidation(Replay_SegmentNumber);
+                validation.ProcessValidation(Replay_SegmentNumber);
             }
         }
 
@@ -158,7 +152,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             foreach (var validation in validations)
             {
-                validation.data.PauseValidation(Replay_SegmentNumber);
+                validation.PauseValidation(Replay_SegmentNumber);
             }
         }
 
@@ -166,7 +160,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             foreach (var validation in validations)
             {
-                validation.data.UnPauseValidation(Replay_SegmentNumber);
+                validation.UnPauseValidation(Replay_SegmentNumber);
             }
         }
 
@@ -174,7 +168,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         {
             foreach (var validation in validations)
             {
-                validation.data.StopValidation(Replay_SegmentNumber);
+                validation.StopValidation(Replay_SegmentNumber);
             }
         }
 
@@ -195,7 +189,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             var validationsLength = validations.Count;
             for (var i = 0; i < validationsLength; i++)
             {
-                validations[i].data.ResetResults();
+                validations[i].ReplayReset();
             }
 
             Replay_ActionStarted = false;

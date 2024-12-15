@@ -17,7 +17,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
      * <summary>Data and functionality for a RGValidator script</summary>
      */
     [Serializable]
-    public class ScriptSegmentValidationData: ISegmentValidationData
+    public class ScriptSegmentValidationData: IRGSegmentValidationData
     {
         
         public int apiVersion = SdkApiVersion.VERSION_28;
@@ -75,8 +75,10 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
             }
         }
 
-        public void StartValidation(int segmentNumber, out string error)
+        public void ProcessValidation(int segmentNumber)
         {
+
+            string error;
 
             if (!_isStopped)
             {
@@ -109,7 +111,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                 {
                     if (!_myGameObject.TryGetComponent(_typeToCreate, out _))
                     {
-                        ((ISegmentValidationData)this).StopValidation(segmentNumber);
+                        ((IRGSegmentValidationData)this).StopValidation(segmentNumber);
                         _error = null;
                         error = _error;
                         // TODO(vontell): Here we used to return false - instead report result
@@ -138,12 +140,10 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     // This is the regular update loop case while the behaviour is still actively running
                     _error = null;
                     error = _error;
-                    return true;
                 }
             }
 
             error = _error;
-            return false;
         }
 
         public void PauseValidation(int segmentNumber)
