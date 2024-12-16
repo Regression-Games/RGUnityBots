@@ -22,6 +22,7 @@ namespace RegressionGames.ClientDashboard
             {
                 case TcpMessageType.Ping:
                 case TcpMessageType.Pong:
+                case TcpMessageType.StopReplay:
                 case TcpMessageType.CloseConnection:
                     // these messages have no payload
                     break;
@@ -31,8 +32,12 @@ namespace RegressionGames.ClientDashboard
                 case TcpMessageType.AvailableSequences:
                     payload = jObject["payload"].ToObject<AvailableSequencesTcpMessageData>(serializer);
                     break;
+                case TcpMessageType.AvailableSegments:
+                    payload = jObject["payload"].ToObject<AvailableSegmentsTcpMessageData>(serializer);
+                    break;
                 case TcpMessageType.PlaySequence:
-                    payload = jObject["payload"].ToObject<PlaySequenceTcpMessageData>(serializer);
+                case TcpMessageType.PlaySegment:
+                    payload = jObject["payload"].ToObject<PlayResourceTcpMessageData>(serializer);
                     break;
                 default:
                     throw new JsonSerializationException($"Unsupported TcpMessage type: '{message.type}'");
