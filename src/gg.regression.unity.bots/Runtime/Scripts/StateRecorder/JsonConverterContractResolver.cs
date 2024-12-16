@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using RegressionGames.ClientDashboard;
 using RegressionGames.RemoteOrchestration.JsonConverters;
 using RegressionGames.RemoteOrchestration.Models;
 using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.AIService;
 using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
-using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments.Models;
@@ -91,7 +91,9 @@ namespace RegressionGames.StateRecorder
             { typeof(BotSequenceEntry), new BotSequenceEntryJsonConverter() },
             { typeof(SequenceRestartCheckpoint), new SequenceRestartCheckpointJsonConverter() },
 
-            { typeof(WorkAssignment), new WorkAssignmentJsonConverter() }
+            { typeof(WorkAssignment), new WorkAssignmentJsonConverter() },
+            
+            { typeof(TcpMessage), new TcpMessageDataJsonConverter() }
 
         };
 
