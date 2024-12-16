@@ -41,8 +41,8 @@ namespace RegressionGames.StateRecorder.JsonConverters
             //TestCode(); //- useful for testing
         }
 
-        // supports up to 1m char length escaped strings
-        private static readonly ThreadLocal<char[]> _bufferArray = new (() => new char[1_000_000]);
+        // supports up to 30m char length escaped strings .. this seems absolutely excessive, but when unity logs dumps out the listing of every class in every assembly as a single log message, 1m was overflowed.. even for match3 it was 6.45m
+        private static readonly ThreadLocal<char[]> _bufferArray = new (() => new char[30_000_000]);
 
         void ITypedStringBuilderConverter<string>.WriteToStringBuilder(StringBuilder stringBuilder, string val)
         {
@@ -70,61 +70,72 @@ namespace RegressionGames.StateRecorder.JsonConverters
 
             var startIndex = 0;
             var endIndex = 0;
-            for (var i = 0; i < inputLength; i++)
+
+            try
             {
-                var ch = input[i];
-                var escapeReplacement = EscapeCharReplacements[ch];
-                if (escapeReplacement == 0)
+                for (var i = 0; i < inputLength; i++)
                 {
-                    // don't need to escape
-                    endIndex = i + 1;
-                }
-                else
-                {
-                    // need to escape or skip.. copy existing range to result
-                    if (startIndex != endIndex)
-                    {
-                        var length = endIndex - startIndex;
-                        input.CopyTo(startIndex, bufferArray, currentNextIndex, length);
-                        currentNextIndex += length;
-                    }
 
-                    // update indexes
-                    endIndex = i + 1;
-                    startIndex = i + 1;
-
-                    if (escapeReplacement == char.MaxValue)
+                    var ch = input[i];
+                    var escapeReplacement = EscapeCharReplacements[ch];
+                    if (escapeReplacement == 0)
                     {
-                        // need to skip
+                        // don't need to escape
+                        endIndex = i + 1;
                     }
                     else
                     {
-                        // need to escape
-                        // write the escaped value to the buffer
-                        bufferArray[currentNextIndex++] = '\\';
-                        bufferArray[currentNextIndex++] = escapeReplacement;
+                        // need to escape or skip.. copy existing range to result
+                        if (startIndex != endIndex)
+                        {
+                            var length = endIndex - startIndex;
+                            input.CopyTo(startIndex, bufferArray, currentNextIndex, length);
+                            currentNextIndex += length;
+                        }
+
+                        // update indexes
+                        endIndex = i + 1;
+                        startIndex = i + 1;
+
+                        if (escapeReplacement == char.MaxValue)
+                        {
+                            // need to skip
+                        }
+                        else
+                        {
+                            // need to escape
+                            // write the escaped value to the buffer
+                            bufferArray[currentNextIndex++] = '\\';
+                            bufferArray[currentNextIndex++] = escapeReplacement;
+                        }
                     }
                 }
-            }
 
-            if (startIndex == 0)
+                if (startIndex == 0)
+                {
+                    // didn't need to escape anything.. bail out early and avoid the extra buffer string copies
+                    stringBuilder.Append("\"").Append(input).Append("\"");
+                    return; // we're done
+                }
+
+                // There MIGHT be room for some further optimization here.. CopyTo and Append both do a memcopy of the string... right now we do the partial
+                // with copyTo and then copy the full string with Append.. if we could find a way to do this with a single memcopy somehow that would be faster
+                if (startIndex != endIndex)
+                {
+                    // got to the end
+                    var length = endIndex - startIndex;
+                    input.CopyTo(startIndex, bufferArray, currentNextIndex, length);
+                    currentNextIndex += length;
+                }
+
+                bufferArray[currentNextIndex++] = '"';
+
+            }
+            catch (ArgumentOutOfRangeException)
             {
-                // didn't need to escape anything.. bail out early and avoid the extra buffer string copies
-                stringBuilder.Append("\"").Append(input).Append("\"");
-                return; // we're done
+                // if we have a buffer overflow because the string is too large (more than 30m chars)
+                RGDebug.LogWarning($"Buffer overflow while escaping json string.  Character indexes beyond {currentNextIndex} have been dropped");
             }
-
-            // There MIGHT be room for some further optimization here.. CopyTo and Append both do a memcopy of the string... right now we do the partial
-            // with copyTo and then copy the full string with Append.. if we could find a way to do this with a single memcopy somehow that would be faster
-            if (startIndex != endIndex)
-            {
-                // got to the end
-                var length = endIndex - startIndex;
-                input.CopyTo(startIndex, bufferArray, currentNextIndex, length);
-                currentNextIndex += length;
-            }
-
-            bufferArray[currentNextIndex++] = '"';
 
             stringBuilder.Append(bufferArray, 0, currentNextIndex);
         }

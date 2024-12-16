@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using RegressionGames;
 using RegressionGames.StateRecorder;
 using UnityEngine;
+using UnityEngine.UI;
 // ReSharper disable once RedundantUsingDirective - used in #if #else - do not remove
 using RegressionGames.StateRecorder.BotSegments.Models;
 // ReSharper disable once RedundantUsingDirective - used in #if #else - do not remove
@@ -33,6 +34,8 @@ public class RGSequenceManager : MonoBehaviour
     public GameObject sequenceEditor;
 
     public GameObject deleteSequenceDialog;
+    
+    public Button reloadButton;
     
     private static RGSequenceManager _this;
 
@@ -91,6 +94,15 @@ public class RGSequenceManager : MonoBehaviour
 
     public void Start()
     {
+        if (RGUtils.IsMobile())
+        {
+            SetMobileView();
+        }
+        else if (RGUtils.IsPortraitView())
+        {
+            UpscaleUI();
+        }
+        
         _replayToolbarManager = FindObjectOfType<ReplayToolbarManager>();
 
         // load our assets and show the Sequences tab content
@@ -133,6 +145,36 @@ public class RGSequenceManager : MonoBehaviour
         BotSequence.DeleteSequenceAtPath(path);
 
         LoadSequences();
+    }
+
+    /**
+     * <summary>
+     * When this component is viewed on a mobile device:
+     * - Scale the entire canvas so that all components are larger
+     * - Disable the reload Sequence/Segment button
+     * - Hide the create Sequence button
+     * </summary>
+     */
+    public void SetMobileView()
+    {
+        UpscaleUI();
+        reloadButton.gameObject.SetActive(false);
+        
+        // the create sequence button is always the first child in the sequences panel
+        var createSequenceButton = sequencesPanel.transform.GetChild(0);
+        createSequenceButton.gameObject.SetActive(false);
+    }
+
+    /**
+     * <summary>
+     * Scale the entire canvas so that all components are larger
+     * </summary>
+     */
+    public void UpscaleUI()
+    {
+        var scaler = GetComponent<CanvasScaler>();
+        var currentResolution = scaler.referenceResolution;
+        scaler.referenceResolution = new Vector2(currentResolution.x * 0.6f, currentResolution.y * 0.6f);
     }
 
     /**

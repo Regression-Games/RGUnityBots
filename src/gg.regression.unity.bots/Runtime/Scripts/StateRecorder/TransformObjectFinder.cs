@@ -273,7 +273,6 @@ namespace RegressionGames.StateRecorder
 
                     if (cgEnabled)
                     {
-                        var canvasCamera = canvas.worldCamera == null ? mainCamera : canvas.worldCamera;
                         var isWorldSpace = canvas.renderMode == RenderMode.WorldSpace;
                         RectTransformsList.Clear();
                         theTransform.GetComponentsInChildren(RectTransformsList);
@@ -336,8 +335,9 @@ namespace RegressionGames.StateRecorder
                                 }
                                 else if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
                                 {
-                                    min = mainCamera.WorldToScreenPoint(min);
-                                    max = mainCamera.WorldToScreenPoint(max);
+                                    var cameraToUse = canvas.worldCamera == null ? mainCamera : canvas.worldCamera;
+                                    min = cameraToUse.WorldToScreenPoint(min);
+                                    max = cameraToUse.WorldToScreenPoint(max);
                                 }
                                 else // if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
                                 {
@@ -346,7 +346,7 @@ namespace RegressionGames.StateRecorder
                             }
 
                             var onCamera = true;
-                            if (isWorldSpace || canvasCamera != mainCamera)
+                            if (isWorldSpace || canvas.renderMode == RenderMode.ScreenSpaceCamera)
                             {
                                 var xLowerLimit = 0;
                                 var xUpperLimit = screenWidth;
@@ -577,8 +577,8 @@ namespace RegressionGames.StateRecorder
             var canvasRenderersLength = canvasRenderers.Length;
             for (var j = 0; j < canvasRenderersLength; j++)
             {
-                var canvasRenderer = canvasRenderers[j];
-                var statefulUiObjectTransform = ((CanvasRenderer)canvasRenderer).transform;
+                var canvasRenderer = (CanvasRenderer)canvasRenderers[j];
+                var statefulUiObjectTransform = canvasRenderer.transform;
                 if (statefulUiObjectTransform != null && statefulUiObjectTransform.GetComponentInParent<RGExcludeFromState>() == null)
                 {
                     var tStatus = TransformStatus.GetOrCreateTransformStatus(statefulUiObjectTransform);
