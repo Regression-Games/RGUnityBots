@@ -197,6 +197,7 @@ namespace RegressionGames.TestFramework
                     true,
                     0,
                     true,
+                    true,
                     botCriteria
                     );
 

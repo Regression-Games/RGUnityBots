@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -169,10 +170,15 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
         {
             _myValidationBehaviour?.ResetResults();
         }
-
-        public SegmentValidationResultContainer GetResults()
+        
+        public bool HasSetAllResults()
         {
-            throw new System.NotImplementedException();
+            return _myValidationBehaviour?.GetResults().validationResults.All(v => v.result != SegmentValidationStatus.UNKNOWN) ?? false;
+        }
+
+        public SegmentValidationResultSetContainer GetResults()
+        {
+            return _myValidationBehaviour?.GetResults();
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

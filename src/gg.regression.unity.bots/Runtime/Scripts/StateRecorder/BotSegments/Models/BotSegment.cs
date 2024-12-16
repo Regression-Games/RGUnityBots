@@ -71,6 +71,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // Replay only - tracks if we have completed the action for this bot segment
         // returns true if botAction.IsCompleted || botAction.IsCompleted==null && Replay_Matched
         public bool Replay_ActionCompleted => botAction == null || (botAction.IsCompleted ?? Replay_Matched);
+        
+        // Replay only - true if we have completed the validations for this bot segment
+        public bool Replay_ValidationsCompleted => validations.Count == 0 || validations.All(v => v.HasSetAllResults());
 
         public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
@@ -142,6 +145,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public void ProcessValidation()
         {
+            // Go through each validation and process them. If they have not been started yet, this will also
+            // start them.
             foreach (var validation in validations)
             {
                 validation.ProcessValidation(Replay_SegmentNumber);

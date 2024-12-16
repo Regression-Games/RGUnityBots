@@ -40,11 +40,16 @@ namespace StateRecorder.BotSegments.Models
         public void ResetResults();
 
         /**
+         * Returns true if there are no "UNKNOWN" validations.
+         */
+        public bool HasSetAllResults();
+
+        /**
          * Returns all results for this particular validation. In some
          * cases, this can be a set of results rather than just a single
          * result.
          */
-        public SegmentValidationResultContainer GetResults();
+        public SegmentValidationResultSetContainer GetResults();
         
         public void WriteToStringBuilder(StringBuilder stringBuilder);
         

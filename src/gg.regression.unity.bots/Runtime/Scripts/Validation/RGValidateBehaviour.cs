@@ -88,7 +88,7 @@ namespace RegressionGames.Validation
             return resultSet;
         }
 
-        public void ResetValidationStates()
+        public virtual void ResetValidationStates()
         {
             // The base implementation of this doesn't do anything - it's up to the validation script to implement this
         }

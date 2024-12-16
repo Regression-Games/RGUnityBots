@@ -23,11 +23,16 @@ namespace StateRecorder.BotSegments.Models
         public void PrepareValidation(int segmentNumber)
         {
             data.PrepareValidation(segmentNumber);
+            _hasStarted = true;
         }
         
         // called once per frame
         public void ProcessValidation(int segmentNumber)
         {
+            if (!_hasStarted)
+            {
+                PrepareValidation(segmentNumber);
+            }
             data.ProcessValidation(segmentNumber);
         }
 
@@ -57,6 +62,11 @@ namespace StateRecorder.BotSegments.Models
         public void ReplayReset()
         {
             data.ResetResults();
+        }
+
+        public bool HasSetAllResults()
+        {
+            return data.HasSetAllResults();
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)

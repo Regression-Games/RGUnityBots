@@ -490,6 +490,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         nextBotSegmentIndex == 0,
                         nextBotSegment.Replay_SegmentNumber,
                         nextBotSegment.Replay_ActionCompleted,
+                        nextBotSegment.Replay_ValidationsCompleted,
                         nextBotSegment.endCriteria
                     );
 
