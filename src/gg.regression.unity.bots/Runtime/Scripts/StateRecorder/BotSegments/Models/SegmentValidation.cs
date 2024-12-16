@@ -15,6 +15,8 @@ namespace StateRecorder.BotSegments.Models
         public SegmentValidationType type;
         public IRGSegmentValidationData data;
         
+        private bool _hasStarted = false;
+        
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? SdkApiVersion.CURRENT_VERSION);
         
         // Called before the first call to StartValidation to allow data setup by the validation code

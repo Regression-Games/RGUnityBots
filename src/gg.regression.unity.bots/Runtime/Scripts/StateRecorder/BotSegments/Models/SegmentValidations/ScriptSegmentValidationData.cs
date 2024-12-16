@@ -9,6 +9,7 @@ using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.Validation;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace StateRecorder.BotSegments.Models.SegmentValidations
 {
@@ -148,25 +149,25 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
 
         public void PauseValidation(int segmentNumber)
         {
-            if (_myValidationBehaviour)
-            {
-                _myValidationBehaviour.PauseValidation();
-            }
+            _myValidationBehaviour?.PauseValidation();
         }
 
         public void UnPauseValidation(int segmentNumber)
         {
-            throw new System.NotImplementedException();
+            _myValidationBehaviour?.UnPauseValidation();
         }
 
         public void StopValidation(int segmentNumber)
         {
-            throw new System.NotImplementedException();
+            if (_myValidationBehaviour)
+            {
+                Object.Destroy(_myValidationBehaviour);
+            }
         }
 
         public void ResetResults()
         {
-            throw new System.NotImplementedException();
+            _myValidationBehaviour?.ResetResults();
         }
 
         public SegmentValidationResultContainer GetResults()

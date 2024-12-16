@@ -9,6 +9,8 @@ namespace RegressionGames.Validation
 {
     public class RGValidateBehaviour: MonoBehaviour
     {
+
+        private bool _isPaused;
         
         public class ValidatorData
         {
@@ -53,7 +55,7 @@ namespace RegressionGames.Validation
                         Frequency = attribute.Frequency,
                         Mode = attribute.Mode
                     });
-                    Debug.Log("[RGValidator] Activated " + method.Name);
+                    RGDebug.Log("[RGValidator] Activated " + method.Name);
                 } 
             }
             
@@ -78,17 +80,42 @@ namespace RegressionGames.Validation
          */
         public SegmentValidationResultSetContainer GetResults()
         {
-            var resultSet = new SegmentValidationResultSetContainer();
-            resultSet.name = "SET THE CLASS HERE";
-            resultSet.validationResults = Validators.Select(v =>
+            var resultSet = new SegmentValidationResultSetContainer
             {
-                return new SegmentValidationResultContainer(v.Method.Name, null, v.Status);
-            }).ToList();
+                name = "SET THE CLASS HERE",
+                validationResults = Validators.Select(v => new SegmentValidationResultContainer(v.Method.Name, null, v.Status)).ToList()
+            };
             return resultSet;
+        }
+
+        public void ResetValidationStates()
+        {
+            // The base implementation of this doesn't do anything - it's up to the validation script to implement this
+        }
+
+        /**
+         * <summary>
+         * Resets all results for this script.
+         * </summary>
+         */
+        public void ResetResults()
+        {
+            // First, reset all the stored results
+            foreach (var validator in Validators)
+            {
+                validator.Status = SegmentValidationStatus.UNKNOWN;
+                validator.ThrownException = null;
+            }
+            
+            // Then call the reset function on the script, in case they need to reset some intermediate state
+            ResetValidationStates();
         }
 
         private void Update()
         {
+
+            // If paused, don't do anything now
+            if (_isPaused) return;
             
             // Call tagged methods based on their frequency
             foreach (var validator in Validators)
@@ -117,7 +144,7 @@ namespace RegressionGames.Validation
                     currentValidator = validator;
                     validator.Method.Invoke(this, null);
                 } 
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Debug.LogError($"Error running validation method {validator.Method.Name}: {e.Message}");
                     validator.ThrownException = e;
@@ -175,12 +202,12 @@ namespace RegressionGames.Validation
 
         public void PauseValidation()
         {
-            throw new NotImplementedException();
+            _isPaused = true;
         }
 
         public void UnPauseValidation()
         {
-            throw new NotImplementedException();
+            _isPaused = false;
         }
 
         /**
