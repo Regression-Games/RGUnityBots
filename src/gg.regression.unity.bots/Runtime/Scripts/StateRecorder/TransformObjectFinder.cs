@@ -237,6 +237,109 @@ namespace RegressionGames.StateRecorder
             return (_priorObjects, _newObjects);
         }
 
+        public static (float,float,float,float,float,float)? ConvertWorldSpaceBoundsToScreenSpace(float minWorldX, float maxWorldX, float minWorldY, float maxWorldY, float minWorldZ, float maxWorldZ)
+        {
+            // convert world space to screen space
+            WorldCorners[0].x = minWorldX;
+            WorldCorners[0].y = minWorldY;
+            WorldCorners[0].z = minWorldZ;
+
+            WorldCorners[1].x = maxWorldX;
+            WorldCorners[1].y = minWorldY;
+            WorldCorners[1].z = minWorldZ;
+
+            WorldCorners[2].x = maxWorldX;
+            WorldCorners[2].y = maxWorldY;
+            WorldCorners[2].z = minWorldZ;
+
+            WorldCorners[3].x = minWorldX;
+            WorldCorners[3].y = maxWorldY;
+            WorldCorners[3].z = minWorldZ;
+
+            WorldCorners[4].x = minWorldX;
+            WorldCorners[4].y = minWorldY;
+            WorldCorners[4].z = maxWorldZ;
+
+            WorldCorners[5].x = maxWorldX;
+            WorldCorners[5].y = minWorldY;
+            WorldCorners[5].z = maxWorldZ;
+
+            WorldCorners[6].x = maxWorldX;
+            WorldCorners[6].y = maxWorldY;
+            WorldCorners[6].z = maxWorldZ;
+
+            WorldCorners[7].x = minWorldX;
+            WorldCorners[7].y = maxWorldY;
+            WorldCorners[7].z = maxWorldZ;
+
+            var minX = float.MaxValue;
+            var maxX = float.MinValue;
+
+            var minY = float.MaxValue;
+            var maxY = float.MinValue;
+
+            var minZ = float.MaxValue;
+            var maxZ = float.MinValue;
+
+            var worldCornersLength = WorldCorners.Length;
+            var mainCamera = Camera.main;
+            if (mainCamera != null)
+            {
+                for (var i = 0; i < worldCornersLength; i++)
+                {
+                    var screenSpaceObjectCorner = mainCamera.WorldToScreenPoint(WorldCorners[i]);
+                    var x = screenSpaceObjectCorner.x;
+                    if (x < minX)
+                    {
+                        minX = x;
+                    }
+
+                    if (x > maxX)
+                    {
+                        maxX = x;
+                    }
+
+                    var y = screenSpaceObjectCorner.y;
+                    if (y < minY)
+                    {
+                        minY = y;
+                    }
+
+                    if (y > maxY)
+                    {
+                        maxY = y;
+                    }
+
+                    var z = screenSpaceObjectCorner.z;
+                    if (z < minZ)
+                    {
+                        minZ = z;
+                    }
+
+                    if (z > maxZ)
+                    {
+                        maxZ = z;
+                    }
+                }
+
+                return (minX, maxX, minY, maxY, minZ, maxZ);
+            }
+
+            return null;
+        }
+
+        public static Bounds? ConvertWorldSpaceBoundsToScreenSpace(Bounds worldSpaceBounds)
+        {
+            var values = ConvertWorldSpaceBoundsToScreenSpace(worldSpaceBounds.min.x, worldSpaceBounds.max.x, worldSpaceBounds.min.y, worldSpaceBounds.max.y, worldSpaceBounds.min.z, worldSpaceBounds.max.z);
+            if (values.HasValue)
+            {
+                var extents = new Vector3((values.Value.Item2 - values.Value.Item1) / 2, (values.Value.Item4 - values.Value.Item3) / 2, (values.Value.Item6 - values.Value.Item5) / 2);
+                return new Bounds(new Vector3(values.Value.Item1 + extents.x, values.Value.Item3 + extents.y, values.Value.Item5 + extents.z), extents );
+            }
+
+            return null;
+        }
+
         // ReSharper disable once MemberCanBePrivate.Global - Keep this method public, while not called from this package module, it is called from some of our extension packages
         public static (Bounds?, float, Bounds?) SelectBoundsForTransform(Camera mainCamera, int screenWidth, int screenHeight, Transform theTransform)
         {
@@ -372,8 +475,24 @@ namespace RegressionGames.StateRecorder
                                     var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
                                     var worldCenter = new Vector3(minWorldX + worldSize.x, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
 
+
+                                    var zOffset = Math.Min(min.z, max.z);
+                                    // if the zOffset is negative, our camera is inside the bounding volume for this object, choose the farthest z instead.. this happens for particle effects like fx_ImpSpawner in bossroom
+                                    // we still need to track down why this thing has HUGE screenspace bounds compared to what is shown in the editor
+                                    if (zOffset < 0.0f)
+                                    {
+                                        zOffset = Math.Max(min.z, max.z);
+                                    }
+                                    // don't let world space objects be <= 0.0f as they would appear on top of true ui overlay objects in our processing
+                                    if (zOffset <= 0f)
+                                    {
+                                        zOffset = 0.0001f; // Logic with these numbers is also in MouseInputActionObserver.. this value needs to be further from the camera than the one in MouseInputActionObserver
+                                    }
+
+
                                     // get the screen point values for the world max / min and find the screen space z offset closest the camera
-                                    return (ssBounds, Math.Min(min.z, max.z), new Bounds(worldCenter, worldSize));
+                                    return (ssBounds, zOffset, new Bounds(worldCenter, worldSize));
+
                                 }
 
                                 return (ssBounds, 0f, null);
@@ -390,6 +509,7 @@ namespace RegressionGames.StateRecorder
                 // find the full bounds of the statefulGameObject
                 var statefulGameObjectTransform = theTransform.transform;
 
+                var transformName = ""+statefulGameObjectTransform.name; // used for debugging object bounds and easily seeing the name in the debugger.. don't remove
                 RendererQueryList.Clear();
                 statefulGameObjectTransform.GetComponentsInChildren(RendererQueryList);
 
@@ -458,107 +578,51 @@ namespace RegressionGames.StateRecorder
                 if (onCamera)
                 {
 
-                    // convert world space to screen space
-                    WorldCorners[0].x = minWorldX;
-                    WorldCorners[0].y = minWorldY;
-                    WorldCorners[0].z = minWorldZ;
-
-                    WorldCorners[1].x = maxWorldX;
-                    WorldCorners[1].y = minWorldY;
-                    WorldCorners[1].z = minWorldZ;
-
-                    WorldCorners[2].x = maxWorldX;
-                    WorldCorners[2].y = maxWorldY;
-                    WorldCorners[2].z = minWorldZ;
-
-                    WorldCorners[3].x = minWorldX;
-                    WorldCorners[3].y = maxWorldY;
-                    WorldCorners[3].z = minWorldZ;
-
-                    WorldCorners[4].x = minWorldX;
-                    WorldCorners[4].y = minWorldY;
-                    WorldCorners[4].z = maxWorldZ;
-
-                    WorldCorners[5].x = maxWorldX;
-                    WorldCorners[5].y = minWorldY;
-                    WorldCorners[5].z = maxWorldZ;
-
-                    WorldCorners[6].x = maxWorldX;
-                    WorldCorners[6].y = maxWorldY;
-                    WorldCorners[6].z = maxWorldZ;
-
-                    WorldCorners[7].x = minWorldX;
-                    WorldCorners[7].y = maxWorldY;
-                    WorldCorners[7].z = maxWorldZ;
-
-                    var minX = float.MaxValue;
-                    var maxX = float.MinValue;
-
-                    var minY = float.MaxValue;
-                    var maxY = float.MinValue;
-
-                    var minZ = float.MaxValue;
-                    var maxZ = float.MinValue;
-
-                    var worldCornersLength = WorldCorners.Length;
-                    for (var i = 0; i < worldCornersLength; i++)
+                    var boundsValues = ConvertWorldSpaceBoundsToScreenSpace(minWorldX, maxWorldX, minWorldY, maxWorldY, minWorldZ, maxWorldZ);
+                    if (!boundsValues.HasValue)
                     {
-                        var screenSpaceObjectCorner = mainCamera.WorldToScreenPoint(WorldCorners[i]);
-                        var x = screenSpaceObjectCorner.x;
-                        if (x < minX)
-                        {
-                            minX = x;
-                        }
-
-                        if (x > maxX)
-                        {
-                            maxX = x;
-                        }
-
-                        var y = screenSpaceObjectCorner.y;
-                        if (y < minY)
-                        {
-                            minY = y;
-                        }
-
-                        if (y > maxY)
-                        {
-                            maxY = y;
-                        }
-
-                        var z = screenSpaceObjectCorner.z;
-                        if (z < minZ)
-                        {
-                            minZ = z;
-                        }
-
-                        if (z > maxZ)
-                        {
-                            maxZ = z;
-                        }
+                        onCamera = false;
                     }
 
-                    var xLowerLimit = 0;
-                    var xUpperLimit = screenWidth;
-                    var yLowerLimit = 0;
-                    var yUpperLimit = screenHeight;
-                    if (!(minX <= xUpperLimit && maxX >= xLowerLimit && minY <= yUpperLimit && maxY >= yLowerLimit))
+                    if (onCamera)
                     {
-                        // not in camera..
-                        onCamera = false;
+                        var xLowerLimit = 0;
+                        var xUpperLimit = screenWidth;
+                        var yLowerLimit = 0;
+                        var yUpperLimit = screenHeight;
+                        if (!(boundsValues.Value.Item1 <= xUpperLimit && boundsValues.Value.Item2 >= xLowerLimit && boundsValues.Value.Item3 <= yUpperLimit && boundsValues.Value.Item4 >= yLowerLimit))
+                        {
+                            // not in camera..
+                            onCamera = false;
+                        }
                     }
 
                     if (onCamera)
                     {
                         // make sure the screen space bounds has a non-zero Z size around 0
                         // we track the true z offset separately for ease of mouse selection on replay
-                        var size = new Vector3((maxX - minX), (maxY - minY), 0.05f);
-                        var center = new Vector3(minX + size.x / 2, minY + size.y / 2, 0);
+                        var size = new Vector3((boundsValues.Value.Item2 - boundsValues.Value.Item1), (boundsValues.Value.Item4 - boundsValues.Value.Item3), 0.05f);
+                        var center = new Vector3(boundsValues.Value.Item1 + size.x / 2, boundsValues.Value.Item3 + size.y / 2, 0);
 
                         var worldSize = new Vector3((maxWorldX - minWorldX), (maxWorldY - minWorldY), (maxWorldZ - minWorldZ));
                         var worldCenter = new Vector3(minWorldX + worldSize.x / 2, minWorldY + worldSize.y / 2, minWorldZ + worldSize.z / 2);
 
-                        return (new Bounds(center, size), Math.Min(minZ, maxZ), new Bounds(worldCenter, worldSize));
+
+                        var zOffset = Math.Min(boundsValues.Value.Item5, boundsValues.Value.Item6);
+                        // if the zOffset is negative, our camera is inside the bounding volume for this object, choose the farthest z instead.. this happens for particle effects like fx_ImpSpawner in bossroom
+                        // we still need to track down why this thing has HUGE screenspace bounds compared to what is shown in the editor
+                        if (zOffset < 0.0f)
+                        {
+                            zOffset = Math.Max(boundsValues.Value.Item5, boundsValues.Value.Item6);
+                        }
+                        // don't let world space objects be <= 0.0f as they would appear on top of true ui overlay objects in our processing
+                        if (zOffset <= 0f)
+                        {
+                            zOffset = 0.0001f; // Logic with these numbers is also in MouseInputActionObserver.. this value needs to be further from the camera than the one in MouseInputActionObserver
+                        }
+
+                        // get the screen point values for the world max / min and find the screen space z offset closest the camera
+                        return (new Bounds(center, size), zOffset, new Bounds(worldCenter, worldSize));
                     }
                 }
             }

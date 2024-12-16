@@ -10,16 +10,16 @@ namespace RegressionGames.StateRecorder.Models
 {
     [Serializable]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public class MouseInputActionData
+    public class MouseInputActionData : IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
         // version of this schema, update this if fields change
         public int apiVersion = SdkApiVersion.VERSION_1;
 
         public double startTime;
 
-        public Vector2Int screenSize;
+        public Vector2Int screenSize = Vector2Int.zero;
 
-        public Vector2Int position;
+        public Vector2Int position = Vector2Int.zero;
 
         public Vector3? worldPosition;
 
@@ -97,12 +97,6 @@ namespace RegressionGames.StateRecorder.Models
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"startTime\":");
             DoubleJsonConverter.WriteToStringBuilder(stringBuilder, startTime);
-            stringBuilder.Append(",\"screenSize\":");
-            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
-            stringBuilder.Append(",\"position\":");
-            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, position);
-            stringBuilder.Append(",\"worldPosition\":");
-            Vector3JsonConverter.WriteToStringBuilderNullable(stringBuilder, worldPosition);
             stringBuilder.Append(",\"leftButton\":");
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,leftButton);
             stringBuilder.Append(",\"middleButton\":");
@@ -115,6 +109,12 @@ namespace RegressionGames.StateRecorder.Models
             BooleanJsonConverter.WriteToStringBuilder(stringBuilder,backButton);
             stringBuilder.Append(",\"scroll\":");
             Vector2JsonConverter.WriteToStringBuilder(stringBuilder, scroll);
+            stringBuilder.Append(",\"screenSize\":");
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, screenSize);
+            stringBuilder.Append(",\"position\":");
+            Vector2IntJsonConverter.WriteToStringBuilder(stringBuilder, position);
+            stringBuilder.Append(",\"worldPosition\":");
+            Vector3JsonConverter.WriteToStringBuilderNullable(stringBuilder, worldPosition);
             stringBuilder.Append(",\"clickedObjectNormalizedPaths\":[");
             var clickedObjectPathsLength = clickedObjectNormalizedPaths.Length;
             for (var i = 0; i < clickedObjectPathsLength; i++)
@@ -128,10 +128,24 @@ namespace RegressionGames.StateRecorder.Models
             stringBuilder.Append("]}");
         }
 
-        internal string ToJsonString()
+        public string ToJsonString()
         {
             _stringBuilder.Value.Clear();
             WriteToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
+        }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            // in the first implementations of this, we excluded the position information, but later added it back in so that we could pick the 'best' match to the original for things
+            // like character selection on boss room by picking the 'closest to original' match when multiple otherwise equal possibilities exist
+            WriteToStringBuilder(stringBuilder);
+        }
+
+        public string ToKeyMomentJsonString()
+        {
+            _stringBuilder.Value.Clear();
+            WriteKeyMomentToStringBuilder(_stringBuilder.Value);
             return _stringBuilder.Value.ToString();
         }
 
@@ -157,20 +171,5 @@ namespace RegressionGames.StateRecorder.Models
         // Replay only
         public double Replay_StartTime => startTime + Replay_OffsetTime;
 
-    }
-
-    public class MouseInputActionDataJsonConverter : JsonConverter<MouseInputActionData>
-    {
-        public override void WriteJson(JsonWriter writer, MouseInputActionData value, JsonSerializer serializer)
-        {
-            writer.WriteRawValue(value.ToJsonString());
-        }
-
-        public override bool CanRead => false;
-
-        public override MouseInputActionData ReadJson(JsonReader reader, Type objectType, MouseInputActionData existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

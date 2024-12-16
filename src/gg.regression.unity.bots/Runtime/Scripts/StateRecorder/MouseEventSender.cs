@@ -343,6 +343,7 @@ namespace RegressionGames.StateRecorder
 
         }
 
+        //TODO (REG-2237): Update/remove this based on KeyMomentMouseActionData Algorithm
         public static void SendMouseEvent(int replaySegment, MouseInputActionData mouseInput, Dictionary<long, ObjectStatus> priorTransforms, Dictionary<long, ObjectStatus> priorEntities, Dictionary<long, ObjectStatus> transforms, Dictionary<long, ObjectStatus> entities)
         {
             var clickObjectResult = FindBestClickObject(Camera.main, mouseInput, priorTransforms, priorEntities, transforms, entities);
@@ -427,6 +428,7 @@ namespace RegressionGames.StateRecorder
         // Finds the best object to adjust our click position to for a given mouse input
         // Uses the exact path for UI clicks, but the normalized path for world space clicks
         // Returns (the object, whether it was world space, the suggested mouse position)
+        //TODO (REG-2237): Remove/Replace this with the newer algorithm from KeyMomentMouseActionData
         private static (ObjectStatus, bool, Vector2, IEnumerable<ObjectStatus>) FindBestClickObject(Camera mainCamera, MouseInputActionData mouseInput, Dictionary<long, ObjectStatus> priorTransforms, Dictionary<long, ObjectStatus> priorEntities, Dictionary<long, ObjectStatus> transforms, Dictionary<long, ObjectStatus> entities)
         {
 

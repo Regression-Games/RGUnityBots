@@ -153,6 +153,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
                             {
                                 // send event
                                 result = true;
+
+                                //TODO (REG-2237) : Replace with this finding the object and sending the raw position mouse event
                                 MouseEventSender.SendMouseEvent(segmentNumber, replayMouseInputEntry, null, null, currentTransforms, currentEntities);
                                 replayMouseInputEntry.Replay_IsDone = true;
                             }
