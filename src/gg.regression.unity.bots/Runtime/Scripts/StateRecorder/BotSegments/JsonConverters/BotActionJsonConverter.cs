@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
+using RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments;
 
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
@@ -57,6 +58,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                         break;
                     case BotActionType.QuitGame:
                         data = jObject["data"].ToObject<QuitGameBotActionData>(serializer);
+                        break;
+                    case BotActionType.KeyMoment_MouseAction:
+                        data = jObject["data"].ToObject<KeyMomentMouseActionData>(serializer);
                         break;
                     default:
                         throw new JsonSerializationException($"Unsupported BotAction type: '{action.type}'");

@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace RegressionGames.StateRecorder
 {
@@ -12,19 +14,7 @@ namespace RegressionGames.StateRecorder
     {
         private MouseInputActionData _priorMouseState;
 
-        // limit this to 5 hits... any hit should be good enough to guess the proper screen x,y based on precise world x,y,z .. but sometimes
-        // we get slight positional variances in games from run to run and need to account for edge cases where objects get hidden by other objects
-        // based on a few pixel shift in relative camera position
-        private readonly RaycastHit[] _cachedRaycastHits = new RaycastHit[5];
-
-        private readonly HashSet<string> _clickedObjectNormalizedPaths = new(100);
-
-        private readonly Comparer<RaycastHit> _mouseHitComparer = Comparer<RaycastHit>.Create(
-            (x1, x2) =>
-            {
-                var d = x1.distance - x2.distance;
-                return (d > 0) ? 1 : (d < 0) ? -1 : 0;
-            } );
+        private readonly List<string> _clickedObjectNormalizedPaths = new(100);
 
         public void ObserveMouse(IEnumerable<ObjectStatus> statefulObjects)
         {
@@ -37,75 +27,27 @@ namespace RegressionGames.StateRecorder
                 {
                     if (_priorMouseState == null && newMouseState.IsButtonClicked || _priorMouseState != null && !_priorMouseState.ButtonStatesEqual(newMouseState))
                     {
-                        Vector3? worldPosition = null;
-                        var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects, out var maxZDepth);
-
-                        var mouseRayHits = 0;
-
-                        var mainCamera = Camera.main;
-                        if (mainCamera != null)
-                        {
-                            var ray = mainCamera.ScreenPointToRay(mousePosition);
-                            mouseRayHits = Physics.RaycastNonAlloc(ray,
-                                _cachedRaycastHits,
-                                maxZDepth * 2f + 1f); // make sure we go deep enough to hit the collider on that object.. we hope
-                        }
-
-                        if (mouseRayHits > 0)
-                        {
-                            // order by distance from camera
-                            Array.Sort(_cachedRaycastHits, 0, mouseRayHits, _mouseHitComparer);
-                        }
+                        // get the z depth sorted clicked on objects
+                        var clickedOnObjects = FindObjectsAtPosition(newMouseState.position, statefulObjects);
 
                         _clickedObjectNormalizedPaths.Clear();
 
-                        var bestIndex = int.MaxValue;
-                        if (mouseRayHits > 0)
+                        // the objects found are already in order, but we do need to see if the topmost thing clicked had a worldPosition
+                        if (clickedOnObjects.Count > 0)
                         {
-                            foreach (var clickedTransformStatus in clickedOnObjects)
+                            if (clickedOnObjects[0].worldSpaceBounds != null && !newMouseState.worldPosition.HasValue)
                             {
-                                _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
-                                if (clickedTransformStatus.worldSpaceBounds != null)
-                                {
-                                    // compare to any raycast hits and pick the one closest to the camera
-                                    if (bestIndex > 0)
-                                    {
-                                        for (var i = 0; i < mouseRayHits; i++)
-                                        {
-                                            var rayHit = _cachedRaycastHits[i];
-                                            try
-                                            {
-                                                if (_cachedRaycastHits[i].transform.GetInstanceID() == clickedTransformStatus.Id)
-                                                {
-                                                    if (i < bestIndex)
-                                                    {
-                                                        worldPosition = _cachedRaycastHits[i].point;
-                                                        bestIndex = i;
-                                                    }
-
-                                                    break;
-                                                }
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                RGDebug.LogException(e, "Exception handling raycast hits for in game object click");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // without a collider hit, we can't set a worldPosition
-                            foreach (var recordedGameObjectState in clickedOnObjects)
-                            {
-                                _clickedObjectNormalizedPaths.Add(recordedGameObjectState.NormalizedPath);
+                                newMouseState.worldPosition = clickedOnObjects[0].worldSpaceCoordinatesForMousePoint;
                             }
                         }
 
-                        newMouseState.worldPosition = worldPosition;
-                        newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.ToArray();
+                        foreach (var clickedTransformStatus in clickedOnObjects)
+                        {
+                            _clickedObjectNormalizedPaths.Add(clickedTransformStatus.NormalizedPath);
+                        }
+
+                        // order by zDepth - this should keep UI elements that were already sorted in the same relative positions as they have exactly 0f zDepths
+                        newMouseState.clickedObjectNormalizedPaths = _clickedObjectNormalizedPaths.Distinct().ToArray();
                         _mouseInputActions.Enqueue(newMouseState);
                     }
                     else if (_priorMouseState?.PositionsEqual(newMouseState) != true)
@@ -118,7 +60,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        public MouseInputActionData GetCurrentMouseState(Vector2? position = null)
+        private MouseInputActionData GetCurrentMouseState(Vector2? position = null)
         {
             var pointer = Pointer.current;
             if (pointer != null)
@@ -175,29 +117,15 @@ namespace RegressionGames.StateRecorder
         /**
          * <summary>Flush the latest captured mouse movements</summary>
          * <param name="ignoreLastClick">Ignore the last click.. useful for recordings to avoid capturing the click of the stop recording button</param>
-         * <param name="minimizeOutput">Flag to leave out everything except the key movements around clicks.</param>
          */
-        public List<MouseInputActionData> FlushInputDataBuffer(bool ignoreLastClick, bool minimizeOutput)
+        public List<MouseInputActionData> FlushInputDataBuffer(bool ignoreLastClick)
         {
             List<MouseInputActionData> result = new();
-            MouseInputActionData lastAction = null;
             while (_mouseInputActions.TryPeek(out var action))
             {
                 _mouseInputActions.TryDequeue(out _);
+                result.Add(action);
 
-                // when minimizing output, only capture the inputs 1 before 1 after and during mouse clicks or holds... the normalized paths is populated for both clicks and unclicks so is useful for determining the unclick data
-
-                if (lastAction != null && (!minimizeOutput || action.IsButtonClicked || action.clickedObjectNormalizedPaths.Length > 0 || lastAction?.IsButtonClicked == true|| lastAction?.clickedObjectNormalizedPaths.Length > 0))
-                {
-                    result.Add(lastAction);
-                }
-
-                lastAction = action;
-            }
-
-            if (lastAction != null)
-            {
-                result.Add(lastAction);
             }
 
             if (result.Count == 0 && _priorMouseState != null)
@@ -219,30 +147,256 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        private IEnumerable<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects, out float maxZDepth)
+        /**
+         * This finds all objects at the given position that a mouse click would possibly register on and returns them sorted correctly based on how that click would be handled.
+         *
+         * 1. UI objects based on their order from EventSystem.current.RaycastAll
+         *    If a UI object includes components that are `Selectable`, then it will only be returned if one of those has `interactable` == true.  This means disabled buttons/etc won't be included.
+         *
+         * 2. World Space objects with colliders hit based on the distance from Camera.main to their collider hit.
+         *    This properly considers colliders on parent objects in the hierarchy being hit as it is common for a parent to have the collider and child objects to just be renderers.
+         */
+        public static List<ObjectStatus> FindObjectsAtPosition(Vector2 position, IEnumerable<ObjectStatus> statefulObjects)
         {
             // make sure screen space position Z is around 0
             var vec3Position = new Vector3(position.x, position.y, 0);
             List<ObjectStatus> result = new();
-            maxZDepth = 0f;
+            var mainCamera = Camera.main;
+            Ray? ray = null;
+            if (mainCamera != null)
+            {
+                ray = mainCamera.ScreenPointToRay(position);
+            }
+
+            var worldSpaceHits = new Dictionary<int, RaycastHit>();
+
+            if (ray.HasValue)
+            {
+                // do a ray-cast all into the world and see what hits... we want to be able to sort things with colliders above those that don't have one
+                var rayCastHits = Physics.RaycastAll(ray.Value);
+                worldSpaceHits = rayCastHits.ToDictionary(a => a.transform.GetInstanceID(), a => a);
+            }
+
             foreach (var recordedGameObjectState in statefulObjects)
             {
                 if (recordedGameObjectState.screenSpaceBounds.HasValue)
                 {
-                    if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position))
+                    // make sure the z offset is actually in front of the camera
+                    if (recordedGameObjectState.screenSpaceBounds.Value.Contains(vec3Position) && recordedGameObjectState.screenSpaceZOffset >= 0f)
                     {
-                        if (recordedGameObjectState.worldSpaceBounds != null)
+
+                        // filter out to only world space objects or interactable UI objects
+                        var isInteractable = true;
+
+                        if (recordedGameObjectState is TransformStatus tStatus)
                         {
-                            if (recordedGameObjectState.screenSpaceZOffset > maxZDepth)
+                            var theTransform = tStatus.Transform;
+                            if (theTransform is RectTransform)
                             {
-                                maxZDepth = recordedGameObjectState.screenSpaceZOffset;
+                                // ui object
+                                var selectables = theTransform.GetComponents<Selectable>();
+                                if (selectables.Length > 0)
+                                {
+                                    // make sure 1 is interactable
+                                    isInteractable = selectables.Any(a => a.interactable);
+                                }
+                                // else .. wasn't selectable, but certainly still obstructs what we're clicking on so leave isInteractable = true
                             }
                         }
-                        result.Add(recordedGameObjectState);
+
+                        if (isInteractable)
+                        {
+                            if (recordedGameObjectState.worldSpaceBounds.HasValue)
+                            {
+                                var didHit = false;
+                                if (ray.HasValue)
+                                {
+                                    // compute the zOffset at this point based on the ray
+                                    if (recordedGameObjectState is TransformStatus transformStatus)
+                                    {
+                                        var collider = transformStatus.Transform.GetComponentInParent<Collider>();
+                                        if (collider != null)
+                                        {
+                                            // let's see if it has a collider to hit
+                                            var myHit = worldSpaceHits.Values.Select(a=> a as RaycastHit?).Where(a => a.Value.collider == collider).DefaultIfEmpty(null).FirstOrDefault();
+                                            if (myHit.HasValue)
+                                            {
+                                                var hitDistance = myHit.Value.distance;
+                                                if (hitDistance >= 0f)
+                                                {
+                                                    var hitPoint = ray.Value.GetPoint(hitDistance);
+                                                    didHit = true;
+                                                    recordedGameObjectState.zOffsetForMousePoint = hitDistance;
+                                                    recordedGameObjectState.worldSpaceCoordinatesForMousePoint = hitPoint;
+                                                    result.Add(recordedGameObjectState);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                }
+                                if(!didHit)
+                                {
+                                    // wasn't in front of the camera
+                                    recordedGameObjectState.zOffsetForMousePoint = -1f;
+                                    recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
+                                }
+                            }
+                            else if (recordedGameObjectState.screenSpaceZOffset >= 0f)
+                            {
+                                // screen space object
+                                recordedGameObjectState.zOffsetForMousePoint = 0f;
+                                recordedGameObjectState.worldSpaceCoordinatesForMousePoint = null;
+                                result.Add(recordedGameObjectState);
+                            }
+                        }
                     }
                 }
             }
+
+            // compute the UI event system hits at this point for sorting
+            var eventSystemHits = new List<RaycastResult>();
+            // ray-cast into the scene with the UI event system and see if this object is the first thing hit
+            var pointerEventData = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = position
+            };
+            EventSystem.current.RaycastAll(pointerEventData, eventSystemHits);
+
+            // store their ordering value.. RaycastAll is already sorted in the correct order for us by Unity.. don't mess with their ordering sort or you will get incorrect obstructions :/
+            var uiHitMapping = eventSystemHits.Select((a,i) => (a,i)).ToDictionary(ai => (long)ai.a.gameObject.transform.GetInstanceID(), ai => ai.i);
+
+            // sort with lower z-offsets first so we have UI things on top of game object things
+            // if both elements are from the UI.. then sort by the event system ray hits
+            // for world space objects.. sort those with ray cast hits before those without
+            result.Sort((a, b) =>
+            {
+                if (a.worldSpaceBounds == null && b.worldSpaceBounds == null)
+                {
+                    int aHitOrder = -1;
+                    if (a is TransformStatus at)
+                    {
+                        if (uiHitMapping.TryGetValue(at.Id, out var value))
+                        {
+                            aHitOrder = value;
+                        }
+                    }
+
+                    int bHitOrder = -1;
+                    if (b is TransformStatus bt)
+                    {
+                        if (uiHitMapping.TryGetValue(bt.Id, out var value))
+                        {
+                            bHitOrder = value;
+                        }
+                    }
+
+                    if (aHitOrder >= 0)
+                    {
+                        if (bHitOrder >= 0)
+                        {
+                            return aHitOrder - bHitOrder;
+                        }
+
+                        // aDidHit.. but not b, put a in front
+                        return -1;
+                    }
+
+                    if (bHitOrder >= 0)
+                    {
+                        //bDidHit.. but not a, put b in front
+                        return 1;
+                    }
+
+                    return 0;
+                }
+
+                RaycastHit? aWorldHitData = null;
+                if (a is TransformStatus awt)
+                {
+                    aWorldHitData = IsHitOnParent(awt.Transform, worldSpaceHits);
+                }
+                RaycastHit? bWorldHitData = null;
+                if (b is TransformStatus bwt)
+                {
+                    bWorldHitData = IsHitOnParent(bwt.Transform, worldSpaceHits);
+                }
+
+                if (aWorldHitData.HasValue)
+                {
+                    if (bWorldHitData.HasValue)
+                    {
+                        if (aWorldHitData.Value.distance < bWorldHitData.Value.distance)
+                        {
+                            return -1;
+                        }
+
+                        if (aWorldHitData.Value.distance > bWorldHitData.Value.distance)
+                        {
+                            return 1;
+                        }
+
+                        return 0;
+                    }
+
+                    // aWorldHitData.. but not b
+                    if (b.worldSpaceBounds == null)
+                    {
+                        // b is UI overlay, leave it in front
+                        return 1;
+                    }
+                    // else put a in front
+                    return -1;
+                }
+
+                if (bWorldHitData.HasValue)
+                {
+                    //bWorldHitData.. but not a
+                    if (a.worldSpaceBounds == null)
+                    {
+                        // a is UI overlay, leave it in front
+                        return -1;
+                    }
+                    // else put b in front
+                    return 1;
+                }
+
+                // else no collider hit and not UI, so sort by the zOffset of the renderer itself (remember that -1f is used to represent 'behind the camera' so we have to consider that in our comparisons)
+                if (a.zOffsetForMousePoint >= 0f && a.zOffsetForMousePoint < b.zOffsetForMousePoint)
+                {
+                    return -1;
+                }
+
+                if (b.zOffsetForMousePoint >= 0f && a.zOffsetForMousePoint > b.zOffsetForMousePoint)
+                {
+                    return 1;
+                }
+
+                return 0;
+            });
             return result;
+        }
+
+        private static RaycastHit? IsHitOnParent(Transform transform, Dictionary<int, RaycastHit> worldSpaceHits)
+        {
+            foreach (var worldSpaceHit in worldSpaceHits)
+            {
+                // for each hit, walk up the hierarchy to see if a collider on myself or my parent was hit
+                while (transform != null)
+                {
+                    var id = transform.GetInstanceID();
+                    if (worldSpaceHits.TryGetValue(id, out var hitInfo))
+                    {
+                        return hitInfo;
+                    }
+
+                    transform = transform.parent;
+                }
+
+            }
+
+            return null;
         }
     }
 }
