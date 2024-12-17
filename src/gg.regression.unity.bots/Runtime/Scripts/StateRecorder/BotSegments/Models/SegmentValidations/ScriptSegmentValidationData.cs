@@ -27,11 +27,12 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
         private static readonly Dictionary<string, Type> CachedTypes = new();
 
         public string classFullName;
+        public float timeout = float.NegativeInfinity;
 
         private bool _isStopped;
+        private float _startTime;
         
-        private GameObject _myGameObject;
-        private RGValidateBehaviour _myValidationBehaviour;
+        private RGValidationScript _myValidationScript;
         private SegmentValidationResultSetContainer _storedResults;
         
         private volatile Type _typeToCreate = null;
@@ -68,7 +69,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                         _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. Type was not found in any assembly in the current runtime.";
                         RGDebug.LogError(_error);
                     }
-                    else if (!typeof(RGValidateBehaviour).IsAssignableFrom(t))
+                    else if (!typeof(RGValidationScript).IsAssignableFrom(t))
                     {
                         _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidateBehaviour.";
                         RGDebug.LogError(_error);
@@ -93,18 +94,10 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     _readyToCreate = false;
                     if (_typeToCreate != null)
                     {
-                        // load behaviour and set as a child of the playback controller
-                        var pbController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
-                        _myGameObject = new GameObject($"RGValidate_{classFullName}")
-                        {
-                            transform =
-                            {
-                                parent = pbController.transform
-                            }
-                        };
-
-                        // Attach our validation script
-                        _myValidationBehaviour = _myGameObject.AddComponent(_typeToCreate) as RGValidateBehaviour;
+                        // Create the type
+                        _myValidationScript = Activator.CreateInstance(_typeToCreate) as RGValidationScript;
+                        _myValidationScript?.Initialize();
+                        _startTime = Time.time;
                     }
                     else
                     {
@@ -113,27 +106,18 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     }
                 }
 
-                if (_myGameObject != null)
+                if (_myValidationScript != null)
                 {
-                    if (!_myGameObject.TryGetComponent(_typeToCreate, out _))
-                    {
-                        ((IRGSegmentValidationData)this).StopValidation(segmentNumber);
-                    }
+                    
+                    _myValidationScript.ProcessValidations();
 
                     // TODO(vontell): How do I want to support rogue scripts that keep running?
-                    // if (maxRuntimeSeconds.HasValue && _startTime > 0 && time - _startTime > maxRuntimeSeconds.Value)
-                    // {
-                    //     // behaviour is still not destroyed at the time limit
-                    //     // This represents a segment failure case where the timeout stops the Behaviour that did not find its criteria and end in a timely manner
-                    //     // we destroy the behaviour + gameObject, but don't mark this stopped so that error reporting works
-                    //     DestroyGameObject();
-                    //     _error = $"Behaviour did not complete within maxRuntimeSeconds: {maxRuntimeSeconds.Value}";
-                    //     error = _error;
-                    //     return false;
-                    // }
-
-                    // Validation is expected to perform its actions in its own 'Update' or 'LateUpdate' calls... we don't directly call it
-                    // TODO(vontell): When it reaches its own self-determined end condition, it should destroy itself
+                    if (timeout > 0 && _startTime > 0 && Time.time - _startTime > timeout)
+                    {
+                        // Validation is still not stopped at the time limit
+                        RGDebug.LogInfo($"({segmentNumber}) - Bot Segment Validations - Time limit has been reached for validations in {classFullName}");
+                        StopValidation(segmentNumber);
+                    }
                     
                 }
             }
@@ -142,12 +126,12 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
 
         public void PauseValidation(int segmentNumber)
         {
-            _myValidationBehaviour?.PauseValidation();
+            _myValidationScript?.PauseValidation();
         }
 
         public void UnPauseValidation(int segmentNumber)
         {
-            _myValidationBehaviour?.UnPauseValidation();
+            _myValidationScript?.UnPauseValidation();
         }
 
         public void StopValidation(int segmentNumber)
@@ -157,33 +141,33 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
             
             // First, make sure RGValidateBehaviour marks the final results as pass or fail based on the desired
             // conditions.
-            _myValidationBehaviour?.StopValidations();
+            _myValidationScript?.StopValidations();
             
             // Then backup the results since we are going to be destroying the behaviour
-            _storedResults = _myValidationBehaviour?.GetResults();
+            _storedResults = _myValidationScript?.GetResults();
             
-            // Finally, destroy the behaviour
-            if (_myValidationBehaviour)
-            {
-                Object.Destroy(_myValidationBehaviour);
-            }
+            // Finally, make this null
+            _myValidationScript = null;
+            _isStopped = true;
+            _startTime = float.NegativeInfinity;
         }
 
         public void ResetResults()
         {
             _storedResults = null; // Technically not needed, but here for safety
-            _myValidationBehaviour?.ResetResults();
+            _myValidationScript?.ResetResults();
+            _isStopped = false;
         }
         
         public bool HasSetAllResults()
         {
-            var results = _storedResults ?? _myValidationBehaviour?.GetResults();
+            var results = _storedResults ?? _myValidationScript?.GetResults();
             return results?.validationResults.All(v => v.result != SegmentValidationStatus.UNKNOWN) ?? false;
         }
 
         public SegmentValidationResultSetContainer GetResults()
         {
-            return _storedResults ?? _myValidationBehaviour?.GetResults();
+            return _storedResults ?? _myValidationScript?.GetResults();
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
@@ -192,6 +176,8 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
             IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
             stringBuilder.Append(",\"classFullName\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, classFullName);
+            stringBuilder.Append(",\"timeout\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, timeout.ToString());
             stringBuilder.Append("}");
         }
 

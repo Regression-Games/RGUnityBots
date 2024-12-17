@@ -4,11 +4,10 @@ using System.Linq;
 using System.Reflection;
 using StateRecorder.BotSegments.Models.SegmentValidations;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace RegressionGames.Validation
 {
-    public class RGValidateBehaviour: MonoBehaviour
+    public class RGValidationScript
     {
 
         private bool _isPaused;
@@ -38,7 +37,7 @@ namespace RegressionGames.Validation
         private ValidatorData currentValidator;
         private SegmentValidationStatus currentStatus = SegmentValidationStatus.UNKNOWN;
 
-        public void Awake()
+        public void Initialize()
         {
 
             _className = GetType().FullName;
@@ -116,7 +115,7 @@ namespace RegressionGames.Validation
             ResetValidationStates();
         }
 
-        private void Update()
+        public void ProcessValidations()
         {
 
             // If paused, don't do anything now
@@ -230,6 +229,18 @@ namespace RegressionGames.Validation
                 else if (validator.Mode == ValidationMode.NEVER_TRUE && validator.Status == SegmentValidationStatus.UNKNOWN)
                 {
                     //Debug.LogError($"Validation method {validator.Method.Name} should never pass, and it never did!");
+                    validator.Status = SegmentValidationStatus.PASSED;
+                    OnValidationsUpdated?.Invoke();
+                }
+                else if (validator.Mode == ValidationMode.EVENTUALLY_TRUE && validator.Status is SegmentValidationStatus.UNKNOWN or SegmentValidationStatus.FAILED)
+                {
+                    //Debug.LogError($"Validation method {validator.Method.Name} should eventually pass, but it never did.");
+                    validator.Status = SegmentValidationStatus.FAILED;
+                    OnValidationsUpdated?.Invoke();
+                }
+                else if (validator.Mode == ValidationMode.ONCE_TRUE_ALWAYS_TRUE && validator.Status == SegmentValidationStatus.UNKNOWN)
+                {
+                    //Debug.LogError($"Validation method {validator.Method.Name} was never passed or failed, so it is technically passed.");
                     validator.Status = SegmentValidationStatus.PASSED;
                     OnValidationsUpdated?.Invoke();
                 }

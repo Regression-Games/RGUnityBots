@@ -22,6 +22,10 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             {
                 data.apiVersion = jObject.GetValue("apiVersion").ToObject<int>(serializer);
             }
+            if (jObject.ContainsKey("timeout"))
+            {
+                data.timeout = jObject.GetValue("timeout").ToObject<float>(serializer);
+            }
             return data;
         }
 
