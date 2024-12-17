@@ -530,6 +530,12 @@ namespace RegressionGames.StateRecorder.BotSegments
                         {
                             _lastTimeLoggedKeyFrameConditions = now;
                             RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Criteria Matched && Action Completed - {nextBotSegment.name ?? nextBotSegment.resourcePath} - {nextBotSegment.description}");
+                            if (!nextBotSegment.Replay_ValidationsCompleted && !nextBotSegment.HasValidationEndCriteria)
+                            {
+                                // tell the validation that our segment completed and it should stop, but only if they don't have an endCriteria that explicitly asks to wait for validations
+                                RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Actions and Criteria have been met, but validations have not completed. Forcing them to complete. - {nextBotSegment.name ?? nextBotSegment.resourcePath} - {nextBotSegment.description}");
+                                nextBotSegment.StopValidations();
+                            }
                             //Process the inputs from that bot segment if necessary
                             _nextBotSegments.RemoveAt(nextBotSegmentIndex);
                             // don't update the index since we shortened the list

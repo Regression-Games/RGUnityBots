@@ -272,6 +272,9 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             return false;
         }
 
+        public bool HasValidationEndCriteria =>
+            endCriteria.Exists(ec => ec.type == KeyFrameCriteriaType.ValidationsComplete);
+
         public string ToJsonString()
         {
             _stringBuilder.Value.Clear();
