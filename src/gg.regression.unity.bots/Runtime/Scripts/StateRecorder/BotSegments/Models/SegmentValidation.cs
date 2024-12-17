@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using RegressionGames;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.JsonConverters;
 
@@ -19,19 +20,13 @@ namespace StateRecorder.BotSegments.Models
         
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? SdkApiVersion.CURRENT_VERSION);
         
-        // Called before the first call to StartValidation to allow data setup by the validation code
-        public void PrepareValidation(int segmentNumber)
-        {
-            data.PrepareValidation(segmentNumber);
-            _hasStarted = true;
-        }
-        
         // called once per frame
         public void ProcessValidation(int segmentNumber)
         {
             if (!_hasStarted)
             {
-                PrepareValidation(segmentNumber);
+                data.PrepareValidation(segmentNumber);
+                _hasStarted = true;
             }
             data.ProcessValidation(segmentNumber);
         }

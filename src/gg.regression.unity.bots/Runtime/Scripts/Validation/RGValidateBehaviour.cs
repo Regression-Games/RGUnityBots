@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using StateRecorder.BotSegments.Models.SegmentValidations;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace RegressionGames.Validation
 {
@@ -32,12 +33,16 @@ namespace RegressionGames.Validation
         public delegate void ValidationsUpdated();
         public event ValidationsUpdated OnValidationsUpdated;
 
+        private string _className;
         private int frame = 0;
         private ValidatorData currentValidator;
         private SegmentValidationStatus currentStatus = SegmentValidationStatus.UNKNOWN;
 
         public void Awake()
         {
+
+            _className = GetType().FullName;
+            
             // Cache all methods with UpdateMethod attribute
             Validators = new List<ValidatorData>();
             var methods = GetType().GetMethods(BindingFlags.Instance | 
@@ -82,7 +87,7 @@ namespace RegressionGames.Validation
         {
             var resultSet = new SegmentValidationResultSetContainer
             {
-                name = "SET THE CLASS HERE",
+                name = _className,
                 validationResults = Validators.Select(v => new SegmentValidationResultContainer(v.Method.Name, null, v.Status)).ToList()
             };
             return resultSet;
@@ -209,12 +214,11 @@ namespace RegressionGames.Validation
         {
             _isPaused = false;
         }
-
-        /**
-         * When the tests end, we need to mark all tests that were expected to be finished but aren't as failed
-         */
-        private void OnDestroy()
+        
+        public void StopValidations()
         {
+            // First, make sure RGValidateBehaviour marks the final results as pass or fail based on the desired
+            // conditions.
             foreach (var validator in Validators)
             {
                 if (validator.Mode == ValidationMode.ALWAYS_TRUE && validator.Status == SegmentValidationStatus.UNKNOWN)
@@ -231,5 +235,6 @@ namespace RegressionGames.Validation
                 }
             }
         }
+        
     }
 }

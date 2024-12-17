@@ -33,7 +33,7 @@ namespace RegressionGames.Editor.Validation
         {
             
             _mainScrollPane.Clear();
-            UnsubscribeFromValidationEvents(); // TODO(vontell): Why did I do this here?
+            UnsubscribeFromValidationEvents();
             
             var validationScripts = FindObjectsOfType<RGValidateBehaviour>();
             

@@ -32,6 +32,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
         
         private GameObject _myGameObject;
         private RGValidateBehaviour _myValidationBehaviour;
+        private SegmentValidationResultSetContainer _storedResults;
         
         private volatile Type _typeToCreate = null;
         private volatile bool _readyToCreate;
@@ -61,10 +62,15 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                         }
                     }
 
-                    // TODO(vontell): Need to check that this is an RGValidateBehaviour
+                    // Make sure this type is not null and is inheriting from RGValidateBehaviour
                     if (t == null)
                     {
                         _error = $"Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. Type was not found in any assembly in the current runtime.";
+                        RGDebug.LogError(_error);
+                    }
+                    else if (!typeof(RGValidateBehaviour).IsAssignableFrom(t))
+                    {
+                        _error = $"Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidateBehaviour.";
                         RGDebug.LogError(_error);
                     }
                     else
@@ -80,8 +86,6 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
         public void ProcessValidation(int segmentNumber)
         {
 
-            string error;
-
             if (!_isStopped)
             {
                 if (_readyToCreate)
@@ -90,7 +94,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     if (_typeToCreate != null)
                     {
                         // load behaviour and set as a child of the playback controller
-                        var pbController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
+                        var pbController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
                         _myGameObject = new GameObject($"RGValidate_{classFullName}")
                         {
                             transform =
@@ -104,8 +108,8 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     }
                     else
                     {
-                        // couldn't load the type; don't stop or error reporting won't work
-                        error = _error;
+                        RGDebug.LogError("Could not load type for validation script");
+                        _isStopped = true;
                     }
                 }
 
@@ -114,9 +118,6 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     if (!_myGameObject.TryGetComponent(_typeToCreate, out _))
                     {
                         ((IRGSegmentValidationData)this).StopValidation(segmentNumber);
-                        _error = null;
-                        error = _error;
-                        // TODO(vontell): Here we used to return false - instead report result
                     }
 
                     // TODO(vontell): How do I want to support rogue scripts that keep running?
@@ -133,19 +134,10 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
 
                     // Validation is expected to perform its actions in its own 'Update' or 'LateUpdate' calls... we don't directly call it
                     // TODO(vontell): When it reaches its own self-determined end condition, it should destroy itself
-
-                    // It can get the current state information from the runtime directly... or can access our information by using
-                    // UnityEngine.Object.FindObjectOfType<TransformObjectFinder>().GetObjectStatusForCurrentFrame();
-                    // and/or
-                    // UnityEngine.Object.FindObjectOfType<EntityObjectFinder>().GetObjectStatusForCurrentFrame(); - for runtimes with ECS support
-
-                    // This is the regular update loop case while the behaviour is still actively running
-                    _error = null;
-                    error = _error;
+                    
                 }
             }
-
-            error = _error;
+            
         }
 
         public void PauseValidation(int segmentNumber)
@@ -160,6 +152,14 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
 
         public void StopValidation(int segmentNumber)
         {
+            // First, make sure RGValidateBehaviour marks the final results as pass or fail based on the desired
+            // conditions.
+            _myValidationBehaviour?.StopValidations();
+            
+            // Then backup the results since we are going to be destroying the behaviour
+            _storedResults = _myValidationBehaviour?.GetResults();
+            
+            // Finally, destroy the behaviour
             if (_myValidationBehaviour)
             {
                 Object.Destroy(_myValidationBehaviour);
@@ -168,17 +168,19 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
 
         public void ResetResults()
         {
+            _storedResults = null; // Technically not needed, but here for safety
             _myValidationBehaviour?.ResetResults();
         }
         
         public bool HasSetAllResults()
         {
-            return _myValidationBehaviour?.GetResults().validationResults.All(v => v.result != SegmentValidationStatus.UNKNOWN) ?? false;
+            var results = _storedResults ?? _myValidationBehaviour?.GetResults();
+            return results?.validationResults.All(v => v.result != SegmentValidationStatus.UNKNOWN) ?? false;
         }
 
         public SegmentValidationResultSetContainer GetResults()
         {
-            return _myValidationBehaviour?.GetResults();
+            return _storedResults ?? _myValidationBehaviour?.GetResults();
         }
 
         public void WriteToStringBuilder(StringBuilder stringBuilder)
