@@ -119,6 +119,10 @@ namespace RegressionGames.StateRecorder.BotSegments
         }
     }
 
+    /**
+     * Manages the current status of bot sequence / segment playback.
+     * Also handles updating the on screen status and writing to the log.
+     */
     public class BotSegmentPlaybackStatusManager : MonoBehaviour
     {
         public bool pauseEditorOnPlaybackError = false;
@@ -219,19 +223,24 @@ namespace RegressionGames.StateRecorder.BotSegments
             var loggedMessage = _lastSegmentMessage;
 
 
-            var forceLogOnFirstExploration = false;
+            var forceLogOnFirstOrLastExploration = false;
 
             if (!string.IsNullOrEmpty(PlaybackStatus.explorationErrorStatus))
             {
                 if (_lastExplorationMessage == null )
                 {
-                    forceLogOnFirstExploration = true;
+                    forceLogOnFirstOrLastExploration = true;
                 }
                 _lastExplorationMessage = PlaybackStatus.explorationErrorStatus;
                 loggedMessage = "Error processing exploratory BotAction\n\n" + PlaybackStatus.explorationErrorStatus + "\n\n\nPre-Exploration Error - " + _lastSegmentMessage;
             }
             else
             {
+                if (_lastExplorationMessage != null)
+                {
+                    forceLogOnFirstOrLastExploration = true;
+                }
+
                 _lastExplorationMessage = null;
             }
 
@@ -245,9 +254,9 @@ namespace RegressionGames.StateRecorder.BotSegments
             else
             {
                 // don't be a spammer
-                if (forceLogOnFirstExploration || _lastLoggedMessage != logPrefix + loggedMessage)
+                if (forceLogOnFirstOrLastExploration || _lastLoggedMessage != logPrefix + loggedMessage)
                 {
-                    if (forceLogOnFirstExploration || _lastTimeErrorClearedOrLogged + ERROR_LOG_WAIT_INTERVAL < now)
+                    if (forceLogOnFirstOrLastExploration || _lastTimeErrorClearedOrLogged + ERROR_LOG_WAIT_INTERVAL < now)
                     {
                         _lastLoggedMessage = logPrefix + loggedMessage;
                         if (PlaybackStatus.explorationExceptionStatus != null)
