@@ -400,9 +400,12 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
+        private BotSegmentPlaybackStatusManager _botSegmentPlaybackStatusManager;
+
         private void Start()
         {
             _explorationDriver = GetComponent<ActionExplorationDriver>();
+
             KeyboardEventSender.Initialize();
             SceneManager.sceneLoaded += OnSceneLoad;
             SceneManager.sceneUnloaded += OnSceneUnload;
@@ -471,6 +474,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         void OnEnable()
         {
             _screenRecorder = GetComponentInParent<ScreenRecorder>();
+            _botSegmentPlaybackStatusManager = GetComponentInParent<BotSegmentPlaybackStatusManager>();
         }
 
         private bool _unpaused;
