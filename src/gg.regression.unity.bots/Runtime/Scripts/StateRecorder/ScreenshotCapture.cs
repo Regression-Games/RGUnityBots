@@ -255,10 +255,24 @@ namespace RegressionGames.StateRecorder
         }
 
         /**
-         * <summary>Calls the onSuccess callback when the readback request finishes or if data is already available</summary>
+         * <summary>
+         * Calls the onSuccess callback when the readback request finishes or if data is already available.
+         * If the system is running in a no graphics mode, this will instead just immediately complete the
+         * action.
+         * </summary>
          */
         public void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
         {
+            
+            // When we don't have graphics available, we immediate invoke the callback with a null value. With how
+            // we use this function now, this needs to happen so the tick data writing task correctly saves the
+            // resulting data.
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null && onCompletion != null)
+            {
+                onCompletion.Invoke(null);
+                return;
+            }
+            
             var frame = UnityEngine.Time.frameCount;
             lock (SyncLock)
             {
@@ -325,39 +339,39 @@ namespace RegressionGames.StateRecorder
                 {
                     ScreenCapture.CaptureScreenshotIntoRenderTexture(_screenShotTexture);
                     var readbackRequest = AsyncGPUReadback.Request(_screenShotTexture, 0, GraphicsFormat.R8G8B8A8_SRGB, request =>
-                    {
-                        if (!request.hasError)
                         {
-                            var pixels = request.GetData<Color32>();
-                            var copyBuffer = _copyBuffer.Value; // uses a threadlocal to avoid re-allocating this on every readback
-                            if (SystemInfo.graphicsUVStartsAtTop)
+                            if (!request.hasError)
                             {
-                                // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
-                                var halfHeight = screenHeight / 2;
-                                for (var i = 0; i <= halfHeight; i++)
+                                var pixels = request.GetData<Color32>();
+                                var copyBuffer = _copyBuffer.Value; // uses a threadlocal to avoid re-allocating this on every readback
+                                if (SystemInfo.graphicsUVStartsAtTop)
                                 {
-                                    // swap rows
-                                    // bottom row to buffer
-                                    NativeArray<Color32>.Copy(pixels, i * screenWidth, copyBuffer, 0, screenWidth);
-                                    // top row to bottom
-                                    NativeArray<Color32>.Copy(pixels, (screenHeight - i - 1) * screenWidth, pixels, i * screenWidth, screenWidth);
-                                    // buffer to top row
-                                    NativeArray<Color32>.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
-                                }
-                            } //else.. we're fine
+                                    // the pixels from the GPU are upside down, we need to reverse this for it to be right side up
+                                    var halfHeight = screenHeight / 2;
+                                    for (var i = 0; i <= halfHeight; i++)
+                                    {
+                                        // swap rows
+                                        // bottom row to buffer
+                                        NativeArray<Color32>.Copy(pixels, i * screenWidth, copyBuffer, 0, screenWidth);
+                                        // top row to bottom
+                                        NativeArray<Color32>.Copy(pixels, (screenHeight - i - 1) * screenWidth, pixels, i * screenWidth, screenWidth);
+                                        // buffer to top row
+                                        NativeArray<Color32>.Copy(copyBuffer, 0, pixels, (screenHeight - i - 1) * screenWidth, screenWidth);
+                                    }
+                                } //else.. we're fine
 
-                            var imageOutput = ImageConversion.EncodeNativeArrayToJPG(pixels, theGraphicsFormat, (uint)screenWidth, (uint)screenHeight);
+                                var imageOutput = ImageConversion.EncodeNativeArrayToJPG(pixels, theGraphicsFormat, (uint)screenWidth, (uint)screenHeight);
 
-                            RGDebug.LogDebug($"ScreenshotCapture - Captured screenshot for frame # {frame}");
-                            AddFrame(frame, (imageOutput.ToArray(), screenWidth, screenHeight));
-                        }
-                        else
-                        {
-                            RGDebug.LogWarning($"ScreenshotCapture - Error capturing screenshot for frame # {frame}");
-                            AddFrame(frame, null);
-                        }
-                        HandleCompletedActionCallbacks();
-                    });
+                                RGDebug.LogDebug($"ScreenshotCapture - Captured screenshot for frame # {frame}");
+                                AddFrame(frame, (imageOutput.ToArray(), screenWidth, screenHeight));
+                            }
+                            else
+                            {
+                                RGDebug.LogWarning($"ScreenshotCapture - Error capturing screenshot for frame # {frame}");
+                                AddFrame(frame, null);
+                            }
+                            HandleCompletedActionCallbacks();
+                        });
                     // update from null to the real request
                     GPUReadbackRequests[frame] = readbackRequest;
 

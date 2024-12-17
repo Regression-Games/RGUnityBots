@@ -22,7 +22,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
     public class ScriptSegmentValidationData: IRGSegmentValidationData
     {
         
-        public int apiVersion = SdkApiVersion.VERSION_28;
+        public int apiVersion = SdkApiVersion.VERSION_29;
         
         private static readonly Dictionary<string, Type> CachedTypes = new();
 
@@ -63,7 +63,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                         }
                     }
 
-                    // Make sure this type is not null and is inheriting from RGValidateBehaviour
+                    // Make sure this type is not null and is inheriting from RGValidationScript
                     if (t == null)
                     {
                         _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. Type was not found in any assembly in the current runtime.";
@@ -71,7 +71,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     }
                     else if (!typeof(RGValidationScript).IsAssignableFrom(t))
                     {
-                        _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidateBehaviour.";
+                        _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidationScript.";
                         RGDebug.LogError(_error);
                     }
                     else

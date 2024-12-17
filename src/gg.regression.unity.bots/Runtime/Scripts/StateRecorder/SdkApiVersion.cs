@@ -118,12 +118,16 @@
          */
         public const int VERSION_27 = 27;
         /**
-         * <summary> Add validations field and functionality</summary>
+         * <summary> Add initial framework for key moment bot segments</summary>
          */
         public const int VERSION_28 = 28;
+        /**
+         * <summary> Add validations field and functionality</summary>
+         */
+        public const int VERSION_29 = 29;
 
         // Update this when new features are used in the SDK
-        public const int CURRENT_VERSION = VERSION_28;
+        public const int CURRENT_VERSION = VERSION_29;
 
     }
 }

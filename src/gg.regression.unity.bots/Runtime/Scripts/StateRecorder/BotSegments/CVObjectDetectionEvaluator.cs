@@ -25,7 +25,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         // if an entry is NULL, request is in progress for that segment
         // if an entry has a value, then it is completed for that segment.. it should be cleared out on the next matched call if the result didn't match so it can run again
-        private static readonly Dictionary<int, ConcurrentDictionary<int, List<CVObjectDetectionResult>>> _queryResultTracker = new();
+        private static readonly Dictionary<int, ConcurrentDictionary<int, List<CVImageResult>>> _queryResultTracker = new();
 
         private static readonly Dictionary<int, List<string>> _priorResultsTracker = new();
 
@@ -86,7 +86,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         {
             RGDebug.LogVerbose($"CVObjectDetectionEvaluator - Matched - botSegment: {segmentNumber} - BEGIN");
 
-            ConcurrentDictionary<int, List<CVObjectDetectionResult>> objectDetectionResults = null;
+            ConcurrentDictionary<int, List<CVImageResult>> objectDetectionResults = null;
             List<string> priorResults = null;
             bool requestInProgress = false;
 
@@ -158,7 +158,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         private static List<string> EvaluateResult(
             int segmentNumber,
             List<KeyFrameCriteria> criteriaList,
-            ConcurrentDictionary<int, List<CVObjectDetectionResult>> objectDetectionResults,
+            ConcurrentDictionary<int, List<CVImageResult>> objectDetectionResults,
             List<string> resultList)
         {
             int criteriaListCount = criteriaList.Count;
@@ -220,35 +220,32 @@ namespace RegressionGames.StateRecorder.BotSegments
         /// <summary>
         /// Checks if any of the CV object detection results match within the specified rectangle.
         /// </summary>
-        /// <param name="cvImageResultList">List of CV object detection results to check.</param>
+        /// <param name="cvImageResultList">List of CV detection results to check.</param>
         /// <param name="withinRect">The rectangle constraint to check against.</param>
         /// <returns>True if a match is found within the specified rectangle, otherwise false.</returns>
         /// <remarks>
         /// This method scales the detection results to match the withinRect's screen size,
-        /// then checks if either the bottom-left or top-right corner of the scaled result
-        /// is contained within the specified rectangle. It stops checking after finding
+        /// then checks if the shape overlaps the withinRect in any way. It stops checking after finding
         /// the first match.
         /// </remarks>
-        private static bool DidMatchInsideWithinRect(List<CVObjectDetectionResult> cvImageResultList, CVWithinRect withinRect)
+        public static bool DidMatchInsideWithinRect(List<CVImageResult> cvImageResultList, CVWithinRect withinRect)
         {
             bool found = false;
             foreach (var cvImageResult in cvImageResultList)
             {
-                // ensure result rect is inside
-                var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvImageResult.resolution.x,
-                                                  withinRect.screenSize.y / (float)cvImageResult.resolution.y);
+                var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvImageResult.resolution.x, withinRect.screenSize.y / (float)cvImageResult.resolution.y);
 
-                // check the bottom left and top right to see if it intersects our rect
-                var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvImageResult.rect.x * relativeScaling.x),
-                                                Mathf.CeilToInt(cvImageResult.rect.y * relativeScaling.y));
-                var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvImageResult.rect.width * relativeScaling.x),
-                                              bottomLeft.y + Mathf.FloorToInt(cvImageResult.rect.height * relativeScaling.y));
+                var minX = Mathf.CeilToInt(cvImageResult.rect.x * relativeScaling.x);
+                var maxX = Mathf.FloorToInt((cvImageResult.rect.x + cvImageResult.rect.width) * relativeScaling.x);
 
-                // we currently test overlap, should we test fully inside instead ??
-                if (withinRect.rect.Contains(bottomLeft) || withinRect.rect.Contains(topRight))
+                var minY = Mathf.CeilToInt(cvImageResult.rect.y * relativeScaling.y);
+                var maxY = Mathf.FloorToInt((cvImageResult.rect.y + cvImageResult.rect.height) * relativeScaling.y);
+
+                // we test that the shapes overlap, as long as the result in some way overlaps the withinRect, it passes
+                if (withinRect.rect.xMin <= maxX && withinRect.rect.xMax >= minX && withinRect.rect.yMin <= maxY && withinRect.rect.yMax >= minY )
                 {
                     found = true;
-                    break; // we found one, we can stop.
+                    break; // we found one, we can stop
                 }
             }
             return found;
@@ -393,7 +390,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         /// It stores the results, cleans up the request tracker, and removes completed requests.
         /// The method ensures thread-safety by using a lock on the _requestTracker.
         /// </remarks>
-        private static void OnSuccess(int segmentNumber, int index, List<CVObjectDetectionResult> list)
+        private static void OnSuccess(int segmentNumber, int index, List<CVImageResult> list)
         {
             RGDebug.LogVerbose($"CVObjectDetectionEvaluator - Matched - botSegment: {segmentNumber}, index: {index} - Request - onSuccess callback");
             lock (_requestTracker)

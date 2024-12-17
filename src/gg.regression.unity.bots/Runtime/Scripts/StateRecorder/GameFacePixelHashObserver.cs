@@ -100,7 +100,10 @@ namespace RegressionGames.StateRecorder
 
         private void UpdateGameFacePixelHash()
         {
-            if (_isActive)
+            // If we are running in -nographics mode, the async task below fails, causing an exception inside
+            // the AsyncGPUReadback.Request that is difficult to catch. This ensures that the image data
+            // is only read when we have graphics
+            if (_isActive && SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null)
             {
                 // have to re-get this every time because it changes on resolution and other screen changes that update the gameface render target
                 var cohtmlViewTexture = GetRenderTexture();

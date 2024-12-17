@@ -11,7 +11,7 @@ namespace StateRecorder.BotSegments.Models
     {
         
         // api version for this top level schema, update if we add/remove/change fields here
-        public int apiVersion = SdkApiVersion.VERSION_28;
+        public int apiVersion = SdkApiVersion.VERSION_29;
 
         public SegmentValidationType type;
         public IRGSegmentValidationData data;
@@ -28,6 +28,9 @@ namespace StateRecorder.BotSegments.Models
                 data.PrepareValidation(segmentNumber);
                 _hasStarted = true;
             }
+            // NOTE: It would be nice to avoid running the validation once they are complete, but there are a lot
+            // of validations that could be passed but then fail later... so we always just run this until either
+            // the timeout is hit or the segment criteria and actions are met. We may revisit this.
             data.ProcessValidation(segmentNumber);
         }
 

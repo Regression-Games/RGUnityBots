@@ -18,7 +18,7 @@ using UnityEngine;
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
     [Serializable]
-    public class BotSegment
+    public class BotSegment : IStringBuilderWriteable, IKeyMomentStringBuilderWriteable
     {
 
         // re-usable and large enough to fit all sizes
@@ -26,7 +26,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
-        public int apiVersion = SdkApiVersion.VERSION_28;
+        public int apiVersion = SdkApiVersion.VERSION_29;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION), endCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
@@ -41,7 +41,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // NOT WRITTEN TO JSON - Populated at load time
         public bool isOverride;
-        
+
         /**
          * <summary>Description for this bot segment. Used for naming on the UI.</summary>
          */
@@ -65,8 +65,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         public int Replay_SegmentNumber;
 
         // Replay only - tracks if we have started the action for this bot segment
-        [NonSerialized]
-        public bool Replay_ActionStarted;
+        public bool Replay_ActionStarted => botAction == null || botAction.IsStarted;
 
         // Replay only - tracks if we have completed the action for this bot segment
         // returns true if botAction.IsCompleted || botAction.IsCompleted==null && Replay_Matched
@@ -83,16 +82,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // Replay only - called at least once per frame
         public bool ProcessAction(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities, out string error)
         {
-            if (botAction == null)
-            {
-                Replay_ActionStarted = true;
-            }
-            else
+            if (botAction != null)
             {
                 if (!Replay_ActionStarted)
                 {
                     botAction.StartAction(Replay_SegmentNumber, currentTransforms, currentEntities);
-                    Replay_ActionStarted = true;
                 }
                 return botAction.ProcessAction(Replay_SegmentNumber, currentTransforms, currentEntities, out error);
             }
@@ -197,7 +191,6 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
                 validations[i].ReplayReset();
             }
 
-            Replay_ActionStarted = false;
             Replay_Matched = false;
         }
 
@@ -271,9 +264,60 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             return false;
         }
-
+        
         public bool HasValidationEndCriteria =>
             endCriteria.Exists(ec => ec.type == KeyFrameCriteriaType.ValidationsComplete);
+        
+        public string ToKeyMomentJsonString()
+        {
+            _stringBuilder.Value.Clear();
+            WriteKeyMomentToStringBuilder(_stringBuilder.Value);
+            return _stringBuilder.Value.ToString();
+        }
+
+        public void WriteKeyMomentToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\n\"name\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, name );
+            stringBuilder.Append(",\n\"description\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, description );
+            stringBuilder.Append(",\n\"sessionId\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, sessionId);
+            stringBuilder.Append(",\n\"apiVersion\":");
+            IntJsonConverter.WriteToStringBuilder(stringBuilder, apiVersion);
+            stringBuilder.Append(",\n\"endCriteria\":[\n");
+            var endCriteriaLength = endCriteria.Count;
+            for (var i = 0; i < endCriteriaLength; i++)
+            {
+                var criteria = endCriteria[i];
+                criteria.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < endCriteriaLength)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n],\n\"botAction\":");
+            if (botAction != null)
+            {
+                botAction.WriteKeyMomentToStringBuilder(stringBuilder);
+            }
+            else
+            {
+                stringBuilder.Append("null");
+            }
+            stringBuilder.Append(",\n\"validations\":[\n");
+            var validationsLength = validations.Count;
+            for (var i = 0; i < validationsLength; i++)
+            {
+                var validation = validations[i];
+                validation.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < validationsLength)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]\n}");
+        }
 
         public string ToJsonString()
         {

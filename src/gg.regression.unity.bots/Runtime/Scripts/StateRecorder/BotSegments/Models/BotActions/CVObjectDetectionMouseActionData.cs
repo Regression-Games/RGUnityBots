@@ -211,7 +211,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models.BotActions
         /// </summary>
         /// <param name="segmentNumber">The segment number of the bot action, used for logging and debugging purposes.</param>
         /// <param name="list">A list of CVObjectDetectionResult objects returned from the CV evaluation.</param>
-        private void OnSuccess(int segmentNumber, List<CVObjectDetectionResult> list)
+        private void OnSuccess(int segmentNumber, List<CVImageResult> list)
         {
             RGDebug.LogDebug($"CVObjectDetectionMouseActionData - RequestCVObjectDetectionEvaluation - botSegment: {segmentNumber} - Request - onSuccess callback");
             lock (_syncLock)
