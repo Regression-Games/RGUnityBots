@@ -65,12 +65,12 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     // Make sure this type is not null and is inheriting from RGValidateBehaviour
                     if (t == null)
                     {
-                        _error = $"Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. Type was not found in any assembly in the current runtime.";
+                        _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. Type was not found in any assembly in the current runtime.";
                         RGDebug.LogError(_error);
                     }
                     else if (!typeof(RGValidateBehaviour).IsAssignableFrom(t))
                     {
-                        _error = $"Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidateBehaviour.";
+                        _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidateBehaviour.";
                         RGDebug.LogError(_error);
                     }
                     else
@@ -108,7 +108,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     }
                     else
                     {
-                        RGDebug.LogError("Could not load type for validation script");
+                        RGDebug.LogError($"({segmentNumber}) - Bot Segment Validations - Could not load type for validation script");
                         _isStopped = true;
                     }
                 }
@@ -152,6 +152,9 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
 
         public void StopValidation(int segmentNumber)
         {
+            
+            RGDebug.LogInfo($"({segmentNumber}) - Bot Segment Validations - Stopping validation for {classFullName}");
+            
             // First, make sure RGValidateBehaviour marks the final results as pass or fail based on the desired
             // conditions.
             _myValidationBehaviour?.StopValidations();

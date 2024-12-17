@@ -458,8 +458,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                         BotSegment firstActionSegment = _nextBotSegments[0];
                         try
                         {
-                            firstActionSegment.ProcessValidation();
                             var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
+                            firstActionSegment.ProcessValidation();
                             // only log this if we're really stuck on it
                             if (error == null && didAction)
                             {
