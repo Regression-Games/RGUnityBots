@@ -85,6 +85,7 @@ namespace RegressionGames.TestFramework
         {
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+            var statusManager = Object.FindObjectOfType<BotSegmentPlaybackStatusManager>();
             var botSegments = BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(recordingPath, out var sessionId);
             var replayData = new BotSegmentsPlaybackContainer(botSegments, sessionId);
             playbackController.SetDataContainer(replayData);
@@ -111,7 +112,7 @@ namespace RegressionGames.TestFramework
             {
                 saveLocation = playbackController.SaveLocation() + ".zip",
                 success = !didTimeout,
-                statusMessage = didTimeout?playbackController.GetLastSegmentPlaybackWarning():null
+                statusMessage = didTimeout?statusManager.LastError():null
             };
             setPlaybackResult(result);
             playbackController.Stop();
@@ -129,6 +130,7 @@ namespace RegressionGames.TestFramework
         {
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+            var statusManager = Object.FindObjectOfType<BotSegmentPlaybackStatusManager>();
             var botSegments = BotSegmentDirectoryParser.ParseBotSegmentSystemDirectory(recordingPath, out var sessionId);
             var replayData = new BotSegmentsPlaybackContainer(botSegments, sessionId);
             playbackController.SetDataContainer(replayData);
@@ -155,7 +157,7 @@ namespace RegressionGames.TestFramework
             {
                 saveLocation = playbackController.SaveLocation() + ".zip",
                 success = !didTimeout,
-                statusMessage = didTimeout?playbackController.GetLastSegmentPlaybackWarning():null
+                statusMessage = didTimeout?statusManager.LastError():null
             };
             setPlaybackResult(result);
             playbackController.Stop();
@@ -313,6 +315,7 @@ namespace RegressionGames.TestFramework
             RGDebug.LogInfo("Starting bot segment from path: " + botSegment.resourcePath);
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+            var statusManager = Object.FindObjectOfType<BotSegmentPlaybackStatusManager>();
 
             playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(new[] { botSegment }));
 
@@ -339,7 +342,7 @@ namespace RegressionGames.TestFramework
             {
                 saveLocation = playbackController.SaveLocation() + ".zip",
                 success = !didTimeout,
-                statusMessage = didTimeout?playbackController.GetLastSegmentPlaybackWarning():null
+                statusMessage = didTimeout?statusManager.LastError():null
             };
             setPlaybackResult(result);
             playbackController.Stop();
@@ -358,6 +361,7 @@ namespace RegressionGames.TestFramework
             RGDebug.LogInfo("Starting bot segment list from path: " + botSegmentList.resourcePath);
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+            var statusManager = Object.FindObjectOfType<BotSegmentPlaybackStatusManager>();
 
             playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(botSegmentList.segments));
 
@@ -384,7 +388,7 @@ namespace RegressionGames.TestFramework
             {
                 saveLocation = playbackController.SaveLocation() + ".zip",
                 success = !didTimeout,
-                statusMessage = didTimeout?playbackController.GetLastSegmentPlaybackWarning():null
+                statusMessage = didTimeout?statusManager.LastError():null
             };
             setPlaybackResult(result);
             playbackController.Stop();
@@ -432,6 +436,7 @@ namespace RegressionGames.TestFramework
             botSequence.Play();
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
+            var statusManager = Object.FindObjectOfType<BotSegmentPlaybackStatusManager>();
 
             yield return null; // Allow the recording to start playing
             var didTimeout = false;
@@ -454,7 +459,7 @@ namespace RegressionGames.TestFramework
             {
                 saveLocation = playbackController.SaveLocation() + ".zip",
                 success = !didTimeout,
-                statusMessage = didTimeout?playbackController.GetLastSegmentPlaybackWarning():null
+                statusMessage = didTimeout?statusManager.LastError():null
             };
             setPlaybackResult(result);
             botSequence.Stop();

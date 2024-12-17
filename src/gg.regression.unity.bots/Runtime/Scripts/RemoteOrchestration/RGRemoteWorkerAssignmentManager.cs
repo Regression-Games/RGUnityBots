@@ -304,7 +304,7 @@ namespace RegressionGames.RemoteOrchestration
             var controller = FindObjectOfType<BotSegmentsPlaybackController>();
             if (controller != null && controller.GetState() != PlayState.NotLoaded)
             {
-                if (controller.GetState() == PlayState.Playing || controller.GetState() == PlayState.Starting || (controller.GetState() == PlayState.Stopped && controller.ReplayCompletedSuccessfully() == null && controller.GetLastSegmentPlaybackWarning() == null))
+                if (controller.GetState() == PlayState.Playing || controller.GetState() == PlayState.Starting || (controller.GetState() == PlayState.Stopped && controller.ReplayCompletedSuccessfully() == null))
                 {
                     // a group of segments is playing.. let's see if we can figure out more details or not
                     if (BotSequence.ActiveBotSequence != null)
