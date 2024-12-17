@@ -351,23 +351,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 // we had the result for this criteria
                                 if (withinRect != null)
                                 {
-                                    foreach (var cvImageResult in cvImageResultList)
-                                    {
-                                        // ensure result rect is inside
-                                        var relativeScaling = new Vector2(withinRect.screenSize.x / (float)cvImageResult.resolution.x, withinRect.screenSize.y / (float)cvImageResult.resolution.y);
-
-                                        // check the bottom left and top right to see if it intersects our rect
-                                        var bottomLeft = new Vector2Int(Mathf.CeilToInt(cvImageResult.rect.x * relativeScaling.x), Mathf.CeilToInt(cvImageResult.rect.y * relativeScaling.y));
-                                        var topRight = new Vector2Int(bottomLeft.x + Mathf.FloorToInt(cvImageResult.rect.width * relativeScaling.x), bottomLeft.y + Mathf.FloorToInt(cvImageResult.rect.height * relativeScaling.y));
-
-                                        // we currently test overlap, should we test fully inside instead ??
-                                        if (withinRect.rect.Contains(bottomLeft) || withinRect.rect.Contains(topRight))
-                                        {
-                                            found = true;
-                                            break; // we found one, we can stop
-                                        }
-                                    }
-
+                                    found = CVObjectDetectionEvaluator.DidMatchInsideWithinRect(cvImageResultList, withinRect);
                                     if (!found)
                                     {
                                         resultList.Add($"CV Image result for criteria at index: {i} was not found withinRect: {RectIntJsonConverter.ToJsonString(withinRect.rect)}");

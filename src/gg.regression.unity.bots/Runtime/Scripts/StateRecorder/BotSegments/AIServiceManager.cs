@@ -78,7 +78,7 @@ namespace RegressionGames
 
         public async Task PostCriteriaObjectDetection(CVObjectDetectionRequest request,
                                                       Action<Action> abortRegistrationHook,
-                                                      Action<List<CVObjectDetectionResult>> onSuccess,
+                                                      Action<List<CVImageResult>> onSuccess,
                                                       Action onFailure)
         {
             if (RGServiceManager.GetInstance().LoadAuth(out var authToken))
@@ -113,7 +113,7 @@ namespace RegressionGames
                     abortRegistrationHook: abortRegistrationHook.Invoke,
                     onSuccess: (s) =>
                     {
-                        var response = JsonConvert.DeserializeObject<CVObjectDetectionResultList>(s, JsonUtils.JsonSerializerSettings);
+                        var response = JsonConvert.DeserializeObject<CVImageResultList>(s, JsonUtils.JsonSerializerSettings);
                         onSuccess.Invoke(response.results);
                     },
                     onFailure: (f) =>
