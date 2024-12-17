@@ -111,7 +111,6 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     
                     _myValidationScript.ProcessValidations();
 
-                    // TODO(vontell): How do I want to support rogue scripts that keep running?
                     if (timeout > 0 && _startTime > 0 && Time.time - _startTime > timeout)
                     {
                         // Validation is still not stopped at the time limit
