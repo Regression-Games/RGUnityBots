@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -9,13 +10,19 @@ namespace RegressionGames.StateRecorder.BotSegments
     {
         private readonly List<BotSegment> _botSegments;
         private int _botSegmentIndex = 0;
+        
+        /**
+         * A top-level set of validations to run for an entire sequence of segments
+         */
+        public readonly List<SegmentValidation> Validations;
 
         public readonly string SessionId;
 
-        public BotSegmentsPlaybackContainer(IEnumerable<BotSegment> segments, string sessionId = null)
+        public BotSegmentsPlaybackContainer(IEnumerable<BotSegment> segments, IEnumerable<SegmentValidation> validations, string sessionId = null)
         {
             var replayNumber = 1; // 1 to align with the actual numbers in the recording
             _botSegments = new(segments);
+            Validations = new(validations);
             _botSegments.ForEach(a => a.Replay_SegmentNumber = replayNumber++);
             this.SessionId = sessionId ?? Guid.NewGuid().ToString("n");
         }
@@ -29,6 +36,12 @@ namespace RegressionGames.StateRecorder.BotSegments
             foreach (var botSegment in _botSegments)
             {
                 botSegment.ReplayReset();
+            }
+            
+            // reset all the top-level validations
+            foreach (var validation in Validations)
+            {
+                validation.ReplayReset();
             }
         }
 

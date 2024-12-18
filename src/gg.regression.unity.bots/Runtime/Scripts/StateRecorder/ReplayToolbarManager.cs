@@ -1,8 +1,10 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using RegressionGames.StateRecorder.BotSegments;
 using SimpleFileBrowser;
+using StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -236,7 +238,7 @@ namespace RegressionGames.StateRecorder
             try
             {
                 // do this on background thread
-                var dataContainer = new BotSegmentsPlaybackContainer(BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(filePath, out var sessionId), sessionId);
+                var dataContainer = new BotSegmentsPlaybackContainer(BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(filePath, out var sessionId), new List<SegmentValidation>(), sessionId);
                 _playbackContainer = dataContainer;
             }
             catch (Exception e)

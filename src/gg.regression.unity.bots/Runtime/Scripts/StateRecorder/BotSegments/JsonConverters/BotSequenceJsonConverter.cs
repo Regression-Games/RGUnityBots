@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {
@@ -21,6 +22,7 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             sequence.name = jObject.GetValue("name").ToObject<string>(serializer);
             sequence.description = jObject.GetValue("description")?.ToObject<string>(serializer) ?? "";
             sequence.segments = jObject.GetValue("segments").ToObject<List<BotSequenceEntry>>(serializer);
+            sequence.validations = jObject.GetValue("validations")?.ToObject<List<SegmentValidation>>(serializer) ?? new List<SegmentValidation>();
             return sequence;
         }
 

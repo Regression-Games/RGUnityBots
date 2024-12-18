@@ -11,6 +11,7 @@
         CVImage,
         ActionComplete,
         CVObjectDetection,
+        ValidationsComplete
 
         //FUTURE
         //Path,
