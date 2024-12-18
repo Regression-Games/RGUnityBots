@@ -1,6 +1,4 @@
-using System.Collections.Generic;
 using System.Text;
-using RegressionGames.StateRecorder;
 using StateRecorder.BotSegments.Models.SegmentValidations;
 
 namespace StateRecorder.BotSegments.Models
@@ -9,9 +7,12 @@ namespace StateRecorder.BotSegments.Models
     {
      
         /**
-         * Conducts any setup for this validation type
+         * Attempts to conduct any preparation needed for validation. Returns true if the validations
+         * are ready to be run, and false otherwise. Implementors should make sure that this method
+         * can handle being called ever update once, and ignore those requests if the validation is preparing itself
+         * or is already prepared.
          */
-        public void PrepareValidation(int segmentNumber);
+        public bool AttemptPrepareValidation(int segmentNumber);
 
         /**
          * Called at least once per frame

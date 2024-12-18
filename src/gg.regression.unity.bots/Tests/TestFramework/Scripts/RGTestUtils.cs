@@ -8,6 +8,7 @@ using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.Models;
 using RegressionGames.Types;
 using StateRecorder.BotSegments;
+using StateRecorder.BotSegments.Models;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.SceneManagement;
@@ -86,7 +87,7 @@ namespace RegressionGames.TestFramework
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
             var botSegments = BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(recordingPath, out var sessionId);
-            var replayData = new BotSegmentsPlaybackContainer(botSegments, sessionId);
+            var replayData = new BotSegmentsPlaybackContainer(botSegments, new List<SegmentValidation>(), sessionId);
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
 
@@ -130,7 +131,7 @@ namespace RegressionGames.TestFramework
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
             var botSegments = BotSegmentDirectoryParser.ParseBotSegmentSystemDirectory(recordingPath, out var sessionId);
-            var replayData = new BotSegmentsPlaybackContainer(botSegments, sessionId);
+            var replayData = new BotSegmentsPlaybackContainer(botSegments, new List<SegmentValidation>(), sessionId);
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
 
@@ -308,14 +309,15 @@ namespace RegressionGames.TestFramework
          * <param name="botSegment">The bot segment</param>
          * <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
          * <param name="timeout">How long in seconds to wait for this segment to complete, &lt;= 0 means wait forever (default)</param>
+         * <param name="validations">An optional set of validations to run against these segments</param>
          */
-        public static IEnumerator StartBotSegment(BotSegment botSegment, Action<PlaybackResult> setPlaybackResult, int timeout = 0)
+        public static IEnumerator StartBotSegment(BotSegment botSegment, Action<PlaybackResult> setPlaybackResult, int timeout = 0, List<SegmentValidation> validations = null)
         {
             RGDebug.LogInfo("Starting bot segment from path: " + botSegment.resourcePath);
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
-            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(new[] { botSegment }));
+            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(new[] { botSegment }, validations ?? new List<SegmentValidation>()));
 
             playbackController.Play();
 
@@ -353,14 +355,15 @@ namespace RegressionGames.TestFramework
          * <param name="botSegmentList">The bot segment list</param>
          * <param name="setPlaybackResult">A callback that will be called with the results of this playback</param>
          * <param name="timeout">How long in seconds to wait for this segment to complete, &lt;= 0 means wait forever (default)</param>
+         * <param name="validations">An optional set of validations to run against these segments</param>
          */
-        public static IEnumerator StartBotSegmentList(BotSegmentList botSegmentList, Action<PlaybackResult> setPlaybackResult, int timeout = 0)
+        public static IEnumerator StartBotSegmentList(BotSegmentList botSegmentList, Action<PlaybackResult> setPlaybackResult, int timeout = 0, List<SegmentValidation> validations = null)
         {
             RGDebug.LogInfo("Starting bot segment list from path: " + botSegmentList.resourcePath);
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
-            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(botSegmentList.segments));
+            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(botSegmentList.segments, validations ?? new List<SegmentValidation>()));
 
             playbackController.Play();
 

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder.BotSegments.Models;
 // ReSharper disable once RedundantUsingDirective - used in #if block
 using UnityEngine;
 
@@ -25,6 +26,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public List<BotSequenceEntry> segments = new();
 
+        /**
+         * <summary>A set of top-level validations to run on a sequence of segments</summary>
+         */
+        public List<SegmentValidation> validations = new();
+        
         /**
          * <summary>Define the name of this sequence that will be seen in user interfaces and runtime summaries.  This SHOULD NOT be null.</summary>
          */
@@ -491,7 +497,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             sessionId ??= Guid.NewGuid().ToString();
-            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(_segmentsToProcess.SelectMany(a => a.segments), sessionId));
+            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(_segmentsToProcess.SelectMany(a => a.segments), validations, sessionId));
             ActiveBotSequence = this; // SetDataContainer clears this, so set it here before starting
             playbackController.Play();
         }

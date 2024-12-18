@@ -5,6 +5,7 @@ using RegressionGames;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
 using RegressionGames.StateRecorder.BotSegments.Models;
+using StateRecorder.BotSegments.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -140,7 +141,7 @@ public class RGSegmentEntry : MonoBehaviour
         }
 
         // play the segment
-        playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.segments, sessionId));
+        playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(segmentList.segments, new List<SegmentValidation>(), sessionId));
         playbackController.Play();
     }
 }

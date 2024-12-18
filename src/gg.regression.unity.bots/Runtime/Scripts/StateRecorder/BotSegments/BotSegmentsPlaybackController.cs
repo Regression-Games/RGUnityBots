@@ -367,13 +367,19 @@ namespace RegressionGames.StateRecorder.BotSegments
                     _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
                 }
                 
-                // Finally, run (and potentially end) the validations
+                // Run (and potentially end) the validations for this segment
                 firstActionSegment.ProcessValidation();
-
+                
+                // Also run the validations for the entire list of segments if they exist
+                foreach (var validation in _dataPlaybackContainer.Validations)
+                {
+                    validation.ProcessValidation(-1);
+                }
+                
             }
             catch (Exception ex)
             {
-                var loggedMessage = "Exception processing BotAction\n\n" + ex.Message;
+                var loggedMessage = "Exception processing BotAction or Validations\n\n" + ex.Message;
                 LogPlaybackWarning(logPrefix + loggedMessage, ex);
                 // uncaught exception... stop and unload the segment
                 UnloadSegmentsAndReset();
@@ -387,7 +393,23 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 if (_dataPlaybackContainer != null)
                 {
-                    ProcessBotSegments();
+                    
+                    // If there are top-level validations running, let's make sure those are prepared before we
+                    // process the segments.
+                    var validationsReady = true;
+                    foreach (var validation in _dataPlaybackContainer.Validations)
+                    {
+                        if (!validation.ProcessValidation(-1))
+                        {
+                            validationsReady = false;
+                            break;
+                        }
+                    }
+
+                    if (validationsReady)
+                    {
+                        ProcessBotSegments();
+                    }
                 }
 
                 if (_nextBotSegments.Count == 0)
@@ -558,6 +580,12 @@ namespace RegressionGames.StateRecorder.BotSegments
                         nextBotSegment.PauseAction();
                         nextBotSegment.PauseValidations();
                     }
+                    
+                    // Also pause the top-level validations
+                    foreach (var validation in _dataPlaybackContainer.Validations)
+                    {
+                        validation.PauseValidation(-1);
+                    }
                 }
             }
         }
@@ -582,6 +610,12 @@ namespace RegressionGames.StateRecorder.BotSegments
                     {
                         nextBotSegment.UnPauseAction();
                         nextBotSegment.UnPauseValidations();
+                    }
+                    
+                    // Also unpause the top-level validations
+                    foreach (var validation in _dataPlaybackContainer.Validations)
+                    {
+                        validation.UnPauseValidation(-1);
                     }
                 }
             }
@@ -611,6 +645,15 @@ namespace RegressionGames.StateRecorder.BotSegments
                     // stop any action
                     nextBotSegment.AbortAction();
                     nextBotSegment.StopValidations();
+                }
+            }
+            
+            // Also wrap up the top-level validations if they exist
+            if (_dataPlaybackContainer != null)
+            {
+                foreach (var validation in _dataPlaybackContainer.Validations)
+                {
+                    validation.StopValidation(-1);
                 }
             }
 
@@ -644,6 +687,16 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void Stop()
         {
+            
+            // Make sure to stop any running validations
+            if (_dataPlaybackContainer != null)
+            {
+                foreach (var validation in _dataPlaybackContainer.Validations)
+                {
+                    validation.StopValidation(-1);
+                }
+            }
+            
             _nextBotSegments.Clear();
             _playState = PlayState.Stopped;
             _loopCount = -1;

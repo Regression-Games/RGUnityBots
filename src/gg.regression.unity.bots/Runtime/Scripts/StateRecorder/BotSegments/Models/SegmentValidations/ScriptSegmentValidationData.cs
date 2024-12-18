@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using JetBrains.Annotations;
 using RegressionGames;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.BotSegments;
@@ -38,11 +39,32 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
         private volatile Type _typeToCreate = null;
         private volatile bool _readyToCreate;
         private volatile string _error = null;
-        
-        public void PrepareValidation(int segmentNumber)
+        private volatile bool _isAttemptingToStart;
+
+        private string GetSegmentId(int segmentNumber)
         {
+            return segmentNumber >= 0 ? segmentNumber.ToString() : "SEQUENCE";
+        }
+        
+        public bool AttemptPrepareValidation(int segmentNumber)
+        {
+            
+            // This means we've already ran ProcessValidations and are definitely good to go
+            // or that we are ready to create the script
+            if (_myValidationScript != null || _readyToCreate)
+            {
+                return true;
+            }
+
+            // This means that the process to construct the script has started but has not completed
+            if (!_readyToCreate && _isAttemptingToStart)
+            {
+                return false;
+            }
+            
             if (!_isStopped)
             {
+                _isAttemptingToStart = true;
                 // load the type on another thread to avoid 'hitching' the game
                 new Thread(() =>
                 {
@@ -66,22 +88,26 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     // Make sure this type is not null and is inheriting from RGValidationScript
                     if (t == null)
                     {
-                        _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. Type was not found in any assembly in the current runtime.";
+                        _error = $"({GetSegmentId(segmentNumber)}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. Type was not found in any assembly in the current runtime.";
                         RGDebug.LogError(_error);
                     }
                     else if (!typeof(RGValidationScript).IsAssignableFrom(t))
                     {
-                        _error = $"({segmentNumber}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidationScript.";
+                        _error = $"({GetSegmentId(segmentNumber)}) - Bot Segment Validations - Regression Games could not load Bot Segment Validation Script for Type - {classFullName}. This Type does not inherit from RGValidationScript.";
                         RGDebug.LogError(_error);
                     }
                     else
                     {
                         _typeToCreate = t;
+                        RGDebug.LogInfo($"({GetSegmentId(segmentNumber)}) - Bot Segment Validations - Validation ready - {classFullName}.");
                     }
 
                     _readyToCreate = true;
+                    _isAttemptingToStart = false;
                 }).Start();
             }
+
+            return false;
         }
 
         public void ProcessValidation(int segmentNumber)
@@ -101,7 +127,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     }
                     else
                     {
-                        RGDebug.LogError($"({segmentNumber}) - Bot Segment Validations - Could not load type for validation script");
+                        RGDebug.LogError($"({GetSegmentId(segmentNumber)}) - Bot Segment Validations - Could not load type for validation script");
                         _isStopped = true;
                     }
                 }
@@ -114,7 +140,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
                     if (timeout > 0 && _startTime > 0 && Time.time - _startTime > timeout)
                     {
                         // Validation is still not stopped at the time limit
-                        RGDebug.LogInfo($"({segmentNumber}) - Bot Segment Validations - Time limit has been reached for validations in {classFullName}");
+                        RGDebug.LogInfo($"({GetSegmentId(segmentNumber)}) - Bot Segment Validations - Time limit has been reached for validations in {classFullName}");
                         StopValidation(segmentNumber);
                     }
                     
@@ -135,8 +161,10 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
 
         public void StopValidation(int segmentNumber)
         {
+
+            if (_isStopped) return; // Don't try to write the results twice
             
-            RGDebug.LogInfo($"({segmentNumber}) - Bot Segment Validations - Stopping validation for {classFullName}");
+            RGDebug.LogInfo($"({GetSegmentId(segmentNumber)}) - Bot Segment Validations - Stopping validation for {classFullName}");
             
             // First, make sure RGValidateBehaviour marks the final results as pass or fail based on the desired
             // conditions.
@@ -164,6 +192,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
             return results?.validationResults.All(v => v.result != SegmentValidationStatus.UNKNOWN) ?? false;
         }
 
+        [CanBeNull]
         public SegmentValidationResultSetContainer GetResults()
         {
             return _storedResults ?? _myValidationScript?.GetResults();

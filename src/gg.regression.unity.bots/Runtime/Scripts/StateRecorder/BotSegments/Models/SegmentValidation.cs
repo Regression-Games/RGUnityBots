@@ -1,6 +1,5 @@
 using System;
 using System.Text;
-using RegressionGames;
 using RegressionGames.StateRecorder;
 using RegressionGames.StateRecorder.JsonConverters;
 
@@ -16,22 +15,28 @@ namespace StateRecorder.BotSegments.Models
         public SegmentValidationType type;
         public IRGSegmentValidationData data;
         
-        private bool _hasStarted = false;
-        
         public int EffectiveApiVersion => Math.Max(apiVersion, data?.EffectiveApiVersion() ?? SdkApiVersion.CURRENT_VERSION);
+
+        private bool _validationIsReady;
         
         // called once per frame
-        public void ProcessValidation(int segmentNumber)
+        // returns true if the validation is running, or false if it is still loading up. This is used to 
+        // be able to wait for the validation to be ready before running the segments.
+        public bool ProcessValidation(int segmentNumber)
         {
-            if (!_hasStarted)
+            if (_validationIsReady)
             {
-                data.PrepareValidation(segmentNumber);
-                _hasStarted = true;
+                // NOTE: It would be nice to avoid running the validation once they are complete, but there are a lot
+                // of validations that could be passed but then fail later... so we always just run this until either
+                // the timeout is hit or the segment criteria and actions are met. We may revisit this.
+                data.ProcessValidation(segmentNumber);
             }
-            // NOTE: It would be nice to avoid running the validation once they are complete, but there are a lot
-            // of validations that could be passed but then fail later... so we always just run this until either
-            // the timeout is hit or the segment criteria and actions are met. We may revisit this.
-            data.ProcessValidation(segmentNumber);
+            else
+            {
+                _validationIsReady = data.AttemptPrepareValidation(segmentNumber);
+            }
+
+            return _validationIsReady;
         }
 
         // called when a segment ends to stop any validation processing
