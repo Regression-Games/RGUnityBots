@@ -130,7 +130,11 @@ namespace RegressionGames.TestFramework
         {
             RGDebug.LogInfo("Loading and starting playback recording from " + recordingPath);
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
-            var botSegments = BotSegmentDirectoryParser.ParseBotSegmentSystemDirectory(recordingPath, out var sessionId);
+            var botSegments = BotSegmentDirectoryParser.ParseBotSegmentSystemDirectory(recordingPath, out var sessionId).Select(a=>new BotSegmentList("BotSegmentList for BotSegment - " + a.name, new List<BotSegment>() {a})
+            {
+                description = "BotSegmentList for BotSegment - " + a.description,
+                validations = new()
+            });
             var replayData = new BotSegmentsPlaybackContainer(botSegments, new List<SegmentValidation>(), sessionId);
             playbackController.SetDataContainer(replayData);
             playbackController.Play();
@@ -317,7 +321,11 @@ namespace RegressionGames.TestFramework
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
-            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(new[] { botSegment }, validations ?? new List<SegmentValidation>()));
+            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(new List<BotSegmentList>() {new BotSegmentList("BotSegmentList for BotSegment - " + botSegment.name, new List<BotSegment>() {botSegment})
+            {
+                description = "BotSegmentList for BotSegment - " + botSegment.description,
+                validations = new()
+            }}, validations ?? new List<SegmentValidation>()));
 
             playbackController.Play();
 
@@ -363,7 +371,7 @@ namespace RegressionGames.TestFramework
 
             var playbackController = Object.FindObjectOfType<BotSegmentsPlaybackController>();
 
-            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(botSegmentList.segments, validations ?? new List<SegmentValidation>()));
+            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(new List<BotSegmentList>() {botSegmentList}, validations ?? new List<SegmentValidation>()));
 
             playbackController.Play();
 
