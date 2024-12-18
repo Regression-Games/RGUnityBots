@@ -4,9 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using Newtonsoft.Json;
-using RegressionGames.StateRecorder.BotSegments.JsonConverters;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using StateRecorder.BotSegments;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -66,9 +64,9 @@ namespace RegressionGames.StateRecorder.BotSegments
             return entries;
         }
 
-        public static List<BotSegment> ParseBotSegmentZipFromSystemPath(string zipFilePath, out string sessionId)
+        public static List<BotSegmentList> ParseBotSegmentZipFromSystemPath(string zipFilePath, out string sessionId)
         {
-            List<BotSegment> results = new();
+            List<BotSegmentList> results = new();
 
             sessionId = null;
 
@@ -100,17 +98,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             break;
                         }
 
-                        foreach (var botSegment in botSegmentList.segments)
-                        {
-                            botSegment.Replay_SegmentNumber = replayNumber++;
-
-                            if (sessionId == null)
-                            {
-                                sessionId = botSegment.sessionId;
-                            }
-
-                            results.Add(botSegment);
-                        }
+                        results.Add(botSegmentList);
                     }
                     catch (Exception)
                     {
@@ -132,7 +120,16 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 sessionId = frameData.sessionId;
                             }
 
-                            results.Add(frameData);
+                            results.Add(new BotSegmentList()
+                            {
+                                segments =  new List<BotSegment>()
+                                {
+                                  frameData
+                                },
+                                name = "BotSegmentList for BotSegment - " + frameData.name,
+                                description = "BotSegmentList for BotSegment - " + frameData.description,
+                                validations = new()
+                            });
                         }
                         catch (Exception ex)
                         {

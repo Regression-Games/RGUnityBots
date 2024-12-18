@@ -8,9 +8,11 @@ namespace RegressionGames.StateRecorder.BotSegments
 
     public class BotSegmentsPlaybackContainer
     {
-        private readonly List<BotSegment> _botSegments;
+
+        private readonly List<BotSegmentList> _botSegmentLists;
+        private int _botSegmentListIndex = 0;
         private int _botSegmentIndex = 0;
-        
+
         /**
          * A top-level set of validations to run for an entire sequence of segments
          */
@@ -18,51 +20,59 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public readonly string SessionId;
 
-        public BotSegmentsPlaybackContainer(IEnumerable<BotSegment> segments, IEnumerable<SegmentValidation> validations, string sessionId = null)
+        public BotSegmentsPlaybackContainer(IEnumerable<BotSegmentList> segmentLists, IEnumerable<SegmentValidation> validations, string sessionId = null)
         {
             var replayNumber = 1; // 1 to align with the actual numbers in the recording
-            _botSegments = new(segments);
+            _botSegmentLists = new(segmentLists);
+            _botSegmentLists.ForEach(a => a.segments.ForEach(b => b.Replay_SegmentNumber = replayNumber++));
             Validations = new(validations);
-            _botSegments.ForEach(a => a.Replay_SegmentNumber = replayNumber++);
             this.SessionId = sessionId ?? Guid.NewGuid().ToString("n");
         }
 
         public void Reset()
         {
             // sets indexes back to 0
-            _botSegmentIndex = 0;
+            _botSegmentListIndex = 0;
 
-            // reset all the tracking flags
-            foreach (var botSegment in _botSegments)
+            // reset all the tracking flags in the segmentlists / segments
+            _botSegmentLists.ForEach(a =>
             {
-                botSegment.ReplayReset();
-            }
-            
+                a.segments.ForEach(b => b.ReplayReset());
+                a.validations.ForEach(b => b.ReplayReset());
+            });
+
             // reset all the top-level validations
             foreach (var validation in Validations)
             {
                 validation.ReplayReset();
             }
+
         }
 
-        public BotSegment DequeueBotSegment()
+        /**
+         * Returns the next bot segment to evaluate and also provides the current segmentList level validations
+         */
+        public BotSegment DequeueBotSegment(out List<SegmentValidation> segmentListValidations)
         {
-            if (_botSegmentIndex < _botSegments.Count)
+            while (_botSegmentListIndex < _botSegmentLists.Count)
             {
-                return _botSegments[_botSegmentIndex++];
+                var segmentList = _botSegmentLists[_botSegmentListIndex];
+                if (_botSegmentIndex < segmentList.segments.Count)
+                {
+                    var segment = segmentList.segments[_botSegmentIndex++];
+                    segmentListValidations = segmentList.validations;
+                    return segment;
+                }
+                else
+                {
+                    // move to the next segmentlist starting on the 0th segment in that list
+                    _botSegmentIndex = 0;
+                    ++_botSegmentListIndex;
+                }
+
             }
 
-            return null;
-        }
-
-        public BotSegment PeekBotSegment()
-        {
-            if (_botSegmentIndex < _botSegments.Count)
-            {
-                // do not update index
-                return _botSegments[_botSegmentIndex];
-            }
-
+            segmentListValidations = new List<SegmentValidation>();
             return null;
         }
     }

@@ -237,8 +237,9 @@ namespace RegressionGames.StateRecorder
         {
             try
             {
+                var botSegmentLists = BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(filePath, out var sessionId);
                 // do this on background thread
-                var dataContainer = new BotSegmentsPlaybackContainer(BotSegmentZipParser.ParseBotSegmentZipFromSystemPath(filePath, out var sessionId), new List<SegmentValidation>(), sessionId);
+                var dataContainer = new BotSegmentsPlaybackContainer(botSegmentLists, new List<SegmentValidation>(), sessionId);
                 _playbackContainer = dataContainer;
             }
             catch (Exception e)

@@ -30,7 +30,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          * <summary>A set of top-level validations to run on a sequence of segments</summary>
          */
         public List<SegmentValidation> validations = new();
-        
+
         /**
          * <summary>Define the name of this sequence that will be seen in user interfaces and runtime summaries.  This SHOULD NOT be null.</summary>
          */
@@ -497,7 +497,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             sessionId ??= Guid.NewGuid().ToString();
-            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(_segmentsToProcess.SelectMany(a => a.segments), validations, sessionId));
+            playbackController.SetDataContainer(new BotSegmentsPlaybackContainer(_segmentsToProcess, validations, sessionId));
             ActiveBotSequence = this; // SetDataContainer clears this, so set it here before starting
             playbackController.Play();
         }

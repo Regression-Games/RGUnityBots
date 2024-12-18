@@ -51,6 +51,8 @@ namespace RegressionGames.StateRecorder.BotSegments
         // This is done this way to allow situations like when loading screens (UI) are changing while game objects are loading in the background and the process is not consistent/deterministic between the 2
         private readonly List<BotSegment> _nextBotSegments = new();
 
+        private List<SegmentValidation> _botSegmentListValidations = new();
+
         // helps indicate if we made it through the full replay successfully
         private bool? _replaySuccessful;
 
@@ -106,6 +108,21 @@ namespace RegressionGames.StateRecorder.BotSegments
                     if (nextBotSegmentIndex == 0)
                     {
                         ProcessBotSegmentAction(nextBotSegment, transformStatuses, entityStatuses);
+                    }
+
+                    // Run (and potentially end) the validations for this segment
+                    nextBotSegment.ProcessValidation();
+
+                    // Also run the validations for the botsegmentList if they exist
+                    foreach (var validation in _botSegmentListValidations)
+                    {
+                        validation.ProcessValidation(nextBotSegment.Replay_SegmentNumber);
+                    }
+
+                    // Also run the validations for the entire list of segments if they exist
+                    foreach (var validation in _dataPlaybackContainer.Validations)
+                    {
+                        validation.ProcessValidation(nextBotSegment.Replay_SegmentNumber);
                     }
 
                     var matched = nextBotSegment.Replay_Matched || nextBotSegment.endCriteria == null || nextBotSegment.endCriteria.Count == 0 || KeyFrameEvaluator.Evaluator.Matched(
@@ -192,7 +209,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         {
                             if (_nextBotSegments.Count < 2)
                             {
-                                var next = _dataPlaybackContainer.DequeueBotSegment();
+                                var next = _dataPlaybackContainer.DequeueBotSegment(out _botSegmentListValidations);
                                 if (next != null)
                                 {
                                     _lastTimeLoggedKeyFrameConditions = now;
@@ -207,7 +224,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     else
                     {
                         // segment list empty.. dequeue another
-                        var next = _dataPlaybackContainer.DequeueBotSegment();
+                        var next = _dataPlaybackContainer.DequeueBotSegment(out _botSegmentListValidations);
                         if (next != null)
                         {
                             _lastTimeLoggedKeyFrameConditions = now;
@@ -282,21 +299,21 @@ namespace RegressionGames.StateRecorder.BotSegments
          *   Thus an exploration action can be invoked in between any 2 passes of the main action when an error occurs.  With that concept of update to update interleaving, it should be obvious why actions implementing IKeyMomentExploration must be
          *   written to expect to be interrupted at any point.
          */
-        private void ProcessBotSegmentAction(BotSegment firstActionSegment, Dictionary<long, ObjectStatus> transformStatuses, Dictionary<long, ObjectStatus> entityStatuses)
+        private void ProcessBotSegmentAction(BotSegment actionSegment, Dictionary<long, ObjectStatus> transformStatuses, Dictionary<long, ObjectStatus> entityStatuses)
         {
             var now = Time.unscaledTime;
-            string logPrefix = $"({firstActionSegment.Replay_SegmentNumber}) - Bot Segment - ";
+            string logPrefix = $"({actionSegment.Replay_SegmentNumber}) - Bot Segment - ";
             try
             {
-                if (firstActionSegment.botAction?.IsCompleted == false)
+                if (actionSegment.botAction?.IsCompleted == false)
                 {
                     // allow the main action to retry between every exploratory action
-                    var didAction = firstActionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
+                    var didAction = actionSegment.ProcessAction(transformStatuses, entityStatuses, out var error);
 
                     if (error == null)
                     {
                         // we're going to 'pause' exploring, but not reset the exploration state quite yet until this action fully finishes
-                        _explorationDriver.PauseExploring(firstActionSegment.Replay_SegmentNumber);
+                        _explorationDriver.PauseExploring(actionSegment.Replay_SegmentNumber);
                         if (didAction && _explorationDriver.ExplorationState == ExplorationState.STOPPED)
                         {
                             // for every non error action, reset the timer
@@ -312,7 +329,7 @@ namespace RegressionGames.StateRecorder.BotSegments
 
                         string loggedMessage;
 
-                        if (firstActionSegment.botAction?.data is IKeyMomentExploration)
+                        if (actionSegment.botAction?.data is IKeyMomentExploration)
                         {
                             loggedMessage = $"Error processing BotAction\n\n" + error + "\n\n\nRunning exploratory actions...";
                         }
@@ -330,15 +347,15 @@ namespace RegressionGames.StateRecorder.BotSegments
                             LogPlaybackWarning(logPrefix + loggedMessage);
                         }
 
-                        if (firstActionSegment.botAction?.data is IKeyMomentExploration && (_explorationDriver.ExplorationState == ExplorationState.PAUSED || timeThresholdReached))
+                        if (actionSegment.botAction?.data is IKeyMomentExploration && (_explorationDriver.ExplorationState == ExplorationState.PAUSED || timeThresholdReached))
                         {
                             _explorationDriver.StartExploring();
                         }
 
                         string explorationError = null;
-                        if (firstActionSegment.botAction?.data is IKeyMomentExploration keyMomentExploration)
+                        if (actionSegment.botAction?.data is IKeyMomentExploration keyMomentExploration)
                         {
-                            _explorationDriver.PerformExploratoryAction(firstActionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out explorationError);
+                            _explorationDriver.PerformExploratoryAction(actionSegment.Replay_SegmentNumber, transformStatuses, entityStatuses, out explorationError);
                             // we just interfered mid action.. reset this thing to try again
                             keyMomentExploration.KeyMomentExplorationReset();
                         }
@@ -357,25 +374,16 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
                 }
 
-                if (firstActionSegment.botAction?.IsCompleted == true && firstActionSegment.botAction?.data is IKeyMomentExploration)
+                if (actionSegment.botAction?.IsCompleted == true && actionSegment.botAction?.data is IKeyMomentExploration)
                 {
                     // for every non error action, reset the timer
                     _lastTimeLoggedKeyFrameConditions = now;
                     FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
 
-                    _explorationDriver.StopExploring(firstActionSegment.Replay_SegmentNumber);
-                    _explorationDriver.ReportPreviouslyCompletedAction(firstActionSegment.botAction.data);
+                    _explorationDriver.StopExploring(actionSegment.Replay_SegmentNumber);
+                    _explorationDriver.ReportPreviouslyCompletedAction(actionSegment.botAction.data);
                 }
-                
-                // Run (and potentially end) the validations for this segment
-                firstActionSegment.ProcessValidation();
-                
-                // Also run the validations for the entire list of segments if they exist
-                foreach (var validation in _dataPlaybackContainer.Validations)
-                {
-                    validation.ProcessValidation(-1);
-                }
-                
+
             }
             catch (Exception ex)
             {
@@ -393,13 +401,14 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 if (_dataPlaybackContainer != null)
                 {
-                    
+                    var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+
                     // If there are top-level validations running, let's make sure those are prepared before we
                     // process the segments.
                     var validationsReady = true;
                     foreach (var validation in _dataPlaybackContainer.Validations)
                     {
-                        if (!validation.ProcessValidation(-1))
+                        if (!validation.ProcessValidation(currentSegmentNumber))
                         {
                             validationsReady = false;
                             break;
@@ -575,16 +584,18 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     _playState = PlayState.Paused;
 
+                    var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+
                     foreach (var nextBotSegment in _nextBotSegments)
                     {
                         nextBotSegment.PauseAction();
                         nextBotSegment.PauseValidations();
                     }
-                    
+
                     // Also pause the top-level validations
                     foreach (var validation in _dataPlaybackContainer.Validations)
                     {
-                        validation.PauseValidation(-1);
+                        validation.PauseValidation(currentSegmentNumber);
                     }
                 }
             }
@@ -606,16 +617,18 @@ namespace RegressionGames.StateRecorder.BotSegments
                     // resume
                     _playState = PlayState.Playing;
 
+                    var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+
                     foreach (var nextBotSegment in _nextBotSegments)
                     {
                         nextBotSegment.UnPauseAction();
                         nextBotSegment.UnPauseValidations();
                     }
-                    
+
                     // Also unpause the top-level validations
                     foreach (var validation in _dataPlaybackContainer.Validations)
                     {
-                        validation.UnPauseValidation(-1);
+                        validation.UnPauseValidation(currentSegmentNumber);
                     }
                 }
             }
@@ -647,13 +660,15 @@ namespace RegressionGames.StateRecorder.BotSegments
                     nextBotSegment.StopValidations();
                 }
             }
-            
+
+            var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+
             // Also wrap up the top-level validations if they exist
             if (_dataPlaybackContainer != null)
             {
                 foreach (var validation in _dataPlaybackContainer.Validations)
                 {
-                    validation.StopValidation(-1);
+                    validation.StopValidation(currentSegmentNumber);
                 }
             }
 
@@ -687,16 +702,18 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void Stop()
         {
-            
+
+            var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+
             // Make sure to stop any running validations
             if (_dataPlaybackContainer != null)
             {
                 foreach (var validation in _dataPlaybackContainer.Validations)
                 {
-                    validation.StopValidation(-1);
+                    validation.StopValidation(currentSegmentNumber);
                 }
             }
-            
+
             _nextBotSegments.Clear();
             _playState = PlayState.Stopped;
             _loopCount = -1;
@@ -784,7 +801,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     #endif
                     RGUtils.ConfigureInputSettings();
                     _playState = PlayState.Playing;
-                    _nextBotSegments.Add(_dataPlaybackContainer.DequeueBotSegment());
+                    _nextBotSegments.Add(_dataPlaybackContainer.DequeueBotSegment(out _botSegmentListValidations));
                     // if starting to play, or on loop 1.. start recording
                     if (_loopCount < 2)
                     {

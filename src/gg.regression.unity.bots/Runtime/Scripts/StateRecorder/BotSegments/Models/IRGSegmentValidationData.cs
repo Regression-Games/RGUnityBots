@@ -5,7 +5,7 @@ namespace StateRecorder.BotSegments.Models
 {
     public interface IRGSegmentValidationData
     {
-     
+
         /**
          * Attempts to conduct any preparation needed for validation. Returns true if the validations
          * are ready to be run, and false otherwise. Implementors should make sure that this method
@@ -51,10 +51,10 @@ namespace StateRecorder.BotSegments.Models
          * result.
          */
         public SegmentValidationResultSetContainer GetResults();
-        
+
         public void WriteToStringBuilder(StringBuilder stringBuilder);
-        
-        public int EffectiveApiVersion(); 
-        
+
+        public int EffectiveApiVersion();
+
     }
 }
