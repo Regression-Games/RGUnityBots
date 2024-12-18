@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using RegressionGames.ActionManager;
 using RegressionGames.CodeCoverage;
 using RegressionGames.RemoteOrchestration;
@@ -16,7 +17,9 @@ using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.BotActions;
 using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.Models;
+using RegressionGames.Validation;
 using StateRecorder.BotSegments;
+using StateRecorder.BotSegments.Models.SegmentValidations;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -85,6 +88,7 @@ namespace RegressionGames.StateRecorder
         private string _currentGameplaySessionGameMetadataPath;
         private string _currentGameplaySessionThumbnailPath;
         private string _currentGameplaySessionLogsDirectoryPrefix;
+        private string _currentGameplaySessionValidationsPrefix;
 
         private CancellationTokenSource _tokenSource;
 
@@ -111,6 +115,8 @@ namespace RegressionGames.StateRecorder
         private LoggingObserver _loggingObserver;
 
         private KeyMomentEvaluator _keyMomentEvaluator = new();
+
+        public List<SegmentValidationResultSetContainer> validationResults = new();
 
 #if UNITY_EDITOR
         private bool _needToRefreshAssets;
@@ -182,6 +188,7 @@ namespace RegressionGames.StateRecorder
             string thumbnailPath,
             string logsDirectoryPrefix,
             string gameMetadataPath,
+            string validationsPath,
             bool onDestroy = false)
         {
             if (!onDestroy)
@@ -265,6 +272,9 @@ namespace RegressionGames.StateRecorder
                 ZipFile.CreateFromDirectory(keyMomentsDirectoryPrefix, keyMomentsDirectoryPrefix + ".zip");
                 RGDebug.LogInfo($"Finished zipping replay to file: {keyMomentsDirectoryPrefix}.zip");
             });
+            
+            // Save the validation results to the validations JSON file, if there are any
+            await File.WriteAllBytesAsync(_currentGameplaySessionValidationsPrefix, Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(validationResults ?? new List<SegmentValidationResultSetContainer>())));
 
             // Finally, we also save a thumbnail, by choosing the middle file in the screenshots
             var screenshotFiles = Directory.GetFiles(screenshotsDirectoryPrefix);
@@ -279,6 +289,9 @@ namespace RegressionGames.StateRecorder
 
             // wait for the zip tasks to finish
             Task.WaitAll(zipTask1, zipTask2, zipTask3, zipTask4, zipTask5);
+            
+            // print validation results
+            RGValidateLoggerUtility.LogValidationResults(validationResults);
 
             if (!wasReplay)
             {
@@ -575,6 +588,7 @@ namespace RegressionGames.StateRecorder
                 _startTime = DateTime.Now;
                 _tickQueue = new BlockingCollection<(TickDataToWriteToDisk, Action)>(new ConcurrentQueue<(TickDataToWriteToDisk, Action)>());
                 _tokenSource = new CancellationTokenSource();
+                validationResults = new();
 
                 Directory.CreateDirectory(stateRecordingsDirectory);
 
@@ -616,6 +630,7 @@ namespace RegressionGames.StateRecorder
                 Directory.CreateDirectory(_currentGameplaySessionMetadataDirectoryPrefix);
 
                 _currentGameplaySessionThumbnailPath = _currentGameplaySessionDirectoryPrefix + "/thumbnail.jpg";
+                _currentGameplaySessionValidationsPrefix = _currentGameplaySessionDirectoryPrefix + "/validations.json";
 
                 // run the tick processor in the background, but don't hook it to the token source.. we'll manage cancelling this on our own so we don't miss processing ticks
                 Task.Run(ProcessTicks);
@@ -739,6 +754,7 @@ namespace RegressionGames.StateRecorder
                     _currentGameplaySessionThumbnailPath,
                     _currentGameplaySessionLogsDirectoryPrefix,
                     _currentGameplaySessionGameMetadataPath,
+                    _currentGameplaySessionValidationsPrefix,
                     true);
             }
             else

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using StateRecorder.BotSegments.Models;
+using StateRecorder.BotSegments.Models.SegmentValidations;
 
 namespace RegressionGames.StateRecorder.BotSegments
 {
@@ -75,5 +77,25 @@ namespace RegressionGames.StateRecorder.BotSegments
             segmentListValidations = new List<SegmentValidation>();
             return null;
         }
+        
+        
+        /**
+         * <summary>Collects all of the results from the top-level validations and individual bot segments</summary>
+         */
+        public List<SegmentValidationResultSetContainer> GetAllValidationResults()
+        {
+            
+            // First add all the top level results
+            var results = Validations.Select(validation => validation.data.GetResults()).ToList();
+
+            // Then add the individual bot segment results
+            foreach (var botSegment in _botSegments)
+            {
+                results.AddRange(botSegment.validations.Select(v => v.data.GetResults()));
+            }
+
+            return results;
+        }
+        
     }
 }
