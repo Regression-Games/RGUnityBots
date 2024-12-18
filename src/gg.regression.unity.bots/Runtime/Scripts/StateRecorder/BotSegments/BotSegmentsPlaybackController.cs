@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.BotActions.KeyMoments;
 using RegressionGames.StateRecorder.Models;
 using StateRecorder.BotSegments;
 using StateRecorder.BotSegments.Models;
+using StateRecorder.BotSegments.Models.SegmentValidations;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -664,6 +666,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
 
+            _screenRecorder.validationResults = _dataPlaybackContainer?.GetAllValidationResults() ?? new List<SegmentValidationResultSetContainer>();
             _screenRecorder.StopRecording();
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
@@ -704,6 +707,7 @@ namespace RegressionGames.StateRecorder.BotSegments
             WaitingForKeyFrameConditions = null;
             _lastSegmentPlaybackWarning = null;
 
+            _screenRecorder.validationResults = _dataPlaybackContainer?.GetAllValidationResults() ?? new List<SegmentValidationResultSetContainer>();
             _screenRecorder.StopRecording();
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
@@ -825,6 +829,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                     RGDebug.LogWarning(loggedMessage);
                 }
             }
+
             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(loggedMessage);
             if (pauseEditorOnPlaybackWarning)
             {
