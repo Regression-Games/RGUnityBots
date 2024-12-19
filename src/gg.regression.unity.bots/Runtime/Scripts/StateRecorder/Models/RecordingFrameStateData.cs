@@ -14,7 +14,7 @@ namespace RegressionGames.StateRecorder.Models
     public class RecordingFrameStateData
     {
         //Update me if fields/types change
-        public int apiVersion = SdkApiVersion.VERSION_23;
+        public int apiVersion = SdkApiVersion.VERSION_29;
 
         /// <summary>
         /// Effective API version for this state recording considering all sub elements
@@ -35,7 +35,6 @@ namespace RegressionGames.StateRecorder.Models
         public float timeScale;
         public Vector2Int screenSize;
         public List<CameraInfo> cameraInfo;
-        public string pixelHash;
         public string currentRenderPipeline;
         public List<string> activeEventSystemInputModules;
         public List<string> activeInputDevices;
@@ -86,8 +85,6 @@ namespace RegressionGames.StateRecorder.Models
             }
             stringBuilder.Append("],\n\"performance\":");
             performance.WriteToStringBuilder(stringBuilder);
-            stringBuilder.Append(",\n\"pixelHash\":");
-            StringJsonConverter.WriteToStringBuilder(stringBuilder, pixelHash);
             stringBuilder.Append(",\n\"currentRenderPipeline\":");
             StringJsonConverter.WriteToStringBuilder(stringBuilder, currentRenderPipeline);
             stringBuilder.Append(",\n\"activeEventSystemInputModules\":[");

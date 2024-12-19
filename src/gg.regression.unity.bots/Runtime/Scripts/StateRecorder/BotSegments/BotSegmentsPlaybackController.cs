@@ -56,6 +56,8 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private ActionExplorationDriver _explorationDriver;
 
+        private RGThirdPartyUIObserver[] _thirdPartyUIObservers = Array.Empty<RGThirdPartyUIObserver>();
+
         private void ProcessBotSegments()
         {
             var now = Time.unscaledTime;
@@ -111,7 +113,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                         nextBotSegmentIndex == 0,
                         nextBotSegment.Replay_SegmentNumber,
                         nextBotSegment.Replay_ActionCompleted,
-                        nextBotSegment.endCriteria
+                        nextBotSegment.endCriteria,
+                        _thirdPartyUIObservers
                     );
 
                     if (matched)
@@ -343,6 +346,9 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void LateUpdate()
         {
+            // refresh this list in case one destroyed itself
+            _thirdPartyUIObservers = FindObjectsByType<RGThirdPartyUIObserver>(FindObjectsSortMode.None);
+
             if (_playState == PlayState.Playing)
             {
                 if (_dataPlaybackContainer != null)
@@ -374,6 +380,9 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         private void Start()
         {
+            // initialize the list of 3rd party ui observers
+            _thirdPartyUIObservers = FindObjectsByType<RGThirdPartyUIObserver>(FindObjectsSortMode.None);
+
             _explorationDriver = GetComponent<ActionExplorationDriver>();
 
             KeyboardEventSender.Initialize();
@@ -691,11 +700,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                     // if starting to play, or on loop 1.. start recording
                     if (_loopCount < 2)
                     {
-                        var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
-                        if (gameFacePixelHashObserver != null)
-                        {
-                            gameFacePixelHashObserver.SetActive(true);
-                        }
                         _screenRecorder.StartRecording(_dataPlaybackContainer.SessionId);
                     }
                 }

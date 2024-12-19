@@ -1,82 +1,57 @@
 using System;
-using System.Reflection;
 using System.Threading;
-using JetBrains.Annotations;
+using cohtml;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace RegressionGames.StateRecorder
+namespace RegressionGames.StateRecorder.Cohtml
 {
-    public class GameFacePixelHashObserver : MonoBehaviour
+    public class GameFacePixelHashObserver : RGThirdPartyUIObserver
     {
         private Color32[] _priorPixels;
 
         private volatile bool _firstRun = true;
+
         private bool _isActive;
 
         private int _hashFrameNumber = -1;
 
         private string _requestInProgress;
 
+        // don't set this until update when we've fully initialized
         [NonSerialized]
-        private Component _cohtmlViewInstance;
+        private CohtmlView _cohtmlViewInstance;
 
-        [CanBeNull]
-        private static readonly Type CohtmlViewType;
-
-        private static readonly PropertyInfo CohtmlViewTextureProperty;
-
-        private static GameFacePixelHashObserver _instance;
-
-        static GameFacePixelHashObserver()
-        {
-            foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                CohtmlViewType = a.GetType("cohtml.CohtmlView", false);
-                if (CohtmlViewType != null)
-                {
-                    CohtmlViewTextureProperty = CohtmlViewType.GetProperty("ViewTexture");
-                    break;
-                }
-            }
-        }
-
-        public void SetActive(bool active = true)
+        public override void SetActive(bool active)
         {
             _firstRun = true;
             _isActive = active;
         }
 
-        public static GameFacePixelHashObserver GetInstance()
+        public void Update()
         {
             // can't do this in onEnable or Start as gameface doesn't load/initialize that early
-            if (CohtmlViewType != null && _instance == null)
+            if (_cohtmlViewInstance == null)
             {
-                var cothmlObject = FindAnyObjectByType(GameFacePixelHashObserver.CohtmlViewType) as MonoBehaviour;
-                if (cothmlObject != null)
+                _cohtmlViewInstance = FindObjectOfType<CohtmlView>();
+                if (_cohtmlViewInstance != null)
                 {
-                    _instance = cothmlObject.gameObject.GetComponent<GameFacePixelHashObserver>();
-                    if (_instance == null)
+                    var existingInstance = _cohtmlViewInstance.gameObject.GetComponent<GameFacePixelHashObserver>();
+                    if (existingInstance == null)
                     {
-                        _instance = cothmlObject.gameObject.AddComponent<GameFacePixelHashObserver>();
-                        // we normally can't do this in Start because gameface hasn't loaded, but since ScreenRecorder creates us during an Update pass after gameface is loaded, we can
-                        if (CohtmlViewType != null && _instance._cohtmlViewInstance == null)
-                        {
-                            _instance._cohtmlViewInstance = _instance.GetComponent(CohtmlViewType);
-                            if (_instance._cohtmlViewInstance != null)
-                            {
-                                GetRenderTexture(); // just to force loading of any refs just in case
-                                RenderPipelineManager.endFrameRendering += _instance.OnEndFrame;
-                            }
-                        }
+                        transform.parent = _cohtmlViewInstance.transform;
+                        GetRenderTexture(); // just to force loading of any refs just in case
+                        RenderPipelineManager.endFrameRendering += OnEndFrame;
+                    }
+                    else
+                    {
+                        Destroy(this);
                     }
                 }
             }
-
-            return _instance;
         }
 
-        public bool HasPixelHashChanged()
+        public override bool HasUIChanged()
         {
             var hfn = Interlocked.CompareExchange(ref _hashFrameNumber, -1, -1);
             if (Time.frameCount == hfn)
@@ -88,14 +63,9 @@ namespace RegressionGames.StateRecorder
         }
 
 
-        private static RenderTexture GetRenderTexture()
+        private RenderTexture GetRenderTexture()
         {
-            if (_instance != null && _instance._cohtmlViewInstance != null)
-            {
-                return (RenderTexture)CohtmlViewTextureProperty.GetValue(_instance._cohtmlViewInstance);
-            }
-
-            return null;
+            return _cohtmlViewInstance.ViewTexture;
         }
 
         private void UpdateGameFacePixelHash()

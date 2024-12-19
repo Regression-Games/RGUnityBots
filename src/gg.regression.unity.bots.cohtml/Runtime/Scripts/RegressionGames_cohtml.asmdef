@@ -1,0 +1,21 @@
+{
+    "name": "RegressionGames_cohtml",
+    "rootNamespace": "",
+    "references": [
+        "RegressionGames",
+        "Cohtml.Runtime",
+        "com.coherent-labs.cohtml",
+        "Unity.Collections",
+        "Unity.Transforms",
+        "Unity.Mathematics"
+     ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

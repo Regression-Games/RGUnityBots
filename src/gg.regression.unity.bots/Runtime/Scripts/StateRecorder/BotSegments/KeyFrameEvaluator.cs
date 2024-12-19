@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Text;
 using RegressionGames.StateRecorder.BotSegments.Models;
-using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.Models;
 using UnityEngine;
 
@@ -81,10 +80,10 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Publicly callable.. caches the statuses of the last passed key frame for computing delta counts from</summary>
          */
-        public bool Matched(bool firstSegment, int segmentNumber, bool botActionCompleted, List<KeyFrameCriteria> criteriaList)
+        public bool Matched(bool firstSegment, int segmentNumber, bool botActionCompleted, List<KeyFrameCriteria> criteriaList, RGThirdPartyUIObserver[] thirdPartyUIObservers)
         {
             _newUnmatchedCriteria.Clear();
-            bool matched = MatchedHelper(firstSegment, segmentNumber, botActionCompleted, BooleanCriteria.And, criteriaList);
+            bool matched = MatchedHelper(firstSegment, segmentNumber, botActionCompleted, BooleanCriteria.And, criteriaList, thirdPartyUIObservers);
             if (matched)
             {
                 CVTextCriteriaEvaluator.Cleanup(segmentNumber);
@@ -106,7 +105,7 @@ namespace RegressionGames.StateRecorder.BotSegments
         /**
          * <summary>Only to be called internally by KeyFrameEvaluator. firstSegment represents if this is the first segment in the current pass's list of segments to evaluate</summary>
          */
-        internal bool MatchedHelper(bool firstSegment, int segmentNumber, bool botActionCompleted, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList)
+        internal bool MatchedHelper(bool firstSegment, int segmentNumber, bool botActionCompleted, BooleanCriteria andOr, List<KeyFrameCriteria> criteriaList, RGThirdPartyUIObserver[] thirdPartyUIObservers)
         {
             var objectFinders = Object.FindObjectsByType<ObjectFinder>(FindObjectsSortMode.None);
             var currentFrameCount = Time.frameCount;
@@ -168,7 +167,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                         break;
                     case KeyFrameCriteriaType.UIPixelHash:
                         // only check the pixel hash change on the first segment being evaluated so we don't pre-emptively pass on future segments that should return false until they are first in the list
-                        if (firstSegment && (entry.Replay_TransientMatched || GameFacePixelHashObserver.GetInstance().HasPixelHashChanged()))
+                        if (firstSegment && (entry.Replay_TransientMatched || thirdPartyUIObservers.Any(a=>a!= null && a.HasUIChanged())))
                         {
                             entry.Replay_TransientMatched = true;
                         }
@@ -368,7 +367,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < orCount; j++)
                 {
                     var orEntry = orsToMatch[j];
-                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionCompleted, orEntry);
+                    var m = OrKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionCompleted, orEntry, thirdPartyUIObservers);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)
@@ -394,7 +393,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 for (var j = 0; j < andCount; j++)
                 {
                     var andEntry = andsToMatch[j];
-                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionCompleted, andEntry);
+                    var m = AndKeyFrameCriteriaEvaluator.Matched(firstSegment, segmentNumber, botActionCompleted, andEntry, thirdPartyUIObservers);
                     if (m)
                     {
                         if (andOr == BooleanCriteria.Or)

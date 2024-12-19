@@ -199,7 +199,7 @@ namespace RegressionGames.TestFramework
                     true,
                     0,
                     true,
-                    botCriteria
+                    botCriteria, Array.Empty<RGThirdPartyUIObserver>()
                     );
 
                 if (!matched)

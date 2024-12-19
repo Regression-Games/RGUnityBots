@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -112,6 +113,8 @@ namespace RegressionGames.StateRecorder
 
         private KeyMomentEvaluator _keyMomentEvaluator = new();
 
+        private RGThirdPartyUIObserver[] _thirdPartyUIObservers = Array.Empty<RGThirdPartyUIObserver>();
+
 #if UNITY_EDITOR
         private bool _needToRefreshAssets;
 #endif
@@ -143,6 +146,7 @@ namespace RegressionGames.StateRecorder
 
             // keep this thing alive across scenes
             DontDestroyOnLoad(gameObject);
+
             _this = this;
         }
 
@@ -164,7 +168,28 @@ namespace RegressionGames.StateRecorder
             var read_formats = Enum.GetValues( typeof( GraphicsFormat ) ).Cast<GraphicsFormat>()
                 .Where( f => SystemInfo.IsFormatSupported( f, FormatUsage.ReadPixels ) )
                 .ToArray();
-            RGDebug.LogDebug( "Supported Formats for Readback\n" + string.Join( "\n", read_formats ) );
+            RGDebug.LogDebug( "Supported Formats for GPU Readback\n" + string.Join( "\n", read_formats ) );
+
+            // initialize any 3rd party UIObservers
+            Initialize3rdPartyUIObservers();
+            // refresh/update the list of loaded RGThirdPartyUIObserver objects
+            _thirdPartyUIObservers = FindObjectsByType<RGThirdPartyUIObserver>(FindObjectsSortMode.None);
+        }
+
+        private void Initialize3rdPartyUIObservers()
+        {
+            foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                foreach (var type in a.GetTypes())
+                {
+                    if (typeof(RGThirdPartyUIObserver).IsAssignableFrom(type))
+                    {
+                        RGDebug.LogInfo($"Instantiating the '{type.FullName}' implementation of RGThirdPartyUIObserver.");
+                        // add this to our game object, it may reparent itself later as some implementations need to be on specific game objects
+                        gameObject.AddComponent(type);
+                    }
+                }
+            }
         }
 
         private async Task HandleEndRecording(long tickCount,
@@ -623,12 +648,19 @@ namespace RegressionGames.StateRecorder
             }
         }
 
+
+
         public void StartRecording(string referenceSessionId)
         {
-            var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
-            if (gameFacePixelHashObserver != null)
+            // refresh/update the list of loaded RGThirdPartyUIObserver objects in case one destroyed itself
+            _thirdPartyUIObservers = FindObjectsByType<RGThirdPartyUIObserver>(FindObjectsSortMode.None);
+
+            foreach (var thirdPartyUIObserver in _thirdPartyUIObservers)
             {
-                gameFacePixelHashObserver.SetActive(true);
+                if (thirdPartyUIObserver != null)
+                {
+                    thirdPartyUIObserver.SetActive(true);
+                }
             }
 
             // start/stop recording for this is called withing the monkey bot action itself; we just need to tell it to clear data and be ready for the next one
@@ -647,7 +679,7 @@ namespace RegressionGames.StateRecorder
         // cache this to avoid re-alloc on every frame
         private readonly List<KeyFrameType> _keyFrameTypeList = new(10);
 
-        private void GetKeyFrameType(bool firstFrame, bool hasDeltas, bool pixelHashChanged, bool endRecording)
+        private void GetKeyFrameType(bool firstFrame, bool hasDeltas, bool hasThirdPartyUIChanged, bool endRecording)
         {
             _keyFrameTypeList.Clear();
             if (endRecording)
@@ -662,7 +694,7 @@ namespace RegressionGames.StateRecorder
                 return;
             }
 
-            if (pixelHashChanged)
+            if (hasThirdPartyUIChanged)
             {
                 _keyFrameTypeList.Add(KeyFrameType.UI_PIXELHASH);
             }
@@ -685,10 +717,12 @@ namespace RegressionGames.StateRecorder
 
             if (wasRecording)
             {
-                var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
-                if (gameFacePixelHashObserver != null)
+                foreach (var thirdPartyUIObserver in _thirdPartyUIObservers)
                 {
-                    gameFacePixelHashObserver.SetActive(false);
+                    if (thirdPartyUIObserver != null)
+                    {
+                        thirdPartyUIObserver.SetActive(true);
+                    }
                 }
                 KeyboardInputActionObserver.GetInstance()?.StopRecording();
                 _mouseObserver.ClearBuffer();
@@ -850,12 +884,21 @@ namespace RegressionGames.StateRecorder
 
                     _profilerObserver.Observe();
 
-                    var gameFacePixelHashObserver = GameFacePixelHashObserver.GetInstance();
-                    string pixelHash = null;
-                    var pixelHashChanged = gameFacePixelHashObserver != null && gameFacePixelHashObserver.HasPixelHashChanged();
+                    var hasThirdPartyUIChanged = false;
+                    foreach (var thirdPartyUIObserver in _thirdPartyUIObservers)
+                    {
+                        if (thirdPartyUIObserver != null)
+                        {
+                            if (thirdPartyUIObserver.HasUIChanged())
+                            {
+                                hasThirdPartyUIChanged = true;
+                                break;
+                            }
+                        }
+                    }
 
                     // tell if the new frame is a key frame or the first frame (always a key frame)
-                    GetKeyFrameType(_tickNumber == 0, hasDeltas, pixelHashChanged, endRecording);
+                    GetKeyFrameType(_tickNumber == 0, hasDeltas, hasThirdPartyUIChanged, endRecording);
 
                     var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton);
                     _segmentMouseDataBuffer.AddRange(mouseInputData);
@@ -949,7 +992,7 @@ namespace RegressionGames.StateRecorder
                                 mouse = _segmentMouseDataBuffer
                             };
 
-                            if (pixelHashChanged)
+                            if (hasThirdPartyUIChanged)
                             {
                                 keyFrameCriteria.Add(new KeyFrameCriteria()
                                     {
@@ -1059,7 +1102,6 @@ namespace RegressionGames.StateRecorder
                                 screenSize = new Vector2Int() { x = screenWidth, y = screenHeight },
                                 cameraInfo = cameraInfo,
                                 performance = performanceMetrics,
-                                pixelHash = pixelHash,
                                 // In Unity, if the GraphicsSettings.currentRenderPipeline property is null, the default render pipeline is the Built-in Render Pipeline.
                                 currentRenderPipeline = GraphicsSettings.currentRenderPipeline == null ? null : GraphicsSettings.currentRenderPipeline.GetType().FullName,
                                 activeEventSystemInputModules = eventSystemInputModules,
