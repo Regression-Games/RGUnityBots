@@ -39,6 +39,16 @@ namespace RegressionGames.ClientDashboard
                 case TcpMessageType.PlaySegment:
                     payload = jObject["payload"].ToObject<PlayResourceTcpMessageData>(serializer);
                     break;
+                case TcpMessageType.RequestSequenceJson:
+                case TcpMessageType.RequestSegmentJson:
+                    payload = jObject["payload"].ToObject<RequestResourceContentsTcpMessageData>(serializer);
+                    break;
+                case TcpMessageType.SaveSegment:
+                    payload = jObject["payload"].ToObject<SaveSegmentListTcpMessageData>(serializer);
+                    break;
+                case TcpMessageType.DeleteSegment:
+                    payload = jObject["payload"].ToObject<DeleteSegmentTcpMessageData>(serializer);
+                    break;
                 default:
                     throw new JsonSerializationException($"Unsupported TcpMessage type: '{message.type}'");
             }

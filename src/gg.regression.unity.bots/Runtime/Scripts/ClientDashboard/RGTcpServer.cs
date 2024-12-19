@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -8,6 +10,7 @@ using System.Threading;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder;
+using UnityEngine;
 
 namespace RegressionGames.ClientDashboard
 {
@@ -320,7 +323,7 @@ namespace RegressionGames.ClientDashboard
             // whether the full message has been sent from the client
             // currently not used here, but may need to consider partial frames
             // if we end up accepting large messages from client
-            bool fin = (bytes[0] & 0b10000000) != 0; 
+            bool fin = (bytes[0] & 0b10000000) != 0;
             
             // must be true, "All messages from the client to the server have this bit set"
             bool mask = (bytes[1] & 0b10000000) != 0;
@@ -368,10 +371,29 @@ namespace RegressionGames.ClientDashboard
                 byte[] decoded = new byte[msglen];
                 byte[] masks = new byte[4] { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
                 offset += 4;
-
-                for (ulong i = 0; i < msglen; ++i)
+                
+                if ((int)msglen > bytes.Length)
                 {
-                    decoded[i] = (byte)(bytes[offset + i] ^ masks[i % 4]);
+                    var buffer = new List<byte>();
+                    buffer.AddRange(bytes);
+                    while (buffer.Count < (int)msglen)
+                    {
+                        byte[] temp = new byte[client.Available];
+                        client.GetStream().Read(temp, 0, temp.Length);
+                        buffer.AddRange(temp);
+                    }
+                    
+                    for (ulong i = 0; i < msglen; ++i)
+                    {
+                        decoded[i] = (byte)(buffer.ElementAt((int)offset + (int)i) ^ masks[i % 4]);
+                    }
+                }
+                else
+                {
+                    for (ulong i = 0; i < msglen; ++i)
+                    {
+                        decoded[i] = (byte)(bytes[offset + i] ^ masks[i % 4]);
+                    }
                 }
 
                 string decodedMessage = Encoding.UTF8.GetString(decoded);
@@ -408,15 +430,16 @@ namespace RegressionGames.ClientDashboard
             }
             else
             {
-                frame[1] = (byte)127;
-                frame[2] = (byte)((length >> 56) & 255);
-                frame[3] = (byte)((length >> 48) & 255);
-                frame[4] = (byte)((length >> 40) & 255);
-                frame[5] = (byte)((length >> 32) & 255);
-                frame[6] = (byte)((length >> 24) & 255);
-                frame[7] = (byte)((length >> 16) & 255);
-                frame[8] = (byte)((length >> 8) & 255);
-                frame[9] = (byte)(length & 255);
+                var lengthAsULong = Convert.ToUInt64(length);
+                frame[1] = 127;
+                frame[2] = (byte)((lengthAsULong >> 56) & 255);
+                frame[3] = (byte)((lengthAsULong >> 48) & 255);
+                frame[4] = (byte)((lengthAsULong >> 40) & 255);
+                frame[5] = (byte)((lengthAsULong >> 32) & 255);
+                frame[6] = (byte)((lengthAsULong >> 24) & 255);
+                frame[7] = (byte)((lengthAsULong >> 16) & 255);
+                frame[8] = (byte)((lengthAsULong >> 8) & 255);
+                frame[9] = (byte)(lengthAsULong & 255);
                 indexStartRawData = 10;
             }
 
