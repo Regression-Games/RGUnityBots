@@ -51,9 +51,12 @@ namespace RegressionGames.StateRecorder.BotSegments
         // We track this as a list instead of a single entry to allow the UI and game object conditions to evaluate separately
         // We still only unlock the input sequences for a key frame once both UI and game object conditions are met
         // This is done this way to allow situations like when loading screens (UI) are changing while game objects are loading in the background and the process is not consistent/deterministic between the 2
-        private readonly List<BotSegment> _nextBotSegments = new();
+        private readonly List<(BotSegment, List<SegmentValidation>)> _nextSegmentsAndValidations = new();
 
-        private List<SegmentValidation> _botSegmentListValidations = new();
+        // We can only stop bot segment list validations once we are sure that we have moved on to the next
+        // bot segment list. This variable holds the last bot segment list validations so we can compare it to the
+        // next if needed and end them if the validations change.
+        private List<SegmentValidation> _previousBotSegmentListValidations = null;
 
         // helps indicate if we made it through the full replay successfully
         private bool? _replaySuccessful;
@@ -102,26 +105,46 @@ namespace RegressionGames.StateRecorder.BotSegments
                 // track if we have a new segment to evaluate... so long as we do, keep looping here before releasing from this Update call
                 // thus we process each new segment as soon as possible and don't have any artificial one frame delays before processing
                 var nextBotSegmentIndex = 0;
-                while (nextBotSegmentIndex < _nextBotSegments.Count)
+                while (nextBotSegmentIndex < _nextSegmentsAndValidations.Count)
                 {
-                    var nextBotSegment = _nextBotSegments[nextBotSegmentIndex];
-
+                    var (nextBotSegment, validations) = _nextSegmentsAndValidations[nextBotSegmentIndex];
+                    
+                    // Before moving on, check to see if these bot segment list validations are new. If so, we need to stop
+                    // any previous validations. Note that the check by reference here is intentional because we want
+                    // to see if is actually the same list.
+                    if (_previousBotSegmentListValidations != null && validations != _previousBotSegmentListValidations)
+                    {
+                        _previousBotSegmentListValidations.ForEach(v => v.StopValidation(nextBotSegment.Replay_SegmentNumber - 1));
+                        _previousBotSegmentListValidations = validations;
+                    }
+                    
+                    // TODO(Q for Zack): I think this check for this individual segment should go in this index = 0 check - is that correct?
+                    // Check that the individual bot segment validations, segment list validations, and sequence validations
+                    // are ready to go. Only continue after that.
+                    if (!EnsureValidationsAreReady(nextBotSegment.validations, nextBotSegment.Replay_SegmentNumber)
+                        || !EnsureValidationsAreReady(validations, nextBotSegment.Replay_SegmentNumber)
+                        || !EnsureValidationsAreReady(_dataPlaybackContainer.Validations, nextBotSegment.Replay_SegmentNumber))
+                    {
+                        return;
+                    }
+                    
                     // if we're working on the first entry in the list is the only time we do actions
                     if (nextBotSegmentIndex == 0)
                     {
+                        // At this point, we are ready to run the actions!
                         ProcessBotSegmentAction(nextBotSegment, transformStatuses, entityStatuses);
                     }
-
+                    
                     // Run (and potentially end) the validations for this segment
                     nextBotSegment.ProcessValidation();
 
                     // Also run the validations for the botsegmentList if they exist
-                    foreach (var validation in _botSegmentListValidations)
+                    foreach (var validation in validations)
                     {
                         validation.ProcessValidation(nextBotSegment.Replay_SegmentNumber);
                     }
 
-                    // Also run the validations for the entire list of segments if they exist
+                    // Finally, run the validations for the sequence if they exist
                     foreach (var validation in _dataPlaybackContainer.Validations)
                     {
                         validation.ProcessValidation(nextBotSegment.Replay_SegmentNumber);
@@ -178,7 +201,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                                 RGDebug.LogInfo($"({nextBotSegment.Replay_SegmentNumber}) - Bot Segment - DONE - Actions and Criteria have been met, but validations have not completed. Forcing them to complete. - {nextBotSegment.name ?? nextBotSegment.resourcePath} - {nextBotSegment.description}");
                                 nextBotSegment.StopValidations();
                             }
-                            _nextBotSegments.RemoveAt(nextBotSegmentIndex);
+                            _nextSegmentsAndValidations.RemoveAt(nextBotSegmentIndex);
                             // don't update the index since we shortened the list
                         }
                         else
@@ -202,22 +225,22 @@ namespace RegressionGames.StateRecorder.BotSegments
                     }
 
                     // we possibly removed from the list above.. need this check
-                    if (_nextBotSegments.Count > 0)
+                    if (_nextSegmentsAndValidations.Count > 0)
                     {
                         // see if the last entry has transient matches.. if so.. dequeue another up to a limit of 2 total segments being evaluated... we may need to come back to this.. but without this look ahead, loading screens like bossroom fail due to background loading
                         // but if you go too far.. you can match segments in the replay that you won't see for another 50 segments when you go back to the menu again.. which is obviously wrong
-                        var lastSegment = _nextBotSegments[^1];
+                        var (lastSegment, lastValidations) = _nextSegmentsAndValidations[^1];
                         if (lastSegment.Replay_TransientMatched)
                         {
-                            if (_nextBotSegments.Count < 2)
+                            if (_nextSegmentsAndValidations.Count < 2)
                             {
-                                var next = _dataPlaybackContainer.DequeueBotSegment(out _botSegmentListValidations);
+                                var (next, nextValidations) = _dataPlaybackContainer.DequeueBotSegment() ?? (null, null);
                                 if (next != null)
                                 {
                                     _lastTimeLoggedKeyFrameConditions = now;
                                     FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                                     RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation after Transient BotSegment - {next.name ?? next.resourcePath} - {next.description}");
-                                    _nextBotSegments.Add(next);
+                                    _nextSegmentsAndValidations.Add((next, nextValidations));
                                     //next while loop iteration will get this guy
                                 }
                             }
@@ -226,13 +249,13 @@ namespace RegressionGames.StateRecorder.BotSegments
                     else
                     {
                         // segment list empty.. dequeue another
-                        var next = _dataPlaybackContainer.DequeueBotSegment(out _botSegmentListValidations);
+                        var (next, nextValidations) = _dataPlaybackContainer.DequeueBotSegment() ?? (null, null);
                         if (next != null)
                         {
                             _lastTimeLoggedKeyFrameConditions = now;
                             FindObjectOfType<ReplayToolbarManager>()?.SetKeyFrameWarningText(null);
                             RGDebug.LogInfo($"({next.Replay_SegmentNumber}) - Bot Segment - Added {(next.HasTransientCriteria ? "" : "Non-")}Transient BotSegment for Evaluation - {next.name ?? next.resourcePath} - {next.description}");
-                            _nextBotSegments.Add(next);
+                            _nextSegmentsAndValidations.Add((next, nextValidations));
                             //next while loop iteration will get this guy
                         }
                     }
@@ -403,27 +426,10 @@ namespace RegressionGames.StateRecorder.BotSegments
             {
                 if (_dataPlaybackContainer != null)
                 {
-                    var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
-
-                    // If there are top-level validations running, let's make sure those are prepared before we
-                    // process the segments.
-                    var validationsReady = true;
-                    foreach (var validation in _dataPlaybackContainer.Validations)
-                    {
-                        if (!validation.ProcessValidation(currentSegmentNumber))
-                        {
-                            validationsReady = false;
-                            break;
-                        }
-                    }
-
-                    if (validationsReady)
-                    {
-                        ProcessBotSegments();
-                    }
+                    ProcessBotSegments();
                 }
 
-                if (_nextBotSegments.Count == 0)
+                if (_nextSegmentsAndValidations.Count == 0)
                 {
                     MouseEventSender.MoveMouseOffScreen();
 
@@ -586,15 +592,21 @@ namespace RegressionGames.StateRecorder.BotSegments
                 {
                     _playState = PlayState.Paused;
 
-                    var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
-
-                    foreach (var nextBotSegment in _nextBotSegments)
+                    var currentSegmentNumber = _nextSegmentsAndValidations.Count > 0 ? _nextSegmentsAndValidations[0].Item1.Replay_SegmentNumber : -1;
+                    
+                    // First, pause all the validations that are part of a segment list or bot segments themselves
+                    foreach (var (nextBotSegment, validations) in _nextSegmentsAndValidations)
                     {
                         nextBotSegment.PauseAction();
                         nextBotSegment.PauseValidations();
+
+                        foreach (var v in validations)
+                        {
+                            v.PauseValidation(currentSegmentNumber);
+                        }
                     }
 
-                    // Also pause the top-level validations
+                    // Also pause the top-level sequence validations
                     foreach (var validation in _dataPlaybackContainer.Validations)
                     {
                         validation.PauseValidation(currentSegmentNumber);
@@ -619,15 +631,20 @@ namespace RegressionGames.StateRecorder.BotSegments
                     // resume
                     _playState = PlayState.Playing;
 
-                    var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+                    var currentSegmentNumber = _nextSegmentsAndValidations.Count > 0 ? _nextSegmentsAndValidations[0].Item1.Replay_SegmentNumber : -1;
 
-                    foreach (var nextBotSegment in _nextBotSegments)
+                    // Unpause all the validations that are part of a segment list or bot segments themselves
+                    foreach (var (nextBotSegment, validations) in _nextSegmentsAndValidations)
                     {
                         nextBotSegment.UnPauseAction();
                         nextBotSegment.UnPauseValidations();
+                        foreach (var v in validations)
+                        {
+                            v.UnPauseValidation(currentSegmentNumber);
+                        }
                     }
 
-                    // Also unpause the top-level validations
+                    // Also unpause the top-level sequence validations
                     foreach (var validation in _dataPlaybackContainer.Validations)
                     {
                         validation.UnPauseValidation(currentSegmentNumber);
@@ -653,28 +670,28 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void UnloadSegmentsAndReset()
         {
-            if (_nextBotSegments.Count > 0)
+            if (_nextSegmentsAndValidations.Count > 0)
             {
-                foreach (var nextBotSegment in _nextBotSegments)
+                // Reset and stop both the validations in the bot segment lists and the bot segments themselves
+                foreach (var (nextBotSegment, validations) in _nextSegmentsAndValidations)
                 {
                     // stop any action
                     nextBotSegment.AbortAction();
                     nextBotSegment.StopValidations();
+
+                    foreach (var v in validations)
+                    {
+                        v.StopValidation(nextBotSegment.Replay_SegmentNumber);
+                    }
                 }
             }
 
-            var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+            var currentSegmentNumber = _nextSegmentsAndValidations.Count > 0 ? _nextSegmentsAndValidations[0].Item1.Replay_SegmentNumber : -1;
 
-            // Also wrap up the top-level validations if they exist
-            if (_dataPlaybackContainer != null)
-            {
-                foreach (var validation in _dataPlaybackContainer.Validations)
-                {
-                    validation.StopValidation(currentSegmentNumber);
-                }
-            }
+            // Wrap up all other validations. This does repeat some of the stopping from above, but is safest
+            _dataPlaybackContainer?.StopAllValidations(currentSegmentNumber);
 
-            _nextBotSegments.Clear();
+            _nextSegmentsAndValidations.Clear();
             _playState = PlayState.NotLoaded;
             BotSequence.ActiveBotSequence = null;
             _loopCount = -1;
@@ -706,24 +723,20 @@ namespace RegressionGames.StateRecorder.BotSegments
         public void Stop()
         {
 
-            var currentSegmentNumber = _nextBotSegments.Count > 0 ? _nextBotSegments[0].Replay_SegmentNumber : -1;
+            var currentSegmentNumber = _nextSegmentsAndValidations.Count > 0 ? _nextSegmentsAndValidations[0].Item1.Replay_SegmentNumber : -1;
 
             // Make sure to stop any running validations
-            if (_dataPlaybackContainer != null)
-            {
-                foreach (var validation in _dataPlaybackContainer.Validations)
-                {
-                    validation.StopValidation(currentSegmentNumber);
-                }
-            }
+            _dataPlaybackContainer?.StopAllValidations(currentSegmentNumber);
 
-            _nextBotSegments.Clear();
+            _nextSegmentsAndValidations.Clear();
             _playState = PlayState.Stopped;
             _loopCount = -1;
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
             _lastSegmentPlaybackWarning = null;
+            _previousBotSegmentListValidations = null;
 
+            // Note that this retrieves all the validation results from the bot segments, bot segment lists, and sequences
             _screenRecorder.validationResults = _dataPlaybackContainer?.GetAllValidationResults() ?? new List<SegmentValidationResultSetContainer>();
             _screenRecorder.StopRecording();
             #if ENABLE_LEGACY_INPUT_MANAGER
@@ -749,12 +762,13 @@ namespace RegressionGames.StateRecorder.BotSegments
 
         public void PrepareForNextLoop()
         {
-            _nextBotSegments.Clear();
+            _nextSegmentsAndValidations.Clear();
             _playState = PlayState.Starting;
             // don't change _loopCount
             _replaySuccessful = null;
             WaitingForKeyFrameConditions = null;
             _lastSegmentPlaybackWarning = null;
+            _previousBotSegmentListValidations = null;
 
             #if ENABLE_LEGACY_INPUT_MANAGER
             RGLegacyInputWrapper.StopSimulation();
@@ -805,7 +819,11 @@ namespace RegressionGames.StateRecorder.BotSegments
                     #endif
                     RGUtils.ConfigureInputSettings();
                     _playState = PlayState.Playing;
-                    _nextBotSegments.Add(_dataPlaybackContainer.DequeueBotSegment(out _botSegmentListValidations));
+                    var nextSegmentAndValidations = _dataPlaybackContainer.DequeueBotSegment();
+                    if (nextSegmentAndValidations != null)
+                    {
+                        _nextSegmentsAndValidations.Add(nextSegmentAndValidations.Value);
+                    }
                     // if starting to play, or on loop 1.. start recording
                     if (_loopCount < 2)
                     {
@@ -854,12 +872,20 @@ namespace RegressionGames.StateRecorder.BotSegments
             }
         }
 
+        /**
+         * Returns true if the validations are ready to be executed, and false otherwise.
+         */
+        private bool EnsureValidationsAreReady(List<SegmentValidation> validations, int segmentNumber)
+        {
+            return validations.All(v => v.data.AttemptPrepareValidation(segmentNumber));
+        }
+
         public void OnGUI()
         {
             if (_playState == PlayState.Playing || _playState == PlayState.Paused)
             {
                 // render any GUI things for the first segment action
-                if (_nextBotSegments.Count > 0)
+                if (_nextSegmentsAndValidations.Count > 0)
                 {
                     var transformStatuses = new Dictionary<long, ObjectStatus>();
                     var entityStatuses = new Dictionary<long, ObjectStatus>();
@@ -876,7 +902,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                             entityStatuses = objectFinder.GetObjectStatusForCurrentFrame().Item2;
                         }
                     }
-                    _nextBotSegments[0].OnGUI(transformStatuses, entityStatuses);
+                    _nextSegmentsAndValidations[0].Item1.OnGUI(transformStatuses, entityStatuses);
                 }
             }
         }

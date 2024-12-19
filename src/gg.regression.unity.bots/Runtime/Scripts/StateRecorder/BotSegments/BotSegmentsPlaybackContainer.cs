@@ -39,11 +39,11 @@ namespace RegressionGames.StateRecorder.BotSegments
             // reset all the tracking flags in the segmentlists / segments
             _botSegmentLists.ForEach(a =>
             {
-                a.segments.ForEach(b => b.ReplayReset());
+                a.segments.ForEach(b => b.ReplayReset()); // This also handles resetting that segments validations
                 a.validations.ForEach(b => b.ReplayReset());
             });
 
-            // reset all the top-level validations
+            // reset all the top-level sequence validations
             foreach (var validation in Validations)
             {
                 validation.ReplayReset();
@@ -52,9 +52,9 @@ namespace RegressionGames.StateRecorder.BotSegments
         }
 
         /**
-         * Returns the next bot segment to evaluate and also provides the current segmentList level validations
+         * Returns the next bot segment and validations to evaluate and also provides the current segmentList level validations
          */
-        public BotSegment DequeueBotSegment(out List<SegmentValidation> segmentListValidations)
+        public (BotSegment, List<SegmentValidation>)? DequeueBotSegment()
         {
             while (_botSegmentListIndex < _botSegmentLists.Count)
             {
@@ -62,8 +62,8 @@ namespace RegressionGames.StateRecorder.BotSegments
                 if (_botSegmentIndex < segmentList.segments.Count)
                 {
                     var segment = segmentList.segments[_botSegmentIndex++];
-                    segmentListValidations = segmentList.validations;
-                    return segment;
+                    var segmentListValidations = segmentList.validations;
+                    return (segment, segmentListValidations);
                 }
                 else
                 {
@@ -73,8 +73,7 @@ namespace RegressionGames.StateRecorder.BotSegments
                 }
 
             }
-
-            segmentListValidations = new List<SegmentValidation>();
+            
             return null;
         }
         
@@ -88,13 +87,43 @@ namespace RegressionGames.StateRecorder.BotSegments
             // First add all the top level results
             var results = Validations.Select(validation => validation.data.GetResults()).ToList();
 
-            // Then add the individual bot segment results
-            foreach (var botSegment in _botSegments)
+            // Then add the validations from bot segment lists and individual bot segment results
+            foreach (var botSegmentList in _botSegmentLists)
             {
-                results.AddRange(botSegment.validations.Select(v => v.data.GetResults()));
+                results.AddRange(botSegmentList.validations.Select(v => v.data.GetResults()));
+                
+                foreach (var botSegment in botSegmentList.segments)
+                {
+                    results.AddRange(botSegment.validations.Select(v => v.data.GetResults()));
+                }
             }
 
             return results;
+        }
+
+        /**
+         * <summary>
+         * This will request to stop all validations in the container, including sequence validations, bot
+         * segment list validations, and individual bot segment validations.
+         * </summary>
+         */
+        public void StopAllValidations(int segmentNumber)
+        {
+            // First stop the sequence validations
+            foreach (var validation in Validations)
+            {
+                validation.StopValidation(segmentNumber);
+            }
+            
+            // Then stop the segment list validations and bot segment validations
+            foreach (var botSegmentList in _botSegmentLists)
+            {
+                botSegmentList.validations.ForEach(v => v.StopValidation(segmentNumber));
+                foreach (var botSegment in botSegmentList.segments)
+                {
+                    botSegment.validations.ForEach(v => v.StopValidation(segmentNumber));
+                }
+            }
         }
         
     }
