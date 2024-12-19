@@ -1,5 +1,7 @@
 using System;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace StateRecorder.BotSegments.Models.SegmentValidations
 {
@@ -28,6 +30,7 @@ namespace StateRecorder.BotSegments.Models.SegmentValidations
          * The actual state of this validation result
          * </summary>
          */
+        [JsonConverter(typeof(StringEnumConverter))]
         public SegmentValidationStatus result;
 
         public SegmentValidationResultContainer(string name, [CanBeNull] string description, SegmentValidationStatus result)

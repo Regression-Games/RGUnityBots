@@ -24,16 +24,15 @@ namespace StateRecorder.BotSegments.Models
         // be able to wait for the validation to be ready before running the segments.
         public bool ProcessValidation(int segmentNumber)
         {
-            if (_validationIsReady)
-            {
-                // NOTE: It would be nice to avoid running the validation once they are complete, but there are a lot
-                // of validations that could be passed but then fail later... so we always just run this until either
-                // the timeout is hit or the segment criteria and actions are met. We may revisit this.
-                data.ProcessValidation(segmentNumber);
-            }
-            else
+            if (!_validationIsReady)
             {
                 _validationIsReady = data.AttemptPrepareValidation(segmentNumber);
+            }
+            
+            // If the validation is now ready, we can start running it
+            if (_validationIsReady)
+            {
+                data.ProcessValidation(segmentNumber);
             }
 
             return _validationIsReady;
