@@ -7,6 +7,7 @@ using System.Threading;
 using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
+using StateRecorder.BotSegments.Models;
 using UnityEngine.Serialization;
 
 
@@ -25,7 +26,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         // versioning support for bot segments in the SDK, the is for this top level schema only
         // update this if this top level schema changes
-        public int apiVersion = SdkApiVersion.VERSION_24;
+        public int apiVersion = SdkApiVersion.VERSION_29;
 
         // the highest apiVersion component included in this json.. used for compatibility checks on replay load
         public int EffectiveApiVersion => Math.Max(Math.Max(apiVersion, botAction?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION), endCriteria.DefaultIfEmpty().Max(a=>a?.EffectiveApiVersion ?? SdkApiVersion.CURRENT_VERSION));
@@ -53,6 +54,8 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
         public BotAction botAction;
 
+        public List<SegmentValidation> validations = new();
+
         // Replay only - if this was fully matched (still not done until actions also completed)
         [NonSerialized]
         public bool Replay_Matched;
@@ -67,13 +70,13 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
         // Replay only - tracks if we have completed the action for this bot segment
         // returns true if botAction.IsCompleted || botAction.IsCompleted==null && Replay_Matched
         public bool Replay_ActionCompleted => botAction == null || (botAction.IsCompleted ?? Replay_Matched);
+        
+        // Replay only - true if we have completed the validations for this bot segment
+        public bool Replay_ValidationsCompleted => validations.Count == 0 || validations.All(v => v.HasSetAllResults());
 
         public void OnGUI(Dictionary<long, ObjectStatus> currentTransforms, Dictionary<long, ObjectStatus> currentEntities)
         {
-            if (botAction != null)
-            {
-                botAction.OnGUI(currentTransforms, currentEntities);
-            }
+            botAction?.OnGUI(currentTransforms, currentEntities);
         }
 
         // Replay only - called at least once per frame
@@ -97,10 +100,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public void AbortAction()
         {
-            if (botAction != null)
-            {
-                botAction.AbortAction(Replay_SegmentNumber);
-            }
+            botAction?.AbortAction(Replay_SegmentNumber);
         }
 
         /**
@@ -137,6 +137,40 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
         }
 
+        public void ProcessValidation()
+        {
+            // Go through each validation and process them. If they have not been started yet, this will also
+            // start them.
+            foreach (var validation in validations)
+            {
+                validation.ProcessValidation(Replay_SegmentNumber);
+            }
+        }
+
+        public void PauseValidations()
+        {
+            foreach (var validation in validations)
+            {
+                validation.PauseValidation(Replay_SegmentNumber);
+            }
+        }
+
+        public void UnPauseValidations()
+        {
+            foreach (var validation in validations)
+            {
+                validation.UnPauseValidation(Replay_SegmentNumber);
+            }
+        }
+
+        public void StopValidations()
+        {
+            foreach (var validation in validations)
+            {
+                validation.StopValidation(Replay_SegmentNumber);
+            }
+        }
+
         // Replay only
         public void ReplayReset()
         {
@@ -149,6 +183,12 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             if (botAction != null)
             {
                 botAction.ReplayReset();
+            }
+            
+            var validationsLength = validations.Count;
+            for (var i = 0; i < validationsLength; i++)
+            {
+                validations[i].ReplayReset();
             }
 
             Replay_Matched = false;
@@ -224,7 +264,10 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
             return false;
         }
-
+        
+        public bool HasValidationEndCriteria =>
+            endCriteria.Exists(ec => ec.type == KeyFrameCriteriaType.ValidationsComplete);
+        
         public string ToKeyMomentJsonString()
         {
             _stringBuilder.Value.Clear();
@@ -262,7 +305,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 stringBuilder.Append("null");
             }
-            stringBuilder.Append("}");
+            stringBuilder.Append(",\n\"validations\":[\n");
+            var validationsLength = validations.Count;
+            for (var i = 0; i < validationsLength; i++)
+            {
+                var validation = validations[i];
+                validation.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < validationsLength)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]\n}");
         }
 
         public string ToJsonString()
@@ -302,7 +356,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             {
                 stringBuilder.Append("null");
             }
-            stringBuilder.Append("}");
+            stringBuilder.Append(",\n\"validations\":[\n");
+            var validationsLength = validations.Count;
+            for (var i = 0; i < validationsLength; i++)
+            {
+                var validation = validations[i];
+                validation.WriteToStringBuilder(stringBuilder);
+                if (i + 1 < validationsLength)
+                {
+                    stringBuilder.Append(",\n");
+                }
+            }
+            stringBuilder.Append("\n]\n}");
         }
 
         /**

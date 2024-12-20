@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RegressionGames.StateRecorder.BotSegments.Models;
 using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
+using StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
 {
@@ -46,6 +47,18 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
             {
                 // default value of endCriteria to empty list if not present
                 botSegment.endCriteria = new List<KeyFrameCriteria>();
+            }
+
+            if (jObject.ContainsKey("validations"))
+            {
+                botSegment.validations =
+                    new List<SegmentValidation>(jObject.GetValue("validations")
+                        .ToObject<SegmentValidation[]>(serializer));
+            }
+            else
+            {
+                // default value of validation is an empty list if not present
+                botSegment.validations = new List<SegmentValidation>();
             }
 
             return botSegment;

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using RegressionGames.StateRecorder.JsonConverters;
+using StateRecorder.BotSegments.Models;
 
 namespace RegressionGames.StateRecorder.BotSegments.Models
 {
@@ -36,6 +37,11 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
          */
         public string description;
         public List<BotSegment> segments = new();
+
+        /**
+         * <summary>A set of top-level validations to run on this list of segments</summary>
+         */
+        public List<SegmentValidation> validations = new();
 
         internal BotSegmentList()
         {

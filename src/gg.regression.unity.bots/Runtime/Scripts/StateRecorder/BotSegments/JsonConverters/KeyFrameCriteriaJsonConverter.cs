@@ -43,6 +43,9 @@ namespace RegressionGames.StateRecorder.BotSegments.JsonConverters
                 case KeyFrameCriteriaType.ActionComplete:
                     data = jObject["data"].ToObject<ActionCompleteKeyFrameCriteriaData>(serializer);
                     break;
+                case KeyFrameCriteriaType.ValidationsComplete:
+                    data = jObject["data"].ToObject<ValidationsCompleteKeyFrameCriteriaData>(serializer);
+                    break;
                 case KeyFrameCriteriaType.CVObjectDetection:
                     data = jObject["data"].ToObject<CVObjectDetectionKeyFrameCriteriaData>(serializer);
                     break;
