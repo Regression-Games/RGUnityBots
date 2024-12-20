@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using JetBrains.Annotations;
 using RegressionGames.StateRecorder.BotSegments.Models.BotCriteria;
 using RegressionGames.StateRecorder.JsonConverters;
 using RegressionGames.StateRecorder.Models;
@@ -272,6 +273,18 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             stringBuilder.Append("}");
         }
 
+        private static string SegmentsDirectoryPath
+        {
+            get
+            {
+#if UNITY_EDITOR
+                return "Assets/RegressionGames/Resources/BotSegments/";
+#else
+                return Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/"
+#endif
+            }
+        }
+
         /**
          * <summary>
          * Loads all the Segments that exist in this project (for use in the Editor or in a build)
@@ -336,7 +349,7 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
 
             return segments;
         }
-
+        
         /**
          * <summary>
          * Recursively look through directories for Segment and segment list files, and load them
@@ -359,6 +372,60 @@ namespace RegressionGames.StateRecorder.BotSegments.Models
             }
 
             return results;
+        }
+        
+        /**
+         * <summary>
+         * Saves a BotSegmentList to a file
+         * </summary>
+         * <param name="segmentList">The BotSegmentList to save to file</param>
+         * <param name="resourcePath">The segment's resourcePath, if it already exists. If null, a new path will be generated for it.</param>
+         */
+        public static void SaveSegmentListAsJson(BotSegmentList segmentList, [CanBeNull] string resourcePath)
+        {
+            Directory.CreateDirectory(SegmentsDirectoryPath);
+            if (resourcePath != null)
+            {
+                // remove all text up to BotSegments/
+                var index = resourcePath.IndexOf("BotSegments/");
+                if (index != -1)
+                {
+                    resourcePath = resourcePath.Substring(index + "BotSegments/".Length);
+                }
+                resourcePath = SegmentsDirectoryPath + resourcePath + ".json";
+                File.Delete(resourcePath);
+            }
+            else
+            {
+                // generate a path for this new SegmentList
+                var generatedName = string.Join("-", segmentList.name.Split(" "));
+                foreach (var c in Path.GetInvalidPathChars())
+                {
+                    generatedName = generatedName.Replace(c, '-');
+                }
+                resourcePath = SegmentsDirectoryPath + generatedName + ".json";
+            }
+            
+            using var sw = File.CreateText(resourcePath);
+            sw.Write(segmentList.ToJsonString());
+            sw.Close();
+        }
+
+        /**
+         * <summary>
+         * Delete the BotSegment or BotSegmentList with the given resourcePath 
+         * </summary>
+         */
+        public static void Delete(string resourcePath)
+        {
+            resourcePath = resourcePath.Replace('\\', '/');
+            if (!resourcePath.StartsWith("Assets/"))
+            {
+                resourcePath = "Assets/RegressionGames/Resources/" + resourcePath;
+            }
+            resourcePath += ".json";
+
+            File.Delete(resourcePath);
         }
 
     }

@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -8,6 +11,7 @@ using System.Threading;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using RegressionGames.StateRecorder;
+using UnityEngine;
 
 namespace RegressionGames.ClientDashboard
 {
@@ -310,72 +314,120 @@ namespace RegressionGames.ClientDashboard
         
         /// <summary>
         /// Decode message from client so we can process it
+        /// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#exchanging_data_frames
         /// https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server#decoding_messages
         /// </summary>
         private static string DecodeReceivedMessage(TcpClient client)
         {
-            byte[] bytes = new byte[client.Available];
-            client.GetStream().Read(bytes, 0, bytes.Length);
-            
-            // whether the full message has been sent from the client
-            // currently not used here, but may need to consider partial frames
-            // if we end up accepting large messages from client
-            bool fin = (bytes[0] & 0b10000000) != 0; 
-            
-            // must be true, "All messages from the client to the server have this bit set"
-            bool mask = (bytes[1] & 0b10000000) != 0;
-            int opcode = bytes[0] & 0b00001111;
+            var clientStream = client.GetStream();
+            var decodedBytes = new List<byte>();
 
-            if (opcode == 8)
+            while (client.Connected)
             {
-                // this is a close frame
-                if (m_connectedClients.TryGetValue(client, out var clientActions))
+                if (client.Available == 0)
                 {
-                    clientActions.ShouldClose = true;
+                    // we check this condition before calling this method,
+                    // but we may be waiting on a continuation frame here
+                    continue;
                 }
-                return null;
-            }
-            
-            if (opcode != 1)
-            {
-                // not a text message
-                return null;
-            }
-            
-            ulong offset = 2;
-            ulong msglen = bytes[1] & (ulong)0b01111111;
+                
+                // read the first byte of the message
+                // bit 0 -> fin, whether the full message has been received
+                // bit 1-3 -> reserved, we don't care about this right now
+                // bit 4-7 -> opcode, the type of message
+                var firstByte = (byte)clientStream.ReadByte();
+                bool fin = (firstByte & 0b10000000) != 0;
+                int frameOpcode = firstByte & 0b00001111;
+                
+                switch (frameOpcode)
+                {
+                    case 0x0: // Continuation Frame
+                    case 0x1: // Text
+                    case 0x2: // Binary  
+                        break;
+                    case 0x8: // Connection close
+                    {
+                        if (m_connectedClients.TryGetValue(client, out var clientActions))
+                        {
+                            clientActions.ShouldClose = true;
+                        }
+                        return null;
+                    }
+                    default:  // Ping/Pong/Reserved
+                        continue;
+                }
+                
+                // read the second byte of the message
+                // bit 0 -> mask, should be true for client > server messages
+                // bit 1-7 -> payload length
+                var secondByte = (byte)clientStream.ReadByte();
+                bool mask = (secondByte & 0b10000000) != 0;
+                var psuedoLength = secondByte - 128;
 
-            if (msglen == 126)
-            {
-                // bytes are reversed because websocket will print them in Big-Endian, whereas
-                // BitConverter will want them arranged in little-endian on windows
-                msglen = BitConverter.ToUInt16(new byte[] { bytes[3], bytes[2] }, 0);
-                offset = 4;
-            }
-            else if (msglen == 127)
-            {
-                // To test the below code, we need to manually buffer larger messages — since the NIC's autobuffering
-                // may be too latency-friendly for this code to run (that is, we may have only some of the bytes in this
-                // websocket frame available through client.Available).
-                msglen = BitConverter.ToUInt64(new byte[] {
-                        bytes[9], bytes[8], bytes[7], bytes[6], bytes[5], bytes[4], bytes[3], bytes[2]
+                // to get the actual length of the payload, we need to interpret the psuedo length from the header
+                int payloadLength = 0;
+
+                if (psuedoLength > 0 && psuedoLength <= 125)
+                {
+                    // if length doesn't exceed 125,
+                    // then this is the actual length of the payload
+                    payloadLength = psuedoLength;
+                }
+                else if (psuedoLength == 126)
+                {
+                    // Actual length will be the next 2 bytes
+                    var lengthBytes = new byte[2];
+                    clientStream.Read(lengthBytes, 0, lengthBytes.Length);
+                    
+                    // bytes are reversed because websocket will print them in Big-Endian, whereas
+                    // BitConverter will want them arranged in little-endian on windows
+                    payloadLength = BitConverter.ToUInt16(new byte[] { lengthBytes[1], lengthBytes[0] }, 0);
+                } 
+                else if (psuedoLength == 127)
+                {
+                    // Actual length will be the next 8 bytes
+                    var lengthBytes = new byte[8];
+                    clientStream.Read(lengthBytes, 0, lengthBytes.Length);
+                    
+                    // bytes are reversed because websocket will print them in Big-Endian, whereas
+                    // BitConverter will want them arranged in little-endian on windows
+                    payloadLength = (int)BitConverter.ToUInt64(new byte[] {
+                        lengthBytes[7], lengthBytes[6], lengthBytes[5], lengthBytes[4],
+                        lengthBytes[3], lengthBytes[2], lengthBytes[1], lengthBytes[0]
                     }, 0);
-                offset = 10;
-            }
-
-            if (msglen > 0 && mask)
-            {
-                byte[] decoded = new byte[msglen];
-                byte[] masks = new byte[4] { bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3] };
-                offset += 4;
-
-                for (ulong i = 0; i < msglen; ++i)
-                {
-                    decoded[i] = (byte)(bytes[offset + i] ^ masks[i % 4]);
                 }
 
-                string decodedMessage = Encoding.UTF8.GetString(decoded);
-                return decodedMessage;
+                // for now we're assuming client-sent messages are masked
+                // determine the masking key from the next 4 bytes
+                // this will be used to decode the message
+                var maskingKey = new byte[4];
+                clientStream.Read(maskingKey, 0, maskingKey.Length);
+                
+                if (payloadLength == 0)
+                {
+                    // no payload, so we're done
+                    return null;
+                }
+                
+                // read the payload
+                // and decode it using the masking key
+                var payload = new byte[payloadLength];
+                clientStream.Read(payload, 0, payloadLength);
+                
+                for (int i = 0; i < payload.Length; ++i)
+                {
+                    decodedBytes.Add((byte)(payload[i] ^ maskingKey[i % 4]));
+                }
+
+                if (!fin)
+                {
+                    // if this isn't the complete message,
+                    // then we need to wait for the continuation frame
+                    continue;
+                }
+                
+                // we have the full message, so return it as a string
+                return Encoding.UTF8.GetString(decodedBytes.ToArray());
             }
 
             return null;
@@ -408,15 +460,16 @@ namespace RegressionGames.ClientDashboard
             }
             else
             {
-                frame[1] = (byte)127;
-                frame[2] = (byte)((length >> 56) & 255);
-                frame[3] = (byte)((length >> 48) & 255);
-                frame[4] = (byte)((length >> 40) & 255);
-                frame[5] = (byte)((length >> 32) & 255);
-                frame[6] = (byte)((length >> 24) & 255);
-                frame[7] = (byte)((length >> 16) & 255);
-                frame[8] = (byte)((length >> 8) & 255);
-                frame[9] = (byte)(length & 255);
+                var lengthAsULong = Convert.ToUInt64(length);
+                frame[1] = 127;
+                frame[2] = (byte)((lengthAsULong >> 56) & 255);
+                frame[3] = (byte)((lengthAsULong >> 48) & 255);
+                frame[4] = (byte)((lengthAsULong >> 40) & 255);
+                frame[5] = (byte)((lengthAsULong >> 32) & 255);
+                frame[6] = (byte)((lengthAsULong >> 24) & 255);
+                frame[7] = (byte)((lengthAsULong >> 16) & 255);
+                frame[8] = (byte)((lengthAsULong >> 8) & 255);
+                frame[9] = (byte)(lengthAsULong & 255);
                 indexStartRawData = 10;
             }
 

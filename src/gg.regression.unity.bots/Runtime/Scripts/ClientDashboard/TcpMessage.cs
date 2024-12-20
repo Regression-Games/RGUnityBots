@@ -10,39 +10,6 @@ using RegressionGames.StateRecorder.JsonConverters;
 
 namespace RegressionGames.ClientDashboard
 {
-    public enum TcpMessageType
-    {
-        // =====================
-        // client -> server
-        // =====================
-        
-        Ping,
-        
-        // client requests to play a resource with the given resourcePath
-        PlaySequence,
-        PlaySegment,
-        
-        // stops any currently-running sequence/segments
-        StopReplay,
-        
-        // =====================
-        // server -> client
-        // =====================
-        
-        Pong,
-        
-        // info about the available file-based resources for this game instance
-        AvailableSequences,
-        AvailableSegments,
-        
-        // info about the currently-running sequence (or segment)
-        ActiveSequence,
-        
-        // sent prior to closing Unity windows.
-        // this tells any running client windows to also close.
-        CloseConnection
-    }
-
     public interface ITcpMessageData : IStringBuilderWriteable { }
     
     /// <summary>
@@ -148,6 +115,8 @@ namespace RegressionGames.ClientDashboard
                 IntJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.apiVersion);
                 
                 // not normally serialized
+                stringBuilder.Append(",\"path\":");
+                StringJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.path);
                 stringBuilder.Append(",\"resourcePath\":");
                 StringJsonConverter.WriteToStringBuilder(stringBuilder, currentSegment.resourcePath);
                 stringBuilder.Append(",\"type\":");
@@ -177,6 +146,93 @@ namespace RegressionGames.ClientDashboard
     
     [Serializable]
     public class PlayResourceTcpMessageData : ITcpMessageData
+    {
+        public string resourcePath;
+        
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"resourcePath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, resourcePath);
+            stringBuilder.Append("}");
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(1000);
+            WriteToStringBuilder(sb);
+            return sb.ToString();
+        }
+    }
+    
+    [Serializable]
+    public class RequestResourceContentsTcpMessageData : ITcpMessageData
+    {
+        public string resourcePath;
+        
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"resourcePath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, resourcePath);
+            stringBuilder.Append("}");
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(1000);
+            WriteToStringBuilder(sb);
+            return sb.ToString();
+        }
+    }
+    
+    [Serializable]
+    public class SendJsonTcpMessageData : ITcpMessageData
+    {
+        /**
+         * The JSON object to send.
+         * This should be a string that has already been serialized using a WriteToStringBuilder implementation
+         */
+        public string jsonContent;
+        
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"jsonObject\":");
+            stringBuilder.Append(jsonContent); 
+            stringBuilder.Append("}");
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(1000);
+            WriteToStringBuilder(sb);
+            return sb.ToString();
+        }
+    }
+
+    [Serializable]
+    public class SaveSegmentListTcpMessageData : ITcpMessageData
+    {
+        public BotSegmentList segmentList;
+        [CanBeNull] public string resourcePath;
+        
+        public void WriteToStringBuilder(StringBuilder stringBuilder)
+        {
+            stringBuilder.Append("{\"segmentList\":");
+            segmentList.WriteToStringBuilder(stringBuilder);
+            stringBuilder.Append(",\"resourcePath\":");
+            StringJsonConverter.WriteToStringBuilder(stringBuilder, resourcePath);
+            stringBuilder.Append("}");
+        }
+        
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(1000);
+            WriteToStringBuilder(sb);
+            return sb.ToString();
+        }
+    }
+    
+    [Serializable]
+    public class DeleteSegmentTcpMessageData : ITcpMessageData
     {
         public string resourcePath;
         

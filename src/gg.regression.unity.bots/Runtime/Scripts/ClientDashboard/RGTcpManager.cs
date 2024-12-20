@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -236,6 +237,32 @@ namespace RegressionGames.ClientDashboard
                     m_shouldStopReplay = true;
                     break;
                 }
+                case TcpMessageType.RequestSequenceJson:
+                {
+                    var payload = (RequestResourceContentsTcpMessageData) message.payload;
+                    SendSequenceJson(payload.resourcePath, client);
+                    break;
+                }
+                case TcpMessageType.RequestSegmentJson:
+                {
+                    var payload = (RequestResourceContentsTcpMessageData) message.payload;
+                    SendSegmentJson(payload.resourcePath, client);
+                    break;
+                }
+                case TcpMessageType.SaveSegment:
+                {
+                    var payload = (SaveSegmentListTcpMessageData) message.payload;
+                    BotSegment.SaveSegmentListAsJson(payload.segmentList, payload.resourcePath);
+                    ProcessAndSendSegments();
+                    break;
+                }
+                case TcpMessageType.DeleteSegment:
+                {
+                    var payload = (DeleteSegmentTcpMessageData) message.payload;
+                    BotSegment.Delete(payload.resourcePath);
+                    ProcessAndSendSegments();
+                    break;
+                }
             }
         }
         
@@ -251,12 +278,6 @@ namespace RegressionGames.ClientDashboard
         {
             m_availableBotSequences = sequences.Select(kvp => new AvailableBotSequence(kvp.Key, kvp.Value.Item2)).ToList();
             SendAvailableSequences();
-        }
-        
-        private static void ProcessAndSendSegments()
-        {
-            m_availableBotSegments = BotSegment.LoadAllSegments().Values.Select(seg => seg.Item2).ToList();
-            SendAvailableSegments();
         }
         
         /// <summary>
@@ -298,6 +319,16 @@ namespace RegressionGames.ClientDashboard
         
         #endregion
 
+        #region Bot Segments
+        
+        private static void ProcessAndSendSegments()
+        {
+            m_availableBotSegments = BotSegment.LoadAllSegments().Values.Select(seg => seg.Item2).ToList();
+            SendAvailableSegments();
+        }
+        
+        #endregion
+
         #region Send Messages
 
         private static void SendAvailableSequences([CanBeNull] TcpClient client = null)
@@ -334,6 +365,45 @@ namespace RegressionGames.ClientDashboard
                 payload = new ActiveSequenceTcpMessageData
                 {
                     activeSequence = m_activeSequence
+                }
+            };
+            RGTcpServer.QueueMessage(message, client);
+        }
+
+        private static void SendSequenceJson(string resourcePath, TcpClient client)
+        {
+            var botSequenceJson = BotSequence.LoadJsonResource(resourcePath).Item3;
+            var message = new TcpMessage
+            {
+                type = TcpMessageType.SendSequenceJson,
+                payload = new SendJsonTcpMessageData
+                {
+                    jsonContent = botSequenceJson
+                }
+            };
+            RGTcpServer.QueueMessage(message, client);
+        }
+        
+        private static void SendSegmentJson(string resourcePath, TcpClient client)
+        {
+            var botSegment = BotSequence.LoadBotSegmentOrBotSegmentListFromPath(resourcePath);
+            
+            var jsonContent = "";
+            if (botSegment.Item3 is BotSegment segment)
+            {
+                jsonContent = segment.ToJsonString();
+            }
+            else if (botSegment.Item3 is BotSegmentList segmentList)
+            {
+                jsonContent = segmentList.ToJsonString();
+            }
+           
+            var message = new TcpMessage
+            {
+                type = TcpMessageType.SendSegmentJson,
+                payload = new SendJsonTcpMessageData
+                {
+                    jsonContent = jsonContent,
                 }
             };
             RGTcpServer.QueueMessage(message, client);
