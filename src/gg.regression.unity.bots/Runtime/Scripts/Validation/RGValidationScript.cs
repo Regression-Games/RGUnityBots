@@ -65,11 +65,23 @@ namespace RegressionGames.Validation
             
         }
 
+        /**
+         * <summary>
+         * Marking this validation as evaluating to true. This is one of the main "assert"-type methods to use
+         * when writing your validations.
+         * </summary>
+         */
         public void AssertAsTrue(string message = null)
         {
             currentStatus = SegmentValidationStatus.PASSED;
         }
 
+        /**
+         * <summary>
+         * Marking this validation as evaluating to false. This is one of the main "assert"-type methods to use
+         * when writing your validations.
+         * </summary>
+         */
         public void AssertAsFalse(string message = null)
         {
             currentStatus = SegmentValidationStatus.FAILED;
@@ -189,14 +201,6 @@ namespace RegressionGames.Validation
                     // Debug.LogError($"Validation method {validator.Method.Name} is now passing.");
                     currentValidator.Status = SegmentValidationStatus.PASSED;
                     OnValidationsUpdated?.Invoke();
-                } 
-                else if (currentValidator.Mode == ValidationMode.ONCE_TRUE_ALWAYS_TRUE &&
-                         currentValidator.Status == SegmentValidationStatus.UNKNOWN &&
-                         currentStatus == SegmentValidationStatus.FAILED)
-                {
-                    // Debug.LogError($"Validation method {validator.Method.Name} has now failed.");
-                    currentValidator.Status = SegmentValidationStatus.FAILED;
-                    OnValidationsUpdated?.Invoke();
                 }
 
             }
@@ -240,8 +244,8 @@ namespace RegressionGames.Validation
                 }
                 else if (validator.Mode == ValidationMode.ONCE_TRUE_ALWAYS_TRUE && validator.Status == SegmentValidationStatus.UNKNOWN)
                 {
-                    //Debug.LogError($"Validation method {validator.Method.Name} was never passed or failed, so it is technically passed.");
-                    validator.Status = SegmentValidationStatus.PASSED;
+                    //Debug.LogError($"Validation method {validator.Method.Name} was never passed or failed, so it is technically failed.");
+                    validator.Status = SegmentValidationStatus.FAILED;
                     OnValidationsUpdated?.Invoke();
                 }
             }
