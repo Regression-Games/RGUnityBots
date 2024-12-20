@@ -117,7 +117,6 @@ namespace RegressionGames.StateRecorder.BotSegments
                         _previousBotSegmentListValidations = validations;
                     }
                     
-                    // TODO(Q for Zack): I think this check for this individual segment should go in this index = 0 check - is that correct?
                     // Check that the individual bot segment validations, segment list validations, and sequence validations
                     // are ready to go. Only continue after that.
                     if (!EnsureValidationsAreReady(nextBotSegment.validations, nextBotSegment.Replay_SegmentNumber)
