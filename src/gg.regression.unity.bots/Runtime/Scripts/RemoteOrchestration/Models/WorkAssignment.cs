@@ -91,8 +91,8 @@ namespace RegressionGames.RemoteOrchestration.Models
                 var activeBotSequence = RGRemoteWorkerBehaviour.GetActiveBotSequence();
                 if (activeBotSequence == null)
                 {
-                    var playbackController = UnityEngine.Object.FindObjectOfType<BotSegmentsPlaybackController>();
-                    var lastWarning = playbackController.GetLastSegmentPlaybackWarning();
+                    var statusManager = UnityEngine.Object.FindObjectOfType<BotSegmentPlaybackStatusManager>();
+                    var lastWarning = statusManager.LastError();
                     // ended
                     if (lastWarning != null)
                     {
