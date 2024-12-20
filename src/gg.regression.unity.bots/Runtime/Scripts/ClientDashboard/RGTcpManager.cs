@@ -252,13 +252,15 @@ namespace RegressionGames.ClientDashboard
                 case TcpMessageType.SaveSegment:
                 {
                     var payload = (SaveSegmentListTcpMessageData) message.payload;
-                    SaveSegment(payload.segmentList, payload.resourcePath);
+                    BotSegment.SaveSegmentListAsJson(payload.segmentList, payload.resourcePath);
+                    ProcessAndSendSegments();
                     break;
                 }
                 case TcpMessageType.DeleteSegment:
                 {
                     var payload = (DeleteSegmentTcpMessageData) message.payload;
-                    DeleteSegment(payload.resourcePath);
+                    BotSegment.Delete(payload.resourcePath);
+                    ProcessAndSendSegments();
                     break;
                 }
             }
@@ -323,64 +325,6 @@ namespace RegressionGames.ClientDashboard
         {
             m_availableBotSegments = BotSegment.LoadAllSegments().Values.Select(seg => seg.Item2).ToList();
             SendAvailableSegments();
-        }
-
-        private static void SaveSegment(BotSegmentList segmentList, [CanBeNull] string resourcePath)
-        {
-            string directoryPath = null;
-            
-#if UNITY_EDITOR
-            directoryPath = "Assets/RegressionGames/Resources/BotSegments/";
-#else
-                directoryPath = Application.persistentDataPath + "/RegressionGames/Resources/BotSegments/";
-#endif
-            Directory.CreateDirectory(directoryPath);
-
-            if (resourcePath != null)
-            {
-                // remove all text up to BotSegments/
-                var index = resourcePath.IndexOf("BotSegments/");
-                if (index != -1)
-                {
-                    resourcePath = resourcePath.Substring(index + "BotSegments/".Length);
-                }
-                resourcePath = directoryPath + resourcePath + ".json";
-                
-                File.Delete(resourcePath);
-                using var sw = File.CreateText(resourcePath);
-                sw.Write(segmentList.ToJsonString());
-                sw.Close();
-            }
-            else
-            {
-                // generate a path for this new SegmentList
-                var filepath = string.Join("-", segmentList.name.Split(" "));
-                foreach (var c in Path.GetInvalidPathChars())
-                {
-                    filepath = filepath.Replace(c, '-');
-                }
-                filepath = directoryPath + "/" + filepath + ".json";
-            
-                using var sw = File.CreateText(filepath);
-                sw.Write(segmentList.ToJsonString());
-                sw.Close();
-            }
-            
-            // then refresh the list of available segments
-            ProcessAndSendSegments();
-        }
-        
-        private static void DeleteSegment(string resourcePath)
-        {
-            resourcePath = resourcePath.Replace('\\', '/');
-            if (!resourcePath.StartsWith("Assets/"))
-            {
-                resourcePath = "Assets/RegressionGames/Resources/" + resourcePath;
-            }
-            resourcePath += ".json";
-
-            File.Delete(resourcePath);
-            ProcessAndSendSegments();
         }
         
         #endregion
