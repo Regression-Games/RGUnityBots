@@ -14,31 +14,23 @@ namespace RegressionGames.StateRecorder
 
         public void Reset()
         {
+            _previousMouseEvent = null;
             _keyMomentNumber = 1;
         }
 
-        // Future: We may change this to allow easier registration of evaluators by scanning the classpath... we already do a pattern like this in other code in the SDK, so should be easy to add in later
-        // Most of this class is where future work for new recording of key moments for keyboard inputs or actions will be glued in.  This class WILL change its implementation quite a bit as those pieces are added and we see what patterns work best.
-        private readonly IKeyMomentEvaluator[] _keyMomentEvaluators = {
-            new MouseKeyMomentEvaluator()
-        };
+        private readonly MouseKeyMomentEvaluator _mouseKeyMomentEvaluator = new();
+        private readonly CVImageMouseKeyMomentEvaluator _cvImageMouseKeyMomentEvaluator = new();
 
         [CanBeNull]
         public BotSegment EvaluateKeyMoment(long tickNumber, out long keyMomentNumber)
         {
-            // Future: This currently considers that only 1 key moment action will be return per segment.  Maybe this is fine, but we may need to handle returning multiple segments for a single pass at some point,
+            // Future Consideration ???: This currently considers that only 1 key moment action will be returned per segment.  Maybe this is fine, but we may need to handle returning multiple segments for a single pass at some point,
             // or maybe better would be smashing these into a BotSegmentList.  Since it would be ambiguous to try to replay N actions at the same time, these will have to be sequenced in some way, OR we'll need to create
             // evaluator/action-class pairs that blend things as we need.  (ie: Mouse/Keyboard interleaving, Mouse/GameAction interleaving, etc)  TBD if this is a real thing or just a possibility being considered.
             keyMomentNumber = _keyMomentNumber;
-            BotSegment result = null;
-            foreach (var keyMomentEvaluator in _keyMomentEvaluators)
-            {
-                var segment = keyMomentEvaluator.IsKeyMoment(tickNumber, _keyMomentNumber);
-                if (segment != null)
-                {
-                    result = segment;
-                }
-            }
+
+            var result = _mouseKeyMomentEvaluator.IsKeyMoment(tickNumber, _keyMomentNumber);
+            result ??= _cvImageMouseKeyMomentEvaluator.IsKeyMoment(tickNumber, _keyMomentNumber);
 
             if (result != null)
             {
@@ -50,15 +42,60 @@ namespace RegressionGames.StateRecorder
             return result;
         }
 
-        public void UpdateMouseInputData(List<MouseInputActionData> mouseInputData)
+        private MouseInputActionData _previousMouseEvent = null;
+
+        public void UpdateMouseInputData(long tickNumber, List<MouseInputActionData> mouseInputDataList)
         {
-            foreach (var keyMomentEvaluator in _keyMomentEvaluators)
+            var mouseInputDataListCount = mouseInputDataList.Count;
+            if (mouseInputDataListCount > 0)
             {
-                if (keyMomentEvaluator is MouseKeyMomentEvaluator mouseKeyMomentEvaluator)
+                // figure out how many click/un-click events are in this buffer update and add that many copies of the screenshot to the queue
+                // ideally each update would have no more than 1 click or un-click but ya never know with how input happens
+                var ssCount = 0;
+                var priorMouseInputData = _previousMouseEvent;
+                for (var i = 0; i < mouseInputDataListCount; i++)
                 {
-                    mouseKeyMomentEvaluator.MouseDataBuffer.AddRange(mouseInputData);
-                    break;
+                    var mouseInputData = mouseInputDataList[i];
+                    if (mouseInputData.IsButtonClick(priorMouseInputData))
+                    {
+                        // add the previousEvent + our click
+                        if (priorMouseInputData != null)
+                        {
+                            _mouseKeyMomentEvaluator.MouseDataBuffer.Add(priorMouseInputData);
+                            _cvImageMouseKeyMomentEvaluator.MouseDataBuffer.Add(priorMouseInputData);
+                        }
+
+                        _mouseKeyMomentEvaluator.MouseDataBuffer.Add(mouseInputData);
+                        _cvImageMouseKeyMomentEvaluator.MouseDataBuffer.Add(mouseInputData);
+                        ++ssCount;
+                    }
+                    else if (mouseInputData.IsButtonUnClick(priorMouseInputData))
+                    {
+                        _mouseKeyMomentEvaluator.MouseDataBuffer.Add(mouseInputData);
+                        _cvImageMouseKeyMomentEvaluator.MouseDataBuffer.Add(mouseInputData);
+                        ++ssCount;
+                    }
+
+                    priorMouseInputData = mouseInputData;
                 }
+
+                if (ssCount > 0)
+                {
+                    ScreenshotCapture.GetInstance().GetCurrentScreenshotWithCallback(
+                        tickNumber,
+                        (result) =>
+                        {
+                            if (result.HasValue)
+                            {
+                                for (int j = 0; j < ssCount; j++)
+                                {
+                                    _cvImageMouseKeyMomentEvaluator.ImageBuffer.Add(result.Value);
+                                }
+                            }
+                        });
+                }
+
+                _previousMouseEvent = mouseInputDataList[^1];
             }
         }
     }

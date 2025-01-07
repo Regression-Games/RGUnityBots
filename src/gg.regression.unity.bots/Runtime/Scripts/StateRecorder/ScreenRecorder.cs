@@ -78,7 +78,7 @@ namespace RegressionGames.StateRecorder
         private string _currentGameplaySessionDirectoryPrefix;
         private string _currentGameplaySessionScreenshotsDirectoryPrefix;
         private string _currentGameplaySessionBotSegmentsDirectoryPrefix;
-        private string _currentGameplaySessionKeyMomentsDirectoryPrefix;
+        public static string _currentGameplaySessionKeyMomentsDirectoryPrefix;
         private string _currentGameplaySessionMetadataDirectoryPrefix;
         private string _currentGameplaySessionDataDirectoryPrefix;
         private string _currentGameplaySessionCodeCoverageMetadataPath;
@@ -902,7 +902,7 @@ namespace RegressionGames.StateRecorder
 
                     var mouseInputData = _mouseObserver.FlushInputDataBuffer(endRecordingFromToolbarButton);
                     _segmentMouseDataBuffer.AddRange(mouseInputData);
-                    _keyMomentEvaluator.UpdateMouseInputData(mouseInputData);
+                    _keyMomentEvaluator.UpdateMouseInputData(_tickNumber, mouseInputData);
 
                     // Compute key moment criteria / action
                     var keyMomentBotSegment = _keyMomentEvaluator.EvaluateKeyMoment(_tickNumber, out var keyMomentNumber);
@@ -910,7 +910,7 @@ namespace RegressionGames.StateRecorder
                     {
                         // write out the botSegment
                         var jsonData = Encoding.UTF8.GetBytes(keyMomentBotSegment.ToKeyMomentJsonString());
-                        RecordKeyMoment(_currentGameplaySessionKeyMomentsDirectoryPrefix, keyMomentNumber, jsonData);
+                        PersistKeyMoment(_currentGameplaySessionKeyMomentsDirectoryPrefix, keyMomentNumber, jsonData);
                     }
 
                     // estimating the time in int milliseconds .. won't exactly match target FPS.. but will be close
@@ -1223,7 +1223,7 @@ namespace RegressionGames.StateRecorder
                     if (endRecording || _loggingObserver.QueueLength() > 1000)
                     {
                         logs = _loggingObserver.DequeueLogs();
-                        RecordLogs(_currentGameplaySessionDirectoryPrefix, ++_tickNumber, logs);
+                        PersistLogs(_currentGameplaySessionDirectoryPrefix, ++_tickNumber, logs);
                     }
                 }
             }
@@ -1275,13 +1275,13 @@ namespace RegressionGames.StateRecorder
         {
             var directoryPrefix = tickData.directoryPrefix;
             var tickNumber = tickData.tickNumber;
-            RecordBotSegment(directoryPrefix, tickNumber, tickData.botSegmentJson);
-            RecordJson(directoryPrefix, tickNumber, tickData.jsonData);
-            RecordJPG(directoryPrefix, tickNumber, tickData.screenshotData);
-            RecordLogs(directoryPrefix, tickNumber, tickData.logs);
+            PersistBotSegment(directoryPrefix, tickNumber, tickData.botSegmentJson);
+            PersistJson(directoryPrefix, tickNumber, tickData.jsonData);
+            PersistJPG(directoryPrefix, tickNumber, tickData.screenshotData);
+            PersistLogs(directoryPrefix, tickNumber, tickData.logs);
         }
 
-        private void RecordJPG(string directoryPath, long tickNumber, byte[] tickScreenshotData)
+        private void PersistJPG(string directoryPath, long tickNumber, byte[] tickScreenshotData)
         {
             if (tickScreenshotData != null)
             {
@@ -1308,7 +1308,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void RecordJson(string directoryPath, long tickNumber, byte[] jsonData)
+        private void PersistJson(string directoryPath, long tickNumber, byte[] jsonData)
         {
             try
             {
@@ -1337,7 +1337,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void RecordKeyMoment(string directoryPath, long keyMomentNumber, byte[] jsonData)
+        private void PersistKeyMoment(string directoryPath, long keyMomentNumber, byte[] jsonData)
         {
             try
             {
@@ -1366,7 +1366,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void RecordBotSegment(string directoryPath, long tickNumber, byte[] jsonData)
+        private void PersistBotSegment(string directoryPath, long tickNumber, byte[] jsonData)
         {
             try
             {
@@ -1395,7 +1395,7 @@ namespace RegressionGames.StateRecorder
             }
         }
 
-        private void RecordLogs(string directoryPath, long tickNumber, string logs)
+        private void PersistLogs(string directoryPath, long tickNumber, string logs)
         {
             try
             {

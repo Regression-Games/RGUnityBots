@@ -263,7 +263,7 @@ namespace RegressionGames.StateRecorder
          */
         public void GetCurrentScreenshotWithCallback(long segmentNumber, Action<(byte[], int, int)?> onCompletion)
         {
-            
+
             // When we don't have graphics available, we immediate invoke the callback with a null value. With how
             // we use this function now, this needs to happen so the tick data writing task correctly saves the
             // resulting data.
@@ -272,7 +272,7 @@ namespace RegressionGames.StateRecorder
                 onCompletion.Invoke(null);
                 return;
             }
-            
+
             var frame = UnityEngine.Time.frameCount;
             lock (SyncLock)
             {
@@ -385,7 +385,7 @@ namespace RegressionGames.StateRecorder
 
 
         /**
-         * <summary>Returns byte[] array of the pixels IF there is a valid screenshot buffered for a frame within MaxCurrentScreenshotAge of this frame.
+         * <summary>Returns byte[] array of the pixels encoded as a JPG, IF there is a valid screenshot buffered for a frame within MaxCurrentScreenshotAge of this frame.
          * If not buffered, starts a new readback request</summary>
          */
         public byte[] GetCurrentScreenshot(long segmentNumber, out int width, out int height)

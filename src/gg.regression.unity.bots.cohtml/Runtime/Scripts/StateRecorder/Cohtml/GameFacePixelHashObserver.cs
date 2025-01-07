@@ -39,7 +39,7 @@ namespace RegressionGames.StateRecorder.Cohtml
                     var existingInstance = _cohtmlViewInstance.gameObject.GetComponent<GameFacePixelHashObserver>();
                     if (existingInstance == null)
                     {
-                        transform.parent = _cohtmlViewInstance.transform;
+                        transform.SetParent(_cohtmlViewInstance.transform);
                         GetRenderTexture(); // just to force loading of any refs just in case
                         RenderPipelineManager.endFrameRendering += OnEndFrame;
                     }

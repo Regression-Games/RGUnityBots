@@ -14,7 +14,8 @@
         RestartGame,
         QuitGame,
         QLearning,
-        KeyMoment_MouseAction
+        KeyMoment_MouseAction,
+        KeyMoment_MouseAction_CVImage
 
     }
 }

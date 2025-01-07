@@ -82,6 +82,12 @@ namespace RegressionGames.StateRecorder.Models
                    || Math.Abs(priorState.scroll.x - scroll.x) >= 0.1f;
         }
 
+        public bool IsButtonClick(MouseInputActionData priorState)
+        {
+            // cheeky - use the un-click logic in reverse
+            return (priorState == null && IsButtonClicked) || (priorState!= null && priorState.IsButtonUnClick(this));
+        }
+
         public void ReplayReset()
         {
             Replay_IsDone = false;
